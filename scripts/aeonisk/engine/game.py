@@ -4,11 +4,18 @@ Game engine module for the Aeonisk YAGS toolkit.
 This module provides the core game mechanics and rules implementation for the YAGS system.
 """
 
+import json
 import random
 import logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple, Union
+import datetime
+from typing import Dict, List, Any, Optional, Tuple, Union, cast
 
+from pydantic import ValidationError
+
+from aeonisk.core.models import (
+    Character, NPC, Scenario, GameSession as GameSessionModel,
+    PlayerAction, SkillCheck, DatasetEntry
+)
 from aeonisk.dataset.parser import DatasetParser
 from aeonisk.openai import client as openai_client
 
@@ -17,82 +24,48 @@ from aeonisk.openai import client as openai_client
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class Character:
-    """Represents a character in the game."""
-    name: str
-    concept: str
-    attributes: Dict[str, int]
-    skills: Dict[str, int]
-    void_score: int = 0
-    soulcredit: int = 0
-    bonds: List[Dict[str, Any]] = field(default_factory=list)
-    true_will: Optional[str] = None
-    equipment: List[Dict[str, Any]] = field(default_factory=list)
-    
-    def get_attribute(self, name: str) -> int:
-        """Get the value of an attribute."""
-        return self.attributes.get(name, 0)
-    
-    def get_skill(self, name: str) -> int:
-        """Get the value of a skill."""
-        return self.skills.get(name, 0)
-    
-    def skill_check(self, attribute: str, skill: str, difficulty: int) -> Tuple[bool, int]:
-        """
-        Perform a skill check.
-        
-        Args:
-            attribute: The attribute to use.
-            skill: The skill to use.
-            difficulty: The difficulty of the check.
-            
-        Returns:
-            A tuple of (success, margin), where success is a boolean indicating
-            whether the check succeeded, and margin is the amount by which the
-            check succeeded or failed.
-        """
-        attribute_value = self.get_attribute(attribute)
-        skill_value = self.get_skill(skill)
-        
-        # Calculate ability
-        ability = attribute_value * skill_value
-        
-        # Roll d20
-        roll = random.randint(1, 20)
-        
-        # Check for fumble
-        if roll == 1:
-            return False, difficulty - ability - roll
-        
-        # Calculate total
-        total = ability + roll
-        
-        # Check for success
-        success = total >= difficulty
-        margin = total - difficulty
-        
-        return success, margin
-
-
-@dataclass
 class GameSession:
     """Represents a game session."""
-    characters: List[Character] = field(default_factory=list)
-    npcs: List[Dict[str, Any]] = field(default_factory=list)
-    scenario: Optional[Dict[str, Any]] = None
-    dataset: Optional[Dict[str, Any]] = None
     
-    def __post_init__(self):
+    def __init__(self):
         """Initialize the game session."""
-        # Load the dataset if not provided
-        if self.dataset is None:
-            try:
-                parser = DatasetParser()
-                self.dataset = parser.parse_file("datasets/aeonisk-dataset-v1.0.1.txt")
-                logger.info("Loaded default dataset")
-            except Exception as e:
-                logger.warning(f"Failed to load default dataset: {str(e)}")
+        self._model = GameSessionModel()
+        self._load_dataset()
+    
+    def _load_dataset(self):
+        """Load the default dataset."""
+        try:
+            parser = DatasetParser()
+            self.dataset = parser.parse_file("datasets/aeonisk-dataset-v1.0.1.txt")
+            logger.info("Loaded default dataset")
+        except Exception as e:
+            logger.warning(f"Failed to load default dataset: {str(e)}")
+            self.dataset = None
+    
+    @property
+    def characters(self) -> List[Character]:
+        """Get the characters in the session."""
+        return self._model.characters
+    
+    @property
+    def npcs(self) -> List[NPC]:
+        """Get the NPCs in the session."""
+        return self._model.npcs
+    
+    @property
+    def scenario(self) -> Optional[Scenario]:
+        """Get the current scenario."""
+        return self._model.scenario
+    
+    @property
+    def actions(self) -> List[PlayerAction]:
+        """Get the player actions in the session."""
+        return self._model.actions
+    
+    @property
+    def current_character(self) -> Optional[Character]:
+        """Get the currently selected character."""
+        return self._model.current_character
     
     def load_character(self, file_path: str) -> Character:
         """
@@ -105,35 +78,24 @@ class GameSession:
             The loaded character.
         """
         try:
-            # For now, we'll just create a simple character
-            # In a real implementation, this would parse the character file
-            character = Character(
-                name="Example Character",
-                concept="Test Character",
-                attributes={
-                    "Strength": 3,
-                    "Health": 3,
-                    "Agility": 3,
-                    "Dexterity": 3,
-                    "Perception": 3,
-                    "Intelligence": 3,
-                    "Empathy": 3,
-                    "Willpower": 3
-                },
-                skills={
-                    "Athletics": 2,
-                    "Awareness": 2,
-                    "Brawl": 2,
-                    "Charm": 2,
-                    "Guile": 2,
-                    "Sleight": 2,
-                    "Stealth": 2,
-                    "Throw": 2,
-                    "Astral_Arts": 1
-                }
-            )
-            self.characters.append(character)
+            # Load the character from a file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                char_data = json.load(f)
+            
+            # Create a Character model from the data
+            character = Character(**char_data)
+            
+            # Add the character to the session
+            self._model.characters.append(character)
+            
+            # Set as current character if it's the first one
+            if len(self._model.characters) == 1:
+                self._model.current_character_index = 0
+            
             return character
+        except ValidationError as e:
+            logger.error(f"Invalid character data: {str(e)}")
+            raise ValueError(f"Invalid character data: {str(e)}")
         except Exception as e:
             logger.error(f"Error loading character: {str(e)}")
             raise
@@ -149,33 +111,35 @@ class GameSession:
         Returns:
             The created character.
         """
-        # Create a basic character with default values
-        character = Character(
-            name=name,
-            concept=concept,
-            attributes={
-                "Strength": 3,
-                "Health": 3,
-                "Agility": 3,
-                "Dexterity": 3,
-                "Perception": 3,
-                "Intelligence": 3,
-                "Empathy": 3,
-                "Willpower": 3
-            },
-            skills={
-                "Athletics": 2,
-                "Awareness": 2,
-                "Brawl": 2,
-                "Charm": 2,
-                "Guile": 2,
-                "Sleight": 2,
-                "Stealth": 2,
-                "Throw": 2
-            }
-        )
-        self.characters.append(character)
+        # Create a Character model with default values
+        character = Character(name=name, concept=concept)
+        
+        # Add the character to the session
+        self._model.characters.append(character)
+        
+        # Set as current character if it's the first one
+        if len(self._model.characters) == 1:
+            self._model.current_character_index = 0
+        else:
+            # Otherwise, set it as the current character
+            self._model.current_character_index = len(self._model.characters) - 1
+        
         return character
+    
+    def select_character(self, index: int) -> Optional[Character]:
+        """
+        Select a character by index.
+        
+        Args:
+            index: The index of the character to select.
+            
+        Returns:
+            The selected character, or None if the index is invalid.
+        """
+        if 0 <= index < len(self._model.characters):
+            self._model.current_character_index = index
+            return self._model.current_character
+        return None
     
     def skill_check(
         self,
@@ -185,7 +149,7 @@ class GameSession:
         difficulty: int
     ) -> Tuple[bool, int, str]:
         """
-        Perform a skill check.
+        Perform a manual skill check.
         
         Args:
             character: The character performing the check.
@@ -198,7 +162,27 @@ class GameSession:
             whether the check succeeded, margin is the amount by which the check succeeded
             or failed, and description is a text description of the result.
         """
-        success, margin = character.skill_check(attribute, skill, difficulty)
+        # Get attribute and skill values
+        attribute_value = character.attributes.get(attribute, 0)
+        skill_value = character.skills.get(skill, 0)
+        
+        # Calculate ability
+        ability = attribute_value * skill_value
+        
+        # Roll d20
+        roll = random.randint(1, 20)
+        
+        # Check for fumble
+        if roll == 1:
+            success = False
+            margin = difficulty - ability - roll
+        else:
+            # Calculate total
+            total = ability + roll
+            
+            # Check for success
+            success = total >= difficulty
+            margin = total - difficulty
         
         # Generate a description of the result
         if success:
@@ -218,7 +202,36 @@ class GameSession:
             else:
                 description = f"Failure! {character.name} fails to perform the task."
         
+        # Create a SkillCheck model for the dataset
+        skill_check = SkillCheck(
+            character_name=character.name,
+            attribute=attribute,
+            skill=skill,
+            attribute_value=attribute_value,
+            skill_value=skill_value,
+            difficulty=difficulty,
+            roll=roll,
+            total=ability + roll,
+            success=success,
+            margin=margin,
+            description=description,
+            timestamp=datetime.datetime.now().isoformat()
+        )
+        
+        # Record the skill check in the dataset
+        self._record_skill_check(skill_check)
+        
         return success, margin, description
+    
+    def _record_skill_check(self, skill_check: SkillCheck):
+        """
+        Record a skill check in the dataset.
+        
+        Args:
+            skill_check: The skill check to record.
+        """
+        # TODO: Implement dataset recording
+        pass
     
     def generate_scenario(self, theme: Optional[str] = None, difficulty: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -234,20 +247,27 @@ class GameSession:
         try:
             # Convert characters to a format suitable for the OpenAI API
             character_data = []
-            for character in self.characters:
+            for character in self._model.characters:
                 character_data.append({
                     "name": character.name,
                     "concept": character.concept
                 })
             
             # Generate the scenario
-            self.scenario = openai_client.generate_scenario(
+            scenario_data = openai_client.generate_scenario(
                 theme=theme,
                 difficulty=difficulty,
                 characters=character_data
             )
             
-            return self.scenario
+            # Create a Scenario model from the data
+            try:
+                self._model.scenario = Scenario(**scenario_data)
+            except ValidationError:
+                # If validation fails, store the raw data
+                self._model.scenario = Scenario(raw_response=json.dumps(scenario_data))
+            
+            return scenario_data
         except Exception as e:
             logger.error(f"Error generating scenario: {str(e)}")
             return {"error": str(e)}
@@ -264,70 +284,112 @@ class GameSession:
             The generated NPC data.
         """
         try:
-            npc = openai_client.generate_npc(faction=faction, role=role)
-            self.npcs.append(npc)
-            return npc
+            npc_data = openai_client.generate_npc(faction=faction, role=role)
+            
+            # Create an NPC model from the data
+            try:
+                npc = NPC(**npc_data)
+                self._model.npcs.append(npc)
+            except ValidationError:
+                # If validation fails, create a basic NPC with the raw data
+                npc = NPC(
+                    name=npc_data.get("name", "Unknown NPC"),
+                    faction=faction,
+                    role=role,
+                    description=json.dumps(npc_data)
+                )
+                self._model.npcs.append(npc)
+            
+            return npc_data
         except Exception as e:
             logger.error(f"Error generating NPC: {str(e)}")
             return {"error": str(e)}
     
-    def process_player_action(self, character: Character, action: str) -> str:
+    def process_player_action(self, character: Character, action_text: str) -> str:
         """
         Process a player action using the OpenAI API.
         
         Args:
             character: The character performing the action.
-            action: The action to perform.
+            action_text: The action to perform.
             
         Returns:
-            A description of the result.
+            A formatted description of the result.
         """
+        if not character:
+            return "Error: No character selected."
+        
         try:
-            # Create a system message that describes the game state
-            system_message = (
-                f"You are the game master for an Aeonisk YAGS game. "
-                f"The character {character.name} ({character.concept}) is performing an action. "
-                f"Respond with a description of the result, considering the character's attributes and skills, "
-                f"and the core mechanics of Will, Bond, Void, and Soulcredit."
+            # Convert character to a dictionary for the API
+            character_dict = character.model_dump()
+            
+            # Convert scenario to a dictionary if available
+            scenario_dict = None
+            if self._model.scenario:
+                scenario_dict = self._model.scenario.model_dump()
+            
+            # Convert previous actions to a list of dictionaries
+            previous_actions = []
+            for action in self._model.actions[-3:]:  # Include up to 3 most recent actions
+                previous_actions.append(action.model_dump())
+            
+            # Analyze the player action
+            action_result = openai_client.analyze_player_action(
+                character=character_dict,
+                action_text=action_text,
+                scenario=scenario_dict,
+                previous_actions=previous_actions
             )
             
-            # Create a prompt that describes the action
-            prompt = (
-                f"Character: {character.name} ({character.concept})\n"
-                f"Action: {action}\n\n"
-                f"Describe the result of this action, considering the character's attributes and skills:"
+            # Update character based on the action result
+            void_change = action_result.get("void_change", 0)
+            if void_change != 0:
+                character.void_score += void_change
+                # Ensure void_score stays within bounds
+                character.void_score = max(0, min(10, character.void_score))
+            
+            sc_change = action_result.get("soulcredit_change", 0)
+            if sc_change != 0:
+                character.soulcredit += sc_change
+                # Ensure soulcredit stays within bounds
+                character.soulcredit = max(-10, min(10, character.soulcredit))
+            
+            # Create a PlayerAction model for the dataset
+            player_action = PlayerAction(
+                character_name=character.name,
+                action_text=action_text,
+                result_text=action_result.get("narrative_response", ""),
+                void_change=void_change,
+                soulcredit_change=sc_change,
+                timestamp=datetime.datetime.now().isoformat()
             )
             
-            # For each attribute and skill, add it to the prompt
-            prompt += "\n\nAttributes:"
-            for attr, value in character.attributes.items():
-                prompt += f"\n- {attr}: {value}"
+            # Add skill check if available
+            if all(k in action_result for k in ["attribute", "skill", "roll", "difficulty"]):
+                skill_check = SkillCheck(
+                    character_name=character.name,
+                    attribute=action_result["attribute"],
+                    skill=action_result["skill"],
+                    attribute_value=action_result.get("attribute_value", character.attributes.get(action_result["attribute"], 0)),
+                    skill_value=action_result.get("skill_value", character.skills.get(action_result["skill"], 0)),
+                    difficulty=action_result["difficulty"],
+                    roll=action_result["roll"],
+                    total=action_result.get("total", 0),
+                    success=action_result.get("success", False),
+                    margin=action_result.get("margin", 0),
+                    description=action_result.get("narrative_response", ""),
+                    timestamp=datetime.datetime.now().isoformat()
+                )
+                player_action.skill_checks.append(skill_check)
             
-            prompt += "\n\nSkills:"
-            for skill, value in character.skills.items():
-                prompt += f"\n- {skill}: {value}"
+            # Record the player action in the dataset
+            self._model.actions.append(player_action)
             
-            # Add additional character information
-            prompt += f"\n\nVoid Score: {character.void_score}"
-            prompt += f"\nSoulcredit: {character.soulcredit}"
-            
-            if character.true_will:
-                prompt += f"\nTrue Will: {character.true_will}"
-            
-            if character.bonds:
-                prompt += "\n\nBonds:"
-                for bond in character.bonds:
-                    prompt += f"\n- {bond.get('name', 'Unknown')}: {bond.get('type', 'Unknown')}"
-            
-            # Generate the result
-            result = openai_client.get_client().generate_text(
-                prompt=prompt,
-                system_message=system_message,
-                temperature=0.7,
-                max_tokens=500
+            # Format the response for display
+            return openai_client.format_game_response(
+                action_result=action_result,
+                character=character_dict
             )
-            
-            return result
         except Exception as e:
             logger.error(f"Error processing player action: {str(e)}")
             return f"Error: {str(e)}"
@@ -343,28 +405,10 @@ class GameSession:
             True if the session was saved successfully, False otherwise.
         """
         try:
-            # Convert the session to a dictionary
-            session_data = {
-                "characters": [
-                    {
-                        "name": character.name,
-                        "concept": character.concept,
-                        "attributes": character.attributes,
-                        "skills": character.skills,
-                        "void_score": character.void_score,
-                        "soulcredit": character.soulcredit,
-                        "bonds": character.bonds,
-                        "true_will": character.true_will,
-                        "equipment": character.equipment
-                    }
-                    for character in self.characters
-                ],
-                "npcs": self.npcs,
-                "scenario": self.scenario
-            }
+            # Convert the session model to a dictionary
+            session_data = self._model.model_dump()
             
             # Save the session to a file
-            import json
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(session_data, f, indent=2)
             
@@ -386,28 +430,15 @@ class GameSession:
         """
         try:
             # Load the session from a file
-            import json
             with open(file_path, 'r', encoding='utf-8') as f:
                 session_data = json.load(f)
             
-            # Convert the dictionary to a session
-            self.characters = [
-                Character(
-                    name=char_data["name"],
-                    concept=char_data["concept"],
-                    attributes=char_data["attributes"],
-                    skills=char_data["skills"],
-                    void_score=char_data.get("void_score", 0),
-                    soulcredit=char_data.get("soulcredit", 0),
-                    bonds=char_data.get("bonds", []),
-                    true_will=char_data.get("true_will"),
-                    equipment=char_data.get("equipment", [])
-                )
-                for char_data in session_data.get("characters", [])
-            ]
-            
-            self.npcs = session_data.get("npcs", [])
-            self.scenario = session_data.get("scenario")
+            # Create a GameSession model from the data
+            try:
+                self._model = GameSessionModel(**session_data)
+            except ValidationError as e:
+                logger.error(f"Invalid session data: {str(e)}")
+                return False
             
             logger.info(f"Session loaded from {file_path}")
             return True
