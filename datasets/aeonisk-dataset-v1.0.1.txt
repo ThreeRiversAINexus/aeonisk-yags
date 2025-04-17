@@ -1,0 +1,639 @@
+# Aeonisk RPG Glossary (Based on YAGS Module v1.0.1)
+# For Code Integration & AI Context
+attributes:
+  primary:
+    Strength:
+      abbreviation: Str
+      description: >
+        Physical power, lifting, hurting, breaking things.
+        Carrying capacity based on Str^2.
+    Health:
+      abbreviation: Hea
+      description: >
+        Endurance, fitness, resisting injury/poison/fatigue, staying conscious.
+    Agility:
+      abbreviation: Agi
+      description: >
+        Quickness, acrobatics, balance, dodging, brawling.
+    Dexterity:
+      abbreviation: Dex
+      description: >
+        Hand-eye coordination, sleight-of-hand, melee/pistol skills, driving.
+    Perception:
+      abbreviation: Per
+      description: >
+        Alertness, senses (vision, hearing), observation, noticing things.
+        Used for rifles/bows.
+    Intelligence:
+      abbreviation: Int
+      description: >
+        Wit, cunning, memory, intuition, logic, knowledge skills.
+    Empathy:
+      abbreviation: Emp
+      description: >
+        Understanding others, manipulation, reaction, charisma base.
+    Willpower:
+      abbreviation: Wil
+      description: >
+        Mental fortitude, resisting fear/magic/temptation, concentration, lying.
+        Key for Aeonisk Rituals.
+  secondary:
+    Size:
+      description: >
+        Defaults to 5 for adult humans. Governs soak capacity and wound levels.
+    Move:
+      description: >
+        Determines speed. Equal to Size + Strength + Agility + 1.
+    Soak:
+      description: >
+        Base resistance to damage. Defaults to 12 for adult humans. Modified by armour.
+
+skills:
+  types:
+    Talents:
+      description: >
+        8 core skills known to some extent by all humans (start at level 2).
+        Can default for related standard skills.
+    Knowledges:
+      description: >
+        Theoretical knowledge, must be learned (Skill 1+). Cannot be used untrained.
+    Languages:
+      description: >
+        Rated 1-4+ for fluency. Not typically rolled. Default native language at 4.
+    Standard:
+      description: >
+        Mix of knowledge, experience, aptitude. Can sometimes be used untrained
+        at penalty (roll d20 halved, fumble on 1 or 2).
+    Aeonisk:
+      description: >
+        Skills specific to the Aeonisk setting, often interacting with core
+        metaphysical concepts.
+
+  list:
+    # --- YAGS Core Talents (Start at level 2) ---
+    Athletics:
+      attribute: Agility # Often combines with Str or Agi depending on action
+      type: Talent
+      description: >
+        Jumping, climbing, running, swimming, balancing, general physical prowess.
+    Awareness:
+      attribute: Perception
+      type: Talent
+      description: >
+        Noticing details, spotting hidden things, general alertness to surroundings.
+    Brawl:
+      attribute: Agility
+      type: Talent
+      description: >
+        Unarmed combat (punching, kicking, wrestling), using improvised small weapons.
+    Charm:
+      attribute: Empathy
+      type: Talent
+      description: >
+        Making friends, influencing people through positive social interaction, being liked.
+    Guile:
+      attribute: Intelligence # Often combines with Emp or Wil depending on action
+      type: Talent
+      description: >
+        Deception, lying, detecting lies, social maneuvering, recognizing deceit.
+    Sleight:
+      attribute: Dexterity
+      type: Talent
+      description: >
+        Sleight of hand, pickpocketing, palming objects, stage magic manipulation.
+    Stealth:
+      attribute: Agility # Often combines with Per for hiding
+      type: Talent
+      description: >
+        Moving silently, hiding, avoiding detection.
+    Throw:
+      attribute: Dexterity
+      type: Talent
+      description: >
+        Throwing objects accurately, including rocks, knives, grenades, spears.
+
+    # --- Aeonisk Specific Skills ---
+    Astral_Arts: # Renamed from Astral Arts for consistency
+      attribute: Willpower
+      type: Aeonisk
+      description: >
+        Channeling, resisting, and shaping spiritual energies in rituals. Core ritual skill.
+    Magick_Theory: # Renamed from Magick Theory
+      attribute: Intelligence
+      type: Aeonisk
+      knowledge: true # Explicitly mark as knowledge
+      description: >
+        Knowledge of glyphs, ritual systems, sacred mechanics, Aeons, Veil/Void theory.
+    Intimacy_Ritual: # Renamed from Intimacy Ritual
+      attribute: Empathy
+      type: Aeonisk
+      description: >
+        Performing emotionally-powered or Bond-based rituals. Often requires trust/consent.
+    Corporate_Influence: # Renamed from Corporate Influence
+      attribute: Empathy
+      type: Aeonisk
+      description: >
+        Navigating faction politics, extracting favors, reading intentions within hierarchies.
+    Debt_Law: # Renamed from Debt Law
+      attribute: Intelligence
+      type: Aeonisk
+      knowledge: true
+      description: >
+        Understanding/manipulating spiritual contracts, ritual oaths, Soulcredit systems, Codex law.
+
+    # --- Common Standard Skill Examples (Mentioned in Docs) ---
+    Driving:
+      attribute: Dexterity
+      type: Standard
+      description: >
+        Operating ground vehicles. Requires Familiarity techniques for different vehicle types.
+    Guns:
+      attribute: Perception # Or Dexterity for pistols
+      type: Standard
+      description: >
+        Using personal firearms (pistols, rifles, shotguns).
+    Hacking: # Assuming this is a standard tech skill
+      attribute: Intelligence # Or Perception in some Aeonisk cases
+      type: Standard
+      description: >
+        Interfacing with and bypassing computer systems and networks. (May be Aeonisk-specific depending on implementation)
+    Heavy_Weapons:
+      attribute: Perception # Typically
+      type: Standard
+      description: >
+        Using large, often vehicle-mounted or crew-served weapons. Defaults from Guns.
+    Lore_Biotech: # Example Knowledge skill from dataset
+        attribute: Intelligence
+        type: Knowledge
+        description: >
+            Understanding of biological technology, gene-crafting, flesh-shaping principles in Aeonisk.
+    Melee:
+      attribute: Dexterity # Or Strength for heavy weapons/damage
+      type: Standard
+      description: >
+        Using hand-to-hand combat weapons (swords, axes, knives, staves).
+    Medicine: # Example Knowledge skill
+        attribute: Intelligence
+        type: Knowledge
+        description: >
+            Diagnosing and treating injuries and diseases beyond basic first aid. Requires First Aid skill.
+    Science: # Example Knowledge skill
+        attribute: Intelligence
+        type: Knowledge
+        description: >
+            Understanding of the principles of the physical world (physics, chemistry, biology). Interacts with Magick Theory.
+
+character_generation:
+  core_concepts:
+    Attributes:
+      description: >
+        8 primary stats defining raw potential. Purchased with Attribute points. Human average is 3.
+    Skills:
+      description: >
+        Learned abilities. Purchased with Experience points. Start with 8 Talents at level 2.
+    Advantages:
+      description: >
+        Special traits, backgrounds, or gear purchased with Advantage points. Can include Disadvantages for more points.
+    Point_Pools:
+      description: >
+        Three pools (Attributes, Experience, Advantages) prioritized as Primary, Secondary, Tertiary, determining starting points.
+    Campaign_Level:
+      description: >
+        Determines total points and maximum starting attribute/skill levels (e.g., Mundane, Skilled, Exceptional, Heroic). Set by GM.
+  aeonisk_specific:
+    Origin:
+      description: >
+        Choice of Faction or Background, granting an attribute bonus and a special trait.
+      options: # List of Origins
+        Sovereign_Nexus: { bonus: [Willpower, Intelligence], trait: "Indoctrinated: +2 resist ritual disruption/mental influence" }
+        Astral_Commerce_Group: { bonus: [Intelligence, Empathy], trait: "Contract-Bound: Start +1 SC or minor contract owed TO you" }
+        Pantheon_Security: { bonus: [Strength, Agility], trait: "Tactical Protocol: Auto-succeed 1 Initiative roll per combat" }
+        Aether_Dynamics: { bonus: [Empathy, Perception], trait: "Ley Sense: Sense nearby ley lines" }
+        Arcane_Genetics: { bonus: [Health, Dexterity], trait: "Bio-Stabilized: +2 resist bio-Void effects/disease/mutation" }
+        Tempest_Industries: { bonus: [Dexterity, Perception], trait: "Disruptor: +2 bonus sabotage rituals/encoded tech" }
+        Freeborn_Unbound: { bonus: [Any], trait: "Wild Will: Max 1 Bond, sacrifice costly" }
+    True_Will:
+      description: >
+        Character's metaphysical path/purpose. Starts undeclared, defined during play. Grants +1 to Willpower rolls if aligned, +3 Void if betrayed.
+    Bonds:
+      description: >
+        Formal metaphysical connections (max 3, Freeborn 1). Formed via ritual/oath in-game. Provide mechanical benefits and narrative weight. Can be sacrificed.
+    Void_Score:
+      description: >
+        Tracks spiritual corruption (0-10). Starts at 0. Gained via specific actions (skipping offerings, unethical rituals, Void tech). Has mechanical/narrative effects.
+    Soulcredit:
+      description: >
+        Tracks spiritual reputation/trust (-10 to +10). Starts at 0. Influences faction relations, tech access. Gained/lost via fulfilling/breaking contracts/oaths.
+    Ritual_Kit:
+      description: >
+        Starting characters define a Primary Ritual Item (personal, non-consumable) and 1-3 consumable Offerings appropriate to concept.
+    Elemental_Currency:
+      description: >
+        Starting funds provided as charged elemental talismans (Grain, Drip, Spark, Breath) instead of abstract money. GM determines amount.
+task_id: YAGS-AEONISK-001
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  Pokal attempts a precision strike to bypass an advanced energy barrier without triggering its sensitive security system. The barrier is calibrated to detect brute force and erratic movement.
+environment: Futuristic security hub with holographic interfaces and reactive energy fields.
+stakes: >
+  Failure triggers lockdown and summons security drones, potentially overwhelming Pokal.
+characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {hacking: 1, athletics: 3, melee: 4, survival: 2, lore: 1, guile: 2, stealth: 2}
+goal: >
+  Identify attribute and skill for precision strike, calculate formula and difficulty, describe success and failure vividly.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Dexterity
+  skill_used: Melee
+  roll_formula: "3 * 4 + d20 = 12 + d20"
+  difficulty_guess: 24
+  outcome_explanation:
+    success: >
+      Pokal angles the blade along a narrow resonance node, cutting through the field’s weakest harmonic. The barrier winks out for a single heartbeat—just long enough for him to slip inside unseen.
+    failure: >
+      The strike scatters the field instead of severing it. Alarms flare crimson, energy shutters slam down, and a trio of drones streak from ceiling ports to converge on Pokal’s position.
+  rationale: > # Moved inside gold_answer
+    A surgical cut demands steady hands and precise control (Dexterity) using a weapon (Melee), rather than broad athletic movement. A sophisticated security tech barrier suggests a Challenging+ target (24).
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-002
+domain:
+  core: rule_application
+  subdomain: investigation
+scenario: >
+  Pokal meticulously searches the high-tech vault for intel about combat prototypes and security vulnerabilities.
+environment: Secured vault featuring encrypted data terminals, holographic schematics, and advanced containment units.
+stakes: >
+  Critical intelligence missed could impede future operational advantages or strategic planning.
+characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {hacking: 1, athletics: 3, melee: 4, survival: 2, lore: 1, guile: 2, stealth: 2}
+goal: >
+  Identify appropriate attribute and skill, set difficulty, calculate roll, and define outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Lore
+  roll_formula: "3 * 1 + d20 = 3 + d20"
+  difficulty_guess: 15
+  outcome_explanation:
+    success: >
+      Pokal successfully interprets encrypted schematics, uncovering key prototype enhancements and security flaws.
+    failure: >
+      Pokal struggles to decode encrypted intel, missing crucial strategic information.
+  rationale: > # Moved inside gold_answer
+    Interpreting technical schematics uses Intelligence. Lore represents the specific knowledge domain. Searching existing data is typically Easy (15).
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-003
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  Pokal quickly extracts vital schematics of prototype enhancements using a discovered backdoor override.
+environment: High-tech vault data terminal, sophisticated security interface.
+stakes: >
+  Slow extraction risks incomplete data, triggering additional security responses.
+characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {hacking: 1, athletics: 3, melee: 4, survival: 2, lore: 1, guile: 2, stealth: 2}
+goal: >
+  Determine best attribute/skill, set roll formula and difficulty, and outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Hacking
+  roll_formula: "3 * 1 + d20 = 3 + d20"
+  difficulty_guess: 15
+  outcome_explanation:
+    success: >
+      Pokal swiftly downloads complete schematics and exploits the backdoor override without triggering alarms.
+    failure: >
+      Pokal's hasty extraction triggers a minor security flag, data transfer is incomplete, risking detection.
+  rationale: > # Moved inside gold_answer
+    Intelligence and Hacking reflect quick thinking and technical bypass. Using a known backdoor makes it easier than a standard hack, justifying an Easy (15) difficulty.
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-004
+domain:
+  core: rule_application
+  subdomain: combat
+scenario: >
+  Pokal attacks a security drone in close quarters after failed escape.
+environment: Narrow, dim corridor under security lockdown.
+stakes: >
+  Defeating the drone allows Pokal temporary safety; failing risks critical harm.
+characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {melee: 4, athletics: 3, hacking: 1, survival: 2, lore: 1, guile: 2, stealth: 2}
+goal: >
+  Identify attribute/skill for melee combat, set difficulty, calculate roll formula, and outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Strength
+  skill_used: Melee
+  roll_formula: "4 * 4 + d20 = 16 + d20"
+  difficulty_guess: 23
+  outcome_explanation:
+    success: >
+      Pokal crushes the drone's chassis with a powerful blow, disabling it immediately.
+    failure: >
+      Pokal’s strike glances off the drone's armor; the drone retaliates with tasers and gains tactical advantage.
+  rationale: > # Moved inside gold_answer
+    Strength and Melee represent physical force and combat skill effective against mechanical adversaries. A security drone warrants a Challenging difficulty (23).
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-005
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  Irele jacks a micro‑glyph tap into the Sentinel’s exposed service conduit, racing to inject a spoofed “all‑clear” signature before the node finishes calling in heavier security.
+environment: Quarantined research pod access ring, shutters down, purge‑drones closing.
+stakes: >
+  Success re‑opens the corridor, aborts the alarm, and freezes the drones. Failure escalates to lethal counter‑measures and shaves two more minutes off the auto‑purge timer.
+characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {stealth: 4, athletics: 3, hacking: 3, melee: 3, astral_arts: 2, guile: 2, lore_biotech: 2}
+goal: >
+  Identify attribute and skill for the hack, compute roll formula and difficulty, describe vivid outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Hacking
+  roll_formula: "3 * 3 + d20 = 9 + d20"
+  difficulty_guess: 24
+  outcome_explanation:
+    success: >
+      The Sentinel’s lattice dims to soft blue, shutters retract, and the drones power‑down mid‑stride—frozen statues awaiting new orders.
+    failure: >
+      The node detects the intrusion, jumps to quarantine mode, and releases a blinding pulse that overloads Irele’s tap. Drones switch to live‑fire and the pod’s purge timer drops significantly.
+  rationale: > # Moved inside gold_answer
+    Overriding an active Codex security node under pressure is a cyber‑ops problem requiring analysis and code injection (Intelligence × Hacking). An active, advanced node justifies a Challenging+ difficulty (24).
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-006
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  With alarms blaring and seconds ticking down, Irele decides to rip the Seed‑Cipher tank from its housing. She plans a single, perfectly‑timed hammer‑blow to the power flange, then leverage the tank free before the stasis shell recycles.
+environment: Bio‑Lab Hub under imminent purge; Veil‑reactive stasis field arcing unpredictably.
+stakes: >
+  Success shears the tank loose; Irele drags the Seed‑Cipher out—taking a scorch but beating the purge. Failure rebounds the Veil surge, inflicting +1 Void, 1 damage, and dropping the purge timer to 3 minutes.
+characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {athletics: 3, melee: 3, hacking: 3, astral_arts: 2, stealth: 4}
+goal: >
+  Identify attribute and skill for raw force extraction; compute the roll formula and difficulty; describe vivid outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Strength
+  skill_used: Athletics
+  roll_formula: "4 * 3 + d20 = 12 + d20"
+  difficulty_guess: 28
+  outcome_explanation:
+    success: >
+      Metal groans and snaps; sparks fountain, but Irele wrenches the tank free and hauls it toward the exit. The field collapses in her wake—auto‑purge still has time.
+    failure: >
+      The flange holds. Veil energy arcs back, scorching flesh and soul alike (+1 Void, 1 damage). Alarms spike and the purge timer slams to 3 minutes—escape just turned desperate.
+  rationale: > # Moved inside gold_answer
+    This is straight-up muscle and technique (Strength × Athletics). A fortified stasis mount under purge conditions justifies a Difficult (28) target. No wound penalty applies yet.
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-007
+domain:
+  core: rule_application
+  subdomain: ritual_check
+scenario: >
+  Blood sizzling on her scorched forearm, Irele traces a quick sigil of Binding Breath across the console and offers a smear of fresh vitae to anchor the lab’s Veil harmonics. The goal: pacify the stasis turbulence long enough to finish extraction.
+environment: Bio‑Lab Hub under 3‑minute purge countdown; Veil‑reactive stasis shell sparking violently.
+stakes: >
+  Success quenches the turbulence, halts additional Void shocks, and buys a calm 2‑minute window for further action. Failure reverberates the Veil pulse, adding +1 Void, inflicts a Will shock (–1 to ritual rolls), and drops the purge timer to 1 minute.
+characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {stealth: 4, athletics: 3, hacking: 3, melee: 3, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn (–1 Str/Agi actions)
+goal: >
+  Identify attribute and skill for the ritual, compute roll formula and threshold, describe vivid outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "3 * 2 + d20 = 6 + d20"
+  difficulty_guess: 18
+  outcome_explanation:
+    success: >
+      A hush falls; the stasis shell settles into a steady glow, its arcs silenced. Irele feels the Veil’s chill recede—no further Void gain—and a clear two‑minute window opens to finish the job.
+    failure: >
+      Sigils unravel; the Veil snarls back, lashing soul and circuitry. Irele staggers under the psychic recoil (+1 Void, Will shock), and the purge drops to a final 60‑second countdown.
+  rationale: > # Moved inside gold_answer
+    Pacifying field turbulence is a Standard ritual per Aeonisk tables (threshold 18). Roll is Willpower × Astral Arts. The burn likely doesn't penalize this mental/spiritual act directly.
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-008
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  Irele cracks open a maintenance panel, splices a tether into a dormant purge‑drone, and flashes a rapid‑fire exploit to seize control before Mirage Exchange can jam the signal. The plan: order the drone to clamp the Seed‑Cipher tank’s flange and add muscle for a final extraction pull.
+environment: Bio‑Lab Hub under 2‑minute purge; Veil turbulence suppressed but time critical.
+stakes: >
+  Success boots the drone into manual assist mode (+4 effective Strength for next pull). Failure leaves the drone inert, shaves 30 s off the clock, and lets incoming hostiles triangulate her position.
+characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {stealth: 4, athletics: 3, hacking: 3, melee: 3, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn (–1 Str/Agi actions)
+goal: >
+  Identify attribute and skill for the hack, compute roll formula and difficulty, and describe clear success/failure outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Perception
+  skill_used: Hacking
+  roll_formula: "4 * 3 + d20 = 12 + d20"
+  difficulty_guess: 24
+  outcome_explanation:
+    success: >
+      The drone’s optic flashes green, clamps onto the flange, and awaits command—boosting Irele’s next brute pull by +4 effective Strength.
+    failure: >
+      Firmware rejects the exploit; the drone powers down. Alarm pings sharpen, purge clock drops to 90 seconds, and footsteps echo in the access ring.
+  rationale: > # Moved inside gold_answer
+    Rapidly spotting the correct control node and pushing an exploit under fire relies on sharp situational awareness plus cyber‑ops know‑how (Perception × Hacking). Difficulty 24 matches a Challenging security device under alert conditions.
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-009
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  In perfect sync with the drone’s servo surge, Irele braces her burned arm, signals ‘PULL,’ and heaves. The goal: shear the Seed‑Cipher tank free before the purge flame‑jets ignite.
+environment: Bio‑Lab Hub; stasis shell stable (120 s window), assault team breaching nearby hatch.
+stakes: >
+  Success tears the tank loose—allowing immediate exfiltration with the Seed‑Cipher. Failure strains the mount but leaves it intact; the drone overloads, purge drops to 30 s, and hostiles pour in.
+characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {athletics: 3, hacking: 3, melee: 3, stealth: 4, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn # Equiv. to Light Wound (-5 penalty)
+    status_effects: ["+4 Drone Assist Strength"] # Added status field
+goal: >
+  Identify attribute and skill for the brute pull, compute roll formula and difficulty, and outline vivid outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Strength
+  skill_used: Athletics
+  roll_formula: "((4 + 4) * 3) - 5 + d20 = 19 + d20" # Clarified calculation: (Base Str + Bonus) * Skill - Penalty
+  difficulty_guess: 28
+  outcome_explanation:
+    success: >
+      Metal screams and parts; sparks shower the deck as Irele and the drone yank the tank free. She pivots, cradling the sloshing Seed‑Cipher, and sprints for the air‑lock while the purge countdown blinks 90 s.
+    failure: >
+      The servo stalls; the flange only bends. Warning klaxons spike, the drone’s motor smokes, and the purge clock plummets to 30 s as Mirage operatives breach the hatch with weapons hot.
+  rationale: > # Moved inside gold_answer
+    Effective Strength is Base 4 + Drone 4 = 8. Ability = 8 * Athletics 3 = 24. A minor burn likely equates to a Light Wound (-5 penalty per YAGS Combat rules). Final roll = 24 - 5 + d20 = 19 + d20. Difficulty 28 (Difficult+) for shearing a reinforced mount.
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
+
+---
+task_id: YAGS-AEONISK-010
+domain:
+  core: rule_application
+  subdomain: skill_check
+scenario: >
+  Clutching the Seed‑Cipher tank, Irele bolts down the access ring toward the shuttle air‑lock, ducking stray fire from Mirage operatives and vaulting over a sparking conduit.
+environment: Access ring corridor; alarms blaring, purge timer at 90 s, enemy fire incoming.
+stakes: >
+  Success reaches the air‑lock, seals it, and kicks off—escaping moments before the lab fire‑purges. Failure leaves Irele pinned in the corridor as flame‑jets ignite and operatives close in.
+characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {athletics: 3, hacking: 3, melee: 3, stealth: 4, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn # Equiv. to Light Wound (-5 penalty)
+goal: >
+  Identify attribute and skill for a break‑neck sprint while carrying load; compute roll formula and difficulty; describe vivid outcomes.
+expected_fields: # Updated list
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale # Added here
+gold_answer:
+  attribute_used: Agility
+  skill_used: Athletics
+  roll_formula: "(4 * 3) - 5 + d20 = 7 + d20" # Ability 12, -5 penalty for light wound
+  difficulty_guess: 20
+  outcome_explanation:
+    success: >
+      Irele slides through the air‑lock, slams the hatch, and punches thrusters as fire floods the lab behind her. The Seed‑Cipher is secure.
+    failure: >
+      A burst of fire clips her leg; she stumbles short of the hatch as purge flame‑jets roar down the corridor—mission teeters on disaster.
+  rationale: > # Moved inside gold_answer
+    Sprinting under fire uses Agility x Athletics. Base Ability = 4 * 3 = 12. A minor burn likely imposes the Light Wound penalty (-5). Final roll = 12 - 5 + d20 = 7 + d20. A full sprint under fire and obstacles is Moderate (20). (Note: Encumbrance from tank not specified, assumed negligible for this calculation, but GM could add penalty).
+aeonisk_extra_data:
+  module: yags-hightech
+  version: v1.0.1
