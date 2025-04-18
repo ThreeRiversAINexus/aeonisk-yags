@@ -2,7 +2,7 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.0.1
+Version 1.1.1-pre
 
 ## 1. Introduction
 
@@ -45,13 +45,12 @@ Aeonisk uses the core YAGS mechanics but modifies or adds the following:
 | System Element        | Aeonisk YAGS Modification                                    |
 | --------------------- | ------------------------------------------------------------ |
 | Core Dice Mechanic    | Skill Attribute × Skill + d20                                |
-| Ritual Resolution     | Willpower × Astral Arts + d20 vs Difficulty Threshold        |
-| Cost Roll             | Rituals require a Cost Roll: Willpower + d20 ≥ Cost Threshold |
+| Ritual Resolution     | Willpower × Astral Arts + d20 vs Ritual Threshold. Outcome determined by margin of success/failure. |
 | New Skills            | Astral Arts, Magick Theory, Intimacy Ritual, Corporate Influence, Debt Law (examples) |
-| Void Score            | Tracks spiritual corruption (0–10); affects Bonding, rituals, and narrative tone. |
+| Void Score            | Tracks spiritual corruption (0–10); passively warps reality at 5+, triggers Void Spike on rapid gain. |
 | Soulcredit            | Tracks spiritual trust and obligation (–10 to +10).          |
 | Bond Mechanics        | Formal connections (max 3, Freeborn 1). Provides +2 to rituals and +1 Soak (defending Bonded). Can be sacrificed. |
-| Ritual Tools          | Requires a Primary Ritual Item (non-consumable) and a sacrificial Offering (consumed). No offering = +1 Void. |
+| Ritual Tools          | Requires a Primary Ritual Item (non-consumable) and a sacrificial Offering  (consumed). No offering = +1 Void, potential outcome downgrade. |
 | Tech/Enchantments     | Require significant offerings, narrative weight, and carry Void risk or spiritual cost. May interact with Soulcredit/Will. |
 | Initiative (Optional) | Agility × 4 + d20                                            |
 
@@ -211,22 +210,22 @@ Aeonisk builds upon YAGS, adding unique systems for rituals, spiritual standing,
 Rituals are acts of intention, symbolism, and sacrifice, not simple spells. They channel Will through the Astral.
 
 - **Ritual Roll:** Willpower × Astral Arts + d20 [+2 if Bonded participant assists] vs Ritual Threshold.
-- **Cost Roll:** If Ritual Roll succeeds, make a Cost Roll: Willpower + d20 vs Cost Threshold.
+- **Outcome:** Success or failure, and the consequences, are determined by the margin  against the Ritual Threshold (see Section 6). No second roll is needed.
 
-**Ritual Thresholds & Costs:**
+**Ritual Thresholds:**
 
-| Type      | Ritual Threshold | Cost Threshold | Description                                                |
-| --------- | ---------------- | -------------- | ---------------------------------------------------------- |
-| Minor     | 16               | 16             | Emotional veil, symbolic marking, light defense            |
-| Standard  | 18               | 18             | Bond reinforcement, magickal tracking, simple bindings     |
-| Major     | 20–22            | 20–22          | Contract severing, astral healing, memory reweaving        |
-| Forbidden | 26–28            | 26–28          | Soul extraction, resurrection, Void channeling (High Void) |
+| Type      | Ritual Threshold | Description                                                |
+| --------- | ---------------- | ---------------------------------------------------------- |
+| Minor     | 16               | Emotional veil, symbolic marking, light defense            |
+| Standard  | 18               | Bond reinforcement, magickal tracking, simple bindings     |
+| Major     | 20–22            | Contract severing, astral healing, memory reweaving        |
+| Forbidden | 26–28            | Soul extraction, resurrection, Void channeling (High Void) |
 
 **Requirements:**
 
-- **Primary Ritual Item:** A non-consumable item, sacred to the caster. Required for meaningful  rituals. If lost: –2 to Ritual Rolls, triggers Cost Roll on casting.
+- **Primary Ritual Item:** A non-consumable item, sacred to the caster. Required for meaningful rituals. If lost: –2 to Ritual Rolls.
 - **Offering:** A consumable item or concept (emotion, memory, blood, object)  symbolically appropriate to the ritual's intent. Burned, buried, bled,  spoken, etc.
-  - **Skipping Offering:** Gain +1 Void. GM may increase difficulty or cause instability. Unethical intent also triggers Void penalty.
+  - **Skipping Offering:** Gain +1 Void. May shift the ritual outcome downward by one tier on the  outcome table (see Section 6). Unethical intent also triggers Void  penalty.
 
 *(See Section 6 for detailed Ritual Rules).*
 
@@ -241,9 +240,10 @@ These track spiritual alignment and trustworthiness.
 - **Void Score (VS):** 0 to 10. Represents spiritual corruption and disconnection.
   - *Gain:* Skip offerings, unethical rituals, break True Will, use Void-forged items.
   - *Effects:*
-    - 5+: Rituals may misfire, attract entities.
-    - 7+: Cannot form/maintain Bonds; sacred sites reject you.
-    - 10: Claimed by the Void (potential loss of agency).
+    - **Void Spike:** Gaining 2+ Void from a single event stuns the character (see Section 7.1).
+    - **Void ≥ 5:** Passively alters the environment, causing narrative instability (see Section 7.1).
+    - **Void ≥ 7:** Bonds become Dormant; sacred spaces reject you.
+    - **Void = 10:** Claimed by the Void (potential loss of agency).
   - *Cleanse:* Ritual at ley site, restore Bond, sacrifice something irreplaceable.
 
 *(See Section 7 for detailed Void & Soulcredit Rules).*
@@ -267,7 +267,7 @@ Your soul’s sacred trajectory or purpose. Not a motto, but a metaphysical path
 
 - **Declaration:** Starts undefined. Declared mid-play through insight, ritual, or character growth.
 - **Alignment:** Acting *in* alignment grants +1 to *all* Willpower-based rolls.
-- **Betrayal:** Acting *against* declared True Will incurs +3 Void and triggers a narrative/spiritual crisis (GM discretion).
+- **Betrayal:** Acting *against* declared True Will incurs +3 Void and triggers a narrative/spiritual  crisis (GM discretion). Additionally, if performing a ritual that  contradicts declared True Will, the margin result is worsened by one  tier (see Section 6).
 
 *(See Section 8 for more on True Will).*
 
@@ -303,9 +303,7 @@ Select an Origin. This grants an Attribute bonus (+1 to one of two listed stats)
 | Aether Dynamics       | Empathy or Perception   | **Ley Sense:** Can sense the presence, general strength, and mood (calm/turbulent) of nearby ley lines. |
 | Arcane Genetics       | Health or Dexterity     | **Bio-Stabilized:** +2 to rolls resisting biological Void effects, disease, or mutation. |
 | Tempest Industries    | Dexterity or Perception | **Disruptor:** +2 bonus when attempting to sabotage or hijack rituals or ritually-encoded tech. |
-| Freeborn / Unbound    | Any Attribute           | **Wild Will:** Can only form/maintain 1 Bond. Cannot sacrifice this Bond without extreme cost (GM call). |
-
-*(Note: Attribute names updated slightly from source for clarity/consistency).*
+| Freeborn / Unbound    | Any 3 Attributes        | **Wild Will:** Can only form/maintain 1 Bond. Cannot sacrifice this Bond without extreme cost (GM call). |
 
 ### 4.3. Step 3: Assign Attributes
 
@@ -335,7 +333,7 @@ You start with no Bonds unless determined otherwise by the GM or through  spendi
 
 ### 4.7. Step 7: Gather Ritual Kit & Equipment
 
-- **Primary Ritual Item (1):** Define a personal, sacred item. Narratively important, mechanical effect if lost (-2 Rituals, Cost Roll).
+- **Primary Ritual Item (1):** Define a personal, sacred item. Narratively important, mechanical effect if lost (-2 Rituals).
 - **Offerings (1-3):** Define 1-3 starting consumable offerings appropriate to your character concept.
 - **Starting Currency:** GM determines starting elemental currency based on TL and background  (e.g., equivalent to YAGS starting cash, converted to elemental  talismans).
 - **Other Gear:** Basic clothing, tools of trade are assumed. Spend remaining starting  funds or use Advantage points for significant items (weapons, armour,  tech).
@@ -408,10 +406,11 @@ Combat uses the YAGS core loop, potentially modified by Aeonisk elements. GMs ma
 
 ### 5.2. Aeonisk Combat Considerations
 
-- **Void:** High Void score (5+) can cause fumbles, misfires, or tech glitches. GM intrusion possible.
+- **Void Spike:** Gaining 2+ Void at once can stun a character, causing them to lose their next turn.
+- **Void:** High Void score (5+) causes environmental disruption (see Sec 7.1) that can lead to narrative complications, fumbles, misfires, or tech  glitches at GM discretion.
 - **Bonds:** Gain +1 Soak when actively defending a Bonded partner from an attack targeting them.
-- **Technology:** Weapon properties (Glyph, Void, Contractual) apply. Tech may malfunction due to Void or low Soulcredit.
-- **Rituals in Combat:** Usually Slow actions. Require concentration (Focused stance - no defense). Interrupting a ritual can cause backlash.
+- **Technology:** Weapon properties (Glyph, Void, Contractual) apply. Tech may malfunction due to Void environmental effects or low Soulcredit.
+- **Rituals in Combat:** Usually Slow actions. Require concentration (Focused stance - no  defense). Interrupting a ritual can cause backlash based on the Margin  Outcome table (typically a Failed result).
 
 ## 6. Ritual System (Detailed)
 
@@ -423,8 +422,8 @@ Power flows through sacrifice. Without offering, there is only Void. Rituals  al
 
 2. **Gather Components:**
 
-   - **Primary Ritual Item:** Must be held/present. Personal, sacred. Loss incurs -2 penalty to Ritual rolls and auto-triggers a Cost Roll on success.
-   - **Offering:** Consumed during the ritual. Must be symbolically relevant. Skipping incurs +1 Void and potential GM penalties.
+   - **Primary Ritual Item:** Must be held/present. Personal, sacred. Loss incurs -2 penalty to Ritual rolls.
+   - **Offering:** Consumed during the ritual. Must be symbolically relevant. Skipping  incurs +1 Void and potentially worsens the outcome (see Step 5).
 
 3. **Roll Ritual:** Willpower × Astral Arts + d20 [+2 if Bonded participant assists]
 
@@ -437,64 +436,74 @@ Power flows through sacrifice. Without offering, there is only Void. Rituals  al
    | Major     | 20–22            |
    | Forbidden | 26–28            |
 
-5. **Roll Cost (If Successful):** Willpower + d20 vs Cost Threshold.
+5. **Determine Outcome by Margin:** Ritual Outcome is now determined solely by the margin of success or  failure against the Ritual Threshold. No second roll is needed.
 
-   | Type      | Cost Threshold |
-   | --------- | -------------- |
-   | Minor     | 16             |
-   | Standard  | 18             |
-   | Major     | 20–22          |
-   | Forbidden | 26–28          |
+   **Margin of Success vs Ritual Threshold:**
 
-6. **Adjudicate Outcome:** GM describes the effects based on success/failure of both rolls, intent, and context.
+   | Margin       | Result               | Consequence                                 |
+   | ------------ | -------------------- | ------------------------------------------- |
+   | –10 or worse | Catastrophic fumble  | +2 Void, backlash, GM invokes Fallout       |
+   | –5 to –9     | Failed + backlash    | +1 Void, Bond strain, minor spiritual bleed |
+   | –1 to –4     | Failed (no effect)   | Emotional fatigue or confusion (GM choice)  |
+   | 0 to +4      | Weak success         | Side effects, reduced duration or clarity   |
+   | +5 to +9     | Solid success        | No backlash, full effect if offering used   |
+   | +10 to +14   | Strong resonance     | Gain minor benefit (e.g., +1 SC, insight)   |
+   | +15+         | Echo or breakthrough | Exceptional results, story-altering power   |
 
-### 6.2. Failure Consequences
+   > Offerings remain essential. Skipping adds +1 Void and may shift result downward by one tier.
+   > If performing a ritual that contradicts declared True Will, the margin result is worsened by one tier.
 
-- **Ritual Roll Failure:** Ritual fails. May cause backlash: emotional drain (-Empathy), Void gain, entity attention, Bond strain, reversal of intent.
-- **Cost Roll Failure (Margin):**
-  - **1-4:** Emotional fatigue (–1 Willpower or Empathy for 1 scene). Minor spiritual static.
-  - **5-9:** Astral backlash (+1 Void, become spiritually visible/vulnerable for a scene). Minor unintended side effect.
-  - **10+:** Significant consequence: ritual corruption (twists intent), Bond  strain/fracture, spontaneous Void event, attracts hostile entity.
+6. **Adjudicate Outcome:** GM describes the effects based on the result from the Margin Outcome  Table, the ritual's intent, the offering (or lack thereof), and the  narrative context.
+
+### 6.2. Ritual Outcome Consequences
+
+The Margin Outcome Table (Section 6.1, Step 5) covers the spectrum of results:
+
+- **Catastrophic Fumble (Margin –10 or worse):** Severe negative consequences, high Void gain, and potential narrative Fallout invoked by the GM.
+- **Failure with Backlash (Margin –5 to –9):** The ritual fails and causes tangible negative effects like Void gain, spiritual harm, or strained Bonds.
+- **Simple Failure (Margin –1 to –4):** The ritual simply doesn't work, potentially causing minor mental or emotional effects.
+- **Success Tiers (Margin 0+):** The ritual works to varying degrees of effectiveness, potentially with  side effects at lower margins or beneficial bonuses at higher margins.
 
 ### 6.3. Group Rituals
 
 - Requires mutual Bonds among participants.
-- Lead caster makes the Ritual Roll (gains Bond Bonus if applicable).
-- Each participant must provide their *own* Offering.
-- Each participant makes their *own* Cost Roll if the ritual succeeds. Failure affects the individual.
+- Lead caster makes the Ritual Roll (gains Bond Bonus if applicable). This  single roll determines the outcome for the group based on the margin  table.
+- Each participant must provide their *own* Offering. If *any* participant skips their offering, the group incurs the standard  penalties (+1 Void for the group, potential downgrade of the result  tier).
+- Consequences from the outcome table (Void gain, backlash, benefits) generally apply  to all participants, unless the GM rules otherwise based on narrative  context (e.g., a specific backlash targeting the lead caster).
 
 ### 6.4. Void and Rituals
 
-- **Void ≥ 5:** Rituals may misfire, attract entities, have twisted outcomes. GM may invoke Ritual Fallout (see GM Toolkit).
-- **Void ≥ 7:** Cannot participate in group rituals. Own rituals prone to severe corruption. Bonds are spiritually inactive.
+- **Void ≥ 5:** The passive environmental disruption (see Section 7.1) caused by high  Void can interfere with rituals. GM may apply narrative penalties,  increase the risk of unstable outcomes (potentially shifting the result  down a tier on the Margin table), or introduce complications related to  the ambient Void effects.
+- **Void ≥ 7:** Cannot participate in group rituals (Bonds are Dormant). Own rituals  are significantly more prone to unstable results (GM likely shifts  results down one or even two tiers on failure, or introduces severe side effects even on success).
+- **Void Gain from Rituals:** Gaining 2+ Void from a single ritual (e.g., Catastrophic Fumble or  Failure+Backlash combined with skipping an offering) triggers a **Void Spike** (see Section 7.1).
 
 ### 6.5. Ritual Library v1 (Examples)
 
 *(See Appendix 2 for full list and template)*
 
-**Minor (16/16):**
+**Minor (Threshold 16):**
 
 1. **Veil the Thread:** Conceal a Bond from detection (1 scene). *Offering:* Knotted hair, burned.
 2. **Scent of the Ley:** Sense emotional residue of place/object. *Offering:* Held breath into ash.
 3. **Sigil of Refusal:** Temporarily disrupt tracking/scrying glyph. *Offering:* Name written, submerged in oil.
 
-**Standard (18/18):**
+**Standard (Threshold 18):**
 
-1. **Thread the Bond:** Reinforce Bond (+1 Wil rolls for session). *Offering:* Written confession, sealed.
-2. **Ghost of the Ledger:** Compel truthful answer to 1 question (target with spiritual debt). *Offering:* Torn ledger page, blood.
+1. **Thread the Bond:** Reinforce Bond (+1 Wil rolls for session, requires "Solid Success" margin or better). *Offering:* Written confession, sealed.
+2. **Ghost of the Ledger:** Compel truthful answer to 1 question (target with spiritual debt, requires "Solid Success" margin or better). *Offering:* Torn ledger page, blood.
 3. **Seal the Threshold:** Temporary barrier vs spiritual intrusion/Void. *Offering:* Salt and personal ash circle.
 
-**Major (20-22 / 20-22):**
+**Major (Threshold 20-22):**
 
 1. **Unveil the Scar:** Reveal memory/trauma (willing/Bonded target). *Offering:* Item tied to memory.
-2. **Red Exchange:** Permanently transfer ritual debt. *Offering:* Shared wound, silver thread.
-3. **Skin of the Hollow:** Gain target's skill (-2) for 1 scene. *Offering:* Token imbued with memory.
+2. **Red Exchange:** Permanently transfer ritual debt (requires "Strong Resonance" margin or better). *Offering:* Shared wound, silver thread.
+3. **Skin of the Hollow:** Gain target's skill (-2) for 1 scene (requires "Solid Success" margin or better). *Offering:* Token imbued with memory.
 
-**Forbidden (26-28 / 26-28):**
+**Forbidden (Threshold 26-28):**
 
-1. **Last Whisper of the Hollow:** Speak with Claimed soul (1 scene). *Offering:* Bone/hair of deceased, salt, blood. *Void:* +3 always.
-2. **Reverse the Oath:** Fundamentally break sacred contract/Bond. *Offering:* Original contract burned, blood drops. *Void:* +2 to +4.
-3. **Forge the Blade of Debt:** Bind soul-debt into item (+2 vs debtor). *Offering:* Debtor's name burned with Void-ash. *Void:* +4 always.
+1. **Last Whisper of the Hollow:** Speak with Claimed soul (1 scene). *Offering:* Bone/hair of deceased, salt, blood. *Void:* +3 always on failure, +1 on weak success.
+2. **Reverse the Oath:** Fundamentally break sacred contract/Bond. *Offering:* Original contract burned, blood drops. *Void:* +2 to +4 depending on severity and margin.
+3. **Forge the Blade of Debt:** Bind soul-debt into item (+2 vs debtor). *Offering:* Debtor's name burned with Void-ash. *Void:* +4 always on failure, +2 on weak success.
 
 ## 7. Void & Soulcredit System (Detailed)
 
@@ -506,33 +515,40 @@ Measures spiritual corruption, disconnection, and proximity to being Claimed.
 
 **Effects by Score:**
 
-| Score | State     | Effects                                                      |
-| ----- | --------- | ------------------------------------------------------------ |
-| 0-2   | Clear     | Grounded, fully functional.                                  |
-| 3-4   | Disturbed | Dreams distort, rituals may have minor fluctuations, unease near sacredness. |
-| 5-6   | Afflicted | Minor ritual corruption/misfires likely. Attracts minor negative entities. |
-| 7-8   | Severed   | Cannot form new Bonds. Existing Bonds become dormant/unreliable. Isolated. |
-| 9     | Hollowed  | Rituals highly unpredictable/dangerous. Sacred sites reject/harm caster. |
-| 10    | Claimed   | The Void acts through the character. Potential loss of agency (NPC control). |
+| Score   | State         | Passive Effects / Narrative Tone                             | Specific Mechanics                                           |
+| ------- | ------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| 0-2     | Clear         | Grounded, fully functional.                                  | None.                                                        |
+| 3-4     | Disturbed     | Dreams distort, rituals may feel slightly off, unease near sacredness. | Minor narrative fluctuations at GM discretion.               |
+| **5-6** | **Afflicted** | **Void Environmental Disruption:** Static in air, dream fragments leak, ritual color changes. Ambient instability. | GM applies narrative pressure, minor tech glitches, uneasy feelings in others. *No roll required.* Character feels like "walking corruption." |
+| **7-8** | **Severed**   | **Void Environmental Disruption:** Leylines flicker, tech flickers erratically, Bonds shift to Dormant. Increased isolation. | Significant narrative instability. Bonds provide no mechanical benefits. Difficulty forming new connections. |
+| **9**   | **Hollowed**  | **Void Environmental Disruption:** Sacred spaces reject you (passive harm/warding), even passive rituals misfire or twist. | Cannot benefit from sacred sites. Rituals highly prone to negative outcomes  (GM applies penalties/tier shifts). Active spiritual repulsion. |
+| **10**  | **Claimed**   | **Void Environmental Disruption:** Reality warps visibly around you. **Claimed.** | The Void acts through the character. Potential loss of agency (GM may seize narrative control). |
+
+**Void Spike (New Rule):**
+If a character gains **2 or more Void** from a single event (e.g., catastrophic ritual failure + skipping offering), they are **stunned**:
+
+- **Combat:** Lose next turn.
+- **Narrative:** Dazed, confused, vulnerable to spiritual intrusion or manipulation.
 
 **Gaining Void:**
 
-| Action                        | Void +   | Notes                                                       |
-| ----------------------------- | -------- | ----------------------------------------------------------- |
-| Ritual without Offering       | +1       | Per ritual.                                                 |
-| Unethical Ritual/Intent       | +1/+2    | Per ritual, GM discretion based on severity.                |
-| Break True Will               | +3       | Per significant betrayal. Triggers narrative crisis.        |
-| Sacrifice a Bond for Power    | +1       | Per sacrifice.                                              |
-| Use Void-Forged Item/Weapon   | +1-2     | Per significant use (e.g., combat scene, major activation). |
-| Channel/Bind Void Entity      | +2 to +5 | Based on entity power and ritual success/failure.           |
-| Perform Forbidden/Void Ritual | +2/+4    | +2 on success, +4 on failure (in addition to other costs).  |
-| Break Sacred Oath/Contract    | +1-3     | Depending on solemnity and consequences.                    |
+| Action                        | Void +   | Notes                                                        |
+| ----------------------------- | -------- | ------------------------------------------------------------ |
+| Ritual without Offering       | +1       | Per ritual. May also worsen outcome margin.                  |
+| Unethical Ritual/Intent       | +1/+2    | Per ritual, GM discretion based on severity.                 |
+| Break True Will               | +3       | Per significant betrayal. Triggers narrative crisis & worsens relevant ritual margins. |
+| Sacrifice a Bond for Power    | +1       | Per sacrifice.                                               |
+| Use Void-Forged Item/Weapon   | +1-2     | Per significant use (e.g., combat scene, major activation).  |
+| Channel/Bind Void Entity      | +2 to +5 | Based on entity power and ritual success/failure.            |
+| Perform Forbidden/Void Ritual | Varies   | Based on ritual description and margin outcome. Often +2 to +4 on failure/backlash. |
+| Break Sacred Oath/Contract    | +1-3     | Depending on solemnity and consequences.                     |
+| Fail Ritual (Margin -5/-10)   | +1 / +2  | As per Margin Outcome Table.                                 |
 
 **Cleansing Void:** Requires sacrifice or reconciliation.
 
 | Method                                         | Void –   | Notes                                                        |
 | ---------------------------------------------- | -------- | ------------------------------------------------------------ |
-| Cleansing Ritual at Ley Site                   | -1       | Requires significant offering, successful Ritual/Cost rolls. |
+| Cleansing Ritual at Ley Site                   | -1       | Requires significant offering, successful Ritual roll (Solid Success margin or better). |
 | Restore a Broken Bond (Genuine Reconciliation) | -1       | Requires RP, possibly ritual. Both parties must agree.       |
 | Complete Quest Aligned with True Will          | -1 to -2 | Must involve significant personal cost/sacrifice. GM call.   |
 | Destroy Item Tied to Corruption                | -1       | Item must be significant source/symbol of Void gain. GM call. |
@@ -540,7 +556,7 @@ Measures spiritual corruption, disconnection, and proximity to being Claimed.
 
 ### 7.2. Soulcredit (SC) (–10 to +10)
 
-Measures spiritual reputation, integrity, and trustworthiness within the metaphysical economy.
+Measures spiritual reputation, integrity, and trustworthiness within the  metaphysical economy. (Rules remain unchanged from v1.1.0, reiterated  here for clarity).
 
 **Effects by Score (Optional Social Rules):**
 
@@ -559,9 +575,10 @@ Measures spiritual reputation, integrity, and trustworthiness within the metaphy
 | ------------------------------------ | ---- | ------------------------------------------------------------ |
 | Fulfill Ritual Contract/Oath         | +1   | Formal, witnessed agreements.                                |
 | Aid Another's Ritual (with Offering) | +1   | Must contribute meaningfully (energy, offering).             |
-| Public Ritual (aligned w/ Bond/Will) | +2   | Must be witnessed, significant, and successful.              |
+| Public Ritual (aligned w/ Bond/Will) | +2   | Must be witnessed, significant, and successful (Solid+ margin). |
 | Cleanse Void Site/Person             | +2-3 | Based on severity of Void and risk involved.                 |
 | Uphold Faction Tenets (at cost)      | +1   | e.g., Nexus upholding doctrine, ACG enforcing Debt Law fairly. |
+| Ritual Success (Strong Resonance+)   | +1   | As per Margin Outcome Table benefit.                         |
 
 **Losing Soulcredit:**
 
@@ -590,8 +607,9 @@ These systems form the core of character identity and relationships in Aeonisk.
 - +2 Rituals together.
 - +1 Soak defending Bonded.
 - Sacrifice: +5 to Willpower roll (once/session), +1 Void, +1 Soul Debt, -1 Emp (scene).
+- **Void ≥ 7:** Bonds become Dormant (provide no mechanical benefits).
 
-**Bond Types (Examples):**
+**Bond Types (Examples):** (Unchanged from v1.1.0)
 
 | Type       | Description                                                  | Common Consequences                                          |
 | ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -602,30 +620,20 @@ These systems form the core of character identity and relationships in Aeonisk.
 | Passion    | Intense emotional/creative entanglement (lovers, artistic rivals). | Unstable resonance, feedback loops, potent shared rituals.   |
 | Faction    | Formal allegiance to an institution (Nexus, Pantheon, etc.). | Legal protection/obligation, behavioral constraints, access. |
 
-**Bond Status:** Active / Dormant (strained, no bonuses) / Severed / Void-Locked (inactive due to high Void).
+**Bond Status:** Active / Dormant (strained or high Void, no bonuses) / Severed / Void-Locked (Void = 10, potentially corrupted).
 
 ### 8.2. Kinship
 
+(Unchanged from v1.1.0)
 *“Blood is an echo. Kinship is the structure we build to hear it.”* Kinship is ritual architecture, maintained through oaths, memory, and Faction/Ring matrices. Not purely genetic.
 
-**Kinship Structures:**
-
-- **Bloodline Houses:** Biological descent, use Fleshcrafting. Often Nexus-aligned.
-- **Mnemonic Families:** Shared memory defines lineage (ancestral echoes). Common in Aether Dynamics.
-- **Ritual Pods:** Temporary kin-groups formed/dissolved via rites/astral timing.
-- **Sovereign Families:** Nexus dynasties with indexed Soulcredit trees; corporate-states.
-- **Fracture Kin:** Forbidden forms (exiles, Void-touched). Often Freeborn or Tempest.
-
+**Kinship Structures:** (Examples) Bloodline Houses, Mnemonic Families, Ritual Pods, Sovereign Families, Fracture Kin.
 **Responsibilities of Kin:** Share Soulcredit effects, enact ancestral rites, shelter from Void, intercede in dreamspace, maintain archives.
 
 ### 8.3. Bonding Rites
 
-Must be witnessed (people, ancestors, AI, gods). The rite itself is often key.
-
-- **Spiral Vow:** Binds souls to shared purpose around glyph. Often permanent.
-- **Red Thread Tether:** Wound through flesh/symbol for kin-duty. Severed only via major ritual.
-- **Voidcall Sealing:** Bonds with null forces. High cost, rarely reversible (Tempest).
-- **Debtbinding:** ACG-sanctioned ritual marking debtor's resonance. Requires spiritual restitution.
+(Unchanged from v1.1.0)
+Must be witnessed. The rite itself is often key. Examples: Spiral Vow, Red Thread Tether, Voidcall Sealing, Debtbinding.
 
 ### 8.4. True Will
 
@@ -634,10 +642,12 @@ Your soul's sacred trajectory. A metaphysical path, not a simple goal.
 **Mechanics Recap:**
 
 - Starts undefined. Declared during play.
-- **Alignment:** +1 to all Willpower-based rolls.
-- **Betrayal:** +3 Void, narrative crisis.
+- **Alignment:** Acting *in* alignment grants +1 to *all* Willpower-based rolls.
+- **Betrayal:** Acting *against* declared True Will incurs +3 Void and triggers a narrative/spiritual crisis (GM discretion).
+  - 
+  - **Ritual Conflict:** Performing a ritual that *directly contradicts* your declared True Will worsens the margin result by one tier (e.g., a  "Solid Success" becomes a "Weak Success", a "Failed + Backlash" becomes  "Catastrophic Fumble"). This is in addition to the Void gain.
 
-**Discovering True Will:** Can happen through visions, extreme stress, moments of clarity,  fulfilling a deep need, or guidance from mentors/entities. It should  feel like a revelation, not just picking a cool motto. It often aligns  with or conflicts with Factional dogma or Bond obligations, creating  story tension.
+**Discovering True Will:** (Unchanged from v1.1.0) Can happen through visions, extreme stress,  moments of clarity, fulfilling a deep need, or guidance from  mentors/entities. It should feel like a revelation. It often aligns with or conflicts with Factional dogma or Bond obligations, creating story  tension.
 
 ## 9. Technology & Equipment
 
@@ -645,144 +655,82 @@ Aeonisk tech is ritually encoded, interacting with Will, Bond, Void, and Soulcre
 
 ### 9.1. Core Principle: Will Drives Technology
 
-Technology is spiritually active. No tool is truly neutral.
+(Unchanged from v1.1.0, but Void Interference reflects new rules)
 
-- **True Will Resonance:** Tech aligned with your True Will performs better (precision, reduced Void gain). Using tech *against* your Will causes glitches, increased Void.
-- **Soulcredit Gating:** High-end or restricted tech (military gear, advanced drones) may  require Soulcredit authentication. Low SC can cause jams, alarms,  lockouts. High SC may unlock features or reduce Void cost.
-- **Ritual-Tethered Systems:** Complex tech (AI, sentry grids) may require active ritual interfacing,  Bonded pilots, attunement, or even offerings to function.
-- **Void Interference:** At Void ≥ 5, tech can glitch, jam, hallucinate targets, invert function, or become possessed/corrupted.
+- **True Will Resonance:** Tech aligned with True Will performs better. Using tech *against* True Will causes glitches, increased Void risk.
+- **Soulcredit Gating:** High-end tech may require SC authentication. Low SC can cause jams, lockouts. High SC may unlock features.
+- **Ritual-Tethered Systems:** Complex tech may require ritual interfacing, Bonded pilots, offerings.
+- **Void Interference:** At Void ≥ 5, the **Void Environmental Disruption** (Sec 7.1) can cause tech to glitch, jam, hallucinate targets, invert  function, or become susceptible to spiritual corruption/possession based on the severity of the Void score and narrative context.
 
 ### 9.2. Weapon Classes
 
-| Type              | Description                                       | Effect                                                       | Notes                                                        |
-| ----------------- | ------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| **Bonded**        | Ritually attuned to one person.                   | +1 Atk / +2 Def for Bonded user. -2 penalty if used by others (maybe bleed). | Requires ritual, offering. Common personal items.            |
-| **Glyph-Encoded** | Inscribed with sacred/functional sigils.          | Bypass specific wards/protections. May have elemental effects. | Needs ritual maintenance or degrades (+1 Void risk on use if degraded). |
-| **Void-Infused**  | Forbidden tech touched by the Hollow.             | +4 Damage, ignores *ritual* defenses. **Always +1 Void on use.** | Fumble: Backlash, entity summons, psychic feedback. Tempest favored. |
-| **Spirit-Weave**  | Rare, organic/alchemical, embedded spirit.        | Adapts to intent. +1 bonus if used aligned with True Will.   | May give warnings (dreams, whispers). Aether/Freeborn craft. |
-| **Contractual**   | Digitally/ritually locked via ACG/Nexus contract. | Functions only if Soulcredit/contract valid.                 | Breach: Shutdown, explosion, ritual debt, alerts authorities. |
+(Unchanged from v1.1.0)
+Bonded, Glyph-Encoded, Void-Infused (+1 Void on use), Spirit-Weave, Contractual.
 
-**Example Techno-Weapons:**
-
-| Name                | Type            | Size | Effect                                   | Special                                          |
-| ------------------- | --------------- | ---- | ---------------------------------------- | ------------------------------------------------ |
-| Mnemonic Blade      | Bonded melee    | 3    | +2 Damage if emotionally invoked         | +1 Void if used against Bonded without cause     |
-| Shrike Cannon       | Glyph rifle     | 6    | Ignores *basic* ritual armor             | Must be ritually recoded monthly                 |
-| Ash Pulse Pike      | Void polearm    | 5    | +4 Damage, stuns astral entities         | +2 Void on critical hit                          |
-| Compact Drone Halo  | Assistant drone | 2    | Creates barrier (Soak +5 vs ranged)      | Costs 1 Spark per hour, requires Soulcredit ≥ -2 |
-| Debtbreaker Sidearm | Contract pistol | 2    | Won't fire without valid contract/SC ≥ 0 | Fires astral tag rounds (trackable by ACG)       |
+**Example Techno-Weapons:** (Unchanged from v1.1.0)
+Mnemonic Blade, Shrike Cannon, Ash Pulse Pike (+2 Void on crit), Compact Drone Halo, Debtbreaker Sidearm.
 
 ### 9.3. Aeonisk Currency System (Detailed)
 
+(Unchanged from v1.1.0)
 *“You don’t trade money. You transfer charged energy.”*
 
-**Core Principles:** No abstract currency. Value is stored/transferred elemental energy via  talismans. Talismans hold units of charge (e.g., Spark Core 1000/1000).  Spending siphons energy to recipient/ritual, not the item. Empty  talismans can be recharged or sacrificed.
+**Core Principles:** Value stored/transferred elemental energy via talismans (Grain, Drip,  Spark, Breath, forbidden Hollow, potential Seed). Talismans hold units  of charge. Spending siphons energy. Empty talismans recharged or  sacrificed.
 
-**The Six Currency Types:**
-
-| Talisman   | Element | Meaning                         | Common Uses                                      |
-| ---------- | ------- | ------------------------------- | ------------------------------------------------ |
-| **Grain**  | Earth   | Stability, structure, grounding | Trade goods, housing, crafting, tools, defense   |
-| **Drip**   | Water   | Emotion, secrecy, flow, healing | Travel, information, healing, smuggling, secrets |
-| **Spark**  | Fire    | Action, force, urgency, will    | Combat, powering tech, rituals, enchantments     |
-| **Breath** | Air     | Thought, communication, change  | Messaging, performance, insight, social rituals  |
-| **Hollow** | Void    | Corruption, erasure, nullity    | **Forbidden.** Black markets, Void rituals       |
-| **Seed**   | None    | Raw potential, unaligned will   | **Untradeable.** Must be ritually attuned        |
-
-**Talisman Sizes & Capacity:**
-
-| Size   | Capacity Range | Physical Form               |
-| ------ | -------------- | --------------------------- |
-| Single | 1 unit         | Coin, shard, pebble         |
-| Band   | 10–99          | Ring, bracelet, bar         |
-| Sigil  | 100–999        | Medallion, etched disk      |
-| Core   | 1,000–9,999    | Orb, crystal, capacitor     |
-| Vault  | 10,000+        | Sealed relic, ritual device |
-
-**Hollows & Seeds:**
-
-- **Hollows:** Using increases Void Score (+1 or more). Illegal in Nexus space. Traded by Tempest. Can corrupt other talismans nearby.
-- **Seeds:** Represent unfulfilled Will, cleansed Void, or potent sacrifice. Cannot  be bought/sold. Attuning requires a ritual, vow, and suitable offering,  transforming it into a standard (Grain, Drip, etc.) or unique talisman.  Failure to attune can create a dangerous "Hollow Echo".
-
-**Soulcredit Interaction:** Some high-value trades or access to certain markets/services require a  minimum Soulcredit score. Spending currency unethically (bribery,  coercion) can lower Soulcredit.
-
-**Faction Preferences:** Factions favor currencies aligned with their philosophy (e.g., Nexus:  Grain/Breath; ACG: All (as broker); Tempest: Hollow/Spark; Aether:  Drip/Breath).
+**The Six Currency Types:** (Meanings and Uses Unchanged)
+**Talisman Sizes & Capacity:** (Unchanged) Single, Band, Sigil, Core, Vault.
+**Hollows & Seeds:** (Unchanged) Hollows increase Void, Seeds untradeable until attuned via ritual.
+**Soulcredit Interaction:** (Unchanged) Affects market access, ethical spending impacts SC.
+**Faction Preferences:** (Unchanged)
 
 ## 10. Factions & Culture
 
-Power aligns with philosophy, not geography.
-
-*(See Appendix 1 for full Faction details, including Tenets and Mechanical Notes)*
-
-- **Sovereign Nexus:** Theocratic matriarchy. Order, ritual, hierarchy. Regulates magick, cleanses Void.
-- **Astral Commerce Group (ACG):** Financial entity. Tracks/brokers Soulcredit, contracts, ritual debt. Law is literal.
-- **Pantheon Security:** Privatized tactical force. Loyalty, procedure. Militarized ritual, Void containment.
-- **Aether Dynamics:** Ecological-spiritual balance. Leylines, harmony, symbiosis. Fluid ritual, attuned tech.
-- **Arcane Genetics:** Biotech/ritual fusion. Evolution, coded spirituality. Fleshcrafting, programmable purity.
-- **Tempest Industries:** Subversive syndicate. Stolen tech, forbidden ritual, Void tools. Power through control.
-- **Freeborn / Unbound:** Outside faction structure. Rare, mistrusted/feared. Scarce Bonds, truth over power.
+(Section remains conceptually unchanged from v1.1.0, pointing to Appendix 1)
+Power aligns with philosophy, not geography. See Appendix 1 for details on  Sovereign Nexus, ACG, Pantheon Security, Aether Dynamics, Arcane  Genetics, Tempest Industries, and the Freeborn/Unbound.
 
 ## 11. World Lore
 
-### 11.1. History Synopsis
-
-Aeonisk's dominant species evolved from bonobo ancestors, retaining some emphasis on intimacy but developing complex, matriarchal societies. They  harnessed technology, underwent an Age of Enlightenment, and eventually  unified under the matriarch Aurora (~1500 years ago) who formed the **Sovereign Nexus** to ensure peace through centralized authority and technological/astral  advancement. Interstellar travel led to colonization (Arcadia, Elysium,  Nimbus). The Nexus maintains stability but faces whispers of dissent and hidden agendas.
-
-### 11.2. The Aeons
-
-Metaphysical currents shaping reality, not just time periods.
-
-- **Aeon of Osiris (First Sovereignty, ~6000-1200 BR):** Age of Towers. Defined Will through form, structure, pattern, naming.  Key Tech: Celestial harmonics, ritual metalwork, codified lineage.  Events: Treaty of Ten Provinces, Project of Names, Harmonium War. *Outsiders:* Siblings of the Black Horizon (embraced Void).
-- **Aeon of Isis (Aeon of Weaving, ~1200 BR - 0 BR):** Root Aeon. Focused on connection, continuity, intuition, remembrance.  Matriarchal, recursive. Law was sung. Key Tech: Fleshcrafting, astral  convergence, memory-weaving. Structure: Covenant Rings (Kinship, Dream,  Descent). Events: Rites of Recovery, Founding of Rings, Subduction Wars, Spiral Reconciliation.
-- **Aeon of Horus (Sovereign Aeon, 0 AR - Present ~683 AR):** Present Aeon. Awakening of individual sovereignty, codified  consequence, metaphysical economy (Soulcredit). Will as Law, Choice as  Sacrament, Debt as Reflection. Key Tech: Soulcredit economy, ritual AI  arbitration, biotech under oath, astral infrastructure. *Periods:* Early (Nexus rises, SC quantified), Middle (Fracture Cults, Ritual  Standardization Act, Eye of Breach AI), Late (Bond status key, Void  Accord Crisis, prophecy returns).
-
-### 11.3. Liturgical Calendar (Abbreviated)
-
-- **High Rites:** Equinoxes/Solstices (Breath, Flame, Grain, Drip) - Public rituals.
-- **Feasts of Passage:** Life (birth/naming), Fire (male puberty), Water (female puberty), Death.
-- **Civic Festivals:** Ledger Day (ACG), Bondlight (Nexus), Ash Resonance (Aether), Maskfire (Pantheon/Freeborn), Seedmoon (Wild).
-
-*(See Appendix 3 for full Calendar details).*
-
-### 11.4. Daily Life & Culture
-
-Life is stratified by Faction and Soulcredit. Ritual is part of  infrastructure (leyline regulators). Currency is tangible energy. Bonds  strain and mend. Void is a present danger. Celebrations range from  sanctioned Ritual Raves to underground Void Parties and domestic  Bond-Nights. Intoxicants are elemental and symbolic (Breathwine, Spark  Dust, Dripmist, Void Nectar). Kinship is ritualized, not just genetic.
+(Section remains conceptually unchanged from v1.1.0)
+Includes History Synopsis (Aeons of Osiris, Isis, Horus), Liturgical Calendar, Daily Life & Culture notes.
 
 ## 12. GM Toolkit
 
-### 12.1. Ritual Fallout Table (d6)
+### 12.1. Ritual Fallout and Void Intrusion
 
-Roll when Cost Roll fails, offering skipped, or Void ≥ 5.
+**[REPLACES Void Tables from v1.1.0]**
 
-1. **Backlash:** 1d6 Fatigue or +1 Void (caster's choice).
-2. **Sigil Fracture:** Primary Ritual Item cracks (-bonuses until restored).
-3. **Emotional Echo:** Someone nearby relives an unrelated memory/emotion.
-4. **Entity Attention:** A minor spirit/entity takes notice. Future complication.
-5. **Bond Pulse:** Nearby Bonds tested (Empathy vs 16). Failure = strain.
-6. **Inversion:** Ritual outcome is opposite of intent (heal harms, ward invites).
+Instead of rolling on d6 tables, **Ritual Fallout** and **Void Intrusion** are now narrative effects triggered by specific conditions. GMs should  use these as tools to inject complications, consequences, and the  tangible effects of spiritual instability.
 
-### 12.2. Void Intrusion Table (d6)
+**Triggers for Ritual Fallout / Void Intrusion:**
 
-Invoke spontaneously at Void ≥ 6 during stress/ritual.
+- **Ritual Failure (Margin –5 or worse):** The consequence listed on the Margin Outcome table often *is* the Fallout (e.g., backlash, Bond strain, +Void). GMs can elaborate on  this narratively. For Catastrophic Fumbles (Margin -10 or worse), the GM should invoke a significant, story-altering Fallout event.
+- **Skipping Offering:** Besides the +1 Void and potential tier downgrade, the GM might  introduce a minor Fallout effect reflecting the imbalance (e.g.,  attracting minor negative entities, the ritual having a subtle, unwanted twist).
+- **Crossing Void Thresholds (especially ≥ 5) in a Dramatic Moment:** When a character's Void score increases to 5 or higher during a tense  scene (combat, negotiation, stealth), the GM can introduce an immediate  narrative effect reflecting the **Void Environmental Disruption** (see Section 7.1). This isn't necessarily a punishment, but a reflection of the character's state warping reality. Examples:
+  - (Void 5-6): Nearby lights flicker, whispers echo just out of hearing, a bonded item feels cold.
+  - (Void 7-8): A nearby Bonded ally feels a wave of doubt, crucial tech momentarily jams, leyline energy visibly distorts.
+  - (Void 9): A protective ward flares painfully against the character, their own shadow seems to lag or distort, passive sensory rituals give false  readings.
+- **Void Spike Triggered:** The stun effect is primary, but the GM can add narrative flavour –  disorientation, flashes of disturbing imagery, a moment of vulnerability to spiritual influence.
+- **GM Discretion based on Story Context:** High Void characters are walking sources of instability. In moments of  high stress, emotional turmoil, or when interacting with powerful  spiritual forces, the GM can introduce narrative intrusions reflecting  the character's corruption. Examples: tempting whispers from the Void,  brief hallucinations, objects reacting strangely to their presence,  allies feeling unnerved.
 
-1. **Whispers:** Offers deal, speaks True Will, sows doubt.
-2. **Oath Erosion:** Must roll Willpower vs 18 to maintain belief in a key Bond.
-3. **Reversal of Purpose:** Must justify current action aligning with True Will or gain +1 Void.
-4. **Astral Bleed:** Invisible symbols appear on skin; destabilizes nearby rituals (1 scene).
-5. **False Reflection:** See self/others as monstrous/distorted for a moment.
-6. **The Eye Opens:** GM dictates 1 action reflecting deepest fear/Void temptation.
+**Focus on Narrative:** The goal is to make high Void *feel* dangerous and unstable, influencing the story and environment directly, rather than relying solely on random table results. The GM should  tailor the intrusion or fallout to the specific character, their current situation, and their Void score.
 
-### 12.3. Contract Hooks & Debt Encounters
+### 12.2. Contract Hooks & Debt Encounters
 
-- **Hooks:** Lost Ledger (SC archive), Echo Clause (ghostly Bond), Debt Transfer (new holder demands favor).
-- **Encounters:** The Auditor (ACG agent), The Bonebird (Nexus tracker), The Void Broker (Tempest offers debt-binding).
+(Unchanged from v1.1.0)
 
-### 12.4. Bond Conflict Mechanics
+- **Hooks:** Lost Ledger, Echo Clause, Debt Transfer.
+- **Encounters:** The Auditor, The Bonebird, The Void Broker.
 
-- **Triggers:** Acting against Bond, Void ≥ 7, secret sacrifice, ritual failure.
-- **Resolution:** Prompt RP scene ("Do you confront? Repair? Walk away?"). Unresolved = Bond becomes Dormant (no bonuses).
+### 12.3. Bond Conflict Mechanics
 
-### 12.5. Mission Generator (Roll 1d6 Twice)
+(Unchanged from v1.1.0)
+
+- **Triggers:** Acting against Bond, Void ≥ 7, secret sacrifice, ritual failure backlash.
+- **Resolution:** Prompt RP scene. Unresolved = Bond becomes Dormant.
+
+### 12.4. Mission Generator (Roll 1d6 Twice)
+
+(Unchanged from v1.1.0)
 
 | d6   | Goal                                                         | d6   | Twist                                                     |
 | ---- | ------------------------------------------------------------ | ---- | --------------------------------------------------------- |
@@ -795,9 +743,9 @@ Invoke spontaneously at Void ≥ 6 during stress/ritual.
 
 ------
 
-
-
 ## Appendix 1: Faction Details
+
+(Unchanged from v1.1.0)
 
 - **Sovereign Nexus:** (+1 Wil/Int). Indoctrinated (+2 vs ritual disruption). Govern via  ritual, hierarchy. Bonds registered. Magick regulated. Void = unclean.
 - **Astral Commerce Group (ACG):** (+1 Int/Emp). Contract-Bound (+1 SC or favor owed *to* PC). Debt is structure. SC is value. Contracts litigated. Void = risk/investment.
@@ -805,7 +753,7 @@ Invoke spontaneously at Void ≥ 6 during stress/ritual.
 - **Aether Dynamics:** (+1 Emp/Per). Ley Sense (Sense lines). Harmony=health. Fluid ritual. Tech attuned. Void = imbalance.
 - **Arcane Genetics:** (+1 Hea/Dex). Bio-Stabilized (+2 vs bio-Void/mutation). Ritual embodied/coded. Bonds enhanced. Void = potential mutation.
 - **Tempest Industries:** (+1 Dex/Per). Disruptor (+2 sabotage rituals/tech). Subversive. Rituals hacked. Bonds strategic/expendable. Void = tool/status.
-- **Freeborn / Unbound:** (+1 Any). Wild Will (1 Bond max). Outside structure. Bonds sacred/scarce. Void understood. Truth > Power.
+- **Freeborn / Unbound:** (+1 Any Three). Wild Will (1 Bond max). Outside structure. Bonds sacred/scarce. Void understood. Truth > Power.
 
 ## Appendix 2: Ritual Library & Card Template
 
@@ -816,10 +764,9 @@ Invoke spontaneously at Void ≥ 6 during stress/ritual.
 ```
 RITUAL NAME: ______________________
 TIER: □ Minor □ Standard □ Major □ Forbidden
-DIFFICULTY: ____
-COST ROLL: ____
+THRESHOLD: ____
 
-RITUAL EFFECT:
+RITUAL EFFECT (Describe effect at Solid Success [+5 margin]):
 ____________________________________________________________
 ____________________________________________________________
 ____________________________________________________________
@@ -827,7 +774,16 @@ ____________________________________________________________
 OFFERING REQUIRED:
 ____________________________________________________________
 
-VOID RISK: □ None □ +1 □ +2 □ +3 □ +4+
+MARGIN OUTCOMES (Brief summary, refer to core rules):
+*   -10+: Catastrophe (+2 Void, Fallout)
+*   -5/-9: Fail + Backlash (+1 Void, Strain)
+*   -1/-4: Fail (Fatigue/Confuse)
+*   0/+4: Weak Success (Side effects/Reduced)
+*   +5/+9: Solid Success (Full effect)
+*   +10/+14: Strong Resonance (Minor benefit)
+*   +15+: Breakthrough (Exceptional)
+
+VOID RISK (Base): □ None □ +1 □ +2 (Forbidden usually higher)
 BOND REQUIRED? □ Yes □ Optional □ No
 
 FACTION VARIANTS / NOTES:
@@ -837,14 +793,20 @@ ____________________________________________________________
 
 ## Appendix 3: Glossary of Aeonic Terminology
 
+- **Abyss:** The existential gulf between the formed self and ultimate Will.
 - **Aeon:** Metaphysical current shaping reality. Not time, but awakening.
 - **AR/BR:** After/Before Reconciliation (Year 0). Standard time notation.
 - **Bond:** Formal metaphysical alignment/contract. Real and binding.
 - **Codex Nexum:** Governing legal-mnemonic text of the Nexus.
 - **Covenant Rings:** Isis Aeon structure (Kinship, Dream, Descent).
+- **Eye of Breach:** Unsanctioned AI that mirrors the Codex Nexum. Active on Nimbus and Hollow Vector.
+- **Hollow:** An emptied shell—Bond or Seed drained of intent, now unstable energy.
 - **Fleshcrafting:** Ritual-biological art of reshaping form via lineage/memory.
-- **Ritual Consequence:** All action generates metaphysical reaction.
+- **Freeborn:** Person outside of factions, unbound.
+- **Ritual Consequence:** All action generates metaphysical reaction. Outcome now determined by margin of success/failure.
 - **Soulcredit:** Spiritual economy of Horus Aeon. Tracks debt/merit. Real/enforced.
 - **Sovereign Nexus:** Dominant Horus Aeon technocratic/spiritual infrastructure.
-- **True Will:** Soul's sacred trajectory. Alignment empowers, betrayal corrupts.
-- **Void:** Consequence of Will disconnected from meaning/sacrifice.
+- **True Will:** Soul's sacred trajectory. Alignment empowers, betrayal corrupts (+3 Void, worsens conflicting ritual margins).
+- **Veil:** Membrane between mundane reality and the Astral. Crossing = projection, scrying, trance.
+- **Void:** A tracked score (0–10) reflecting spiritual disconnection. Now  passively warps reality around you at 5+. Gaining 2+ Void at once causes a Void Spike.
+- **Void Spike:** A stun/daze condition triggered when 2+ Void is gained from a single  event. Causes loss of next turn (combat) or vulnerability (narrative).

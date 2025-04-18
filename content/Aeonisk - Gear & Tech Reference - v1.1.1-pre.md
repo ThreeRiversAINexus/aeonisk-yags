@@ -110,3 +110,69 @@
 *SC = Soulcredit • DMG = Damage bonus • DEF = Defense bonus • Void = Void score impact*
 
 Feel free to copy, amend, or slot more gear into these tables. Every new item should list **Class / Key Numbers / Signature Effect / Upkeep** to stay codex‑compliant.
+
+## 7 · Corner Store Inventory – Node Cluster 92B
+
+**Approved for Common Tier Sale**
+*Indexed 683.AR • S4CU Certified • Vending Node 92B*
+*Transactions may be conducted in Soulcredit, elemental talismans, or Seed-barter. Resonance scan standard.*
+
+### Everyday Consumables
+
+- **Breathwater Flask** – Distilled air-essence with mnemonic mist. Calming, ritual-safe.
+- **Dripfruit Chews** – Sugary spheres with legal-dose mood softeners. Gifted in minor Bond rites.
+- **Sparksticks** – Saliva-reactive buzz twigs. Technically addictive. Teen favorite.
+- **Void-Cut Tea (Synthetic)** – Flavorless simulacrum of forbidden rites. Used in performance rituals.
+- **Reviv-Essence Lozenges** – Stimulant tabs with sigil infusion. Favored for study/work sessions.
+- **Flavorglyph Strips** – Sigil-paper that tastes like memories. (First kiss, city rain, etc.)
+- **Mnemic Salt Packets** – Mood-colored salt to amplify emotional resonance in food/drink.
+
+### Ritual-Adjacent Supplies
+
+- **Ley-Chalk (8pk)** – Elemental color sticks for temporary glyphs.
+- **Mini-Bond Bowl** – Palm-sized altar. Common for students/lovers. One Seed slot.
+- **Talisman Blanks (x3)** – Unattuned ritual substrates. Craft competitions.
+- **Warding Cord** – Bracelet that repels minor mnemonic bleed. May fray in emotional conflict.
+- **Whisper Wax Tablets** – Breath-activated audio scrolls. Secrets or affirmations.
+- **Glow-Beads (x10)** – Charm-lights that react to nearby emotional agitation.
+
+### Snacks & Street Food
+
+- **Echo-Crackers** – Crunchy, joy-infused snack. Each tied to a public memory.
+- **Glowpeel Noodles** – Luminescent street food. Spark-dust spiced. Extremely messy.
+- **Hollow Cone** – Black sugar dessert with ironic void-cream core. Freeborn zone favorite.
+- **Bondcake Slices** – Shared ritual snack with edible sigils. Split with someone trusted.
+- **Ley Pop (Sourwave)** – Fizzes when near emotional resonance. Kids detect arguments.
+- **Saltcake Rounds** – Bitter ritual food for mourning. Paired with cold tea.
+- **Streetwraps (Multi-Fill)** – Folded starch bread filled with anything. Marketplace staple.
+
+### Household + Low-Tech Tools
+
+- **Soulcredit Mirror Tag** – Displays ledger when touched. Dating/confessional use.
+- **Drip Basin (Foldable)** – Compact water altar. Worn as bracelet when stowed.
+- **Pocket Sigil Stamp** – Temporary house-seal for letters, receipts, gifts.
+- **Seed Vault Clip** – Keychain holder for pulsing attuned Seeds. Youth accessory.
+- **Tidewind Clothesline** – Self-drying resonance-reactive cord. Ley-heated.
+- **Censer Wax Cubes** – Scent cubes for ritual ambiance. Ashplume, First Bond, etc.
+- **Blessing Sponge** – Resonant cloth for altar prep or food sanctification.
+- **Shard Catcher (Countertop)** – Mini-dome to contain glyph fragments during rites.
+
+### Entertainment + Media
+
+- **“Ritual Fail” Holovid Disk** – Slapstick rite-gone-wrong docudrama. Youth favorite.
+- **Mini-Dance Glyph Projector** – Low-grade ley-reactive party lighting.
+- **Whisper Capsules** – Ambient dream audio. Used for trance, meditation, background.
+- **The Spiral Deck (Novice)** – Card game on Covenant Ring themes. School-banned in some zones.
+- **Mnemonic Sketch Slab** – Drawing tablet that captures emotion with art.
+- **Puzzlecore Orb** – Solve shifting glyphs to reveal prize or symbolic poem.
+
+### Social Curiosities
+
+- **Bondless Thread Pin** – Lapel pin signaling spiritual solitude or mourning.
+- **Echo-Quill** – Writes intent instead of literal words. Used in confession.
+- **Voidpocket Locket** – Empty ornament. Marketed as “a reminder.”
+- **Kiss-Twine Pack** – Bond-string tokens. Tie to sleeve/hair for interest.
+- **Ley-Stamped Facewraps** – Scarves with decorative protection glyphs. Teen fashion.
+- **Bond Tokens (x5)** – Wooden vow markers. Meant to burn, bury, or gift.
+- **Mirror Words Deck** – Reflective affirmation cards that change per reader.
+- **Driftcharms** – Low-grade talismans for resonance-based attraction. Party wear.
