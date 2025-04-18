@@ -8,6 +8,7 @@ import json
 import random
 import logging
 import datetime
+import os
 from typing import Dict, List, Any, Optional, Tuple, Union, cast
 
 from pydantic import ValidationError
@@ -17,6 +18,8 @@ from aeonisk.core.models import (
     PlayerAction, SkillCheck, DatasetEntry
 )
 from aeonisk.dataset.parser import DatasetParser
+from aeonisk.dataset.manager import DatasetManager
+from aeonisk.utils.file_utils import get_session_file, get_session_dataset_directory
 from aeonisk.openai import client as openai_client
 
 
@@ -27,9 +30,16 @@ logger = logging.getLogger(__name__)
 class GameSession:
     """Represents a game session."""
     
-    def __init__(self):
-        """Initialize the game session."""
+    def __init__(self, session_name: Optional[str] = None):
+        """
+        Initialize the game session.
+        
+        Args:
+            session_name: Optional name of the session. If not provided, a timestamp will be used.
+        """
         self._model = GameSessionModel()
+        self.session_name = session_name
+        self.dataset_manager = DatasetManager(session_name)
         self._load_dataset()
     
     def _load_dataset(self):
@@ -230,8 +240,8 @@ class GameSession:
         Args:
             skill_check: The skill check to record.
         """
-        # TODO: Implement dataset recording
-        pass
+        # Record the skill check using the dataset manager
+        self.dataset_manager.record_skill_check(skill_check)
     
     def generate_scenario(self, theme: Optional[str] = None, difficulty: Optional[str] = None) -> Dict[str, Any]:
         """
