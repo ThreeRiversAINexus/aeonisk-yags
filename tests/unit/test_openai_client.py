@@ -18,7 +18,7 @@ class TestOpenAIClient:
         """Test that the client can be initialized with environment variables."""
         client = OpenAIClient()
         assert client.api_key == "test_key"
-        assert client.model == "gpt-4"  # Default model
+        assert client.model == "gpt-4o"  # Check for new default model
 
     def test_client_initialization_with_params(self):
         """Test that the client can be initialized with parameters."""
@@ -48,7 +48,7 @@ class TestOpenAIClient:
         assert result == "Generated text"
         mock_create.assert_called_once()
         args, kwargs = mock_create.call_args
-        assert kwargs["model"] == "gpt-4"
+        assert kwargs["model"] == "gpt-4o" # Check for new default model
         assert len(kwargs["messages"]) == 2
         assert kwargs["messages"][0]["role"] == "system"
         assert kwargs["messages"][1]["role"] == "user"
@@ -125,6 +125,95 @@ class TestOpenAIClient:
         assert "attributes" in result
         assert result["attributes"]["strength"] == 3
         mock_create.assert_called_once()
+
+    @patch("openai.chat.completions.create")
+    def test_analyze_player_action_seed_attunement(self, mock_create):
+        """Test analyzing a player action involving Seed attunement."""
+        # Mock the OpenAI API response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = """
+        {
+            "attribute": "Willpower",
+            "skill": "Attunement",
+            "attribute_value": 3,
+            "skill_value": 2,
+            "difficulty": 18,
+            "roll": 15,
+            "total": 21,
+            "success": true,
+            "margin": 3,
+            "narrative_response": "You successfully attune the Seed to Spark.",
+            "void_change": 0,
+            "soulcredit_change": 0
+        }
+        """
+        mock_create.return_value = mock_response
+
+        client = OpenAIClient(api_key="test_key")
+        character_data = {
+            "name": "Test Character",
+            "attributes": {"Willpower": 3},
+            "skills": {"Attunement": 2},
+            "raw_seeds": [{"id": "seed1", "acquisition_cycle": 1}]
+        }
+        action_text = "Attune raw seed seed1 to Spark"
+        result = client.analyze_player_action(character=character_data, action_text=action_text)
+
+        assert result["skill"] == "Attunement"
+        assert result["success"] is True
+        assert "attune" in result["narrative_response"].lower()
+        mock_create.assert_called_once()
+        args, kwargs = mock_create.call_args
+        # Check the user message content within the messages list
+        user_message = next((m['content'] for m in kwargs['messages'] if m['role'] == 'user'), None)
+        assert user_message is not None
+        assert "Attune raw seed" in user_message
+
+    @patch("openai.chat.completions.create")
+    def test_analyze_player_action_dreamwork(self, mock_create):
+        """Test analyzing a player action involving Dreamwork."""
+        # Mock the OpenAI API response
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = """
+        {
+            "attribute": "Willpower",
+            "skill": "Dreamwork",
+            "attribute_value": 3,
+            "skill_value": 2,
+            "difficulty": 16,
+            "roll": 10,
+            "total": 16,
+            "success": true,
+            "margin": 0,
+            "narrative_response": "You manage to gain some control over the dream.",
+            "void_change": -1,
+            "soulcredit_change": 0
+        }
+        """
+        mock_create.return_value = mock_response
+
+        client = OpenAIClient(api_key="test_key")
+        character_data = {
+            "name": "Test Character",
+            "attributes": {"Willpower": 3},
+            "skills": {"Dreamwork": 2},
+            "void_score": 2
+        }
+        action_text = "Attempt to control the nightmare"
+        result = client.analyze_player_action(character=character_data, action_text=action_text)
+
+        assert result["skill"] == "Dreamwork"
+        assert result["success"] is True
+        assert result["void_change"] == -1
+        assert "dream" in result["narrative_response"].lower()
+        mock_create.assert_called_once()
+        args, kwargs = mock_create.call_args
+        # Check the user message content within the messages list
+        user_message = next((m['content'] for m in kwargs['messages'] if m['role'] == 'user'), None)
+        assert user_message is not None
+        assert "nightmare" in user_message
 
     @patch("aeonisk.openai.client.OpenAIClient")
     def test_generate_scenario_function(self, mock_client_class):

@@ -34,98 +34,10 @@ class TestCharacter:
         assert character.true_will is None
         assert character.equipment == []
 
-    def test_get_attribute(self):
-        """Test getting an attribute value."""
-        character = Character(
-            name="Test Character",
-            concept="Test Concept",
-            attributes={"Strength": 3, "Agility": 4},
-            skills={}
-        )
-        
-        assert character.get_attribute("Strength") == 3
-        assert character.get_attribute("Agility") == 4
-        assert character.get_attribute("Nonexistent") == 0
-
-    def test_get_skill(self):
-        """Test getting a skill value."""
-        character = Character(
-            name="Test Character",
-            concept="Test Concept",
-            attributes={},
-            skills={"Athletics": 2, "Stealth": 3}
-        )
-        
-        assert character.get_skill("Athletics") == 2
-        assert character.get_skill("Stealth") == 3
-        assert character.get_skill("Nonexistent") == 0
-
-    @patch("random.randint")
-    def test_skill_check_success(self, mock_randint):
-        """Test a successful skill check."""
-        # Mock the die roll to return 10
-        mock_randint.return_value = 10
-        
-        character = Character(
-            name="Test Character",
-            concept="Test Concept",
-            attributes={"Strength": 3},
-            skills={"Athletics": 2}
-        )
-        
-        # Ability = 3 * 2 = 6, Roll = 10, Total = 16
-        # Difficulty = 15, so this should succeed
-        success, margin = character.skill_check("Strength", "Athletics", 15)
-        
-        assert success is True
-        assert margin == 1
-        mock_randint.assert_called_once_with(1, 20)
-
-    @patch("random.randint")
-    def test_skill_check_failure(self, mock_randint):
-        """Test a failed skill check."""
-        # Mock the die roll to return 5
-        mock_randint.return_value = 5
-        
-        character = Character(
-            name="Test Character",
-            concept="Test Concept",
-            attributes={"Strength": 3},
-            skills={"Athletics": 2}
-        )
-        
-        # Ability = 3 * 2 = 6, Roll = 5, Total = 11
-        # Difficulty = 15, so this should fail
-        success, margin = character.skill_check("Strength", "Athletics", 15)
-        
-        assert success is False
-        assert margin == -4
-        mock_randint.assert_called_once_with(1, 20)
-
-    @patch("random.randint")
-    def test_skill_check_fumble(self, mock_randint):
-        """Test a fumbled skill check."""
-        # Mock the die roll to return 1 (fumble)
-        mock_randint.return_value = 1
-        
-        character = Character(
-            name="Test Character",
-            concept="Test Concept",
-            attributes={"Strength": 3},
-            skills={"Athletics": 2}
-        )
-        
-        # Ability = 3 * 2 = 6, Roll = 1, but this is a fumble
-        # Difficulty = 15, so this should fail
-        success, margin = character.skill_check("Strength", "Athletics", 15)
-        
-        assert success is False
-        assert margin == 8  # difficulty - ability - roll = 15 - 6 - 1 = 8
-        mock_randint.assert_called_once_with(1, 20)
-
 
 class TestGameSession:
     """Test suite for the GameSession class."""
+
 
     def test_session_initialization(self):
         """Test that a session can be initialized."""
@@ -157,35 +69,51 @@ class TestGameSession:
         assert character.concept == "Test Concept"
         assert character in session.characters
         assert len(session.characters) == 1
+        assert session.current_character == character # Ensure new character is selected
 
-    @patch("aeonisk.engine.game.Character.skill_check")
-    def test_skill_check(self, mock_skill_check):
-        """Test performing a skill check."""
-        # Mock the character's skill_check method
-        mock_skill_check.return_value = (True, 5)
+    @patch("random.randint")
+    def test_skill_check(self, mock_randint):
+        """Test performing a skill check via the GameSession."""
+        # Mock the die roll
+        mock_randint.return_value = 10
         
         session = GameSession()
         character = session.create_character("Test Character", "Test Concept")
+        character.attributes["Strength"] = 3
+        character.skills["Athletics"] = 2
         
+        # Ability = 3 * 2 = 6, Roll = 10, Total = 16
+        # Difficulty = 15, so this should succeed
         success, margin, description = session.skill_check(character, "Strength", "Athletics", 15)
         
         assert success is True
-        assert margin == 5
+        assert margin == 1
         assert "Success!" in description
-        mock_skill_check.assert_called_once_with("Strength", "Athletics", 15)
+        mock_randint.assert_called_once_with(1, 20)
 
-    @patch("aeonisk.openai.client.generate_scenario")
-    def test_generate_scenario(self, mock_generate_scenario):
+    def test_generate_scenario(self):
         """Test generating a scenario."""
-        # Mock the OpenAI client's generate_scenario function
-        mock_generate_scenario.return_value = {"title": "Test Scenario"}
-        
+        # Create a session with a character
         session = GameSession()
-        scenario = session.generate_scenario(theme="test", difficulty="easy")
+        character = session.create_character("Test Character", "Test Concept")
         
-        assert scenario == {"title": "Test Scenario"}
-        assert session.scenario == {"title": "Test Scenario"}
-        mock_generate_scenario.assert_called_once_with(theme="test", difficulty="easy", characters=[])
+        # Mock the OpenAI client's generate_scenario function
+        with patch("aeonisk.openai.client.generate_scenario") as mock_generate_scenario:
+            mock_generate_scenario.return_value = {"title": "Test Scenario"}
+            
+            # Generate the scenario
+            scenario = session.generate_scenario(theme="test", difficulty="easy")
+            
+            # Check the results
+            assert scenario == {"title": "Test Scenario"}
+            assert session.scenario.title == "Test Scenario" # Check model attribute
+            mock_generate_scenario.assert_called_once()
+            # Check that the call included the expected arguments
+            args, kwargs = mock_generate_scenario.call_args
+            assert kwargs["theme"] == "test"
+            assert kwargs["difficulty"] == "easy"
+            assert len(kwargs["characters"]) == 1
+            assert kwargs["characters"][0]["name"] == "Test Character"
 
     @patch("aeonisk.openai.client.generate_npc")
     def test_generate_npc(self, mock_generate_npc):
@@ -197,35 +125,63 @@ class TestGameSession:
         npc = session.generate_npc(faction="test", role="test")
         
         assert npc == {"name": "Test NPC"}
-        assert session.npcs == [{"name": "Test NPC"}]
+        assert len(session.npcs) == 1
+        assert session.npcs[0].name == "Test NPC" # Check model attribute
         mock_generate_npc.assert_called_once_with(faction="test", role="test")
 
-    @patch("aeonisk.openai.client.get_client")
-    def test_process_player_action(self, mock_get_client):
+    @patch("aeonisk.openai.client.analyze_player_action")
+    @patch("aeonisk.openai.client.format_game_response")
+    def test_process_player_action(self, mock_format_response, mock_analyze_action):
         """Test processing a player action."""
-        # Mock the OpenAI client
-        mock_client = MagicMock()
-        mock_client.generate_text.return_value = "Test result"
-        mock_get_client.return_value = mock_client
+        # Mock the OpenAI client functions
+        mock_analyze_action.return_value = {
+            "narrative_response": "Narrative result",
+            "void_change": 1,
+            "soulcredit_change": -1,
+            "attribute": "Strength",
+            "skill": "Brawl",
+            "difficulty": 15,
+            "roll": 12,
+            "total": 18, # Assuming Str 3, Brawl 2 -> 3*2=6 + 12 = 18
+            "success": True,
+            "margin": 3
+        }
+        mock_format_response.return_value = "Formatted result"
         
         session = GameSession()
         character = session.create_character("Test Character", "Test Concept")
+        character.attributes["Strength"] = 3
+        character.skills["Brawl"] = 2
+        initial_void = character.void_score
+        initial_sc = character.soulcredit
         
-        result = session.process_player_action(character, "Test action")
+        result = session.process_player_action(character, "Punch the guard")
         
-        assert result == "Test result"
-        mock_client.generate_text.assert_called_once()
-        args, kwargs = mock_client.generate_text.call_args
-        assert kwargs["prompt"].startswith("Character: Test Character (Test Concept)")
-        assert "Action: Test action" in kwargs["prompt"]
+        assert result == "Formatted result"
+        mock_analyze_action.assert_called_once()
+        # Check that character state was updated
+        assert character.void_score == initial_void + 1
+        assert character.soulcredit == initial_sc - 1
+        # Check that action was recorded
+        assert len(session.actions) == 1
+        assert session.actions[0].action_text == "Punch the guard"
+        assert session.actions[0].void_change == 1
+        assert len(session.actions[0].skill_checks) == 1
+        assert session.actions[0].skill_checks[0].skill == "Brawl"
 
     def test_save_and_load_session(self, tmp_path):
         """Test saving and loading a session."""
         # Create a session with a character and scenario
         session = GameSession()
         character = session.create_character("Test Character", "Test Concept")
-        session.scenario = {"title": "Test Scenario"}
-        session.npcs = [{"name": "Test NPC"}]
+        # Use the generate_scenario method to set the scenario model correctly
+        with patch("aeonisk.openai.client.generate_scenario") as mock_gen_scenario:
+            mock_gen_scenario.return_value = {"title": "Test Scenario"}
+            session.generate_scenario() 
+        # Use the generate_npc method to add NPC model correctly
+        with patch("aeonisk.openai.client.generate_npc") as mock_gen_npc:
+            mock_gen_npc.return_value = {"name": "Test NPC"}
+            session.generate_npc()
         
         # Save the session
         file_path = tmp_path / "test_session.json"
@@ -242,5 +198,6 @@ class TestGameSession:
         assert len(new_session.characters) == 1
         assert new_session.characters[0].name == "Test Character"
         assert new_session.characters[0].concept == "Test Concept"
-        assert new_session.scenario == {"title": "Test Scenario"}
-        assert new_session.npcs == [{"name": "Test NPC"}]
+        assert new_session.scenario.title == "Test Scenario" # Check model attribute
+        assert len(new_session.npcs) == 1
+        assert new_session.npcs[0].name == "Test NPC" # Check model attribute

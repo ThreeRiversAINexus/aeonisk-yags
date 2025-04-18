@@ -403,7 +403,235 @@ class GameSession:
         except Exception as e:
             logger.error(f"Error processing player action: {str(e)}")
             return f"Error: {str(e)}"
-    
+
+    # --- Seed Mechanics ---
+
+    def attune_seed(self, character: Character, raw_seed_id: str, target_element: str) -> Tuple[bool, str]:
+        """Attune a raw Seed to a specific element."""
+        raw_seed_index = -1
+        for i, seed in enumerate(character.raw_seeds):
+            if seed.get("id") == raw_seed_id:
+                raw_seed_index = i
+                break
+
+        if raw_seed_index == -1:
+            return False, f"Raw seed with ID '{raw_seed_id}' not found."
+
+        # Perform Attunement skill check (difficulty can vary, using 18 as placeholder)
+        # TODO: Refine difficulty based on context/rules
+        attunement_difficulty = 18 
+        success, margin, description = self.skill_check(
+            character, "Willpower", "Attunement", attunement_difficulty
+        )
+
+        if success:
+            # Remove raw seed and add to attuned seeds
+            character.raw_seeds.pop(raw_seed_index)
+            character.attuned_seeds[target_element] = character.attuned_seeds.get(target_element, 0) + 1
+            return True, f"Successfully attuned seed {raw_seed_id} to {target_element}. {description}"
+        else:
+            # TODO: Handle potential negative consequences of failed attunement?
+            return False, f"Failed to attune seed {raw_seed_id}. {description}"
+
+    def advance_cycle(self, character: Character) -> List[Dict[str, Any]]:
+        """Advance the game time by one cycle (7 days)."""
+        character.current_cycle += 1
+        # Potentially trigger other cycle-based events here
+        return self.check_seed_degradation(character)
+
+    def check_seed_degradation(self, character: Character) -> List[Dict[str, Any]]:
+        """Check for and handle raw seed degradation."""
+        degraded_seeds = []
+        seeds_to_keep = []
+        degradation_limit = 7 # Seeds degrade after 7 cycles
+        current_cycle = character.current_cycle
+        
+        # Correctly identify degraded seeds and build the list to keep
+        for seed in character.raw_seeds:
+            acquisition_cycle = seed.get("acquisition_cycle", -1)
+            if acquisition_cycle >= 0 and (current_cycle - acquisition_cycle) >= degradation_limit:
+                degraded_seeds.append(seed) # Add to the list of degraded seeds
+                logger.info(f"Raw seed {seed.get('id', 'unknown')} degraded.")
+            else:
+                seeds_to_keep.append(seed) # Add to the list of seeds to keep
+        
+        character.raw_seeds = seeds_to_keep # Update the character's list
+        return degraded_seeds # Return the list of seeds that were actually degraded
+
+    def use_raw_seed(self, character: Character, raw_seed_id: str) -> Tuple[bool, str, int]:
+        """Use an unattuned raw seed, incurring Void."""
+        raw_seed_index = -1
+        for i, seed in enumerate(character.raw_seeds):
+            if seed.get("id") == raw_seed_id:
+                raw_seed_index = i
+                break
+        
+        if raw_seed_index == -1:
+            return False, f"Raw seed with ID '{raw_seed_id}' not found.", 0
+
+        # Remove the seed
+        character.raw_seeds.pop(raw_seed_index)
+        
+        # Apply Void penalty
+        void_gain = 1
+        self.apply_void_gain(character, void_gain) 
+        
+        return True, f"Used raw seed {raw_seed_id}, gained +{void_gain} Void.", void_gain
+
+    def use_attuned_seed(self, character: Character, element: str) -> Tuple[bool, str, int]:
+        """Use an attuned seed of a specific element."""
+        if character.attuned_seeds.get(element, 0) > 0:
+            character.attuned_seeds[element] -= 1
+            if character.attuned_seeds[element] == 0:
+                del character.attuned_seeds[element] # Clean up if count reaches zero
+            # TODO: Implement elemental conversion effects based on context
+            return True, f"Used attuned {element} seed.", 0
+        else:
+            return False, f"Character does not have any attuned {element} seeds.", 0
+
+    # --- Void Mechanics ---
+
+    def get_void_environmental_effect(self, character: Character) -> Optional[str]:
+        """Get the description of the passive Void environmental effect."""
+        vs = character.void_score
+        if vs >= 10:
+            return "Reality warps visibly around the character. Claimed by the Void."
+        elif vs >= 9:
+            return "Severe disruption: Sacred spaces reject the character, passive rituals twist."
+        elif vs >= 7:
+            return "Significant disruption: Leylines flicker, tech glitches, Bonds become Dormant."
+        elif vs >= 5:
+            return "Minor disruption: Ambient instability, static in the air, dream fragments leak."
+        else:
+            return None # No significant passive effect
+
+    def apply_void_gain(self, character: Character, amount: int) -> Tuple[bool, Optional[str]]:
+        """Apply Void gain to a character, check for Void Spike, and update status."""
+        # Handle both positive and negative void changes
+        initial_void = character.void_score
+        character.void_score += amount
+        character.void_score = max(0, min(10, character.void_score)) # Cap at 0-10
+        
+        # Only trigger Void Spike for positive gains >= 2
+        void_spike_triggered = amount >= 2
+        spike_effect = None
+        if void_spike_triggered:
+            # TODO: Implement mechanical stun effect based on context (combat/narrative)
+            spike_effect = f"Void Spike triggered! Character is stunned/dazed."
+            logger.info(f"{character.name} triggered Void Spike (+{amount} Void).")
+
+        # Update Bond status if Void threshold crossed
+        if initial_void < 7 <= character.void_score:
+             self.update_bond_status(character)
+        elif character.void_score < 7 <= initial_void: # Handle case where Void drops below 7
+             self.update_bond_status(character)
+             
+        return void_spike_triggered, spike_effect
+
+    def update_bond_status(self, character: Character):
+        """Update the status of character's bonds based on Void score."""
+        new_status = "Dormant" if character.void_score >= 7 else "Active"
+        for bond in character.bonds:
+            if bond.get("status") != new_status:
+                bond["status"] = new_status
+                logger.info(f"Bond '{bond.get('name', 'Unknown')}' for {character.name} is now {new_status}.")
+
+    # --- Dreamwork Mechanics ---
+
+    def handle_rest(self, character: Character) -> str:
+        """Handle character resting, potentially triggering a dream event."""
+        # Basic chance for a dream event (e.g., 25%)
+        # TODO: Refine trigger conditions (Void, trauma, Bond status etc.)
+        if random.random() < 0.25: 
+            return self.handle_dream_event(character)
+        else:
+            # TODO: Implement rest benefits (healing, fatigue recovery)
+            return f"{character.name} rests peacefully with no dreams."
+
+    def _generate_dream_outcome(self, character: Character, context: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Generate the outcome of a dream event. 
+        Placeholder implementation. Needs AI integration or more complex logic.
+        """
+        # TODO: Integrate with OpenAI or implement rule-based dream generation
+        # Based on character state (Void, Bonds, True Will), context, etc.
+        possible_outcomes = [
+            {"effect": "void_change", "change": 1, "message": "A nightmare leaves you shaken, increasing your Void."},
+            {"effect": "void_change", "change": -1, "message": "A peaceful dream soothes your spirit, decreasing your Void."},
+            {"effect": "insight", "message": "You gain a cryptic insight: 'The shadow hides the key'."},
+            {"effect": "bond_shift", "target_bond": character.bonds[0]["name"] if character.bonds else None, "change": 1, "message": "A dream strengthens your connection."},
+            {"effect": "confrontation", "message": "You face a symbolic representation of your fears."},
+            {"effect": "shared_dream", "participants": [character.name], "scene": "A shared dreamscape unfolds...", "message": "You find yourself in a shared dream."},
+        ]
+        # Simple random selection for now
+        outcome = random.choice(possible_outcomes)
+        
+        # Ensure bond shift targets an existing bond
+        if outcome["effect"] == "bond_shift" and not outcome["target_bond"]:
+             outcome = {"effect": "insight", "message": "A fleeting dream offers no clear message."} # Default if no bonds
+
+        # Basic shared dream logic placeholder
+        if outcome["effect"] == "shared_dream":
+             # Find bonded partners
+             bonded_partners = [b.get("partner") for b in character.bonds if b.get("partner")] # Assuming partner name is stored
+             # In a real implementation, check if partners are also resting/eligible
+             outcome["participants"].extend(bonded_partners) 
+             
+        return outcome
+
+    def handle_dream_event(self, character: Character, context: Optional[str] = None) -> str:
+        """Handle a specific dream event, applying its effects."""
+        
+        # Optional: Use Dreamwork skill check to influence outcome
+        dreamwork_success = False
+        if "Dreamwork" in character.skills and character.skills["Dreamwork"] > 0:
+             # Difficulty could depend on dream intensity, context
+             dreamwork_difficulty = 16 
+             # Attribute could be Willpower or Empathy depending on goal (control vs understanding)
+             success, margin, desc = self.skill_check(character, "Willpower", "Dreamwork", dreamwork_difficulty)
+             if success:
+                 dreamwork_success = True
+                 # TODO: Apply bonus/mitigation based on successful Dreamwork check
+                 logger.info(f"{character.name} successfully used Dreamwork skill.")
+
+        # Generate the core dream outcome
+        outcome = self._generate_dream_outcome(character, context)
+        message = outcome.get("message", "A strange dream unfolds.")
+
+        # Apply effects and enhance message based on effect type
+        effect_type = outcome.get("effect")
+        if effect_type == "void_change":
+            change = outcome.get("change", 0)
+            if change != 0:
+                 _, spike_effect = self.apply_void_gain(character, change)
+                 if change > 0:
+                     message = f"A nightmare increases your Void by {change}. {message}"
+                 else:
+                     message = f"A peaceful dream decreases your Void by {abs(change)}. {message}"
+                 if spike_effect: 
+                     message += f" {spike_effect}"
+        elif effect_type == "bond_shift":
+            target_bond_name = outcome.get("target_bond")
+            change = outcome.get("change", 0)
+            if target_bond_name and change != 0:
+                for bond in character.bonds:
+                    if bond.get("name") == target_bond_name:
+                        bond["strength"] = max(1, min(5, bond.get("strength", 1) + change)) # Clamp strength 1-5
+                        logger.info(f"Bond '{target_bond_name}' strength changed by {change} for {character.name}.")
+                        message = f"Your bond with {target_bond_name} has shifted. {message}"
+                        break
+        elif effect_type == "insight":
+            # Ensure insight is mentioned in the message
+            message = f"You gain an insight: {message}"
+        elif effect_type == "shared_dream":
+             # TODO: Implement logic to notify/affect other participants
+             logger.info(f"Shared dream triggered involving: {outcome.get('participants')}")
+             message = f"Shared dream with {', '.join(outcome.get('participants',[]))}. {message}" # Indicate participants
+
+        # TODO: Handle other effects like confrontation, lasting narrative consequences
+
+        return message
+
     def save_session(self, file_path: str) -> bool:
         """
         Save the current session to a file.
