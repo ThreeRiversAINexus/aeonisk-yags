@@ -42,7 +42,7 @@ class OpenAIClient:
         if not self.api_key:
             raise ValueError("OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key.")
         
-        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4")
+        self.model = model or os.getenv("OPENAI_MODEL", "gpt-4o") # Default to gpt-4o
         self.api_url = api_url or os.getenv("OPENAI_API_URL")
         
         # Configure the OpenAI client

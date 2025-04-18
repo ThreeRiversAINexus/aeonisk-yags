@@ -32,6 +32,7 @@ class Bond(BaseModel):
     type: str
     description: Optional[str] = None
     strength: int = Field(default=1, ge=1, le=5)
+    status: str = Field(default="Active")  # Add status field with default "Active"
 
 
 class Equipment(BaseModel):
@@ -53,6 +54,9 @@ class Character(BaseModel):
     bonds: List[Dict[str, Any]] = Field(default_factory=list)
     true_will: Optional[str] = None
     equipment: List[Dict[str, Any]] = Field(default_factory=list)
+    raw_seeds: List[Dict[str, Any]] = Field(default_factory=list)
+    attuned_seeds: Dict[str, int] = Field(default_factory=dict)
+    current_cycle: int = Field(default=0)
 
     @validator('attributes', pre=True, always=True)
     def set_default_attributes(cls, v):
@@ -82,10 +86,18 @@ class Character(BaseModel):
             "Guile": 2,
             "Sleight": 2,
             "Stealth": 2,
-            "Throw": 2
+            "Throw": 2,
+            "Attunement": 2,  # Add Attunement with default value 2
+            "Dreamwork": 2    # Add Dreamwork with default value 2
         }
         if not v:
             return default_skills
+        
+        # Ensure new skills are added if not present
+        for skill, value in default_skills.items():
+            if skill not in v:
+                v[skill] = value
+                
         return v
 
 
