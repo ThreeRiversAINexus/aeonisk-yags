@@ -396,10 +396,11 @@ Ruling: Broker declared Spiritually Bankrupt. Assets seized by ACG restructuring
 
 > When the rites failed to echo, when the offerings lay inert upon the altars, we learned it was not numbers that mattered, but weight. Some offerings weighed too little, empty gestures lacking intent. Some Wills pulled too far, tearing the Weave instead of shaping it. From that lesson, the Codex changed. It no longer merely counted the toll — it learned to listen for the break, for the silence where resonance should be.
 
+<!--
 ---
 *Story Vignettes Section Remains Unchanged*
 ---
-
+-->
 ## SECTION XI: Echo Children - The Ones Rewritten
 
 *Document Type: Restricted Anthropological Study (Excerpt)*

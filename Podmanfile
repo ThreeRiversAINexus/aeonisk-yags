@@ -1,0 +1,23 @@
+# Use pandoc/latex image which includes Pandoc and a TeX distribution
+FROM docker.io/pandoc/latex:latest
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the internal conversion script into the container and make it executable
+COPY ./scripts/internal_podman_convert.sh /usr/local/bin/internal_podman_convert.sh
+RUN chmod +x /usr/local/bin/internal_podman_convert.sh
+
+# Create the releases directory (as pandoc user)
+RUN mkdir -p /app/releases
+
+# Override the default entrypoint to ensure our script is executed directly
+ENTRYPOINT []
+
+# Define the command to run the internal script.
+CMD ["/usr/local/bin/internal_podman_convert.sh"]
+
+# To build: podman build -f Podmanfile -t yags-converter .
+# To run (assuming your CWD has content/ and you want output in releases/):
+# mkdir -p releases
+# podman run --rm -v ./content:/app/content:ro -v ./releases:/app/releases:Z yags-converter
