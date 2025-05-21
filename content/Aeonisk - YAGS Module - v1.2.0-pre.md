@@ -2,7 +2,7 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.1.1-pre
+Version 1.2.0-pre
 
 ## 1. Introduction
 
@@ -46,7 +46,7 @@ Aeonisk uses the core YAGS mechanics but modifies or adds the following:
 | --------------------- | ------------------------------------------------------------ |
 | Core Dice Mechanic    | Skill Attribute × Skill + d20                                |
 | Ritual Resolution     | Willpower × Astral Arts + d20 vs Ritual Threshold. Outcome determined by margin of success/failure. |
-| New Skills            | Astral Arts, Magick Theory, Intimacy Ritual, Corporate Influence, Debt Law (examples) |
+| New Skills            | Astral Arts, Magick Theory, Intimacy Ritual, Corporate Influence, Debt Law, Pilot, Drone Operation |
 | Void Score            | Tracks spiritual corruption (0–10); passively warps reality at 5+, triggers Void Spike on rapid gain. |
 | Soulcredit            | Tracks spiritual trust and obligation (–10 to +10).          |
 | Bond Mechanics        | Formal connections (max 3, Freeborn 1). Provides +2 to rituals and +1 Soak (defending Bonded). Can be sacrificed. |
@@ -92,7 +92,7 @@ Ability + d20 vs Difficulty
 | Sheer folly    | 75     | Requires superhuman skill.                                   |
 | Absurd         | 100    | Beyond most capabilities.                                    |
 
-*(Aeonisk typically uses a narrower range of 15-20 for standard Skill Checks, but Rituals have their own specific thresholds. GMs can use the YAGS  standard for non-ritual tasks).*
+*(Aeonisk typically uses a narrower range of 15-20 for standard Skill Checks, but Rituals have their own specific thresholds. GMs can use the YAGS  standard for non-ritual tasks. See also Section 6.6 for Aeonisk-specific DC Guidelines).*
 
 **Fumbles & Criticals:**
 
@@ -277,7 +277,7 @@ Aeonisk uses charged elemental talismans instead of abstract money. Value is tra
 
 - **Types:** Grain (Earth), Drip (Water), Spark (Fire), Breath (Air). Each represents different conceptual energies.
 - **Forbidden:** Hollow (Void) - Black market, corrupting.
-- **Potential:** Seed (Unaligned) - Cannot be traded, must be attuned through ritual/sacrifice.
+- **Potential:** Seed (Raw/Unaligned) - Raw Seeds are unstable potential, cannot be traded directly as currency, and must be ritually attuned to an elemental aspect (e.g., Spark, Drip) to become stable and usable in specialized gear or as foundational talismans. Using a Raw Seed without attunement typically incurs Void.
 - **Usage:** Energy is siphoned from talismans (e.g., Spark Core 743/1000) to pay  others or power devices. Empty talismans can be recharged or sacrificed.
 - **Sizes:** Single (1 unit), Band (10-99), Sigil (100-999), Core (1k-9.9k), Vault (10k+).
 
@@ -319,9 +319,11 @@ Spend Experience points on Skills. Select from the YAGS core list or  Aeonisk-sp
 | ------------------- | --------- | ------------------------------------------------------------ |
 | Astral Arts         | Willpower | Channeling, resisting, and shaping spiritual energies in rituals. |
 | Magick Theory       | Int       | Knowledge of glyphs, ritual systems, sacred mechanics, Aeons. |
-| Intimacy Ritual     | Empathy   | Performing emotionally-powered or Bond-based rituals. Requires trust. |
+| Intimacy Ritual     | Empathy   | Performing emotionally-powered or Bond-based rituals. Requires trust. (Includes Intimidation Ritual as a use-case: a ritual “threat” instead of a social roll. Check: Empathy × Intimacy Ritual + d20. Subdomain tag: `intimidation_ritual`). |
 | Corporate Influence | Emp       | Navigating faction politics, extracting favors, reading intentions. |
 | Debt Law            | Int       | Understanding/manipulating contracts, oaths, Soulcredit systems. |
+| Pilot               | Agility   | Use for any vehicle or EVA-station-keeping task (e.g. slipstream jumps, docking holds). Check: Agility × Pilot + d20. Subdomain tag: `pilot_check`. |
+| Drone Operation     | Intelligence | For remote spark-burst, EMP, mapping, or hacking via drones. Check: Intelligence × Drone Operation + d20 (or Intelligence × Electronics Operation + d20 if Drone Operation is treated as a specialization). Subdomain tag: `drone_operation`. |
 
 ### 4.5. Step 5: Define True Will (Later)
 
@@ -466,11 +468,24 @@ The Margin Outcome Table (Section 6.1, Step 5) covers the spectrum of results:
 
 ### 6.3. Group Rituals
 
-- Requires mutual Bonds among participants.
-- Lead caster makes the Ritual Roll (gains Bond Bonus if applicable). This  single roll determines the outcome for the group based on the margin  table.
-- Each participant must provide their *own* Offering. If *any* participant skips their offering, the group incurs the standard  penalties (+1 Void for the group, potential downgrade of the result  tier).
-- Consequences from the outcome table (Void gain, backlash, benefits) generally apply  to all participants, unless the GM rules otherwise based on narrative  context (e.g., a specific backlash targeting the lead caster).
-- Dreamwork can be done in groups as well.
+- **Base Formula:** The group's ritualistic power is the sum of (Willpower × Ritual Skill) for each caster, plus one flat group bonus (e.g., +2 Synergy Bonus, not +1 per extra caster).
+- **Offerings:** Each extra caster (beyond the primary) must expend a minor Offering (e.g., 1 Spark or 1 Attunement Kit) or the group incurs +1 Void per caster without an offering. The primary caster also provides their standard offering.
+- **DC Scaling:**
+    - Small party (2-3 casters): DC = 18–22
+    - Large party (4+ casters) or high-stakes: DC = 24–30
+- **Roll:** The lead caster makes a single Ritual Roll using the group's combined power against the scaled DC.
+- Requires mutual Bonds among participants for most effective group rituals.
+- Consequences from the outcome table (Void gain, backlash, benefits) generally apply to all participants, unless the GM rules otherwise based on narrative context.
+- Dreamwork can be done in groups as well, following similar principles.
+
+**Example: Revised Group Ritual Rule (Ley Repair)**
+
+- **Participants:** Kaelia (Willpower 5 × Astral Arts 4 = 20), Sorin (Willpower 3 × Astral Arts 3 = 9), Althaea (Willpower 4 × Astral Arts 2 = 8)
+- **Subtotal:** 20 + 9 + 8 = 37
+- **Synergy Bonus:** +2 (flat for group participation)
+- **Offerings:** 3 Spark (one per caster, or one per extra caster if primary offering is different) OR +1 Void per missing offering (up to +3 Void).
+- **DC:** 30 (Large party, high-stakes)
+- **Roll:** 37 (Subtotal) + 2 (Synergy) + d20 ⇒ total vs DC 30
 
 ### 6.4. Void and Rituals
 
@@ -480,7 +495,7 @@ The Margin Outcome Table (Section 6.1, Step 5) covers the spectrum of results:
 
 ### 6.5. Ritual Library v1 (Examples)
 
-*(See Appendix 2 for full list and template)*
+*(See Appendix 2 for full list and template). Tag each ritual entry with a subdomain (e.g. `ritual_healing`, `ritual_binding`, `ritual_scrying`, `ritual_snare`) so it’s easy to index.*
 
 **Minor (Threshold 16):**
 
@@ -493,7 +508,7 @@ The Margin Outcome Table (Section 6.1, Step 5) covers the spectrum of results:
 1. **Thread the Bond:** Reinforce Bond (+1 Wil rolls for session, requires "Solid Success" margin or better). *Offering:* Written confession, sealed.
 2. **Ghost of the Ledger:** Compel truthful answer to 1 question (target with spiritual debt, requires "Solid Success" margin or better). *Offering:* Torn ledger page, blood.
 3. **Seal the Threshold:** Temporary barrier vs spiritual intrusion/Void. *Offering:* Salt and personal ash circle.
-4. **Attunement Ritual:** Uses Attunemelt skill to attune seeds to a particular element or to attune a ship via ley navigation.
+4. **Attunement Ritual:** Uses an appropriate skill (e.g., Astral Arts, Magick Theory, or a dedicated Attunement skill if available) to ritually process a Raw Seed, aligning it to a specific elemental aspect (Spark, Drip, Breath, Grain), transforming it into a stable Attuned Seed. Can also refer to rituals for attuning other items or oneself to concepts/energies, like ship attunement for ley navigation.
 
 **Major (Threshold 20-22):**
 
@@ -507,9 +522,38 @@ The Margin Outcome Table (Section 6.1, Step 5) covers the spectrum of results:
 2. **Reverse the Oath:** Fundamentally break sacred contract/Bond. *Offering:* Original contract burned, blood drops. *Void:* +2 to +4 depending on severity and margin.
 3. **Forge the Blade of Debt:** Bind soul-debt into item (+2 vs debtor). *Offering:* Debtor's name burned with Void-ash. *Void:* +4 always on failure, +2 on weak success.
 
+### 6.6. DC Guidelines & Difficulty Tags (Aeonisk Specific)
+
+While YAGS provides general difficulty guidelines, Aeonisk often uses a more focused range and encourages tagging entries for easier reference.
+
+**Aeonisk DC Guidelines:**
+- **DC 16 – Moderate:** Standard single-PC tasks in controlled settings (e.g., basic attunement, simple social interaction with a willing Bonded). Subdomain examples: `social_interaction_bonded`, `attunement_basic`.
+- **DC 18–20 – Challenging:** Hazardous tasks, actions under pressure, or complex single-PC rituals (e.g., piloting through minor turbulence, a standard Intimacy Ritual, resisting mild Void influence). Subdomain examples: `pilot_check_minor_hazard`, `intimidation_ritual_standard`, `void_resistance_low`.
+- **DC 22–24 – Difficult:** High-stakes actions, tasks with heavy interference, or significant group rituals (e.g., complex data decryption under fire, a group ritual to repair a minor leyline fracture, navigating a contested slipstream jump). Subdomain examples: `data_decryption_contested`, `group_ritual_ley_repair_minor`, `pilot_check_slipstream_contested`.
+- **DC 26+ – Extreme:** Epic tasks, multi-stage operations, or rituals dealing with wild Void or profound metaphysical forces (e.g., severing a deeply ingrained Sovereign Nexus Bond, a large group ritual to close a Void breach, piloting through a collapsing Void tunnel). Subdomain examples: `bond_severance_major`, `group_ritual_void_closure`, `pilot_check_extreme_hazard`.
+
+**Difficulty Tags (Subdomains):**
+Tag each significant action, item, or rule entry with a concise subdomain tag (e.g., `melee_attack`, `perception_check`, `data_decryption`, `lockdown`, `ritual_snare`, `pilot_check`, `drone_operation`). This helps in indexing, applying specific modifiers, and allows for more granular control by the GM. These tags should be descriptive and consistently applied.
+
 ## 7. Void & Soulcredit System (Detailed)
 
 *“Every act is a signature. Every signature leaves a mark.”*
+
+### 7.0. Hybrid Actions, Consumables, and Economy Updates
+
+**Skill + Skill Combos (Hybrid Actions):**
+Instead of two separate rolls, allow a single roll using the primary Attribute × Skill. If a second skill logically assists the action, grant a +2 “Synergy” bonus to the roll.
+*E.g., Shrike Burst (Dex × Guns) + Ritual Tag (Attunement assisting) → Dex × Guns + d20 +2 Synergy Bonus.*
+
+**Consumable Resource Tracking:**
+- **Spark Charges:** Every Spark-based weapon volley or EMP pulse consumes 1 Spark Charge.
+- **Attunement Kits:** Each complex ritual (e.g., group rites above DC 22 or any “Ritual Snare”) consumes 1 Attunement Kit or adds +1 Void to the ritual's cost.
+- These resources should be tracked explicitly on character sheets. Running out should trigger "out of resources" complications (GM discretion).
+
+**Void & Soulcredit Economy Updates:**
+- **Moderate Success Cost:** A Moderate Success on a significant roll (especially rituals or high-stakes actions) still carries a minor cost: the character must choose to either gain +1 Void or spend 1 relevant resource (e.g., a Spark Charge, an Attunement Kit, a minor offering).
+- **Critical Failure (Natural 1):** Always inflicts +2 Void. May also auto-break focus or a relevant item (GM discretion based on context).
+- **Excellent Success (Margin ≥ 20 on YAGS Degree of Success, or +10 to +14 / +15+ on Ritual Margin Table):** The character may convert a potential Soulcredit reward from this success into –1 Void instead, reflecting perfect ritual economy or karmic balance.
 
 ### 7.1. Void Score (0-10)
 
@@ -681,7 +725,7 @@ Mnemonic Blade, Shrike Cannon, Ash Pulse Pike (+2 Void on crit), Compact Drone H
 
 **The Six Currency Types:** (Meanings and Uses Unchanged)
 **Talisman Sizes & Capacity:** (Unchanged) Single, Band, Sigil, Core, Vault.
-**Hollows & Seeds:** (Unchanged) Hollows increase Void, Seeds untradeable until attuned via ritual.
+**Hollows & Seeds:** (Unchanged) Hollows increase Void. Raw Seeds are untradeable potential and must be ritually attuned to an elemental aspect to become stable "Attuned Seeds" suitable for use in specific gear or as foundational talismans.
 **Soulcredit Interaction:** (Unchanged) Affects market access, ethical spending impacts SC.
 **Faction Preferences:** (Unchanged)
 
@@ -813,3 +857,5 @@ ____________________________________________________________
 - **Veil:** Membrane between mundane reality and the Astral. Crossing = projection, scrying, trance.
 - **Void:** A tracked score (0–10) reflecting spiritual disconnection. Now  passively warps reality around you at 5+. Gaining 2+ Void at once causes a Void Spike.
 - **Void Spike:** A stun/daze condition triggered when 2+ Void is gained from a single  event. Causes loss of next turn (combat) or vulnerability (narrative).
+- **Raw Seed:** An unstable, unaligned Seed. Degrades in 7 cycles. Using a Raw Seed directly in gear or for potent effects without proper ritual attunement incurs +1 Void.
+- **Attuned Seed:** A Raw Seed that has undergone a ritual attunement process, aligning it to a specific elemental aspect (e.g., Spark, Drip, Breath, Grain). Elementally Attuned Seeds are stable and required for certain specialized gear and advanced talismans. The process of attunement transforms the Seed's nature from raw/unstable to elementally aligned/stable.

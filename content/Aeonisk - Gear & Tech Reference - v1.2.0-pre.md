@@ -6,15 +6,17 @@
 
 ## 0 · Economic
 
-Raw Seed - Unstable, degrades in 7 cycles (7 weeks). Becomes a Hollow when degrading.
-Echo-Calibrator - Used with attunement for attuning seeds and other items.
+**Raw Seed** - Unstable; degrades in 7 cycles (7 weeks); +1 Void if used without proper ritual attunement. Becomes a Hollow when degrading. Must be ritually attuned into an elemental aspect (e.g., Spark, Drip) before use in specialized gear or as a stable talisman.
+**Attunement Tools:**
+    - **Echo-Calibrator** - Used to help stabilize and align Raw Seeds during attunement rituals. Requires careful handling (DC 16 Dexterity × relevant Craft/Tech skill check to avoid +1 instability to the ritual). Standard upkeep: 1 Spark charge per 3 uses.
+    - **Ritual Altar** - A prepared sacred space or dedicated device that focuses energies for attunement rituals. Provides +1 to +3 bonus to attunement ritual rolls depending on quality and offerings. Risk of instability if altar is desecrated or improperly maintained (GM discretion). Upkeep: Varies (offerings, cleansing rites).
 
 ## 1 · Weapon Class Cheat‑Sheet
 
 | Class             | Core Effect                                   | Built‑In Cost / Risk                                         |
 | ----------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| **Bonded**        | +1 Attack / +2 Defense if attuned; −2 if not  | Requires ritual attunement; can “bleed” if wielded by another |
-| **Glyph‑Encoded** | Bypasses wards; may add elemental traits      | Monthly maintenance or +1 Void per degraded use              |
+| **Bonded**        | Attuned: +1 Attack / Bypasses +2 Defense of target; Unattuned: Wielder suffers –2 to attack/defense. | Requires ritual attunement; can “bleed” if wielded by another |
+| **Glyph‑Encoded** | Attuned: Bypasses wards / +2 Defense vs specific elements; Unattuned: Wielder suffers –2 to attack/defense. May add elemental traits. | Monthly maintenance or +1 Void per degraded use              |
 | **Void‑Infused**  | +4 Damage, ignores ritual armor               | Always +1 Void; fumble may summon entity                     |
 | **Spirit‑Weave**  | +1 to rolls when action aligns with True Will | Organic; whispers in dreams, unpredictable warnings          |
 | **Contractual**   | Works only if Soulcredit/contract valid       | Locks, explodes, or alerts on breach                         |
@@ -36,10 +38,10 @@ Echo-Calibrator - Used with attunement for attuning seeds and other items.
 | Hollowed Repeater       | Void • Sidearm          | Scales       | Damage grows with Void score                        | Accuracy ↓ if Bonds > 0       |
 | Oathpiercer Carbine     | Conventional • Rifle    | —            | +DMG vs ex‑Bonds                                    | Ethically suspect             |
 | Glyph‑Slinger           | Glyph • Wrist launcher  | —            | 5 mini ritual charges                               | Re‑carve sigils               |
-| Seedstrike Blade        | Glyph • Blade           | —            | Breaks Seed on crit for burst                       | Consumes 1 Seed               |
+| Seedstrike Blade        | Glyph • Blade           | —            | Breaks Seed on crit for burst (requires an elementally Attuned Seed; raw use adds +1 Void) | Consumes 1 Attuned Seed       |
 | Spark Lash              | Glyph • Whip            | +5 DMG       | Chain‑lightning on crit                             | 1 Spark/3 rds                 |
 | Drip Veil Projector     | Spirit • Non‑lethal     | —            | Induce purge trance (Will 18)                       | 1 Drip cap / shot             |
-| Seedburst Gauntlet      | Glyph • Fist            | +6 DMG       | Roots target (Will 15)                              | 1 Seed per attune             |
+| Seedburst Gauntlet      | Glyph • Fist            | +6 DMG       | Roots target (Will 15) (requires an elementally Attuned Seed; raw use adds +1 Void) | 1 Attuned Seed per use        |
 | Breath Whisper Array    | Contract • Sonic        | +3 DMG       | Silences chants on crit                             | Fails if Bonds > 3            |
 | Sparkspike Dagger       | Bonded • Knife          | +4 DMG       | +1 DEF next turn if duel                            | Re‑spark daily                |
 | Union Heavy Pistol      | Conventional            | +4 DMG       | Ubiquitous street sidearm                           | Legal in most zones           |
@@ -78,6 +80,15 @@ Echo-Calibrator - Used with attunement for attuning seeds and other items.
 | Soulcredit Tag      | Civic ID | Broadcasts ledger          | +1 Void per forged sync             |
 | Talisman Blanks (3) | Craft    | Raw substrates             | Carve to suit                       |
 | Whisper Wax Tablet  | Recorder | Breath‑activated audio     | Single‑use                          |
+
+### 4.1 · Dreamwork Accessories
+
+| Item          | Type      | Function                                   | Upkeep / Fuel / Risk                                     |
+|---------------|-----------|--------------------------------------------|----------------------------------------------------------|
+| Dream Ring    | Accessory | Enables Dreamwork rolls, enhances dream recall | Minor psychic static if overused; 1 Breath per week      |
+| Oneiric Mask  | Headgear  | Stabilizes dream-state, +1 to Dreamwork rolls for introspection | Risk of attracting dream entities if not properly warded |
+| Echo Shard    | Talisman  | Stores a single dream echo for later review  | May degrade or corrupt over time (1d6 cycles)            |
+| Somnus Drape  | Wearable  | Quiets mental chatter, aids trance induction | Prolonged use may lead to difficulty distinguishing dream/reality |
 
 ------
 

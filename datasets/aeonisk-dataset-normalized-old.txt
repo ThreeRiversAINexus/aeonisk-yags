@@ -1,0 +1,642 @@
+YAGS-AEONISK-001:
+
+task_id: YAGS-AEONISK-###
+
+domain:
+  core: rule_application
+  subdomain: <subdomain>
+
+scenario: >
+  <1–2 sentences describing the narrative setup>
+
+environment: <one-line setting details>
+
+stakes: >
+  <1–2 sentences of what’s on the line>
+
+characters:
+  - name: <Character Name>
+    tech_level: <Aeonisk Standard | High Tech | etc.>
+    attributes: {strength: X, dexterity: X, agility: X, intelligence: X, perception: X, will: X, empathy: X}
+    skills: {<skill1>: X, <skill2>: X, …}
+
+goal: >
+  <What the PC is trying to accomplish mechanically>
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+gold_answer:
+  attribute_used: <Attribute>
+  skill_used: <Skill>
+  roll_formula: "<calculated_base> + d20"
+  difficulty_guess: <number> # Target for a "Moderate Success"
+  critical_thresholds: # Optional: Define what constitutes a critical for this task if not standard
+    natural_20_success_enhancement: > # What extra happens on a Nat 20 beyond normal degree of success
+      <e.g., Stuns astral for an extra round, +1 Soulcredit, unlocks hidden lore>
+    natural_1_failure_severity: > # What extra happens on a Nat 1 beyond normal failure
+      <e.g., Weapon breaks, +1 Void, friendly fire, summons hostile entity>
+  outcome_explanation:
+    critical_failure: # Primarily for Nat 1, or exceptionally bad outcome beyond simple failure
+      narrative: >
+        <Narrative of what a critical failure or fumble looks like - often incorporating natural_1_failure_severity>
+      mechanical_effect: >
+        <e.g., +2 Void, Bond takes Strain, item destroyed, character injured>
+    failure: # Fails to meet difficulty_guess (and not a Nat 1 if that's handled by critical_failure)
+      narrative: >
+        <Narrative of what simple failure looks like>
+      mechanical_effect: >
+        <e.g., No progress, minor setback, offering wasted>
+    moderate_success: # Meets difficulty_guess up to (difficulty_guess + 9) - AND not a Nat 20 if that has special effects
+      narrative: >
+        <Narrative of what a basic or moderate success looks like>
+      mechanical_effect: >
+        <e.g., Goal achieved as expected>
+    good_success: # (difficulty_guess + 10) to (difficulty_guess + 19) - AND not a Nat 20
+      narrative: >
+        <Narrative of what a good success looks like>
+      mechanical_effect: >
+        <e.g., Goal achieved with a minor boon or added efficiency>
+    excellent_success: # (difficulty_guess + 20) or more - AND not a Nat 20
+      narrative: >
+        <Narrative of what an excellent or superb success looks like, possibly incorporating natural_20_success_enhancement>
+      mechanical_effect: >
+        <e.g., Exceptional outcome, significant advantage, unexpected positive side-effect>
+    # You could also have a specific 'critical_success' narrative if a Nat 20 always trumps margins or has unique story beats.
+    # Alternatively, high margin successes could BE the critical successes.
+
+rationale: >
+  <Brief design note tying attribute×skill to the scenario and why the chosen difficulty makes sense>
+
+aeonisk_extra_data:
+  module: <module-name>
+  version: <e.g. v1.1.2>
+
+YAGS-AEONISK-001:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    Pokal attempts a precision strike to bypass an advanced energy barrier without triggering its sensitive security system. The barrier is calibrated to detect brute force and erratic movement.
+  environment: Futuristic security hub with holographic interfaces and reactive energy fields.
+  stakes: |
+    Failure triggers lockdown and summons security drones, potentially overwhelming Pokal.
+  characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {hacking: 1, athletics: 3, melee: 4, survival: 2, lore: 1, guile: 2, stealth: 2}
+  goal: |
+    Identify attribute and skill for precision strike, calculate formula and difficulty, describe success and failure vividly.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Dexterity
+    skill_used: Athletics
+    roll_formula: "9 + d20"
+    difficulty_guess: 22
+    outcome_explanation:
+      success: |
+        Pokal executes the strike perfectly, briefly destabilizing the barrier, allowing stealthy entry without triggering alarms.
+      failure: |
+        Pokal miscalculates the strike, triggering a security alert and immediate drone deployment.
+  rationale: |
+    Dexterity and Athletics suit precise, controlled maneuvers needed to manipulate sensor arrays without triggering alarms.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-002:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    Pokal attempts a precision strike to bypass an advanced energy barrier without triggering its sensitive security system. The barrier is calibrated to detect brute force and erratic movement.
+  environment: Futuristic security hub with holographic interfaces and reactive energy fields.
+  stakes: |
+    Failure triggers lockdown and summons security drones, potentially overwhelming Pokal.
+  characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {hacking: 1, athletics: 3, melee: 4, survival: 2, lore: 1, guile: 2, stealth: 2}
+  goal: |
+    Identify attribute and skill for precision strike, calculate formula and difficulty, describe success and failure vividly.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Dexterity
+    skill_used: Melee
+    roll_formula: "12 + d20"
+    difficulty_guess: 24
+    outcome_explanation:
+      success: |
+        Pokal angles the blade along a narrow resonance node, cutting through the field’s weakest harmonic. The barrier winks out for a single heartbeat—just long enough for him to slip inside unseen.
+      failure: |
+        The strike scatters the field instead of severing it. Alarms flare crimson, energy shutters slam down, and a trio of drones streak from ceiling ports to converge on Pokal’s position.
+  rationale: |
+    A surgical cut demands steady hands and precise control rather than raw power or broad athletic movement. In YAGS that is best modeled as Dexterity × Melee. The barrier is sophisticated security tech; a **Challenging‑ish** target of 24 fits the table for actions that stretch professional skill without reaching the “truly heroic” tier.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-003:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    Irele attempts to ghost through a Codex Sentinel's light‑web, timing her movements to the millisecond so the node’s pattern engine never registers a deviation.
+  environment: Quarantined research pod access ring lit by holographic sensor threads.
+  stakes: |
+    Failure slams energy shutters, summons purge‑drones, and pushes the pod three minutes closer to auto‑purge.
+  characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {stealth: 4, athletics: 3, hacking: 3, melee: 3, astral_arts: 2, guile: 2, lore_biotech: 2}
+  goal: |
+    Identify attribute and skill for a fluid, silent traversal; compute the roll formula and target Difficulty; outline vivid success vs failure results.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Agility
+    skill_used: Stealth
+    roll_formula: "16 + d20"
+    difficulty_guess: 23
+    outcome_explanation:
+      success: |
+        Irele flows between the sensor filaments like ink in water; the node’s lattice never spikes, and a soft chime verifies “No anomaly detected.” She reaches the inner bulkhead untouched.
+      failure: |
+        A fingertip grazes a beam—light flares scarlet. Shutters crash down and purge‑drones whir to life, their glyph‑burners screaming along the corridor.
+  rationale: |
+    Ghosting a sensor lattice is classic *Agility × Stealth*—pure body control and situational awareness. “Challenging” per the YAGS table starts ~25; the node is advanced but not elite military grade, so 23 feels right.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-004:
+  domain:
+    core: rule_application
+    subdomain: combat
+  scenario: |
+    Pokal attacks a security drone in close quarters after failed escape.
+  environment: Narrow, dim corridor under security lockdown.
+  stakes: |
+    Defeating the drone allows Pokal temporary safety; failing risks critical harm.
+  characters:
+  - name: Pokal
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 1}
+    skills: {melee: 4, athletics: 3, hacking: 1, survival: 2, lore: 1, guile: 2, stealth: 2}
+  goal: |
+    Identify attribute/skill for melee combat, set difficulty, calculate roll formula, and outcomes.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Strength
+    skill_used: Melee
+    roll_formula: "16 + d20"
+    difficulty_guess: 23
+    outcome_explanation:
+      success: |
+        Pokal crushes drone chassis, disabling it immediately.
+      failure: |
+        Pokal’s strike fails; the drone retaliates and gains advantage.
+  rationale: |
+    Strength and Melee represent physical force and combat skill effective against mechanical adversaries.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-005:
+  domain:
+    core: rule_application
+    subdomain: ritual_navigation_check
+  scenario: |
+    After stabilizing the Ley Compass, the PC attempts to plot a new escape path out of the Drift without retracing the Spiral Strand.
+  environment: Leyfield turbulence zone between routes, with low ritual interference.
+  stakes: |
+    Success allows escape via a hidden ley-thread. Failure might result in being stranded or misrouted into a Void-thread.
+  characters:
+  - name: Sira Veyl
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 4, intelligence: 4, perception: 4, will: 5, empathy: 3}
+    skills: {awareness: 3, astral_arts: 4}
+  goal: |
+    Read leyfield signatures and guide the Compass toward a safe alternate path.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Perception
+    skill_used: Awareness
+    roll_formula: "12 + d20"
+    difficulty_guess: 15
+    outcome_explanation:
+      success: |
+        The Compass aligns smoothly with a latent path known as the Quiet Veil, escaping the Drift safely and without Void taint.
+      failure: |
+        The Compass misaligns or loops the path, wasting cycles or increasing Void drift exposure.
+  rationale: |
+    Perception + Awareness is appropriate for navigation in subtle spiritual terrain. A lower difficulty (15) is chosen due to prior ritual prep and a semi-stable Compass.
+  aeonisk_extra_data:
+    module: Aeonisk - YAGS Module
+    version: v1.1.2
+YAGS-AEONISK-006:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    With alarms blaring and seconds ticking down, Irele decides to rip the Seed‑Cipher tank from its housing. She plans a single, perfectly‑timed hammer‑blow to the power flange, then leverage the tank free before the stasis shell recycles.
+  environment: Bio‑Lab Hub under imminent purge; Veil‑reactive stasis field arcing unpredictably.
+  stakes: |
+    Success shears the tank loose; Irele drags the Seed‑Cipher out—taking a scorch but beating the purge. Failure rebounds the Veil surge, inflicting +1 Void, 1 damage, and dropping the purge timer to 3 minutes.
+  characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {athletics: 3, melee: 3, hacking: 3, astral_arts: 2, stealth: 4}
+  goal: |
+    Identify attribute and skill for raw force extraction; compute the roll formula and difficulty; describe vivid outcomes.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Strength
+    skill_used: Athletics
+    roll_formula: "12 + d20"
+    difficulty_guess: 28
+    outcome_explanation:
+      success: |
+        Metal groans and snaps; sparks fountain, but Irele wrenches the tank free and hauls it toward the exit. The field collapses in her wake—auto‑purge still at 6 minutes.
+      failure: |
+        The flange holds. Veil energy arcs back, scorching flesh and soul alike (+1 Void, 1 damage). Alarms spike and the purge timer slams to 3 minutes—escape just turned desperate.
+  rationale: |
+    This is straight-up muscle and technique—Strength × Athletics. A fortified stasis mount under purge conditions justifies a **Difficult 28** target per YAGS tables.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-007:
+  domain:
+    core: rule_application
+    subdomain: ritual_check
+  scenario: |
+    Blood sizzling on her scorched forearm, Irele traces a quick sigil of Binding Breath across the console and offers a smear of fresh vitae to anchor the lab’s Veil harmonics. The goal: pacify the stasis turbulence long enough to finish extraction.
+  environment: Bio‑Lab Hub under 3‑minute purge countdown; Veil‑reactive stasis shell sparking violently.
+  stakes: |
+    Success quenches the turbulence, halts additional Void shocks, and buys a calm 2‑minute window for further action. Failure reverberates the Veil pulse, adding +1 Void, inflicts a Will shock (–1 to ritual rolls), and drops the purge timer to 1 minute.
+  characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {stealth: 4, athletics: 3, hacking: 3, melee: 3, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn (–1 Str/Agi actions)
+  goal: |
+    Identify attribute and skill for the ritual, compute roll formula and threshold, describe vivid outcomes.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Willpower
+    skill_used: Astral Arts
+    roll_formula: "6 + d20"
+    difficulty_guess: 18
+    outcome_explanation:
+      success: |
+        A hush falls; the stasis shell settles into a steady glow, its arcs silenced. Irele feels the Veil’s chill recede—no further Void gain—and a clear two‑minute window opens to finish the job.
+      failure: |
+        Sigils unravel; the Veil snarls back, lashing soul and circuitry. Irele staggers under the psychic recoil (+1 Void, Will shock), and the purge drops to a final 60‑second countdown.
+  rationale: |
+    Pacifying field turbulence is a **Standard** ritual per Aeonisk tables (threshold 18). Roll is Willpower × Astral Arts.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-008:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    Irele cracks open a maintenance panel, splices a tether into a dormant purge‑drone, and flashes a rapid‑fire exploit to seize control before Mirage Exchange can jam the signal. The plan: order the drone to clamp the Seed‑Cipher tank’s flange and add muscle for a final extraction pull.
+  environment: Bio‑Lab Hub under 2‑minute purge; Veil turbulence suppressed but time critical.
+  stakes: |
+    Success boots the drone into manual assist mode (+4 effective Strength for next pull). Failure leaves the drone inert, shaves 30 s off the clock, and lets incoming hostiles triangulate her position.
+  characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {stealth: 4, athletics: 3, hacking: 3, melee: 3, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn (–1 Str/Agi actions)
+  goal: |
+    Identify attribute and skill for the hack, compute roll formula and difficulty, and describe clear success/failure outcomes.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Perception
+    skill_used: Hacking
+    roll_formula: "12 + d20"
+    difficulty_guess: 24
+    outcome_explanation:
+      success: |
+        The drone’s optic flashes green, clamps onto the flange, and awaits command—boosting Irele’s next brute pull by +4 Strength.
+      failure: |
+        Firmware rejects the exploit; the drone powers down. Alarm pings sharpen, purge clock drops to 90 seconds, and footsteps echo in the access ring.
+  rationale: |
+    Rapidly spotting the correct control node and pushing an exploit under fire relies on sharp situational awareness plus cyber‑ops know‑how—Perception × Hacking. Difficulty 24 matches a “Challenging” security device under alert conditions.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-009:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    In perfect sync with the drone’s servo surge, Irele braces her burned arm, signals ‘PULL,’ and heaves. The goal: shear the Seed‑Cipher tank free before the purge flame‑jets ignite.
+  environment: Bio‑Lab Hub; stasis shell stable (120 s window), assault team breaching nearby hatch.
+  stakes: |
+    Success tears the tank loose—allowing immediate exfiltration with the Seed‑Cipher. Failure strains the mount but leaves it intact; the drone overloads, purge drops to 30 s, and hostiles pour in.
+  characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {athletics: 3, hacking: 3, melee: 3, stealth: 4, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn (–1 Str/Agi actions)
+    temp_strength_bonus: +4
+  goal: |
+    Identify attribute and skill for the brute pull, compute roll formula and difficulty, and outline vivid outcomes.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Strength
+    skill_used: Athletics
+    roll_formula: "16 + d20"
+    difficulty_guess: 28
+    outcome_explanation:
+      success: |
+        Metal screams and parts; sparks shower the deck as Irele and the drone yank the tank free. She pivots, cradling the sloshing Seed‑Cipher, and sprints for the air‑lock while the purge countdown blinks 90 s.
+      failure: |
+        The servo stalls; the flange only bends. Warning klaxons spike, the drone’s motor smokes, and the purge clock plummets to 30 s as Mirage operatives breach the hatch with weapons hot.
+  rationale: |
+    Effective Strength × Athletics is 12 (base 4 × 3) minus 1 for the burn, plus 4 from the drone, yielding 16. With a **Difficult** target of 28, Irele needs a 12 or better on the d20 to succeed.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-010:
+  domain:
+    core: rule_application
+    subdomain: skill_check
+  scenario: |
+    Clutching the Seed‑Cipher tank, Irele bolts down the access ring toward the shuttle air‑lock, ducking stray fire from Mirage operatives and vaulting over a sparking conduit.
+  environment: Access ring corridor; alarms blaring, purge timer at 90 s, enemy fire incoming.
+  stakes: |
+    Success reaches the air‑lock, seals it, and kicks off—escaping moments before the lab fire‑purges. Failure leaves Irele pinned in the corridor as flame‑jets ignite and operatives close in.
+  characters:
+  - name: Irele Orsai
+    tech_level: High Tech
+    attributes: {strength: 4, dexterity: 3, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {athletics: 3, hacking: 3, melee: 3, stealth: 4, astral_arts: 2, guile: 2, lore_biotech: 2}
+    current_void: 2
+    wound: minor burn (–1 Str/Agi actions)
+  goal: |
+    Identify attribute and skill for a break‑neck sprint while carrying load; compute roll formula and difficulty; describe vivid outcomes.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Agility
+    skill_used: Athletics
+    roll_formula: "9 + d20"
+    difficulty_guess: 20
+    outcome_explanation:
+      success: |
+        Irele slides through the air‑lock, slams the hatch, and punches thrusters as fire floods the lab behind her. The Seed‑Cipher is secure.
+      failure: |
+        A burst of fire clips her leg; she stumbles short of the hatch as purge flame‑jets roar down the corridor—mission teeters on disaster.
+  rationale: |
+    Agility 4 is reduced to 3 by the burn, so Ability = 3 × Athletics 3 = 9. A full‑tilt sprint under fire is a **Moderate 20** in YAGS—the burn penalty makes it tense but doable.
+  aeonisk_extra_data:
+    module: yags-hightech
+    version: v1.1.2
+YAGS-AEONISK-011:
+  domain:
+    core: rule_application
+    subdomain: seed_attunement
+  scenario: |
+    Don Nymir attempts to attune a raw Seed fragment aboard his vessel shortly after slipstream travel from the Hollow Vector, to prevent spiritual instability.
+  environment: Enclosed cockpit; post-slipstream echo interference
+  stakes: |
+    Success stabilizes the Seed and prevents Void gain. Failure causes a Void spike and risks attracting Codex attention.
+  characters:
+  - name: Don Nymir
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 4, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {attunement: 2}
+  goal: |
+    Attune an unstable Seed fragment to prevent Void corruption.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Willpower
+    skill_used: Attunement
+    roll_formula: "6 + d20"
+    difficulty_guess: 20
+    outcome_explanation:
+      success: |
+        The Seed bonds safely to Don's signature and element. Void risk is averted.
+      failure: |
+        The attunement fails; the Seed resists resonance and emits a spiritual scream. Void increases by 1.
+  rationale: |
+    Willpower governs spiritual exertion. Attunement governs Seed alignment. DC 20 reflects high-risk field stabilization without ritual support.
+  aeonisk_extra_data:
+    module: Aeonisk - YAGS Module
+    version: v1.1.2
+YAGS-AEONISK-012:
+  domain:
+    core: rule_application
+    subdomain: dreamwork_ritual
+  scenario: |
+    Don Nymir performs a ritual of introspection to cleanse his corrupted echo and gain Codex access to Arcadia.
+  environment: Arcadian slipstream threshold, under Codex observation
+  stakes: |
+    Success grants entry through official channels. Failure locks access and may increase Void.
+  characters:
+  - name: Don Nymir
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 4, agility: 4, intelligence: 3, perception: 4, will: 3, empathy: 2}
+    skills: {dreamwork: 2}
+  goal: |
+    Cleanse his echo through ritual to satisfy Codex purity thresholds.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Willpower
+    skill_used: Dreamwork
+    roll_formula: "6 + d20"
+    difficulty_guess: 20
+    outcome_explanation:
+      success: |
+        Don reattunes his echo and regains ritual stability. The Codex allows transit.
+      failure: |
+        Echo remains unstable. Codex denies access and flags the anomaly. Void persists.
+  rationale: |
+    Ritual cleansing through Dreamwork is Willpower-based. DC 20 fits the scale of personal echo realignment under stress.
+  aeonisk_extra_data:
+    module: Aeonisk - YAGS Module
+    version: v1.1.2
+YAGS-AEONISK-013:
+  domain:
+    core: rule_application
+    subdomain: dreamwork_resolution
+  scenario: |
+    Viren Ossai attempts to identify the resonance pattern in two destabilized Seeds using deep dream-sensing. He opens his perception and lets the fragmented memories of the Seeds wash over him, seeking any synchronized echo trace.
+  environment: Abandoned Seed Garden aboard Codex Relay Station HALIX VI.
+  stakes: |
+    Failure results in psychic feedback, corrupted Seed data, or a potential Void spike if resonance instability spreads.
+  characters:
+  - name: Viren Ossai
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 3, perception: 4, will: 4, empathy: 4}
+    skills: {dreamwork: 4, awareness: 2, charm: 2, astral_arts: 3}
+  goal: |
+    Identify attribute and skill combination to read psychic echoes safely. Calculate success margin and interpret symbolic feedback into a stabilized ritual context.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Willpower
+    skill_used: Dreamwork
+    roll_formula: "16 + d20"
+    difficulty_guess: 18
+    outcome_explanation:
+      success: |
+        Viren harmonizes with the Seeds’ frequencies and recognizes a mourning pattern. They’re linked by a severed Bond and echo shared trauma. He identifies the emotional signature needed to stabilize them.
+      failure: |
+        Viren is overwhelmed by overlapping memories — pain, silence, the sudden snap of separation. The Seeds spike with erratic light and risk a ritual rupture. He staggers back, bleeding resonance.
+  rationale: |
+    Dream-sensing echoes aligns with *Willpower × Dreamwork* in Aeonisk. Difficulty 18 fits a fraught but contained resonance situation, per Dreamwork risk scale. Viren's training makes this achievable but not trivial.
+  aeonisk_extra_data:
+    module: aeonisk-yags
+    version: v1.1.2
+YAGS-AEONISK-014:
+  domain:
+    core: rule_application
+    subdomain: bond_mechanic
+  scenario: |
+    Elise Nymir leads a spiritual bonding ritual to formally link the Wills of three party members. The participants must open their intentions to the Codex and each other, synchronizing breath, emotion, and Echo.
+  environment: Ritual sanctum chamber in the heart of Codex Relay HALIX VI.
+  stakes: |
+    A failed ritual causes spiritual dissonance, future Bond penalties, or Codex flagging for false ritual behavior.
+  characters:
+  - name: Elise Nymir
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 3, perception: 3, will: 3, empathy: 5}
+    skills: {intimacy_ritual: 4, charm: 2, astral_arts: 3, awareness: 2}
+  goal: |
+    Determine the appropriate attribute and skill for a group spiritual bonding ritual. Resolve the Codex response to success vs failure.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Empathy
+    skill_used: Intimacy_Ritual
+    roll_formula: "20 + d20"
+    difficulty_guess: 20
+    outcome_explanation:
+      success: |
+        The Bond forms cleanly. A radiant flare confirms Codex acceptance. The party shares +2 ritual coherence and future dream support.
+      failure: |
+        A faint crack runs through the group Echo — mistrust or fear flickered. The Codex withholds judgment, and the Bond offers no bonus.
+  rationale: |
+    Group bonding rituals rely on shared emotional openness, which points directly to *Empathy × Intimacy_Ritual*. The threshold is moderate but spiritually sensitive.
+  aeonisk_extra_data:
+    module: aeonisk-yags
+    version: v1.1.2
+YAGS-AEONISK-015:
+  domain:
+    core: rule_application
+    subdomain: magick_theory
+  scenario: |
+    Lena Vor-Kereth examines a Codex glyph formed in dreamspace after stabilizing a fractured Seed-pair. She must identify its significance and implications for Codex judgment.
+  environment: Dream residual zone within the HALIX VI resonance field.
+  stakes: |
+    Misreading the glyph could result in incorrect spiritual response, delayed Codex closure, or erroneous Bond decisions.
+  characters:
+  - name: Lena Vor-Kereth
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 5, perception: 3, will: 3, empathy: 3}
+    skills: {magick_theory: 3, debt_law: 4, guile: 3, awareness: 2}
+  goal: |
+    Determine the attribute and skill to identify a rare Codex glyph, estimate the difficulty, and describe the consequences of interpreting it correctly or incorrectly.
+  expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  gold_answer:
+    attribute_used: Intelligence
+    skill_used: Magick_Theory
+    roll_formula: "15 + d20"
+    difficulty_guess: 20
+    outcome_explanation:
+      success: |
+        Lena identifies the glyph as 'Deferred Judgment'. The Codex has paused evaluation, awaiting external Will alignment. The group is given clarity.
+      failure: |
+        She misreads the glyph as condemnation. The party begins to act defensively, prompting possible missteps in dream or ritual interpretation.
+  rationale: |
+    Glyph reading fits *Intelligence × Magick_Theory* — it's about abstract ritual decoding. Dream residue context adds weight but doesn't push difficulty beyond 20.
+  aeonisk_extra_data:
+    module: aeonisk-yags
+    version: v1.1.2
