@@ -126,13 +126,37 @@ Combat occurs across four abstract Range Bands, relative to a character's positi
 
 ### 4. Defences & The Aeonisk Defence Token
 
-Aeonisk Tactical introduces a specific Defence Token mechanic.
+Aeonisk Tactical introduces a single **Defence Token** that represents your focused situational awareness.
 
-*   **Gaining & Refreshing:** Each character has one (1) Defence Token available at the start of each combat round. It refreshes automatically.
-*   **Allocating:** During the **Declare Phase**, you choose **one foe** to allocate your Defence Token against for the round. This allocation is fixed.
-*   **Benefit vs Allocated Foe:** If the foe you allocated your token against attacks you this round, you gain a dedicated defensive bonus. *(Specific bonus [e.g., +X Soak, +Y to defence roll, attacker penalty] was noted as a design decision needed in the source material and is not defined in this version.)*
-*   **Consequence vs Un-allocated Foe:** If you are attacked by a foe against whom you did *not* allocate your Defence Token, you do *not* receive the Defence Token's specific bonus against that attack. *(Any further specific consequence for being un-defended by this token [e.g., attacker bonus, potential for counter-attack] was noted as a design decision needed in the source material and is not defined in this version.)*
-*   **Interaction with Standard YAGS Defence:** *(How this Aeonisk Defence Token interacts with core YAGS rules regarding declaring defences against multiple opponents was noted as a clarification needed in the source material and is not defined in this version.)*
+* **Gaining & Refreshing**  
+  • You start each combat round with **one (1) Defence Token**.  
+  • It refreshes automatically at the beginning of the next round.
+
+* **Allocating**  
+  • During the **Declare Phase** you allocate your token to **one visible foe**.  
+  • The allocation is fixed until the round ends (you may re-allocate next round).
+
+* **Benefit vs Allocated Foe**  
+  • While the token is on that foe, they suffer **–2 to any roll that targets you directly** (attacks, aimed rituals, grapples).  
+  • The –2 is a **Minor** rung modifier and stacks normally with other situational bonuses/penalties, but it counts toward the roll’s overall ±2/±4/±6 cap.
+
+* **Consequence vs Un-allocated Foes**  
+  • Attacks from foes **not** holding your token count as **Flanking**: you take **–2 to your own Defence roll** (or, if you use static Defence, the attacker gains +2).  
+  • This mirrors the existing Flanking rule and keeps risk-reward balanced.
+
+* **Evade Reaction (optional heroic burn)**  
+  • **Once per battle** you may **burn** your Defence Token *after* you become the declared target of an attack.  
+  • That single attack suffers **–4** instead of –2 (Major rung).  
+  • The token is expended for the rest of the battle and will not refresh until combat ends.
+
+* **Interaction with Standard YAGS Defences**  
+  • You still choose which incoming attacks to actively defend against per the core YAGS rules.  
+  • The Defence Token’s modifier applies **before** you decide whether to split, full-defend, or take it on the chin.  
+  • If you full-defend against your allocated foe, both the full-defence bonus **and** the token’s –2 (or –4 if Evade) apply—subject to the normal ±6 maximum.
+
+* **One-Token-Per-PC Rule**  
+  • A character can never hold more than one active Defence Token.  
+  • If a rule, item, or power would grant an additional token, treat it as upgrading the existing one (still capped at –2 / –4 per above).
 
 ---
 
@@ -191,6 +215,17 @@ Special abilities leveraging core Aeonisk concepts.
 | **Bonded Defence**| Reaction      | When a Bonded ally is attacked, you can grant them +2 to their defense for that attack; however, you suffer –2 to your own defense against the next hit you take.  |
 | **Bond Rally**    | Minor action  | Target a Bonded ally. Make an Empathy × Charm check (e.g., vs. Difficulty 20). If successful, you can pull 1 Stun from that ally onto yourself (you take the Stun, they heal it).  |
 | **Void Surge**    | Free Action (declare before an attack roll) | Gain +4 to your damage roll for the current attack and it automatically causes Shock to the target on a hit. However, you immediately suffer 1 Stun from the spiritual backlash. **Unlimited usage allowed while Void ≤ 7; locked at Void ≥ 8.**  |
+
+Bonded Defence – play snippet
+
+A gunner on the catwalk opens fire at Kaelia.
+Nyx uses their Reaction, projecting calm:
+Kaelia rolls defence with +2 Bonded Defence.
+—
+Roll: Kaelia Defence d20 + Will×Agility + 2 = 14 + 2 = 16 vs Attack 18 → miss
+
+A moment later, Nyx leans on their Bond…
+Next time Nyx defends: they roll with –2 to that defence roll as the backlash penalty.
 
 ---
 

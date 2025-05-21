@@ -101,6 +101,7 @@ gold_answer:
 aeonisk_extra_data:
   module: <module_name>   # e.g., yags-hightech, Aeonisk - YAGS Module, Aeonisk - Echo Fracture Campaign
   version: <version_str> # e.g., v1.0.1, v1.1.2, v1.2.0-pre. Use the version of the rules the entry is based on.
+  tags: [<optional tags for dataset, especially difficulty bands>] # ["hard"]
 ```
 
 ## Content Guidelines
