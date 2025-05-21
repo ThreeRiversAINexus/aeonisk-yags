@@ -117,3 +117,89 @@ characters:
           description: "Common offering for minor attunements."
         - offering_name: "Encoded Soulcredit Chit (10 units)"
           description: "Symbolic offering of value for contractual rituals."
+
+character_name: Tavros Eluun
+player_name: Patrik
+campaign: The Ledger Ascends
+game_master: GPT-Aeonisk
+creation_date: 2025-05-20
+experience_points_total: 0
+experience_points_spent: 0
+
+character_level_type: Skilled
+point_pool_priority:
+  primary: Experience
+  secondary: Attributes
+  tertiary: Advantages
+
+origin_faction: Freeborn (Bonded to Sovereign Nexus)
+tech_level_character: Aeonisk Standard
+
+primary_attributes:
+  strength: 3
+  health: 3
+  agility: 3
+  dexterity: 3
+  perception: 4
+  intelligence: 4
+  empathy: 3
+  willpower: 3
+
+secondary_attributes:
+  size: 5
+  soak_base: 12
+  move_base: 7 # Size 5 + Strength 3 + Agility 3 + 1
+
+status_tracks:
+  wounds:
+    current_level: OK
+    current_penalty: 0
+  stuns:
+    current_level: OK
+    current_penalty: 0
+  fatigue_exhaustion:
+    current_fatigue_level: OK
+    current_exhaustion_level: OK
+    current_penalty: 0
+
+talents:
+  awareness: 2
+  guile: 2
+  charm: 2
+  stealth: 2
+
+standard_skills:
+  debt_law: 3
+  corporate_influence: 2
+  intrigue: 2
+  administration: 2
+  pilot: 1
+  drive: 1
+
+astral_skills:
+  magick_theory: 2
+  attunement: 2
+
+languages:
+  native_language_name: "Nexus Trade Cant"
+  native_language_level: 4
+  other_languages:
+    - language_name: "Arcadian High Cant"
+      level: 2
+
+advantages:
+  - Bonded: Lady Sen Alvara (Formal Bond; grants +2 to rituals assisting her, +1 Soak when protecting her)
+
+soulcredit: +1
+current_void: 1
+
+techniques: []
+equipment:
+  - Echo-Calibrator
+  - Ritual ledger slate (encrypted)
+  - Contract tattoos (passive identifier)
+  - Breath Whisper Array (Contract-class sonic tool)
+
+notes: >
+  Tavros acts in silence and precision. He is not the public face of the operation —
+  that’s Lady Alvara. But he enforces deals, takes the spiritual risk, and gets his hands dirty so she doesn’t have to.
