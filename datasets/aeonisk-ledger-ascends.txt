@@ -1197,3 +1197,36 @@ gold_answer:
 rationale: >
   Final debrief negotiations combine Empathy × Corporate Influence to convey success and ambition. DC 16 reflects Alvara’s high standards and workload.
 
+task_id: YAGS-AEONISK-117
+
+domain:
+  core: lore_interaction
+  subdomain: dialogue_economic
+
+lore_excerpt: >
+  **Fractal Praxis Courier Exchange**  
+  Courier: “We have dream-spliced biotech—legal if it doesn’t wake. You want a cut or keep a Living Seed?”  
+  Tavros: “Two cuts—and I file it through the Sovereign salvage bond. No Void, no trace.”  
+  Courier (smiles): “Ledger clean. We do business.”  
+  *(Notes: This deal reframes gray-market biotech as salvaged ritual goods under Nexus protocols; establishes courier goodwill.)*
+
+task_id: YAGS-AEONISK-120
+domain:
+  core: lore_interaction
+  subdomain: market_fragment
+
+lore_excerpt: >
+  **Arcadia—Outer Bazaar, dusk**  
+  Vendor (checking Codex slate): “Ledger shows +3. One raw Spark chip—price is two Drips and the incense.”  
+  Buyer slides a pouch across the counter. A faint trail of Ossai smoke curls upward.  
+  Vendor: “Good. Bond recorded. Mind the Void when you light it.”
+task_id: YAGS-AEONISK-121
+domain:
+  core: lore_interaction
+  subdomain: codex_margin_note
+
+lore_excerpt: >
+  *Margin note, Codex Ledger Manual §4.3*  
+  “Elemental quanta are exchanged whole.  
+  Half-a-Drip is no Drip at all; a fraction dissolves in the Veil.  
+  Trust the tally, not the weight.”
