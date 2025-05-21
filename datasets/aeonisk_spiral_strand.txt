@@ -1,0 +1,1064 @@
+# — Ritual Pilot Character Sheet —  
+character_name: "Kaelia Virash"  
+player_name: ""  
+campaign: "Spiral Strand Severance"  
+game_master: ""  
+creation_date: "2025-05-17"  
+
+# YAGS Level & Pools  
+character_level_type: "Skilled"  
+point_pool_priority:  
+  primary: "Experience"  
+  secondary: "Attributes"  
+  tertiary: "Advantages"  
+
+# Aeonisk Specific  
+origin_faction: "Astral Commerce Group (ACG)"  
+tech_level_character: "High Tech"  
+
+# Primary Attributes  
+primary_attributes:  
+  strength: 2  
+  health: 3  
+  agility: 3  
+  dexterity: 3  
+  perception: 4  
+  intelligence: 4  
+  empathy: 3  
+  willpower: 5  
+
+# Secondary Attributes  
+secondary_attributes:  
+  size: 5  
+  soak_base: 11   # size (5) + strength (2) + agility (3) + 1  
+  move_base: 9   # size + strength + agility + 1 = 11; use 9 as setting baseline  
+
+# Status Tracks  
+wounds:  
+  current_level: "OK"  
+  current_penalty: 0  
+stuns:  
+  current_level: "OK"  
+  current_penalty: 0  
+fatigue_exhaustion:  
+  current_fatigue_level: "OK"  
+  current_exhaustion_level: "OK"  
+  current_penalty: 0  
+
+# Talents (start at 2)  
+talents:  
+  athletics: 2  
+  awareness: 2  
+  brawl: 2  
+  charm: 2  
+  guile: 2  
+  sleight: 2  
+  stealth: 2  
+  throw: 2  
+
+# Knowledges & Aeonisk-only Skills  
+knowledges:  
+  lore_navigation: 3    # Astronavigation lore  
+  magick_theory: 2      # understanding ritual frameworks  
+standard_skills:  
+  pilot: 3              # Halo-Runner piloting  
+  astral_arts: 4        # core ritual power  
+  attunement: 3         # seeding alignment  
+  dreamwork: 2          # managing shared dream nodes  
+  corporate_influence: 2  # ACG protocols  
+  intimacy_ritual: 2    # for group rites  
+  debt_law: 1           # negotiating Soulcredit contracts  
+
+# Languages  
+languages:  
+  native_language_name: "Common Resonance Cant"  
+  native_language_level: 4  
+
+# Techniques & Advantages  
+techniques:  
+  - name: "Focused Invocation"  
+    skill_basis: "Astral Arts"  
+    cost_level: 2  
+    description: "Gain +2 on one ritual roll in exchange for +1 Void on failure."  
+
+advantages:  
+  - name: "Ritual Savant"  
+    cost_level: 3  
+    description: "Once per session, treat a d20 roll as ‘0’ (no fumble risk) for a non-combat ritual."  
+
+disadvantages:  
+  - name: "Veil Sensitivity"  
+    cost_level: -2  
+    description: "Suffers –1 penalty to non-ritual rolls when Void ≥5."  
+
+
+task_id: YAGS-AEONISK-100
+
+domain:
+  core: rule_application
+  subdomain: ritual_navigation
+
+scenario: >
+  As your Halo-Runner exits the Spiral Strand near Arcadia, the Resonance Aligner emits a sustained shriek. The ley harmonics are unraveling mid-transit. You must perform an emergency ritual to stabilize the ship’s astral trajectory before pattern collapse warps the vessel beyond recognition.
+
+environment: Spiral Strand approach corridor; ley rupture zones active, ships frozen in fractured resonance.
+
+stakes: >
+  Success restores partial stabilization, averts immediate slipstream failure, and opens time to investigate. Failure results in phase bleed: parts of the ship (and crew) flicker between Veil states, inflicting +1 Void and displacing the vessel from mapped ley routes.
+
+characters:
+  - name: Reth Savoran
+    tech_level: High Tech
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, will: 4, empathy: 3}
+    skills: {astral_arts: 3, attunement: 2, pilot: 2, lore_navigation: 3}
+    current_void: 1
+    bonded_items: ["Resonance Aligner Core", "Star-Glyph Compass"]
+
+goal: >
+  Execute an emergency slipstream stabilization using ritual astronavigation before ley collapse destabilizes the Halo-Runner.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "4 × 3 + d20 = 12 + d20"
+  difficulty_guess: 22
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The Aligner sparks violently. Veil energy rips through the hull; crew members scream as half their bodies flicker into translucence. The ship drifts into uncharted resonance space.
+      mechanical_effect: >
+        +2 Void, ship phase-shifted off-route, one Bonded item lost to instability.
+    failure:
+      narrative: >
+        The ritual falters—enough to prevent collapse, but barely. The crew suffers psychic backlash, the ship veers off-course, and ley readings remain chaotic.
+      mechanical_effect: >
+        +1 Void, disoriented status for crew, unstable transit continues.
+    moderate_success:
+      narrative: >
+        Reth stabilizes the primary node; the ship ceases flickering. The transit completes—late, rattled, but intact.
+      mechanical_effect: >
+        Transit succeeds with delay; crew shaken but safe.
+    good_success:
+      narrative: >
+        Harmonics snap into place with only minor resistance. The vessel reenters stable space minutes from Arcadia. The Aligner logs trace Void signatures—anomalous, artificial.
+      mechanical_effect: >
+        Transit successful, bonus data on Void interference.
+    excellent_success:
+      narrative: >
+        Reth not only stabilizes the ley lines but deciphers the underlying disruption pattern. The crew remains unharmed, and the vessel arrives with a predictive ley map of the fracture zone.
+      mechanical_effect: >
+        Arrival early, bonus advantage on next astronavigation task, +1 Soulcredit from ACG.
+
+rationale: >
+  Ritual astronavigation relies on Willpower × Astral Arts. Emergency conditions justify a Difficult (22) threshold due to ley rupture, NPC interference, and spiritual risk.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+
+task_id: YAGS-AEONISK-101-GROUP
+
+domain:
+  core: rule_application
+  subdomain: group_ritual
+
+scenario: >
+  Kaelia and Sorin perform a synchronized attunement rite on the Halo-Runner’s sensors while Grim helps interpret the readings, aiming to reveal all three Void-weapon clusters at once.
+
+environment: Docking bay sensor grid; three stranded ships shimmer with disrupted ley harmonics.
+
+stakes: >
+  Success maps all three nexus points AND imbues the group with heightened resonance insight. Failure shorts out the sensor grid and inflicts psychic backlash on all participants.
+
+participants:
+  - name: Kaelia Virash
+    attribute: perception: 4
+    skill: attunement: 3
+  - name: Sorin Jaxe
+    attribute: perception: 3
+    skill: attunement: 3
+  - name: Grim Vesp
+    attribute: perception: 4
+    skill: awareness: 2
+
+goal: >
+  Pool perceptual focus and magical tuning to scan the hulls and locate the three Void-weapon signature clusters in one ritual.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: 4 (Per) × 3 (Attunement) = 12
+# Sorin:  3 (Per) × 3 (Attunement) = 9
+# Subtotal = 21
+# Group assist (Grim) = +1
+# Total base = 22
+# d20 roll = 15
+# Grand total = 22 + 15 = 37
+gold_answer:
+  attribute_used: Collective Perception
+  skill_used: Collective Attunement
+  roll_formula: " (4×3) + (3×3) + 1 + d20 ⇒ (12 + 9 + 1) + 15 = 37"
+  difficulty_guess: 18
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The sensor grid overloads spectacularly; ley backlash scars the array, and each of you reels from raw Void echoes.
+      mechanical_effect: >
+        +1 Void to each participant; sensors offline for the rest of the scene.
+    failure:
+      narrative: >
+        The ritual scan fizzles in the ley-noise; the array registers only static.
+      mechanical_effect: >
+        No data; must retry or proceed manually.
+    moderate_success:
+      narrative: >
+        Two clusters appear in the readout, but the third remains buried in interference.
+      mechanical_effect: >
+        Partial data; two nexus points mapped.
+    good_success:
+      narrative: >
+        All three clusters light up clearly on your holomap.
+      mechanical_effect: >
+        Full data acquired; +2 Soulcredit for the team.
+    excellent_success:
+      narrative: >
+        Beyond mapping, you detect each ward’s unique pulse—insight that hints at their construction.
+      mechanical_effect: >
+        Full data plus –5 DC on the next dismantle check.
+
+rationale: >
+  A group attunement ritual harnesses each caster’s Perception×Attunement, with Grim’s observational bonus. A DC 18 reflects moderate Void interference and sensor noise.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-102
+
+domain:
+  core: rule_application
+  subdomain: negotiation
+
+scenario: >
+  Having pinpointed the Void-weapon clusters, Kaelia turns to Lien in the comms bay to bargain for extra Spark charges and Seed-attunement kits before the strike.
+
+environment: Halo-Runner comms bay; sensor readouts flicker behind you, crew poised on standby.
+
+stakes: >
+  Success secures vital resources for the upcoming operation; failure leaves you under-equipped and scrambling for makeshift tools.
+
+characters:
+  - name: Kaelia Virash
+    tech_level: High Tech
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, will: 5, empathy: 3}
+    skills: {corporate_influence: 2, intimacy_ritual: 2}
+    current_void: 1
+    soulcredit: +3  # after group scan bonus
+  - name: Lien Alvara
+    tech_level: High Tech
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, will: 4, empathy: 3}
+    skills: {corporate_influence: 3}
+
+goal: >
+  Use empathy and corporate savvy to convince Lien to front you extra Spark charges and two attunement kits.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: Empathy 3 × Corporate Influence 2 = 6
+# d20 roll = 14
+# Total = 6 + 14 = 20
+gold_answer:
+  attribute_used: Empathy
+  skill_used: Corporate Influence
+  roll_formula: " (3×2) + d20 ⇒ (6) + 14 = 20"
+  difficulty_guess: 18
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Lien frowns at your proposal, deeming it reckless. She rescinds the Soulcredit bonus and threatens to reroute supplies to another team.
+      mechanical_effect: >
+        –1 Soulcredit; no extra resources.
+    failure:
+      narrative: >
+        Your pitch falls flat. Lien insists you must work with standard gear, citing protocol.
+      mechanical_effect: >
+        No extra resources; proceed with current loadout.
+    moderate_success:
+      narrative: >
+        Lien nods grudgingly and allocates one additional Spark charge and one attunement kit, warning that further requests will cost Soulcredit.
+      mechanical_effect: >
+        +1 Spark charge, +1 attunement kit.
+    good_success:
+      narrative: >
+        Impressed by your data, Lien approves two extra Spark charges and two attunement kits—and ups your Soulcredit bonus by +1.
+      mechanical_effect: >
+        +2 Spark charges, +2 attunement kits, +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        Lien not only provides the extra gear but also directs a specialist drone to assist in the upcoming operation—half a dozen additional Spark reserves at your disposal.
+      mechanical_effect: >
+        +2 Spark charges, +2 attunement kits, specialist drone support, +1 Soulcredit.
+
+rationale: >
+  Negotiation relies on reading Lien’s motivations (Empathy) and leveraging your Corporate Influence. A DC 18 reflects ACG’s cautious protocol.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-103
+
+domain:
+  core: rule_application
+  subdomain: skill_ritual_hybrid
+
+scenario: >
+  Having scoped the three Void-weapon clusters, Kaelia targets the easiest one on the starboard hull—she’ll combine physical precision with ritual finesse to disable the embedded ward.
+
+environment: Starboard hull access point; fissures in the plating glow with residual Void energy.
+
+stakes: >
+  Success shuts down the ward’s core, preventing its Void discharge and clearing a path for the team. Failure risks triggering a defensive backlash—an energy spike that could shred plating or harm the boarding party.
+
+characters:
+  - name: Kaelia Virash
+    tech_level: High Tech
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, will: 5, empathy: 3}
+    skills: {athletics: 2, astral_arts: 4}
+    current_void: 1
+    bonded_items: ["Resonance Aligner Core", "Star-Glyph Compass"]
+  - name: Sorin Jaxe
+    tech_level: High Tech
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 3, will: 3, empathy: 2}
+    skills: {attunement: 3, astral_arts: 2}
+    current_void: 1
+
+goal: >
+  Use Athletics for the precise placement of the ritual focus and Astral Arts to channel stabilizing energy, disabling the Void ward without setting it off.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: Strength 2 × Astral Arts 4 = 8
+# d20 roll = 10
+# Total = 8 + 10 = 18
+gold_answer:
+  attribute_used: Strength
+  skill_used: Astral Arts
+  roll_formula: " (2×4) + d20 ⇒ (8) + 10 = 18"
+  difficulty_guess: 18
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The ritual focus shatters against the ward’s core. A jagged pulse of Void energy erupts, scorching the hull and knocking you off your feet.
+      mechanical_effect: >
+        +2 Void; hull integrity drops by 1; ward remains active.
+    failure:
+      narrative: >
+        Your timing is off. The ward flickers but holds—it retaliates with a brief burst that scorches the plating and singes your gloves.
+      mechanical_effect: >
+        +1 Void; ward remains active.
+    moderate_success:
+      narrative: >
+        You plant the Aligning Sigil flush against the ward and channel a steady surge of ritual power. The ward’s glow fades, its glyphs unraveled.
+      mechanical_effect: >
+        Void ward disabled; plating intact.
+    good_success:
+      narrative: >
+        The sigil flares brightly, sucking the last echoes of Void from the glyph. The ward collapses inward, leaving behind a cold, echo-free scar.
+      mechanical_effect: >
+        Void ward disabled; +1 Soulcredit from ACG for clean work.
+    excellent_success:
+      narrative: >
+        Your sigil not only disables the ward but reconfigures its remaining energy into a harmless astral mote you can harvest.
+      mechanical_effect: >
+        Void ward disabled; +1 Soulcredit; gain 1 temporary Spark charge.
+
+rationale: >
+  Disabling a Void-ward requires precise strength under duress (Strength×Astral Arts). DC 18 reflects a “Moderate” difficulty for physical and ritual coordination amidst hull instability.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-105
+
+domain:
+  core: rule_application
+  subdomain: ranged_attack
+
+scenario: >
+  Kaelia uses the drone’s targeting data to fire the aft Shrike Cannon at the starboard Void-ward glyph’s core, aiming to fracture its matrix with a glyph-stabilized round.
+
+environment: Aft turret station aboard the Halo-Runner; starboard hull fissures glow with Void energy.
+
+stakes: >
+  Success shatters the ward without breaching the hull; failure risks a ricochet or hull damage and leaves the ward intact.
+
+characters:
+  - name: Kaelia Virash
+    attributes: {dexterity: 3}
+    skills: {guns: 4}
+    bonded_items: ["Resonance Aligner Core", "Star-Glyph Compass"]
+    current_void: 1
+
+goal: >
+  Land a precise glyph-stabilized shot to fracture the Void ward’s core.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+gold_answer:
+  attribute_used: Dexterity
+  skill_used: Guns
+  roll_formula: " (3×4) + d20 ⇒ (12) + 13 = 25"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The glyph-round detonates in the turret, sending a shockwave through the deck. The ward remains intact and you’re thrown back.
+      mechanical_effect: >
+        +1 Void; turret offline; ward still active.
+    failure:
+      narrative: >
+        Your shot grazes the ward’s edge—glyphs crack but do not collapse. The hull rattles, and the ward flares angrily.
+      mechanical_effect: >
+        +1 Void; partial ward disruption.
+    moderate_success:
+      narrative: >
+        The round tears clean through the glyph matrix, and fragments drift harmlessly into space.
+      mechanical_effect: >
+        Ward disabled; hull undamaged.
+    good_success:
+      narrative: >
+        Beyond shattering the ward, you sever a holding rune—its core latch flies off, ready to be repurposed.
+      mechanical_effect: >
+        Ward disabled; +1 Soulcredit for precision.
+    excellent_success:
+      narrative: >
+        The shot triggers a back-feed that dismantles nearby glyph filaments, clearing a 5 m section of hull.
+      mechanical_effect: >
+        Ward disabled; +1 Soulcredit; adjacent hull segment pre-cleared.
+
+rationale: >
+  A Shrike Cannon’s glyph-stabilized burst demands precise aim (Dexterity × Guns). A DC 20 reflects the challenge of hitting a small, moving glyph under residual Void interference.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-106
+
+domain:
+  core: rule_application
+  subdomain: ritual_tag
+
+scenario: >
+  After the Shrike Cannon round shattered the ward’s matrix, Kaelia plants an Aligning Sigil on the remaining glyph shards and channels a brief ritual tag to collapse any lingering Void resonance.
+
+environment: Aft turret station aboard the Halo-Runner; hull segment now free of active glyph energy but still humming with residual Void echoes.
+
+stakes: >
+  Success collapses the last traces of Void, sealing the scar and preventing any rebound; failure leaves a volatile echo that could reignite the ward or harm the hull.
+
+characters:
+  - name: Kaelia Virash
+    attributes: {willpower: 5}
+    skills: {attunement: 3}
+    bonded_items: ["Resonance Aligner Core", "Star-Glyph Compass"]
+    current_void: 1
+
+goal: >
+  Use Attunement to tune the Aligning Sigil and Willpower to drive the final collapse of the ward’s echo imprint.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: Willpower 5 × Attunement 3 = 15
+# d20 roll = 11
+# Total = 15 + 11 = 26
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Attunement
+  roll_formula: " (5×3) + d20 ⇒ (15) + 11 = 26"
+  difficulty_guess: 18
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The Aligning Sigil fractures under strain. Void energy surges back into the hull, knocking Kaelia off her feet.
+      mechanical_effect: >
+        +2 Void; hull integrity –1; ward fragments flare.
+    failure:
+      narrative: >
+        Your sigil hums but fails to hold the residual echo. The hull quakes as the Void flickers once more.
+      mechanical_effect: >
+        +1 Void; lingering echo remains (requires retry).
+    moderate_success:
+      narrative: >
+        The sigil glows steadily, drawing out the last echo until the hull falls silent and the scar seals.
+      mechanical_effect: >
+        Void echo collapsed; stable scar.
+    good_success:
+      narrative: >
+        The ritual weave not only collapses the echo but refines it into a harmless astral mote that drifts away.
+      mechanical_effect: >
+        Echo collapsed; +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        Your focused attunement purges the echo with such precision that nearby hull plating resonates with renewable energy.
+      mechanical_effect: >
+        Echo collapsed; +1 Soulcredit; next ship-based ritual gains +1 bonus.
+
+rationale: >
+  A ritual tag relies on perfectly tuning the Aligning Sigil (Willpower×Attunement). A DC 18 reflects moderate residual Void interference.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-108
+
+domain:
+  core: skill_check
+  subdomain: pilot_check
+
+scenario: >
+  Rook maneuvers the Halo-Runner into a stable station-keeping position alongside the starboard hull, creating a boarding platform for Kaelia to EVA across.
+
+environment: Open space beside the hull; micro-gravity thrusters active, hull fissures glowing with residual Void energy.
+
+stakes: >
+  Success holds the ship steady against subtle slipstream eddies, allowing safe boarding. Failure risks drift-off, tossing Kaelia into space or forcing an emergency correction.
+
+characters:
+  - name: Rook Halessan
+    attributes: {agility: 4}
+    skills: {pilot: 4}
+
+goal: >
+  Use agility and piloting skill to maintain a precise position for boarding.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Rook: Agility 4 × Pilot 4 = 16
+# d20 roll = 5
+# Total = 16 + 5 = 21
+gold_answer:
+  attribute_used: Agility
+  skill_used: Pilot
+  roll_formula: " (4×4) + d20 ⇒ (16) + 5 = 21"
+  difficulty_guess: 18
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The Halo-Runner drifts off course—Kaelia’s tether strains and she’s pulled into open space before Rook can fire the thrusters.
+      mechanical_effect: >
+        Boarding delayed; +1 Void for Kaelia from panic; must reel her back in.
+    failure:
+      narrative: >
+        Rook overcorrects, causing the ship to jostle. Kaelia staggers on the hull plating, losing her footing.
+      mechanical_effect: >
+        –1 on Kaelia’s next Athletics check; boarding slowed.
+    moderate_success:
+      narrative: >
+        The ship holds steady against subtle eddies, and Kaelia clips her tether, moving toward the ward cluster without issue.
+      mechanical_effect: >
+        Boarding proceeds; Kaelia in position.
+    good_success:
+      narrative: >
+        Rook’s deft thruster taps create a near-perfect hover. Kaelia glides across the hull on a single pull.
+      mechanical_effect: >
+        +1 bonus on Kaelia’s next action.
+    excellent_success:
+      narrative: >
+        The ship virtually melds with the hull’s surface, and Kaelia steps off as if on solid ground.
+      mechanical_effect: >
+        +2 bonus on Kaelia’s next action; boarding is instantaneous.
+
+rationale: >
+  Precise station-keeping under micro-gravity uses Agility×Pilot. A DC 18 reflects moderate slipstream turbulence and hull eddies.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-109
+
+domain:
+  core: rule_application
+  subdomain: skill_check
+
+scenario: >
+  Kaelia braces against the hull’s curvature and swings her breach hammer at the final Void-ward glyph, aiming to shatter its core with pure force.
+
+environment: Starboard hull exterior; hull fissures glow faintly where the ward remains active.
+
+stakes: >
+  Success smashes the ward’s matrix, leaving only inert glyph shards. Failure risks the hammer glancing off the rune, and the ward discharges a damaging echo pulse.
+
+characters:
+  - name: Kaelia Virash
+    attributes: {strength: 2}
+    skills: {athletics: 2}    # used for physical strikes under duress
+    bonded_items: ["Breach Hammer"]  
+    current_void: 1
+
+goal: >
+  Use raw strength and athletic precision to break the glyph-ward with a single, decisive strike.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: Strength 2 × Athletics 2 = 4
+# d20 roll = 13
+# Total = 4 + 13 = 17
+gold_answer:
+  attribute_used: Strength
+  skill_used: Athletics
+  roll_formula: " (2×2) + d20 ⇒ (4) + 13 = 17"
+  difficulty_guess: 16
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The hammer glances off the rune’s hardened edge. The ward retaliates with a jagged pulse, battering the hull and knocking Kaelia back.
+      mechanical_effect: >
+        +1 Void; Kaelia is dazed (–1 on next action); ward remains active.
+    failure:
+      narrative: >
+        Your strike cracks the glyph but doesn’t shatter it. A ripple of Void energy flares across the plating.
+      mechanical_effect: >
+        +1 Void; ward partially disrupted.
+    moderate_success:
+      narrative: >
+        The hammer connects solidly. The glyph matrix splinters, and inert shards drift away into the void.
+      mechanical_effect: >
+        Ward disabled; plating intact.
+    good_success:
+      narrative: >
+        Beyond shattering the ward, your strike fissures adjacent glyph filaments, clearing a 2 m segment of hull.
+      mechanical_effect: >
+        Ward disabled; +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        Your blow not only destroys the ward but imbues the broken shards with a pulse of benign echo, which you catch in your other hand.
+      mechanical_effect: >
+        Ward disabled; +1 Soulcredit; gain 1 temporary Spark charge.
+
+rationale: >
+  A brute-force glyph smash under hazardous EVA conditions uses Strength×Athletics. A DC 16 reflects the difficulty of striking a precise rune under duress.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-110
+
+domain:
+  core: skill_check
+  subdomain: pilot_check
+
+scenario: >
+  Moments after Kaelia’s ritual stabilized the slipstream, Rook takes the helm to steer the Halo-Runner through the residual turbulence in the Spiral Strand corridor.
+
+environment: Slipstream exit corridor; ley currents still sputtering with unstable harmonics.
+
+stakes: >
+  Success keeps you on the mapped route toward Arcadia without further delay. Failure lets the ship drift off-course, risking renewed phasing instability.
+
+characters:
+  - name: Rook Halessan
+    attributes: {agility: 4}
+    skills: {pilot: 4}
+
+goal: >
+  Use Pilot to correct the ship’s vector and maintain a stable trajectory through the wavering slipstream.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Agility 4 × Pilot 4 = 16
+# d20 roll = 12
+# Total = 16 + 12 = 28
+gold_answer:
+  attribute_used: Agility
+  skill_used: Pilot
+  roll_formula: " (4×4) + d20 ⇒ (16) + 12 = 28"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Rook overcorrects wildly—the ship bucks in the slipstream and flickers at the molecular edge, threatening to phase out again.
+      mechanical_effect: >
+        +1 Void; ship drifts off-course; requires emergency ritual back-up.
+    failure:
+      narrative: >
+        The correction is sluggish. You drift a few kilometers off the intended corridor, forcing an extra course-replot.
+      mechanical_effect: >
+        +1 crew fatigue; adds one cycle delay.
+    moderate_success:
+      narrative: >
+        Rook’s steady hands nudge the controls just right. You realign with the main ley current and hold course.
+      mechanical_effect: >
+        Stable transit continues; minor delay.
+    good_success:
+      narrative: >
+        The ship surges cleanly into the heart of the current, shaving hours off your estimated arrival.
+      mechanical_effect: >
+        –2 hours delay.
+    excellent_success:
+      narrative: >
+        Rook’s mastery smooths out the turbulence entirely, and you even gain a minor rhythm insight into the next jump.
+      mechanical_effect: >
+        –4 hours delay; +1 bonus on the next slipstream jump ritual.
+
+rationale: >
+  Navigating residual slipstream turbulence is a pure piloting task—Agility×Pilot captures both reflex and finesse. A DC 20 reflects moderate post-ritual instability.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+task_id: YAGS-AEONISK-111
+
+domain:
+  core: ritual
+  subdomain: ley_line_repair
+
+scenario: >
+  Having disabled the Void-ward nexus, your team boards the central frozen vessel. The ship’s secondary ley node is wildly out of sync—fractured currents threaten to collapse the vessel into the Veil. You must perform a large‐scale ley repair using offerings and synchronized ritual work to re-anchor the node.
+
+environment: Mid-ship ley node chamber; crystal conduits crackle with jagged astral energy.
+
+stakes: >
+  Success reboots the node’s harmonics, unlocking a stable slipstream corridor for the rest of the strand. Failure triggers a cascade collapse—this and nearby vessels may phase out or take structural damage.
+
+participants:
+  - name: Kaelia Virash
+    attribute: willpower: 5
+    skill: astral_arts: 4
+  - name: Sorin Jaxe
+    attribute: willpower: 3
+    skill: attunement: 3
+  - name: Lien Alvara
+    attribute: empathy: 4
+    skill: corporate_influence: 3
+  - name: Rook Halessan
+    attribute: agility: 4
+    skill: pilot: 4  # helps maintain slipstream link through ritual nodes
+
+goal: >
+  Pool your strengths—astral power, tuning finesse, social cohesion, and precise piloting—to realign the fractured ley currents and stabilize the node.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: 5×4 = 20
+# Sorin:  3×3 = 9
+# Lien:   4×3 = 12
+# Rook:   4×4 = 16 (as a ritual stabilizer role)
+# Subtotal = 20+9+12+16 = 57
+# Group bonus = +1 per extra participant (3 extras) = +3
+# Total base = 60 + d20
+task_id: YAGS-AEONISK-111
+
+domain:
+  core: ritual
+  subdomain: group_ritual
+
+scenario: >
+  Inside the central vessel’s ley node chamber, Kaelia, Sorin, and Althaea prepare a synchronized ley-repair rite. Sparks of raw astral energy crack around the fractured node—this repair will demand everything you’ve got.
+
+environment: Mid-ship ley node chamber; crystal conduits crackle with jagged astral energy beneath your feet.
+
+stakes: >
+  Success fully re-anchors the node’s harmonics and stabilizes the slipstream corridor. Failure triggers a cascade collapse—this and adjacent vessels risk phasing into the Veil.
+
+participants:
+  - name: Kaelia Virash
+    attribute: willpower: 5
+    skill: astral_arts: 4
+  - name: Sorin Jaxe
+    attribute: willpower: 3
+    skill: attunement: 3
+  - name: Althaea
+    attribute: willpower: 4
+    skill: intimacy_ritual: 2
+
+goal: >
+  Pool ritual power, tuning finesse, and empathic resonance to repair the ley node under extreme Void interference.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+# Calculation detail:
+# Kaelia: 5 × 4 = 20
+# Sorin:  3 × 3 = 9
+# Althaea: 4 × 2 = 8
+# Subtotal = 37
+# Group bonus = +2 (one per extra caster beyond the first two)
+# Total base = 39 + d20
+difficulty_guess: 30
+task_id: YAGS-AEONISK-112
+
+domain:
+  core: ritual
+  subdomain: group_ritual
+
+scenario: >
+  Having restored the central node, your team channels the Resonance Aligner’s power into the slipstream itself, weaving a sustaining ley barrier to lock the Strand’s harmonics in place as you give chase to the hidden signal.
+
+environment: Slipstream corridor outside the vessel; currents still sputter with volatile ley energy.
+
+stakes: >
+  Success extends the node’s harmonics far enough to let you pursue without collapse. Failure lets the Strand unwind behind you—any jump now risks phasing into the Veil.
+
+participants:
+  - name: Kaelia Virash
+    attribute: willpower: 5
+    skill: attunement: 3
+  - name: Sorin Jaxe
+    attribute: willpower: 3
+    skill: attunement: 3
+  - name: Althaea
+    attribute: empathy: 4
+    skill: attunement: 2
+
+goal: >
+  Pool your tuning finesse to anchor the repaired node’s resonance along the Strand, creating a stable conduit for pursuit.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+
+gold_answer:
+  attribute_used: Collective Will & Empathy
+  skill_used: Collective Attunement
+  roll_formula: " (5×3) + (3×3) + (4×2) + 2 bonus + d20 ⇒ (15 + 9 + 8 + 2) + 14 = 48"
+  difficulty_guess: 24
+  outcome_explanation:
+    success: >
+      Your combined tuning cascades down the slipstream; the currents settle into a vibrant corridor that glows with stable ley light. You’re locked onto the signature trail.
+    failure: >
+      The harmonics falter mid-weave. You feel the ship shudder as the Strand behind you unravels—any jump now would be a one-way trip.
+
+rationale: >
+  Extending a repaired node’s resonance across a volatile slipstream is a high-stakes tuning task. Collective Attunement captures each caster’s finesse, with a group bonus for synergy. DC 24 reflects the extreme instability.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+---
+task_id: YAGS-AEONISK-200
+
+domain:
+  core: lore
+  subdomain: faction_history
+
+scenario: >
+  The secretive House of Seras and the shadow broker known only as “The Echo Broker” have orchestrated the Spiral Strand sabotage to corner the Seed market—this entry codifies their background and recent activities.
+
+environment: Interstellar polity of Aeonisk Prime and Arcadia; hidden financial networks; the Unstrung Path beyond Outer Beacon Σ.
+
+stakes: >
+  Understanding Seras’s heritage and the Broker’s methods is vital to exposing the conspiracy, rallying faction support, and preventing future disruptions.
+
+characters:
+  - name: House of Seras
+    type: Noble Line
+    classification: Political–Financial Powerhouse
+  - name: The Echo Broker
+    type: Shadow Operative
+    classification: Unregistered Ritual Merchant
+
+goal: >
+  Record the origins, motives, and known recent actions of House of Seras and The Echo Broker to inform diplomatic and investigative efforts.
+
+expected_fields:
+  - lore_topic
+  - origin
+  - known_allies
+  - known_enemies
+  - primary_motives
+  - recent_activities
+
+gold_answer:
+  lore_topic: House of Seras & The Echo Broker Conspiracy
+  origin: >
+    House of Seras traces back four centuries on Arcadia, originally investors in crystallurgical research for Veil-stabilization. “The Echo Broker” is a pseudonymous figure said to operate from the Unstrung Path, trafficking in illicit Seed-based weaponry.
+  known_allies: >
+    Several minor Arcadian noble houses (Vandren, Kiru Engineering fronts), select ACG trade intermediaries willing to profit on panic, and rumored contacts among Freeborn smugglers along the Outer Beacon Σ corridor.
+  known_enemies: >
+    Sovereign Nexus regulators, who view Seras’s unilateral maneuvers as a breach of civic resonance law; ritual purists in the Ossai Line who condemn Unstrung Path dealings.
+  primary_motives: >
+    To engineer a supply crisis that inflates Seed prices, enabling House of Seras to buy vast reserves at premium Soulcredit rates, while The Echo Broker profits by selling Void-infused Seed weaponry to clandestine clients.
+  recent_activities: >
+    • Diverted three major Seed shipments (Spark, Gale-Class, Ember-Class) 72–24 hours before node sabotage.  
+    • Funded shell companies “Vandren Logistics” and “Kiru Engineering” to launder payments.  
+    • Coordinated timing of ley-node fractures to maximize panic and control trade route re-opening negotiations.
+
+rationale: >
+  This lore entry compiles the conspirators’ background and actions, equipping PCs and faction leaders with the context needed for diplomatic leverage and strategic planning.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+---
+task_id: YAGS-AEONISK-214
+
+domain:
+  core: lore
+  subdomain: npc_profile
+
+scenario: >
+  With Ellos Mall immobilized in the astral snare, his full confession reveals his background, vault location, and the deeper role of House Vox in the Spiral Strand sabotage.
+
+environment: Docking bay conduit chamber; glyph-chains faintly crackling around the Broker as he speaks.
+
+stakes: >
+  Documenting Ellos’s history and the broker network is crucial to mounting a precise strike on their hidden vault and dismantling the Vox–Seras alliance.
+
+characters:
+  - name: Ellos Mall
+    type: Exiled Ossai Scholar
+  - name: House Vox
+    type: Arcadian Noble Faction
+
+goal: >
+  Record the Broker’s true identity, exile history, vault location, coordinate encryption method, and implicated factions.
+
+expected_fields:
+  - lore_topic
+  - true_identity
+  - exile_reason
+  - vault_location
+  - coordinates_encoding
+  - implicated_factions
+
+gold_answer:
+  lore_topic: Ellos Mall & the Dead Man’s Spiral Vault
+  true_identity: >
+    Ellos Mall, formerly a scholar of the Ossai Line renowned for “Veil Resonance Synthesis,” exiled for unsafe experiments with unbound ley currents.
+  exile_reason: >
+    Banished for conducting forbidden research that risked destabilizing slipstream nodes and local Veil integrity.
+  vault_location: >
+    Hidden at Meridian Theta-9 in the Dead Man’s Spiral, anchored to the hull of a derelict freighter drifting beyond Outer Beacon Σ.
+  coordinates_encoding: >
+    The precise coordinates are encoded in the secondary glyph etched on the Resonance Aligner’s Aligning Sigil.
+  implicated_factions: >
+    • House Vox – financed the Ember-Class Seed diversions.  
+    • Kiru Engineering – managed Gale-Class Seed shipments.  
+    • Vandren Logistics – front company for House of Seras’s trades.
+
+rationale: >
+  This lore entry consolidates the Broker’s personal history, secret vault location, and the strategic partnership of House Vox, equipping the PCs with the knowledge needed to plan their next strike.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+---
+task_id: YAGS-AEONISK-215
+
+domain:
+  core: lore
+  subdomain: faction_motive
+
+scenario: >
+  After extracting a full confession from Ellos Mall, your team uncovers the deeper rationale behind House Vox’s orchestration of panic on the Spiral Strand.
+
+environment: Sovereign Nexus political–economic networks; Arcadian and Aeonisk Prime markets; black-market Soulcredit exchanges.
+
+stakes: >
+  Understanding Vox’s motive is critical to cutting off their influence and preventing further market exploitation and political manipulation.
+
+characters:
+  - name: House Vox
+    type: Arcadian Noble Faction
+
+goal: >
+  Record House Vox’s strategic reasons for funding the Ember-Class Seed diversions and leveraging panic for profit and power.
+
+expected_fields:
+  - lore_topic
+  - faction_name
+  - motive_summary
+  - economic_strategies
+  - panic_mechanisms
+  - profit_models
+
+gold_answer:
+  lore_topic: House Vox’s Panic-Driven Profit Model
+  faction_name: House Vox
+  motive_summary: >
+    House Vox engineered market panic on the Spiral Strand to transform crisis into demand for their exclusive Soulcredit media services and financial instruments.
+  economic_strategies: >
+    • Securing premium contracts for live ritual broadcasts and emergency communiqués.  
+    • Underwriting Soulcredit futures and derivatives to profit from volatility.  
+    • Controlling narrative by positioning themselves as indispensable information providers.
+  panic_mechanisms: >
+    • Funding Ember-Class Seed diversions to trigger instability.  
+    • Amplifying fear through black-market “echo-streams” when official networks falter.  
+    • Leveraging media channels to stoke uncertainty and increase viewership.
+  profit_models: >
+    • Charging elevated Soulcredit rates for media access and morale-boosting rites.  
+    • Earning on both sides of derivatives trades as markets swing.  
+    • Selling high-value illicit data-feeds and insurance policies to desperate factions.
+
+rationale: >
+  This entry distills House Vox’s motive—turning engineered panic into a multi-layered profit and influence scheme—so the PCs can anticipate and disrupt their next maneuvers.
+
+aeonisk_extra_data:
+  module: Spiral Strand Severance
+  version: v1.1.2
+

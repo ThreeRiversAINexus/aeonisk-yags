@@ -1,0 +1,119 @@
+# Aeonisk Character Examples
+# This file contains example character sheets for reference.
+
+characters:
+  - character_name: "Kaelia Virash"
+    player_name: ""
+    campaign: "Spiral Strand Severance"
+    game_master: ""
+    creation_date: "2025-05-17"
+
+    # YAGS Level & Pools
+    character_level_type: "Skilled"
+    point_pool_priority:
+      primary: "Experience"
+      secondary: "Attributes"
+      tertiary: "Advantages"
+
+    # Aeonisk Specific
+    origin_faction: "Astral Commerce Group (ACG)"
+    tech_level_character: "High Tech"
+
+    # Primary Attributes
+    primary_attributes:
+      strength: 2
+      health: 3
+      agility: 3
+      dexterity: 3
+      perception: 4
+      intelligence: 4
+      empathy: 3
+      willpower: 5
+
+    # Secondary Attributes
+    secondary_attributes:
+      size: 5
+      soak_base: 11 # size (5) + strength (2) + agility (3) + 1 - original note, actual YAGS is Size + Str + Agi + 1 = 5+2+3+1 = 11. Soak is different.
+      move_base: 9  # Original note: size + strength + agility + 1 = 11; use 9 as setting baseline. YAGS Move = Size + Str + Agi + 1 = 11.
+
+    # Status Tracks
+    wounds:
+      levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Fatal (-40)"]
+      current_level: "OK"
+      current_penalty: 0
+    stuns:
+      levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Beaten (-40)"]
+      current_level: "OK"
+      current_penalty: 0
+    fatigue_exhaustion:
+      levels: ["OK (0)", "Tired (-5)", "Weary (-10)", "Strained (-15)", "Exhausted (-25)", "Incapacitated (-40)"]
+      current_fatigue_level: "OK"
+      current_exhaustion_level: "OK"
+      current_penalty: 0
+
+    # Talents (start at 2)
+    talents:
+      athletics: 2
+      awareness: 2
+      brawl: 2
+      charm: 2
+      guile: 2
+      sleight: 2
+      stealth: 2
+      throw: 2
+
+    # Knowledges & Aeonisk-only Skills
+    knowledges:
+      lore_navigation: 3    # Astronavigation lore
+      magick_theory: 2      # understanding ritual frameworks
+    
+    standard_skills: # Combined Aeonisk and Standard skills here for clarity
+      pilot: 3              # Halo-Runner piloting
+      astral_arts: 4        # core ritual power
+      attunement: 3         # seeding alignment
+      dreamwork: 2          # managing shared dream nodes
+      corporate_influence: 2  # ACG protocols
+      intimacy_ritual: 2    # for group rites
+      debt_law: 1           # negotiating Soulcredit contracts
+
+    # Languages
+    languages:
+      native_language_name: "Common Resonance Cant"
+      native_language_level: 4
+      other_languages: []
+
+    # Techniques & Advantages
+    techniques:
+      - name: "Focused Invocation"
+        skill_basis: "Astral Arts"
+        cost_level: 2 # This usually means requires Astral Arts 2+
+        description: "Gain +2 on one ritual roll in exchange for +1 Void on failure."
+
+    advantages:
+      - name: "Ritual Savant"
+        cost_level: 3 # Point cost for the advantage
+        description: "Once per session, treat a d20 roll as ‘0’ (no fumble risk) for a non-combat ritual."
+
+    disadvantages:
+      - name: "Veil Sensitivity"
+        cost_level: -2 # Points gained from the disadvantage
+        description: "Suffers –1 penalty to non-ritual rolls when Void ≥5."
+    
+    # Aeonisk Specific Mechanics (example values)
+    aeonisk_data:
+      void_score: 0
+      soulcredit: 0
+      true_will:
+        declared: false
+        statement: ""
+        alignment_bonus_active: false
+      bonds: []
+      primary_ritual_item:
+        name: "ACG Standard Issue Focus Crystal"
+        description: "A multi-faceted crystal used for ACG-sanctioned rituals."
+        effects_if_lost: "-2 to Ritual Rolls"
+      offerings_carried:
+        - offering_name: "Packet of Standardized Ley-Dust"
+          description: "Common offering for minor attunements."
+        - offering_name: "Encoded Soulcredit Chit (10 units)"
+          description: "Symbolic offering of value for contractual rituals."

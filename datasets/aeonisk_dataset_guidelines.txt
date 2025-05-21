@@ -1,0 +1,187 @@
+# Aeonisk YAGS Dataset Entry Guidelines
+
+## Purpose
+
+This document provides guidelines for creating new entries for the Aeonisk YAGS dataset. The goal is to ensure all entries are consistent, adhere to the canonical schema, and accurately reflect the game's mechanics and lore as defined in the YAGS Core Rules and the Aeonisk YAGS Module (v1.2.0-pre or latest).
+
+These entries serve to:
+- Train AI models on game mechanics, rule application, and narrative outcomes.
+- Provide a comprehensive set of examples for various in-game situations.
+- Document canonical resolutions for specific scenarios.
+
+## Canonical YAML Schema
+
+Each dataset entry should be a YAML object following this structure:
+
+```yaml
+task_id: YAGS-AEONISK-### # Unique identifier, increment sequentially.
+
+domain:
+  core: <core_domain>      # e.g., rule_application, lore_interaction, glyph_creation
+  subdomain: <subdomain>   # Specific type of task, e.g., skill_check, ritual_check, combat, investigation, pilot_check, drone_operation, bond_mechanic, magick_theory, etc. Use consistent tags.
+
+scenario: >
+  <1–3 sentences describing the narrative setup of the task. Be evocative and clear.>
+
+environment: <One-line description of the immediate setting, including relevant conditions.>
+
+stakes: >
+  <1–2 sentences describing what is at risk for the character(s) involved. What are the consequences of success and failure?>
+
+characters:
+  - name: <Character Name>
+    tech_level: <Aeonisk Standard | High Tech | etc.> # As per Aeonisk YAGS Module
+    attributes: {strength: X, dexterity: X, agility: X, intelligence: X, perception: X, willpower: X, empathy: X} # Use full attribute names.
+    skills: {<skill1_lowercase>: X, <skill2_lowercase>: X, ...} # Use lowercase skill names with underscores (e.g., astral_arts, magick_theory).
+    # Optional fields (as relevant to the scenario):
+    # current_void: X
+    # soulcredit: X
+    # wound: <description_and_penalty_if_any> # e.g., "minor burn (-1 Str/Agi actions)", "Light Wound (-5 penalty)"
+    # status_effects: ["<effect1>", "<effect2>"] # e.g., "+4 Drone Assist Strength"
+    # temp_strength_bonus: X # Or other temporary attribute bonuses
+
+goal: >
+  <What the character is trying to accomplish mechanically and/or narratively. Be specific.>
+
+expected_fields: # List of fields expected in the gold_answer. Typically includes all below.
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: <AttributeName> # Full attribute name, e.g., Willpower, Agility.
+  skill_used: <SkillName>       # Full skill name, e.g., Astral Arts, Stealth. Use "None" if a pure attribute check.
+  roll_formula: "<Attribute Value> x <Skill Value> = <Base Ability>; <Base Ability> + d20" # e.g., "Willpower 3 x Astral Arts 2 = 6; 6 + d20". For pure attribute checks: "<Attribute Value> x 4 = <Base Ability>; <Base Ability> + d20". Include penalties/bonuses in the base ability if they are fixed for the roll, e.g. "(Agility 4 x Athletics 3) - 5 [wound] = 7; 7 + d20".
+  difficulty_guess: <number> # The target number for a Moderate Success (YAGS) or Solid Success (Aeonisk Rituals). Refer to YAGS Core Rules & Aeonisk Module DC guidelines.
+
+  critical_thresholds: # Optional: Define only if the task has non-standard critical effects.
+    natural_20_success_enhancement: >
+      <Narrative of what extra happens on a Natural 20 beyond normal degree of success. e.g., Stuns astral for an extra round, +1 Soulcredit, unlocks hidden lore.>
+    natural_1_failure_severity: >
+      <Narrative of what extra happens on a Natural 1 beyond normal failure. e.g., Weapon breaks, +1 Void, friendly fire, summons hostile entity.>
+
+  outcome_explanation: # Must follow this multi-tiered structure.
+    critical_failure: # Corresponds to Ritual Margin –10 or worse; or Nat 1 with severe effect for skill checks.
+      narrative: >
+        <Narrative of what a critical failure or fumble looks like.>
+      mechanical_effect: >
+        <e.g., +2 Void, Bond takes Strain, item destroyed, character injured. Be specific.>
+    failure: # Corresponds to Ritual Margin –1 to –9; or simple YAGS failure for skill checks.
+      narrative: >
+        <Narrative of what simple failure or ritual failure with backlash looks like.>
+      mechanical_effect: >
+        <e.g., +1 Void, Bond strain (for rituals); No progress, minor setback (for skills).>
+    moderate_success: # Corresponds to Ritual Margin 0 to +4 (Weak Success); or base YAGS success.
+      narrative: >
+        <Narrative of what a basic, weak, or moderate success looks like.>
+      mechanical_effect: >
+        <e.g., Goal achieved with potential side effects or reduced clarity/duration (rituals); Goal achieved as expected (skills).>
+    good_success: # Corresponds to Ritual Margin +5 to +9 (Solid Success); or YAGS success +10.
+      narrative: >
+        <Narrative of what a solid or good success looks like.>
+      mechanical_effect: >
+        <e.g., Full effect, no backlash (rituals); Goal achieved with a minor boon (skills).>
+    excellent_success: # Corresponds to Ritual Margin +10 to +14 (Strong Resonance); or YAGS success +20.
+      narrative: >
+        <Narrative of what a strong or excellent success looks like.>
+      mechanical_effect: >
+        <e.g., Gain minor benefit like +1 Soulcredit or insight (rituals); Exceptional outcome, significant advantage (skills).>
+    exceptional_success: # Corresponds to Ritual Margin +15+ (Echo or Breakthrough); or YAGS success +30 or more.
+      narrative: >
+        <Narrative of what a breakthrough or superb/amazing success looks like.>
+      mechanical_effect: >
+        <e.g., Exceptional results, story-altering power (rituals); Perfection, major unexpected positive side-effect (skills).>
+
+  rationale: >
+    <Brief design note (1-2 sentences) explaining the choice of attribute, skill, and difficulty_guess. Justify why they make sense for the scenario based on YAGS/Aeonisk rules. e.g., "Agility x Stealth for silent movement. DC 23 Challenging due to active sensors and high stakes.">
+
+aeonisk_extra_data:
+  module: <module_name>   # e.g., yags-hightech, Aeonisk - YAGS Module, Aeonisk - Echo Fracture Campaign
+  version: <version_str> # e.g., v1.0.1, v1.1.2, v1.2.0-pre. Use the version of the rules the entry is based on.
+```
+
+## Content Guidelines
+
+### General
+- **Clarity and Brevity:** Be clear and concise in all narrative fields.
+- **Consistency:** Use established Aeonisk terminology (refer to Aeonisk YAGS Module glossary).
+- **Rules Adherence:** All mechanical aspects (rolls, difficulties, outcomes) must align with YAGS Core Rules and the latest Aeonisk YAGS Module.
+- **Lore Consistency:** Scenarios should be consistent with Aeonisk world lore, factions, and themes.
+
+### Specific Fields
+- **`domain.subdomain`**: Use specific, descriptive tags. Examples: `skill_check_athletics`, `ritual_check_binding_breath`, `combat_melee_attack`, `investigation_data_analysis`, `dreamwork_echo_pacification`, `bond_formation_ritual`.
+- **`characters`**: Only include attributes, skills, and status relevant to the task.
+- **`roll_formula`**:
+    - Clearly show the base calculation: `Attribute Value x Skill Value = Base Ability`.
+    - Then show the roll: `Base Ability + d20`.
+    - For pure attribute checks: `Attribute Value x 4 = Base Ability; Base Ability + d20`.
+    - Explicitly state any fixed modifiers (e.g., wound penalties, drone assist) in the base ability calculation part. Example: `(Strength 4 + Drone Assist 4) x Athletics 3 = 24; 24 - 5 [wound] = 19; 19 + d20`.
+- **`difficulty_guess`**:
+    - For standard skill checks, use YAGS difficulties (Moderate 20, Challenging 25, etc.).
+    - For Aeonisk Rituals, use the defined Ritual Thresholds (Minor 16, Standard 18, Major 20-22, Forbidden 26-28).
+    - Refer to Aeonisk DC Guidelines (Module v1.2.0, Sec 6.6) for more nuanced Aeonisk tasks.
+- **`outcome_explanation`**:
+    - This is critical. Each of the six tiers (`critical_failure` to `exceptional_success`) must have both a `narrative` and a `mechanical_effect`.
+    - Narratives should vividly describe the distinct outcome for that tier.
+    - Mechanical effects should be specific (e.g., "+1 Void", "Target takes 2 Wounds", "Gains 'Ley Sense' for 1 hour", "-1 Soulcredit").
+    - For Aeonisk Rituals, map outcomes to the Margin Outcome Table (Aeonisk Module v1.2.0, Sec 6.1):
+        - `critical_failure`: Margin –10 or worse (Catastrophic fumble)
+        - `failure`: Margin –5 to –9 (Failed + backlash) OR Margin -1 to -4 (Failed, no effect) - *distinguish these if possible, or use 'failure' for the more impactful one and note the lesser failure in its narrative.* For simplicity, `failure` can represent the -1 to -9 range if backlash is included in mechanical effects.
+        - `moderate_success`: Margin 0 to +4 (Weak success)
+        - `good_success`: Margin +5 to +9 (Solid success)
+        - `excellent_success`: Margin +10 to +14 (Strong resonance)
+        - `exceptional_success`: Margin +15+ (Echo or breakthrough)
+    - For non-ritual YAGS skill checks, map to YAGS Degrees of Success:
+        - `critical_failure`: Natural 1 with severe consequences.
+        - `failure`: Did not meet `difficulty_guess`.
+        - `moderate_success`: Met `difficulty_guess`.
+        - `good_success`: Met `difficulty_guess` by 10+.
+        - `excellent_success`: Met `difficulty_guess` by 20+.
+        - `exceptional_success`: Met `difficulty_guess` by 30+.
+- **`rationale`**: Justify choices. Why this attribute/skill? Why this difficulty? Connect to specific rules or lore if possible.
+
+## Example Snippet (Outcome Explanation for a Ritual)
+
+```yaml
+# ... (other fields) ...
+gold_answer:
+  # ... (attribute_used, skill_used, roll_formula) ...
+  difficulty_guess: 18 # Standard Ritual Threshold
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The ritual energies backlash violently, scarring the caster's soul and corrupting the ritual site.
+      mechanical_effect: >
+        +2 Void, caster takes 1 Willpower damage (spiritual shock), ritual site becomes a Minor Void Hotspot.
+    failure:
+      narrative: >
+        The offering is consumed, but the energies dissipate harmlessly. The ritual simply fails to take hold.
+      mechanical_effect: >
+        +1 Void (if offering was skipped or insufficient, otherwise 0), offering consumed, no other effect.
+    moderate_success: # Weak Success (Margin 0 to +4)
+      narrative: >
+        A faint shimmer indicates the ritual worked, but its effects are muted and may not last long.
+      mechanical_effect: >
+        Target Bond is veiled from casual observation for 10 minutes instead of 1 scene.
+    good_success: # Solid Success (Margin +5 to +9)
+      narrative: >
+        The ritual concludes smoothly, the Bond visibly fading from spiritual sight.
+      mechanical_effect: >
+        Target Bond is veiled from detection for 1 scene.
+    excellent_success: # Strong Resonance (Margin +10 to +14)
+      narrative: >
+        The Bond vanishes from all forms of spiritual sense as if it never existed, and the caster feels a surge of aligned will.
+      mechanical_effect: >
+        Target Bond veiled for 1 day. Caster gains +1 Soulcredit for elegant execution.
+    exceptional_success: # Echo or Breakthrough (Margin +15+)
+      narrative: >
+        Not only is the Bond veiled, but the caster glimpses the underlying astral threads, understanding how to permanently mask such connections.
+      mechanical_effect: >
+        Target Bond veiled indefinitely until dispelled by a Major ritual. Caster gains a new Technique: "Astral Weaving Finesse".
+# ... (rationale, aeonisk_extra_data) ...
+```
+
+By following these guidelines, we can build a rich, consistent, and highly useful dataset for Aeonisk YAGS.
