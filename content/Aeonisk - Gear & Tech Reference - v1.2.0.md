@@ -4,12 +4,20 @@
 
 ------
 
-## 0 · Economic
+## 0 · Economics & Infrastructure
 
-**Raw Seed** - Unstable; degrades in 7 cycles (7 weeks); +1 Void if used without proper ritual attunement. Becomes a Hollow when degrading. Must be ritually attuned into an elemental aspect (e.g., Spark, Drip) before use in specialized gear or as a stable talisman.
-**Attunement Tools:**
-    - **Echo-Calibrator** - Used to help stabilize and align Raw Seeds during attunement rituals. Requires careful handling (DC 16 Dexterity × relevant Craft/Tech skill check to avoid +1 instability to the ritual). Standard upkeep: 1 Spark charge per 3 uses.
-    - **Ritual Altar** - A prepared sacred space or dedicated device that focuses energies for attunement rituals. Provides +1 to +3 bonus to attunement ritual rolls depending on quality and offerings. Risk of instability if altar is desecrated or improperly maintained (GM discretion). Upkeep: Varies (offerings, cleansing rites).
+**Raw Seed** – Unstable; degrades in 7 cycles (7 weeks); +1 Void if used without proper ritual attunement. Becomes a Hollow when degrading. Must be ritually attuned into an elemental aspect before use in specialized gear or as a stable talisman.  
+*May be preserved in an Echo-Calibrator or fully attuned at a Ritual Altar to mitigate Void risk.*
+
+**Echo-Calibrator** – Used to help stabilize and align Raw Seeds during attunement rituals. Requires careful handling (DC 16 Dexterity + Craft/Tech check to avoid +1 instability). Standard upkeep: 1 Drip charge per 3 uses.
+
+**Ritual Altar** – A prepared sacred space or dedicated device that focuses energies for attunement rituals. Provides +1 to +3 bonus on attunement ritual rolls depending on quality and offerings; risk of instability if desecrated or improperly maintained (GM discretion). Upkeep: offerings or cleansing rites.
+
+---
+
+> **GM Tip—Local Rates:** Typical markets peg 1 Spark ≈ 2–5 Drips per session; high-security hubs (e.g., Aeonisk Prime) slide it closer to 1 Spark = 3 Drips, while frontier bazaars might only honor 1 Spark = 2 Drips.  
+
+
 
 ## 1 · Weapon Class Cheat‑Sheet
 
@@ -24,7 +32,18 @@
 
 ------
 
+
 ## 2 · Weapon Catalog (Field Stats)
+
+**How to read this table:**  
+• “Key Numbers” are flat bonuses (e.g. “+5 DMG”) you add to the normal
+  YAGS damage roll (Str × Skill + d20).  
+• A dash (—) means “same as a baseline weapon of this type”; *Scales*
+  means damage grows with your current Void score.  
+• Items marked *‡* have GM-set scaling; items marked *★* are vehicle-mounted.  
+• Abbreviations: SC = Soulcredit, DMG = damage bonus, DEF = defence bonus,
+  Void = Void impact.  
+See the foot-notes beneath the table and the Reference Symbols list for full details.
 
 | Name                    | Class / Type            | Key Numbers† | Signature Effects                                   | Upkeep / Fuel                 |
 | ----------------------- | ----------------------- | ------------ | --------------------------------------------------- | ----------------------------- |

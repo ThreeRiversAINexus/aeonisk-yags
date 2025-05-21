@@ -2,7 +2,7 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.2.0-pre
+Version 1.2.0
 
 ## 1. Introduction
 
@@ -466,10 +466,19 @@ The Margin Outcome Table (Section 6.1, Step 5) covers the spectrum of results:
 - **Simple Failure (Margin –1 to –4):** The ritual simply doesn't work, potentially causing minor mental or emotional effects.
 - **Success Tiers (Margin 0+):** The ritual works to varying degrees of effectiveness, potentially with  side effects at lower margins or beneficial bonuses at higher margins.
 
+The Margin Outcome Table covers the raw mechanical results. For immediate narrative color, use one of these evocative hooks:
+
+- Sparks of uncontrolled charge dance around runes.
+- Sigils or ritual tools crack, losing potency for a moment.
+- Nearby creatures are swept by an emotional echo, reliving someone else’s memory.
+- A minor spirit stirs in response, hinting at future complications.
+- Bonds strain or pulse painfully, testing PC connections.
+- Ritual intent inverts—healing inflicts pain, wards invite intrusion.
+
 ### 6.3. Group Rituals
 
 - **Base Formula:** The group's ritualistic power is the sum of (Willpower × Ritual Skill) for each caster, plus one flat group bonus (e.g., +2 Synergy Bonus, not +1 per extra caster).
-- **Offerings:** Each extra caster (beyond the primary) must expend a minor Offering (e.g., 1 Spark or 1 Attunement Kit) or the group incurs +1 Void per caster without an offering. The primary caster also provides their standard offering.
+- **Offerings:** Each extra caster (beyond the primary) must expend a minor Offering (e.g., 1 Spark or 1 Breath) or the group incurs +1 Void per caster without an offering. The primary caster also provides their standard offering.
 - **DC Scaling:**
     - Small party (2-3 casters): DC = 18–22
     - Large party (4+ casters) or high-stakes: DC = 24–30
@@ -545,6 +554,8 @@ Tag each significant action, item, or rule entry with a concise subdomain tag (e
 Instead of two separate rolls, allow a single roll using the primary Attribute × Skill. If a second skill logically assists the action, grant a +2 “Synergy” bonus to the roll.
 *E.g., Shrike Burst (Dex × Guns) + Ritual Tag (Attunement assisting) → Dex × Guns + d20 +2 Synergy Bonus.*
 
+GM Litmus Test for Synergy bonus: If removing the helper skill makes the stunt nonsense, grant +2. The Synergy Bonus is also used for Group Ritual outcomes.
+
 **Consumable Resource Tracking:**
 - **Spark Charges:** Every Spark-based weapon volley or EMP pulse consumes 1 Spark Charge.
 - **Attunement Kits:** Each complex ritual (e.g., group rites above DC 22 or any “Ritual Snare”) consumes 1 Attunement Kit or adds +1 Void to the ritual's cost.
@@ -602,7 +613,7 @@ If a character gains **2 or more Void** from a single event (e.g., catastrophic 
 
 ### 7.2. Soulcredit (SC) (–10 to +10)
 
-Measures spiritual reputation, integrity, and trustworthiness within the  metaphysical economy. (Rules remain unchanged from v1.1.0, reiterated  here for clarity).
+Measures spiritual reputation, integrity, and trustworthiness within the  metaphysical economy.
 
 **Effects by Score (Optional Social Rules):**
 
@@ -655,7 +666,7 @@ These systems form the core of character identity and relationships in Aeonisk.
 - Sacrifice: +5 to Willpower roll (once/session), +1 Void, +1 Soul Debt, -1 Emp (scene).
 - **Void ≥ 7:** Bonds become Dormant (provide no mechanical benefits).
 
-**Bond Types (Examples):** (Unchanged from v1.1.0)
+**Bond Types (Examples):**
 
 | Type       | Description                                                  | Common Consequences                                          |
 | ---------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -670,7 +681,7 @@ These systems form the core of character identity and relationships in Aeonisk.
 
 ### 8.2. Kinship
 
-(Unchanged from v1.1.0)
+
 *“Blood is an echo. Kinship is the structure we build to hear it.”* Kinship is ritual architecture, maintained through oaths, memory, and Faction/Ring matrices. Not purely genetic.
 
 **Kinship Structures:** (Examples) Bloodline Houses, Mnemonic Families, Ritual Pods, Sovereign Families, Fracture Kin.
@@ -678,7 +689,7 @@ These systems form the core of character identity and relationships in Aeonisk.
 
 ### 8.3. Bonding Rites
 
-(Unchanged from v1.1.0)
+
 Must be witnessed. The rite itself is often key. Examples: Spiral Vow, Red Thread Tether, Voidcall Sealing, Debtbinding.
 
 ### 8.4. True Will
@@ -693,7 +704,7 @@ Your soul's sacred trajectory. A metaphysical path, not a simple goal.
   - 
   - **Ritual Conflict:** Performing a ritual that *directly contradicts* your declared True Will worsens the margin result by one tier (e.g., a  "Solid Success" becomes a "Weak Success", a "Failed + Backlash" becomes  "Catastrophic Fumble"). This is in addition to the Void gain.
 
-**Discovering True Will:** (Unchanged from v1.1.0) Can happen through visions, extreme stress,  moments of clarity, fulfilling a deep need, or guidance from  mentors/entities. It should feel like a revelation. It often aligns with or conflicts with Factional dogma or Bond obligations, creating story  tension.
+**Discovering True Will:**  Can happen through visions, extreme stress,  moments of clarity, fulfilling a deep need, or guidance from  mentors/entities. It should feel like a revelation. It often aligns with or conflicts with Factional dogma or Bond obligations, creating story  tension.
 
 ## 9. Technology & Equipment
 
@@ -710,73 +721,135 @@ Aeonisk tech is ritually encoded, interacting with Will, Bond, Void, and Soulcre
 
 ### 9.2. Weapon Classes
 
-(Unchanged from v1.1.0)
+
 Bonded, Glyph-Encoded, Void-Infused (+1 Void on use), Spirit-Weave, Contractual.
 
-**Example Techno-Weapons:** (Unchanged from v1.1.0)
+**Example Techno-Weapons:** 
 Mnemonic Blade, Shrike Cannon, Ash Pulse Pike (+2 Void on crit), Compact Drone Halo, Debtbreaker Sidearm.
 
 ### 9.3. Aeonisk Currency System (Detailed)
 
-(Unchanged from v1.1.0)
 *“You don’t trade money. You transfer charged energy.”*
 
-**Core Principles:** Value stored/transferred elemental energy via talismans (Grain, Drip,  Spark, Breath, forbidden Hollow, potential Seed). Talismans hold units  of charge. Spending siphons energy. Empty talismans recharged or  sacrificed.
+---
 
-**The Six Currency Types:** (Meanings and Uses Unchanged)
-**Talisman Sizes & Capacity:** (Unchanged) Single, Band, Sigil, Core, Vault.
-**Hollows & Seeds:** (Unchanged) Hollows increase Void. Raw Seeds are untradeable potential and must be ritually attuned to an elemental aspect to become stable "Attuned Seeds" suitable for use in specific gear or as foundational talismans.
-**Soulcredit Interaction:** (Unchanged) Affects market access, ethical spending impacts SC.
-**Faction Preferences:** (Unchanged)
+#### Core Principles
+
+No abstract “coins” or “notes.” Every transaction moves elemental charge stored in **talismans**. Spending siphons energy **to** the recipient or ritual, not **from** the item itself. Empty talismans can be **recharged** at leylines or **sacrificed** in a ritual to permanently release their remaining potential.
+
+---
+
+#### The Six Currency Types
+
+| Talisman   | Element | Meaning                         | Common Uses                                                             |
+| ---------- | ------- | ------------------------------- | ----------------------------------------------------------------------- |
+| **Grain**  | Earth   | Stability, structure, grounding | Trade goods, housing, crafting, defensive wards                         |
+| **Drip**   | Water   | Emotion, secrecy, flow, healing | Safe passage, information brokering, healing rites                      |
+| **Spark**  | Fire    | Action, force, urgency, will    | Combat power, machinery, offense rituals                                |
+| **Breath** | Air     | Thought, communication, change  | Messaging services, performance rites, insight divination               |
+| **Hollow** | Void    | Corruption, erasure, nullity    | **Forbidden.** Black-market energy, dark Void rituals                   |
+| **Seed**   | None    | Raw potential, unaligned will   | **Untradeable.** Must be ritually attuned to become a standard talisman |
+
+---
+
+**GM Tip—Local Rates:** Typical markets peg 1 Spark ≈ 2–5 Drips per session; high-security hubs (e.g., Aeonisk Prime) slide it closer to 1 Spark = 3 Drips, while frontier bazaars might only honor 1 Spark = 2 Drips.  
+
+---
+
+#### Talisman Sizes & Capacity
+
+| Size       | Capacity Range | Physical Form              |
+| ---------- | -------------- | -------------------------- |
+| **Single** | 1 unit         | Coin-like shard or pebble  |
+| **Band**   | 10–99          | Ring, bracelet, simple bar |
+| **Sigil**  | 100–999        | Engraved medallion or disk |
+| **Core**   | 1,000–9,999    | Crystal orb or power cell  |
+| **Vault**  | 10,000+        | Sealed reliquary or device |
+
+---
+
+#### Hollows & Seeds
+
+* **Hollows:** When an **attuned Seed** degrades or is forcibly torn open, it becomes a Hollow Shard. Possession or use **raises your Void Score** (typically +1 per shard). Hollows are outlawed in Nexus jurisdictions and trafficked by Tempest syndicates; they may **corrupt** nearby talismans if stored together.
+* **Seeds:** Freshly harvested from leyline growths, Raw Seeds contain unshaped elemental potential. They **cannot** be traded or used until **attuned** via a ritual that includes a vow, a proper offering (often a smaller talisman sacrifice), and a consecration rite. **Failed attunements** risk producing a Hollow Echo—an unstable fragment that counts as both Seed and Hollow.
+
+---
+
+#### Quick Notes
+
+    No fixed “exchange rate”: All talismans trade energy → energy, but local markets set rates dynamically.
+
+    Attunement required: Only attuned Seeds (Spark, Drip, Grain, Breath) function as stable currency.
+
+    Raw vs Hollow: Raw Seeds must be attuned before use; unattended, they degrade into Hollows (black-market energy, high risk).
+
+    GM fiat: Feel free to reflavor or adjust relative scarcity per node or story beats—the toolkit above simply lets everyone speak the same “currency language.”
+
+#### Soulcredit Interaction
+
+High-value exchanges—access to elite markets, prestigious spell-forges, or faction-run infrastructure—often demand a **minimum Soulcredit** score. Equally, overtly exploitative trades (bribes, coercion of spirits) carry the risk of **Soulcredit loss**, as word of unethical dealings spreads through astral and social channels.
+
+---
 
 ## 10. Factions & Culture
 
-(Section remains conceptually unchanged from v1.1.0, pointing to Appendix 1)
-Power aligns with philosophy, not geography. See Appendix 1 for details on  Sovereign Nexus, ACG, Pantheon Security, Aether Dynamics, Arcane  Genetics, Tempest Industries, and the Freeborn/Unbound.
+Power aligns with philosophy, not geography.
+
+*(See Appendix 1 for full Faction details, including Tenets and Mechanical Notes)*
+
+- **Sovereign Nexus:** Theocratic matriarchy. Order, ritual, hierarchy. Regulates magick, cleanses Void.
+- **Astral Commerce Group (ACG):** Financial entity. Tracks/brokers Soulcredit, contracts, ritual debt. Law is literal.
+- **Pantheon Security:** Privatized tactical force. Loyalty, procedure. Militarized ritual, Void containment.
+- **Aether Dynamics:** Ecological-spiritual balance. Leylines, harmony, symbiosis. Fluid ritual, attuned tech.
+- **Arcane Genetics:** Biotech/ritual fusion. Evolution, coded spirituality. Fleshcrafting, programmable purity.
+- **Tempest Industries:** Subversive syndicate. Stolen tech, forbidden ritual, Void tools. Power through control.
+- **Freeborn / Unbound:** Outside faction structure. Rare, mistrusted/feared. Scarce Bonds, truth over power.
 
 ## 11. World Lore
 
-(Section remains conceptually unchanged from v1.1.0)
-Includes History Synopsis (Aeons of Osiris, Isis, Horus), Liturgical Calendar, Daily Life & Culture notes.
+### 11.1. History Synopsis
+
+Aeonisk's dominant species evolved from bonobo ancestors, retaining some emphasis on intimacy but developing complex, matriarchal societies. They  harnessed technology, underwent an Age of Enlightenment, and eventually  unified under the matriarch Aurora (~1500 years ago) who formed the **Sovereign Nexus** to ensure peace through centralized authority and technological/astral  advancement. Interstellar travel led to colonization (Arcadia, Elysium,  Nimbus). The Nexus maintains stability but faces whispers of dissent and hidden agendas.
+
+### 11.2. The Aeons
+
+Metaphysical currents shaping reality, not just time periods.
+
+- **Aeon of Osiris (First Sovereignty, ~6000-1200 BR):** Age of Towers. Defined Will through form, structure, pattern, naming.  Key Tech: Celestial harmonics, ritual metalwork, codified lineage.  Events: Treaty of Ten Provinces, Project of Names, Harmonium War. *Outsiders:* Siblings of the Black Horizon (embraced Void).
+- **Aeon of Isis (Aeon of Weaving, ~1200 BR - 0 BR):** Root Aeon. Focused on connection, continuity, intuition, remembrance.  Matriarchal, recursive. Law was sung. Key Tech: Fleshcrafting, astral  convergence, memory-weaving. Structure: Covenant Rings (Kinship, Dream,  Descent). Events: Rites of Recovery, Founding of Rings, Subduction Wars, Spiral Reconciliation.
+- **Aeon of Horus (Sovereign Aeon, 0 AR - Present ~683 AR):** Present Aeon. Awakening of individual sovereignty, codified  consequence, metaphysical economy (Soulcredit). Will as Law, Choice as  Sacrament, Debt as Reflection. Key Tech: Soulcredit economy, ritual AI  arbitration, biotech under oath, astral infrastructure. *Periods:* Early (Nexus rises, SC quantified), Middle (Fracture Cults, Ritual  Standardization Act, Eye of Breach AI), Late (Bond status key, Void  Accord Crisis, prophecy returns).
+
+### 11.3. Liturgical Calendar (Abbreviated)
+
+- **High Rites:** Equinoxes/Solstices (Breath, Flame, Grain, Drip) - Public rituals.
+- **Feasts of Passage:** Life (birth/naming), Fire (male puberty), Water (female puberty), Death.
+- **Civic Festivals:** Ledger Day (ACG), Bondlight (Nexus), Ash Resonance (Aether), Maskfire (Pantheon/Freeborn), Seedmoon (Wild).
+
+*(See Appendix 3 for full Calendar details).*
+
+### 11.4. Daily Life & Culture
+
+Life is stratified by Faction and Soulcredit. Ritual is part of  infrastructure (leyline regulators). Currency is tangible energy. Bonds  strain and mend. Void is a present danger. Celebrations range from  sanctioned Ritual Raves to underground Void Parties and domestic  Bond-Nights. Intoxicants are elemental and symbolic (Breathwine, Spark  Dust, Dripmist, Void Nectar). Kinship is ritualized, not just genetic.
+
 
 ## 12. GM Toolkit
 
 ### 12.1. Ritual Fallout and Void Intrusion
 
-**[REPLACES Void Tables from v1.1.0]**
-
-Instead of rolling on d6 tables, **Ritual Fallout** and **Void Intrusion** are now narrative effects triggered by specific conditions. GMs should  use these as tools to inject complications, consequences, and the  tangible effects of spiritual instability.
-
-**Triggers for Ritual Fallout / Void Intrusion:**
-
-- **Ritual Failure (Margin –5 or worse):** The consequence listed on the Margin Outcome table often *is* the Fallout (e.g., backlash, Bond strain, +Void). GMs can elaborate on  this narratively. For Catastrophic Fumbles (Margin -10 or worse), the GM should invoke a significant, story-altering Fallout event.
-- **Skipping Offering:** Besides the +1 Void and potential tier downgrade, the GM might  introduce a minor Fallout effect reflecting the imbalance (e.g.,  attracting minor negative entities, the ritual having a subtle, unwanted twist).
-- **Crossing Void Thresholds (especially ≥ 5) in a Dramatic Moment:** When a character's Void score increases to 5 or higher during a tense  scene (combat, negotiation, stealth), the GM can introduce an immediate  narrative effect reflecting the **Void Environmental Disruption** (see Section 7.1). This isn't necessarily a punishment, but a reflection of the character's state warping reality. Examples:
-  - (Void 5-6): Nearby lights flicker, whispers echo just out of hearing, a bonded item feels cold.
-  - (Void 7-8): A nearby Bonded ally feels a wave of doubt, crucial tech momentarily jams, leyline energy visibly distorts.
-  - (Void 9): A protective ward flares painfully against the character, their own shadow seems to lag or distort, passive sensory rituals give false  readings.
-- **Void Spike Triggered:** The stun effect is primary, but the GM can add narrative flavour –  disorientation, flashes of disturbing imagery, a moment of vulnerability to spiritual influence.
-- **GM Discretion based on Story Context:** High Void characters are walking sources of instability. In moments of  high stress, emotional turmoil, or when interacting with powerful  spiritual forces, the GM can introduce narrative intrusions reflecting  the character's corruption. Examples: tempting whispers from the Void,  brief hallucinations, objects reacting strangely to their presence,  allies feeling unnerved.
-
-**Focus on Narrative:** The goal is to make high Void *feel* dangerous and unstable, influencing the story and environment directly, rather than relying solely on random table results. The GM should  tailor the intrusion or fallout to the specific character, their current situation, and their Void score.
+Mechanics for both are fully resolved via the Margin Outcome Table in §6.1. For all narrative hooks and evocative description, refer to §6.2 “Ritual Outcome Consequences.”
 
 ### 12.2. Contract Hooks & Debt Encounters
-
-(Unchanged from v1.1.0)
 
 - **Hooks:** Lost Ledger, Echo Clause, Debt Transfer.
 - **Encounters:** The Auditor, The Bonebird, The Void Broker.
 
 ### 12.3. Bond Conflict Mechanics
 
-(Unchanged from v1.1.0)
-
 - **Triggers:** Acting against Bond, Void ≥ 7, secret sacrifice, ritual failure backlash.
 - **Resolution:** Prompt RP scene. Unresolved = Bond becomes Dormant.
 
 ### 12.4. Mission Generator (Roll 1d6 Twice)
 
-(Unchanged from v1.1.0)
 
 | d6   | Goal                                                         | d6   | Twist                                                     |
 | ---- | ------------------------------------------------------------ | ---- | --------------------------------------------------------- |
@@ -791,7 +864,7 @@ Instead of rolling on d6 tables, **Ritual Fallout** and **Void Intrusion** are n
 
 ## Appendix 1: Faction Details
 
-(Unchanged from v1.1.0)
+
 
 - **Sovereign Nexus:** (+1 Wil/Int). Indoctrinated (+2 vs ritual disruption). Govern via  ritual, hierarchy. Bonds registered. Magick regulated. Void = unclean.
 - **Astral Commerce Group (ACG):** (+1 Int/Emp). Contract-Bound (+1 SC or favor owed *to* PC). Debt is structure. SC is value. Contracts litigated. Void = risk/investment.
@@ -803,7 +876,7 @@ Instead of rolling on d6 tables, **Ritual Fallout** and **Void Intrusion** are n
 
 ## Appendix 2: Ritual Library & Card Template
 
-*(Contains the 12 rituals listed in Section 6.5)*
+*(Use the 12 rituals listed in Section 6.5 as a starting point to create your own)*
 
 **Ritual Card Template:**
 
