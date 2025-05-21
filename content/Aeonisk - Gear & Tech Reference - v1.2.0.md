@@ -192,3 +192,104 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 - **Bond Tokens (x5)** – Wooden vow markers. Meant to burn, bury, or gift.
 - **Mirror Words Deck** – Reflective affirmation cards that change per reader.
 - **Driftcharms** – Low-grade talismans for resonance-based attraction. Party wear.
+
+
+## Aeonisk Permissive Commercial License
+
+Aeonisk Permissive Commercial License (APCL) v1
+
+Plain-English clarity with legally operative language.  One printed page at normal margins.
+
+⸻
+
+1. Definitions
+
+“Licensor” – Three Rivers AI Nexus.
+“Aeonisk Material” – all copyrighted text, art, lore, and unique expressions published by the Licensor under the APCL.
+“Your Work” – any new product, tool, game, AI model, or publication you create that incorporates or adapts Aeonisk Material.
+“Mechanics” – underlying game rules and procedures (ideas, not expression).
+“Trademark” – the word-mark “AEONISK” and associated logos.
+
+⸻
+
+1. Grant of Rights
+
+The Licensor grants you a perpetual, worldwide, non-exclusive, royalty-free license to reproduce, adapt, distribute, publicly display, and perform Aeonisk Material in Your Work, subject to the terms below.
+
+⸻
+
+2. Attribution Requirement
+
+You must place the following notice in a reasonably visible location (e.g., credits page, read-me, or product listing):
+
+“This work is based on Aeonisk, created by Three Rivers AI Nexus.
+Used under the Aeonisk Permissive Commercial License (APCL).”
+
+You may add a URL after the statement.
+
+⸻
+
+3. Independence & Endorsement
+
+You may describe Your Work as “Compatible with Aeonisk.”
+You shall not state or imply that Your Work is official, licensed by, or endorsed by the Licensor unless you have a separate written agreement.
+
+⸻
+
+4. Trademark Use
+
+The Trademark remains the Licensor’s property. You may use it only:
+	•	(a) in the required attribution;
+	•	(b) to state compatibility (“Compatible with Aeonisk”); or
+	•	(c) in the official APCL badge (Sec. 5).
+You may not use “Aeonisk” in a company name, imprint, or product line title (e.g., “Aeonisk Studios”) without a custom license.
+
+⸻
+
+5. APCL Badge
+
+A “Built under the APCL” badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor’s site. Badge permission may be revoked for misuse or violation of this license.
+
+⸻
+
+6. Termination
+	•	Automatic termination – This license automatically ends if you materially breach it and fail to cure that breach within 30 days of written notice from the Licensor.
+	•	After termination you must cease new distribution of infringing copies, but you may sell off existing physical inventory already manufactured before termination.
+
+⸻
+
+7. Warranty Disclaimer & Limitation of Liability
+
+The Aeonisk Material is provided “AS IS, WITHOUT WARRANTY OF ANY KIND.”
+IN NO EVENT shall the Licensor be liable for any indirect, special, incidental, or consequential damages arising out of this license. Some jurisdictions do not allow such exclusions; if so, the minimum allowed by law applies.
+
+⸻
+
+8. Game Mechanics vs. Expression
+
+Nothing in this license restricts your independent use of un-copyrightable game mechanics or ideas. This license applies only to the expression of those mechanics found in Aeonisk Material (text, art, lore, stat blocks, etc.).
+
+⸻
+
+9. Interplay with YAGS GNU GPL v2
+
+The core YAGS rules engine is released under GNU GPL v2. Your use of YAGS content must follow the GPL in addition to—and not replaced by—this license.
+
+⸻
+
+10. Governing Law & Venue
+
+This license is governed by the laws of the Commonwealth of Pennsylvania, USA.
+Any dispute shall be brought exclusively in the state or federal courts located within Pennsylvania.
+
+⸻
+
+11. Custom Arrangements
+
+For large-scale video games, officially branded products, or joint ventures, contact the Licensor to negotiate a separate agreement.
+
+⸻
+
+Thank you for helping Aeonisk grow.
+
+— Three Rivers AI Nexus, Licensor

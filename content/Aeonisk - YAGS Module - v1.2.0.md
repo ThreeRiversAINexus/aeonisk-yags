@@ -859,3 +859,23 @@ ____________________________________________________________
 - **Void Spike:** A stun/daze condition triggered when 2+ Void is gained from a single  event. Causes loss of next turn (combat) or vulnerability (narrative).
 - **Raw Seed:** An unstable, unaligned Seed. Degrades in 7 cycles. Using a Raw Seed directly in gear or for potent effects without proper ritual attunement incurs +1 Void.
 - **Attuned Seed:** A Raw Seed that has undergone a ritual attunement process, aligning it to a specific elemental aspect (e.g., Spark, Drip, Breath, Grain). Elementally Attuned Seeds are stable and required for certain specialized gear and advanced talismans. The process of attunement transforms the Seed's nature from raw/unstable to elementally aligned/stable.
+
+## License
+
+Distributed under the GPL v2 as described by Samuel Penn, the creator of Yet Another Game System (YAGS).
+
+### Yet Another Game System
+
+By Samuel Penn (sam@glendale.org.uk)
+
+Aeonisk YAGS Module is free content: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 2.
+
+This content is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
