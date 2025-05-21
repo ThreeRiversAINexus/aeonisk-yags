@@ -105,9 +105,9 @@ Title: *How We Navigate the Stars: Will, Ritual, and Resonance*
 
 Excerpt:
 
-> Travel between core worlds is not a matter of propulsion. It is attunement. Ritual astronavigation requires alignment with the interplanetary ley grid, maintained through harmonics radiated from sanctified planetary nodes, often overseen by those of the Ossai Line.
+> Travel between core worlds is not a matter of propulsion. It is attunement. Ritual astronavigation, often requiring considerable skill in **Pilot**ing through treacherous ley-currents, demands alignment with the interplanetary ley grid. This grid is maintained through harmonics radiated from sanctified planetary nodes, often overseen by those of the Ossai Line.
 >
-> Not all ships may enter slipstream. Passage requires: — Resonance Aligner calibrated to pilot’s Soulcredit standing — Bonded ley-reader with Dream Ring training (often Nymir Line) — Astral lodestone (fossilized Seed fragment attuned to route)
+> Not all ships may enter slipstream. Passage requires: — Resonance Aligner calibrated to pilot’s Soulcredit standing — Bonded ley-reader with **Dream Ring** training (often Nymir Line, enabling Dreamwork rolls to navigate psychic hazards of the Veil) — Astral lodestone (a fossilized Seed fragment, itself carefully attuned to the intended route)
 
 Example Insert: Pilot’s Invocation – The Breath Cut
 
@@ -187,8 +187,8 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *   **What They Never Tell You:** The communion is being archived. Every. Single. Pulse. For analysis by Nexus regulators.
 
 **Tempest Industries - The Hollow Path (Unofficial/Subversive)**
-*   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, study of Siblings of the Black Horizon texts.
-*   **Deployment Style:** Void-runner, ritual hacker, Hollow Seed courier, echo saboteur.
+*   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, advanced **Drone Operation** for stealth and sabotage, study of Siblings of the Black Horizon texts.
+*   **Deployment Style:** Void-runner, ritual hacker, Hollow Seed courier, echo saboteur, drone swarm coordinator.
 *   **Hidden Curriculum:** Stability is stagnation. The only true state is the potential before the Bond.
 *   **Expulsion Cause:** Forming lasting, non-instrumental Bonds. Seeking Soulcredit validation. Refusing dissolution.
 *   **What They Never Tell You:** Even the Hollow has hierarchies. Freedom from the Codex means submission to something older and hungrier.
@@ -265,8 +265,9 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 | Type               | Description                                              | Effect on the World                                          |
 | ------------------ | -------------------------------------------------------- | ------------------------------------------------------------ |
 | **Soulcredit**     | Your public record of spiritual debt/credit; your echo   | Affects access, surveillance, legal standing, civic trust    |
-| **Talismans**      | Elemental markers (Spark, Drip, Seed, Breath)            | Power rituals, fuel resonant gear, carry social weight       |
-| **Hollow Seeds**   | Illicit energy from fractured Bonds or forbidden rituals | Fuel Voidtech, bypass Codex scrutiny, invite corruption      |
+| **Talismans**      | Elemental markers (Spark, Drip, Breath, Grain) derived from ritually **Attuned Seeds** or other sources. | Power rituals, fuel resonant gear, carry social weight.      |
+| **Raw Seeds**      | Unstable, unaligned potential. Degrade over cycles.      | Must be ritually attuned to an element before safe/effective use. Using Raw Seeds directly often incurs Void. |
+| **Hollow Seeds**   | Illicit energy from fractured Bonds or forbidden rituals; or Raw Seeds that have degraded. | Fuel Voidtech, bypass Codex scrutiny, invite corruption.      |
 | **Will Offerings** | Rare—unique acts of sacrifice or profound intent         | May sway the Codex's echo or leave a lasting mark on the Weave |
 
 **Excerpt: Marketplace Ritual Broker (Arcadia)**
@@ -275,7 +276,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Codex Advisory Note (Factional Memorandum)**
 
-> “Never accept talismans from unknown origins. If their hum feels wrong, dissonant, they may be Hollow. And if they’re Hollow, their touch can stain your Seed, leaving an echo you cannot easily erase.”
+> “Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly Attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual.”
 
 Sovereign Nexus Motto: *Law is Bond. The Void is Real. All Acts Count.*
 
