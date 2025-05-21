@@ -1,0 +1,1199 @@
+character_name: Tavros Eluun
+player_name: Patrik
+campaign: The Ledger Ascends
+game_master: GPT-Aeonisk
+creation_date: 2025-05-20
+experience_points_total: 0
+experience_points_spent: 0
+
+character_level_type: Skilled
+point_pool_priority:
+  primary: Experience
+  secondary: Attributes
+  tertiary: Advantages
+
+origin_faction: Freeborn (Bonded to Sovereign Nexus)
+tech_level_character: Aeonisk Standard
+
+primary_attributes:
+  strength: 3
+  health: 3
+  agility: 3
+  dexterity: 3
+  perception: 4
+  intelligence: 4
+  empathy: 3
+  willpower: 3
+
+secondary_attributes:
+  size: 5
+  soak_base: 12
+  move_base: 7 # Size 5 + Strength 3 + Agility 3 + 1
+
+status_tracks:
+  wounds:
+    current_level: OK
+    current_penalty: 0
+  stuns:
+    current_level: OK
+    current_penalty: 0
+  fatigue_exhaustion:
+    current_fatigue_level: OK
+    current_exhaustion_level: OK
+    current_penalty: 0
+
+talents:
+  awareness: 2
+  guile: 2
+  charm: 2
+  stealth: 2
+
+standard_skills:
+  debt_law: 3
+  corporate_influence: 2
+  intrigue: 2
+  administration: 2
+  pilot: 1
+  drive: 1
+
+astral_skills:
+  magick_theory: 2
+  attunement: 2
+
+languages:
+  native_language_name: "Nexus Trade Cant"
+  native_language_level: 4
+  other_languages:
+    - language_name: "Arcadian High Cant"
+      level: 2
+
+advantages:
+  - Bonded: Lady Sen Alvara (Formal Bond; grants +2 to rituals assisting her, +1 Soak when protecting her)
+
+soulcredit: +1
+current_void: 1
+
+techniques: []
+equipment:
+  - Echo-Calibrator
+  - Ritual ledger slate (encrypted)
+  - Contract tattoos (passive identifier)
+  - Breath Whisper Array (Contract-class sonic tool)
+
+notes: >
+  Tavros acts in silence and precision. He is not the public face of the operation —
+  that’s Lady Alvara. But he enforces deals, takes the spiritual risk, and gets his hands dirty so she doesn’t have to.
+otask_id: YAGS-AEONISK-101
+
+domain:
+  core: rule_application
+  subdomain: ritual_check_attunement
+
+scenario: >
+  Tavros Eluun attempts to attune a raw Spark Seed in the middle of a trade stall on Nimbus, under Codex surveillance. He uses a portable Echo-Calibrator and encrypted ritual slate to anchor the energies, performing the rite under time pressure to fulfill a deal on Lady Alvara’s behalf.
+
+environment: Nimbus Transit Ring — crowded market stall, Codex scanner approaching, spiritual interference from nearby rituals.
+
+stakes: >
+  Success attunes the Seed and secures the trade without Void gain. Failure risks instability, +1 Void, and possible spiritual backlash. A critical failure could rupture the Seed, mark Tavros for audit, or damage the Codex scanner.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {magick_theory: 2, attunement: 2, debt_law: 3, guile: 2, corporate_influence: 2}
+    soulcredit: 1
+    current_void: 1
+    equipment: ["Echo-Calibrator", "Ritual Ledger Slate"]
+
+goal: >
+  Attune a raw Spark Seed under pressure using a portable ritual setup, anchoring it to stable resonance before the Codex scanner sweeps the area.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Attunement
+  roll_formula: "Willpower 3 x Attunement 2 = 6; 6 + d20"
+  difficulty_guess: 20
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The Seed writhes, unstable. A spark lashes out — your slate cracks, the calibrator explodes in your hand, and a burst of astral energy knocks back the merchant. The Codex scanner halts, turns, and locks onto the flare.
+      mechanical_effect: >
+        Ritual fails catastrophically. Codex scanner initiates audit. +2 Void. Equipment damaged. Reputation strain with Lady Alvara.
+    failure:
+      narrative: >
+        The calibration wavers. The Seed partially attunes but begins to degrade — faint crack-lines glowing with wild Spark. The merchant snatches it reluctantly, muttering about breach clauses.
+      mechanical_effect: >
+        Ritual incomplete. Spark Seed becomes unstable (1d3 cycles to degrade). +1 Void. Minor trust loss with contact.
+    moderate_success:
+      narrative: >
+        With tight focus, Tavros completes the attunement just as the scanner passes. The Seed stabilizes — glowing a steady orange. The merchant nods once, impressed if still wary.
+      mechanical_effect: >
+        Ritual succeeds. Spark Seed stable. Trade secured. No Void gained.
+    good_success:
+      narrative: >
+        The rite hums with precision. The Seed not only stabilizes but harmonizes slightly with Tavros’s will. He hands it off smoothly — Codex scanner never stops.
+      mechanical_effect: >
+        Ritual succeeds with precision. +1 bonus to next trade negotiation. No Void. Merchant relation improved.
+    excellent_success:
+      narrative: >
+        The Seed crystallizes perfectly. The merchant whispers, “You bound that better than the Ossai do.” A nearby trader takes interest — a new client, perhaps?
+      mechanical_effect: >
+        Ritual succeeds brilliantly. Gains minor reputation boost. No Void. Opens path for follow-up contract.
+    exceptional_success:
+      narrative: >
+        The resonance sings — the Seed pulses with Spark so pure it echoes through the market stall. The Codex scanner passes without registering anything at all. The merchant stares in awe. You are, unmistakably, her agent.
+      mechanical_effect: >
+        Ritual critically succeeds. Spark Seed attuned flawlessly. +1 Soulcredit. +2 bonus to any future deal this cycle. Codex scanner ignores you.
+
+rationale: >
+  The act of attuning a Seed on the fly is highly risky but not impossible. Willpower × Attunement is standard. The Echo-Calibrator provides narrative justification for attempting it outside a ritual altar, but the DC remains 20 due to stress, surveillance, and instability risk.
+task_id: YAGS-AEONISK-102
+
+domain:
+  core: rule_application
+  subdomain: skill_check_debt_law
+
+scenario: >
+  Tavros seizes an opportunity with a Fractal Praxis courier attempting to offload dream-spliced biotech. Instead of accepting the gray trade as offered, Tavros escalates it: proposing a falsified transit Bond and salvage tagging the Seed through sovereign channels. He leverages his clean Soulcredit to demand a double share and spiritual immunity.
+
+environment: Nimbus Bazaar edge-ring; Codex scanner just passed; other traders nearby, some listening in.
+
+stakes: >
+  Success secures Tavros both a share of profit and a relic-grade Living Seed under spiritual cover. Failure exposes him to Codex suspicion, damages Bond reputation with Alvara, or gains +1 Void. A critical failure may bind Tavros to the trade spiritually without his consent.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {debt_law: 3, corporate_influence: 2, intrigue: 2, guile: 2}
+    soulcredit: 1
+    current_void: 1
+
+goal: >
+  Use Debt Law knowledge to reframe a gray-market trade as a spiritually legal salvage operation, pushing for a greater cut and ritual shielding via transit Bond.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Debt Law
+  roll_formula: "Intelligence 4 x Debt Law 3 = 12; 12 + d20"
+  difficulty_guess: 22
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Tavros overreaches — the courier recoils, citing internal logs. A hidden Codex snare triggers nearby. The transaction flags as falsified. Alvara’s name surfaces by association.
+      mechanical_effect: >
+        +2 Void. Possible Bond strain. Trade fails. Tavros flagged for Codex review.
+    failure:
+      narrative: >
+        The courier looks uncertain and says they’ll "check with higher-ups." The deal stalls. Tavros senses he’s been marked as uncooperative. Opportunity slips.
+      mechanical_effect: >
+        Trade offer withdrawn. No gain. -1 Trust with Fractal Praxis.
+    moderate_success:
+      narrative: >
+        After a tense pause, the courier nods. “Two cuts it is. We’ll run it through the salvage clause. You file it. If anything wakes... it’s on you.” The deal holds.
+      mechanical_effect: >
+        Trade succeeds. One Living Seed acquired. Profit secured. +1 Void optional on later use.
+    good_success:
+      narrative: >
+        “Smart. Too smart.” The courier grins — impressed. “I’ll log it with internal audit as an independent salvage ritual. Codex won’t blink.” You now have two future contacts watching.
+      mechanical_effect: >
+        Trade succeeds. Living Seed cleanly registered. Reputation increase. Future gray trade options unlocked.
+    excellent_success:
+      narrative: >
+        Tavros’s maneuver draws quiet awe from a passing Choir scribe. The courier not only agrees — he offers a third deal for another Seed drop later. “Alvara really trained you?”
+      mechanical_effect: >
+        Trade succeeds cleanly. +1 Soulcredit. Access to classified Seed channel.
+    exceptional_success:
+      narrative: >
+        The courier bows low. “We’ll remember this. The Salvage Bond’s yours — take first pick. No Codex trace, no spiritual mark.” A low-ranking observer files the ritual silently in your favor.
+      mechanical_effect: >
+        Deal perfect. You gain a pristine Living Seed (any element), +1 Soulcredit, and a ritual favor from Fractal Praxis. Codex unaware.
+
+rationale: >
+  Framing a gray-market deal through Debt Law and Sovereign Bond clauses is clever and legally delicate. Intelligence × Debt Law is ideal here. DC 22 reflects the high-risk negotiation in a gray legal zone, without overt ritual backing.
+task_id: YAGS-AEONISK-103
+
+domain:
+  core: rule_application
+  subdomain: skill_check_corporate_influence
+
+scenario: >
+  Having secured the Living Seed and a Fractal Praxis contact, Tavros ascends to Lady Sen Alvara’s orbiting chamber for a fully transparent debrief. He must present the gray-market deal, justify the risks taken, and preserve her trust.
+
+environment: Sovereign Nexus ritual chamber—high orbit, polished sanctum, other advisors nearby listening in.
+
+stakes: >
+  Success maintains Tavros’s Bond (+2 to future rituals) and expands Alvara’s network. Failure strains the Bond, risks loss of Soulcredit, and could see Tavros reassigned or sanctioned by the Nexus.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {corporate_influence: 2, debt_law: 3, empathy: 3, intrigue: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}  # Bond mechanics 
+    soulcredit: 2
+    current_void: 1
+
+goal: >
+  Use Corporate Influence (backed by genuine transparency) to frame the gray-market Living Seed deal as a strategic asset acquisition, reinforcing Alvara’s confidence and expanding her influence.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Empathy
+  skill_used: Corporate Influence
+  roll_formula: "Empathy 3 x Corporate Influence 2 = 6; 6 + d20"
+  difficulty_guess: 18
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Alvara’s eyes harden. “You risked more than your Soulcredit,” she snaps. Her advisors murmur. Tavros feels the Bond crack.
+      mechanical_effect: >
+        −2 Soulcredit. Bond strained (ritual penalties apply). Tavros reassigned to menial duties.
+    failure:
+      narrative: >
+        She nods curtly but offers no praise. “Next time, inform me first.” The chamber grows cold.
+      mechanical_effect: >
+        −1 Soulcredit. Ritual bonus withheld. No loss of position, but trust diminished.
+    moderate_success:
+      narrative: >
+        Alvara leans back. “Bold, but effective. The Fractal channel could serve us well.” She allows it, though with caution.
+      mechanical_effect: >
+        +0 Soulcredit change. Bond intact. Access to Fractal Praxis channel granted.
+    good_success:
+      narrative: >
+        A small smile appears. “Your discretion and initiative honor our Bond. Prepare the formal salvage bonds; we’ll leverage this across the Spiral Strand.” Applause from advisors.
+      mechanical_effect: >
+        +1 Soulcredit. Bond strengthened (+1 to next ritual). New trade line unlocked.
+    excellent_success:
+      narrative: >
+        “Impressive,” Alvara says, voice warm. “You not only secured a Living Seed, you elevated our standing.” She gestures, and two scribes begin drafting high-level directives in Tavros’s name.
+      mechanical_effect: >
+        +2 Soulcredit. +2 bonus on next corporate_influence roll. Formal charter to operate as her envoy.
+    exceptional_success:
+      narrative: >
+        The entire chamber rises in unified approval. Alvara embraces Tavros. “You are my blade and shield. From now on, this is your domain.” A new envoy title is conferred instantly.
+      mechanical_effect: >
+        +3 Soulcredit. Bond ritual automatically refreshed. Tavros gains an official Nexus envoy status (new narrative resources).
+rationale: >
+  Corporate Influence backed by genuine Empathy best reflects transparent debriefing. DC 18 captures the weight of high-orbit scrutiny and advisor presence.
+task_id: YAGS-AEONISK-104
+
+domain:
+  core: rule_application
+  subdomain: skill_check_administration
+
+scenario: >
+  Tavros must draft a seamless Nexus‐sanctioned transit manifest for the secondary shipment, embedding the salvage bond details and coding out any gray‐market flags before the dawn departure.
+
+environment: Lady Alvara’s orbiting sanctum, polished data‐scribe terminals, Nexus auditing protocols on standby.
+
+stakes: >
+  Success produces a manifest that passes first‐pass Nexus approval and conceals the Fractal Praxis link. Failure results in manifest rejection, triggering a Codex audit and delaying the entire operation. Critical failure could flag Alvara’s office.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {administration: 2, debt_law: 3, corporate_influence: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+
+goal: >
+  Craft a polished transit manifest that embeds the salvage bond under Sovereign Nexus protocols without raising any audit flags.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Administration
+  roll_formula: "Intelligence 4 x Administration 2 = 8; 8 + d20"
+  difficulty_guess: 18
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Lines overlap and codes conflict. An auditor’s alert icon flares. The manifest is rejected, and the chamber doors lock down for inspection.
+      mechanical_effect: >
+        +2 Void. Manifest delayed. Codex audit initiated. Departure postponed.
+    failure:
+      narrative: >
+        A minor formatting error is caught—“Transit Source” and “Salvage Clause” entries mismatch. The scribe requests clarification.
+      mechanical_effect: >
+        No manifest approval. Minor delay. −1 Soulcredit for unprofessionalism.
+    moderate_success:
+      narrative: >
+        The manifest passes with a standard “Approved” stamp. The salvage bond is embedded cleanly—no mention of Fractal Praxis.
+      mechanical_effect: >
+        Manifest approved. Operation on schedule.
+    good_success:
+      narrative: >
+        A Nexus auditor adds a quiet note praising clarity. “Well‐coded clauses.” Tavros earns a minor efficiency bonus.
+      mechanical_effect: >
+        Manifest approved. +1 bonus to next administrative task.
+    excellent_success:
+      narrative: >
+        The auditor forwards the manifest—unasked—to the Codex safety archive as a model. Tavros’s codename is logged in commendations.
+      mechanical_effect: >
+        Manifest approved with commendation. +1 Soulcredit. Future admin rolls at −1 DC.
+    exceptional_success:
+      narrative: >
+        The manifest is automatically ingested into Nexus core logs as an exemplar. A senior scribe sends Tavros a personal note of thanks and a secret access token.
+      mechanical_effect: >
+        Manifest approved brilliantly. +2 Soulcredit. Grants one‐time “scribe’s discretion” override for a minor Nexus procedure.
+
+rationale: >
+  Drafting a seamless transit manifest under audit-level scrutiny relies on Intelligence × Administration. DC 18 reflects strict Nexus protocols and the need to conceal gray‐market ties.
+task_id: YAGS-AEONISK-105
+
+domain:
+  core: rule_application
+  subdomain: skill_check_investigation
+
+scenario: >
+  With the manifest sealed, Tavros turns to the Nexus Spiral Strand boarding logs—titanic data streams of passage records—to spot any pirate or Codex leak indicators that might compromise the shipment.
+
+environment: Nexus data archive terminal, deep‐wire intrusion detection active, logs streaming in real time.
+
+stakes: >
+  Success uncovers potential pirate tags or audit probes, allowing Tavros to reroute the shipment proactively. Failure misses a critical flag, risking interception or spiritual trace.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {awareness: 2, intrigue: 2, administration: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+
+goal: >
+  Scan and analyze real‐time boarding logs to detect any pirate activity markers or Codex audit pings tied to the upcoming shipment.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Perception
+  skill_used: Awareness
+  roll_formula: "Perception 4 x Awareness 2 = 8; 8 + d20"
+  difficulty_guess: 20
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Tavros overlooks a hidden tag. A red alert icon flashes belatedly—pirate raid already in motion on the expected vector.
+      mechanical_effect: >
+        +2 Void. Shipment routed into pirate ambush. Major delay.
+    failure:
+      narrative: >
+        The data noise drowns out subtle markers. Logs appear clear, but Tavros senses something’s off.
+      mechanical_effect: >
+        No warning. Partial delay as extra checks are ordered.
+    moderate_success:
+      narrative: >
+        Tavros spots irregular docking signatures on a mid‐route station. He notes them quietly—enough time to file a reroute.
+      mechanical_effect: >
+        Early warning. Shipment rerouted. No Void.
+    good_success:
+      narrative: >
+        He decodes an encoded pirate call‐sign—“Red Hollow”—and flags it. The reroute bypasses known pirate lanes.
+      mechanical_effect: >
+        Shipment rerouted efficiently. +1 bonus to convoy security.
+    excellent_success:
+      narrative: >
+        Tavros intercepts a Codex audit probe targeted at the shipment’s salvage tag. He encrypts a counter‐ping, masking their trail.
+      mechanical_effect: >
+        Code concealed. +1 Soulcredit. Zero audit risk.
+    exceptional_success:
+      narrative: >
+        With uncanny precision, Tavros not only spots threats but preemptively patches routing protocols. The logs self‐cleanse his involvement.
+      mechanical_effect: >
+        Shipment secured. +2 Soulcredit. Future data‐forensics rolls at −2 DC.
+
+rationale: >
+  Deep log analysis to catch subtle markers is best represented by Perception × Awareness. DC 20 reflects high data volume and intrusion detection safeguards.
+task_id: YAGS-AEONISK-106
+
+domain:
+  core: rule_application
+  subdomain: ritual_check_protection
+
+scenario: >
+  Tavros travels to the Arcadia Ceremonial Node and collaborates with bonded Ossai ritualists to cast the Shield of the Veiled Path around the shipment’s crates. He lays down a few drips’ worth of rare Ossai incense as the sacrificial offering to anchor the ward.
+
+environment: Arcadian ritual enclave — ley-synced sanctum, ambient ritual energy, chanting Ossai artisans in concentric formation.
+
+stakes: >
+  Success imbues the shipment with a durable ritual shield (–2 to any Void or audit checks en route). Failure risks a weak ward that fades mid-route (+1 Void upon collapse). A critical failure could backfire, spilling Void energy into the cargo.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {attunement: 2, magick_theory: 2, debt_law: 3}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+    equipment: ["Echo-Calibrator", "Seed Ledger Slate", "Ossai Incense (3 drips)"]
+
+goal: >
+  Perform a protective ritual (Shield of the Veiled Path) with Ossai ritualists, anchoring the shipment against spiritual and audit incursions using Ossai incense as the offering.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Attunement
+  roll_formula: "Willpower 3 x Attunement 2 = 6; 6 + d20"
+  difficulty_guess: 18
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The incense flares wildly then collapses in a void-touched burst. Shockwaves of unstable energy pulse through the crates; the ritualists recoil.
+      mechanical_effect: >
+        Ritual fails catastrophically. +2 Void. Shipment unusable until re-ritualized. Ossai bond weakened.
+    failure:
+      narrative: >
+        The ward flickers as the incense smoke thins too quickly. Tavros senses the shield will collapse before reaching the Spiral Strand.
+      mechanical_effect: >
+        Ward weak: +1 Void when it collapses. No audit protection.
+    moderate_success:
+      narrative: >
+        The incense smoke weaves into glowing sigils. A steady shimmer holds around the crates as Ossai artisans murmur approval.
+      mechanical_effect: >
+        Shield in place. –2 to Void/audit checks for one transit leg.
+    good_success:
+      narrative: >
+        The ward’s glow intensifies, sustained by the incense’s long-burning embers. Ritualists nod, impressed by Tavros’s offering.
+      mechanical_effect: >
+        Shield in place. –2 to Void/audit checks for two legs. +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        The incense aroma lingers in harmonic resonance with the ley currents. Nearby Codex scanners register no anomaly as the shield holds.
+      mechanical_effect: >
+        Shield immune to one Void event. +1 Soulcredit. Future attunement DC –1.
+    exceptional_success:
+      narrative: >
+        The ward radiates a faint protective aura on Tavros himself. He feels Ossai blessings still pulsing in his veins.
+      mechanical_effect: >
+        Permanent shield for this shipment. +2 Soulcredit. Bond ritual refreshed (no cost).
+
+rationale: >
+  A durable protective ward requires both ritual focus and a sacrificial offering. Int × Attunement is standard; Ossai incense (3 drips) anchors the ward, preventing the +1 Void penalty for skipped offerings. DC 18 reflects the enclave’s high-standards and complexity.
+task_id: YAGS-AEONISK-107
+
+domain:
+  core: rule_application
+  subdomain: skill_check_corporate_influence
+
+scenario: >
+  Tavros must secure a reliable convoy escort for the ritual-shielded shipment. He approaches the Nimbus Pilot Guild’s liaison, leveraging Lady Alvara’s reputation and his own standing to assemble a small flotilla of bonded courier vessels.
+
+environment: Nimbus Docking Bay Gamma — crowded hangar, guild liaison booth, pilot manifests scrolling on holos.
+
+stakes: >
+  Success guarantees armed escort ships with Ossai-bonded pilots, reducing piracy risk. Failure forces Tavros to depart with minimal protection (+2 to pirate ambush DC). A critical failure could see the liaison refuse service and report the gray-market ties to the Codex.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {corporate_influence: 2, debt_law: 3, pilot: 1, administration: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+
+goal: >
+  Use Corporate Influence to negotiate and secure an armed convoy escort—three Ossai-bonded courier ships—to safeguard the shipment through known pirate lanes.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Corporate Influence
+  roll_formula: "Intelligence 4 x Corporate Influence 2 = 8; 8 + d20"
+  difficulty_guess: 20
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Tavros overplays Alvara’s reputation. The liaison smirks and withdraws the offer—“Try the back-alley brokers.” No escort, and word of your request leaks.
+      mechanical_effect: >
+        +2 Void. Convoy departs unprotected. Liaison refuses future aid.
+    failure:
+      narrative: >
+        The liaison stalls—“Rates too high, and your route’s risky.” You secure only one small escort launch at a steep premium.
+      mechanical_effect: >
+        One escort ship hired. +1 supply cost. Escort quality reduced.
+    moderate_success:
+      narrative: >
+        Tavros negotiates a fair deal: two Ossai-bonded couriers stand by at departure. The liaison nods—“We’ll cover you through the Spiral Strand leg.”
+      mechanical_effect: >
+        Two escort ships hired. Standard escort bonus (−2 to pirate ambush DC).
+    good_success:
+      narrative: >
+        The liaison smiles as he signs the contract: three bonded ships, full armament, and a standby pilot on call. “Good luck. You’ll need it.”
+      mechanical_effect: >
+        Three escort ships hired. Superior escort bonus (−4 to pirate ambush DC). +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        Tavros not only secures the convoy but arranges for an Ossai-bonded frigate to shadow at no extra cost. “Consider it on Alvara’s tab,” the liaison says.
+      mechanical_effect: >
+        Three ships + frigate escort. Exceptional protection (−6 to pirate ambush DC). +1 Soulcredit. Future corporate_influence DC −1.
+    exceptional_success:
+      narrative: >
+        The liaison rises and bows: “By Alvara’s grace, this convoy sails as her honor guard.” Tavros departs with five escort vessels, and whispers of his prowess echo through the guild.
+      mechanical_effect: >
+        Five escort vessels hired. Ultimate protection (ambush impossible). +2 Soulcredit. Convoy travel speed +1 segment.
+
+rationale: >
+  Negotiating convoy protection relies on Intelligence × Corporate Influence. DC 20 reflects premium Ossai-bonded pilots and known pirate threats in the Spiral Strand.
+task_id: YAGS-AEONISK-108
+
+domain:
+  core: rule_application
+  subdomain: pilot_check
+
+scenario: >
+  Tavros collaborates with Ossai pilot Maren Tal on the lead courier’s nav-plotter, plotting an optimal course through the Spiral Strand that avoids known pirate concentrations and minimizes Codex audit waypoints.
+
+environment: Courier bridge — holo-nav arrays, ley-grid overlays, pilot comms channel open.
+
+stakes: >
+  Success yields the fastest, safest passage with –2 to pirate ambush and audit DCs. Failure risks a suboptimal route, increasing travel time and exposure. A critical failure could steer the convoy into a dangerous pirate blockade.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {pilot: 1, awareness: 2, intrigue: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+
+goal: >
+  Use Awareness to identify safe corridors and Pilot knowledge to refine the final flight plan through the Spiral Strand.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Perception
+  skill_used: Awareness
+  roll_formula: "Perception 4 x Awareness 2 = 8; 8 + d20"
+  difficulty_guess: 20
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        You misread a segment of the ley-grid data—your suggested vector intersects a pirate listening post. Maren’s eyes widen as warning horns blare.
+      mechanical_effect: >
+        +2 Void. Ambush DC +4. Convoy forced to engage.
+    failure:
+      narrative: >
+        Some data nodes are corrupted by interference. Your route skirts safe lanes but adds a full cycle of travel time.
+      mechanical_effect: >
+        Travel time +1 cycle. Ambush DC +2.
+    moderate_success:
+      narrative: >
+        You plot a clean path avoiding the worst pirate routes but leaving a minor audit node in play. Maren nods, “Solid work.”
+      mechanical_effect: >
+        Ambush DC –2. Audit DC unchanged.
+    good_success:
+      narrative: >
+        Your calculations slip in a stealth lane, and the path completely bypasses both pirate concentrations and audit beacons. Maren grins.
+      mechanical_effect: >
+        Ambush DC –4; Audit DC –2.
+    excellent_success:
+      narrative: >
+        The final vector cuts through a hidden ley-rift corridor—fast, silent, and unseen. Maren punches in the waypoints with reverence.
+      mechanical_effect: >
+        Ambush DC –6; Audit DC –4; Travel time –1 cycle.
+    exceptional_success:
+      narrative: >
+        Your plotted route harmonizes with the Codex’s own flow—no audit pings, no pirate bounties, and the voyage feels effortless. Maren salutes you.
+      mechanical_effect: >
+        Ambush impossible; Audit impossible; Travel time –2 cycles.
+
+rationale: >
+  Charting a safe Spiral Strand vector relies primarily on Perception × Awareness to read ley-grid data. DC 20 reflects complex pirate networks and Codex surveillance in the Strand.
+task_id: YAGS-AEONISK-109
+
+domain:
+  core: rule_application
+  subdomain: skill_check_stealth
+
+scenario: >
+  Mid-route through the Spiral Strand, Tavros outfits the convoy for low-profile movement. He instructs the Ossai pilots on silent-flight protocols, reroutes their transponders through pri­vate channels, and primes stealth talismans beneath each hull plating to mask them from pirate scanners and Codex audit sweeps.
+
+environment: Courier interior and docking bay hangars converting to stealth config—dim red lighting, hushed engine vents, runic talismans being affixed.
+
+stakes: >
+  Success grants the convoy a +2 bonus to avoid detection by pirates or Codex probes. Failure leaves them vulnerable to surprise interdiction (+2 to ambush/audit DC). A critical failure could trigger their stealth measures to self-reveal.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {stealth: 2, guile: 2, awareness: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+    equipment: ["Stealth Talismans (3)", "Encrypted Transponder Module"]
+
+goal: >
+  Use Stealth expertise and Guile to configure the convoy’s vessels to slip past pirate scans and Codex audit pings without leaving a trace.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Agility
+  skill_used: Stealth
+  roll_formula: "Agility 3 x Stealth 2 = 6; 6 + d20"
+  difficulty_guess: 20
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        As the talismans activate, a feedback shriek echoes through the hull plating. Lights flare. Automated scanners latch on.
+      mechanical_effect: >
+        +2 Void. Ambush/Audit DC +4. Stealth systems offline.
+    failure:
+      narrative: >
+        A minor glitch in the transponder reroute causes an irregular ping. The convoy skirts detection but won’t slip entirely past.
+      mechanical_effect: >
+        Ambush/Audit DC +0 (no bonus). Minor delay as systems reboot.
+    moderate_success:
+      narrative: >
+        The stealth talismans hum softly and the transponder mask holds. Pilots report flat-lined sensor readings as they slip past the first scan node.
+      mechanical_effect: >
+        Ambush/Audit DC –2. 
+    good_success:
+      narrative: >
+        “We’re ghosts,” Maren reports. No signals, no pings—just silent passage through pirate patrol grids and Codex beacons alike.
+      mechanical_effect: >
+        Ambush/Audit DC –4. +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        Even stray Codex probes register static. The convoy moves like a phantom wing through the Strand’s heart.
+      mechanical_effect: >
+        Ambush/Audit impossible for one leg. +1 Soulcredit. Future stealth DC –1.
+    exceptional_success:
+      narrative: >
+        The convoy’s signature is not only masked but rerouted as a different convoy entirely. Any pursuing scanners lock onto a decoy trace.
+      mechanical_effect: >
+        Ambush/Audit impossible for entire voyage. +2 Soulcredit. Guile and Stealth rolls at –2 DC next engagement.
+
+rationale: >
+  Preparatory measures for covert convoy movement hinge on Agility × Stealth to properly calibrate talismans and reconfigure transponders. DC 20 reflects the need to outwit both pirate and Codex sensor arrays.
+task_id: YAGS-AEONISK-110
+
+domain:
+  core: rule_application
+  subdomain: skill_check_administration
+
+scenario: >
+  As the convoy approaches Arcadia, Tavros composes an arrival briefing for the Ceremonial Node reception team. He must include shipment manifest details, shield parameters, escort identifiers, and docking protocols—framing everything under Sovereign Nexus approval to ensure a smooth handoff.
+
+environment: Courier bridge and comms channel en route to Arcadia; holo‐scribes and reception terminals awaiting the briefing.
+
+stakes: >
+  Success ensures the reception team is fully prepared, minimizing unloading time and avoiding audit delays. Failure leads to confusion, unloading errors, or unexpected Codex checks. A critical failure could trigger a quarantine hold.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {administration: 2, empathy: 3, corporate_influence: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+    equipment: ["Encrypted Transponder Module", "Stealth Talismans"]
+
+goal: >
+  Draft and transmit a clear, comprehensive arrival briefing to Arcadia reception, aligning Nexus protocols with escort details and protective ward parameters.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Administration
+  roll_formula: "Intelligence 4 x Administration 2 = 8; 8 + d20"
+  difficulty_guess: 18
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The briefing text jumbles manifest codes and omits shield credentials. The reception team flags the shipment for secondary review and quarantine.
+      mechanical_effect: >
+        +2 Void. Unloading delayed by 2 cycles. Quarantine inspection initiated.
+    failure:
+      narrative: >
+        A formatting glitch omits escort call‐signs. Reception holds the convoy briefly while they verify identities.
+      mechanical_effect: >
+        −1 Soulcredit. Unloading delayed by 1 cycle. Minor reputation hit.
+    moderate_success:
+      narrative: >
+        The briefing transmits cleanly. Reception acknowledges the shield protocols and escorts your convoy to the unload bay without issue.
+      mechanical_effect: >
+        Unloading proceeds on schedule. No Void.
+    good_success:
+      narrative: >
+        A reception officer adds, “Excellent detail. We’ll have shuttle teams ready.” They expedite the process.
+      mechanical_effect: >
+        Unloading time reduced by 1 cycle. +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        The briefing doubles as a model dispatch for other nodes; reception logs it as “exemplary.” You receive a commendation holo.
+      mechanical_effect: >
+        Unloading time reduced by 2 cycles. +1 Soulcredit. Future admin DC −1.
+    exceptional_success:
+      narrative: >
+        The reception crew pre‐unloads the shipment before you even land; the entire operation feels orchestrated. They invite you to their planning chamber.
+      mechanical_effect: >
+        Instant unloading on arrival. +2 Soulcredit. Access to Arcadia reception network for future operations.
+
+rationale: >
+  Drafting a precise and Nexus‐compliant arrival briefing relies on Intelligence × Administration. DC 18 reflects the need to coordinate multiple technical and ceremonial details under time pressure.
+task_id: YAGS-AEONISK-111
+
+domain:
+  core: rule_application
+  subdomain: skill_check_debt_law
+
+scenario: >
+  Upon docking at Arcadia’s Ceremonial Node, Tavros meets with the Sanctum Curator to arrange secure storage and magickal processing for the Living Seed. He must draft a binding micro‐contract outlining climate controls, ritual cycle schedules, and Custodial Bond responsibilities, while leveraging Magick Theory to ensure the facility meets attunement specifications.
+
+environment: Arcadia Ceremonial Node storage wing—vault doors, climate‐regulation runes, ritual workstations lined against polished walls.
+
+stakes: >
+  Success locks in a protected enclave with Ossai‐bonded custodians and scheduled processing rites. Failure leaves the Seed in a generic hold (risking instability +1 Void) or forces Tavros to personally supervise. A critical failure could see the Seed quarantined or confiscated.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {debt_law: 3, magick_theory: 2, administration: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+    equipment: ["Seed Ledger Slate", "Ossai Incense"]
+
+goal: >
+  Use Debt Law expertise to negotiate and formalize a micro‐contract with the Sanctum Curator that guarantees climate‐stabilized vault storage, periodic attunement rites (Magick Theory compliance), and Custodial Bond obligations.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Debt Law
+  roll_formula: "Intelligence 4 x Debt Law 3 = 12; 12 + d20"
+  difficulty_guess: 22
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The curator balks at the clauses—“This reads like litigation bait.” They refuse to sign, and the Seed is placed under generic quarantine.
+      mechanical_effect: >
+        +2 Void. Seed quarantined. No processing scheduled. Tavros must remain onsite until resolved.
+    failure:
+      narrative: >
+        The curator agrees reluctantly but omits the scheduled attunement cycle. Processing will occur only on standard rotation.
+      mechanical_effect: >
+        Seed stored in standard vault (+1 Void risk on processing). No attunement guarantee.
+    moderate_success:
+      narrative: >
+        The curator nods at the micro‐contract. “Climatics and guardian rites as requested. We begin processing at cycle’s turn.” He countersigns with a formal Bond marker.
+      mechanical_effect: >
+        Secure enclave granted. Processing scheduled. No Void.
+    good_success:
+      narrative: >
+        “Your terms are fair—and precise,” the curator says, adding a clause for emergency attunement override. “We’ll report to you directly.” He seals the contract with a ritual flourish.
+      mechanical_effect: >
+        Enclave secured with emergency override clause. +1 Soulcredit. Attunement DC –1 for processing rites.
+    excellent_success:
+      narrative: >
+        The curator uses your draft as a template across other vaults, praising your clarity. He personally oversees the first ritual calibration tomorrow.
+      mechanical_effect: >
+        Guaranteed Ossai‐led processing. +1 Soulcredit. Future debt_law DC –1 in Arcadia.
+    exceptional_success:
+      narrative: >
+        The Sanctum Curator bestows a Custodial Bond upon you, making you honorary custodian. “The Seed rests under your oath,” he declares, and the vault doors glow gently.
+      mechanical_effect: >
+        Custodial Bond granted (+2 to processing rituals). +2 Soulcredit. Seed now under Tavros’s personal care.
+
+rationale: >
+  Negotiating a micro‐contract with legal and magickal stipulations relies on Intelligence × Debt Law. DC 22 reflects high‐security protocols and the need to integrate Magick Theory requirements into the contractual clauses.
+task_id: YAGS-AEONISK-113
+
+domain:
+  core: rule_application
+  subdomain: skill_check_corporate_influence
+
+scenario: >
+  Fresh from closing the Fractal Praxis loop, Tavros returns to Lady Alvara’s orbiting sanctum to deliver his final report on the Living Seed operation—and, with respectful tact, to request a brief downtime ritual to recover before the next assignment.
+
+environment: Lady Alvara’s chamber—soft lighting, ritual censer smoldering, Alvara awaiting behind her obsidian console.
+
+stakes: >
+  Success maintains Tavros’s sterling reputation, secures her approval for a restorative ritual (avoiding burnout), and reinforces their Bond. Failure yields a curt dismissal, loss of Soulcredit, and no formal rest granted—Tavros must soldier on.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {corporate_influence: 2, empathy: 3}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+
+goal: >
+  Use Empathy-backed Corporate Influence to convey the success of the mission and gently negotiate for a brief downtime ritual under Alvara’s patronage.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Empathy
+  skill_used: Corporate Influence
+  roll_formula: "Empathy 3 x Corporate Influence 2 = 6; 6 + d20"
+  difficulty_guess: 16
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Alvara’s gaze cools. “Your work is done—no time for frivolities.” She dismisses him with a curt nod.
+      mechanical_effect: >
+        −2 Soulcredit. No ritual granted. Tavros must continue without rest.
+    failure:
+      narrative: >
+        She nods at the report but offers no comment on rest. “You may retire when I call you next.”
+      mechanical_effect: >
+        −1 Soulcredit. No ritual yet—Tavros must wait.
+    moderate_success:
+      narrative: >
+        Alvara inclines her head. “Well done. Take the evening for a simple centering rite in the Veil Chamber.” 
+      mechanical_effect: >
+        +0 Soulcredit. Downtime ritual approved (Willwork + Dreamwork).
+    good_success:
+      narrative: >
+        A warm smile: “You’ve earned it. Arrange your ritual. I’ll hold the next briefs until dawn.” 
+      mechanical_effect: >
+        +1 Soulcredit. Formal downtime ritual scheduled; +1 to next Dreamwork roll.
+    excellent_success:
+      narrative: >
+        She stands and lays a hand on his shoulder. “May the Veil guide your rest.” A personal incense blessing is bestowed.
+      mechanical_effect: >
+        +2 Soulcredit. Downtime ritual granted with Ossai incense provided (–1 DC on ritual).
+    exceptional_success:
+      narrative: >
+        Alvara gestures to a hidden alcove: “A private sanctum awaits. Heal, reflect, and return renewed.” 
+      mechanical_effect: >
+        +3 Soulcredit. Exclusive ritual chamber access; Dreamwork DC –2 for recovery.
+
+rationale: >
+  Negotiating both a debrief and a ritual boon relies on Empathy × Corporate Influence—balancing mission pride with personal well-being. DC 16 reflects Alvara’s workload but her respect for Tavros’s service.
+task_id: YAGS-AEONISK-114
+
+domain:
+  core: ritual
+  subdomain: ritual_check_centering
+
+scenario: >
+  Tavros enters the private Veil Chamber, lighting the Ossai incense. He performs a centering ritual—drawing Veil-tinted sigils in the air with his Seed Ledger Slate, seeking spiritual clarity and renewal before the next assignment.
+
+environment: Private alcove Veil Chamber—soft violet light, incense smoke curling, silent except for distant Codex hum.
+
+stakes: >
+  Success grants Tavros renewed focus (+1 to next skill roll of his choice) and +1 Soulcredit. Failure yields mental fatigue (–1 to his next roll) and no Soulcredit gain. A critical failure could leave residual Void tension, inflicting +1 Void.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 2
+    current_void: 1
+    equipment: ["Seed Ledger Slate", "Ossai Incense (3 drips)"]
+
+goal: >
+  Achieve a centered state through a Veil Chamber ritual, restoring mental clarity and reinforcing spiritual balance.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Willpower
+  skill_used: None
+  roll_formula: "Willpower 3 x 4 = 12; 12 + d20"
+  difficulty_guess: 15
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Tavros’s sigils wobble; the incense flares unevenly. A cold ripple of Void brushes his mind, leaving him shaken.
+      mechanical_effect: >
+        +1 Void. –1 to next roll. No Soulcredit.
+    failure:
+      narrative: >
+        The ritual completes but feels hollow. Tavros exhales slowly but senses no real renewal.
+      mechanical_effect: >
+        –1 to next roll. No Soulcredit.
+    moderate_success:
+      narrative: >
+        A calm washes over him; the sigils glow softly and fade. His mind clears.
+      mechanical_effect: >
+        +0 to next roll. +1 Soulcredit.
+    good_success:
+      narrative: >
+        The chamber vibrates gently with Veil energy as the sigils trace perfectly. Tavros feels invigorated.
+      mechanical_effect: >
+        +1 to next skill roll. +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        The incense smoke weaves into a serene pattern; Tavros’s focus sharpens and lingers.
+      mechanical_effect: >
+        +2 to next skill roll. +1 Soulcredit.
+    exceptional_success:
+      narrative: >
+        The Veil itself seems to embrace him; his willpower resonates with the chamber’s hum, leaving him profoundly centered.
+      mechanical_effect: >
+        +2 to next two skill rolls. +2 Soulcredit.
+
+rationale: >
+  A centering ritual in the Veil Chamber is a pure attribute ritual without skill focus, using Willpower ×4 per YAGS attribute-only checks. DC 15 reflects moderate difficulty for a simple downtime ritual in a sanctified space.
+task_id: YAGS-AEONISK-115
+
+domain:
+  core: ritual
+  subdomain: ritual_check_centering
+
+scenario: >
+  Tavros retires to the private Veil Chamber alcove to sleep and dream, allowing the Ossai incense’s lingering Veil resonance to guide his subconscious toward clarity and strategic insight.
+
+environment: Private Veil Chamber alcove—faint violet light, incense embers glowing, quiet hum of Codex in the background.
+
+stakes: >
+  Success grants Tavros a restful sleep with prophetic clarity (+1 to his next strategic roll) and +1 Soulcredit. Failure yields a restless night (–1 to his next roll). Critical failure inflicts residual Void tension (+1 Void).
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {willpower: 3}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 3
+    current_void: 1
+    equipment: ["Ossai Incense (remaining)"]
+
+goal: >
+  Enter a meditative sleep ritual that channels Veil energy into subconscious insight and spiritual renewal.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Willpower
+  skill_used: None
+  roll_formula: "Willpower 3 x 4 = 12; 12 + d20"
+  difficulty_guess: 15
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Sleep eludes him; his thoughts tumble in disarray and a cold knot of Void stirs within.
+      mechanical_effect: >
+        +1 Void. –1 to next strategic roll. No Soulcredit.
+    failure:
+      narrative: >
+        His rest is fitful. Dreams drift but yield no insight.
+      mechanical_effect: >
+        –1 to next strategic roll. No Soulcredit.
+    moderate_success:
+      narrative: >
+        Tavros sleeps soundly, guided by subtle visions of ley currents and trade winds.
+      mechanical_effect: >
+        +0 to next roll. +1 Soulcredit.
+    good_success:
+      narrative: >
+        In his dreams, he maps perfect vectors and hidden tribunals; he wakes with a clear plan.
+      mechanical_effect: >
+        +1 to next strategic roll. +1 Soulcredit.
+    excellent_success:
+      narrative: >
+        His dreamscape unfolds an entire network of clandestine contacts and uncharted routes.
+      mechanical_effect: >
+        +2 to next strategic roll. +1 Soulcredit.
+    exceptional_success:
+      narrative: >
+        He awakens with a revelation that transforms his approach to the entire operation.
+      mechanical_effect: >
+        +2 to next two strategic rolls. +2 Soulcredit.
+
+rationale: >
+  A pure sleep–dream centering ritual uses Willpower ×4 for attribute-only checks. DC 15 reflects moderate difficulty for achieving prophetic insight in a sanctified Veil space.
+task_id: YAGS-AEONISK-116
+
+domain:
+  core: rule_application
+  subdomain: skill_check_corporate_influence
+
+scenario: >
+  Refreshed and clear-headed, Tavros returns to Lady Alvara’s sanctum to deliver the final campaign briefing on the entire operation: shipment delivery, shield efficacy, escort performance, and secured Seed processing—seeking her approval on strategic next steps.
+
+environment: Lady Alvara’s orbiting chamber—morning light, ritual incense faint on the breeze, Alvara awaiting by her console.
+
+stakes: >
+  Success cements Tavros’s status as her premier envoy and may unlock new mission directives. Failure disappoints her trust (−1 Soulcredit) and stalls any new initiatives.
+
+characters:
+  - name: Tavros Eluun
+    tech_level: Aeonisk Standard
+    attributes: {empathy: 3}
+    skills: {corporate_influence: 2}
+    bond: {with: "Lady Sen Alvara", bonus: "+2 rituals, +1 soak"}
+    soulcredit: 4
+    current_void: 1
+
+goal: >
+  Use Empathy-backed Corporate Influence to present a comprehensive debrief of the operation’s success and secure Lady Alvara’s endorsement for future directives.
+
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+
+gold_answer:
+  attribute_used: Empathy
+  skill_used: Corporate Influence
+  roll_formula: "Empathy 3 x Corporate Influence 2 = 6; 6 + d20"
+  difficulty_guess: 16
+
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Alvara sighs and shakes her head. “I expected more.” The room chills.
+      mechanical_effect: >
+        −2 Soulcredit. No new directives.
+    failure:
+      narrative: >
+        She nods curtly. “Noted.” No praise. No further tasks.
+      mechanical_effect: >
+        −1 Soulcredit. Initiative stalls.
+    moderate_success:
+      narrative: >
+        Alvara smiles faintly. “Excellent work. Prepare for the next phase—I have plans.”
+      mechanical_effect: >
+        +0 Soulcredit. New mission directive unlocked.
+    good_success:
+      narrative: >
+        “Impressive, Tavros. Your precision has opened doors I had not considered,” she says, eyes alight.
+      mechanical_effect: >
+        +1 Soulcredit. Access to new trade corridors.
+    excellent_success:
+      narrative: >
+        She gestures expansively. “Your efforts have reshaped our strategy. I entrust you with forging our next grand venture.”
+      mechanical_effect: >
+        +2 Soulcredit. Large-scale mission charter granted.
+    exceptional_success:
+      narrative: >
+        The chamber cheers softly as Alvara proclaims you her Chief Envoy. “Let us redefine the Strand together.”
+      mechanical_effect: >
+        +3 Soulcredit. Envoy title conferred. Full operational autonomy.
+
+rationale: >
+  Final debrief negotiations combine Empathy × Corporate Influence to convey success and ambition. DC 16 reflects Alvara’s high standards and workload.
+
