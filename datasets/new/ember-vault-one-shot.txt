@@ -1,0 +1,224 @@
+---
+task_id: YAGS-AEONISK-101
+domain:
+  core: rule_application
+  subdomain: ritual_check_breath_fire_seal
+scenario: >
+  Vere Soltra attempts to disable a warded Breath-Fire glyph seal to enter the Ember Vault without triggering an alarm.
+environment: Sealed Ember Vault door; glyphs flaring with heat; drone hovering nearby.
+stakes: >
+  Success allows safe entry. Failure triggers a fiery trap and alerts internal defenses.
+characters:
+  - name: Vere Soltra
+    tech_level: Aeonisk Standard
+    attributes: {willpower: 4, perception: 4, agility: 4, intelligence: 4, empathy: 2, strength: 2, dexterity: 3, health: 3}
+    skills: {astral_arts: 3, stealth: 4, awareness: 3, magick_theory: 2, guile: 2, drone_operation: 2}
+    current_void: 3
+    soulcredit: -1
+goal: >
+  Disarm the Breath-Fire ward through ritual without triggering defensive backlash.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "Willpower 4 × Astral Arts 3 = 12; 12 + d20 = 21"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: Vere misaligns the seal's rhythm. The glyphs detonate in flame. Alarms flare.
+      mechanical_effect: Vault sealed; fire damage (Light Wound), +2 Void, enemies alerted.
+    failure:
+      narrative: The ritual flickers and dies. The seal remains intact, heating ominously.
+      mechanical_effect: Entry denied. +1 Void. Possible alert escalation.
+    moderate_success:
+      narrative: Vere neutralizes the ward barely in time. The sigils dim and allow entry.
+      mechanical_effect: Glyph seal disarmed. Vault opens. +1 Void from unoffered ritual.
+    good_success:
+      narrative: The glyphs hiss but dissolve. Vere steps inside unseen.
+      mechanical_effect: Entry secured. No alerts. +1 Void.
+    excellent_success:
+      narrative: Vere's ritual not only disarms the ward but feeds false glyph echoes.
+      mechanical_effect: Entry secured and trace cloaked. +1 Void.
+    exceptional_success:
+      narrative: The ward folds into Vere's Will, rendering her signature "authorized."
+      mechanical_effect: Entry granted, cloak extended to next ritual. No Void gain.
+  rationale: Ritual disarming is a Moderate task. No offering invoked, hence Void gain.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+  adventure: Ember Vault One-Shot
+
+---
+task_id: YAGS-AEONISK-102
+domain:
+  core: rule_application
+  subdomain: dreamwork_check_mirror_trace
+scenario: >
+  Inside the vault, Vere investigates a shattered containment mirror to trace the missing echo of herself.
+environment: Mirror-lined ritual vault, echoes of self flickering.
+stakes: >
+  Success reveals who stole the self and offers leverage. Failure risks identity destabilization and Void spike.
+characters:
+  - name: Vere Soltra
+    tech_level: Aeonisk Standard
+    attributes: {perception: 4, empathy: 2, willpower: 4}
+    skills: {dreamwork: 0} # untrained
+    current_void: 4
+    soulcredit: -1
+goal: >
+  Trace the removed echo’s spiritual resonance using dreamwork.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Perception
+  skill_used: Dreamwork
+  roll_formula: "Perception 4 × Dreamwork 1 (default) = 4; 4 + d20 = 22"
+  difficulty_guess: 25
+  outcome_explanation:
+    critical_failure:
+      narrative: Vere’s own Echo detaches. She sees herself walk away.
+      mechanical_effect: +2 Void. –2 Empathy. Soulcredit frozen 1 scene.
+    failure:
+      narrative: Vere fails to grasp the missing echo. Static bleeds into her soul.
+      mechanical_effect: –1 Empathy rolls, +1 Void.
+    moderate_success:
+      narrative: Vere glimpses the stolen reflection but cannot identify its captor.
+      mechanical_effect: Partial clarity. No mechanical insight. +1 Void.
+    good_success:
+      narrative: She sees the severed tether and part of the hand that pulled it.
+      mechanical_effect: +1 Magick Theory bonus for one related task.
+    excellent_success:
+      narrative: The echo’s thread names its thief in flash-vision.
+      mechanical_effect: Identity revealed. +1 Soulcredit for intent clarity.
+    exceptional_success:
+      narrative: Vere rebinds the echo fragment, regaining inner strength.
+      mechanical_effect: –1 Void, +1 Soulcredit. +2 to next Dreamwork roll.
+  rationale: Untrained skill roll under spiritual interference. Failure margin was –3.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+  adventure: Ember Vault One-Shot
+
+---
+task_id: YAGS-AEONISK-103
+domain:
+  core: rule_application
+  subdomain: ritual_check_heart_seed_bind
+scenario: >
+  Vere attempts to bind a corrupted Heart-Seed using a ritual while under active Void spike.
+environment: Heart-Seed floating in ritual focus chamber. Echoes whisper around the mirror.
+stakes: >
+  Success binds the Seed to Vere. Failure causes ritual backlash or Soulcredit fracture.
+characters:
+  - name: Vere Soltra
+    tech_level: Aeonisk Standard
+    attributes: {willpower: 4}
+    skills: {astral_arts: 3}
+    current_void: 5
+    soulcredit: -1
+    bond: Echoed Memory – Dierin Soltra (invoked)
+goal: >
+  Use a Bond-stabilized ritual to attune the Heart-Seed.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "Willpower 4 × Astral Arts 3 = 12 + Bond +2 = 14; 14 + d20 = 27"
+  difficulty_guess: 28
+  outcome_explanation:
+    critical_failure:
+      narrative: The Bond shatters. The Seed turns against her.
+      mechanical_effect: Bond lost. +2 Void. Stun. Vault triggers defensive veil.
+    failure:
+      narrative: Vere nearly binds the Seed, but it recoils. The Bond flares and dims.
+      mechanical_effect: Seed remains unbound. Void +1. Bond cannot be reused this session.
+    moderate_success:
+      narrative: The Seed resonates, nearly syncing, but something blocks it.
+      mechanical_effect: Void increases. Ritual strain fatigues Vere.
+    good_success:
+      narrative: The Seed bends but holds. Vere marks it with her Will.
+      mechanical_effect: Partial attunement. +1 Astral Arts for one scene.
+    excellent_success:
+      narrative: The Seed locks into Vere’s spiritual pattern. Bond stabilized.
+      mechanical_effect: Fully attuned. Void stable. One free ritual reroll gained.
+    exceptional_success:
+      narrative: Vere’s echo fuses with the Seed, granting her clarity of the Vault’s design.
+      mechanical_effect: +1 Soulcredit. +2 to next Astral Arts or Magick Theory check. Void reduced by 1.
+  rationale: Margin of failure is –1. Near miss under Void Spike; Bond softened the blow.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+  adventure: Ember Vault One-Shot
+
+---
+task_id: YAGS-AEONISK-104
+domain:
+  core: rule_application
+  subdomain: ritual_check_heart_seed_bind
+scenario: >
+  Second attempt to attune the Heart-Seed after partial resonance. No Bond. Higher Void.
+environment: Flickering vault chamber; Seed pulse matching Vere’s breath.
+stakes: >
+  Success binds the Seed. Failure risks rupture, more Void, or external alert.
+characters:
+  - name: Vere Soltra
+    tech_level: Aeonisk Standard
+    attributes: {willpower: 4}
+    skills: {astral_arts: 3}
+    current_void: 6
+    soulcredit: -1
+goal: >
+  Complete the ritual to attune the Heart-Seed under pressure.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "Willpower 4 × Astral Arts 3 = 12; 12 + d20 = 28"
+  difficulty_guess: 25
+  outcome_explanation:
+    critical_failure:
+      narrative: The Seed erupts in backlash, casting Vere into unconsciousness.
+      mechanical_effect: +2 Void. Seed lost. Wound level raised. Narrative rupture.
+    failure:
+      narrative: The Seed resists; energy surges but fizzles.
+      mechanical_effect: Void +1. Seed remains unbound.
+    moderate_success:
+      narrative: The Seed’s resistance drops; Vere completes a basic link.
+      mechanical_effect: Attuned. No extra benefit. Void stable.
+    good_success:
+      narrative: The Heart-Seed yields. Vere binds it, gaining power and triggering resonance.
+      mechanical_effect: Seed attuned. +1 Astral Arts while carried. Ritual stabilized. Void 6, stable.
+    excellent_success:
+      narrative: Vere attunes cleanly and quietly. The Vault echoes approval.
+      mechanical_effect: Attuned. +1 Astral Arts. Future ritual difficulty –2.
+    exceptional_success:
+      narrative: Vere binds the Seed so completely that a veil node is reprogrammed in her name.
+      mechanical_effect: Attuned. +1 Soulcredit. +2 Ritual Craft for next 24 hrs. Void reset to 3.
+  rationale: Margin +3. Final ritual succeeds despite Void 6. Effects aligned with attunement tier.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+  adventure: Ember Vault One-Shot
