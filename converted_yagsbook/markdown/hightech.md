@@ -17,7 +17,7 @@ version 2.
 # The Technological Revolution
 
 I never thought that I would ever be wealthy enough to own a car - nor
-so poor that I wouldn\'t have servants.
+so poor that I wouldn't have servants.
 
 Through a process that began in the 17th century, and began to
 accelerate in the 19th, the 20th century saw a huge increase in the rate
@@ -43,7 +43,7 @@ vehicles within YAGS are also included.
 
 The technology levels in YAGS are meant as a rough guide as to when an
 item, skill or knowledge becomes available for use within the game. The
-date ranges given are based on \'Western Civilisation\', and there is
+date ranges given are based on 'Western Civilisation', and there is
 always a certain fuzziness around the transition from one period to the
 next.
 
@@ -59,8 +59,8 @@ can support itself, and may be radically different from the technology
 actually available. There are many African nations where mobile phones
 are a common means of communicating and where farmers regularly look up
 grain prices on the internet, but the TL of the culture itself may be 2
-or 3. Just because they don\'t have the knowledge to build a steam
-engine, doesn\'t mean they can\'t make use of (or even know how to
+or 3. Just because they don't have the knowledge to build a steam
+engine, doesn't mean they can't make use of (or even know how to
 repair) high tech equipment purchased from others.
 
 Where prices are given, they are given for the TL when the item was
@@ -71,7 +71,7 @@ Prices are given in USD (\$), again at time of introduction.
 
 ### TL 6 - The Mechanical Age
 
-You can\'t say that civilization don\'t advance, however, for in every
+You can't say that civilization don't advance, however, for in every
 war they kill you in a new way.
 
 Covering the period from 1900 to 1945, TL 6 sees the introduction of
@@ -86,7 +86,7 @@ Communication around the world is possible, but possible to prevent on a
 regular basis without stretching disbelief. Fast air travel exists, but
 is limited. In America, you have the extremes of high society and abject
 poverty rubbing shoulders with each other. Two world wars provide plenty
-of plot hooks, and the \'30s provide obvious villains in the form of the
+of plot hooks, and the '30s provide obvious villains in the form of the
 Nazis.
 
 #### Supporting a TL 6 Culture
@@ -94,7 +94,7 @@ Nazis.
 In a science fiction setting, it is relatively easy for a culture to
 achieve TL 6 if they are pre-equipped with the right scientific
 knowledge. As long as skilled craftsman are available, the machines that
-were common in this period didn\'t require high levels of automation for
+were common in this period didn't require high levels of automation for
 production, and could be produced manually.
 
 There were no sensitive electronic components needing to be manufactured
@@ -124,14 +124,14 @@ come up with believable plots for action films.
 The huge expenditure of the Cold War, on both sides of the Iron Curtain,
 saw rapid advancement in the state of military equipment. Most of the
 major conflicts of the period though were between imbalanced armies and
-demonstrated that having the best hardware wasn\'t the only requirement
+demonstrated that having the best hardware wasn't the only requirement
 to win a war quickly.
 
 ### TL 8 - The Information Age
 
-I\'m a great believer that any tool that enhances communication has
+I'm a great believer that any tool that enhances communication has
 profound effects in terms of how people can learn from each other, and
-how they can achieve the kind of freedoms that they\'re interested in.
+how they can achieve the kind of freedoms that they're interested in.
 
 The Science Fiction of TL 7 saw computers as becoming bigger and more
 powerful, but mostly failed to predict them becoming smaller and
@@ -140,14 +140,14 @@ computer in every home, ended up missing the mark by being too
 conservative.
 
 With the end of the Cold War in the late 80s, it seemed that the West
-had run out of enemies to fight. It wasn\'t long before new enemies were
+had run out of enemies to fight. It wasn't long before new enemies were
 found, and by the early 21st century there is again room for plenty of
 covert operations, though the nature of such things has changed
 drastically since TL 7.
 
 The big issue with TL 8 adventures is that communication and information
 is ubiquitous. Unless characters are adventuring in remote parts of
-Africa or South America, it\'s difficult to be out of range of a mobile
+Africa or South America, it's difficult to be out of range of a mobile
 signal, Google, Wikipedia and the answer to whatever problem is
 currently confusing you.
 
@@ -174,11 +174,11 @@ of knowledge. Fixing the computer controlled electronics of a modern TL
 
 # Ageing and Health
 
-I don\'t want to achieve immortality through my work; I want to achieve
-immortality though not dying. I don\'t want to live on in the hearts of
+I don't want to achieve immortality through my work; I want to achieve
+immortality though not dying. I don't want to live on in the hearts of
 my countrymen; I want to live on in my apartment.
 
-Sooner or later, everybody dies. As an \'adventuring hero\' you will
+Sooner or later, everybody dies. As an 'adventuring hero' you will
 probably die on your feet attempting to do something heroic. Most people
 die in their beds of old age. On the off chance that you survive to old
 age, YAGS has some rules on what happens to you at this point.
@@ -210,7 +210,7 @@ Effect
 
 ## Sickness
 
-Sickness covers all forms of physical conditions that aren\'t simple
+Sickness covers all forms of physical conditions that aren't simple
 damage. It can include disease, infections and radiation sickness. A
 sickness provides a penalty to actions similar to wounds or fatigue, but
 has its own track.
@@ -237,7 +237,7 @@ marketed as a health benefit.
 
 There are many ways to measure radiation, the most common being the Gray
 and the Sievert. These are not simply different units, but different
-ways of measuring radiation so there isn\'t a direct conversion factor
+ways of measuring radiation so there isn't a direct conversion factor
 between them. For simplicity, YAGS uses a Radiation Dose score for
 someone who has been exposed to radiation, which amalgamates all these
 different ways. This starts at zero, and fatality can occur around 100.
@@ -259,9 +259,9 @@ If you are exposed to a radiation source, then make a roll on the
 following chart to see how much Radiation you gain. The strength of the
 source will range from mild to critical.
 
-  ------------------------------------------------------------------------
+  
   d20       Mild      Light     Moderate    Heavy     Serious   Critical
-  --------- --------- --------- ----------- --------- --------- ----------
+  --- --- --- ----- --- --- ----
   1-4       \-        \-        2           4         8         20
 
   5-8       \-        1         3           6         12        30
@@ -271,7 +271,7 @@ source will range from mild to critical.
   13-16     2         3         7           15        30        75
 
   17-20     3         5         10          20        40        100
-  ------------------------------------------------------------------------
+  
 
   : Acute Radiation
 
@@ -316,7 +316,7 @@ If you receive a Radiation Dose of 100 or more in a single round, then
 you immediately take one level of Mixed damage from burns and tissue
 damage per full 100 points of Dose.
 
-At this point you\'re pretty much dead anyway, it\'s just a question of
+At this point you're pretty much dead anyway, it's just a question of
 how quickly and painfully you die.
 
 #### Immediate Symptoms
@@ -414,7 +414,7 @@ Beginning Health days after the dose, and every day thereafter, make a
 Health check of 20+ or permanently lose one point from each of your
 physical attributes.
 
-This stops if you roll a natural \'20\'. If the dose was 200 or more, it
+This stops if you roll a natural '20'. If the dose was 200 or more, it
 never stops.
 
 ### Chronic Radiation Effects
@@ -437,17 +437,17 @@ Effect
 
 Your Radiation score will drop by one point every year, so a small dose
 for a short period may deteriorate before you need to make a check.
-However, it won\'t drop below the \'background\' level. If you gained 3
-points in the previous year from radiation, then it won\'t drop below 3.
+However, it won't drop below the 'background' level. If you gained 3
+points in the previous year from radiation, then it won't drop below 3.
 
 # Armoury
 
-Those who live by the sword get shot by those that don\'t.
+Those who live by the sword get shot by those that don't.
 
 The variety of ways in which people can kill each other is quite
 staggering, and the arms industry seems to do well regardless of the
 state of the economy. Whilst YAGS tries to capture some of the flavour
-of the various types of death dealing items of equipment, it shouldn\'t
+of the various types of death dealing items of equipment, it shouldn't
 be seen as a full list of everything that has been available throughout
 the modern period.
 
@@ -455,18 +455,18 @@ What YAGS High Tech does try to do is capture a sample of the different
 kinds of weapons, and try to model them in a semi-realistic fashion. A
 top down approach to realism is what is aimed for - as long as the rules
 give the same sort of result as what may be expected in real life, YAGS
-doesn\'t worry too much about the exact way in which this is modelled.
+doesn't worry too much about the exact way in which this is modelled.
 
 ## Explosives
 
-You\'re only supposed to blow the bloody doors off!\"
+You're only supposed to blow the bloody doors off!"
 
 Though explosives start being used in the West during the medieval
 period, they really come into their own during the 19th and 20th
 centuries where they are used to level entire cities. Explosives
 generally cause damage either through fragmentation or concussive
 effects. The difference in game terms is that fragmentation explosives
-have a much larger \'kill radius\'.
+have a much larger 'kill radius'.
 
 Weapons which cause explosive damage are listed with the property of
 Ex-X, where X is the base radius of the explosion.
@@ -548,7 +548,7 @@ Explosive damage. Does full damage to the target and those within X
 metres.
 
 Firearm. Missile weapon firing a high velocity round. Halves all armour
-which isn\'t rated as bullet proof. Quarters most defence rolls (except
+which isn't rated as bullet proof. Quarters most defence rolls (except
 full defence).
 
 Heavy weapon. Halves non-heavy bulletproof armour, ignores all weaker
@@ -567,7 +567,7 @@ and long range. Counts as a firearm for defence rolls.
 Semi-automatic weapon, can fire multiple shots in a single round but is
 not capable of burst fire.
 
-Sonic weapon, ignores all armour but very short ranged. It\'s base
+Sonic weapon, ignores all armour but very short ranged. It's base
 damage is halved at medium range and quartered at long range (instead of
 the normal damage modifiers).
 
@@ -586,7 +586,7 @@ difficult to make armour effective enough to stop high velocity bullets
 which is light enough to be wearable on a modern battlefield.
 
 The first attempts at bulletproof armour where made in the Great War,
-but weren\'t particularly successful. Things improved in World War II,
+but weren't particularly successful. Things improved in World War II,
 but attempts were bulky and often impractical.
 
 With the advent of new materials, body armour has improved greatly since
@@ -598,15 +598,15 @@ options become available in TL7 and TL8.
 The following codes are used in describing the different types of
 armour.
 
-Bulletproof armour is designed to resist firearm attacks, and isn\'t
-halved against weapons rated as \'Fi\'. BP armour also has a secondary
+Bulletproof armour is designed to resist firearm attacks, and isn't
+halved against weapons rated as 'Fi'. BP armour also has a secondary
 effect, which is described below.
 
-Armour rated \'NBC\' gives protection against nuclear, biological and
+Armour rated 'NBC' gives protection against nuclear, biological and
 chemical attacks. This generally means that it is a sealed suit, with
 either a filtration system or its own air supply.
 
-Armour rated \'Va\' is sealed against a vacuum, and the wearer can
+Armour rated 'Va' is sealed against a vacuum, and the wearer can
 operate in space. It has all the benefits of an NBC suit, and always has
 its own oxygen supply.
 
@@ -664,9 +664,9 @@ to set adventures here. Travel to almost anywhere in the world is
 relatively easy, and telegrams or even telephones can be used to ask for
 aid, or update colleagues back home on what has been going on.
 
-However, society isn\'t all pervasive. Even if you are out in the
-country in England, you\'ll need to find a house that has a telephone.
-Out in the woods, you\'re on your own. There are still plenty of places
+However, society isn't all pervasive. Even if you are out in the
+country in England, you'll need to find a house that has a telephone.
+Out in the woods, you're on your own. There are still plenty of places
 in the world which are relatively unexplored, and which require a lot of
 effort to get to.
 
@@ -681,14 +681,14 @@ hard enough to make it dangerous (and therefore interesting from the
 point of view of a game).
 
 International law is still weak enough that adventurers from the First
-World can get away with a lot of things they wouldn\'t be able to in a
+World can get away with a lot of things they wouldn't be able to in a
 more modern period, but again there are far fewer laws to protect you.
 
 The two Wars also provide an easy enemy for PCs to fight against -
 especially in the 30s and 40s where the Nazis provide an easily
 identifiable bad guy (at least from a modern perspective) for a black
 and white morality conflict. The Great War is more complex, and most
-players probably don\'t know as much about this period as they do World
+players probably don't know as much about this period as they do World
 War II, which can either be a benefit or a problem for games set in the
 earlier period.
 
@@ -752,7 +752,7 @@ modern/tech6/gear.yags
 
 Though guns were the most common form of weapon in this period, people
 still used more primitive weapons. Whether it is a gangster bringing a
-knife to a gun fight, or a desperate fall back option once you\'ve run
+knife to a gun fight, or a desperate fall back option once you've run
 out of bullets, knives and sharp sticks will still be encountered.
 
 A number of the weapons assume that they are made from modern steels
@@ -838,7 +838,7 @@ ability.
 
 ## Guns
 
-The reliability and killing power of small arms doesn\'t change much in
+The reliability and killing power of small arms doesn't change much in
 this period, and there is greater focus on making things lighter and
 improving personal protection.
 

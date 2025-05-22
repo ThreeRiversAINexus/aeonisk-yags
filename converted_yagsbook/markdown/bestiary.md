@@ -87,7 +87,7 @@ able to strike at the spirit or soul of living creatures.
 
 ### Demeanour
 
-A beast\'s demeanour is a rough guide to its behaviour. Mostly, the
+A beast's demeanour is a rough guide to its behaviour. Mostly, the
 descriptions given below deal with how a creature will act if it is
 threatened, hungry or just surprised. Intelligent beasts have far more
 complex behaviour patterns than animals, so really this applies to
@@ -152,10 +152,10 @@ The smallest possible Size is zero - a small cat or something similar
 with a mass around 7-8kg. Anything smaller than this is still considered
 size zero, but will be marked as Tiny (starting at 300g-3kg). Each level
 of Tiny gives a mass reduction of about 10 compared to the next
-\'larger\' level. A grey squirrel would be Tiny-1, at around 500g. A
+'larger' level. A grey squirrel would be Tiny-1, at around 500g. A
 small rat (200g) would be Tiny-2, and a field mouse (25g) Tiny-3.
 
-In game terms, a creature\'s size directly affects how many body levels
+In game terms, a creature's size directly affects how many body levels
 it has, and also affects some combat statistics.
 
 For any creature smaller than Size 5, damage types are shifted down
@@ -165,7 +165,7 @@ more than 15 points larger shifted down two categories.
 
 For small creatures, this becomes more than three times the size and
 more than four times the size. So a Size 4 animal is only fully
-effective against targets up to Size 12. A size 0 creature (that isn\'t
+effective against targets up to Size 12. A size 0 creature (that isn't
 Tiny) is shifted down one damage type against size 1 targets, and two
 types against size 2 or larger targets.
 
@@ -190,7 +190,7 @@ two points).
 
 Some animals are classed as being Weak. These always have a Strength of
 zero. Any Strength rolls that they make against another creature that
-isn\'t either Weak or Tiny is halved (round down). This includes damage
+isn't either Weak or Tiny is halved (round down). This includes damage
 rolls (and includes any damage bonuses).
 
 ## Intelligence
@@ -212,13 +212,13 @@ An Unintelligent animal has both an Intelligence and Empathy of zero.
 
 ## Empathy
 
-A creature\'s Empathy to some extent represents its social nature.
+A creature's Empathy to some extent represents its social nature.
 Solitary animals will tend to have low scores, highly social animals
 (such as wolves) will tend to have a high score. Animals with high
 empathy are more likely to respond to human attempts at friendship.
 
 Most mammals have an Empathy of 2, whilst reptiles or animals noted for
-being solitary and which don\'t care for their young will tend to have a
+being solitary and which don't care for their young will tend to have a
 score of 1. Highly social animals, such as wolves, whales or primates
 may have a score of 3.
 
@@ -235,7 +235,7 @@ will have scores of zero for these skills.
 
 ## Will
 
-Will is a measure of a creature\'s ability to act against their own
+Will is a measure of a creature's ability to act against their own
 instincts, as such only intelligent creatures tend to have a will above
 two.
 
@@ -269,9 +269,9 @@ penetrating deep into a target (such as swords and spears). Claws and
 bites from animals are rarely this deadly, and as such most animals will
 do either stun or mixed (a mixture of stuns and wounds) damage.
 
-However, whilst the blow from a whale\'s tail may be considered stun
+However, whilst the blow from a whale's tail may be considered stun
 damage by other whales, to a small human, such damage can be deadly.
-Likewise, whilst a sword blow can kill a human, it\'s going to be little
+Likewise, whilst a sword blow can kill a human, it's going to be little
 more than a surface wound to the whale. For this reason, large
 differences in size can modify the type of damage done.
 
@@ -293,15 +293,15 @@ elephant only does stun damage when trampling, but because it has a size
 10 points larger than you, it instead does mixed damage.
 
 In defence, you poke it with a sword, which will normally wound, but
-because of the elephant\'s size, any damage you cause is instead mixed.
+because of the elephant's size, any damage you cause is instead mixed.
 
-If you had a long spear, then you\'d be in a better situation because
+If you had a long spear, then you'd be in a better situation because
 large weapons give a bonus to your effective size, allowing you to do
 full wounding damage.
 ::::
 
 There is an exception to this, in that some very large creatures might
-have attacks which aren\'t considered quite so large. A huge bulbous
+have attacks which aren't considered quite so large. A huge bulbous
 beast with lots of writhing tentacles might be colossal in total
 proportions, but each tentacle might only count as a large attack. If
 this is the case, then this will be mentioned in the creature
@@ -310,7 +310,7 @@ description.
 #### Typical Damage
 
 Animals will generally cause damage based on their strength, modified by
-the type of \'weapons\' they have. Such weapons are normally limited to
+the type of 'weapons' they have. Such weapons are normally limited to
 claws, tusks or teeth.
 
 Damage
@@ -330,7 +330,7 @@ will be around half the attack bonus.
 
 ## Base Soak
 
-A creature\'s base soak isn\'t just based on their Size, but for most
+A creature's base soak isn't just based on their Size, but for most
 creatures a good guideline is a base soak of their Size + 7. This works
 for creatures with a Size between 3 and 9.
 
@@ -343,7 +343,7 @@ below this drops their soak by 3. Small creatures tend to be very
 fragile.
 
 Note that this guideline only applies to a type of creature, not to
-individuals within it. So a human, with a base soak of 12, won\'t get a
+individuals within it. So a human, with a base soak of 12, won't get a
 +1 Soak if they take the Large advantage.
 
 ## Natural Armour
@@ -377,7 +377,7 @@ claws. However, it cannot do both at the same time.
 For some things though, this breaks down, especially where fantasy
 beasts are concerned. A large dragon could bite someone in front of
 them, knock others down with its tail, and maybe stun those around it
-with its wings. Subsuming all of these into a single attack wouldn\'t
+with its wings. Subsuming all of these into a single attack wouldn't
 work, and yet all should be possible each round.
 
 To this end, some creatures are capable of attacking multiple creatures
@@ -410,7 +410,7 @@ numbers. In YAGS these are known as Hordes.
 Hordes generally consist of small (but not Tiny) creatures, which have
 the two features of being treated as individuals but being stoppable
 with a single strike. The purpose of a Horde is to simplify combat, so
-there\'s nothing particularly inherent about a creature that makes it
+there's nothing particularly inherent about a creature that makes it
 part of a Horde - it is instead a decision by the GM to simplify things
 in order to speed up a particular combat.
 
@@ -421,8 +421,8 @@ fight.
 
 As such, it is best to use Hordes when a creature is Size 3 or smaller.
 A single blow will cause a -15 penalty immediately, which will probably
-effectively take them out of the fight. If it doesn\'t, then you
-probably shouldn\'t be treating them as a Horde.
+effectively take them out of the fight. If it doesn't, then you
+probably shouldn't be treating them as a Horde.
 
 ## Swarms
 
@@ -465,7 +465,7 @@ of burning oil, causes twice as many wound levels to a swarm.
 
 A swarm is made up of many creatures each of which is individually
 unable to cause serious harm to larger creatures. The bite from a rat
-can hurt, but it\'s not going to rate as a level of damage against an
+can hurt, but it's not going to rate as a level of damage against an
 adult human.
 
 Swarms though rely on the fact that there are so many bites being made,
@@ -474,7 +474,7 @@ density of a swarm provides a bonus to damage and attack
 
 ## Venomous Beasts
 
-You generally don\'t need to worry about whether a creature is poisonous
+You generally don't need to worry about whether a creature is poisonous
 or not unless you intend to eat it - a poisonous creature is one which
 has poisons in its body which discourages others from eating it. A
 venomous creature however is one that injects nasty chemicals into its
@@ -482,13 +482,13 @@ prey in order to kill or immobilise it.
 
 If a creature has a venomous attack, then any attack that causes damage
 has a chance of affecting the target with venom. However, many venomous
-animals are small, and will rarely \'damage\' a human sized target with
+animals are small, and will rarely 'damage' a human sized target with
 an attack.
 
 If you are bitten by a creature that only damages through venom, then
 your normal soak roll is ignored. You get a bonus from armour (which
 represents how much of your body is covered) which adds to a d20 roll
-for your soak. The creature rolls a straight 1d20 for \'damage\'. If
+for your soak. The creature rolls a straight 1d20 for 'damage'. If
 their roll equals or exceeds yours, then they penetrate your skin.
 
 If you have soak bonuses from tough hide, fur or other factors, then you
@@ -539,7 +539,7 @@ her initiative drops to zero.
 A minute later, she makes a second roll against a target of 35 and gets
 24. She suffers -3 to both her agility and dexterity. Her agility is now
 1, so she can just about move, but her dexterity is zero, so she is
-suffering complete loss of fine motor control, so can\'t do much.
+suffering complete loss of fine motor control, so can't do much.
 
 After the second minute, the potency has dropped to 30, and she manages
 to roll 35. She resists dropping into a coma, but is still suffering the
@@ -591,9 +591,9 @@ The following are some generic venoms which are typical of different
 types of creatures. Note that truly instant fatality is very rare, and
 some can take hours or days to play out their effects.
 
-  ------------------------------------------------------------------------
+  
   Type     Potency      Duration         Effects
-  -------- ------------ ---------------- ---------------------------------
+  --  ---- ---
   A        30/5         I/Minute         Shock / Stun / \...
 
   B        40/5         I/Minute         Shock / -1 D / -1 A / -1 D / -1 A
@@ -609,7 +609,7 @@ some can take hours or days to play out their effects.
 
   F        40/5         I/Round          Shock / -1 S Ex / -1 S Ex / Ex /
                                          \...
-  ------------------------------------------------------------------------
+  
 
   : Venoms
 
@@ -711,7 +711,7 @@ said hordes.
 ### Combat
 
 All undead have the ability to take large amounts of damage being
-\'dying\'. This is generally because, being already dead, their vital
+'dying'. This is generally because, being already dead, their vital
 organs are no longer important to them.
 
 Any creature with the undead status receives a bonus to soak equal to
@@ -780,12 +780,12 @@ Many tool using creatures in fantasy are of abnormal sizes, either being
 very small (like goblins) or very large (like giants). The weapons they
 use will tend to be sized appropriately for them.
 
-Each point of Size larger than normal adds +1 to the weapon\'s attack
+Each point of Size larger than normal adds +1 to the weapon's attack
 bonus and +1 to the damage it does. Every two points of size larger adds
 +1 to the defence bonus of the weapon.
 
 For smaller weapons, every point smaller than normal reduces the
-weapon\'s damage by 1, and every two points smaller reduces the attack
+weapon's damage by 1, and every two points smaller reduces the attack
 and defence bonus of the weapon by one.
 
 ### Natural Attacks

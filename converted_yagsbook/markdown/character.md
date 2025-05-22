@@ -66,7 +66,7 @@ or because they are doing the heroic thing. Of course, it can be run any
 way the GM sees fit, but gritty fiction is the way in which it has been
 designed.
 
-I\'ve got a little itch, down there. Would you mind?
+I've got a little itch, down there. Would you mind?
 
 It is up to the Game Master to decide on the type of campaign that will
 be played by selecting one of four starting character levels: Mundane,
@@ -92,7 +92,7 @@ enemies.
 
 However, highly skilled characters can sidestep some of these
 difficulties, and act more like Hollywood action heroes - awesome, but
-not completely super human. You can\'t dodge a bullet, but you might be
+not completely super human. You can't dodge a bullet, but you might be
 able to dodge the gun.
 ::::
 
@@ -123,7 +123,7 @@ is involved. In this case, you roll Attribute x 4 + 1d20.
 There are eight primary attributes that all characters have, and these
 define your raw talent. Raising attributes after character generation
 may be difficult or impossible, depending on the campaign, and though a
-high attribute won\'t make you automatically good, it is necessary in
+high attribute won't make you automatically good, it is necessary in
 order to be very good.
 
 The attributes are Strength, Health, Agility, Dexterity, Perception,
@@ -152,7 +152,7 @@ skills).
 
 YAGS does not try to cover all possible settings in one set of rules.
 What is provided here is a wide range of skills and background options,
-but only enough to cover the \'modern world\'. There are no options for
+but only enough to cover the 'modern world'. There are no options for
 magic, since how magic is learnt and used can differ from setting to
 setting. Likewise, there are no skills to cover piloting space craft or
 operating energy shields or matter transmitters, since again how these
@@ -262,14 +262,14 @@ or high status.
 When you prioritise advantages, you define how many points of advantages
 you may buy. You always have the option to purchase a single
 disadvantage, which will provide you with extra points for more
-advantages. This may be a \'-1\' disadvantage which gives you a single
-extra point, or a \'-2\' or \'-3\' which give more points.
+advantages. This may be a '-1' disadvantage which gives you a single
+extra point, or a '-2' or '-3' which give more points.
 
 For every full 3 points of advantages you are given, you may take an
 extra disadvantage for further points. Again, it is the number of
 disadvantages that is limited, not the total value of them.
 
-Lastly, advantages are your character\'s Schick, and as such can\'t be
+Lastly, advantages are your character's Schick, and as such can't be
 purchased after character generation. They are also more durable than
 equivalents gained through play. If you buy Rich, it is much harder to
 lose your wealth than if you had obtained it in-game.
@@ -292,7 +292,7 @@ characters are somewhat above average, but not significantly so.
 
 This level of campaign is suitable for modern horror, or stories about
 young, inexperienced knights at the start of their careers. There is no
-reason that characters in such campaigns can\'t grow to become heroic,
+reason that characters in such campaigns can't grow to become heroic,
 but the story is often about their progression rather than what they do
 once they become heroes.
 
@@ -300,15 +300,15 @@ The majority of people in the world will be of the Mundane level -
 indeed, most will have a Tertiary level in each of the three categories.
 Skilled professionals will tend to have Primary experience however.
 
-  -----------------------------------------------------------------------
+  -----
   Category                Primary         Secondary       Tertiary
-  ----------------------- --------------- --------------- ---------------
+  ----- --- --- ---
   Attributes              +5/5            +2/4            0/4
 
   Experience              50/6            30/5            20/4
 
   Advantages              3               1               0
-  -----------------------------------------------------------------------
+  -----
 
   : Priority
 
@@ -347,15 +347,15 @@ unless the campaign is focussed around highly trained or heroic
 characters, or it is a horror game where everything is meant to be
 dangerous, and out to get you.
 
-  -----------------------------------------------------------------------
+  -----
   Category                Primary         Secondary       Tertiary
-  ----------------------- --------------- --------------- ---------------
+  ----- --- --- ---
   Attributes              +5/5            +2/4            0/4
 
   Experience              100/6           60/5            40/4
 
   Advantages              3               1               0
-  -----------------------------------------------------------------------
+  -----
 
   : Priority
 
@@ -368,7 +368,7 @@ You can be highly skilled (a skill level of 4+) in multiple skills and
 still leave room for a number of low level skills to round yourself out.
 
 Another alternative is to take attributes as primary and put the one
-covering your main skills to 5. This allows you to be \'better\' than
+covering your main skills to 5. This allows you to be 'better' than
 professional level with a skill of only 3. However, it does limit the
 techniques you can purchase for that skill.
 
@@ -394,15 +394,15 @@ Such stories are not about a farm boy (or school teacher) who gets
 caught up in an adventure by accident, but about adventurers who go
 looking for something exciting.
 
-  -----------------------------------------------------------------------
+  -----
   Category                Primary         Secondary       Tertiary
-  ----------------------- --------------- --------------- ---------------
+  ----- --- --- ---
   Attributes              +8/6            +5/5            +2/4
 
   Experience              100/7           75/6            50/5
 
   Advantages              4               2               1
-  -----------------------------------------------------------------------
+  -----
 
   : Priority
 
@@ -426,19 +426,19 @@ majority of people. However you choose to spend your points, you are
 going to be very good at what you do, being the equivalent of Hollywood
 action heroes.
 
-However, you shouldn\'t let this go to your head, since a single bullet
+However, you shouldn't let this go to your head, since a single bullet
 or well placed knife can still kill you just as easily as it could a
-\'mundane\' person.
+'mundane' person.
 
-  -----------------------------------------------------------------------
+  -----
   Category                Primary         Secondary       Tertiary
-  ----------------------- --------------- --------------- ---------------
+  ----- --- --- ---
   Attributes              +12/8           +6/6            +3/5
 
   Experience              200/10          150/8           100/6
 
   Advantages              6               3               1
-  -----------------------------------------------------------------------
+  -----
 
   : Priority
 
@@ -462,7 +462,7 @@ forces squad or a group of veteran mercenaries.
 
 ### Pulp Action Heroes
 
-Whether it\'s Space Opera, Chanbara, Wuxia or a Hollywood Action Film,
+Whether it's Space Opera, Chanbara, Wuxia or a Hollywood Action Film,
 there is room in fiction for the larger than life action hero. Almost
 super-heroic in their abilities, they are capable of taking on a small
 army by themselves.
@@ -470,15 +470,15 @@ army by themselves.
 If you are playing this sort of campaign, then your character will be
 significantly better than everyone else even in your weakest area.
 
-  -----------------------------------------------------------------------
+  -----
   Category                Primary         Secondary       Tertiary
-  ----------------------- --------------- --------------- ---------------
+  ----- --- --- ---
   Attributes              +18/8           +12/6           +6/5
 
   Experience              450/12          300/10          200/8
 
   Advantages              8               4               2
-  -----------------------------------------------------------------------
+  -----
 
   : Priority
 
@@ -500,7 +500,7 @@ sure that you always have the advantage.
 
 If your planning fails you though, and a lucky shot takes you out, then
 you can always make use of your Luck to negate the damage. Using Luck in
-this way burns it, spending it permanently. But it\'s better than being
+this way burns it, spending it permanently. But it's better than being
 dead.
 
 # Attributes
@@ -578,8 +578,8 @@ based on intelligence, as are logic and reasoning skills.
 
 Empathy is your ability to understand others. It is used to make
 friends, convince people emotionally, or to tell if someone is lying to
-you. Empathy doesn\'t affect your intentions to be nice or nasty, but
-does affect how well you notice other people\'s feelings.
+you. Empathy doesn't affect your intentions to be nice or nasty, but
+does affect how well you notice other people's feelings.
 
 Your Will is a measure of mental fortitude, being used to resist psi,
 instincts and emotions. A high Will makes you a good liar, a low Will
@@ -588,7 +588,7 @@ means you are gullible and likely to give in to fear, lust and greed.
 ### Size, Soak and Move
 
 There are also three further statistics which are special attributes.
-These don\'t default to 3 for adult humans and can\'t be changed by
+These don't default to 3 for adult humans and can't be changed by
 spending points from your attribute pool on them.
 
 How large you are. An adult human has a Size of 5, though some may be as
@@ -609,24 +609,24 @@ Advantages allow you to personalise your character by choosing traits
 which make the character stand out above the rest of their society. Most
 people will have no advantages.
 
-Advantages can\'t be purchased after character generation. It may be
+Advantages can't be purchased after character generation. It may be
 possible to obtain something similar in game (e.g., you could find a
 dragon hoard and become Rich), but advantages are protected to some
-degree - things gained within the game aren\'t.
+degree - things gained within the game aren't.
 
 :::: note
 ::: title
 :::
 
 Taking an advantage provides you with a shtick that sets your character
-apart from others. They can\'t be \'bought off\' or purchased later
+apart from others. They can't be 'bought off' or purchased later
 after character generation, and should also be hard to lose in-game.
 
 If you do lose an advantage, there should be a later opportunity to
 obtain it back. For example, if you are a Rich American businessman, and
 lose everything when forced to flee your country due to some
-\'misunderstanding\', then the GM should provide some in-game
-opportunity to obtain wealth some other way. It doesn\'t mean it should
+'misunderstanding', then the GM should provide some in-game
+opportunity to obtain wealth some other way. It doesn't mean it should
 be easy, but the opportunity should be there, and may be the main focus
 of the plot for several sessions.
 
@@ -686,7 +686,7 @@ taught, requiring a teacher or study aid (such as a book) to learn from.
 ### Languages
 
 Language skills are treated on a scale from one to four, and are not
-normally \'rolled\' like other skills. Instead, the level of skill gives
+normally 'rolled' like other skills. Instead, the level of skill gives
 a guide to how much of a conversation you can understand.
 
 You automatically begin with a level of four in your native language,
@@ -728,16 +728,16 @@ suitable number of skills, or giving those skills for free, YAGS allows
 Educated characters to default to an Intelligence check for anything
 covered by a standard education.
 
-For a \'western\' education, it can be assumed that geography, history,
+For a 'western' education, it can be assumed that geography, history,
 science, mathematics, computer operation, drive, religion and politics
 are covered by this.
 
 An Educated character can make an Intelligence test, halved, for any of
 these skills. The Area lore skill can also be used for general knowledge
 about society and culture. This level of education is assumed to be
-\'GCSE\' level or equivalent - up to age 16.
+'GCSE' level or equivalent - up to age 16.
 
-Further education, up to A\'level would be covered by a relevant skill
+Further education, up to A'level would be covered by a relevant skill
 at a level of two. A basic university education would give a skill of
 about four at time of graduation, possibly with one or two suitable
 techniques.
@@ -752,7 +752,7 @@ die roll) is halved, plus the chance of fumbling is doubled.
 
 A default skill may also restrict the type of tasks which are possible.
 For example, Trade defaults to Guile, but the latter can only be used to
-barter, and isn\'t much use if the character needs to know the real
+barter, and isn't much use if the character needs to know the real
 value of goods.
 
 ### Pre-requisites
@@ -797,7 +797,7 @@ experience points which need to be spent to buy it. A level 6 technique
 costs 6 points to buy. The cost of the technique is also the minimum
 skill level that must be achieved before the technique can be purchased.
 If you do not have the required skill at a sufficient level, then the
-technique can\'t be bought.
+technique can't be bought.
 
 Finally, a technique may have a prerequisite. These are the techniques
 which must be known before this technique can be learnt.
@@ -818,7 +818,7 @@ buy Ignore Pain.
 
 Some techniques will be based on a skill group rather than a skill. In
 this case the technique can be purchased when any skill in that group
-reaches the technique\'s level, but it can only be used with those
+reaches the technique's level, but it can only be used with those
 skills of sufficient level.
 
 #### Familiarity Techniques
@@ -831,7 +831,7 @@ A skill which requires familiarity will list the common familiarities
 for that skill. When you first buy the skill at level 1, you may chose
 one familiarity for free. All others must be paid for.
 
-If you aren\'t familiar with the thing you are trying to use, then you
+If you aren't familiar with the thing you are trying to use, then you
 suffer penalties:
 
 You cannot use any other techniques with the skill if you are not
@@ -843,7 +843,7 @@ skill.
 The fumble chance is increased by +1 per 10 points of difficulty for the
 check.
 
-A familiarity costs two points, which means you can\'t obtain further
+A familiarity costs two points, which means you can't obtain further
 familiarities until you have a skill of 2+. If you have two or more
 skills which list the same familiarity, then you only need to buy it
 once.
@@ -863,7 +863,7 @@ Physics-4 as a Science specialisation.
 Specialisations tasks easier within that skill. Generally, the base
 difficulty of a knowledge task is based on how specific the type of
 knowledge is. For example, if you known Science, and want to know how to
-design a nuclear bomb, then that\'s quite a deep specialisation, and
+design a nuclear bomb, then that's quite a deep specialisation, and
 require a base difficulty of 40 for a simple design.
 
 If you had a specialisation in Nuclear Weapons, then designing becomes a
@@ -893,7 +893,7 @@ First aid
 
 First aid
 
-This skill can be used to try and make people better when they aren\'t
+This skill can be used to try and make people better when they aren't
 feeling very well.
 
 Try to figure out what is wrong with someone.
@@ -1002,7 +1002,7 @@ techniques/vehicle.yags
 
 Techniques represent specialist training in a particular use of a skill.
 They can provide a bonus in certain situations, or allow you to perform
-an action which wouldn\'t otherwise be possible.
+an action which wouldn't otherwise be possible.
 
 :::: note
 ::: title
@@ -1073,7 +1073,7 @@ techniques/vehicle.yags
 # Improvement
 
 A central facet of many RPGs is that a character can improve as the game
-progressions. This isn\'t a universal rule however, and it suits some
+progressions. This isn't a universal rule however, and it suits some
 type of fiction better than others. Much fantasy fiction revolves around
 a young, inexperienced hero with much untapped potential gaining that
 experience, and becoming a skilled champion in an infeasibly short
@@ -1087,7 +1087,7 @@ useful distinction to make.
 If, as a GM, you wish characters to improve rapidly in their skill sets,
 then it is suggested that experience is handed out at the end of each
 gaming session, possibly 1-3 points. Players can use this to improve
-their character\'s skills or techniques, at a maximum of 1 point on any
+their character's skills or techniques, at a maximum of 1 point on any
 single skill per session, and possibly limited to skills which could
 sensibly have improved.
 
@@ -1104,7 +1104,7 @@ techniques than to put up the skill.
 Optionally, a point may be granted at the end of each story arc (or at
 dramatically appropriate moments) which may be spent on attributes.
 Attributes can be raised in the same way as skills - 1 point per level
-of attribute you are raising to. This shouldn\'t amount to more than a
+of attribute you are raising to. This shouldn't amount to more than a
 few points a year for young characters, or more than a point a year for
 more experienced characters.
 
@@ -1118,14 +1118,14 @@ actual adventures.
 ### Background Experience
 
 Characters in a new area may pick up language and area lore skills if
-they don\'t already have them. If they have a skill less than 2, they
+they don't already have them. If they have a skill less than 2, they
 may gain 1 XP towards these skills each week they have an opportunity to
 learn. If they have a skill of 2-3, then they may gain 1 XP each month.
 
 Each week or month of game time, roll a d20, and on a 10+ you gain 1 XP
-towards the skill. Once the skill reaches 4, it won\'t improve in this
+towards the skill. Once the skill reaches 4, it won't improve in this
 way. This does assume that you are interacting with other people (in the
-case of language) or exploring (for area lore). If you aren\'t doing
+case of language) or exploring (for area lore). If you aren't doing
 this at all, then no XP will be gained. If you are doing it in a limited
 way, then you need a 15+. If the have the Tourist advantage, then you
 gain a bonus to this roll.
@@ -1179,16 +1179,16 @@ Base target number if skill is currently in the 4-7 range.
 
 Base target number if skill is currently 8+.
 
--1 for each point of \'Teach\' skill that the teacher has.
+-1 for each point of 'Teach' skill that the teacher has.
 
 If training facilities are of high quality, with lots of resources.
 Military training grounds would often qualify.
 
-For each point that the trainer\'s skill is lower than the student\'s.
+For each point that the trainer's skill is lower than the student's.
 
 When teaching a technique, the trainer must already know the technique.
 When teaching a skill, the trainer must have a skill of at least 4, and
-at least half the student\'s current skill otherwise training is not
+at least half the student's current skill otherwise training is not
 possible.
 
 At the end of the training period, roll a simple d20 and on success 1 XP

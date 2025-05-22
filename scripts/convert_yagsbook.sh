@@ -1,102 +1,71 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# YAGS book conversion script
+# Converts YAGS DocBook (.yags) files to Markdown and EPUB formats
+# Usage: ./convert_yagsbook.sh /path/to/yags_file.yags
 
-# Script to convert a .yags (DocBook XML) file to Markdown and EPUB using pandoc.
+set -e
 
-# --- Configuration ---
-# Host paths (script assumes it's run from project root or `scripts/` dir)
-# Adjust if script is run from a different CWD
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-PROJECT_ROOT=$(realpath "${SCRIPT_DIR}/..") # Assumes script is in scripts/
-
-HOST_OUTPUT_BASE_DIR="${PROJECT_ROOT}/converted_yagsbook"
-HOST_MARKDOWN_DIR="${HOST_OUTPUT_BASE_DIR}/markdown"
-HOST_EPUB_DIR="${HOST_OUTPUT_BASE_DIR}/epub"
-TEMP_INPUT_DIR_HOST="${PROJECT_ROOT}/temp_docbook_processing"
-
-# Container paths
-CONTAINER_INPUT_DIR="/app/docbook_input"
-CONTAINER_MD_OUTPUT_DIR="/app/output_markdown"
-CONTAINER_EPUB_OUTPUT_DIR="/app/output_epub"
-
-PODMAN_IMAGE_NAME="yags-converter" # Should match the image built by Podmanfile
-
-# --- Functions ---
-function print_usage() {
-    echo "Usage: $0 <path_to_yags_file>"
-    echo "Converts a .yags (DocBook XML) file to Markdown and EPUB using a Podman container."
-    echo "Example: $0 ../yags/src/core/core.yags  (if run from scripts/)"
-    echo "Example: ./scripts/convert_yagsbook.sh yags/src/core/core.yags (if run from project root)"
-}
-
-function ensure_dir() {
-    if [ ! -d "$1" ]; then
-        mkdir -p "$1"
-        echo "Created directory: $1"
-    fi
-}
-
-# --- Main Script ---
-
-# Check if input file is provided
-if [ -z "$1" ]; then
-    echo "Error: No input .yags file specified."
-    print_usage
-    exit 1
+# Check if a file path was provided
+if [ $# -eq 0 ]; then
+  echo "Error: No input file specified."
+  echo "Usage: $0 /path/to/yags_file.yags"
+  exit 1
 fi
 
-INPUT_YAGS_FILE_HOST_PATH="$1"
+# Parse command line arguments
+INPUT_FILE="$1"
+BASE_NAME=$(basename "$INPUT_FILE" .yags)
 
-# Ensure input file path is absolute or resolve it relative to current CWD
-if [[ ! "$INPUT_YAGS_FILE_HOST_PATH" = /* ]]; then
-  INPUT_YAGS_FILE_HOST_PATH="$(pwd)/${INPUT_YAGS_FILE_HOST_PATH}"
-fi
-INPUT_YAGS_FILE_HOST_PATH=$(realpath "$INPUT_YAGS_FILE_HOST_PATH")
+# Set up directory paths
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMP_DIR="$(pwd)/temp_docbook_processing"
+MARKDOWN_OUTPUT_DIR="$(pwd)/converted_yagsbook/markdown"
+EPUB_OUTPUT_DIR="$(pwd)/converted_yagsbook/epub"
 
+# Create necessary directories
+mkdir -p "$TEMP_DIR"
+mkdir -p "$MARKDOWN_OUTPUT_DIR"
+mkdir -p "$EPUB_OUTPUT_DIR"
 
-# Check if input file exists
-if [ ! -f "$INPUT_YAGS_FILE_HOST_PATH" ]; then
-    echo "Error: Input file '${INPUT_YAGS_FILE_HOST_PATH}' not found."
-    exit 1
-fi
+# Copy input file to temp directory
+cp "$INPUT_FILE" "$TEMP_DIR/$BASE_NAME.yags"
+echo "Copied input file to temporary directory: $TEMP_DIR/$BASE_NAME.yags"
 
-INPUT_YAGS_FILENAME=$(basename "$INPUT_YAGS_FILE_HOST_PATH")
+# Set up paths for container volumes
+HOST_INPUT_DIR="$(pwd)/temp_docbook_processing"
+HOST_OUTPUT_MARKDOWN_DIR="$(pwd)/converted_yagsbook/markdown"
+HOST_OUTPUT_EPUB_DIR="$(pwd)/converted_yagsbook/epub"
 
-# Prepare temporary input directory
-ensure_dir "$TEMP_INPUT_DIR_HOST"
-cp "$INPUT_YAGS_FILE_HOST_PATH" "${TEMP_INPUT_DIR_HOST}/${INPUT_YAGS_FILENAME}"
-echo "Copied input file to temporary directory: ${TEMP_INPUT_DIR_HOST}/${INPUT_YAGS_FILENAME}"
+# Display information
+echo "Input YAGS file (host): $INPUT_FILE"
+echo "Output Markdown dir (host): $HOST_OUTPUT_MARKDOWN_DIR"
+echo "Output EPUB dir (host):     $HOST_OUTPUT_EPUB_DIR"
 
-# Ensure host output directories exist
-ensure_dir "$HOST_MARKDOWN_DIR"
-ensure_dir "$HOST_EPUB_DIR"
-
+# Run the conversion in a Podman container
 echo "Starting Podman container for conversion..."
-echo "Input YAGS file (host): ${INPUT_YAGS_FILE_HOST_PATH}"
-echo "Output Markdown dir (host): ${HOST_MARKDOWN_DIR}"
-echo "Output EPUB dir (host):     ${HOST_EPUB_DIR}"
-
-# Run the Podman container
 podman run --rm \
-    -v "${TEMP_INPUT_DIR_HOST}:${CONTAINER_INPUT_DIR}:ro,Z" \
-    -v "${HOST_MARKDOWN_DIR}:${CONTAINER_MD_OUTPUT_DIR}:Z" \
-    -v "${HOST_EPUB_DIR}:${CONTAINER_EPUB_OUTPUT_DIR}:Z" \
-    -e "DOCBOOK_INPUT_FILE=${CONTAINER_INPUT_DIR}/${INPUT_YAGS_FILENAME}" \
-    -e "DOCBOOK_OUTPUT_DIR_MD=${CONTAINER_MD_OUTPUT_DIR}" \
-    -e "DOCBOOK_OUTPUT_DIR_EPUB=${CONTAINER_EPUB_OUTPUT_DIR}" \
-    "${PODMAN_IMAGE_NAME}"
+  -v "$HOST_INPUT_DIR:/app/docbook_input:Z" \
+  -v "$HOST_OUTPUT_MARKDOWN_DIR:/app/output_markdown:Z" \
+  -v "$HOST_OUTPUT_EPUB_DIR:/app/output_epub:Z" \
+  -v "$SCRIPT_DIR:/app/scripts:Z" \
+  -e DOCBOOK_INPUT_FILE="/app/docbook_input/$BASE_NAME.yags" \
+  -e DOCBOOK_OUTPUT_DIR_MD="/app/output_markdown" \
+  -e DOCBOOK_OUTPUT_DIR_EPUB="/app/output_epub" \
+  yags-converter \
+  /usr/local/bin/internal_podman_convert.sh
 
-EXIT_CODE=$?
+# Run table fixing scripts in sequence
+echo "Applying table fixes to $MARKDOWN_OUTPUT_DIR/$BASE_NAME.md..."
+python3 "$SCRIPT_DIR/table_fixes/direct_table_fix.py" "$MARKDOWN_OUTPUT_DIR/$BASE_NAME.md"
+python3 "$SCRIPT_DIR/table_fixes/final_fixes.py" "$MARKDOWN_OUTPUT_DIR/$BASE_NAME.md"
+python3 "$SCRIPT_DIR/table_fixes/fix_duplicates.py" "$MARKDOWN_OUTPUT_DIR/$BASE_NAME.md"
+python3 "$SCRIPT_DIR/table_fixes/fix_table_formatting.py" "$MARKDOWN_OUTPUT_DIR/$BASE_NAME.md"
 
-if [ $EXIT_CODE -eq 0 ]; then
-    echo "Podman container finished successfully."
-else
-    echo "Error: Podman container exited with code $EXIT_CODE."
-fi
-
-# Clean up temporary input directory
-rm -f "${TEMP_INPUT_DIR_HOST}/${INPUT_YAGS_FILENAME}"
-rmdir "$TEMP_INPUT_DIR_HOST" # rmdir only removes empty directories
-echo "Cleaned up temporary input directory."
+# Clean up
+echo "Cleaning up temporary input directory."
+rm -rf "$TEMP_DIR"
 
 echo "Conversion process finished."
-exit $EXIT_CODE
+echo "Output files:"
+echo "  Markdown: $MARKDOWN_OUTPUT_DIR/$BASE_NAME.md"
+echo "  EPUB: $EPUB_OUTPUT_DIR/$BASE_NAME.epub"

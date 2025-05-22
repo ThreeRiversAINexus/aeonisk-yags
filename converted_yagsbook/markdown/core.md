@@ -23,7 +23,7 @@ version 2.
 YAGS is Another Game System, one that is meant to provide a free,
 generic and modular set of rules for table top roleplaying. YAGS is
 designed to provide a realistic, but also cinematic, set of rules that
-allow fast play without compromising on detail when it\'s needed.
+allow fast play without compromising on detail when it's needed.
 
 YAGS has a flexible skill based system for determining how competent
 characters are. There are no levels or classes, and skills cover a wide
@@ -51,7 +51,7 @@ generation to fit that style of game.
 
 This article is the Core Rules, which describe the basic system on which
 everything else is based. It assumes that you know what a roleplaying
-game is, doesn\'t include any rules on building characters and only
+game is, doesn't include any rules on building characters and only
 includes descriptions of the most basic skills. For most people, reading
 one of the Character articles first would be a better place to start.
 
@@ -72,14 +72,14 @@ and a chainsaw. Because of this, YAGS mixes realism with a form of
 cinematic realism.
 
 A bullet can kill you, and mooks armed with automatic weapons will
-always be dangerous regardless of your skill. But there\'s no reason
-that a skilled character couldn\'t take on that group of mooks using
+always be dangerous regardless of your skill. But there's no reason
+that a skilled character couldn't take on that group of mooks using
 careful tactics, making good use of stealth, cover and surprise.
 
 ## Freedoms
 
 YAGS is Free content. This does not mean that you do not need to pay to
-download it (though you don\'t), but that you are free to do what you
+download it (though you don't), but that you are free to do what you
 want with the rules under the terms of the GPL version 2 (just like the
 free operating system Linux for example). This means that you have:
 
@@ -112,7 +112,7 @@ rules and print your own copy - no more need for scribbled notes in the
 margins.
 ::::
 
-# The Core Mechanics
+# 2. The Core Mechanics
 
 YAGS has a relatively simple set of basic rules which form the core of
 the rest of the system. This article provides a detailed description of
@@ -128,16 +128,16 @@ terms are used, the specific definitions given here are what is meant.
 One of the eight basic numbers which define any creature in YAGS. A
 typical adult human has a score of 3 in all their attributes.
 
-A skill defines a creature\'s training and experience in a narrow field.
-Skills are combined with attributes to determine a creature\'s ability
+A skill defines a creature's training and experience in a narrow field.
+Skills are combined with attributes to determine a creature's ability
 at a task. A professional level is skill is 4+.
 
-A creature\'s ability to achieve success in a task is equal to an
+A creature's ability to achieve success in a task is equal to an
 attribute multiplied by a skill, or an attribute multiplied by 4 for a
 raw attribute check.
 
 The raw numerical value of any characteristic, unmodified by anything
-else. A skill score would be a creature\'s rating in a skill, before it
+else. A skill score would be a creature's rating in a skill, before it
 is multiplied by an attribute.
 
 An activity that requires an ability check. To make a check, roll 1d20
@@ -169,39 +169,33 @@ equals or exceeds the Target Number (TN) then you succeed.
 To make a pure attribute check, then you roll Attribute x 4 + 1d20, and
 if it equals or exceeds the Target Number (TN) then you succeed.
 
-If the d20 rolls a natural \'1\', then you automatically fail. This is
-the \'fumble chance\', and is normally 1. In some situations, the fumble
-chance will be higher. If the fumble chance is 3, then a roll of \'1\',
-\'2\' or \'3\' will result in failure.
+If the d20 rolls a natural '1', then you automatically fail. This is
+the 'fumble chance', and is normally 1. In some situations, the fumble
+chance will be higher. If the fumble chance is 3, then a roll of '1',
+'2' or '3' will result in failure.
 
 If it is important how well you succeed, then every 10 points by which
 you beat the TN is considered an extra level of success. Simply beating
 the TN is considered a moderate success, beating it by 10 or more is a
 good success (2 levels), by 20 or more is excellent and 30+ is superb.
 
-Roll
-
-Level of Success
-
-success.
-
-success.
-
-success.
-
-success.
-
-success.
+| Roll | Level of Success |
+|
+| TN + 0 | Moderate success. |
+| TN + 10 | Good success. |
+| TN + 20 | Excellent success. |
+| TN + 30 | Superb success. |
+| TN + 40 | Fantastic success. |
 
 Sometimes, a skill contest is called for between two or more characters.
 In this case, instead of trying to beat a set TN, you try to beat your
-opponent\'s ability check.
+opponent's ability check.
 
 If you are competing against another character, then you both make an
 ability check, and the highest roll wins. On a tie, the person with the
 highest skill score wins.
 
-In a skill contest, if one of you rolls a natural \'20\' then you
+In a skill contest, if one of you rolls a natural '20' then you
 automatically win if your skill score is higher than your opponents.
 
 ### Skilled Professionals
@@ -211,38 +205,38 @@ to be a professional and have a couple of extra options available to
 you.
 
 In any non-opposed situation which is predictable, you may assume a roll
-of \'0\'. This negates the chance of a fumble, but also means that the
+of '0'. This negates the chance of a fumble, but also means that the
 task has to be well within your capability.
 
 If such a situation is non-stressful, in that there is not an immediate
 risk of harm and you can take your time, then you can assume a roll of
-\'10\'. This removes the risk of fumbling, but takes twice as long as
+'10'. This removes the risk of fumbling, but takes twice as long as
 normal.
 
 If the fumble chance is greater than 1, then the task is automatically
-considered non-predictable so these options can\'t be taken.
+considered non-predictable so these options can't be taken.
 
 Whether a task is predictable or stressful is ultimately up to the GM to
 decide.
 
-# Characteristics
+# 3. Characteristics
 
 As with many game systems, YAGS measures the ability of a character in
 the game using numerical statistics, called attributes and skills. These
-numbers don\'t relate directly to anything in the real world - they are
+numbers don't relate directly to anything in the real world - they are
 simply a convenient way to compare one character to another.
 
 Since YAGS is a game about human comparable characters, the statistics
 are designed to be easy to use when describing such characters. It is
 not so simple if used to compare the very small (rodents and insects),
-or the very large (giant mecha or world ships). These things aren\'t
+or the very large (giant mecha or world ships). These things aren't
 outside the scope of the game, but their involvement requires some
 special rules. For the former, see the Bestiary, for the latter see the
 vehicle rules in High Tech or SciFi.
 
 ## Attributes
 
-There\'s no gene for fate.
+There's no gene for fate.
 
 Attributes are the basic characteristics of all creatures in YAGS, and
 are a broad measure of natural talent and potential. There are eight
@@ -268,38 +262,17 @@ levels from the point of view of an adult human. Non-human creatures may
 work on different scales, especially for strength which tends to be much
 higher for large animals.
 
-Score
-
-Attribute
-
-You have no rateable ability in this attribute, and may not attempt
-skills which use it.
-
-You are crippled, being either very dumb, seriously ill or socially
-inept.
-
-You are noticeably below average, being in the bottom 10% of the
-population. This is normally the minimum level of attribute it is
-possible to have.
-
-You are average, among the middle 80% of the population.
-
-You are noticeably above average in ability, being in the top 10% of the
-population.
-
-You are highly adept at tasks related to this attribute. This is about
-the highest that people will have naturally, without training.
-
-You are truly exceptional, and have trained hard to develop your
-attribute this high. Most people will find it very hard to compete
-against you.
-
-You are one of a small number of people in your country.
-
-The normal maximum for humans. There may be a handful of people with an
-attribute this high in the modern world.
-
-Beyond what is naturally possible.
+| Score | Attribute|
+| 0 | None. You have no rateable ability in this attribute, and may not attempt skills which use it. |
+| 1 | Crippled. You are crippled, being either very dumb, seriously ill or socially inept. |
+| 2 | Poor. You are noticeably below average, being in the bottom 10% of the population. This is normally the minimum level of attribute it is possible to have. |
+| 3 | Average. You are average, among the middle 80% of the population. |
+| 4 | High. You are noticeably above average in ability, being in the top 10% of the population. |
+| 5 | Very high. You are highly adept at tasks related to this attribute. This is about the highest that people will have naturally, without training. |
+| 6 | Exceptional. You are truly exceptional, and have trained hard to develop your attribute this high. Most people will find it very hard to compete against you. |
+| 7 | Incredible. You are one of a small number of people in your country. |
+| 8 | Legendary. The normal maximum for humans. There may be a handful of people with an attribute this high in the modern world. |
+| 9+ | Superhuman. Beyond what is naturally possible. |
 
 Non-humans will of course have different averages and ranges. Wild
 beasts will tend to have a Perception of 5+, and large animals may well
@@ -317,7 +290,7 @@ setting.
 
 ### Primary Attributes
 
-Strength measures a character\'s ability to hurt, break and lift things.
+Strength measures a character's ability to hurt, break and lift things.
 Some effects, such as how much you can carry, are based on the square of
 your strength.
 
@@ -344,7 +317,7 @@ logic. Sages, researchers and scientists will use intelligence a lot.
 
 Empathy is the ability to understand other people. A high empathy does
 not necessarily make you charismatic, but a charismatic person will need
-a high empathy in order to be able to react to and manipulate another\'s
+a high empathy in order to be able to react to and manipulate another's
 emotions.
 
 Strength of will is used to overcome base instincts, such as fear and
@@ -358,7 +331,7 @@ Fantasy setting than it is in a Science Fiction setting for example.
 
 ### Secondary Attributes
 
-Secondary attributes aren\'t part of the standard set of eight
+Secondary attributes aren't part of the standard set of eight
 attributes, and do not tend to fall within the normal 2-5 range.
 
 Size defaults to five for adult humans, with most adults ranging from
@@ -374,7 +347,7 @@ long distance. It is equal to size + strength + agility + 1.
 ### Attributes in the Game World
 
 The vast majority of humans will have an average attribute with a score
-of 3. If you want to randomise an NPC\'s attributes, then roll a d20 for
+of 3. If you want to randomise an NPC's attributes, then roll a d20 for
 each one. On a roll of 1-2, they have a score of 2, on a 19-20 they have
 a score of 4. On any other result they have an average of 3. This means
 that the average score accounts for about 80% of the population (though
@@ -394,7 +367,7 @@ loves to do it better.
 
 A skill is something which can be learnt and improved through experience
 and training. Except for a few basic skills, they always default to zero
-unless specifically learnt. If a skill is zero, then it either can\'t be
+unless specifically learnt. If a skill is zero, then it either can't be
 used (in the case of many knowledge or science skills), can default to
 another skill, or is rolled as a straight d20 halved (round down).
 
@@ -405,7 +378,7 @@ obtain in such a way.
 
 ### Skill Levels
 
-Once a skill is learnt, it\'s level ranges from one upwards. There is no
+Once a skill is learnt, it's level ranges from one upwards. There is no
 theoretical limit to how high your skill can be, though a practical
 limit is in the range of 10-15. Skills higher than 15 are considered to
 be mythical - in the realm of supernatural or transcended beings.
@@ -485,16 +458,16 @@ represent. Comparisons with the real world are difficult to do, and high
 levels of knowledge are often best represented by specialisations by
 using Techniques.
 
-You\'ve seen a TV program on the subject, or listened to some stories.
+You've seen a TV program on the subject, or listened to some stories.
 
-You have a layman\'s interest in the subject, or studied it at school.
+You have a layman's interest in the subject, or studied it at school.
 You will know the common stuff, but have gaps and lack depth and full
 understanding.
 
-You have a graduate\'s level of knowledge, and have a well rounded view
+You have a graduate's level of knowledge, and have a well rounded view
 of the subject. This is sufficient for most people who use it regularly.
 
-You have a level of knowledge equivalent to that of a Master\'s Degree.
+You have a level of knowledge equivalent to that of a Master's Degree.
 
 If you have had a formal education, you probably have a Doctorate given
 your level of knowledge.
@@ -504,7 +477,7 @@ This level of skill is held by masters in their field.
 #### Languages
 
 Language skills are treated on a scale from one to four, and are not
-normally \'rolled\' like other skills. Instead, the level of skill gives
+normally 'rolled' like other skills. Instead, the level of skill gives
 a guide to how much of a conversation a character can understand.
 
 You can recognise the language and know a few words, but cannot put
@@ -548,7 +521,7 @@ be able to get by with less skill.
 
 Most tasks will be against a fixed TN. If you are competing against
 another character, then they get a skill check with a modifier. The
-modifier is given in parenthesis below, and adds to the other person\'s
+modifier is given in parenthesis below, and adds to the other person's
 check.
 
 Type of Task
@@ -596,7 +569,7 @@ totally heroic, which is at the very edge of possibility.
 
 If the skill check meets the target number, then a normal success is
 assumed. If the roll was significantly above the target number, then the
-success was particularly good. The exact result depends on the GM\'s
+success was particularly good. The exact result depends on the GM's
 interpretation but the following can be used as a guide.
 
 A good success is 10 points or more above the target. The task is
@@ -607,7 +580,7 @@ probably performed with two of style, completeness or speed.
 
 A superb success is 30 points or more above the required target, and was
 achieved with style, completeness and speed. Anything better than this
-probably won\'t be noticed by an untrained witness.
+probably won't be noticed by an untrained witness.
 
 A fantastic success is 40 points or more beyond the target.
 
@@ -628,7 +601,7 @@ You are unable to make use of any techniques that you know.
 
 Sometimes, using a default may also limit how you can use a skill. Using
 Sleight to diffuse a bomb instead of a Demolitions skill is possible,
-but you couldn\'t use it to know the type of bomb since that requires
+but you couldn't use it to know the type of bomb since that requires
 specialist knowledge only granted by actually having the skill.
 
 ### Skill Pre-requisites
@@ -679,7 +652,7 @@ time period might be anything from minutes to months.
 
 ### Competitive Tasks
 
-Where two people are competing against each other and you don\'t want to
+Where two people are competing against each other and you don't want to
 resolve it with a single skill check, then it is treated similar to a
 long task, with both sides attempting to be the first to achieve a set
 number of successes.
@@ -751,25 +724,25 @@ as close to what you will do on the day as possible. If it involves
 breaking into a house by climbing over a flint wall, up a drain pipe,
 jimmying open a window and picking the lock on the chest inside, then
 practising by climbing a cliff and opening a different type of lock
-isn\'t going to help.
+isn't going to help.
 
 If you practised everything perfectly, then on the day find that the
 drainpipe has been removed, you still get the bonus for the flint wall,
 opening the window and the lock, but have to make a standard athletics
 check for climbing the wall of the house.
 
-If the drainpipe is there, but it\'s wet and slippery due to rain (which
-you hadn\'t practised on), then you can still have your bonus but you
-can\'t consider that action to be non stressful).
+If the drainpipe is there, but it's wet and slippery due to rain (which
+you hadn't practised on), then you can still have your bonus but you
+can't consider that action to be non stressful).
 
 ### Quick Practice
 
 If you have a few weeks, then each week you spend in practice gives you
 a +1 bonus to any applicable skill checks you make on the day. If you
 spend at least a week in practice, then you also have -1 to any fumble
-chances for those checks (which will normally mean that you can\'t
-fumble). More importantly, if you can\'t fumble, for anything where you
-don\'t deviate from the plan, you may treat the situation as non
+chances for those checks (which will normally mean that you can't
+fumble). More importantly, if you can't fumble, for anything where you
+don't deviate from the plan, you may treat the situation as non
 stressful without having to take extra time.
 
 The practice must be continuous, and the bonus is good for a month after
@@ -783,7 +756,7 @@ routine, as well as -1 to any fumble chances. You may also consider
 tasks within the planned routine to be non-stressful, without having to
 spend more time.
 
-The maximum bonus is equal to your skill, so you can\'t do better than
+The maximum bonus is equal to your skill, so you can't do better than
 double your skill. A circus acrobat with a skill of 6 and an Agility of
 4 would get an effective +4 to their roll for each month (+24 after 6
 months)
@@ -807,14 +780,14 @@ experience points which need to be spent to buy it. A level 6 technique
 costs 6 points to buy. The cost of the technique is also the minimum
 skill level that must be achieved before the technique can be purchased.
 If you do not have the required skill at a sufficient level, then the
-technique can\'t be bought.
+technique can't be bought.
 
 Finally, a technique may have a prerequisite. These are the techniques
 which must be known before this technique can be learnt.
 
 Some techniques will be based on a skill group rather than a skill. In
 this case the technique can be purchased when any skill in that group
-reaches the technique\'s level, but it can only be used with those
+reaches the technique's level, but it can only be used with those
 skills of sufficient level.
 
 :::: note
@@ -840,7 +813,7 @@ list other familiarities which can be purchased.
 
 For example, Driving assumes skill at driving a typical car, but has
 familiarities for Motorbikes, HGVs, Tanks, Buggies and the like. If you
-don\'t have the right familiarity, then you have to default to the
+don't have the right familiarity, then you have to default to the
 standard skill and your rolls are halved.
 
 Most familiarities will be 2 points, though for complex skills they
@@ -878,7 +851,7 @@ or Backgammon.
 
 A Mastery has a base cost of 1 point, but can be bought up to any level
 as per the normal limits for techniques. If you buy a Mastery at level
-1, buying it at level 2 costs one extra point - you don\'t need to buy a
+1, buying it at level 2 costs one extra point - you don't need to buy a
 whole new technique.
 
 Each level of mastery gives you a +1 bonus when attempting tasks related
@@ -889,17 +862,17 @@ against each other (e.g., in a game of chess, but not in an art
 contest), if one person has a lower mastery level than the other, then
 they suffer a +1 to their fumble chance per level of difference. If they
 have no mastery levels, then the penalty is +2 per level of difference.
-This represents the master\'s ability to force their opponent into bad
+This represents the master's ability to force their opponent into bad
 decisions, or take better advantage of the slightest mistake.
 
 ## Size
 
 Start with the part where Jayne gets knocked out by a 90-pound girl,
-\'cause\... I don\'t think that\'s ever getting old.
+'cause\... I don't think that's ever getting old.
 
 How large a creature is can be measured in a number of ways - height,
 length and mass being the common criteria. In YAGS, the Size attribute
-is a measure of the creature\'s capacity to absorb damage, and how easy
+is a measure of the creature's capacity to absorb damage, and how easy
 it is to hit. In general, the Size of a creature will increase
 logarithmically with its mass - every +5 increase in Size represents a
 ten fold increase in mass.
@@ -917,52 +890,37 @@ and lower limits on Strength for noticeably large or small characters.
 
 By using an exponential scale, the numbers are kept relatively small for
 both Size and Strength for even the largest of creatures. If Size
-wasn\'t exponential, a blue whale would need a Size of around 1000.
+wasn't exponential, a blue whale would need a Size of around 1000.
 ::::
 
 The scale is based around an average of a 70kg human male. A Size 10
 creature would be 700kg, a Size 15 creature 7 tonnes, and a Size 20
 creature 70 tonnes. Some examples are as follows.
 
-Size
-
-Mass and examples
-
-A large house cat.
-
-1 year old child, a small dog (e.g., a beagle).
-
-5 year old child.
-
-10 year old child, a medium dog (e.g., a boxer).
-
-Small adult, lightweight woman, a wolf.
-
-Typical adult. This size constitutes most of the adult human population.
-Anyone outside of this average is very noticeably large or small.
-
-Heavyweight boxer, stereotypical barbarian warrior.
-
-Donkey, black bear.
-
-Lion.
-
-Riding horse, grizzly bear.
-
-War horse, prehistoric cave bear. Also, a family car.
-
-Rhino. Also, an SUV or small tank.
-
-Great white shark, anything up to about 2 tonnes in mass. Also, a
-typical tank.
-
-Triceratops. Also, a large tank.
-
-Elephant.
-
-Apatosaurus. The largest land animals known.
-
-Blue whale.
+| Size | Mass and examples |
+|
+| 0 | 7kg. A large house cat. |
+| 1 | 11kg. 1 year old child, a small dog (e.g., a beagle). |
+| 2 | 18kg. 5 year old child. |
+| 3 | 28kg. 10 year old child, a medium dog (e.g., a boxer). |
+| 4 | 44kg. Small adult, lightweight woman, a wolf. |
+| 5 | 70kg. Typical adult. This size constitutes most of the adult human population. Anyone outside of this average is very noticeably large or small. |
+| 6 | 111kg. Heavyweight boxer, stereotypical barbarian warrior. |
+| 7 | 176kg. Donkey, black bear. |
+| 8 | 279kg. Lion. |
+| 9 | 442kg. Riding horse, grizzly bear. |
+| 10 | 700kg. War horse, prehistoric cave bear. Also, a family car. |
+| 11 | 1.1t. Rhino. Also, an SUV or small tank. |
+| 12 | 1.8t. Great white shark, anything up to about 2 tonnes in mass. Also, a typical tank. |
+| 13 | 2.8t. |
+| 14 | 4.4t. Triceratops. Also, a large tank. |
+| 15 | 7t. Elephant. |
+| 16 | 11t. |
+| 17 | 17t. |
+| 18 | 28t. Apatosaurus. The largest land animals known. |
+| 19 | 44t. |
+| 20 | 70t. |
+| 21 | 110t. Blue whale. |
 
 Each point of Size allows a creature (including PCs) to take one wound
 before dying. A warhorse can take about twice as much damage as a man,
@@ -977,7 +935,7 @@ the vehicle, rather than its mass. Obtaining real-world figures for the
 mass of animals is quite simple, but volumes are rarely given. Finding
 the volume of a vehicle or building is relatively straightforward, but
 finding a sensible value for its mass can be hard (especially when a
-vehicle\'s mass can change drastically depending on whether it is empty
+vehicle's mass can change drastically depending on whether it is empty
 or loaded). However, creatures and vehicles should approximate to the
 same Size for any given size. A Size 5 vehicle is assumed to be one
 cubic metre, again increasing by a factor of 10 for each +5.
@@ -985,9 +943,20 @@ cubic metre, again increasing by a factor of 10 for each +5.
 To get an idea of how large vehicles and objects scale, the following
 examples may help.
 
-Size
-
-Vehicle examples
+| Size | Vehicle examples |
+|
+| 5 | Motorbike. |
+| 10 | Family car. |
+| 16 | Train carriage. |
+| 17 | F-16 fighter. |
+| 22 | Free Trader (Traveller). |
+| 26 | Boeing 747. |
+| 28 | Bismark. |
+| 32 | USS Enterprise CVN-65. |
+| 44 | Star Destroyer (Star Wars). |
+| 80 | Death Star (Star Wars). |
+| 94 | Skylark of Valeron (EE Doc Smith). |
+| 110 | Earth |
 
 The ability to absorb damage is also slightly different for vehicles, in
 that weapons designed to harm people are far less effective against
@@ -1060,9 +1029,9 @@ wound and stun penalties reduce total movement when sprinting.
 
 ### Overland Movement
 
-If you don\'t know where you are going, any road will get you there.
+If you don't know where you are going, any road will get you there.
 
-Overland movement is where round to round movement isn\'t important, but
+Overland movement is where round to round movement isn't important, but
 distance travelled over the course of an entire day is. A day is divided
 into six watches of 4 hours each.
 
@@ -1074,7 +1043,7 @@ riding a horse (or similar creature), then they gain exhaustion every
 other watch.
 
 Modifiers to this (weather, type of terrain etc) are possible, but
-aren\'t described here. See the wilderness article for full details.
+aren't described here. See the wilderness article for full details.
 
 ### Encumbrance
 
@@ -1116,7 +1085,7 @@ Armour and other clothing may have a load which is different to its
 weight. In which case, use the load value when wearing the armour. It
 will often be lower due to being designed to be worn comfortably.
 
-# Core Skills
+# 4. Core Skills
 
 There are eight core skills in YAGS, which are called Talents. These are
 known by virtually all characters (at least, human ones), since they
@@ -1137,7 +1106,7 @@ of the time.
 ## Athletics
 
 We call ourselves runners. We exist on the edge between the gloss and
-the reality. The mirror\'s edge.
+the reality. The mirror's edge.
 
 Racing down an ally, leaping from roof top to roof top, climbing rapidly
 up walls or swinging across chasms on ropes - these are all tasks for
@@ -1148,17 +1117,19 @@ in certain acrobatic styles of fighting.
 
 ### Running
 
-Generally, if you want to run then you don\'t need to make a skill
+Generally, if you want to run then you don't need to make a skill
 check. However, sometimes life has a habit of throwing obstacles in your
 path which can end up testing your skill to the limit. How fast you can
 run is based on your Move score, and is recapped below.
 
-Action
-
-Distance/round
+| Action | Distance/round-|
+| Careful (x1/2) | 1/2 MOVE |
+| Standard | MOVE |
+| Running (x2) | MOVE x 2 |
+| Sprinting (x3) | MOVE x 2 + Athletics |
 
 Racing across clear terrain with nothing in your way is considered
-trivial, and you don\'t need to make a skill check to succeed. On the
+trivial, and you don't need to make a skill check to succeed. On the
 other hand, trying to dodge through crowds of people on a broken and icy
 footpath can require a lot of skill and luck. If the path is not clear
 and easy, then an athletics check is needed each round. The TN is
@@ -1210,22 +1181,20 @@ ladder or flight of stairs will rarely require a skill check.
 During combat, a simple climb manoeuvre can be performed as part of a
 move action by making an Athletics check.
 
-Target
+| Target | Obstruction|
+| 0 | No obstructions, a completely clear path. |
+| 5 | A typical lightly crowded street, or through a wood. Running is easy, unless you fumble and trip up. |
+| 10 | A busy street, a warehouse full of crates, across rubble or through dense woods. |
+| 20 | A busy market, or through thick foliage. |
+| +5/+10 | Unstable footing, such as rubble, crumbling rock or swaying rigging. |
+| +5/+10 | Narrow or uneven footing, such as a narrow ledge or ground with many holes or cracks. |
+| +5/+10 | Additionally to the other modifiers, if the surface is icy, oil covered or otherwise lacking in grip. |
+| +5 | If any of the other modifiers apply, and it is windy, add a further +5. ----|
+| 5 | Get onto or over a chair or bench. Getting under a table or similar shelter is also very easy. |
+| 10 | Get onto a table or object of similar height. Climbing under and through a table, assuming there are no chairs in the way. |
+| 15 | Climb/jump over a table or object of similar size. Also, climbing over a fence no higher than you are. |
 
-Obstruction
-
-Get onto or over a chair or bench. Getting under a table or similar
-shelter is also very easy.
-
-Get onto a table or object of similar height. Climbing under and through
-a table, assuming there are no chairs in the way.
-
-Climb/jump over a table or object of similar size. Also, climbing over a
-fence no higher than you are.
-
-On success, all of these can be performed as a standard movement action
-at no penalty during combat. Failure results in no or partial movement,
-and loss of further attacks and defences that round.
+On success, all of these can be performed as a standard movement action at no penalty during combat. Failure results in no or partial movement, and loss of further attacks and defences that round.
 
 To perform these actions as a full round action, halve the difficulties.
 
@@ -1249,24 +1218,13 @@ For longer climbs, a roll every 15 minutes can be made, at Move x 50.
 Again, speed is traded for reliability. Over these distances, a failure
 can be ignored by gaining a level of Exhaustion.
 
-Target
-
-Surface being climbed
-
-Ladders, very easy slope or tree.
-
-Trees with plenty of branches, cliff with lots of ledges and handholds,
-scaffolding or similar structure.
-
-Typical cliff, on to the roof of a modern detached house (via garage,
-drain pipes etc).
-
-Smooth cliff or brick wall of a modern house.
-
-About the hardest most cliffs will be in general, though they may have
-sections which are harder than this.
-
-About the hardest naturally occurring climbs.
+| Target | Surface being climbed|
+| 5 | Ladders, very easy slope or tree. |
+| 10 | Trees with plenty of branches, cliff with lots of ledges and handholds, scaffolding or similar structure. |
+| 15 | Typical cliff, on to the roof of a modern detached house (via garage, drain pipes etc). |
+| 20 | Smooth cliff or brick wall of a modern house. |
+| 30 | About the hardest most cliffs will be in general, though they may have sections which are harder than this. |
+| 40 | About the hardest naturally occurring climbs. |
 
 If you want to climb carefully, halve speed, and on failure half the TN
 of the second check (the first check is still the same however).
@@ -1278,7 +1236,7 @@ our memory is selective. Finally, writing transforms.
 
 If your Perception is your ability to see or hear things, then Awareness
 is your ability to notice that you have. A person with a high Awareness
-doesn\'t have better eyesight, but they are better at taking note of
+doesn't have better eyesight, but they are better at taking note of
 their surroundings. As such, it may be combined with Intelligence to
 remember what you previously may have seen or heard.
 
@@ -1294,28 +1252,17 @@ Example
 Notice something obvious, such as a knife laying next to a dead body.
 
 Something in plain sight, but not immediately obvious. A torn note on a
-desk, a wet pair of shoes on someone who hasn\'t been outside.
+desk, a wet pair of shoes on someone who hasn't been outside.
 
 To spot something, make a Awareness check according to the table below.
 
-Modifier
-
-Situation
-
-Base TN to see a person who is standing in the open, making no attempt
-to hide themselves.
-
-If the target is over 50m away, then increase the TN by +5.
-
-If the target is 100m away or more, then increase the TN by +10. Each
-doubling (200m, 400m) adds a further +10.
-
-Each point of size of the target above 5, reduce the TN by 5. If they
-are smaller, then increase the TN by 5 per point.
-
-If the target is hidden in half cover.
-
-If the target is almost entirely hidden.
+| Modifier | Situation |
+| 15 | Base TN to see a person who is standing in the open, making no attempt to hide themselves. |
+| +5 | If the target is over 50m away, then increase the TN by +5. |
+| +10 | If the target is 100m away or more, then increase the TN by +10. Each doubling (200m, 400m) adds a further +10. |
+| -/+5 | Each point of size of the target above 5, reduce the TN by 5. If they are smaller, then increase the TN by 5 per point. |
+| +10 | If the target is hidden in half cover. |
+| +20 | If the target is almost entirely hidden. |
 
 ## Brawl
 
@@ -1324,7 +1271,7 @@ concerned with combat involving either no weapons, or small or
 improvised weapons such as knives, bottles, chairs and clubs.
 
 Brawl includes punching, kicking, dodging, wrestling, biting, grapples
-and throws. By default, there are no \'martial art\' skills in YAGS -
+and throws. By default, there are no 'martial art' skills in YAGS -
 instead particular fighting styles are modelled as techniques (based on
 brawl) which grant special abilities or bonuses.
 
@@ -1342,8 +1289,8 @@ Charm is generally based on Empathy. It does not have to be sincere, but
 is generally about getting another person to like you.
 
 If you wish to impress someone, make a Charm check, and your result will
-determine what they think of you. Charm\'s big advantage is that it
-isn\'t resisted
+determine what they think of you. Charm's big advantage is that it
+isn't resisted
 
 Target
 
@@ -1353,12 +1300,12 @@ You manage to annoy or upset the person such that they dislike you. They
 are unlikely to help you, and may hinder you depending on their
 personality.
 
-You haven\'t upset them, but you haven\'t impressed them either. Whether
+You haven't upset them, but you haven't impressed them either. Whether
 they help or hinder you will depend on their personality.
 
 You made a good impression, and the person has had their opinion of you
 improved. They will probably be willing to help you, or spend time in
-your company, as long as it doesn\'t cost them too much.
+your company, as long as it doesn't cost them too much.
 
 You have really impressed them, and they will make an effort to aid you,
 or to keep you happy. It requires a few minutes of chat for someone to
@@ -1376,18 +1323,18 @@ You have the person eating out of your hand. They will do anything for
 you. A few evenings.
 
 The above results are the best first impression possible, and assumes
-that the person didn\'t know anything about you before hand. If you are
+that the person didn't know anything about you before hand. If you are
 a hated enemy, or have just done something they consider unpleasant,
 then they may start with a reaction of -1 or worse. If you have any
 modifiers for good (or bad) appearance, status or reputation then these
 may modify your Empathy for this roll.
 
 How much time is spent making that first impression also limits how good
-the result can be. A quick introduction won\'t get you better than a
+the result can be. A quick introduction won't get you better than a
 Liked result, whatever the roll.
 
 The better the impression you make, the more likely the other person is
-to like you, however even a Love result won\'t cause them to give you
+to like you, however even a Love result won't cause them to give you
 all their wealth (at least, not immediately).
 
 ## Guile
@@ -1402,7 +1349,7 @@ to do.
 
 ### Simple lies
 
-Simple lying requires a guile check against the opponent\'s guile. It
+Simple lying requires a guile check against the opponent's guile. It
 basically entails keeping calm, not saying more than you should and not
 showing your true emotions.
 
@@ -1413,12 +1360,12 @@ Obviously, if you wish to tell if someone is lying, then you make the
 Empathy check, and they make the Will check. If you exceed their roll,
 then you know if they are lying or telling the truth. If you fail, then
 you will randomly think they are being truthful or liars. If the
-target\'s roll was positive, you think they are truthful, otherwise you
+target's roll was positive, you think they are truthful, otherwise you
 think they are lying. Neither party knows whether they succeeded or not.
 
 On a good success, you are certain whether the other person is lying or
 not. However, if the liar gets a good success, then you are certain they
-are telling the truth so this doesn\'t necessarily help.
+are telling the truth so this doesn't necessarily help.
 
 ### Interrogation
 
@@ -1440,7 +1387,7 @@ use of Empathy.
 ### Pick Pocket
 
 If trying to steal an item from a person without them noticing, then a
-Sleight check is required, against the target\'s Awareness. Modifiers
+Sleight check is required, against the target's Awareness. Modifiers
 depend on the type of situation.
 
 Bonus
@@ -1462,11 +1409,11 @@ complex.
 
 A Awareness check by an observer against your skill roll will enable
 them to see how you did the trick. If you are simply trying to
-entertain, then this doesn\'t necessarily mean you failed.
+entertain, then this doesn't necessarily mean you failed.
 
 ## Stealth
 
-Hey pal. If you\'re goin\' to make that much noise, why don\'t you just
+Hey pal. If you're goin' to make that much noise, why don't you just
 come on out?
 
 Moving silently past guards, hiding in the shadows or otherwise trying
@@ -1477,18 +1424,18 @@ Agility. If in doubt and both are required, make a single check with
 Agility.
 
 A Stealth check opposes the Awareness of the person you are trying to
-avoid, and the observer\'s roll is modified according to distance and
+avoid, and the observer's roll is modified according to distance and
 situation.
 
 ## Throw
 
-Don\'t throw those bloody spears at me.
+Don't throw those bloody spears at me.
 
 Hurling a spear into your enemy, chucking a grenade through a doorway,
 catching a ball or juggling several all come under the Throw skill.
 
 Throw is generally based on Dexterity. If throwing at someone, then
-it\'s considered an attack and they may get a dodge plus the TN will be
+it's considered an attack and they may get a dodge plus the TN will be
 modified by range (+1 per metre for typical objects). A doorway is about
 TN 10 to throw something through, a window 15, a car window about 20.
 
@@ -1496,7 +1443,7 @@ Catching something like a ball, which was thrown to you, is about 10,
 modified by +2 for each point the thrower missed you by on their attempt
 to throw.
 
-# Genres and Settings
+# 5. Genres and Settings
 
 ## Technology
 
@@ -1509,7 +1456,7 @@ be used quite differently.
 
 The level of technology of a culture is roughly determined by its Tech
 Level, which ranges from TL 0 (the stone age) through to TL 8 (modern
-day) and beyond. This is a crude method of determining a culture\'s
+day) and beyond. This is a crude method of determining a culture's
 technological capability, but is meant to be quick and simple.
 
 #### 0: Stone Age
@@ -1520,7 +1467,7 @@ religion will arise at some point during TL 0.
 
 #### 1: Bronze Age
 
-The ability to work metals. The civilisations of the \'Ancients\',
+The ability to work metals. The civilisations of the 'Ancients',
 covering several thousand years. Includes the Greeks, Celts, Egyptians
 and other cultures.
 
@@ -1539,7 +1486,7 @@ science. The Romans were pretty much at TL 3 as well.
 #### 4: Renaissance (1450-1750)
 
 The Age of Reason and the Enlightenment mark the dawn of science, though
-it doesn\'t really reach full bloom until TL 5. Gunpowder, sailing
+it doesn't really reach full bloom until TL 5. Gunpowder, sailing
 ships, astronomy and mathematics all make their mark on the world.
 
 #### 5: Steam (1750-1900)
@@ -1566,7 +1513,7 @@ re-working.
 Many TL 7 inventions actually came about at the end of TL 6, with the
 jet engine, nuclear bomb and computers. In TL 7 these things become
 mainstream. Electronics and medicine really start to revolutionise
-society, and the beginnings of space exploration. It wasn\'t until TL 7
+society, and the beginnings of space exploration. It wasn't until TL 7
 (1972 to be precise) that anyone knew what the Earth looked like.
 
 #### 8: Information (1980-2020)
@@ -1602,7 +1549,7 @@ TL 13 - 15 starts to see super-science based societies, with massive
 orbital structures and weapons capable of devastating planetary
 civilisations.
 
-# GNU GENERAL PUBLIC LICENSE {#gpl}
+# 6. GNU GENERAL PUBLIC LICENSE {#gpl}
 
 Version 2, June 1991
 
@@ -1619,7 +1566,7 @@ share and change it. By contrast, the GNU General Public License is
 intended to guarantee your freedom to share and change free
 software\--to make sure the software is free for all its users. This
 General Public License applies to most of the Free Software
-Foundation\'s software and to any other program whose authors commit to
+Foundation's software and to any other program whose authors commit to
 using it. (Some other Free Software Foundation software is covered by
 the GNU Library General Public License instead.) You can apply it to
 your programs, too.
@@ -1645,33 +1592,33 @@ We protect your rights with two steps: (1) copyright the software, and
 (2) offer you this license which gives you legal permission to copy,
 distribute and/or modify the software.
 
-Also, for each author\'s protection and ours, we want to make certain
+Also, for each author's protection and ours, we want to make certain
 that everyone understands that there is no warranty for this free
 software. If the software is modified by someone else and passed on, we
 want its recipients to know that what they have is not the original, so
 that any problems introduced by others will not reflect on the original
-authors\' reputations.
+authors' reputations.
 
 Finally, any free program is threatened constantly by software patents.
 We wish to avoid the danger that redistributors of a free program will
 individually obtain patent licenses, in effect making the program
 proprietary. To prevent this, we have made it clear that any patent must
-be licensed for everyone\'s free use or not licensed at all.
+be licensed for everyone's free use or not licensed at all.
 
 The precise terms and conditions for copying, distribution and
 modification follow.
 
-## GNU GENERAL PUBLIC LICENSE TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+## 6. GNU GENERAL PUBLIC LICENSE TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 
 0\. This License applies to any program or other work which contains a
 notice placed by the copyright holder saying it may be distributed under
-the terms of this General Public License. The \"Program\", below, refers
-to any such program or work, and a \"work based on the Program\" means
+the terms of this General Public License. The "Program", below, refers
+to any such program or work, and a "work based on the Program" means
 either the Program or any derivative work under copyright law: that is
 to say, a work containing the Program or a portion of it, either
 verbatim or with modifications and/or translated into another language.
 (Hereinafter, translation is included without limitation in the term
-\"modification\".) Each licensee is addressed as \"you\".
+"modification".) Each licensee is addressed as "you".
 
 Activities other than copying, distribution and modification are not
 covered by this License; they are outside its scope. The act of running
@@ -1680,7 +1627,7 @@ covered only if its contents constitute a work based on the Program
 (independent of having been made by running the Program). Whether that
 is true depends on what the Program does.
 
-1\. You may copy and distribute verbatim copies of the Program\'s source
+1\. You may copy and distribute verbatim copies of the Program's source
 code as you receive it, in any medium, provided that you conspicuously
 and appropriately publish on each copy an appropriate copyright notice
 and disclaimer of warranty; keep intact all the notices that refer to
@@ -1792,7 +1739,7 @@ Program or works based on it.
 Program), the recipient automatically receives a license from the
 original licensor to copy, distribute or modify the Program subject to
 these terms and conditions. You may not impose any further restrictions
-on the recipients\' exercise of the rights granted herein. You are not
+on the recipients' exercise of the rights granted herein. You are not
 responsible for enforcing compliance by third parties to this License.
 
 7\. If, as a consequence of a court judgement or allegation of patent
@@ -1841,8 +1788,8 @@ be similar in spirit to the present version, but may differ in detail to
 address new problems or concerns.
 
 Each version is given a distinguishing version number. If the Program
-specifies a version number of this License which applies to it and \"any
-later version\", you have the option of following the terms and
+specifies a version number of this License which applies to it and "any
+later version", you have the option of following the terms and
 conditions either of that version or of any later version published by
 the Free Software Foundation. If the Program does not specify a version
 number of this License, you may choose any version ever published by the
@@ -1861,7 +1808,7 @@ NO WARRANTY
 11\. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO
 WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.
 EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR
-OTHER PARTIES PROVIDE THE PROGRAM \"AS IS\" WITHOUT WARRANTY OF ANY
+OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY
 KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
 PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE

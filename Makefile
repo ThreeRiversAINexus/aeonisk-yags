@@ -38,7 +38,7 @@ YAGS_EPUB_TARGETS := $(patsubst %.md,%.epub,$(YAGS_MD_TARGETS))
 
 # --- Targets ---
 
-.PHONY: all build_podman_image convert_markdown convert_yags clean help
+.PHONY: all build_podman_image convert_markdown convert_yags clean clean_backups help
 
 # Default target
 all: convert_markdown convert_yags
@@ -78,6 +78,12 @@ clean:
 	@rm -rf temp_docbook_processing # remove temp dir from yags script
 	@echo "Cleanup complete."
 
+# Clean up backup files
+clean_backups:
+	@echo "Cleaning up backup files..."
+	@./scripts/cleanup_backups.sh
+	@echo "Backup cleanup complete."
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -86,4 +92,5 @@ help:
 	@echo "  convert_markdown   - Convert Markdown files from '$(CONTENT_DIR)/' to PDF/EPUB."
 	@echo "  convert_yags       - Convert specified .yags files to Markdown/EPUB."
 	@echo "  clean              - Remove all generated files and directories."
+	@echo "  clean_backups      - Clean up backup files created during conversion."
 	@echo "  help               - Show this help message."

@@ -34,7 +34,7 @@ it can an unskilled opponent.
 
 However, combat in YAGS is also geared towards Cinematic Realism - it
 may be gritty and lean towards realism where possible, but it allows you
-to be heroic as long as you\'re clever as well. The advantage goes to
+to be heroic as long as you're clever as well. The advantage goes to
 whoever has surprise or a careful plan. Having both is even better.
 
 As with the rest of the system, combat in YAGS is reasonably detailed,
@@ -50,7 +50,7 @@ want is a simple and fast combat system, then you can stick with that.
 
 The later sections go into more detail however, providing a bit more
 colour to the rules, and covering situations more extensively. If you
-don\'t care about different armour types or ways of using a gun, then
+don't care about different armour types or ways of using a gun, then
 you can ignore them.
 
 ## General Terminology
@@ -79,10 +79,10 @@ limited to cuts and bruises. Fists, sticks and chairs are likely to stun
 you.
 
 Knives, clubs and animal claws or teeth are more likely to kill you than
-a fist, but aren\'t as deadly as a sword or gun. They do mixed damage,
+a fist, but aren't as deadly as a sword or gun. They do mixed damage,
 which is split between stuns and wounds with odd damage doing on stuns.
 
-Sometimes (if you\'re lucky), an attacker may find it very hard to hurt
+Sometimes (if you're lucky), an attacker may find it very hard to hurt
 you. In this case their attack is considered ineffective. They do stun
 damage, but the number of stuns is halved (rounding down).
 
@@ -95,7 +95,7 @@ It is gained from long term physical activity such as hiking or heavy
 labour.
 
 Damage is what causes stuns or wounds. You roll the damage and subtract
-the target\'s soak. Every five points left causes one stun or wound.
+the target's soak. Every five points left causes one stun or wound.
 
 Load is used to measure the weight and bulkyness of weapons and armour.
 The higher the load, the higher Strength you need to have to be able to
@@ -109,7 +109,7 @@ An extra attack which may be taken immediately against a given opponent.
 The opponent gets a free defence roll, at the same penalty as other
 defence rolls that round if multiple defences have been declared.
 
-An extra attack which make be taken immediately after the opponent\'s
+An extra attack which make be taken immediately after the opponent's
 action which triggered it, but otherwise treated as a free strike.
 
 An extra attack which may be taken immediately against a given opponent.
@@ -128,7 +128,7 @@ greater than zero.
 
 The distance to a target for missile weapons, measured in metres. This
 affects how hard it is to hit the target, and my be modified up or down
-depending on other factors (such as if you\'re running whilst trying to
+depending on other factors (such as if you're running whilst trying to
 shoot).
 
 The effective range of missile weapons, measured in metres. This is
@@ -149,7 +149,7 @@ the attack to be able to make an active defence, and you have a limited
 number you can make in a round.
 
 You passive defence is a fixed number, and is the difficulty for someone
-to hit you when you aren\'t performing an active defence. It is normally
+to hit you when you aren't performing an active defence. It is normally
 15.
 
 ### Combat skills
@@ -158,7 +158,7 @@ Silly Caucasian girl likes to play with Samurai swords.
 
 There are a huge variety of different weapons that can be used in
 combat, from knives to two handed swords, from pistols to sniper rifles
-and light machine guns. However, you don\'t need to learn a different
+and light machine guns. However, you don't need to learn a different
 skill for each one.
 
 All forms of unarmed combat, including punching, kicking, biting and
@@ -203,10 +203,10 @@ Every creature has a basic soak score, which reduces the damage done to
 them in an attack. Armour gives a protective bonus which adds to this
 soak, though it can reduce your movement.
 
-Armour is either light or heavy. The former isn\'t as effective against
+Armour is either light or heavy. The former isn't as effective against
 weapons designed to penetrate armour, but is often less likely to
 restrict your movement. In modern settings, some armour is also rated as
-being bulletproof. If it isn\'t, then effectiveness against firearms is
+being bulletproof. If it isn't, then effectiveness against firearms is
 greatly reduced.
 
 Armour also has a Load, which can range from zero up to eight or more.
@@ -316,9 +316,9 @@ has been resolved (assuming that they are still standing).
 
 If you have lost the initiative, you may declare a wait action. You must
 say what event you are waiting for, and what you will do if it occurs.
-If the event doesn\'t happen, then you don\'t do anything that round.
+If the event doesn't happen, then you don't do anything that round.
 You cannot state that you will do one thing if something happens, and
-another thing if it doesn\'t.
+another thing if it doesn't.
 
 ### Movement
 
@@ -376,9 +376,9 @@ strength
 
 weapon damage bonus
 
-Your damage roll is compared to the target\'s soak, including any
+Your damage roll is compared to the target's soak, including any
 bonuses they have from armour. If the damage is greater than or equal to
-the target\'s soak, then damage has been caused, otherwise the blow was
+the target's soak, then damage has been caused, otherwise the blow was
 not of sufficient strength to cause any real harm.
 
 If damage is done, then one wound will be caused plus one for every five

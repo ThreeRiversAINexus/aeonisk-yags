@@ -21,7 +21,7 @@ factor in society today. No sensible decision can be made any longer
 without taking into account not only the world as it is, but the world
 as it will be.
 
-This is the future of Hollywood Science Fiction. Actually, it\'s not
+This is the future of Hollywood Science Fiction. Actually, it's not
 quite that bad, but the SciFi label is used to describe a future more
 suited to action and adventure amongst interstellar communities, than to
 one embedded in a virtual reality simulation running in a Matrioshka
@@ -37,16 +37,16 @@ are in the realms of the future, so is purely fictional.
 Everything here is suited to SciFi style campaigns, with faster than
 light travel, ridiculous energy production and weird new forms of
 matter. It may be suitable for campaigns built around Traveller, Babylon
-5 or the Foundation series, though isn\'t particularly suited to
+5 or the Foundation series, though isn't particularly suited to
 settings such as those of Revalation Space by Alastair Reynolds or
-Queendom of Sol by Wil McCarthy. It\'s aimed at the harder end of
+Queendom of Sol by Wil McCarthy. It's aimed at the harder end of
 Hollywood SciFi, rather than the type of futures portrayed in modern SF
 books. If you want a harder, grittier future than Ultra Tech will be
 designed to cover this, following a branch of future technology where
 computational power is not restricted by storytelling requirements.
 
 The big requirement here is that the future is still about people.
-Computer technology is limited so that humanity doesn\'t vanish up its
+Computer technology is limited so that humanity doesn't vanish up its
 own singularity, thereby preventing the ability to have high adventure
 in interstellar communities.
 
@@ -56,7 +56,7 @@ The only way to find the limits of the possible is by going beyond them
 to the impossible.
 
 YAGS SciFi generally covers TL 9 through to TL 19, though the higher end
-of the scale is getting pretty close to \'magic\'. TL 10 is considered a
+of the scale is getting pretty close to 'magic'. TL 10 is considered a
 Kardashev Type I civilisation (utilising all the energy available to a
 planet), and TL 20 is considered Kardashev Type II (utilising all the
 energy available to a star).
@@ -157,10 +157,10 @@ Particle weapon. Similar to lasers, with a few differences which will be
 described later.
 
 Plasma weapon. Fires bolts of superheated plasma which burns through a
-target explosively. Doesn\'t count as a firearm against armour, but does
+target explosively. Doesn't count as a firearm against armour, but does
 for defence rolls.
 
-Sonic weapon, ignores all armour but very short ranged. It\'s base
+Sonic weapon, ignores all armour but very short ranged. It's base
 damage is halved at medium range and quartered at long range (instead of
 the normal damage modifiers).
 
@@ -168,7 +168,7 @@ Some of the weapon types are described in detail below.
 
 ### Exotic Weapon Types
 
-As arms companies search desperately for the next \'killer\' weapon
+As arms companies search desperately for the next 'killer' weapon
 technology, it becomes apparent that one of the most efficient ways of
 killing someone is to through a small bit of heavy metal at them very
 quickly. This is as true in TL 16 as it was in TL 6.
@@ -185,14 +185,14 @@ than by using a chemical explosion.
 
 They can be more accurate than chemical based slug throwers, and in
 theory can have higher muzzle velocities once power densities of the
-weapon\'s battery reaches a suitable point, but are otherwise similar to
+weapon's battery reaches a suitable point, but are otherwise similar to
 previous weapon designs.
 
 #### Lasers
 
 Laser weapons are generally the first departure away from propelling a
-slug of metal towards the target. As a \'direct-energy\' weapon, a laser
-directly converts energy into killing power. Though this isn\'t as
+slug of metal towards the target. As a 'direct-energy' weapon, a laser
+directly converts energy into killing power. Though this isn't as
 efficient as it may sound, laser beams have definite advantages.
 
 Lasers are very accurate. On the scale most gun fights are fought,
@@ -239,10 +239,10 @@ in armour.
 
 # TL9: The Near Future
 
-The future has already arrived. It\'s just not evenly distributed yet.
+The future has already arrived. It's just not evenly distributed yet.
 
 The progression of technology through the 21st century has been one of
-iterative improvements over what has gone before. There\'s little which
+iterative improvements over what has gone before. There's little which
 is completely unexpected, though changes to society would not have been
 expected in early TL 8.
 
@@ -284,7 +284,7 @@ artificial devices as good as, if not better than, the original thing.
 ## Weapons
 
 The killing ability of man portable weapons plateaus during late TL8 and
-early TL9. The lack of progress in personal armour means there isn\'t a
+early TL9. The lack of progress in personal armour means there isn't a
 necessity for weapons to become more deadly. Instead, they are lighter,
 more reliable and somewhat cleverer.
 
@@ -295,8 +295,8 @@ cost and effectiveness.
 
 Armour becomes a bit lighter and a bit more effective, but not by much.
 Richer nations can afford powered hard shell armour towards the end of
-TL9, but since they\'re also the ones making the newer weapons and
-they\'re only going up against lightly armoured opponents there isn\'t a
+TL9, but since they're also the ones making the newer weapons and
+they're only going up against lightly armoured opponents there isn't a
 drive to modify small arms to be effective against such targets.
 
 Smart weapons, capable of automatically calculating the range to a
@@ -311,7 +311,7 @@ scifi/tech09/heavy-weapons.yags
 
 ## Gear
 
-There are plenty of gadgets available in TL 9 to make a person\'s life
+There are plenty of gadgets available in TL 9 to make a person's life
 easier (or, in some cases, longer). Most of the items available at TL 8
 are also available at TL 9, though they are quicker and have better
 battery life.
@@ -351,7 +351,7 @@ monitoring where people are and what they are doing. This flow of
 information allows for a degree of efficiency not seen before, but also
 limits the privacy available to everyone. Many people record their whole
 lives, video and audio captured though implants inserted soon after
-birth. The legal ramifications are massive, and there\'s either a crack
+birth. The legal ramifications are massive, and there's either a crack
 down on such technology or an opening up of restrictions on what can be
 recorded (and played back for public consumption).
 
@@ -374,7 +374,7 @@ colour and texture based on environment and body state. Smart composites
 make for good body armour which can switch from flexible to stiff as a
 bullet tries to penetrate. For that matter, smart bullets which can
 control their trajectory and behaviour depending on the type of target
-they\'ve hit are also available.
+they've hit are also available.
 
 Replacement organs can be grown in vats, genetically programmed to match
 the host recipient within hours of being implanted. Regrowth of limbs is

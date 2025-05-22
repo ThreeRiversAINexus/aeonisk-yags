@@ -21,18 +21,26 @@ if [ -n "$DOCBOOK_INPUT_FILE" ] && [ -f "$DOCBOOK_INPUT_FILE" ]; then
     mkdir -p "$DOCBOOK_OUTPUT_DIR_MD"
     mkdir -p "$DOCBOOK_OUTPUT_DIR_EPUB"
 
-    # Convert to Markdown
-    if pandoc -f docbook -s "$DOCBOOK_INPUT_FILE" -o "$MARKDOWN_OUTPUT_FILE"; then
+    # Convert to Markdown first using Pandoc with our improved filter
+    if pandoc -f docbook -s --lua-filter=/app/pandoc/filters/yags_tables.lua "$DOCBOOK_INPUT_FILE" -o "$MARKDOWN_OUTPUT_FILE"; then
         echo "Successfully converted DocBook to Markdown: ${MARKDOWN_OUTPUT_FILE}"
     else
         echo "ERROR: Failed to convert DocBook to Markdown for ${DOCBOOK_INPUT_FILE}"
     fi
 
-    # Convert to EPUB (from DocBook source)
-    if pandoc -f docbook -s "$DOCBOOK_INPUT_FILE" -o "$EPUB_OUTPUT_FILE"; then
-        echo "Successfully converted DocBook to EPUB: ${EPUB_OUTPUT_FILE}"
+    # Convert to EPUB (from DocBook source or from the processed Markdown)
+    if [ -f "$MARKDOWN_OUTPUT_FILE" ]; then
+        if pandoc -f markdown -s "$MARKDOWN_OUTPUT_FILE" -o "$EPUB_OUTPUT_FILE"; then
+            echo "Successfully converted Markdown to EPUB: ${EPUB_OUTPUT_FILE}"
+        else
+            echo "ERROR: Failed to convert Markdown to EPUB"
+        fi
     else
-        echo "ERROR: Failed to convert DocBook to EPUB for ${DOCBOOK_INPUT_FILE}"
+        if pandoc -f docbook -s --lua-filter=/app/pandoc/filters/yags_tables.lua "$DOCBOOK_INPUT_FILE" -o "$EPUB_OUTPUT_FILE"; then
+            echo "Successfully converted DocBook to EPUB: ${EPUB_OUTPUT_FILE}"
+        else
+            echo "ERROR: Failed to convert DocBook to EPUB for ${DOCBOOK_INPUT_FILE}"
+        fi
     fi
 else
     # Mode 2: Process Markdown files from /app/content (original functionality)
