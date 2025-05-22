@@ -939,7 +939,7 @@ Distributed under the GPL v2 as described by Samuel Penn, the creator of Yet Ano
 
 ### Yet Another Game System
 
-By Samuel Penn (sam@glendale.org.uk) and Aeonisk customization completed by Three Rivers AI Nexus.
+By Samuel Penn (sam@glendale.org.uk)
 
 Aeonisk YAGS Module is free content: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

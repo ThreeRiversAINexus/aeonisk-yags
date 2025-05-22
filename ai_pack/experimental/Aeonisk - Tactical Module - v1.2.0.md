@@ -256,7 +256,7 @@ Distributed under the GPL v2 as described by Samuel Penn, the creator of Yet Ano
 
 By Samuel Penn (sam@glendale.org.uk) and Aeonisk customization completed by Three Rivers AI Nexus.
 
-Aeonisk YAGS Tactical Module is free content: you can redistribute it and/or modify
+Aeonisk YAGS Module is free content: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, version 2.
 
