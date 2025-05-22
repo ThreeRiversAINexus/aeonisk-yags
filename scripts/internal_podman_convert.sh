@@ -49,7 +49,7 @@ else
         echo "Outputting to EPUB: /app/releases/${BASE_NAME}.epub"
 
         # Convert to PDF
-        if pandoc --pdf-engine=xelatex -V mainfont="sans-serif" "${FILE_PATH}" -o "/app/releases/${BASE_NAME}.pdf"; then
+        if pandoc --pdf-engine=xelatex "${FILE_PATH}" -o "/app/releases/${BASE_NAME}.pdf"; then
             echo "Successfully created PDF: /app/releases/${BASE_NAME}.pdf"
         else
             echo "ERROR: Failed to create PDF for ${FILE_PATH}"
