@@ -8,6 +8,25 @@ WORKDIR /app
 COPY ./scripts/internal_podman_convert.sh /usr/local/bin/internal_podman_convert.sh
 RUN chmod +x /usr/local/bin/internal_podman_convert.sh
 
+# Create a standard directory for Pandoc filters
+RUN mkdir -p /app/pandoc/filters
+
+# Copy the Lua filters and table fixing scripts into the container
+COPY ./scripts/table_fixes/yags_tables.lua /app/pandoc/filters/yags_tables.lua
+COPY ./scripts/debug_ast.lua /app/scripts/debug_ast.lua
+
+# Create the directories for table fixing scripts
+RUN mkdir -p /app/scripts/table_fixes
+
+# Copy the table fixing scripts
+COPY ./scripts/table_fixes/direct_table_fix.py /app/scripts/table_fixes/
+COPY ./scripts/table_fixes/final_fixes.py /app/scripts/table_fixes/
+COPY ./scripts/table_fixes/fix_duplicates.py /app/scripts/table_fixes/
+COPY ./scripts/table_fixes/fix_table_formatting.py /app/scripts/table_fixes/
+
+# Make scripts executable
+RUN chmod +x /app/scripts/table_fixes/*.py
+
 # Create the releases directory (as pandoc user)
 RUN mkdir -p /app/releases
 
