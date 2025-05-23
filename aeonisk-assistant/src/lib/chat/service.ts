@@ -24,7 +24,7 @@ export class AeoniskChatService {
     // Set up embedding provider for RAG
     this.rag.setEmbeddingProvider({
       generateEmbedding: async (text: string) => {
-        const apiKey = localStorage.getItem('openai_apiKey');
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY || localStorage.getItem('openai_apiKey');
         if (!apiKey) {
           console.log('No OpenAI API key found, skipping embeddings');
           throw new Error('No OpenAI API key configured');

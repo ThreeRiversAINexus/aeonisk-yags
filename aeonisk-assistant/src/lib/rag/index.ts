@@ -23,24 +23,29 @@ export class AIEnhancedRAG {
     if (this.initialized) return;
     
     try {
-      // Load existing chunks from localStorage
-      const savedChunks = localStorage.getItem('aeonisk-rag-chunks');
-      if (savedChunks) {
-        const parsed = JSON.parse(savedChunks);
-        for (const [id, data] of Object.entries(parsed)) {
-          this.chunks.set(id, data as StoredChunk);
+      // First try to load pre-computed embeddings
+      const precomputedLoaded = await this.loadPrecomputedEmbeddings();
+      
+      if (!precomputedLoaded) {
+        // Fall back to localStorage cache
+        const savedChunks = localStorage.getItem('aeonisk-rag-chunks');
+        if (savedChunks) {
+          const parsed = JSON.parse(savedChunks);
+          for (const [id, data] of Object.entries(parsed)) {
+            this.chunks.set(id, data as StoredChunk);
+          }
         }
-      }
-      
-      // If no chunks exist, load and index content
-      if (this.chunks.size === 0) {
-        console.log('Building content index...');
-        await this.loadAndIndexContent();
-      }
-      
-      // Generate embeddings for chunks that don't have them
-      if (this.embeddingProvider) {
-        await this.generateMissingEmbeddings();
+        
+        // If no chunks exist, load and index content
+        if (this.chunks.size === 0) {
+          console.log('Building content index...');
+          await this.loadAndIndexContent();
+        }
+        
+        // Generate embeddings for chunks that don't have them
+        if (this.embeddingProvider) {
+          await this.generateMissingEmbeddings();
+        }
       }
       
       this.initialized = true;
@@ -51,12 +56,53 @@ export class AIEnhancedRAG {
     }
   }
 
+  private async loadPrecomputedEmbeddings(): Promise<boolean> {
+    try {
+      console.log('Loading pre-computed embeddings...');
+      const response = await fetch('/embeddings/aeonisk-embeddings.json');
+      
+      if (!response.ok) {
+        console.log('Pre-computed embeddings not found, falling back to dynamic generation');
+        return false;
+      }
+      
+      const data = await response.json();
+      console.log(`Loaded ${data.chunks.length} pre-computed chunks`);
+      
+      // Load chunks into memory
+      for (const chunk of data.chunks) {
+        this.chunks.set(chunk.id, {
+          chunk: {
+            id: chunk.id,
+            text: chunk.text,
+            metadata: chunk.metadata
+          },
+          embedding: chunk.embedding
+        });
+      }
+      
+      // Save to localStorage for offline use
+      this.saveChunks();
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to load pre-computed embeddings:', error);
+      return false;
+    }
+  }
+
   private async loadAndIndexContent() {
     const contentFiles = [
       { path: '/content/Aeonisk - YAGS Module - v1.2.0.md', source: 'Aeonisk - YAGS Module' },
       { path: '/content/Aeonisk - Lore Book - v1.2.0.md', source: 'Aeonisk - Lore Book' },
       { path: '/content/Aeonisk - Gear & Tech Reference - v1.2.0.md', source: 'Aeonisk - Gear & Tech Reference' },
-      { path: '/content/aeonisk_glossary.md', source: 'Aeonisk Glossary' }
+      { path: '/content/aeonisk_glossary.md', source: 'Aeonisk Glossary' },
+      { path: '/content/core.md', source: 'YAGS Core Rules' },
+      { path: '/content/character.md', source: 'YAGS Character' },
+      { path: '/content/combat.md', source: 'YAGS Combat' },
+      { path: '/content/scifitech.md', source: 'YAGS Sci-Fi Tech' },
+      { path: '/content/bestiary.md', source: 'YAGS Bestiary' },
+      { path: '/content/Aeonisk - Tactical Module - v1.2.0.md', source: 'Aeonisk - Tactical Module' }
     ];
 
     for (const file of contentFiles) {
