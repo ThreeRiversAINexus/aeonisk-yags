@@ -84,132 +84,14 @@ export interface ChatOptions {
 }
 
 export interface Character {
-  // Core Identity
   name: string;
-  player_name?: string;
-  campaign?: string;
-  origin_faction?: string;
-  concept?: string;
-  character_level_type?: 'Mundane' | 'Skilled' | 'Exceptional' | 'Heroic';
-  tech_level?: string;
-  
-  // YAGS Primary Attributes (8)
-  attributes: {
-    strength: number;
-    health: number;
-    agility: number;
-    dexterity: number;
-    perception: number;
-    intelligence: number;
-    empathy: number;
-    willpower: number;
-  };
-  
-  // YAGS Secondary Attributes
-  secondary_attributes: {
-    size: number;
-    soak: number;
-    move: number;
-  };
-  
-  // YAGS Talents (start at 2)
-  talents: {
-    athletics: number;
-    awareness: number;
-    brawl: number;
-    charm: number;
-    guile: number;
-    sleight: number;
-    stealth: number;
-    throw: number;
-  };
-  
-  // Skills (Knowledges, Standard, Aeonisk-specific)
-  skills: {
-    // Aeonisk Core
-    astral_arts?: number;
-    magick_theory?: number;
-    intimacy_ritual?: number;
-    corporate_influence?: number;
-    debt_law?: number;
-    pilot?: number;
-    drone_operation?: number;
-    dreamwork?: number;
-    attunement?: number;
-    
-    // Additional skills
-    [key: string]: number | undefined;
-  };
-  
-  // Languages
-  languages: {
-    native_language: string;
-    native_level: number;
-    other_languages?: Array<{name: string; level: number}>;
-  };
-  
-  // Techniques & Advantages
-  techniques?: Array<{
-    name: string;
-    skill_basis: string;
-    cost_level: number;
-    description: string;
-  }>;
-  
-  advantages?: Array<{
-    name: string;
-    cost?: number;
-    description: string;
-  }>;
-  
-  disadvantages?: Array<{
-    name: string;
-    cost?: number;
-    description: string;
-  }>;
-  
-  // Aeonisk Specific
-  void_score: number;
+  concept: string;
+  attributes: Record<string, number>;
+  skills: Record<string, number>;
+  voidScore: number;
   soulcredit: number;
-  
-  true_will?: {
-    declared: boolean;
-    statement: string;
-    alignment_bonus_active: boolean;
-  };
-  
   bonds: Bond[];
-  
-  primary_ritual_item?: {
-    name: string;
-    description: string;
-    effects_if_lost: string;
-  };
-  
-  offerings?: Array<{
-    name: string;
-    description: string;
-  }>;
-  
-  // Status Tracking
-  wounds?: WoundTrack;
-  stuns?: StunTrack;
-  fatigue?: FatigueTrack;
-}
-
-export interface WoundTrack {
-  current_level: string;
-  current_penalty: number;
-}
-
-export interface StunTrack {
-  current_level: string;
-  current_penalty: number;
-}
-
-export interface FatigueTrack {
-  current_level: string;
-  current_penalty: number;
+  trueWill?: string;
 }
 
 export interface Bond {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getChatService } from '../lib/chat/service';
 import type { Character } from '../types';
 
@@ -37,13 +37,37 @@ const DEFAULT_CHARACTER: Character = {
 
 export function CharacterPanel({ onClose }: CharacterPanelProps) {
   const chatService = getChatService();
-  const [character, setCharacter] = useState<Character>(
-    chatService.getCharacter() || DEFAULT_CHARACTER
-  );
+  const [character, setCharacter] = useState<Character>(() => {
+    // Try to load from localStorage first
+    const savedCharacter = localStorage.getItem('character');
+    if (savedCharacter) {
+      try {
+        return JSON.parse(savedCharacter);
+      } catch (e) {
+        console.error('Failed to parse saved character:', e);
+      }
+    }
+    return chatService.getCharacter() || DEFAULT_CHARACTER;
+  });
   const [editMode, setEditMode] = useState(false);
+
+  // Listen for character updates from the AI
+  useEffect(() => {
+    const checkForUpdates = () => {
+      const currentCharacter = chatService.getCharacter();
+      if (currentCharacter && JSON.stringify(currentCharacter) !== JSON.stringify(character)) {
+        setCharacter(currentCharacter);
+      }
+    };
+
+    // Check for updates every second
+    const interval = setInterval(checkForUpdates, 1000);
+    return () => clearInterval(interval);
+  }, [character]);
 
   const handleSave = () => {
     chatService.setCharacter(character);
+    localStorage.setItem('character', JSON.stringify(character));
     setEditMode(false);
   };
 
