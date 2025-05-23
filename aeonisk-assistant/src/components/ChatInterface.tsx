@@ -4,21 +4,109 @@ import remarkGfm from 'remark-gfm';
 import { getChatService } from '../lib/chat/service';
 import { MessageRating } from './MessageRating';
 import { ExportDialog } from './ExportDialog';
+import { MessageDebugInfo } from './MessageDebugInfo';
+import { useDebugStore } from '../stores/debugStore';
 import type { Message } from '../types';
 
+interface MessageWithDebug extends Message {
+  debugData?: {
+    tokens?: { input: number; output: number };
+    cost?: number;
+    model?: string;
+    ragChunks?: number;
+    toolCalls?: Array<{ name: string; args: any; result?: any }>;
+  };
+}
+
 export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithDebug[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatService = getChatService();
+  const { logs, tokenCosts } = useDebugStore();
+
+  // Track debug data for messages
+  const [messageDebugData, setMessageDebugData] = useState<Map<number, any>>(new Map());
 
   useEffect(() => {
     // Load conversation history
     const history = chatService.getConversationHistory();
     setMessages(history);
   }, []);
+
+  // Process debug logs to extract data for messages
+  useEffect(() => {
+    const newDebugData = new Map<number, any>();
+    
+    // Group logs by message index based on timing
+    let currentAssistantIndex = -1;
+    let pendingRAGData: any = null;
+    
+    logs.forEach((log, logIndex) => {
+      if (log.type === 'rag') {
+        // Store RAG data to be associated with next assistant message
+        pendingRAGData = {
+          ragChunks: log.data.totalChunks,
+          ragQuery: log.data.query
+        };
+      } else if (log.type === 'api') {
+        // New assistant message is being generated
+        currentAssistantIndex = messages.findIndex((msg, idx) => 
+          msg.role === 'assistant' && !newDebugData.has(idx)
+        );
+        
+        if (currentAssistantIndex === -1) {
+          // This is for the next assistant message to be added
+          currentAssistantIndex = messages.length;
+        }
+        
+        const existingData = newDebugData.get(currentAssistantIndex) || {};
+        newDebugData.set(currentAssistantIndex, {
+          ...existingData,
+          model: log.data.model,
+          ...pendingRAGData // Add pending RAG data to assistant message
+        });
+        pendingRAGData = null; // Clear after using
+      } else if (log.type === 'cost' && currentAssistantIndex >= 0) {
+        const existingData = newDebugData.get(currentAssistantIndex) || {};
+        newDebugData.set(currentAssistantIndex, {
+          ...existingData,
+          tokens: {
+            input: log.data.inputTokens,
+            output: log.data.outputTokens
+          },
+          cost: log.data.cost
+        });
+      } else if (log.type === 'tool' && currentAssistantIndex >= 0) {
+        const existingData = newDebugData.get(currentAssistantIndex) || {};
+        const toolCalls = existingData.toolCalls || [];
+        
+        // Check if this is a result for an existing tool call
+        const existingToolIndex = toolCalls.findIndex(
+          (t: any) => t.name === log.data.name && !t.result && log.data.result
+        );
+        
+        if (existingToolIndex >= 0 && log.data.result) {
+          toolCalls[existingToolIndex].result = log.data.result;
+        } else {
+          toolCalls.push({
+            name: log.data.name,
+            args: log.data.args,
+            result: log.data.result
+          });
+        }
+        
+        newDebugData.set(currentAssistantIndex, {
+          ...existingData,
+          toolCalls
+        });
+      }
+    });
+
+    setMessageDebugData(newDebugData);
+  }, [logs, messages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -64,6 +152,10 @@ export function ChatInterface() {
     if (confirm('Are you sure you want to clear the conversation?')) {
       chatService.clearConversation();
       setMessages([]);
+      setMessageDebugData(new Map());
+      // Clear debug logs
+      const { clearLogs } = useDebugStore.getState();
+      clearLogs();
     }
   };
 
@@ -114,9 +206,16 @@ export function ChatInterface() {
               
               {message.role === 'assistant' && (
                 <MessageRating
-                  onRate={(rating) => handleRating(index, rating)}
+                  onRate={(rating: 'good' | 'bad' | 'edit') => handleRating(index, rating)}
                 />
               )}
+              
+              {/* Debug info */}
+              <MessageDebugInfo
+                messageIndex={index}
+                role={message.role}
+                debugData={messageDebugData.get(index)}
+              />
             </div>
           </div>
         ))}
