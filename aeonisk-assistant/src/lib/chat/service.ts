@@ -17,14 +17,14 @@ export class AeoniskChatService {
 
   constructor() {
     this.llmClient = new UnifiedLLMClient();
-    this.rag = new AIEnhancedRAG(this.llmClient);
+    this.rag = new AIEnhancedRAG();
     this.conversationManager = new ConversationManager();
     this.loadCharacterFromRegistry(); // Load character on init
   }
 
   private loadCharacterFromRegistry() {
     const characterRegistry = getCharacterRegistry();
-    const activeCharacter = characterRegistry.getActiveCharacter();
+    const activeCharacter = characterRegistry.getActivePlayer();
     if (activeCharacter) {
       this.gameState.character = activeCharacter;
     } else {
@@ -34,7 +34,7 @@ export class AeoniskChatService {
         try {
           this.gameState.character = JSON.parse(defaultChar);
           characterRegistry.addCharacter(this.gameState.character!);
-          characterRegistry.setActiveCharacter(this.gameState.character!.name);
+          characterRegistry.setActivePlayer(this.gameState.character!.name);
         } catch (e) { console.error("Failed to load default char for service", e); }
       }
     }
@@ -44,13 +44,7 @@ export class AeoniskChatService {
     if (this.contentLoaded) return;
 
     try {
-      const processor = new ContentProcessor();
-      const contentFiles = await this.loadContentFiles();
-      const { chunks, glossary } = await processor.processAllContent(contentFiles);
-      
-      await this.rag.loadContent(chunks);
-      await this.rag.loadGlossary(glossary);
-      
+      await this.rag.initialize();
       this.contentLoaded = true;
     } catch (error) {
       console.error('Failed to initialize chat service:', error);
@@ -85,12 +79,12 @@ export class AeoniskChatService {
     this.gameState.character = character;
     const characterRegistry = getCharacterRegistry();
     characterRegistry.addCharacter(character);
-    characterRegistry.setActiveCharacter(character.name); // Ensure registry is also updated
+    characterRegistry.setActivePlayer(character.name); // Ensure registry is also updated
   }
 
   getCharacter(): Character | undefined {
     // Always get from the single source of truth: CharacterRegistry
-    return getCharacterRegistry().getActiveCharacter() || undefined;
+    return getCharacterRegistry().getActivePlayer() || undefined;
   }
 
 
@@ -103,7 +97,7 @@ export class AeoniskChatService {
       gameContext: this.gameState
     };
 
-    const retrieval = await this.rag.retrieve(messageContent, context);
+    const retrieval = await this.rag.retrieve(messageContent, 5);
     const debugStore = useDebugStore.getState();
 
     if (debugStore.isDebugMode && debugStore.verbosityLevel !== 'basic') {
@@ -162,19 +156,13 @@ export class AeoniskChatService {
           [...messages, response, toolMessage],
           {...options, model: options?.model || useProviderStore.getState().currentModel || undefined }
         );
-        this.conversationManager.addExchange(messageContent, finalResponse, {
-          provider: this.llmClient.getCurrentProvider(),
-          model: options?.model || useProviderStore.getState().currentModel,
-          gameContext: this.gameState
-        });
+        this.conversationManager.addMessage({ role: 'user', content: messageContent });
+        this.conversationManager.addMessage(finalResponse);
         return finalResponse;
       }
 
-      this.conversationManager.addExchange(messageContent, response, {
-        provider: this.llmClient.getCurrentProvider(),
-        model: options?.model || useProviderStore.getState().currentModel,
-        gameContext: this.gameState
-      });
+      this.conversationManager.addMessage({ role: 'user', content: messageContent });
+      this.conversationManager.addMessage(response);
       return response;
     } catch (error) {
       console.error('Chat error:', error);
@@ -191,7 +179,7 @@ export class AeoniskChatService {
       gameContext: this.gameState
     };
 
-    const retrieval = await this.rag.retrieve(messageContent, context);
+    const retrieval = await this.rag.retrieve(messageContent, 5);
     const systemPrompt = this.buildSystemPrompt(retrieval.chunks);
     const messages: Message[] = [
       { role: 'system', content: systemPrompt },
@@ -206,13 +194,10 @@ export class AeoniskChatService {
         fullResponse += chunk.content || '';
         yield chunk;
       }
-      this.conversationManager.addExchange(messageContent, {
+      this.conversationManager.addMessage({ role: 'user', content: messageContent });
+      this.conversationManager.addMessage({
         role: 'assistant',
         content: fullResponse
-      }, {
-        provider: this.llmClient.getCurrentProvider(),
-        model: options?.model || useProviderStore.getState().currentModel,
-        gameContext: this.gameState
       });
     } catch (error) {
       console.error('Stream chat error:', error);
@@ -262,23 +247,20 @@ IMPORTANT: Base your answers on the provided game content. If something isn't co
       
       // Ensure character_name is passed or use active character
       if (!parsedArgs.character_name && (name === 'roll_skill_check' || name === 'perform_ritual' || name === 'modify_character' || name === 'roll_combat')) {
-        const activeChar = characterRegistry.getActiveCharacter();
+        const activeChar = characterRegistry.getActivePlayer();
         if (activeChar) {
           parsedArgs.character_name = activeChar.name;
         } else if (this.gameState.character) {
            parsedArgs.character_name = this.gameState.character.name;
         }
       }
-      
-      const gameStateForTool = { ...this.gameState, characterRegistry };
-
 
       if (debugStore.isDebugMode) {
         debugStore.addLog('tool', { name, args: parsedArgs });
       }
 
       try {
-        const result = await executeTool(name, parsedArgs, gameStateForTool);
+        const result = await executeTool(name, parsedArgs);
         if (name === 'modify_character') {
           this.updateGameState(result.changes);
         }
@@ -337,28 +319,20 @@ IMPORTANT: Base your answers on the provided game content. If something isn't co
   }
 
   getConversationHistory(): Message[] {
-    return this.conversationManager.getHistory();
+    return this.conversationManager.getMessages();
   }
 
   clearConversation() {
-    this.conversationManager.clear();
+    this.conversationManager.clearConversation();
     localStorage.removeItem('conversation_history'); // Ensure localStorage is also cleared
   }
 
-  rateMessage(index: number, rating: 'good' | 'bad' | 'edit', feedback?: string) {
-    this.conversationManager.rateMessage(index, rating, feedback);
+  exportConversation(): string {
+    return this.conversationManager.exportConversation();
   }
 
-  exportConversation(format: 'jsonl' | 'finetune' | 'assistant' | 'sharegpt' | 'aeonisk-dataset'): string {
-    // Added 'aeonisk-dataset' to types
-    switch (format) {
-      case 'jsonl': return this.conversationManager.exportAsJSONL();
-      case 'finetune': return this.conversationManager.exportForFineTuning();
-      case 'assistant': return JSON.stringify(this.conversationManager.exportAsAssistantThread(), null, 2);
-      case 'sharegpt': return JSON.stringify(this.conversationManager.exportAsShareGPT(), null, 2);
-      // case 'aeonisk-dataset': return this.exportAsAeoniskDataset(this.getConversationHistory()); // Needs implementation
-      default: throw new Error(`Unknown export format: ${format}`);
-    }
+  getConversationSummary(): string {
+    return this.conversationManager.getConversationSummary();
   }
 }
 

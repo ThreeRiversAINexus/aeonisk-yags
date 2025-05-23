@@ -80,11 +80,11 @@ export function executeSkillCheck(
   let skillValue = 0;
   
   // First check if it's a talent
-  if (skillKey in character.talents) {
+  if (character.talents && skillKey in character.talents) {
     skillValue = character.talents[skillKey as keyof typeof character.talents] || 0;
   }
   // Then check if it's a skill
-  else if (skillKey in character.skills) {
+  else if (character.skills && skillKey in character.skills) {
     skillValue = character.skills[skillKey as keyof typeof character.skills] || 0;
   }
   // Handle special mappings
@@ -100,9 +100,9 @@ export function executeSkillCheck(
     const mappedName = alternativeMap[skill.toLowerCase()] || skillKey;
     
     // Check talents first, then skills
-    if (mappedName in character.talents) {
+    if (character.talents && mappedName in character.talents) {
       skillValue = character.talents[mappedName as keyof typeof character.talents] || 0;
-    } else if (mappedName in character.skills) {
+    } else if (character.skills && mappedName in character.skills) {
       skillValue = character.skills[mappedName as keyof typeof character.skills] || 0;
     }
   }
@@ -128,7 +128,7 @@ export function executeSkillCheck(
 /**
  * Game tools for the AI assistant to use
  */
-export const gameTools: Tool[] = [
+export const aeoniskTools: Tool[] = [
   {
     type: 'function',
     function: {
@@ -271,12 +271,10 @@ export async function executeGameTool(
         attributes: character.attributes,
         talents: character.talents,
         skills: character.skills,
-        advantages: character.advantages,
-        disadvantages: character.disadvantages,
-        void_score: character.void_score,
+        voidScore: character.voidScore,
         soulcredit: character.soulcredit,
         bonds: character.bonds,
-        true_will: character.true_will
+        trueWill: character.trueWill
       };
     }
     
@@ -284,3 +282,6 @@ export async function executeGameTool(
       throw new Error(`Unknown tool: ${toolName}`);
   }
 }
+
+// Export with the name expected by service.ts
+export const executeTool = executeGameTool;
