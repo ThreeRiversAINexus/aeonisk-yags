@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { LLMConfig } from '../types';
+import { useDebugStore } from '../stores/debugStore';
+import { useProviderStore } from '../stores/providerStore';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -47,6 +49,9 @@ export function SettingsPanel({ onClose, onProviderConfig, onProviderChange, cur
   const [baseUrl, setBaseUrl] = useState('');
   const [model, setModel] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+
+  const { isDebugMode, verbosityLevel, toggleDebugMode, setVerbosityLevel } = useDebugStore();
+  const { setProvider: setProviderInStore } = useProviderStore();
 
   const handleSave = () => {
     if (!apiKey.trim()) {
@@ -172,7 +177,18 @@ export function SettingsPanel({ onClose, onProviderConfig, onProviderChange, cur
                 return (
                   <button
                     key={provider}
-                    onClick={() => onProviderChange(provider)}
+                    onClick={() => {
+                      onProviderChange(provider);
+                      // Update provider store when changing providers
+                      const savedConfig = localStorage.getItem('llmConfig');
+                      if (savedConfig) {
+                        const configs = JSON.parse(savedConfig);
+                        const config = configs[provider];
+                        if (config) {
+                          setProviderInStore(provider, config.model || '');
+                        }
+                      }
+                    }}
                     className={`w-full text-left px-3 py-2 rounded transition-colors ${
                       isCurrent 
                         ? 'bg-blue-600 text-white' 
@@ -187,6 +203,48 @@ export function SettingsPanel({ onClose, onProviderConfig, onProviderChange, cur
             </div>
           </div>
         )}
+
+        {/* Debug Mode Section */}
+        <div className="mt-6 pt-6 border-t border-gray-700">
+          <h3 className="text-sm font-medium mb-3">Debug Mode</h3>
+          
+          <div className="space-y-4">
+            <label className="flex items-center justify-between">
+              <span className="text-sm">Enable Debug Mode</span>
+              <button
+                onClick={toggleDebugMode}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isDebugMode ? 'bg-blue-600' : 'bg-gray-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isDebugMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </label>
+
+            {isDebugMode && (
+              <div>
+                <label className="block text-sm font-medium mb-2">Verbosity Level</label>
+                <select
+                  value={verbosityLevel}
+                  onChange={(e) => setVerbosityLevel(e.target.value as any)}
+                  className="w-full bg-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="basic">Basic (Function calls only)</option>
+                  <option value="detailed">Detailed (+ prompts & content)</option>
+                  <option value="verbose">Verbose (+ all operations)</option>
+                </select>
+              </div>
+            )}
+
+            <div className="text-xs text-gray-400">
+              Debug mode shows full prompts, retrieved content, function calls, and token usage.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
