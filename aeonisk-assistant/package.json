@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "generate-embeddings": "node scripts/generate-embeddings.js"
   },
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
@@ -36,11 +37,13 @@
     "@vitejs/plugin-react": "^4.4.1",
     "@vitest/ui": "^3.1.4",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^16.5.0",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "jsdom": "^26.1.0",
+    "node-fetch": "^3.3.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3",
