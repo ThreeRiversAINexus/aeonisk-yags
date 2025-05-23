@@ -253,3 +253,8 @@ export class CharacterRegistry {
 
 // Singleton instance
 export const characterRegistry = new CharacterRegistry();
+
+// Function to get the singleton instance (for compatibility)
+export function getCharacterRegistry(): CharacterRegistry {
+  return characterRegistry;
+}

@@ -70,28 +70,40 @@ export interface LLMConfig {
   provider: 'openai' | 'anthropic' | 'google' | 'groq' | 'together' | 'ollama' | 'custom';
   apiKey: string;
   baseURL?: string;
-  model?: string;
+  model?: string; // Model can be part of the provider's specific config
   headers?: Record<string, string>;
   temperature?: number;
-  maxTokens?: number;
+  maxTokens?: number; // Optional max tokens for the provider
 }
 
 export interface ChatOptions {
-  model: string;
-  provider: string;
+  model?: string; // Optional: override provider's default model for this call
+  provider?: string; // Optional: specify provider for this call if different from current
   temperature?: number;
   tools?: Tool[];
+  maxTokens?: number; // Optional max tokens for this specific call
 }
 
 export interface Character {
   name: string;
   concept: string;
+  character_level_type?: string; 
+  origin_faction?: string; 
+  tech_level?: string; 
   attributes: Record<string, number>;
+  secondary_attributes?: Record<string, number>; 
   skills: Record<string, number>;
-  voidScore: number;
+  talents?: Record<string, number>; 
+  languages?: {
+    native_language_name?: string;
+    native_language_level?: number;
+    other_languages?: Array<{ name: string; level: number }>;
+  };
+  voidScore: number; 
   soulcredit: number;
   bonds: Bond[];
-  trueWill?: string;
+  trueWill?: string; 
+  controller?: 'player' | 'ai' | 'gm';
 }
 
 export interface Bond {
