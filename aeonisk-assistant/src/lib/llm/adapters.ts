@@ -141,13 +141,23 @@ export class UnifiedLLMClient {
 
   setProvider(providerName: string): void {
     if (!this.adapters.has(providerName)) {
-      // Attempt to load config from localStorage if not already configured
-      const apiKey = localStorage.getItem(`${providerName}_apiKey`);
+      // Attempt to load config from environment or localStorage if not already configured
+      let apiKey = null;
+      if (providerName === 'openai') {
+        apiKey = import.meta.env.VITE_OPENAI_API_KEY || localStorage.getItem(`${providerName}_apiKey`);
+      } else {
+        apiKey = localStorage.getItem(`${providerName}_apiKey`);
+      }
       const baseURL = localStorage.getItem(`${providerName}_baseURL`);
       const model = localStorage.getItem(`${providerName}_model`); // Or get from providerStore
 
       if (apiKey) {
-        this.addAdapter(providerName, { apiKey, baseURL: baseURL || undefined, model: model || undefined });
+        this.addAdapter(providerName, { 
+          provider: providerName as any, 
+          apiKey, 
+          baseURL: baseURL || undefined, 
+          model: model || undefined 
+        });
       } else {
         console.warn(`Provider ${providerName} not configured and no API key found in localStorage.`);
         // Do not set if not configured and no stored key
@@ -173,7 +183,7 @@ export class UnifiedLLMClient {
         this.currentProvider = defaultProvider;
       } else if (this.adapters.size > 0) {
         // Fallback to the first configured adapter
-        this.currentProvider = this.adapters.keys().next().value;
+        this.currentProvider = this.adapters.keys().next().value || null;
       } else {
          throw new Error('No LLM provider configured or selected.');
       }
