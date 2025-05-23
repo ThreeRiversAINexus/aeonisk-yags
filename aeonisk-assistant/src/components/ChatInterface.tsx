@@ -128,11 +128,17 @@ export function ChatInterface() {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
 
     try {
-      // Get response from chat service
-      const response = await chatService.chat(userMessage);
+      // Build conversation context
+      const conversationMessages = [...messages, { role: 'user' as const, content: userMessage, timestamp: Date.now() }];
       
-      // Update messages with the response
-      setMessages(chatService.getConversationHistory());
+      // Get response from chat service
+      const response = await chatService.sendMessage(conversationMessages);
+      
+      // Add assistant response
+      setMessages(prev => [...prev, response.message]);
+      
+      // Save conversation history
+      chatService.saveConversationHistory([...conversationMessages, response.message]);
     } catch (error) {
       console.error('Chat error:', error);
       setMessages(prev => [...prev, {

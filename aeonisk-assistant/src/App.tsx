@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import './App.css';
 import { ChatInterface } from './components/ChatInterface';
 import { SettingsPanel } from './components/SettingsPanel';
 import { CharacterPanel } from './components/CharacterPanel';
@@ -6,148 +7,140 @@ import { DebugPanel } from './components/DebugPanel';
 import { getChatService } from './lib/chat/service';
 import { useDebugStore } from './stores/debugStore';
 import { useProviderStore } from './stores/providerStore';
-import type { LLMConfig } from './types';
+import { characterRegistry } from './lib/game/characterRegistry';
+import { DEFAULT_CHARACTER } from './lib/game/defaultCharacter';
 
 function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showCharacter, setShowCharacter] = useState(false);
-  const [isConfigured, setIsConfigured] = useState(false);
-  const [currentProvider, setCurrentProvider] = useState<string>('');
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
   
-  const chatService = getChatService();
-  const { isDebugMode, toggleDebugPanel } = useDebugStore();
-  const { setProvider: setProviderInStore } = useProviderStore();
+  const debugMode = useDebugStore(state => state.isDebugMode);
+  const provider = useProviderStore(state => state.currentProvider);
 
   useEffect(() => {
-    // Check for saved configuration
-    const savedConfig = localStorage.getItem('llmConfig');
-    if (savedConfig) {
-      try {
-        const configs = JSON.parse(savedConfig);
-        Object.entries(configs).forEach(([provider, config]) => {
-          chatService.configureProvider(provider, config as LLMConfig);
-        });
-        const savedProvider = localStorage.getItem('currentProvider');
-        if (savedProvider) {
-          chatService.setProvider(savedProvider);
-          setCurrentProvider(savedProvider);
-        }
-        setIsConfigured(true);
-      } catch (error) {
-        console.error('Failed to load saved config:', error);
-      }
+    const chatService = getChatService();
+    const config = chatService.getConfig();
+    setApiKeyConfigured(!!config.apiKey);
+    
+    // Initialize with a default character if none exists
+    if (characterRegistry.size() === 0) {
+      characterRegistry.addCharacter(DEFAULT_CHARACTER);
     }
-  }, []);
+  }, [provider]);
 
-  const handleProviderConfig = (provider: string, config: LLMConfig) => {
-    chatService.configureProvider(provider, config);
-    
-    // Save to localStorage
-    const savedConfig = localStorage.getItem('llmConfig') || '{}';
-    const configs = JSON.parse(savedConfig);
-    configs[provider] = config;
-    localStorage.setItem('llmConfig', JSON.stringify(configs));
-    
-    // Update provider store
-    setProviderInStore(provider, config.model || '');
-    
-    // Set as current if it's the first
-    if (!currentProvider) {
-      chatService.setProvider(provider);
-      setCurrentProvider(provider);
-      localStorage.setItem('currentProvider', provider);
-    }
-    
-    setIsConfigured(true);
+  const handleCloseWelcome = () => {
+    setShowWelcome(false);
   };
 
-  const handleProviderChange = (provider: string) => {
-    chatService.setProvider(provider);
-    setCurrentProvider(provider);
-    localStorage.setItem('currentProvider', provider);
+  const handleApiKeySet = () => {
+    setApiKeyConfigured(true);
+    setShowSettings(false);
+  };
+
+  const toggleSettings = () => {
+    setShowSettings(!showSettings);
+  };
+
+  const toggleCharacter = () => {
+    setShowCharacter(!showCharacter);
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
-        <h1 className="text-xl font-bold">Aeonisk AI Assistant</h1>
-        <div className="flex items-center gap-2">
-          {isConfigured && (
-            <span className="text-sm text-gray-400">
-              {currentProvider}
-            </span>
-          )}
-          <button
-            onClick={() => setShowCharacter(!showCharacter)}
-            className="p-2 rounded hover:bg-gray-700 transition-colors"
-            title="Character"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-            </svg>
-          </button>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 rounded hover:bg-gray-700 transition-colors"
-            title="Settings"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-            </svg>
-          </button>
-          {isDebugMode && (
-            <button
-              onClick={toggleDebugPanel}
-              className="p-2 rounded hover:bg-gray-700 transition-colors"
-              title="Debug Panel"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Chat area */}
-        <div className="flex-1">
-          {isConfigured ? (
-            <ChatInterface />
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-gray-400 mb-4">Please configure an LLM provider to start</p>
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors"
-                >
-                  Open Settings
-                </button>
-              </div>
+    <div className="flex h-screen bg-gray-900 text-gray-100">
+      {/* Welcome Modal */}
+      {showWelcome && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-8 rounded-lg max-w-2xl max-h-[80vh] overflow-y-auto">
+            <h1 className="text-3xl font-bold mb-4">Welcome to Aeonisk YAGS Assistant</h1>
+            
+            <p className="mb-4">
+              This is an AI-powered assistant for the Aeonisk YAGS roleplaying game. 
+              It uses the Yet Another Game System (YAGS) with the Aeonisk science-fantasy setting.
+            </p>
+            
+            <h2 className="text-xl font-semibold mb-2">Getting Started:</h2>
+            <ol className="list-decimal list-inside mb-4 space-y-2">
+              <li>Click the settings icon (⚙️) to configure your AI provider</li>
+              <li>Click the character icon (👤) to create or manage characters</li>
+              <li>Start playing! The AI will help run your Aeonisk adventure</li>
+            </ol>
+            
+            <h2 className="text-xl font-semibold mb-2">Key Features:</h2>
+            <ul className="list-disc list-inside mb-4 space-y-1">
+              <li>YAGS dice rolling with proper attribute × skill mechanics</li>
+              <li>Character management with full YAGS attributes and skills</li>
+              <li>Aeonisk-specific mechanics: Void Score, Soulcredit, Bonds</li>
+              <li>Export characters and sessions for dataset contribution</li>
+              <li>Debug mode to see dice rolls and AI reasoning</li>
+            </ul>
+            
+            <div className="flex justify-center">
+              <button
+                onClick={handleCloseWelcome}
+                className="px-6 py-2 bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+              >
+                Get Started
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Chat Interface */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-gray-800 p-4 flex items-center justify-between border-b border-gray-700">
+          <h1 className="text-xl font-bold">Aeonisk YAGS Assistant</h1>
+          <div className="flex items-center gap-2">
+            {!apiKeyConfigured && (
+              <span className="text-yellow-400 text-sm mr-2">⚠️ Configure API key</span>
+            )}
+            <button
+              onClick={toggleCharacter}
+              className="p-2 hover:bg-gray-700 rounded transition-colors"
+              title="Character Management"
+            >
+              👤
+            </button>
+            <button
+              onClick={toggleSettings}
+              className="p-2 hover:bg-gray-700 rounded transition-colors"
+              title="Settings"
+            >
+              ⚙️
+            </button>
+          </div>
         </div>
 
-        {/* Side panels */}
-        {showCharacter && (
-          <CharacterPanel onClose={() => setShowCharacter(false)} />
-        )}
-        
-        {showSettings && (
-          <SettingsPanel
-            onClose={() => setShowSettings(false)}
-            onProviderConfig={handleProviderConfig}
-            onProviderChange={handleProviderChange}
-            currentProvider={currentProvider}
-          />
-        )}
+        {/* Chat Area */}
+        <div className="flex-1 flex">
+          <ChatInterface />
+          {debugMode && <DebugPanel />}
+        </div>
       </div>
 
-      {/* Debug Panel */}
-      <DebugPanel />
+      {/* Settings Panel */}
+      {showSettings && (
+        <SettingsPanel 
+          onClose={() => setShowSettings(false)} 
+          onProviderConfig={(provider, config) => {
+            const chatService = getChatService();
+            chatService.setConfig(config);
+            handleApiKeySet();
+          }}
+          onProviderChange={(provider) => {
+            // Provider change is handled within the SettingsPanel
+          }}
+          currentProvider={provider}
+        />
+      )}
+
+      {/* Character Panel */}
+      {showCharacter && (
+        <CharacterPanel onClose={() => setShowCharacter(false)} />
+      )}
     </div>
   );
 }
