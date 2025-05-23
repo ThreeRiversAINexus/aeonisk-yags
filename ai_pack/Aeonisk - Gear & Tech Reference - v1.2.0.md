@@ -263,12 +263,6 @@ The Trademark remains the Licensor’s property. You may use it only:
 	•	(c) in the official APCL badge (Sec. 5).
 You may not use “Aeonisk” in a company name, imprint, or product line title (e.g., “Aeonisk Studios”) without a custom license.
 
-Any distribution of Aeonisk-derived content (including digital, print, audio, or interactive formats) must include, in a visible spot (credits page, About box, README, etc.), a statement like:
-
-“Aeonisk © [Year] [Your Name]. Used under the Aeonisk Permissive Commercial License v1.0.”
-
-You don’t have to get my permission or send me anything—just include that line so folks know where it came from.
-
 ⸻
 
 5. APCL Badge
