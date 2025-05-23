@@ -1,292 +1,371 @@
-import type { Message, Tool, LLMConfig, ChatOptions, Character } from '../../types';
-import { characterRegistry } from '../game/characterRegistry';
+import { UnifiedLLMClient } from '../llm/adapters';
+import { AIEnhancedRAG } from '../rag';
+import { ContentProcessor } from '../content/processor';
+import { ConversationManager } from '../conversation/manager';
+import { aeoniskTools, executeTool } from '../game/tools';
+import { useDebugStore } from '../../stores/debugStore';
+import { useProviderStore } from '../../stores/providerStore';
+import type { Message, ContentChunk, GameState, LLMConfig, ChatOptions, Character } from '../../types';
+import { getCharacterRegistry } from '../game/characterRegistry'; // Added for character access
 
-class ChatService {
-  private apiKey: string = '';
-  private provider: string = 'openai';
-  private model: string = 'gpt-4';
-  private baseURL: string = '';
-  private temperature: number = 0.7;
+export class AeoniskChatService {
+  private llmClient: UnifiedLLMClient;
+  private rag: AIEnhancedRAG;
+  private conversationManager: ConversationManager;
+  private gameState: GameState = {}; // Should be properly initialized
+  private contentLoaded = false;
 
   constructor() {
-    // Initialize from localStorage if available
-    this.loadSettings();
+    this.llmClient = new UnifiedLLMClient();
+    this.rag = new AIEnhancedRAG(this.llmClient);
+    this.conversationManager = new ConversationManager();
+    this.loadCharacterFromRegistry(); // Load character on init
   }
 
-  private loadSettings() {
-    const savedProvider = localStorage.getItem('llm_provider');
-    const savedApiKey = localStorage.getItem('llm_apiKey');
-    const savedModel = localStorage.getItem('llm_model');
-    const savedBaseURL = localStorage.getItem('llm_baseURL');
-    const savedTemp = localStorage.getItem('llm_temperature');
-
-    if (savedProvider) this.provider = savedProvider;
-    if (savedApiKey) this.apiKey = savedApiKey;
-    if (savedModel) this.model = savedModel;
-    if (savedBaseURL) this.baseURL = savedBaseURL;
-    if (savedTemp) this.temperature = parseFloat(savedTemp);
-  }
-
-  setConfig(config: Partial<LLMConfig>) {
-    if (config.provider) {
-      this.provider = config.provider;
-      localStorage.setItem('llm_provider', config.provider);
-    }
-    if (config.apiKey) {
-      this.apiKey = config.apiKey;
-      localStorage.setItem('llm_apiKey', config.apiKey);
-    }
-    if (config.model) {
-      this.model = config.model;
-      localStorage.setItem('llm_model', config.model);
-    }
-    if (config.baseURL !== undefined) {
-      this.baseURL = config.baseURL;
-      localStorage.setItem('llm_baseURL', config.baseURL);
-    }
-    if (config.temperature !== undefined) {
-      this.temperature = config.temperature;
-      localStorage.setItem('llm_temperature', config.temperature.toString());
-    }
-  }
-
-  getConfig(): LLMConfig {
-    return {
-      provider: this.provider as any,
-      apiKey: this.apiKey,
-      model: this.model,
-      baseURL: this.baseURL,
-      temperature: this.temperature,
-    };
-  }
-
-  async sendMessage(
-    messages: Message[],
-    options?: ChatOptions
-  ): Promise<{ message: Message; cost?: number; chunks?: any[] }> {
-    const config = this.getConfig();
-    
-    if (!config.apiKey) {
-      throw new Error('API key not configured');
-    }
-
-    // Add character context to messages
-    const activeCharacter = characterRegistry.getActivePlayer();
+  private loadCharacterFromRegistry() {
+    const characterRegistry = getCharacterRegistry();
+    const activeCharacter = characterRegistry.getActiveCharacter();
     if (activeCharacter) {
-      const characterContext = `Current character: ${activeCharacter.name}
-Attributes: STR ${activeCharacter.attributes.strength}, HEA ${activeCharacter.attributes.health}, AGI ${activeCharacter.attributes.agility}, DEX ${activeCharacter.attributes.dexterity}, PER ${activeCharacter.attributes.perception}, INT ${activeCharacter.attributes.intelligence}, EMP ${activeCharacter.attributes.empathy}, WIL ${activeCharacter.attributes.willpower}
-Talents: Athletics ${activeCharacter.talents.athletics}, Awareness ${activeCharacter.talents.awareness}, Brawl ${activeCharacter.talents.brawl}, Charm ${activeCharacter.talents.charm}, Guile ${activeCharacter.talents.guile}, Stealth ${activeCharacter.talents.stealth}
-Skills: Astral Arts ${activeCharacter.skills.astral_arts || 0}, Pilot ${activeCharacter.skills.pilot || 0}
-Void: ${activeCharacter.void_score}, Soulcredit: ${activeCharacter.soulcredit}`;
+      this.gameState.character = activeCharacter;
+    } else {
+      // Fallback or load default if necessary
+      const defaultChar = localStorage.getItem('character');
+      if (defaultChar) {
+        try {
+          this.gameState.character = JSON.parse(defaultChar);
+          characterRegistry.addCharacter(this.gameState.character!);
+          characterRegistry.setActiveCharacter(this.gameState.character!.name);
+        } catch (e) { console.error("Failed to load default char for service", e); }
+      }
+    }
+  }
+
+  async initialize() {
+    if (this.contentLoaded) return;
+
+    try {
+      const processor = new ContentProcessor();
+      const contentFiles = await this.loadContentFiles();
+      const { chunks, glossary } = await processor.processAllContent(contentFiles);
       
-      // Prepend character context to the last user message
-      if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        messages[messages.length - 1].content = `${characterContext}\n\n${messages[messages.length - 1].content}`;
+      await this.rag.loadContent(chunks);
+      await this.rag.loadGlossary(glossary);
+      
+      this.contentLoaded = true;
+    } catch (error) {
+      console.error('Failed to initialize chat service:', error);
+      throw error;
+    }
+  }
+
+  configureProvider(provider: string, config: LLMConfig) {
+    this.llmClient.addAdapter(provider, config);
+    this.llmClient.setProvider(provider);
+     // Persist this to localStorage via providerStore if needed
+    const providerStore = useProviderStore.getState();
+    providerStore.setProvider(provider, config.model || '');
+    // Also save API key if present
+    if (config.apiKey) localStorage.setItem(`${provider}_apiKey`, config.apiKey);
+    if (config.baseURL) localStorage.setItem(`${provider}_baseURL`, config.baseURL);
+  }
+
+  getConfiguredProviders(): string[] {
+    return this.llmClient.getConfiguredProviders();
+  }
+
+  setProvider(provider: string) {
+    this.llmClient.setProvider(provider);
+    const providerStore = useProviderStore.getState();
+    const model = providerStore.currentModel; // Assuming model is stored per provider
+    providerStore.setProvider(provider, model);
+  }
+  
+  // Ensure this method exists and is used by CharacterPanel
+  setCharacter(character: Character) {
+    this.gameState.character = character;
+    const characterRegistry = getCharacterRegistry();
+    characterRegistry.addCharacter(character);
+    characterRegistry.setActiveCharacter(character.name); // Ensure registry is also updated
+  }
+
+  getCharacter(): Character | undefined {
+    // Always get from the single source of truth: CharacterRegistry
+    return getCharacterRegistry().getActiveCharacter() || undefined;
+  }
+
+
+  async chat(messageContent: string, options?: ChatOptions): Promise<Message> {
+    await this.initialize();
+    this.loadCharacterFromRegistry(); // Ensure character state is fresh
+
+    const context = {
+      recentMessages: this.conversationManager.getRecentMessages(5),
+      gameContext: this.gameState
+    };
+
+    const retrieval = await this.rag.retrieve(messageContent, context);
+    const debugStore = useDebugStore.getState();
+
+    if (debugStore.isDebugMode && debugStore.verbosityLevel !== 'basic') {
+      debugStore.addLog('rag', {
+        query: messageContent,
+        chunks: retrieval.chunks.map(chunk => ({
+          text: chunk.text.substring(0, 200) + '...',
+          metadata: chunk.metadata
+        })),
+        totalChunks: retrieval.chunks.length
+      });
+    }
+
+    const systemPrompt = this.buildSystemPrompt(retrieval.chunks);
+    const messages: Message[] = [
+      { role: 'system', content: systemPrompt },
+      ...context.recentMessages,
+      { role: 'user', content: messageContent }
+    ];
+
+    if (debugStore.isDebugMode && debugStore.verbosityLevel === 'verbose') {
+      const fullPrompt = messages.map(m => `${m.role}: ${m.content}`).join('\n\n');
+      debugStore.addLog('prompt', {
+        prompt: fullPrompt,
+        tokens: fullPrompt.length / 4,
+        hasCharacter: !!this.gameState.character
+      });
+    }
+
+    const tools = this.llmClient.supportsTools() ? aeoniskTools : undefined;
+
+    if (debugStore.isDebugMode) {
+      debugStore.addLog('api', {
+        provider: this.llmClient.getCurrentProvider(),
+        model: options?.model || useProviderStore.getState().currentModel || 'gpt-4o',
+        temperature: options?.temperature || 0.7,
+        tools: !!tools
+      });
+    }
+
+    try {
+      const response = await this.llmClient.chat(messages, {
+        ...options,
+        tools,
+        model: options?.model || useProviderStore.getState().currentModel || undefined
+      });
+
+      if (response.tool_calls && response.tool_calls.length > 0) {
+        const toolResults = await this.handleToolCalls(response.tool_calls);
+        const toolMessage: Message = {
+          role: 'tool',
+          content: JSON.stringify(toolResults),
+          tool_call_id: response.tool_calls[0].id
+        };
+        const finalResponse = await this.llmClient.chat(
+          [...messages, response, toolMessage],
+          {...options, model: options?.model || useProviderStore.getState().currentModel || undefined }
+        );
+        this.conversationManager.addExchange(messageContent, finalResponse, {
+          provider: this.llmClient.getCurrentProvider(),
+          model: options?.model || useProviderStore.getState().currentModel,
+          gameContext: this.gameState
+        });
+        return finalResponse;
+      }
+
+      this.conversationManager.addExchange(messageContent, response, {
+        provider: this.llmClient.getCurrentProvider(),
+        model: options?.model || useProviderStore.getState().currentModel,
+        gameContext: this.gameState
+      });
+      return response;
+    } catch (error) {
+      console.error('Chat error:', error);
+      throw error;
+    }
+  }
+
+  async *streamChat(messageContent: string, options?: ChatOptions) {
+    await this.initialize();
+    this.loadCharacterFromRegistry();
+
+    const context = {
+      recentMessages: this.conversationManager.getRecentMessages(5),
+      gameContext: this.gameState
+    };
+
+    const retrieval = await this.rag.retrieve(messageContent, context);
+    const systemPrompt = this.buildSystemPrompt(retrieval.chunks);
+    const messages: Message[] = [
+      { role: 'system', content: systemPrompt },
+      ...context.recentMessages,
+      { role: 'user', content: messageContent }
+    ];
+
+    try {
+      const stream = this.llmClient.streamChat(messages, {...options, model: options?.model || useProviderStore.getState().currentModel || undefined});
+      let fullResponse = '';
+      for await (const chunk of stream) {
+        fullResponse += chunk.content || '';
+        yield chunk;
+      }
+      this.conversationManager.addExchange(messageContent, {
+        role: 'assistant',
+        content: fullResponse
+      }, {
+        provider: this.llmClient.getCurrentProvider(),
+        model: options?.model || useProviderStore.getState().currentModel,
+        gameContext: this.gameState
+      });
+    } catch (error) {
+      console.error('Stream chat error:', error);
+      throw error;
+    }
+  }
+
+  private buildSystemPrompt(chunks: ContentChunk[]): string {
+    let prompt = `You are an AI assistant for the Aeonisk YAGS tabletop RPG. You help players and GMs with rules questions, character creation, and running game sessions.
+
+IMPORTANT: Base your answers on the provided game content. If something isn't covered in the context, say so rather than inventing rules.`;
+
+    if (chunks.length > 0) {
+      prompt += `\n\n## Relevant Game Content:\n`;
+      for (const chunk of chunks) {
+        prompt += `\n### ${chunk.metadata.source} - ${chunk.metadata.section}`;
+        if (chunk.metadata.subsection) {
+          prompt += ` - ${chunk.metadata.subsection}`;
+        }
+        prompt += `\n${chunk.text}\n`;
       }
     }
 
-    // TODO: Implement actual API calls based on provider
-    // For now, return a mock response
-    return {
-      message: {
-        role: 'assistant',
-        content: 'This is a mock response. Please configure your LLM provider.',
-        timestamp: Date.now(),
-      },
-      cost: 0.001,
-      chunks: [],
-    };
+    if (this.gameState.character) {
+      const char = this.gameState.character;
+      prompt += `\n\n## Current Character: ${char.name}\n`;
+      prompt += `Concept: ${char.concept}\n`;
+      prompt += `Attributes: ${JSON.stringify(char.attributes)}\n`;
+      prompt += `Skills: ${JSON.stringify(Object.fromEntries(Object.entries(char.skills).filter(([,val]) => val > 0)))}\n`;
+      prompt += `Void Score: ${char.voidScore}\n`;
+      prompt += `Soulcredit: ${char.soulcredit}\n`;
+      if (char.trueWill) prompt += `True Will: ${char.trueWill}\n`;
+    }
+
+    prompt += `\n\nRespond conversationally, and offer to roll dice or perform game actions when appropriate.`;
+    return prompt;
   }
 
-  async loadContent(): Promise<void> {
-    // TODO: Load YAGS and Aeonisk content for RAG
-    console.log('Loading game content...');
+  private async handleToolCalls(toolCalls: any[]): Promise<any[]> {
+    const results = [];
+    const debugStore = useDebugStore.getState();
+    const characterRegistry = getCharacterRegistry();
+
+    for (const toolCall of toolCalls) {
+      const { name, arguments: argsString } = toolCall.function;
+      const parsedArgs = JSON.parse(argsString);
+      
+      // Ensure character_name is passed or use active character
+      if (!parsedArgs.character_name && (name === 'roll_skill_check' || name === 'perform_ritual' || name === 'modify_character' || name === 'roll_combat')) {
+        const activeChar = characterRegistry.getActiveCharacter();
+        if (activeChar) {
+          parsedArgs.character_name = activeChar.name;
+        } else if (this.gameState.character) {
+           parsedArgs.character_name = this.gameState.character.name;
+        }
+      }
+      
+      const gameStateForTool = { ...this.gameState, characterRegistry };
+
+
+      if (debugStore.isDebugMode) {
+        debugStore.addLog('tool', { name, args: parsedArgs });
+      }
+
+      try {
+        const result = await executeTool(name, parsedArgs, gameStateForTool);
+        if (name === 'modify_character') {
+          this.updateGameState(result.changes);
+        }
+        if (debugStore.isDebugMode) {
+          debugStore.addLog('tool', { name, args: parsedArgs, result });
+        }
+        results.push({ tool_call_id: toolCall.id, result });
+      } catch (error) {
+        results.push({ tool_call_id: toolCall.id, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+    return results;
+  }
+
+  private updateGameState(changes: any) {
+    const characterRegistry = getCharacterRegistry();
+    const charToUpdate = characterRegistry.getCharacter(changes.character_name) || (this.gameState.character?.name === changes.character_name ? this.gameState.character : null);
+
+    if (!charToUpdate) return;
+
+    if (changes.void_change) {
+      charToUpdate.voidScore = Math.max(0, Math.min(10, (charToUpdate.voidScore || 0) + changes.void_change));
+    }
+    if (changes.soulcredit_change) {
+      charToUpdate.soulcredit = Math.max(-10, Math.min(10, (charToUpdate.soulcredit || 0) + changes.soulcredit_change));
+    }
+    // Persist change
+    characterRegistry.addCharacter(charToUpdate); 
+    if (this.gameState.character?.name === charToUpdate.name) {
+        this.gameState.character = charToUpdate; // also update local game state if it's the current one
+    }
+  }
+
+  private async loadContentFiles(): Promise<{ [filename: string]: string }> {
+    const contentFiles = [
+      'Aeonisk - YAGS Module - v1.2.0.md',
+      'Aeonisk - Lore Book - v1.2.0.md',
+      'Aeonisk - Gear & Tech Reference - v1.2.0.md',
+      'aeonisk_glossary.md',
+      'experimental/Aeonisk - Tactical Module - v1.2.0.md' // Added tactical module
+    ];
+    const files: { [filename: string]: string } = {};
+    for (const filename of contentFiles) {
+      try {
+        const response = await fetch(`/content/${filename}`);
+        if (response.ok) {
+          files[filename] = await response.text();
+        } else {
+          console.warn(`Failed to load content file: ${filename}`);
+        }
+      } catch (error) {
+        console.error(`Error loading content file ${filename}:`, error);
+      }
+    }
+    return files;
   }
 
   getConversationHistory(): Message[] {
-    // Load conversation history from localStorage
-    const savedHistory = localStorage.getItem('conversation_history');
-    if (savedHistory) {
-      try {
-        return JSON.parse(savedHistory);
-      } catch (error) {
-        console.error('Failed to parse conversation history:', error);
-        return [];
-      }
+    return this.conversationManager.getHistory();
+  }
+
+  clearConversation() {
+    this.conversationManager.clear();
+    localStorage.removeItem('conversation_history'); // Ensure localStorage is also cleared
+  }
+
+  rateMessage(index: number, rating: 'good' | 'bad' | 'edit', feedback?: string) {
+    this.conversationManager.rateMessage(index, rating, feedback);
+  }
+
+  exportConversation(format: 'jsonl' | 'finetune' | 'assistant' | 'sharegpt' | 'aeonisk-dataset'): string {
+    // Added 'aeonisk-dataset' to types
+    switch (format) {
+      case 'jsonl': return this.conversationManager.exportAsJSONL();
+      case 'finetune': return this.conversationManager.exportForFineTuning();
+      case 'assistant': return JSON.stringify(this.conversationManager.exportAsAssistantThread(), null, 2);
+      case 'sharegpt': return JSON.stringify(this.conversationManager.exportAsShareGPT(), null, 2);
+      // case 'aeonisk-dataset': return this.exportAsAeoniskDataset(this.getConversationHistory()); // Needs implementation
+      default: throw new Error(`Unknown export format: ${format}`);
     }
-    return [];
-  }
-
-  saveConversationHistory(messages: Message[]): void {
-    // Save conversation history to localStorage
-    try {
-      localStorage.setItem('conversation_history', JSON.stringify(messages));
-    } catch (error) {
-      console.error('Failed to save conversation history:', error);
-    }
-  }
-
-  rateMessage(index: number, rating: 'good' | 'bad' | 'edit'): void {
-    // Store message ratings for future fine-tuning
-    const ratings = JSON.parse(localStorage.getItem('message_ratings') || '{}');
-    ratings[index] = rating;
-    localStorage.setItem('message_ratings', JSON.stringify(ratings));
-  }
-
-  clearConversation(): void {
-    // Clear conversation history from localStorage
-    localStorage.removeItem('conversation_history');
-    localStorage.removeItem('message_ratings');
-  }
-
-  exportConversation(format: string): string {
-    const messages = this.getConversationHistory();
-    if (format === 'aeonisk-dataset') {
-      return this.exportAsAeoniskDataset(messages);
-    }
-    
-    // Default JSON export
-    return JSON.stringify(messages, null, 2);
-  }
-
-  private exportAsAeoniskDataset(messages: Message[]): string {
-    const entries: any[] = [];
-    let taskId = 1;
-    
-    // Find tool use messages and create dataset entries
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-      
-      if (msg.role === 'assistant' && msg.tool_calls) {
-        for (const toolCall of msg.tool_calls) {
-          const fn = JSON.parse(toolCall.function.arguments);
-          
-          if (toolCall.function.name === 'skill_check') {
-            // Find the context message before this
-            const contextMsg = i > 0 ? messages[i - 1] : null;
-            const resultMsg = i < messages.length - 1 ? messages[i + 1] : null;
-            
-            const entry = this.createSkillCheckEntry(
-              `YAGS-AEONISK-SESSION-${String(taskId).padStart(3, '0')}`,
-              contextMsg?.content || 'Character attempts an action',
-              fn,
-              resultMsg
-            );
-            
-            entries.push(entry);
-            taskId++;
-          }
-        }
-      }
-    }
-    
-    return entries.map(e => this.formatYAMLEntry(e)).join('\n---\n');
-  }
-
-  private createSkillCheckEntry(
-    taskId: string,
-    scenario: string,
-    args: any,
-    resultMsg: Message | null
-  ): any {
-    const character = characterRegistry.getCharacter(args.character);
-    
-    return {
-      task_id: taskId,
-      domain: {
-        core: 'rule_application',
-        subdomain: `skill_check_${args.skill.toLowerCase()}`
-      },
-      scenario: scenario.substring(0, 200),
-      environment: 'Interactive game session',
-      stakes: 'Success or failure determines narrative outcome',
-      characters: character ? [{
-        name: character.name,
-        tech_level: character.tech_level || 'Aeonisk Standard',
-        attributes: character.attributes,
-        skills: Object.fromEntries(
-          Object.entries(character.skills).filter(([_, v]) => v && v > 0)
-        ),
-        current_void: character.void_score,
-        soulcredit: character.soulcredit
-      }] : [{
-        name: args.character,
-        tech_level: 'Aeonisk Standard',
-        attributes: { strength: 3, health: 3, agility: 3, dexterity: 3, perception: 3, intelligence: 3, empathy: 3, willpower: 3 },
-        skills: {}
-      }],
-      goal: `Perform ${args.skill} check using ${args.stat}`,
-      expected_fields: ['attribute_used', 'skill_used', 'roll_formula', 'difficulty_guess', 'outcome_explanation', 'rationale'],
-      gold_answer: {
-        attribute_used: args.stat,
-        skill_used: args.skill,
-        roll_formula: this.getFormula(character, args),
-        difficulty_guess: args.difficulty || 20,
-        outcome_explanation: {
-          critical_failure: {
-            narrative: 'The attempt fails catastrophically',
-            mechanical_effect: 'Objective failed with severe consequences'
-          },
-          failure: {
-            narrative: 'The attempt fails',
-            mechanical_effect: 'No progress made'
-          },
-          moderate_success: {
-            narrative: 'The attempt succeeds',
-            mechanical_effect: 'Objective achieved'
-          },
-          good_success: {
-            narrative: 'The attempt succeeds well',
-            mechanical_effect: 'Objective achieved with minor benefit'
-          },
-          excellent_success: {
-            narrative: 'The attempt succeeds excellently',
-            mechanical_effect: 'Objective achieved with significant advantage'
-          },
-          exceptional_success: {
-            narrative: 'The attempt succeeds exceptionally',
-            mechanical_effect: 'Exceptional outcome with major positive side-effect'
-          }
-        },
-        rationale: `${args.stat} x ${args.skill} for the attempted action`
-      },
-      aeonisk_extra_data: {
-        module: 'Aeonisk - YAGS Module',
-        version: 'v1.2.0',
-        tags: ['session_export']
-      }
-    };
-  }
-
-  private getFormula(character: Character | undefined, args: any): string {
-    if (!character) {
-      return '3 x 0 = 0; 0 + d20';
-    }
-    
-    const attr = character.attributes[args.stat.toLowerCase() as keyof typeof character.attributes] || 3;
-    const skillValue = character.skills[args.skill.toLowerCase() as keyof typeof character.skills] || 
-                      character.talents[args.skill.toLowerCase() as keyof typeof character.talents] || 0;
-    
-    return `${args.stat} ${attr} x ${args.skill} ${skillValue} = ${attr * skillValue}; ${attr * skillValue} + d20`;
-  }
-
-  private formatYAMLEntry(entry: any): string {
-    // Simple YAML formatter - in production you'd use a proper YAML library
-    return JSON.stringify(entry, null, 2)
-      .replace(/^{/, '')
-      .replace(/}$/, '')
-      .replace(/",$/gm, '"')
-      .replace(/": /g, ': ')
-      .replace(/^  "/gm, '  ');
   }
 }
 
-// Singleton instance
-let chatServiceInstance: ChatService | null = null;
-
-export function getChatService(): ChatService {
+let chatServiceInstance: AeoniskChatService | null = null;
+export function getChatService(): AeoniskChatService {
   if (!chatServiceInstance) {
-    chatServiceInstance = new ChatService();
+    chatServiceInstance = new AeoniskChatService();
   }
   return chatServiceInstance;
 }
