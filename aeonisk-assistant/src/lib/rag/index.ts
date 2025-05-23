@@ -1,5 +1,4 @@
 import type { ContentChunk, RetrievalResult } from '../../types';
-import { pipeline } from '@xenova/transformers';
 import { marked } from 'marked';
 
 interface StoredChunk {
@@ -7,11 +6,19 @@ interface StoredChunk {
   embedding?: number[];
 }
 
+interface EmbeddingProvider {
+  generateEmbedding(text: string): Promise<number[]>;
+}
+
 export class AIEnhancedRAG {
   private chunks: Map<string, StoredChunk> = new Map();
-  private embedder: any = null;
+  private embeddingProvider: EmbeddingProvider | null = null;
   private initialized = false;
   
+  setEmbeddingProvider(provider: EmbeddingProvider) {
+    this.embeddingProvider = provider;
+  }
+
   async initialize() {
     if (this.initialized) return;
     
@@ -31,12 +38,10 @@ export class AIEnhancedRAG {
         await this.loadAndIndexContent();
       }
       
-      // Initialize the embedding model
-      console.log('Loading embedding model...');
-      this.embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-      
       // Generate embeddings for chunks that don't have them
-      await this.generateMissingEmbeddings();
+      if (this.embeddingProvider) {
+        await this.generateMissingEmbeddings();
+      }
       
       this.initialized = true;
     } catch (error) {
@@ -73,17 +78,13 @@ export class AIEnhancedRAG {
   }
 
   private async generateMissingEmbeddings() {
-    if (!this.embedder) return;
+    if (!this.embeddingProvider) return;
     
     let updated = false;
     for (const [id, stored] of this.chunks.entries()) {
       if (!stored.embedding) {
         try {
-          const output = await this.embedder(stored.chunk.text, { 
-            pooling: 'mean', 
-            normalize: true 
-          });
-          stored.embedding = Array.from(output.data);
+          stored.embedding = await this.embeddingProvider.generateEmbedding(stored.chunk.text);
           updated = true;
         } catch (error) {
           console.error(`Failed to generate embedding for ${id}:`, error);
@@ -220,15 +221,14 @@ export class AIEnhancedRAG {
       await this.initialize();
     }
 
-    if (!this.embedder) {
+    if (!this.embeddingProvider) {
       // Fallback to keyword search
       return this.keywordSearch(query, limit);
     }
 
     try {
       // Generate embedding for the query
-      const output = await this.embedder(query, { pooling: 'mean', normalize: true });
-      const queryEmbedding: number[] = Array.from(output.data);
+      const queryEmbedding = await this.embeddingProvider.generateEmbedding(query);
       
       // Calculate cosine similarity with all chunks
       const scored: Array<{ chunk: ContentChunk; score: number }> = [];
@@ -313,16 +313,13 @@ export class AIEnhancedRAG {
   async addChunk(chunk: ContentChunk) {
     this.chunks.set(chunk.id, { chunk });
     
-    // Generate embedding if embedder is available
-    if (this.embedder) {
+    // Generate embedding if embedding provider is available
+    if (this.embeddingProvider) {
       try {
-        const output = await this.embedder(chunk.text, { 
-          pooling: 'mean', 
-          normalize: true 
-        });
+        const embedding = await this.embeddingProvider.generateEmbedding(chunk.text);
         const stored = this.chunks.get(chunk.id);
         if (stored) {
-          stored.embedding = Array.from(output.data);
+          stored.embedding = embedding;
         }
       } catch (error) {
         console.error('Failed to generate embedding for new chunk:', error);

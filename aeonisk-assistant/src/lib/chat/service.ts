@@ -20,6 +20,45 @@ export class AeoniskChatService {
     this.rag = new AIEnhancedRAG();
     this.conversationManager = new ConversationManager();
     this.loadCharacterFromRegistry(); // Load character on init
+    
+    // Set up embedding provider for RAG
+    this.rag.setEmbeddingProvider({
+      generateEmbedding: async (text: string) => {
+        const apiKey = localStorage.getItem('openai_apiKey');
+        if (!apiKey) {
+          console.log('No OpenAI API key found, skipping embeddings');
+          throw new Error('No OpenAI API key configured');
+        }
+        
+        try {
+          console.log('Generating embedding for text chunk...');
+          const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              input: text.substring(0, 8000), // OpenAI has a limit
+              model: 'text-embedding-ada-002'
+            })
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Embedding API error:', response.status, errorText);
+            throw new Error(`Embedding API error: ${response.status} - ${errorText}`);
+          }
+          
+          const data = await response.json();
+          console.log('Successfully generated embedding');
+          return data.data[0].embedding;
+        } catch (error) {
+          console.error('Failed to generate embedding:', error);
+          throw error;
+        }
+      }
+    });
   }
 
   private loadCharacterFromRegistry() {
