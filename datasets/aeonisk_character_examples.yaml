@@ -203,3 +203,192 @@ equipment:
 notes: >
   Tavros acts in silence and precision. He is not the public face of the operation —
   that’s Lady Alvara. But he enforces deals, takes the spiritual risk, and gets his hands dirty so she doesn’t have to.
+
+ character_name: "Vere Soltra"
+  player_name: ""
+  campaign: "Ember Vault One-Shot"
+  game_master: "GPT-Aeonisk"
+  creation_date: "2025-05-21"
+
+  character_level_type: "Skilled"
+  point_pool_priority:
+    primary: Experience
+    secondary: Attributes
+    tertiary: Advantages
+
+  origin_faction: "Freebound (Ex-Sovereign)"
+  tech_level_character: "Aeonisk Standard"
+
+  primary_attributes:
+    strength: 2
+    health: 3
+    agility: 4
+    dexterity: 3
+    perception: 4
+    intelligence: 4
+    empathy: 2
+    willpower: 4
+
+  secondary_attributes:
+    size: 5
+    soak_base: 10
+    move_base: 10
+
+  status_tracks:
+    wounds:
+      levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Fatal (-40)"]
+      current_level: "OK"
+      current_penalty: 0
+    stuns:
+      levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Beaten (-40)"]
+      current_level: "OK"
+      current_penalty: 0
+    fatigue_exhaustion:
+      levels: ["OK (0)", "Tired (-5)", "Weary (-10)", "Strained (-15)", "Exhausted (-25)", "Incapacitated (-40)"]
+      current_fatigue_level: "OK"
+      current_exhaustion_level: "OK"
+      current_penalty: 0
+
+  talents:
+    athletics: 2
+    awareness: 3
+    brawl: 2
+    charm: 2
+    guile: 2
+    sleight: 2
+    stealth: 4
+    throw: 2
+
+  knowledges:
+    magick_theory: 2
+
+  standard_skills:
+    drone_operation: 2
+
+  astral_skills:
+    astral_arts: 3
+    dreamwork: 0
+
+  languages:
+    native_language_name: "Codex Cant (Breath Line dialect)"
+    native_language_level: 4
+    other_languages: []
+
+  techniques:
+    - name: "Echo Reinforcement"
+      skill_basis: "Dreamwork"
+      cost_level: 1
+      description: "Once per session, roll Dreamwork untrained without penalty."
+
+  advantages:
+    - name: "Echoed Memory – Dierin Soltra (Bond)"
+      cost_level: 2
+      description: "+2 to one ritual per session. Bond burns if ritual fails by ≤4. +1 Soak while defending Dierin’s echo locus."
+
+  disadvantages:
+    - name: "Unoffered Will"
+      cost_level: -2
+      description: "All rituals without an offering generate +1 Void even on success."
+
+  aeonisk_data:
+    void_score: 6
+    soulcredit: -1
+    true_will:
+      declared: false
+      statement: ""
+      alignment_bonus_active: false
+    bonds:
+      - name: "Dierin Soltra (Lost Sibling)"
+        active: false
+        benefit: "Burned. Echo lingers as phantom tether."
+    primary_ritual_item:
+      name: "Personal Blood Sigil"
+      description: "Used to anchor emergency rites. Tied to Vere’s Will."
+      effects_if_lost: "+2 Void to all rituals until replaced. Cannot stabilize Seeds."
+    offerings_carried:
+      - offering_name: "None"
+        description: "Vere refuses formal offerings. Accepts spiritual consequence."
+
+  equipment:
+    - name: "Attuned Heart-Seed"
+      description: "Grants +1 Astral Arts, one free ritual reroll per session."
+    - name: "Mirror Shard (Shattered Echo)"
+      description: "Sometimes reflects an alternate self. Possible Codex anchor."
+
+character_name: "Vehalin Halessan"
+player_name: ""
+campaign: "Liturgy of Embers"
+game_master: ""
+creation_date: "2025-05-21"
+
+character_level_type: "Skilled"
+point_pool_priority:
+  primary: "Experience"
+  secondary: "Advantages"
+  tertiary: "Attributes"
+
+origin_faction: "Sovereign Nexus – Breath Line"
+tech_level_character: "Aeonisk Standard"
+
+primary_attributes:
+  strength: 2
+  health: 3
+  agility: 3
+  dexterity: 3
+  perception: 4
+  intelligence: 4
+  empathy: 3
+  willpower: 3
+
+secondary_attributes:
+  size: 5
+  soak_base: 9  # Size 5 + Str 2 + Agi 3 + 1
+  move_base: 11 # Size + Strength + Agility + 1
+
+wounds:
+  levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Fatal (-40)"]
+  current_level: "OK"
+  current_penalty: 0
+stuns:
+  levels: ["OK", "Minor (0)", "Light (-5)", "Medium (-10)", "Heavy (-15)", "Critical (-25)", "Beaten (-40)"]
+  current_level: "OK"
+  current_penalty: 0
+fatigue_exhaustion:
+  levels: ["OK (0)", "Tired (-5)", "Weary (-10)", "Strained (-15)", "Exhausted (-25)", "Incapacitated (-40)"]
+  current_fatigue_level: "OK"
+  current_exhaustion_level: "OK"
+  current_penalty: 0
+
+# Talents (start at 2)
+talents:
+  athletics: 2
+  awareness: 3
+  brawl: 2
+  charm: 6
+  guile: 5
+  sleight: 2
+  stealth: 3
+  throw: 2
+
+# Knowledges & Aeonisk-specific
+knowledges:
+  lore_codex: 5
+  debt_law: 4
+  lore_elaras_line: 2
+
+standard_skills:
+  intimacy_ritual: 3
+  astral_arts: 2
+
+advantages:
+  - Status: "Codex Tribunal Delegate"
+  - Bond Aptitude: "Can form 4 Bonds"
+
+disadvantages: []
+
+soulcredit: 1  # Starting from Status
+current_void: 0
+bond_slots: 4
+
+notes: >
+  Vehalin Halessan is a Tribunal Liaison of the Breath Line, wielding Charm and Guile like sacred instruments. She knows the Seer’s record better than he does — because she once changed it.

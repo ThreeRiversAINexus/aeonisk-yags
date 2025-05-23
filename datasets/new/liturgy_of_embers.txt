@@ -1,0 +1,466 @@
+task_id: YAGS-AEONISK-004
+domain:
+  core: rule_application
+  subdomain: social_conflict_charm
+scenario: >
+  At the opening of the Penance Liturgical Assembly, Vehalin Halessan — Tribunal Liaison of the Breath Line — is called to assess the returning Seer’s Soulcredit status. In a sanctum lit by record-flames and surrounded by delegates, her words will define whether the Seer enters his first rite as honored, shamed, or suspended. The crowd listens. The Codex remembers.
+environment: Ember Cloister Tribunal Hall — formal, echo-reactive ritual sanctum filled with Codex delegates and spiritual surveillance.
+stakes: >
+  A favorable reading grants the Seer a Soulcredit bonus (+1), shifting public opinion. A harsh framing risks spiritual recoil, but may curry favor with political rivals. A balanced ruling preserves stability, but opens future challenge. Vehalin’s own standing and Bond access may be affected.
+characters:
+  - name: Vehalin Halessan
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {charm: 6, guile: 5, lore_codex: 5, debt_law: 4, intimacy_ritual: 3, awareness: 3}
+    soulcredit: 1
+    current_void: 0
+goal: >
+  Deliver a socially weighted Charm check to define the Seer’s current Soulcredit standing, shaping tribunal protocol and future rite access.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Empathy
+  skill_used: Charm
+  roll_formula: "Empathy 3 × Charm 6 = 18; 18 + d20 (rolled 3) = 21"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Vehalin stammers. Her voice fails to align with the chamber’s resonance, and her words trigger dissonance. The delegates reject her framing, and her authority is diminished. The Seer is barred from ritual.
+      mechanical_effect: >
+        Seer starts with Soulcredit –1. Vehalin loses 1 Soulcredit and may face an audit.
+    failure:
+      narrative: >
+        Vehalin’s logic is cold, her phrasing too dry. The Tribunal hears her words but senses distance. The Seer is admitted — but barely.
+      mechanical_effect: >
+        Seer begins with Soulcredit –1. Vehalin's standing is neutral but unimproved.
+    moderate_success:
+      narrative: >
+        Vehalin delivers a balanced judgment, neither damning nor exalting. Her voice is clear, her loyalty to the Codex precise. The Seer is granted entry — but no absolution.
+      mechanical_effect: >
+        Seer begins the rites at Soulcredit 0. Vehalin’s position remains strong; no gain or loss. NPC favorability remains cautious.
+    good_success:
+      narrative: >
+        Vehalin’s words resonate like clean brass through the chamber. She outlines the Seer’s failings but emphasizes his procedural alignment. The delegates nod — some in agreement, others in calculation.
+      mechanical_effect: >
+        Seer begins with Soulcredit +1. Vehalin gains +1 Soulcredit or Bond Offer from a delegate.
+    excellent_success:
+      narrative: >
+        Vehalin reframes the Seer’s exile as a necessary spiritual divergence. Her insight into Codex precedent astonishes even the archivists. The hall is briefly silent.
+      mechanical_effect: >
+        Seer begins with Soulcredit +1. Vehalin gains +1 Soulcredit and temporary immunity from ritual challenge.
+    exceptional_success:
+      narrative: >
+        The Codex itself seems to shift as she speaks. Her voice aligns with an old entry — long sealed. A flame rises unnaturally on the dais. One elder weeps.
+      mechanical_effect: >
+        Seer begins with Soulcredit +2. Vehalin gains +1 Soulcredit, +1 Bond capacity, and is recognized by the Codex for Insight. Echo potential unlocked.
+rationale: >
+  Vehalin used Empathy × Charm = 18; d20 roll of 3 gave her 21 total, just clearing the Moderate difficulty threshold (20). Her choice of Charm over Guile preserved spiritual integrity, avoiding Void gain or Codex friction. The result reflects balanced truth, no favor or sabotage.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+task_id: YAGS-AEONISK-005
+domain:
+  core: lore_interaction
+  subdomain: ritual_check_bond_severance
+scenario: >
+  During the second ritual trial of the Penance Liturgical Assembly, Seer Halien Revane attempts to reenact his severance from a sacred Bond — the same act that led to his exile. Performed in the flame-charged Inner Veil Chamber, the rite seeks to overwrite a Codex-redacted memory through direct astral invocation. The outcome is volatile: failure invites Echo or worse.
+environment: Inner Veil Chamber of the Ember Cloister — ritual braziers lit with blood-oil, Codex strata active and spiritually reactive.
+stakes: >
+  Success rebinds the Codex record, allowing the Seer to begin the rites of reconciliation. Failure invokes Echo backlash, imposes Void gain, and may fracture the audience’s Will — particularly those with attunement. The tribunal will remember not the act, but the pain of its echo.
+characters:
+  - name: Halien Revane
+    tech_level: Aeonisk Standard
+    attributes: {strength: 3, dexterity: 3, agility: 2, intelligence: 4, perception: 3, willpower: 5, empathy: 4}
+    skills: {astral_arts: 3, lore_codex: 4, dreamwork: 2}
+    soulcredit: 0
+    current_void: 2
+goal: >
+  Attempt a ritual reenactment of the spiritual fracture that led to his exile, using Astral Arts and Willpower to impress the Codex and reaffirm eligibility for reconciliation rites.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "Willpower 5 × Astral Arts 3 = 15; 15 + d20 (rolled 8) = 23"
+  difficulty_guess: 25
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The Codex recoils violently. Flames invert. The Seer's Echo signature collapses, and the Cloister experiences a rupture — one delegate screams and loses speech. A permanent stain marks the sanctum.
+      mechanical_effect: >
+        Seer gains +2 Void. Multiple attendees suffer psychic trauma (–2 Willpower or gain Echo condition). Reenactment ritual is locked for remainder of trial cycle.
+    failure:
+      narrative: >
+        The rite wavers. The glyphs distort mid-symbol, and the Echo of the lost Bond lashes out briefly before evaporating. A ghost of pain remains — nothing healed, nothing resolved.
+      mechanical_effect: >
+        Seer gains +1 Void. Codex refuses to update the record. Attendees must resist Echo Shock or suffer minor Willpower penalty.
+    moderate_success:
+      narrative: >
+        The Bond’s shadow is seen, then gently unknotted — not erased, but acknowledged. The Cloister glows blue-white for three breaths, and the Codex permits a marginal update.
+      mechanical_effect: >
+        Seer gains no Void. Bond fracture acknowledged. Record slightly amended, allowing next rite to proceed with +1 ritual alignment.
+    good_success:
+      narrative: >
+        The Codex receives the rite cleanly. The fractured glyph completes, and the Echo shudders into stillness. A former Bond is named — and forgiven.
+      mechanical_effect: >
+        Ritual succeeds. Codex updates fully. Seer earns +1 Soulcredit. Echo stable.
+    excellent_success:
+      narrative: >
+        The Cloister becomes a mirror. All delegates see the fracture as it truly occurred — and witness the choice made. The Seer’s Echo integrates with the flame-glyph in perfect stillness.
+      mechanical_effect: >
+        Seer earns +1 Soulcredit and +1 Bond Slot (if restored). Echo stabilizes across tribunal, granting +1 to next ritual of any Witness present.
+    exceptional_success:
+      narrative: >
+        The Seer becomes a conduit. The Codex itself reweaves the glyph, absolving not just the fracture but the conditions that led to it. A forgotten name is spoken by a flame — and the audience weeps.
+      mechanical_effect: >
+        Full redemption unlocked. Codex restores original Bond slot and spiritual title. +2 Soulcredit. Delegates experience collective Dream-state of absolution.
+rationale: >
+  This reenactment rite represents the spiritual and narrative axis of the campaign. The Seer’s failure (23 vs DC 25) results in +1 Void and a disrupted ritual state. Emotional consequence is prioritized — the room staggers under a spiritual memory that remains unresolved.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+task_id: YAGS-AEONISK-006
+domain:
+  core: rule_application
+  subdomain: social_conflict_charm
+scenario: >
+  During a cloistered interlude between public ritual trials, Vehalin Halessan of the Breath Line meets with Delegate Roen Valisar in the shadowed annex of the Ember Cloister. Her goal is to secure Roen’s introduction of a tribunal clause that would limit the scope of the Seer’s next rite — a strategic containment meant to reduce Void risk and signal procedural control. The meeting is off-record but spiritually observed.
+environment: Obsidian Atrium – echo-reactive tribunal annex, dimly lit, known for private maneuvering and ritualized diplomacy.
+stakes: >
+  Success positions Vehalin as the invisible hand behind tribunal framing. Roen becomes a temporary proxy, and the Seer’s next rite is constrained. Failure risks exposing Vehalin’s maneuver, alienating moderate delegates or lowering her Soulcredit.
+characters:
+  - name: Vehalin Halessan
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {charm: 6, guile: 5, lore_codex: 5, debt_law: 4, intimacy_ritual: 3, awareness: 3}
+    soulcredit: 1
+    current_void: 0
+goal: >
+  Politically persuade Delegate Roen Valisar to submit a procedural clause in tomorrow’s tribunal session, restricting the Seer’s Echo Dive to a narrow memory band — weakening his ritual positioning.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Empathy
+  skill_used: Charm
+  roll_formula: "Empathy 3 × Charm 6 = 18; 18 + d20 (rolled 19) = 37"
+  difficulty_guess: 22
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Roen interprets Vehalin’s approach as coercive and reports it to a rival faction. Rumors of procedural tampering spread before the next session. Vehalin loses 1 Soulcredit.
+      mechanical_effect: >
+        Motion blocked. Seer proceeds unimpeded. Vehalin flagged for oversight.
+    failure:
+      narrative: >
+        Roen declines, citing procedural neutrality. The tribunal remains uncontrolled, and Vehalin’s political momentum stalls.
+      mechanical_effect: >
+        No framing clause filed. Seer gains full ritual scope.
+    moderate_success:
+      narrative: >
+        Roen agrees to raise concerns privately, but stops short of filing a formal clause. Tribunal tension increases; Vehalin’s influence is whispered but unconfirmed.
+      mechanical_effect: >
+        Seer's next rite informally scrutinized. No formal limits, but social pressure applied.
+    good_success:
+      narrative: >
+        Roen consents and quietly submits a clause limiting the Seer’s Echo Dive. Other delegates nod in procedural rhythm. Vehalin’s hands remain clean.
+      mechanical_effect: >
+        Seer’s ritual risk capped. Vehalin gains +1 Political Leverage over Roen.
+    excellent_success:
+      narrative: >
+        Vehalin’s phrasing mirrors Codex precedent so precisely that Roen repeats it word-for-word in session. The clause passes unchallenged. Several delegates take note — not of Roen, but of her.
+      mechanical_effect: >
+        Clause implemented flawlessly. Seer’s Void gain capped. Vehalin gains +1 Political Influence tag.
+    exceptional_success:
+      narrative: >
+        The Codex itself echoes Vehalin’s phrasing in Roen’s voice. The clause enters public record as if it always belonged. Even Roen is unsure where the idea began.
+      mechanical_effect: >
+        Codex integration of motion. Seer’s scope hard-coded into next ritual structure. Vehalin gains +1 Soulcredit and receives a dream-fragment marked “Oathbinder.”
+rationale: >
+  A classic high-Charm political maneuver. Vehalin’s base ability (18) + a high roll (19) gave her 37 — far above the 22 needed to sway a cautious delegate. The excellent success outcome reflects full impact: a new clause, Vehalin’s clean hands, and a shift in tribunal tempo.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+task_id: YAGS-AEONISK-101
+domain:
+  core: rule_application
+  subdomain: ritual_check_opening_penance
+scenario: >
+  Vehalin Halessan stands alone before the Tribunal flame. With no Bonded support, she must perform the Opening Penance Assembly to reintroduce Arch-Seer Marin Halessan from exile and begin his path to Soulcredit restoration.
+environment: Sovereign Tribunal Atrium – public ritual platform under scrutiny; incense haze and silent judgment.
+stakes: >
+  Success rekindles the Seer’s access to Nexus favor (+2 Soulcredit); failure blocks restoration and may decrease standing. The rite is recorded permanently in the Codex.
+characters:
+  - name: Vehalin Halessan
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {astral_arts: 2, charm: 6, guile: 5, intimacy_ritual: 3, lore_codex: 5, debt_law: 4, lore_elaras_line: 2}
+    current_void: 0
+    soulcredit: 1
+    advantages: ["Codex Tribunal Delegate", "Bond Aptitude"]
+goal: >
+  Perform a public ritual to open the Seer’s reintegration process. Roll Willpower × Astral Arts + d20 vs Ritual DC 18. No Bond or bonus modifiers applied.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Willpower
+  skill_used: Astral Arts
+  roll_formula: "Willpower 3 × Astral Arts 2 = 6; 6 + d20 = 20"
+  difficulty_guess: 18
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        The incense flares violently, consuming the breathwood braid in a burst of acrid smoke. The Seer coughs, the crowd recoils, and the Codex rejects the rite’s inscription.
+      mechanical_effect: >
+        Marin Halessan loses 1 Soulcredit. Public disgrace. Entry delayed 3 cycles. Vehalin suffers –1 to social checks this session due to reputational stain.
+    failure:
+      narrative: >
+        The ritual falters. Symbols stutter mid-air. The Codex records hesitation, not harmony. Tribunal officials request clarification before proceeding.
+      mechanical_effect: >
+        Marin Halessan gains no Soulcredit. Entry is delayed until supplemental rites are performed. Reputation impact minor.
+    moderate_success:
+      narrative: >
+        Vehalin’s voice carves the glyph true. The Codex etches the Seer’s name again—dimly, but unbroken. The rite concludes without scandal.
+      mechanical_effect: >
+        +2 Soulcredit restored to Marin Halessan. Entry permitted. No Void gained.
+    good_success:
+      narrative: >
+        The incense weaves the glyph in perfect arcs. The crowd hushes. One of the elders nods. The Codex glows with recognition.
+      mechanical_effect: >
+        +2 Soulcredit restored to Marin. +1 bonus on next Tribunal interaction. No Void.
+    excellent_success:
+      narrative: >
+        Vehalin’s rite stirs not just the Codex—but the astral layer beneath it. A ripple of resonance pulses outward. Those present remember this.
+      mechanical_effect: >
+        +2 Soulcredit. Marin gains temporary “Codex Favor” (+1 to all Soulcredit rolls for 1 cycle). +1 Reputation for Vehalin.
+    exceptional_success:
+      narrative: >
+        The glyph bursts into radiant flame, and a long-forgotten Nexus rite echoes in the minds of the onlookers. The Codex updates without query. Marin kneels, already forgiven.
+      mechanical_effect: >
+        +3 Soulcredit to Marin. +1 Soulcredit to Vehalin. Codex registers a full spiritual realignment. Tribunal fast-tracks Seer reinstatement.
+  rationale: >
+    Standard Aeonisk ritual using Willpower × Astral Arts vs Ritual Threshold 18. No Bond or offering modifiers applied. Public setting implies strict scrutiny but not elevated DC.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+task_id: YAGS-AEONISK-102
+domain:
+  core: rule_application
+  subdomain: skill_check_commerce
+scenario: >
+  Vehalin Halessan approaches a Soulcredit kiosk at Market Tier IV to purchase an Attuned Spark Core. Without formal training in commerce, she must attempt to navigate prices and ritual obligations unaided.
+environment: Codex Exchange Hub – monitored by passive ritual arrays; kiosk demands proper offering and Soulcredit standing.
+stakes: >
+  Success secures the Spark Core legally and without spiritual penalty. Failure results in potential overpayment, missed offerings, or +1 Void for improper ritual exchange.
+characters:
+  - name: Vehalin Halessan
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {astral_arts: 2, charm: 6, guile: 5, intimacy_ritual: 3, lore_codex: 5, debt_law: 4, lore_elaras_line: 2}
+    current_void: 0
+    soulcredit: 1
+    advantages: ["Codex Tribunal Delegate", "Bond Aptitude"]
+goal: >
+  Attempt to complete a legal exchange for a Spark Core without formal Commerce skill. Pure attribute check (Intelligence × 4 + d20), halved due to skill default.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Commerce (untrained)
+  roll_formula: "Intelligence 4 × 4 = 16; 16 + d20 = 30 → Halved = 15"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Vehalin accepts the first price offered — triple standard rate — and forgets the required offering. The kiosk logs it as a ritual violation, and a static waver of Void dissonance trails her hand.
+      mechanical_effect: >
+        +1 Void. Core flagged as unstable. Tribunal notified of irregular commerce pattern. Public record amended.
+    failure:
+      narrative: >
+        She stumbles on protocol, overpaying slightly and skipping the incense. The Codex records a minor fault. The Spark Core is delivered, but carries residual instability.
+      mechanical_effect: >
+        Spark Core obtained. +1 Void for skipped offering. Kiosk notes spiritual mismatch. Disadvantage on next ritual using this core.
+    moderate_success:
+      narrative: >
+        Vehalin negotiates well enough to secure a legal price, though she still forgets a minor rite. The offering is accepted late.
+      mechanical_effect: >
+        Spark Core secured. No Void. Slight ritual penalty on next use (-1).
+    good_success:
+      narrative: >
+        With surprising deftness, Vehalin navigates the exchange, citing a Bonded clause that grants market parity. The offering is presented properly. The Core thrums with readiness.
+      mechanical_effect: >
+        Spark Core secured cleanly. No Void. Counts as properly attuned. +1 to next ritual.
+    excellent_success:
+      narrative: >
+        She not only completes the transaction flawlessly, but subtly reinterprets kiosk protocol to waive a fee. The kiosk flags her as a trusted practitioner.
+      mechanical_effect: >
+        Spark Core secured. Gain 1 Reputation. Future purchases at kiosks reduced by 1 Drip offering.
+    exceptional_success:
+      narrative: >
+        Vehalin's presence radiates such clarity of Will that the Codex flashes "recognized authority." A second Core is offered at no cost, unasked.
+      mechanical_effect: >
+        Gain 2 Spark Cores. No Void. +1 Soulcredit. Codex notes Vehalin as spiritually aligned trader.
+  rationale: >
+    Untrained Commerce defaults to pure attribute check: Intelligence × 4 + d20, then halved. This represents Vehalin relying solely on intellect without domain expertise. DC 20 standard for challenging market tasks under Codex scrutiny.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+task_id: YAGS-AEONISK-103
+domain:
+  core: rule_application
+  subdomain: skill_check_attunement
+scenario: >
+  Vehalin Halessan inspects a Spark Core received from a Soulcredit Kiosk. Without formal Attunement training, she must determine whether the core is truly stabilized or carries Void residue.
+environment: Nexus Exchange – ambient Codex field active; Spark Core faintly humming with unclear resonance.
+stakes: >
+  Success verifies core quality. Failure may result in unstable ritual materials, risking Void exposure later.
+characters:
+  - name: Vehalin Halessan
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {astral_arts: 2, charm: 6, guile: 5, intimacy_ritual: 3, lore_codex: 5, debt_law: 4, lore_elaras_line: 2}
+    current_void: 1
+    soulcredit: 1
+    advantages: ["Codex Tribunal Delegate", "Bond Aptitude"]
+goal: >
+  Use Attunement skill (defaulted via Perception × 4 + d20, halved) to assess if a Spark Core is safely attuned and ritually usable.
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Perception
+  skill_used: Attunement (untrained)
+  roll_formula: "Perception 4 × 4 = 16; 16 + d20 = 28 → Halved = 14"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Vehalin misreads the core’s signal entirely. Her ritual notes later fail catastrophically, revealing the item to be a Hollow fragment disguised with a false glyph.
+      mechanical_effect: >
+        Core is unstable. Next ritual gains +1 Void. Codex logs a spiritual misstep.
+    failure:
+      narrative: >
+        She hesitates. The resonance is ambiguous — she logs it as “passable,” but misses a subtle asymmetry. It will complicate ritual flow later.
+      mechanical_effect: >
+        Core marked as acceptable. Next ritual suffers –1 penalty. Potential +1 Void on a fumble.
+    moderate_success:
+      narrative: >
+        Vehalin senses something faint — but valid. The spark feels aligned, if a little brittle. Likely attuned, but fragile.
+      mechanical_effect: >
+        Core safe to use. No Void risk, but no bonus effects.
+    good_success:
+      narrative: >
+        The harmonic signature resonates perfectly with her Codex bond. It’s not just safe — it’s pristine.
+      mechanical_effect: >
+        Core is attuned. Next ritual gains +1 to roll.
+    excellent_success:
+      narrative: >
+        A ghost-flare in the Codex pattern confirms: this Spark Core was blessed by a tribunal archivist. Its echo is rich, slow-burning, and pure.
+      mechanical_effect: >
+        Core grants +2 to next ritual. Counts as Codex-sanctified offering.
+    exceptional_success:
+      narrative: >
+        Vehalin traces a secondary glyph hidden deep in the Spark — a mnemonic encoding from a lost Breath Line rite. The Codex registers its reawakening.
+      mechanical_effect: >
+        Core provides +3 to next ritual, and +1 Soulcredit for spiritual rediscovery. Rare lore may unlock later.
+  rationale: >
+    Attunement is a real skill (v1.2.0). Without it, Vehalin must use a pure attribute check: Perception × 4 + d20, halved. DC 20 matches standard ritual-tech calibration in Codex environments.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
+task_id: YAGS-AEONISK-104
+domain:
+  core: rule_application
+  subdomain: skill_check_lore_codex
+scenario: >
+  Vehalin Halessan is flagged by a Soulcredit Kiosk while attempting to purchase an Attuned Spark Core. With her offering incomplete and no commerce credentials, she must legally justify her right to complete the transaction using Codex Lore.
+environment: Nexus Market Tier IV – kiosk under passive Codex scan, monitoring both spiritual legitimacy and procedural compliance.
+stakes: >
+  Success allows the transaction to continue cleanly. Failure results in denial, investigation, or possible Soulcredit downgrade.
+characters:
+  - name: Vehalin Halessan
+    tech_level: Aeonisk Standard
+    attributes: {strength: 2, dexterity: 3, agility: 3, intelligence: 4, perception: 4, willpower: 3, empathy: 3}
+    skills: {astral_arts: 2, charm: 6, guile: 5, intimacy_ritual: 3, lore_codex: 5, debt_law: 4, lore_elaras_line: 2}
+    current_void: 1
+    soulcredit: 1
+    advantages: ["Codex Tribunal Delegate", "Bond Aptitude"]
+goal: >
+  Use Lore (Codex) to navigate around a Soulcredit flag by citing legal precedence for ritual purchases. 
+expected_fields:
+  - attribute_used
+  - skill_used
+  - roll_formula
+  - difficulty_guess
+  - outcome_explanation
+  - rationale
+gold_answer:
+  attribute_used: Intelligence
+  skill_used: Lore (Codex)
+  roll_formula: "Intelligence 4 × Lore 5 = 20; 20 + d20 = 31"
+  difficulty_guess: 20
+  outcome_explanation:
+    critical_failure:
+      narrative: >
+        Vehalin misquotes a revoked article. The kiosk flags her as attempting Codex manipulation. Transaction denied. Tribunal alert queued.
+      mechanical_effect: >
+        Transaction blocked. Soulcredit review pending. +1 Void possible next ritual.
+    failure:
+      narrative: >
+        Her references are vague or outdated. The kiosk requests override verification, delaying the purchase and drawing notice.
+      mechanical_effect: >
+        Delay 1–3 cycles. Spark Core suspended. Transaction logged as unresolved.
+    moderate_success:
+      narrative: >
+        She cites the correct override clause. The kiosk allows the purchase but marks the Codex for audit later.
+      mechanical_effect: >
+        Spark Core delivered. Codex audit scheduled. +0 Void.
+    good_success:
+      narrative: >
+        Vehalin invokes precise Breath Line protocols. The kiosk accepts them without question. A clean legal purchase.
+      mechanical_effect: >
+        Spark Core acquired. Transaction logged as spiritually lawful. No further flags.
+    excellent_success:
+      narrative: >
+        Her speech is so fluid it restores her political standing. The kiosk grants a Core pre-attuned to her Bondline.
+      mechanical_effect: >
+        Spark Core grants +1 to next ritual. Codex logs her as a Verified Legal Actor.
+    exceptional_success:
+      narrative: >
+        The Codex itself responds — a harmonized glyph unfolds on the kiosk as confirmation. Vehalin is added to a reference ledger for future clerical override.
+      mechanical_effect: >
+        Spark Core enhanced. +1 Soulcredit. Gain “Legal Authority” tag. Kiosk auto-approves her for next purchase.
+  rationale: >
+    Vehalin has Lore (Codex) 5 and Intelligence 4; she uses a full ability check to navigate Codex bureaucracy. DC 20 reflects typical threshold for market overrides within Sovereign Nexus protocol.
+aeonisk_extra_data:
+  module: Aeonisk - YAGS Module
+  version: v1.2.0
