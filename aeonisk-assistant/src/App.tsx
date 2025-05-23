@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import './App.css';
 import { ChatInterface } from './components/ChatInterface';
 import { SettingsPanel } from './components/SettingsPanel';
 import { CharacterPanel } from './components/CharacterPanel';
 import { DebugPanel } from './components/DebugPanel';
 import { getChatService } from './lib/chat/service';
+import './App.css';
 import { useDebugStore } from './stores/debugStore';
 import { useProviderStore } from './stores/providerStore';
 import { characterRegistry } from './lib/game/characterRegistry';
@@ -125,15 +125,17 @@ function App() {
       {showSettings && (
         <SettingsPanel 
           onClose={() => setShowSettings(false)} 
-          onProviderConfig={(provider, config) => {
+          onProviderConfig={(providerName, config) => { // Renamed provider to providerName to avoid conflict
             const chatService = getChatService();
-            chatService.setConfig(config);
+            chatService.setConfig(config); // Pass LLMConfig here
             handleApiKeySet();
           }}
-          onProviderChange={(provider) => {
-            // Provider change is handled within the SettingsPanel
+          onProviderChange={(providerName) => { // Renamed provider to providerName
+            // This logic might need adjustment based on how SettingsPanel calls it
+            // For now, assuming it passes the provider string.
+            // The actual provider change (model etc) is handled within SettingsPanel or via onProviderConfig
           }}
-          currentProvider={provider}
+          currentProvider={provider} // Pass the provider state from useProviderStore
         />
       )}
 
