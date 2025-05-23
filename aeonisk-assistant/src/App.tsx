@@ -21,40 +21,79 @@ function App() {
   const { setProvider: setProviderInStore } = useProviderStore();
 
   useEffect(() => {
-    // Check for saved configuration
-    const savedConfig = localStorage.getItem('llmConfig');
-    if (savedConfig) {
-      try {
-        const configs = JSON.parse(savedConfig);
-        Object.entries(configs).forEach(([provider, config]) => {
-          chatService.configureProvider(provider, config as LLMConfig);
-        });
-        const savedProvider = localStorage.getItem('currentProvider');
-        if (savedProvider) {
-          chatService.setProvider(savedProvider);
-          setCurrentProvider(savedProvider);
-        }
-        setIsConfigured(true);
-        
-        // Load saved character if exists
-        const savedCharacter = localStorage.getItem('character');
-        if (savedCharacter) {
-          try {
-            const character = JSON.parse(savedCharacter);
-            chatService.setCharacter(character);
-          } catch (e) {
-            console.error('Failed to load saved character:', e);
+    // First check for environment variable
+    const envApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (envApiKey) {
+      // Auto-configure OpenAI with env var
+      const openAIConfig: LLMConfig = {
+        provider: 'openai',
+        apiKey: envApiKey,
+        model: 'gpt-4o'
+      };
+      
+      chatService.configureProvider('openai', openAIConfig);
+      chatService.setProvider('openai');
+      setCurrentProvider('openai');
+      setProviderInStore('openai', 'gpt-4o');
+      setIsConfigured(true);
+      
+      // Save to localStorage so it persists
+      const configs = { openai: openAIConfig };
+      localStorage.setItem('llmConfig', JSON.stringify(configs));
+      localStorage.setItem('currentProvider', 'openai');
+    } else {
+      // Check for saved configuration if no env var
+      const savedConfig = localStorage.getItem('llmConfig');
+      if (savedConfig) {
+        try {
+          const configs = JSON.parse(savedConfig);
+          Object.entries(configs).forEach(([provider, config]) => {
+            chatService.configureProvider(provider, config as LLMConfig);
+          });
+          const savedProvider = localStorage.getItem('currentProvider');
+          if (savedProvider) {
+            chatService.setProvider(savedProvider);
+            setCurrentProvider(savedProvider);
           }
+          setIsConfigured(true);
+          
+          // Load saved character if exists
+          const savedCharacter = localStorage.getItem('character');
+          if (savedCharacter) {
+            try {
+              const character = JSON.parse(savedCharacter);
+              chatService.setCharacter(character);
+            } catch (e) {
+              console.error('Failed to load saved character:', e);
+            }
+          }
+          
+          // Check if this is a first-time user
+          const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+          if (!hasSeenWelcome && !savedCharacter) {
+            setShowWelcome(true);
+          }
+        } catch (error) {
+          console.error('Failed to load saved config:', error);
         }
-        
-        // Check if this is a first-time user
-        const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-        if (!hasSeenWelcome && !savedCharacter) {
-          setShowWelcome(true);
-        }
-      } catch (error) {
-        console.error('Failed to load saved config:', error);
       }
+    }
+    
+    // Always load saved character if exists
+    const savedCharacter = localStorage.getItem('character');
+    if (savedCharacter) {
+      try {
+        const character = JSON.parse(savedCharacter);
+        chatService.setCharacter(character);
+      } catch (e) {
+        console.error('Failed to load saved character:', e);
+      }
+    }
+    
+    // Check if this is a first-time user
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeenWelcome && !savedCharacter) {
+      setShowWelcome(true);
     }
   }, []);
 
