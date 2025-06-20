@@ -105,9 +105,12 @@ Title: *How We Navigate the Stars: Will, Ritual, and Resonance*
 
 Excerpt:
 
-> Travel between core worlds is not a matter of propulsion. It is attunement. Ritual astronavigation, often requiring considerable skill in **Pilot**ing through treacherous ley-currents, demands alignment with the interplanetary ley grid. This grid is maintained through harmonics radiated from sanctified planetary nodes, often overseen by those of the Ossai Line.
+> Travel between core worlds is not a matter of simple propulsion; it is a profound act of attunement. Ritual astronavigation, often demanding considerable skill in piloting through treacherous ley-currents, requires a deep alignment with the interplanetary ley grid. This grid is maintained through harmonics radiated from sanctified planetary nodes, frequently overseen by those of the Ossai Line.
 >
-> Not all ships may enter slipstream. Passage requires: — Resonance Aligner calibrated to pilot’s Soulcredit standing — Bonded ley-reader with **Dream Ring** training (often Nymir Line, enabling Dreamwork rolls to navigate psychic hazards of the Veil) — Astral lodestone (a fossilized Seed fragment, itself carefully attuned to the intended route)
+> Not all ships may enter the slipstream. Passage necessitates:
+> — A Resonance Aligner calibrated to the pilot’s Soulcredit standing.
+> — A bonded ley-reader with Dream Ring training (a specialization often found among the Nymir Line) enabling them to interpret and navigate the psychic hazards of the Veil.
+> — An Astral lodestone, typically a fossilized Seed fragment, itself carefully attuned to the intended route)
 
 Example Insert: Pilot’s Invocation – The Breath Cut
 
@@ -116,19 +119,19 @@ Example Insert: Pilot’s Invocation – The Breath Cut
 Ley Route Summary:
 
 > **Spiral Strand**: Aeonisk ⇌ Arcadia
-> Primary Use: Ritual goods, biotech, Seed transfers
-> Protection: Choir-class escort ships (Pantheon Security Contracts)
-> Rite of Purification mandatory upon Arcadia arrival
-> Average Time: 3 cycles
+> Primary Use: Ritual goods, biotech, Seed transfers.
+> Protection: Typically patrolled by Choir-class escort ships under Pantheon Security Contracts.
+> Customs: A Rite of Purification is mandatory upon arrival in Arcadia.
+> Journey Duration: Travel along this strand usually takes around three cycles.
 
 > **Breath Cut**: Aeonisk ⇌ Nimbus
-> Primary Use: Soulcredit media, Spark artifacts, encrypted cargo (often House of Vox broadcasts)
-> Risk Level: High — pirate activity common; ritual surveillance intense
-> Average Time: 8 to 12 cycles
+> Primary Use: Soulcredit media, Spark artifacts, encrypted cargo (often House of Vox broadcasts).
+> Dangers: This route is known for its significant perils, with frequent pirate activity and intense ritual surveillance.
+> Journey Duration: Passage typically requires eight to twelve cycles.
 
 > **Hollow Vector**: Arcadia ⇌ Nimbus
-> Unofficial Use: Illicit Seed, Void weaponry, unregistered Bonds, sometimes Thaurin Line relics
-> Codex Status: Untraceable — vessels may return altered, their passage marked by a subtle dimming of their Soulcredit echo. Rumors persist that logs from this route feed not the Codex, but the aberrant resonance known as the Eye of Breach.
+> Unofficial Use: Often exploited for trafficking illicit Seed, Void weaponry, unregistered Bonds, and sometimes Thaurin Line relics.
+> Codex Status: Journeys along this vector are untraceable by the Codex. Vessels may return altered, their passage marked by a subtle dimming of their Soulcredit echo. Rumors persist that logs from this route feed not the Codex, but the aberrant resonance known as the Eye of Breach.
 
 Fragment: Shipboard Journal Compilation
 
@@ -187,7 +190,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *   **What They Never Tell You:** The communion is being archived. Every. Single. Pulse. For analysis by Nexus regulators.
 
 **Tempest Industries - The Hollow Path (Unofficial/Subversive)**
-*   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, advanced **Drone Operation** for stealth and sabotage, study of Siblings of the Black Horizon texts.
+*   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, advanced drone operation for stealth and sabotage, study of Siblings of the Black Horizon texts.
 *   **Deployment Style:** Void-runner, ritual hacker, Hollow Seed courier, echo saboteur, drone swarm coordinator.
 *   **Hidden Curriculum:** Stability is stagnation. The only true state is the potential before the Bond.
 *   **Expulsion Cause:** Forming lasting, non-instrumental Bonds. Seeking Soulcredit validation. Refusing dissolution.
@@ -221,24 +224,24 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 >
 > Some arm themselves for war. Others, for remembrance. Choose wisely, for the weight of your choice is carried long after the battle ends. An Emmerant duelist chooses differently than an Ireveth gatewarden.
 
-**Classified Weapon Systems (Summary)**
+**Classified Weapon Systems (Narrative Descriptions)**
 
-| Class             | Effect                                                       | Example                                                      |
-| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| **Bonded**        | Resonates with attuned user, enhancing focus and deflecting harm; feels inert or actively resists others | Mnemonic Blade (strikes deeper when tied to emotional trauma, echoes the pain) |
-| **Glyph-Encoded** | Bypasses specific wards through elemental resonance; requires ritual alignment | Shrike Cannon (disrupts ritual shields, must be ritually recalibrated or its song fades) |
-| **Void-Infused**  | Tears through defenses with unnatural force, but deepens the user's connection to the Hollow with every strike | Ash Pulse Pike (stuns astral beings, risks tearing the Veil wider with careless use) |
-| **Spirit-Weave**  | Hums with purpose when wielded in alignment with True Will, falters or whispers warnings otherwise | Wraithroot Vineblade (warns wearer in sleep of impending dissonances, favored by Aether Dynamics) |
-| **Contractual**   | Remains inert unless the user's standing in the Codex meets its embedded oath | Debtbreaker Sidearm (locks or sends silent alarms to ACG when user falls out of contractual grace) |
-| **Conventional**  | Lacks ritual signature; reliable baseline gear               | Union-Issue Pistol, Breach Hammer (effective, but leaves no echo beyond the physical) |
+| Class             | Nature & Reputation                                                                    | Example                                                      |
+| ----------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Bonded**        | These weapons resonate deeply with an attuned wielder, seeming to sharpen their resolve and turn aside incoming threats. To others, they feel inert or may actively resist an unbonded touch. | Mnemonic Blade (said to strike deeper when its wielder is connected to profound emotional trauma, echoing the pain) |
+| **Glyph-Encoded** | Crafted to bypass specific protective wards through principles of elemental resonance; their efficacy often depends on careful ritual alignment by the wielder. | Shrike Cannon (known for its ability to disrupt ritual shields, though its potent song is said to fade if not ritually recalibrated) |
+| **Void-Infused**  | Imbued with unnatural energies, these weapons can sunder defenses with terrifying force, yet each use is rumored to draw the wielder closer to the Hollow. | Ash Pulse Pike (capable of momentarily overwhelming astral beings, but careless use risks further tearing the fabric of the Veil) |
+| **Spirit-Weave**  | These items are said to hum with purpose when wielded by someone in alignment with their True Will, but may falter or whisper warnings if their bearer strays. | Wraithroot Vineblade (reputed to warn its wearer in their sleep of impending spiritual dissonances, and is favored by Aether Dynamics) |
+| **Contractual**   | Such items reportedly remain inert unless the wielder's standing within the Codex meets the conditions of an oath embedded within the object itself. | Debtbreaker Sidearm (rumored to lock itself or send silent alarms to the Astral Commerce Group if its user falls out of contractual grace) |
+| **Conventional**  | These weapons lack any discernible ritual signature, serving as reliable, if unremarkable, baseline gear. | Union-Issue Pistol, Breach Hammer (effective in a purely physical sense, but their use leaves no echo beyond the material impact) |
 
-**Armor Class Examples**
+**Armor Examples (Narrative Descriptions)**
 
-*   **Bondweave Mantle**: Redistributes harm between bonded allies, sharing the weight of impact
-*   **Rainthread Vestment**: Absorbs ambient grief, shields against emotional manipulation
-*   **Voidshroud Drape**: Phases briefly through reality—but invites the Hollow's gaze with prolonged use
-*   **Urban Riot Carapace**: Conventional crowd-control plate, requires no Soulcredit attunement
-*   **Ley-Weave Cloak:** Doesn't absorb damage, but subtly redirects hostile energy patterns into the ambient ley field (requires attunement, may cause local distortions if overloaded, common among Aether Dynamics field agents).
+*   **Bondweave Mantle**: Said to redistribute the burden of harm between bonded allies, allowing them to share the weight of an impact.
+*   **Rainthread Vestment**: Woven with materials that reputedly absorb ambient grief, offering a shield against some forms of emotional manipulation.
+*   **Voidshroud Drape**: Rumored to allow the wearer to phase briefly out of sync with reality, though such an act is said to invite the Hollow's dangerous gaze with prolonged use.
+*   **Urban Riot Carapace**: Conventional crowd-control plate, functioning irrespective of Soulcredit standing.
+*   **Ley-Weave Cloak:** This cloak isn't designed to absorb direct damage; instead, it is believed to subtly redirect hostile energy patterns into the ambient ley field. Attunement is necessary for this effect, and overloading it may cause local distortions. Such cloaks are commonly seen among Aether Dynamics field agents.
 
 **Excerpt: Combat Tribunal Memo – Incident 447.Nimbus**
 
@@ -264,11 +267,11 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 | Type               | Description                                              | Effect on the World                                          |
 | ------------------ | -------------------------------------------------------- | ------------------------------------------------------------ |
-| **Soulcredit**     | Your public record of spiritual debt/credit; your echo   | Affects access, surveillance, legal standing, civic trust    |
-| **Talismans**      | Elemental markers (Spark, Drip, Breath, Grain) derived from ritually **Attuned Seeds** or other sources. | Power rituals, fuel resonant gear, carry social weight.      |
-| **Raw Seeds**      | Unstable, unaligned potential. Degrade over cycles.      | Must be ritually attuned to an element before safe/effective use. Using Raw Seeds directly often incurs Void. |
-| **Hollow Seeds**   | Illicit energy from fractured Bonds or forbidden rituals; or Raw Seeds that have degraded. | Fuel Voidtech, bypass Codex scrutiny, invite corruption.      |
-| **Will Offerings** | Rare—unique acts of sacrifice or profound intent         | May sway the Codex's echo or leave a lasting mark on the Weave |
+| **Soulcredit**     | Your public record of spiritual debt/credit.             | Affects access, surveillance, legal standing, civic trust.   |
+| **Talismans**      | Elemental markers (Spark, Drip, Breath, Grain) derived from ritually attuned Seeds or other sources. | Used to power rituals, fuel resonant gear, and carry social weight. |
+| **Raw Seeds**      | Unstable, unaligned potential. They degrade over cycles.   | Must be ritually attuned to an element before they can be safely or effectively used. Using Raw Seeds directly often incurs Void. |
+| **Hollow Seeds**   | Illicit energy from fractured Bonds or forbidden rituals; or Raw Seeds that have degraded. | Can fuel Voidtech, bypass Codex scrutiny, and invite corruption. |
+| **Will Offerings** | Rare—unique acts of sacrifice or profound intent.        | May sway the Codex's echo or leave a lasting mark on the Weave. |
 
 **Excerpt: Marketplace Ritual Broker (Arcadia)**
 
@@ -276,7 +279,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Codex Advisory Note (Factional Memorandum)**
 
-> “Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly Attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual.”
+> “Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual.”
 
 Sovereign Nexus Motto: *Law is Bond. The Void is Real. All Acts Count.*
 
