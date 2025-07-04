@@ -168,6 +168,7 @@ class BenchmarkConfig(BaseModel):
     random_seed: Optional[int] = None
     filter_domains: Optional[List[str]] = None
     filter_difficulty: Optional[List[str]] = None
+    filter_task_ids: Optional[List[str]] = None
     
     # Performance settings
     max_concurrent_requests: int = 5

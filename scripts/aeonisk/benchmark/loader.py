@@ -287,11 +287,16 @@ class DatasetLoader:
                     difficulty_levels: Optional[List[str]] = None,
                     task_types: Optional[List[str]] = None,
                     sample_size: Optional[int] = None,
-                    random_seed: Optional[int] = None) -> List[BenchmarkTask]:
+                    random_seed: Optional[int] = None,
+                    filter_task_ids: Optional[List[str]] = None) -> List[BenchmarkTask]:
         """Filter tasks based on criteria."""
         import random
         
         filtered_tasks = self.tasks.copy()
+        
+        # Filter by task IDs
+        if filter_task_ids:
+            filtered_tasks = [task for task in filtered_tasks if task.task_id in filter_task_ids]
         
         # Filter by domains
         if domains:

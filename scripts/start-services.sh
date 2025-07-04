@@ -1,4 +1,8 @@
 #!/bin/bash
+# This script now also launches the frontend (aeonisk-assistant) and backend (Node API) dev servers for local development.
+# Frontend: http://localhost:5173 (default Vite port)
+# Backend:  http://localhost:3000 (if configured)
+# Services: PostgreSQL, Redis, ChromaDB (via podman compose)
 set -e
 
 echo "🎮 Starting Aeonisk Services..."
@@ -63,6 +67,25 @@ echo "🔗 Service URLs:"
 echo "  - PostgreSQL: localhost:5432"
 echo "  - Redis: localhost:6379"
 echo "  - ChromaDB: http://localhost:8000"
+echo "  - Frontend:   http://localhost:5173 (Vite default)"
+echo "  - Backend:    http://localhost:3000 (if configured)"
 echo ""
 echo "💡 To view logs: podman compose logs -f [service-name]"
 echo "💡 To stop services: podman compose down"
+echo ""
+
+# Start the frontend dev server in the background
+(
+  cd "$(dirname "$0")/../aeonisk-assistant"
+  echo "🚀 Starting frontend (aeonisk-assistant)..."
+  npm run dev &
+)
+
+# Start the backend dev server in the background
+(
+  cd "$(dirname "$0")/.."
+  echo "🚀 Starting backend (Node API)..."
+  npm run dev &
+)
+
+echo "🌐 Frontend and backend servers started in background!"

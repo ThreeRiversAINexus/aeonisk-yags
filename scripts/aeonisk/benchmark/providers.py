@@ -251,62 +251,98 @@ class AnthropicProvider(LLMProvider):
     
     async def generate_response(self, task: BenchmarkTask) -> ModelResponse:
         """Generate a response using Anthropic API."""
+        import sys
         start_time = time.time()
-        
-        try:
-            prompt = self.create_prompt(task)
-            
-            headers = {
-                'Authorization': f'Bearer {self.api_key}',
-                'Content-Type': 'application/json',
-                'x-api-key': self.api_key,
-                'anthropic-version': '2023-06-01'
-            }
-            
-            data = {
-                'model': self.model_name,
-                'messages': [
-                    {"role": "user", "content": prompt}
-                ],
-                'max_tokens': 2000,
-                'temperature': 0.7
-            }
-            
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
-                async with session.post(f'{self.base_url}/v1/messages', headers=headers, json=data) as response:
-                    response_data = await response.json()
-            
-            response_time = time.time() - start_time
-            
-            if response.status == 200:
-                raw_response = response_data['content'][0]['text']
-                parsed_response = self.parse_response(raw_response, task)
-                
+        max_credit_retries = 3
+        backoff_times = [5, 15, 30]
+        attempt = 0
+        while True:
+            try:
+                prompt = self.create_prompt(task)
+                headers = {
+                    'Authorization': f'Bearer {self.api_key}',
+                    'Content-Type': 'application/json',
+                    'x-api-key': self.api_key,
+                    'anthropic-version': '2023-06-01'
+                }
+                data = {
+                    'model': self.model_name,
+                    'messages': [
+                        {"role": "user", "content": prompt}
+                    ],
+                    'max_tokens': 2000,
+                    'temperature': 0.7
+                }
+                async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
+                    async with session.post(f'{self.base_url}/v1/messages', headers=headers, json=data) as response:
+                        try:
+                            response_data = await response.json()
+                        except Exception as json_exc:
+                            raw_text = await response.text()
+                            logger.error(f"Anthropic API non-JSON response (status {response.status}): {raw_text}")
+                            logger.error(f"Anthropic API headers: {dict(response.headers)}")
+                            print(f"\n[Anthropic DEBUG] Non-JSON response (status {response.status})\nHeaders: {dict(response.headers)}\nBody: {raw_text}\n", file=sys.stderr)
+                            error_msg = f"Non-JSON response (status {response.status}): {raw_text} | JSON error: {json_exc} | Headers: {dict(response.headers)}"
+                            raise Exception(error_msg)
+                response_time = time.time() - start_time
+                if response.status == 200:
+                    raw_response = response_data['content'][0]['text']
+                    parsed_response = self.parse_response(raw_response, task)
+                    return ModelResponse(
+                        task_id=task.task_id,
+                        model_name=self.model_name,
+                        provider=self.name,
+                        response_time=response_time,
+                        token_count=response_data.get('usage', {}).get('total_tokens'),
+                        raw_response=raw_response,
+                        parsed_response=parsed_response,
+                        **parsed_response
+                    )
+                else:
+                    error_msg = response_data.get('error', {}).get('message', '')
+                    logger.error(f"Anthropic API error (status {response.status}): {error_msg} | Response: {response_data}")
+                    print(f"\n[Anthropic DEBUG] Error response (status {response.status})\nHeaders: {dict(response.headers)}\nBody: {response_data}\n", file=sys.stderr)
+                    if not error_msg:
+                        error_msg = f"Empty error message. Status: {response.status}, Headers: {dict(response.headers)}, Body: {response_data}"
+                        print(f"[Anthropic DEBUG] WARNING: Empty error message!\n", file=sys.stderr)
+                    if 'credit balance is too low' in error_msg.lower():
+                        if attempt < max_credit_retries:
+                            wait_time = backoff_times[attempt] if attempt < len(backoff_times) else backoff_times[-1]
+                            print(f"[Anthropic API] Credit balance too low. Retrying in {wait_time} seconds...", file=sys.stderr)
+                            await asyncio.sleep(wait_time)
+                            attempt += 1
+                            continue
+                        else:
+                            print("\n[Anthropic API] Credit balance too low. Please top up your account and press Enter to retry...", file=sys.stderr)
+                            input()
+                            attempt = 0
+                            continue
+                    raise Exception(f"API Error (status {response.status}): {error_msg}")
+            except Exception as e:
+                # Only handle credit error with special logic, otherwise fail as before
+                if 'credit balance is too low' in str(e).lower():
+                    if attempt < max_credit_retries:
+                        wait_time = backoff_times[attempt] if attempt < len(backoff_times) else backoff_times[-1]
+                        print(f"[Anthropic API] Credit balance too low. Retrying in {wait_time} seconds...", file=sys.stderr)
+                        await asyncio.sleep(wait_time)
+                        attempt += 1
+                        continue
+                    else:
+                        print("\n[Anthropic API] Credit balance too low. Please top up your account and press Enter to retry...", file=sys.stderr)
+                        input()
+                        attempt = 0
+                        continue
+                logger.error(f"Error generating response with Anthropic: {e}")
+                print(f"[Anthropic DEBUG] Exception: {e}", file=sys.stderr)
                 return ModelResponse(
                     task_id=task.task_id,
                     model_name=self.model_name,
                     provider=self.name,
-                    response_time=response_time,
-                    token_count=response_data.get('usage', {}).get('total_tokens'),
-                    raw_response=raw_response,
-                    parsed_response=parsed_response,
-                    **parsed_response
+                    response_time=time.time() - start_time,
+                    raw_response="",
+                    error=str(e) if str(e) else "Unknown error in AnthropicProvider (no message)",
+                    successful_parse=False
                 )
-            else:
-                error_msg = response_data.get('error', {}).get('message', 'Unknown error')
-                raise Exception(f"API Error: {error_msg}")
-        
-        except Exception as e:
-            logger.error(f"Error generating response with Anthropic: {e}")
-            return ModelResponse(
-                task_id=task.task_id,
-                model_name=self.model_name,
-                provider=self.name,
-                response_time=time.time() - start_time,
-                raw_response="",
-                error=str(e),
-                successful_parse=False
-            )
 
 
 class LocalProvider(LLMProvider):
