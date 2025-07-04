@@ -1,0 +1,85 @@
+version: '3'
+
+env:
+  NODE_ENV: '{{default "development" .NODE_ENV}}'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm install
+
+  dev:
+    desc: Run development server with hot reload
+    cmds:
+      - npm run dev
+
+  test:
+    desc: Run tests
+    cmds:
+      - npm test
+
+  test:watch:
+    desc: Run tests in watch mode
+    cmds:
+      - npm run test:watch
+
+  test:coverage:
+    desc: Run tests with coverage
+    cmds:
+      - npm run test:coverage
+
+  build:
+    desc: Build the project
+    cmds:
+      - npm run build
+
+  start:
+    desc: Start production server
+    cmds:
+      - npm start
+
+  db:create:
+    desc: Create database
+    cmds:
+      - podman exec -it aeonisk-postgres createdb -U aeonisk aeonisk_game
+
+  db:migrate:
+    desc: Run database migrations
+    cmds:
+      - npm run db:migrate
+
+  db:seed:
+    desc: Seed database with test data
+    cmds:
+      - npm run db:seed
+
+  podman:up:
+    desc: Start all services with podman compose
+    cmds:
+      - podman compose up -d
+
+  podman:down:
+    desc: Stop all services
+    cmds:
+      - podman compose down
+
+  podman:logs:
+    desc: Show logs from all services
+    cmds:
+      - podman compose logs -f
+
+  lint:
+    desc: Run linter
+    cmds:
+      - npm run lint
+
+  typecheck:
+    desc: Run type checking
+    cmds:
+      - npm run typecheck
