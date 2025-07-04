@@ -31,7 +31,7 @@ from aeonisk.benchmark.cli import (
 from aeonisk.benchmark.core import BenchmarkRunner
 from aeonisk.benchmark.models import (
     BenchmarkTask, ModelResponse, EvaluationResult,
-    ComparisonReport, EvaluationDimension
+    ComparisonReport, EvaluationDimension, TaskDomain
 )
 from aeonisk.benchmark.loader import DatasetLoader
 from aeonisk.benchmark.providers import ModelManager
@@ -267,7 +267,7 @@ class TestBenchmarkRunner:
         return [
             BenchmarkTask(
                 task_id="YAGS-TEST-001",
-                domain={"core": "rule_application", "subdomain": "skill_check"},
+                domain=TaskDomain(core="rule_application", subdomain="skill_check"),
                 scenario="Test scenario 1",
                 environment="Test environment",
                 stakes="Test stakes",
@@ -278,7 +278,7 @@ class TestBenchmarkRunner:
             ),
             BenchmarkTask(
                 task_id="YAGS-TEST-002",
-                domain={"core": "combat", "subdomain": "melee"},
+                domain=TaskDomain(core="combat", subdomain="melee"),
                 scenario="Test scenario 2",
                 environment="Test environment",
                 stakes="Test stakes",
@@ -469,7 +469,7 @@ class TestModelManager:
         # Create sample task
         task = BenchmarkTask(
             task_id="YAGS-TEST-001",
-            domain={"core": "rule_application", "subdomain": "skill_check"},
+            domain=TaskDomain(core="rule_application", subdomain="skill_check"),
             scenario="Test scenario",
             environment="Test environment",
             stakes="Test stakes",
@@ -515,7 +515,7 @@ class TestAIJudge:
         judge = AIJudge(judge_model="gpt-4", api_key="test_key")
         task = BenchmarkTask(
             task_id="YAGS-TEST-001",
-            domain={"core": "rule_application", "subdomain": "skill_check"},
+            domain=TaskDomain(core="rule_application", subdomain="skill_check"),
             scenario="Test scenario",
             environment="Test environment",
             stakes="Test stakes",
@@ -537,8 +537,8 @@ class TestAIJudge:
         assert evaluation.model_name == "gpt-4"
         assert evaluation.overall_score == 0.8
     
-    @pytest.mark.asyncio
     @patch('aeonisk.benchmark.evaluator.OpenAI')
+    @pytest.mark.asyncio
     async def test_evaluate_batch(self, mock_openai_class):
         """Test evaluating a batch of responses."""
         # Mock OpenAI client and response
@@ -570,10 +570,10 @@ class TestAIJudge:
         mock_client.chat.completions.create.return_value = mock_response
 
         judge = AIJudge(judge_model="gpt-4", api_key="test_key")
-        
+
         task = BenchmarkTask(
             task_id="YAGS-TEST-001",
-            domain={"core": "rule_application", "subdomain": "skill_check"},
+            domain=TaskDomain(core="rule_application", subdomain="skill_check"),
             scenario="Test scenario",
             environment="Test environment",
             stakes="Test stakes",
@@ -582,7 +582,7 @@ class TestAIJudge:
             expected_fields=["test_field"],
             gold_answer={"test_field": "test_value"}
         )
-        
+
         response = ModelResponse(
             task_id="YAGS-TEST-001",
             model_name="gpt-4",
@@ -591,9 +591,9 @@ class TestAIJudge:
             successful_parse=True,
             response_time=1.0
         )
-        
+
         evaluations = await judge.evaluate_batch([(task, response)])
-        
+
         assert len(evaluations) == 1
         assert evaluations[0].task_id == "YAGS-TEST-001"
         assert evaluations[0].model_name == "gpt-4"
@@ -613,11 +613,11 @@ class TestDatasetLoader:
     def test_filter_tasks(self):
         """Test filtering tasks by domain and difficulty."""
         loader = DatasetLoader("test_dataset.txt")
-        
+
         tasks = [
             BenchmarkTask(
                 task_id="YAGS-TEST-001",
-                domain={"core": "rule_application", "subdomain": "skill_check"},
+                domain=TaskDomain(core="rule_application", subdomain="skill_check"),
                 scenario="Test scenario 1",
                 environment="Test environment",
                 stakes="Test stakes",
@@ -628,7 +628,7 @@ class TestDatasetLoader:
             ),
             BenchmarkTask(
                 task_id="YAGS-TEST-002",
-                domain={"core": "combat", "subdomain": "melee"},
+                domain=TaskDomain(core="combat", subdomain="melee"),
                 scenario="Test scenario 2",
                 environment="Test environment",
                 stakes="Test stakes",
@@ -639,7 +639,7 @@ class TestDatasetLoader:
             ),
             BenchmarkTask(
                 task_id="YAGS-TEST-003",
-                domain={"core": "rule_application", "subdomain": "ritual"},
+                domain=TaskDomain(core="rule_application", subdomain="ritual"),
                 scenario="Test scenario 3",
                 environment="Test environment",
                 stakes="Test stakes",
@@ -659,7 +659,6 @@ class TestDatasetLoader:
             sample_size=None,
             random_seed=42
         )
-        
         assert len(filtered) == 2
         assert all(task.domain.core == "rule_application" for task in filtered)
 

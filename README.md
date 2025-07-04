@@ -1,132 +1,199 @@
-# Aeonisk YAGS Game
+# Aeonisk Backend
 
-A text-based RPG game set in the Aeonisk universe, using the YAGS (Yet Another Game System) ruleset.
-
-## Overview
-
-Aeonisk YAGS is a command-line RPG game that combines narrative storytelling with the YAGS rule system. The game features:
-
-- Character creation and management
-- Scenario generation using AI
-- NPC generation and interaction
-- Natural language action processing
-- Automatic skill checks
-- Session saving and loading
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/aeonisk-yags.git
-cd aeonisk-yags
-```
-
-2. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Set up your OpenAI API key in a `.env` file:
-```
-OPENAI_API_KEY=your_api_key_here
-OPENAI_MODEL=gpt-4o  # or another model of your choice
-```
-
-## Running the Game
-
-To start the game, run:
-
-```bash
-python scripts/aeonisk_game.py
-```
-
-## CLI Specification
-
-The game uses an enhanced CLI interface with clear separation between narrative and mechanical elements.
-
-### Command Structure
-
-#### Core Commands
-- `start <name>` - Start a new game with a name
-- `load <name>` - Load a saved game
-- `help` - Show help information
-- `exit/quit` - Exit the game
-
-#### Character Commands
-- `create <name> <concept>` - Create a new character
-- `list` - List all characters
-- `select <index>` - Select a character
-- `character` - View character details
-
-#### Game Actions
-- `look/examine [object]` - Look around or examine something
-- `talk <npc> [message]` - Talk to an NPC
-- `do <action>` - Perform an action
-- `go <location>` - Move to a location
-- `use <item> [on <target>]` - Use an item, possibly on a target
-
-#### Advanced Commands
-- `check <attr> <skill> <diff>` - Perform a manual skill check
-- `scenario [theme] [difficulty]` - Generate a scenario
-- `npc [faction] [role]` - Generate an NPC
-- `save <file>` - Save the current session
-- `mechanics` - Toggle display of mechanical details
-
-### Output Format
-
-The game output is structured with clear separation between narrative and mechanical elements:
-
-```
-[NARRATIVE]
-The dimly lit marketplace bustles with activity as you navigate through the crowd. 
-The merchant's eyes widen slightly as you approach, recognition flickering across 
-his face.
-
-[MECHANICS]
-• Perception + Awareness check: 3×2 + 15 = 21 vs difficulty 18 (SUCCESS)
-• Success margin: +3
-• Void Score: 0 (unchanged)
-• Soulcredit: 0 (unchanged)
-
-[Dataset entry recorded]
-```
-
-This format provides:
-1. A narrative description of what happens
-2. The mechanical details (skill checks, stats changes)
-3. Confirmation that the action was recorded in the dataset
-
-### Natural Language Actions
-
-The game accepts natural language commands for actions. If a command doesn't match any of the predefined commands, it's treated as an action and processed accordingly.
-
-For example:
-- `look around the marketplace`
-- `talk to the merchant about rare artifacts`
-- `carefully examine the strange device`
-- `sneak past the guards`
-
-The system will automatically determine the appropriate skill checks based on the action description and context.
+A comprehensive backend API for the Aeonisk game system, providing complete game state management, real-time updates, and secure player interactions.
 
 ## Architecture
 
-The game is built with a modular architecture:
+### Technology Stack
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js
+- **Database**: PostgreSQL with Drizzle ORM
+- **Real-time**: Socket.IO
+- **Authentication**: JWT
+- **Testing**: Jest with Supertest
+- **Containerization**: Podman
 
-- `scripts/aeonisk/core/models.py` - Pydantic models for game entities
-- `scripts/aeonisk/engine/game.py` - Core game mechanics
-- `scripts/aeonisk/engine/cli.py` - Command-line interface
-- `scripts/aeonisk/openai/client.py` - OpenAI API integration
-- `scripts/aeonisk/dataset/parser.py` - Dataset parsing and management
+### Project Structure
+```
+aeonisk-backend/
+├── src/
+│   ├── domain/           # Domain entities and business logic
+│   │   ├── entities/     # Character, GameSession entities
+│   │   └── schemas/      # Zod validation schemas
+│   ├── infrastructure/   # Database and external services
+│   │   ├── database/     # Drizzle schema and connection
+│   │   └── repositories/ # Data access layer
+│   ├── services/         # Business logic services
+│   ├── api/              # HTTP layer
+│   │   ├── routes/       # Express routes
+│   │   ├── controllers/  # Request handlers
+│   │   └── middleware/   # Auth, error handling
+│   └── utils/            # Shared utilities
+├── tests/
+│   ├── unit/            # Unit tests
+│   ├── integration/     # API integration tests
+│   └── e2e/             # End-to-end tests
+└── drizzle/             # Database migrations
+```
 
-## Dataset Integration
+## Features
 
-The game automatically records all actions, skill checks, and outcomes in a structured dataset format. This data can be used for:
+### Game State Management
+- Complete character creation and management
+- Game session tracking with phases
+- Action recording and history
+- NPC management
+- Void and Soulcredit economy
 
-- Session continuity
-- Game analysis
-- AI training
-- Character progression tracking
+### Real-time Updates
+- WebSocket support for live game updates
+- Session-based rooms for multiplayer
+- Character state synchronization
+- AI NPC updates
 
-## License
+### Security
+- JWT authentication
+- Rate limiting
+- Input validation with Zod
+- SQL injection protection via Drizzle ORM
+- CORS configuration
 
-[MIT License](LICENSE)
+### AI Integration
+- AI DM capabilities
+- NPC agent support
+- ChromaDB integration for RAG
+- Game lore and rules retrieval
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+
+### Characters
+- `GET /api/characters` - List user's characters
+- `POST /api/characters` - Create new character
+- `GET /api/characters/:id` - Get character details
+- `PUT /api/characters/:id` - Update character
+- `DELETE /api/characters/:id` - Delete character
+- `POST /api/characters/:id/void` - Modify void score
+- `POST /api/characters/:id/soulcredit` - Modify soulcredit
+- `POST /api/characters/:id/seeds/add` - Add raw seed
+- `POST /api/characters/:id/seeds/attune` - Attune seed
+
+### Game Sessions
+- `GET /api/sessions` - List user's sessions
+- `POST /api/sessions` - Create new session
+- `GET /api/sessions/:id` - Get session details
+- `PUT /api/sessions/:id` - Update session
+- `POST /api/sessions/:id/characters` - Add character to session
+- `POST /api/sessions/:id/actions` - Record action
+- `POST /api/sessions/:id/npcs` - Add NPC
+
+## Setup
+
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
+- Podman (or Docker)
+
+### Installation
+```bash
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env
+
+# Start infrastructure with Podman
+task podman:up
+
+# Run database migrations
+npm run db:migrate
+
+# Start development server
+task dev
+```
+
+### Testing
+```bash
+# Run all tests
+task test
+
+# Run tests in watch mode
+task test:watch
+
+# Run with coverage
+task test:coverage
+```
+
+## Environment Variables
+```
+# Server
+PORT=3000
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://aeonisk:aeonisk_password@localhost:5432/aeonisk_game
+
+# ChromaDB
+CHROMADB_URL=http://localhost:8000
+
+# JWT
+JWT_SECRET=your-secret-key-here
+JWT_EXPIRE=7d
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# CORS
+CORS_ORIGIN=http://localhost:5173
+
+# Logging
+LOG_LEVEL=info
+```
+
+## Database Schema
+
+### Core Tables
+- `users` - User accounts
+- `characters` - Player characters
+- `game_sessions` - Game sessions
+- `session_characters` - M2M relationship
+- `npcs` - Non-player characters
+- `actions` - Game actions/events
+- `void_history` - Void score changes
+
+## WebSocket Events
+
+### Client → Server
+- `authenticate` - Authenticate socket connection
+- `join-session` - Join game session room
+- `leave-session` - Leave game session room
+
+### Server → Client
+- `character-update` - Character state change
+- `session-update` - Session state change
+- `action-recorded` - New action in session
+- `npc-action` - AI NPC performed action
+
+## Development Workflow
+
+1. **Test-Driven Development**: Write tests first
+2. **Type Safety**: Full TypeScript coverage
+3. **Domain-Driven Design**: Clear separation of concerns
+4. **Repository Pattern**: Abstract data access
+5. **Service Layer**: Business logic isolation
+
+## Next Steps
+
+- [ ] Implement full authentication system
+- [ ] Add game session WebSocket handlers
+- [ ] Integrate AI DM capabilities
+- [ ] Add ritual system endpoints
+- [ ] Implement campaign management
+- [ ] Add file upload for character portraits
+- [ ] Implement data export/import
+- [ ] Add metrics and monitoring
