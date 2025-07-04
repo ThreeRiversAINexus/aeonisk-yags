@@ -65,12 +65,14 @@ class BenchmarkRunner:
         all_tasks = self.dataset_loader.load_dataset()
         logger.info(f"Loaded {len(all_tasks)} total tasks")
         
-        # Apply filters
+        # Apply filters, including filter_task_ids if present
+        filter_task_ids = getattr(self.config, 'filter_task_ids', None)
         filtered_tasks = self.dataset_loader.filter_tasks(
             domains=self.config.filter_domains,
             difficulty_levels=self.config.filter_difficulty,
             sample_size=self.config.sample_size,
-            random_seed=self.config.random_seed
+            random_seed=self.config.random_seed,
+            filter_task_ids=filter_task_ids
         )
         
         logger.info(f"Filtered to {len(filtered_tasks)} tasks for benchmarking")
@@ -119,23 +121,33 @@ class BenchmarkRunner:
     
     async def generate_all_responses(self, tasks: List[BenchmarkTask]):
         """Generate responses from all models for all tasks."""
+        import sys
         logger.info("Generating responses from all models...")
-        
         total_tasks = len(tasks)
         provider_info = self.model_manager.get_provider_info()
-        
+        all_errors = []
         for i, task in enumerate(tasks):
-            logger.info(f"Processing task {i+1}/{total_tasks}: {task.task_id}")
-            
+            print(f"\n\033[1m[TASK {i+1}/{total_tasks}] {task.task_id}:\033[0m {task.scenario[:80]}{'...' if len(task.scenario) > 80 else ''}")
+            print(f"  Models: {', '.join(provider_info.keys())}")
             # Generate responses from all models for this task
             task_responses = await self.model_manager.generate_responses_parallel(task)
-            
+            for model_id, response in task_responses.items():
+                if response.successful_parse and not response.error:
+                    print(f"    \033[92m[OK]\033[0m {model_id} | Success: True")
+                else:
+                    print(f"    \033[91m[ERROR]\033[0m {model_id} | Success: {response.successful_parse} | Error: {response.error if response.error else 'Unknown error'}")
+                    all_errors.append((task.task_id, model_id, response.error))
             # Store responses
             self.task_responses[task.task_id] = list(task_responses.values())
-            
             # Log progress
             if (i + 1) % 10 == 0:
                 logger.info(f"Completed {i+1}/{total_tasks} tasks")
+        # Print error summary at the end
+        if all_errors:
+            print("\n\033[91m==== ERROR SUMMARY ====" + "\033[0m")
+            for tid, mid, err in all_errors:
+                print(f"  [TASK {tid}] [MODEL {mid}] Error: {err}")
+            print("\033[91m======================\033[0m\n")
     
     async def evaluate_all_responses(self, tasks: List[BenchmarkTask]):
         """Evaluate all generated responses."""

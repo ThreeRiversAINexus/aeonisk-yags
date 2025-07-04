@@ -29,55 +29,55 @@ tasks:
     desc: Run all tests
     cmds:
       - echo "Running all tests..."
-      - "{{.PYTEST}} test_*.py -v"
+      - PYTHONPATH=.. {{.PYTEST}} test_*.py -v
 
   test-unit:
     desc: Run unit tests only
     cmds:
       - echo "Running unit tests..."
-      - "{{.PYTEST}} test_*.py -v -m 'not integration'"
+      - PYTHONPATH=.. {{.PYTEST}} test_*.py -v -m 'not integration'
 
   test-integration:
     desc: Run integration tests only
     cmds:
       - echo "Running integration tests..."
-      - "{{.PYTEST}} test_*.py -v -m 'integration'"
+      - PYTHONPATH=.. {{.PYTEST}} test_*.py -v -m 'integration'
 
   test-benchmark:
     desc: Run benchmark system tests
     cmds:
       - echo "Running benchmark system tests..."
-      - "{{.PYTEST}} test_benchmark.py -v"
+      - PYTHONPATH=.. {{.PYTEST}} test_benchmark.py -v
 
   test-dataset:
     desc: Run dataset management tests
     cmds:
       - echo "Running dataset management tests..."
-      - "{{.PYTEST}} test_dataset.py -v"
+      - PYTHONPATH=.. {{.PYTEST}} test_dataset.py -v
 
   test-engine:
     desc: Run game engine tests
     cmds:
       - echo "Running game engine tests..."
-      - "{{.PYTEST}} test_engine.py -v"
+      - PYTHONPATH=.. {{.PYTEST}} test_engine.py -v
 
   test-openai:
     desc: Run OpenAI integration tests
     cmds:
       - echo "Running OpenAI integration tests..."
-      - "{{.PYTEST}} test_openai_client.py -v"
+      - PYTHONPATH=.. {{.PYTEST}} test_openai_client.py -v
 
   test-coverage:
     desc: Run tests with coverage reporting
     cmds:
       - echo "Running tests with coverage..."
-      - "{{.PYTEST}} test_*.py --cov=aeonisk --cov-report=html --cov-report=term-missing"
+      - PYTHONPATH=.. {{.PYTEST}} test_*.py --cov=aeonisk --cov-report=html --cov-report=term-missing
 
   test-fast:
     desc: Run tests without coverage for speed
     cmds:
       - echo "Running tests (fast mode)..."
-      - "{{.PYTEST}} test_*.py -v --no-cov -x"
+      - PYTHONPATH=.. {{.PYTEST}} test_*.py -v --no-cov -x
 
   # Code Quality
   lint:
@@ -128,42 +128,65 @@ tasks:
         cat > quick_benchmark.json << 'EOF'
         {
           "name": "quick_comparison",
+          "description": "Quick benchmark comparison (debug mode, 2 tasks: YAGS-AEONISK-032, YAGS-AEONISK-054)",
           "dataset_path": "../../datasets/aeonisk_dataset_normalized_complete.txt",
           "models": [
             {
-              "id": "gpt4",
+              "id": "gpt-4o",
               "provider": "openai",
-              "model": "gpt-4",
+              "model": "gpt-4o-2024-08-06",
               "api_key": "${OPENAI_API_KEY}",
               "timeout": 30
             },
             {
-              "id": "gpt35",
-              "provider": "openai", 
-              "model": "gpt-3.5-turbo",
+              "id": "gpt-4o-mini",
+              "provider": "openai",
+              "model": "gpt-4o-mini-2024-07-18",
               "api_key": "${OPENAI_API_KEY}",
+              "timeout": 30
+            },
+            {
+              "id": "claude-sonnet-4",
+              "provider": "anthropic",
+              "model": "claude-sonnet-4-20250514",
+              "api_key": "${ANTHROPIC_API_KEY}",
+              "timeout": 30
+            },
+            {
+              "id": "claude-opus-4",
+              "provider": "anthropic",
+              "model": "claude-opus-4-20250514",
+              "api_key": "${ANTHROPIC_API_KEY}",
+              "timeout": 30
+            },
+            {
+              "id": "claude-haiku-3.5",
+              "provider": "anthropic",
+              "model": "claude-3-5-haiku-20241022",
+              "api_key": "${ANTHROPIC_API_KEY}",
               "timeout": 30
             }
           ],
-          "sample_size": 10,
+          "sample_size": 2,
+          "filter_task_ids": ["YAGS-AEONISK-032", "YAGS-AEONISK-054"],
           "use_ai_judge": true,
           "generate_whitepaper": false
         }
         EOF
-      - "{{.PYTHON}} -m {{.BENCHMARK_MODULE}} --config quick_benchmark.json"
+      - PYTHONPATH=.. {{.PYTHON}} -m {{.BENCHMARK_MODULE}} --config quick_benchmark.json
 
   benchmark-full:
     desc: Run a comprehensive benchmark suite
     cmds:
       - echo "Running comprehensive benchmark suite..."
-      - "{{.PYTHON}} -m {{.BENCHMARK_MODULE}} --create-config full_benchmark.json"
+      - PYTHONPATH=.. {{.PYTHON}} -m {{.BENCHMARK_MODULE}} --create-config full_benchmark.json
       - echo "Edit full_benchmark.json to configure your models and API keys"
       - echo "Then run task benchmark-run-full"
 
   benchmark-run-full:
     desc: Run the full benchmark suite (after configuration)
     cmds:
-      - "{{.PYTHON}} -m {{.BENCHMARK_MODULE}} --config full_benchmark.json --suite"
+      - PYTHONPATH=.. {{.PYTHON}} -m {{.BENCHMARK_MODULE}} --config full_benchmark.json --suite
 
   # Dataset Commands
   dataset-validate:
@@ -172,7 +195,7 @@ tasks:
       - echo "Validating sample datasets..."
       - |
         if [ -f "../../datasets/aeonisk_dataset_normalized_complete.txt" ]; then
-          {{.PYTHON}} -m {{.DATASET_MODULE}} validate ../../datasets/aeonisk_dataset_normalized_complete.txt -v
+          PYTHONPATH=.. {{.PYTHON}} -m {{.DATASET_MODULE}} validate ../../datasets/aeonisk_dataset_normalized_complete.txt -v
         else
           echo "Sample dataset not found. Please check datasets/ directory."
         fi
@@ -182,7 +205,7 @@ tasks:
     cmds:
       - echo "Example - Merging multiple datasets..."
       - echo "This would merge datasets if they exist in ../../datasets/"
-      - find ../../datasets/ -name "*.txt" -exec {{.PYTHON}} -m {{.DATASET_MODULE}} validate {} \; 2>/dev/null || echo "No datasets found to validate"
+      - find ../../datasets/ -name "*.txt" -exec PYTHONPATH=.. {{.PYTHON}} -m {{.DATASET_MODULE}} validate {} \; 2>/dev/null || echo "No datasets found to validate"
 
   # Engine Commands
   engine-cli:
@@ -190,14 +213,14 @@ tasks:
     cmds:
       - echo "Starting interactive game engine..."
       - echo "Type 'help' for available commands, 'exit' to quit"
-      - "{{.PYTHON}} -m {{.ENGINE_MODULE}}"
+      - PYTHONPATH=.. {{.PYTHON}} -m {{.ENGINE_MODULE}}
 
   openai-test:
     desc: Test OpenAI integration
     cmds:
       - echo "Testing OpenAI integration..."
       - |
-        {{.PYTHON}} -c "
+        PYTHONPATH=.. {{.PYTHON}} -c "
         import os
         from aeonisk.openai.client import OpenAIClient
         try:
@@ -217,7 +240,7 @@ tasks:
     cmds:
       - echo "Running example game session..."
       - |
-        {{.PYTHON}} -c "
+        PYTHONPATH=.. {{.PYTHON}} -c "
         from aeonisk.engine.game import GameSession
         session = GameSession()
         print('=== Example Game Session ===')

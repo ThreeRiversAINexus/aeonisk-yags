@@ -1907,7 +1907,7 @@ domain:
   subdomain: dreamwork_ritual_trace
 scenario: >
   Rev Gutter-Sermon enters a metaphysical hinge-space beneath Ring 9, where residual glyph decay suggests this was a site of ritual deletion. Believed to be where Thassil—the Buried Bondbreaker—was severed from Codex reality. Rev uses Dreamwork to walk backwards through this echo-scar. He seeks to witness Thassil’s last known act, her breaking, or the ritual that erased her.
-environment: Hinge-space: a stabilized spiritual rupture sealed under glyph-rot. Echoes whisper backward. Mold glows in perfect spirals.
+environment: "Hinge-space: a stabilized spiritual rupture sealed under glyph-rot. Echoes whisper backward. Mold glows in perfect spirals."
 stakes: >
   Success allows Rev to observe or interface with Thassil’s final moment, gaining ritual knowledge, spiritual tags, or insight into Codex vulnerabilities. Failure risks temporal displacement, recursive Dream feedback, or psychic entanglement with a broken personality fragment.
 characters:

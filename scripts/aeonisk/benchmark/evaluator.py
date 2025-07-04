@@ -280,7 +280,7 @@ Be thorough but concise in your evaluation. Focus on how well the response would
             
             # If no API client, use only automated metrics
             if not self.client:
-                return EvaluationResult(
+                result = EvaluationResult(
                     task_id=task.task_id,
                     model_name=response.model_name,
                     overall_score=automated_metrics['overall_score'],
@@ -288,6 +288,8 @@ Be thorough but concise in your evaluation. Focus on how well the response would
                     judge_rationale="Automated evaluation only - no AI judge available",
                     **automated_metrics
                 )
+                print(f"[EVAL] {task.task_id} | {response.model_name} | Automated only | Score: {result.overall_score}")
+                return result
             
             # Generate AI evaluation
             prompt = self.create_evaluation_prompt(task, response)
@@ -308,22 +310,30 @@ Be thorough but concise in your evaluation. Focus on how well the response would
             # Combine automated and AI metrics
             combined_evaluation = self._combine_evaluations(automated_metrics, ai_evaluation)
             
-            return EvaluationResult(
+            # Ensure judge_rationale is present
+            if 'judge_rationale' not in combined_evaluation:
+                combined_evaluation['judge_rationale'] = "No rationale provided"
+            
+            result = EvaluationResult(
                 task_id=task.task_id,
                 model_name=response.model_name,
                 **combined_evaluation
             )
+            print(f"[EVAL] {task.task_id} | {response.model_name} | AI+Auto | Score: {result.overall_score}")
+            return result
             
         except Exception as e:
             logger.error(f"Error evaluating response: {e}")
             # Fallback to automated metrics only
             automated_metrics = self._calculate_automated_metrics(response, task.gold_answer)
-            return EvaluationResult(
+            result = EvaluationResult(
                 task_id=task.task_id,
                 model_name=response.model_name,
                 judge_rationale=f"Evaluation error: {str(e)}",
                 **automated_metrics
             )
+            print(f"[EVAL] {task.task_id} | {response.model_name} | ERROR | Score: {result.overall_score} | {str(e)}")
+            return result
     
     def _calculate_automated_metrics(self, response: ModelResponse, gold_answer: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate automated evaluation metrics."""
@@ -345,6 +355,17 @@ Be thorough but concise in your evaluation. Focus on how well the response would
             if json_match:
                 json_str = json_match.group(0)
                 evaluation = json.loads(json_str)
+                # Normalize keys
+                if 'scores' in evaluation:
+                    scores = evaluation['scores']
+                    if 'difficulty_appropriateness' in scores:
+                        scores['difficulty_appropriate'] = scores.pop('difficulty_appropriateness')
+                    evaluation['scores'] = scores
+                if 'comments' in evaluation:
+                    comments = evaluation['comments']
+                    if 'difficulty_appropriateness' in comments:
+                        comments['difficulty_appropriate'] = comments.pop('difficulty_appropriateness')
+                    evaluation['comments'] = comments
                 return evaluation
             else:
                 logger.warning("No JSON found in AI evaluation response")
@@ -408,6 +429,7 @@ Be thorough but concise in your evaluation. Focus on how well the response would
                 if isinstance(result, Exception):
                     logger.error(f"Batch evaluation error: {result}")
                 else:
+                    print(f"[BATCH EVAL] {result.task_id} | {result.model_name} | Score: {result.overall_score}")
                     results.append(result)
             
             # Rate limiting delay
