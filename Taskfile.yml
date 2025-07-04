@@ -9,6 +9,60 @@ tasks:
     cmds:
       - task --list
 
+  # Service Management Tasks
+  check:
+    desc: Check prerequisites for running services
+    cmds:
+      - bash scripts/check-prerequisites.sh
+
+  start:
+    desc: Start all services (PostgreSQL, Redis, ChromaDB)
+    cmds:
+      - bash scripts/start-services.sh
+
+  stop:
+    desc: Stop all services gracefully
+    cmds:
+      - bash scripts/stop-services.sh
+
+  restart:
+    desc: Restart all services
+    cmds:
+      - task: stop
+      - task: start
+
+  status:
+    desc: Show status of all services
+    cmds:
+      - podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep aeonisk || echo "No Aeonisk services running"
+
+  logs:
+    desc: Show logs from all services
+    cmds:
+      - podman compose logs -f
+
+  diagnose:
+    desc: Diagnose connection issues
+    cmds:
+      - bash scripts/diagnose-connections.sh
+
+  # Database Tasks
+  db:init:
+    desc: Initialize databases
+    cmds:
+      - bash scripts/init-databases.sh
+
+  db:psql:
+    desc: Connect to PostgreSQL interactive shell
+    cmds:
+      - podman exec -it aeonisk-postgres psql -U aeonisk -d aeonisk_game
+
+  db:redis:
+    desc: Connect to Redis CLI
+    cmds:
+      - podman exec -it aeonisk-redis redis-cli
+
+  # Development Tasks
   install:
     desc: Install dependencies
     cmds:
@@ -39,41 +93,19 @@ tasks:
     cmds:
       - npm run build
 
-  start:
-    desc: Start production server
-    cmds:
-      - npm start
-
-  db:create:
-    desc: Create database
-    cmds:
-      - podman exec -it aeonisk-postgres createdb -U aeonisk aeonisk_game
-
-  db:migrate:
-    desc: Run database migrations
-    cmds:
-      - npm run db:migrate
-
-  db:seed:
-    desc: Seed database with test data
-    cmds:
-      - npm run db:seed
-
-  podman:up:
-    desc: Start all services with podman compose
-    cmds:
-      - podman compose up -d
-
-  podman:down:
-    desc: Stop all services
+  # Cleanup Tasks
+  clean:
+    desc: Stop services and remove containers (keeps data)
     cmds:
       - podman compose down
 
-  podman:logs:
-    desc: Show logs from all services
+  clean:all:
+    desc: Stop services and remove everything including volumes (DESTRUCTIVE)
     cmds:
-      - podman compose logs -f
+      - podman compose down -v
+    prompt: This will delete all data. Are you sure?
 
+  # Utility Tasks
   lint:
     desc: Run linter
     cmds:
