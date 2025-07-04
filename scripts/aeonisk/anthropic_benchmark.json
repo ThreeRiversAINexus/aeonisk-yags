@@ -1,0 +1,23 @@
+{
+  "name": "anthropic_test",
+  "dataset_path": "../../datasets/aeonisk_dataset_normalized_complete.txt",
+  "models": [
+    {
+      "id": "claude-haiku",
+      "provider": "anthropic",
+      "model": "claude-3-haiku-20240307",
+      "api_key": "${ANTHROPIC_API_KEY}",
+      "timeout": 30
+    },
+    {
+      "id": "claude-sonnet",
+      "provider": "anthropic",
+      "model": "claude-3-sonnet-20240229",
+      "api_key": "${ANTHROPIC_API_KEY}",
+      "timeout": 30
+    }
+  ],
+  "sample_size": 2,
+  "use_ai_judge": false,
+  "generate_whitepaper": false
+}
