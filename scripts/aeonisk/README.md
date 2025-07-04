@@ -35,6 +35,7 @@ The Aeonisk YAGS engine consists of four main modules:
 - **Dataset Management**: YAML-based dataset parsing and validation
 - **Content Generation**: Scenario, NPC, and action analysis generation
 - **Comprehensive Testing**: 400+ unit tests with mocked API calls
+- **Modern Task Runner**: Uses Task instead of Make for cleaner build automation
 
 ## Installation
 
@@ -62,11 +63,25 @@ export ANTHROPIC_API_KEY="your-anthropic-key"
 ### Development Installation
 
 ```bash
+# Install Task (modern alternative to Make)
+curl -sL https://taskfile.dev/install.sh | sh
+
+# Alternative installation methods:
+# brew install go-task/tap/go-task (macOS)
+# choco install go-task (Windows)
+# snap install task --classic (Linux)
+
+# Note: The installer places task in ./bin/task
+# You can add it to PATH or use ./bin/task directly
+
 # Install additional development dependencies
 pip install pytest pytest-asyncio black isort mypy
 
 # Install in development mode
 pip install -e .
+
+# Quick development setup
+task setup-dev
 ```
 
 ### Docker Installation (Optional)
@@ -81,31 +96,44 @@ docker run -e OPENAI_API_KEY="your-key" aeonisk-engine
 
 ## Quick Start
 
+### Using Task (Recommended)
+
+First, install Task if you haven't already:
+
+```bash
+# Install Task
+curl -sL https://taskfile.dev/install.sh | sh
+
+# Show all available commands
+task --list
+
+# Quick setup for development
+task setup-dev
+```
+
 ### 1. Benchmark Language Models
 
 ```bash
-# Create a benchmark configuration
+# Quick benchmark with default settings
+task benchmark-quick
+
+# Full benchmark suite
+task benchmark-full
+
+# Manual benchmark configuration
 python -m aeonisk.benchmark.cli --create-config benchmark_config.json
-
-# Edit the configuration file to add your API keys and models
-
-# Run a benchmark
-python -m aeonisk.benchmark.cli --config benchmark_config.json
-
-# Run a comprehensive benchmark suite
 python -m aeonisk.benchmark.cli --config benchmark_config.json --suite
 ```
 
 ### 2. Manage Datasets
 
 ```bash
-# Parse and validate a dataset
+# Validate sample datasets
+task dataset-validate
+
+# Manual dataset operations
 python -m aeonisk.dataset.cli parse datasets/sample.txt -o parsed_dataset.json
-
-# Validate a dataset
 python -m aeonisk.dataset.cli validate datasets/sample.txt -v
-
-# Convert between formats
 python -m aeonisk.dataset.cli convert datasets/sample.txt output.yaml -f yaml
 ```
 
@@ -113,27 +141,51 @@ python -m aeonisk.dataset.cli convert datasets/sample.txt output.yaml -f yaml
 
 ```bash
 # Start the game engine
-python -m aeonisk.engine.cli
+task engine-cli
 
-# Or run directly
-cd scripts
-python -m aeonisk.engine.cli
+# Test with example session
+task example-session
 ```
 
-### 4. Test OpenAI Integration
+### 4. Run Tests
 
-```python
+```bash
+# Run all tests
+task test
+
+# Run specific test suites
+task test-benchmark
+task test-dataset
+task test-engine
+task test-openai
+
+# Run tests with coverage
+task test-coverage
+
+# Quick test (no coverage)
+task test-fast
+```
+
+### 5. Test OpenAI Integration
+
+```bash
+# Test OpenAI setup
+task openai-test
+
+# Programmatic usage
+python -c "
 from aeonisk.openai import generate_scenario, generate_npc, analyze_player_action
 
 # Generate a scenario
-scenario = generate_scenario(theme="cyberpunk", difficulty="moderate")
+scenario = generate_scenario(theme='cyberpunk', difficulty='moderate')
 
 # Generate an NPC
-npc = generate_npc(faction="corporate", role="security_chief")
+npc = generate_npc(faction='corporate', role='security_chief')
 
 # Analyze a player action
-character = {"name": "Hacker", "concept": "Digital infiltrator"}
-analysis = analyze_player_action(character, "hack the security system")
+character = {'name': 'Hacker', 'concept': 'Digital infiltrator'}
+analysis = analyze_player_action(character, 'hack the security system')
+"
 ```
 
 ## Module Documentation
@@ -851,26 +903,45 @@ if __name__ == "__main__":
 
 The engine includes a comprehensive test suite with over 400 unit tests covering all major functionality.
 
-### Running Tests
+### Running Tests with Task
 
 ```bash
 # Run all tests
-python -m pytest scripts/aeonisk/test_*.py -v
+task test
 
 # Run specific test modules
-python -m pytest scripts/aeonisk/test_benchmark.py -v
-python -m pytest scripts/aeonisk/test_dataset.py -v
-python -m pytest scripts/aeonisk/test_engine.py -v
-python -m pytest scripts/aeonisk/test_openai_client.py -v
+task test-benchmark
+task test-dataset
+task test-engine
+task test-openai
 
 # Run tests with coverage
-python -m pytest scripts/aeonisk/test_*.py --cov=aeonisk --cov-report=html
+task test-coverage
 
-# Run specific test classes
-python -m pytest scripts/aeonisk/test_benchmark.py::TestBenchmarkRunner -v
+# Run tests without coverage (faster)
+task test-fast
+
+# Run unit tests only
+task test-unit
+
+# Run integration tests only
+task test-integration
+
+# Clean up test artifacts
+task clean
+```
+
+### Advanced Testing
+
+```bash
+# Run specific test classes (manual pytest)
+python -m pytest test_benchmark.py::TestBenchmarkRunner -v
 
 # Run tests in parallel
-python -m pytest scripts/aeonisk/test_*.py -n auto
+python -m pytest test_*.py -n auto
+
+# Run with specific markers
+python -m pytest -m "not slow" -v
 ```
 
 ### Test Organization
