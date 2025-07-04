@@ -1,0 +1,85 @@
+{
+  "name": "aeonisk_comprehensive_benchmark",
+  "description": "Comprehensive evaluation of language models on Aeonisk YAGS gameplay tasks",
+  "dataset_path": "datasets/aeonisk_dataset_normalized_complete.txt",
+  
+  "models": [
+    {
+      "id": "gpt4",
+      "provider": "openai",
+      "model": "gpt-4",
+      "api_key": "${OPENAI_API_KEY}",
+      "timeout": 30,
+      "max_retries": 3
+    },
+    {
+      "id": "gpt35_turbo",
+      "provider": "openai",
+      "model": "gpt-3.5-turbo",
+      "api_key": "${OPENAI_API_KEY}",
+      "timeout": 30,
+      "max_retries": 3
+    },
+    {
+      "id": "claude_sonnet",
+      "provider": "anthropic",
+      "model": "claude-3-sonnet-20240229",
+      "api_key": "${ANTHROPIC_API_KEY}",
+      "timeout": 30,
+      "max_retries": 3
+    },
+    {
+      "id": "claude_haiku",
+      "provider": "anthropic",
+      "model": "claude-3-haiku-20240307",
+      "api_key": "${ANTHROPIC_API_KEY}",
+      "timeout": 30,
+      "max_retries": 3
+    },
+    {
+      "id": "local_llama2",
+      "provider": "local",
+      "model": "llama2:7b",
+      "base_url": "http://localhost:11434",
+      "endpoint": "/api/generate",
+      "timeout": 60,
+      "max_retries": 2
+    },
+    {
+      "id": "local_mistral",
+      "provider": "local",
+      "model": "mistral:7b",
+      "base_url": "http://localhost:11434",
+      "endpoint": "/api/generate",
+      "timeout": 60,
+      "max_retries": 2
+    }
+  ],
+  
+  "use_ai_judge": true,
+  "judge_model": "gpt-4",
+  "evaluation_dimensions": [
+    "mechanical_accuracy",
+    "narrative_quality",
+    "rules_adherence",
+    "consistency",
+    "creativity",
+    "difficulty_appropriate",
+    "overall_quality"
+  ],
+  
+  "sample_size": null,
+  "random_seed": 42,
+  "filter_domains": null,
+  "filter_difficulty": null,
+  
+  "max_concurrent_requests": 5,
+  "timeout_seconds": 30,
+  "retry_attempts": 3,
+  
+  "output_dir": "benchmark_results",
+  "save_raw_responses": true,
+  "generate_whitepaper": true,
+  
+  "version": "1.0.0"
+}
