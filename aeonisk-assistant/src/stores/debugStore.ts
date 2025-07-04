@@ -19,6 +19,8 @@ interface DebugState {
     total: number;
     cost: number;
   };
+  simulateInProgress: boolean;
+  toggleSimulateInProgress: () => void;
   
   // Actions
   toggleDebugMode: () => void;
@@ -42,6 +44,8 @@ export const useDebugStore = create<DebugState>()(
         total: 0,
         cost: 0,
       },
+      simulateInProgress: false,
+      toggleSimulateInProgress: () => set((state) => ({ simulateInProgress: !state.simulateInProgress })),
 
       toggleDebugMode: () => set((state) => ({ isDebugMode: !state.isDebugMode })),
       
