@@ -98,7 +98,7 @@ class TestGameSession:
         character = session.create_character("Test Character", "Test Concept")
         
         # Mock the OpenAI client's generate_scenario function
-        with patch("aeonisk.openai.client.generate_scenario") as mock_generate_scenario:
+        with patch("aeonisk.aeonisk_openai.client.generate_scenario") as mock_generate_scenario:
             mock_generate_scenario.return_value = {"title": "Test Scenario"}
             
             # Generate the scenario
@@ -115,7 +115,7 @@ class TestGameSession:
             assert len(kwargs["characters"]) == 1
             assert kwargs["characters"][0]["name"] == "Test Character"
 
-    @patch("aeonisk.openai.client.generate_npc")
+    @patch("aeonisk.aeonisk_openai.client.generate_npc")
     def test_generate_npc(self, mock_generate_npc):
         """Test generating an NPC."""
         # Mock the OpenAI client's generate_npc function
@@ -129,8 +129,8 @@ class TestGameSession:
         assert session.npcs[0].name == "Test NPC" # Check model attribute
         mock_generate_npc.assert_called_once_with(faction="test", role="test")
 
-    @patch("aeonisk.openai.client.analyze_player_action")
-    @patch("aeonisk.openai.client.format_game_response")
+    @patch("aeonisk.aeonisk_openai.client.analyze_player_action")
+    @patch("aeonisk.aeonisk_openai.client.format_game_response")
     def test_process_player_action(self, mock_format_response, mock_analyze_action):
         """Test processing a player action."""
         # Mock the OpenAI client functions
@@ -175,11 +175,11 @@ class TestGameSession:
         session = GameSession()
         character = session.create_character("Test Character", "Test Concept")
         # Use the generate_scenario method to set the scenario model correctly
-        with patch("aeonisk.openai.client.generate_scenario") as mock_gen_scenario:
+        with patch("aeonisk.aeonisk_openai.client.generate_scenario") as mock_gen_scenario:
             mock_gen_scenario.return_value = {"title": "Test Scenario"}
             session.generate_scenario() 
         # Use the generate_npc method to add NPC model correctly
-        with patch("aeonisk.openai.client.generate_npc") as mock_gen_npc:
+        with patch("aeonisk.aeonisk_openai.client.generate_npc") as mock_gen_npc:
             mock_gen_npc.return_value = {"name": "Test NPC"}
             session.generate_npc()
         

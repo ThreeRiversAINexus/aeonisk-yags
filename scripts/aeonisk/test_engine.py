@@ -160,7 +160,7 @@ class TestGameCLI:
         assert any('[NARRATIVE]' in msg for msg in printed_messages)
         assert any('Success!' in msg for msg in printed_messages)
     
-    @patch('aeonisk.engine.cli.GameSession.generate_scenario')
+    @patch('aeonisk.aeonisk_openai.generate_scenario')
     def test_process_command_generate_scenario(self, mock_generate_scenario):
         """Test processing generate scenario command."""
         cli = GameCLI()
@@ -198,7 +198,7 @@ class TestGameCLI:
         assert any('[SCENARIO]' in msg for msg in printed_messages)
         assert any('Mystery' in msg for msg in printed_messages)
     
-    @patch('aeonisk.engine.cli.GameSession.generate_npc')
+    @patch('aeonisk.aeonisk_openai.generate_npc')
     def test_process_command_generate_npc(self, mock_generate_npc):
         """Test processing generate NPC command."""
         cli = GameCLI()
@@ -229,8 +229,8 @@ class TestGameCLI:
         assert any('[NPC]' in msg for msg in printed_messages)
         assert any('John Doe' in msg for msg in printed_messages)
     
-    @patch('aeonisk.engine.cli.GameSession.process_player_action')
-    def test_process_command_player_action(self, mock_process_action):
+    @patch('aeonisk.aeonisk_openai.analyze_player_action')
+    def test_process_command_player_action(self, mock_analyze_action):
         """Test processing player actions."""
         cli = GameCLI()
         
@@ -239,12 +239,12 @@ class TestGameCLI:
         cli.process_command('select 0')
         
         # Mock action processing
-        mock_process_action.return_value = "The character moves stealthily through the shadows."
+        mock_analyze_action.return_value = "The character moves stealthily through the shadows."
         
         with patch('builtins.print') as mock_print:
             cli.process_command('look around')
         
-        mock_process_action.assert_called_once()
+        mock_analyze_action.assert_called_once()
         mock_print.assert_called()
         printed_messages = [call[0][0] for call in mock_print.call_args_list]
         assert any('shadows' in msg for msg in printed_messages)
@@ -371,7 +371,7 @@ class TestGameSession:
         assert isinstance(description, str)
         assert len(description) > 0
     
-    @patch('aeonisk.openai.generate_scenario')
+    @patch('aeonisk.aeonisk_openai.generate_scenario')
     def test_generate_scenario(self, mock_generate_scenario):
         """Test generating a scenario."""
         session = GameSession()
@@ -391,7 +391,7 @@ class TestGameSession:
         assert session.scenario is not None
         mock_generate_scenario.assert_called_once()
     
-    @patch('aeonisk.openai.generate_npc')
+    @patch('aeonisk.aeonisk_openai.generate_npc')
     def test_generate_npc(self, mock_generate_npc):
         """Test generating an NPC."""
         session = GameSession()
@@ -410,7 +410,7 @@ class TestGameSession:
         assert len(session.npcs) == 1
         mock_generate_npc.assert_called_once()
     
-    @patch('aeonisk.openai.analyze_player_action')
+    @patch('aeonisk.aeonisk_openai.analyze_player_action')
     def test_process_player_action(self, mock_analyze_action):
         """Test processing a player action."""
         session = GameSession()
