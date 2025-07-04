@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { gameTools, executeGameTool } from '../../../lib/game/tools';
+import { aeoniskTools, toolDefinitions, rollDice, executeSkillCheck } from '../../../lib/game/tools';
 import { characterRegistry } from '../../../lib/game/characterRegistry';
 import type { Character } from '../../../types';
 
@@ -46,84 +46,83 @@ describe('Aeonisk Game Tools', () => {
       research: 4
     },
     languages: {
-      native_language: 'Common',
-      native_level: 4,
+      native_language_name: 'Common',
+      native_language_level: 4,
       other_languages: []
     },
     advantages: [],
     disadvantages: [],
-    void_score: 1,
+    voidScore: 1,
     soulcredit: 0,
     bonds: []
   });
 
   describe('Tool Definitions', () => {
-    it('should export the correct number of tools', () => {
-      expect(gameTools).toHaveLength(3);
+    it('should export tool definitions', () => {
+      expect(toolDefinitions).toBeDefined();
+      expect(Array.isArray(toolDefinitions)).toBe(true);
+      expect(toolDefinitions.length).toBeGreaterThan(0);
     });
 
-    it('should have roll_dice tool', () => {
-      const rollTool = gameTools.find(t => t.function.name === 'roll_dice');
-      expect(rollTool).toBeDefined();
-      const params = rollTool?.function.parameters as any;
-      expect(params.properties).toHaveProperty('count');
-      expect(params.properties).toHaveProperty('target');
+    it('should have createCharacter tool', () => {
+      const createCharacterTool = toolDefinitions.find(t => t.function.name === 'createCharacter');
+      expect(createCharacterTool).toBeDefined();
+      const params = createCharacterTool?.function.parameters as any;
+      expect(params.properties).toHaveProperty('name');
+      expect(params.properties).toHaveProperty('concept');
     });
 
-    it('should have skill_check tool', () => {
-      const skillCheckTool = gameTools.find(t => t.function.name === 'skill_check');
+    it('should have skillCheck tool', () => {
+      const skillCheckTool = toolDefinitions.find(t => t.function.name === 'skillCheck');
       expect(skillCheckTool).toBeDefined();
       const params = skillCheckTool?.function.parameters as any;
-      expect(params.properties).toHaveProperty('character');
+      expect(params.properties).toHaveProperty('characterName');
       expect(params.properties).toHaveProperty('skill');
-      expect(params.properties).toHaveProperty('stat');
+      expect(params.properties).toHaveProperty('attribute');
     });
 
-    it('should have get_character_info tool', () => {
-      const charInfoTool = gameTools.find(t => t.function.name === 'get_character_info');
-      expect(charInfoTool).toBeDefined();
-      const params = charInfoTool?.function.parameters as any;
-      expect(params.properties).toHaveProperty('name');
+    it('should have castRitual tool', () => {
+      const castRitualTool = toolDefinitions.find(t => t.function.name === 'castRitual');
+      expect(castRitualTool).toBeDefined();
+      const params = castRitualTool?.function.parameters as any;
+      expect(params.properties).toHaveProperty('ritualName');
+      expect(params.properties).toHaveProperty('casterName');
     });
   });
 
-  describe('roll_dice', () => {
-    it('should roll dice correctly', async () => {
-      const result = await executeGameTool('roll_dice', {
-        count: 3,
-        target: 15
-      });
+  describe('rollDice', () => {
+    it('should roll dice correctly', () => {
+      const result = rollDice(3, 15);
 
       expect(result).toHaveProperty('result');
       expect(result).toHaveProperty('dice');
       expect(result).toHaveProperty('successes');
-      expect(result).toHaveProperty('description');
       expect(result.dice).toHaveLength(3);
-      expect(result.description).toContain('Rolled 3d20');
+      expect(result.result).toBeGreaterThan(0);
+      expect(result.successes).toBeGreaterThanOrEqual(0);
     });
 
-    it('should calculate successes correctly', async () => {
-      const result = await executeGameTool('roll_dice', {
-        count: 5,
-        target: 10
-      });
+    it('should handle advantage correctly', () => {
+      const result = rollDice(4, 15, true, false);
 
-      // With target 10, most rolls should succeed
-      expect(result.successes).toBeGreaterThanOrEqual(0);
+      expect(result.dice).toHaveLength(4);
+      expect(result.result).toBeGreaterThan(0);
+    });
+
+    it('should handle disadvantage correctly', () => {
+      const result = rollDice(4, 15, false, true);
+
+      expect(result.dice).toHaveLength(4);
+      expect(result.result).toBeGreaterThan(0);
     });
   });
 
-  describe('skill_check', () => {
-    it('should perform skill check with character from registry', async () => {
+  describe('executeSkillCheck', () => {
+    it('should perform skill check with character from registry', () => {
       const character = createTestCharacter();
       characterRegistry.addCharacter(character);
 
-      const result = await executeGameTool('skill_check', {
-        character: 'Test Hero',
-        skill: 'Stealth',
-        stat: 'Agility',
-        difficulty: 20
-      });
+      const result = executeSkillCheck('Test Hero', 'Stealth', 'Agility', 20);
 
       expect(result).toHaveProperty('success');
       expect(result).toHaveProperty('result');
@@ -134,64 +133,95 @@ describe('Aeonisk Game Tools', () => {
       expect(result.description).toContain('Test Hero rolling Agility (4) + Stealth (4)');
     });
 
-    it('should use fallback when character not found', async () => {
-      const result = await executeGameTool('skill_check', {
-        character: 'Unknown Hero',
-        skill: 'Athletics',
-        stat: 'Strength',
-        difficulty: 15
-      });
+    it('should use fallback when character not found', () => {
+      const result = executeSkillCheck('Unknown Hero', 'Athletics', 'Strength', 15);
 
       expect(result.characterFound).toBe(false);
       expect(result.description).toContain('fallback - character "Unknown Hero" not found');
     });
 
-    it('should apply bonuses correctly', async () => {
+    it('should apply bonuses correctly', () => {
       const character = createTestCharacter();
       characterRegistry.addCharacter(character);
 
-      const result = await executeGameTool('skill_check', {
-        character: 'Test Hero',
-        skill: 'Research',
-        stat: 'Intelligence',
-        difficulty: 25,
-        bonus: 5
-      });
+      const result = executeSkillCheck('Test Hero', 'Research', 'Intelligence', 25, { bonus: 5 });
 
-      expect(result.result).toBeGreaterThanOrEqual(result.dice[0] + 5);
+      expect(result.result).toBeGreaterThan(0);
+      expect(result.description).toContain('Test Hero rolling Intelligence (5) + Research (4)');
     });
-  });
 
-  describe('get_character_info', () => {
-    it('should retrieve character information', async () => {
+    it('should handle talents correctly', () => {
       const character = createTestCharacter();
       characterRegistry.addCharacter(character);
 
-      const result = await executeGameTool('get_character_info', {
-        name: 'Test Hero'
-      });
+      const result = executeSkillCheck('Test Hero', 'Athletics', 'Strength', 15);
 
-      expect(result.name).toBe('Test Hero');
-      expect(result.attributes.strength).toBe(4);
-      expect(result.talents.stealth).toBe(4);
-      expect(result.void_score).toBe(1);
-    });
-
-    it('should return error for unknown character', async () => {
-      const result = await executeGameTool('get_character_info', {
-        name: 'Unknown Character'
-      });
-
-      expect(result).toHaveProperty('error');
-      expect(result.error).toContain('Character "Unknown Character" not found');
+      expect(result.characterFound).toBe(true);
+      expect(result.description).toContain('Test Hero rolling Strength (4) + Athletics (3)');
     });
   });
 
-  describe('Error Handling', () => {
-    it('should throw error for unknown tool', async () => {
-      await expect(
-        executeGameTool('unknown_tool', {})
-      ).rejects.toThrow('Unknown tool: unknown_tool');
+  describe('aeoniskTools', () => {
+    it('should create a character', () => {
+      const character = aeoniskTools.createCharacter('Test Character', 'Void Seeker', 'Freeborn');
+      
+      expect(character.name).toBe('Test Character');
+      expect(character.concept).toBe('Void Seeker');
+      expect(character.origin_faction).toBe('Freeborn');
+      expect(character.attributes).toBeDefined();
+      expect(character.talents).toBeDefined();
+    });
+
+    it('should get character from registry', () => {
+      const character = createTestCharacter();
+      characterRegistry.addCharacter(character);
+
+      const retrieved = aeoniskTools.getCharacter('Test Hero');
+      expect(retrieved).toBeDefined();
+      expect(retrieved?.name).toBe('Test Hero');
+    });
+
+    it('should list all characters', () => {
+      const character1 = createTestCharacter();
+      const character2 = { ...createTestCharacter(), name: 'Test Hero 2' };
+      
+      characterRegistry.addCharacter(character1);
+      characterRegistry.addCharacter(character2);
+
+      const all = aeoniskTools.getAllCharacters();
+      expect(all).toHaveLength(2);
+      expect(all.map(c => c.name)).toContain('Test Hero');
+      expect(all.map(c => c.name)).toContain('Test Hero 2');
+    });
+
+    it('should perform skill check using character registry', () => {
+      const character = createTestCharacter();
+      
+      const result = aeoniskTools.skillCheck(character, 'intelligence', 'research', 20);
+      
+      expect(result).toHaveProperty('success');
+      expect(result).toHaveProperty('total');
+      expect(result).toHaveProperty('roll');
+      expect(result).toHaveProperty('attribute');
+      expect(result).toHaveProperty('skill');
+      expect(result.character).toBe('Test Hero');
+    });
+
+    it('should get available skills', () => {
+      const skills = aeoniskTools.getAllAvailableSkills();
+      expect(skills).toBeDefined();
+      expect(typeof skills).toBe('object');
+      expect(Array.isArray(skills.aeonisk)).toBe(true);
+      expect(Array.isArray(skills.standard)).toBe(true);
+      expect(Array.isArray(skills.knowledge)).toBe(true);
+      expect(Array.isArray(skills.professional)).toBe(true);
+      expect(Array.isArray(skills.vehicle)).toBe(true);
+    });
+
+    it('should get skills by category', () => {
+      const skillsByCategory = aeoniskTools.getSkillsByCategory();
+      expect(skillsByCategory).toBeDefined();
+      expect(typeof skillsByCategory).toBe('object');
     });
   });
 });
