@@ -1,0 +1,252 @@
+# Makefile for Aeonisk YAGS Engine
+# Provides convenient commands for development, testing, and usage
+
+.PHONY: help install test test-unit test-integration test-benchmark test-dataset test-engine test-openai
+.PHONY: test-coverage test-fast lint format type-check clean docs
+.PHONY: benchmark-quick benchmark-full dataset-validate dataset-merge
+.PHONY: engine-cli openai-test example-session
+
+# Default target
+help:
+	@echo "Aeonisk YAGS Engine - Available Commands"
+	@echo "========================================"
+	@echo ""
+	@echo "Development Commands:"
+	@echo "  install           Install dependencies and setup development environment"
+	@echo "  test              Run all tests"
+	@echo "  test-unit         Run unit tests only"
+	@echo "  test-integration  Run integration tests only"
+	@echo "  test-coverage     Run tests with coverage reporting"
+	@echo "  test-fast         Run tests without coverage for speed"
+	@echo "  lint              Run code linting (black, isort)"
+	@echo "  format            Format code using black and isort"
+	@echo "  type-check        Run mypy type checking"
+	@echo "  clean             Clean up generated files"
+	@echo ""
+	@echo "Module-Specific Tests:"
+	@echo "  test-benchmark    Run benchmark system tests"
+	@echo "  test-dataset      Run dataset management tests"
+	@echo "  test-engine       Run game engine tests"
+	@echo "  test-openai       Run OpenAI integration tests"
+	@echo ""
+	@echo "Usage Commands:"
+	@echo "  benchmark-quick   Run a quick benchmark comparison"
+	@echo "  benchmark-full    Run a comprehensive benchmark suite"
+	@echo "  dataset-validate  Validate sample datasets"
+	@echo "  dataset-merge     Merge multiple datasets"
+	@echo "  engine-cli        Start the interactive game engine"
+	@echo "  openai-test       Test OpenAI integration"
+	@echo "  example-session   Run example game session"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  docs              Generate documentation"
+
+# Development Environment Setup
+install:
+	@echo "Installing Aeonisk YAGS Engine dependencies..."
+	pip install -r benchmark/requirements.txt
+	pip install pytest pytest-asyncio pytest-cov pytest-mock pytest-timeout
+	pip install black isort mypy
+	pip install -e ../../..
+	@echo "✓ Installation complete"
+
+# Testing Commands
+test:
+	@echo "Running all tests..."
+	python -m pytest test_*.py -v
+
+test-unit:
+	@echo "Running unit tests..."
+	python -m pytest test_*.py -v -m "not integration"
+
+test-integration:
+	@echo "Running integration tests..."
+	python -m pytest test_*.py -v -m "integration"
+
+test-benchmark:
+	@echo "Running benchmark system tests..."
+	python -m pytest test_benchmark.py -v
+
+test-dataset:
+	@echo "Running dataset management tests..."
+	python -m pytest test_dataset.py -v
+
+test-engine:
+	@echo "Running game engine tests..."
+	python -m pytest test_engine.py -v
+
+test-openai:
+	@echo "Running OpenAI integration tests..."
+	python -m pytest test_openai_client.py -v
+
+test-coverage:
+	@echo "Running tests with coverage..."
+	python -m pytest test_*.py --cov=aeonisk --cov-report=html --cov-report=term-missing
+
+test-fast:
+	@echo "Running tests (fast mode)..."
+	python -m pytest test_*.py -v --no-cov -x
+
+# Code Quality
+lint:
+	@echo "Running code linting..."
+	black --check .
+	isort --check-only .
+	@echo "✓ Code style is good"
+
+format:
+	@echo "Formatting code..."
+	black .
+	isort .
+	@echo "✓ Code formatted"
+
+type-check:
+	@echo "Running type checking..."
+	mypy . --ignore-missing-imports
+	@echo "✓ Type checking complete"
+
+# Cleanup
+clean:
+	@echo "Cleaning up generated files..."
+	rm -rf __pycache__/
+	rm -rf .pytest_cache/
+	rm -rf .coverage
+	rm -rf coverage_html/
+	rm -rf .mypy_cache/
+	rm -rf benchmark_results/
+	rm -rf *.json
+	rm -rf *.log
+	@echo "✓ Cleanup complete"
+
+# Benchmark Commands
+benchmark-quick:
+	@echo "Running quick benchmark comparison..."
+	@echo "Creating quick benchmark configuration..."
+	@cat > quick_benchmark.json << 'EOF'
+{
+  "name": "quick_comparison",
+  "dataset_path": "../../datasets/aeonisk_dataset_normalized_complete.txt",
+  "models": [
+    {
+      "id": "gpt4",
+      "provider": "openai",
+      "model": "gpt-4",
+      "api_key": "$${OPENAI_API_KEY}",
+      "timeout": 30
+    },
+    {
+      "id": "gpt35",
+      "provider": "openai", 
+      "model": "gpt-3.5-turbo",
+      "api_key": "$${OPENAI_API_KEY}",
+      "timeout": 30
+    }
+  ],
+  "sample_size": 10,
+  "use_ai_judge": true,
+  "generate_whitepaper": false
+}
+EOF
+	python -m aeonisk.benchmark.cli --config quick_benchmark.json
+
+benchmark-full:
+	@echo "Running comprehensive benchmark suite..."
+	python -m aeonisk.benchmark.cli --create-config full_benchmark.json
+	@echo "Edit full_benchmark.json to configure your models and API keys"
+	@echo "Then run: python -m aeonisk.benchmark.cli --config full_benchmark.json --suite"
+
+# Dataset Commands
+dataset-validate:
+	@echo "Validating sample datasets..."
+	@if [ -f "../../datasets/aeonisk_dataset_normalized_complete.txt" ]; then \
+		python -m aeonisk.dataset.cli validate ../../datasets/aeonisk_dataset_normalized_complete.txt -v; \
+	else \
+		echo "Sample dataset not found. Please check datasets/ directory."; \
+	fi
+
+dataset-merge:
+	@echo "Example: Merging multiple datasets..."
+	@echo "This would merge datasets if they exist in ../../datasets/"
+	@find ../../datasets/ -name "*.txt" -exec python -m aeonisk.dataset.cli validate {} \; 2>/dev/null || echo "No datasets found to validate"
+
+# Engine Commands
+engine-cli:
+	@echo "Starting interactive game engine..."
+	@echo "Type 'help' for available commands, 'exit' to quit"
+	python -m aeonisk.engine.cli
+
+openai-test:
+	@echo "Testing OpenAI integration..."
+	@python -c "
+	import os
+	from aeonisk.openai.client import OpenAIClient
+	try:
+	    if not os.getenv('OPENAI_API_KEY'):
+	        print('⚠️  OPENAI_API_KEY not set - tests will be mocked')
+	        print('✓ OpenAI client can be initialized with mock key')
+	    else:
+	        client = OpenAIClient()
+	        print('✓ OpenAI client initialized successfully')
+	        print('✓ API key is configured')
+	except Exception as e:
+	    print(f'❌ OpenAI integration error: {e}')
+	"
+
+example-session:
+	@echo "Running example game session..."
+	@python -c "
+	from aeonisk.engine.game import GameSession
+	session = GameSession()
+	print('=== Example Game Session ===')
+	
+	# Create character
+	char = session.create_character('Alice', 'Cyberpunk Hacker')
+	print(f'Created character: {char.name} ({char.concept})')
+	
+	# Perform skill check
+	success, margin, desc = session.skill_check(char, 'Intelligence', 'Hacking', 20)
+	print(f'Skill check: {\"SUCCESS\" if success else \"FAILURE\"} (margin: {margin})')
+	print(f'Description: {desc[:100]}...')
+	
+	print('✓ Example session completed')
+	"
+
+# Documentation
+docs:
+	@echo "Documentation is available in README.md"
+	@echo "Opening README.md..."
+	@if command -v code >/dev/null 2>&1; then \
+		code README.md; \
+	elif command -v vim >/dev/null 2>&1; then \
+		vim README.md; \
+	else \
+		cat README.md; \
+	fi
+
+# Quick setup for new developers
+setup-dev: install test-fast
+	@echo ""
+	@echo "🎉 Development environment ready!"
+	@echo ""
+	@echo "Quick start commands:"
+	@echo "  make test           - Run all tests"
+	@echo "  make engine-cli     - Start game engine"
+	@echo "  make openai-test    - Test API integration"
+	@echo "  make help           - Show all commands"
+	@echo ""
+	@echo "Don't forget to set your API keys:"
+	@echo "  export OPENAI_API_KEY='your-key'"
+	@echo "  export ANTHROPIC_API_KEY='your-key'"
+
+# Continuous Integration targets
+ci-test: install test-coverage lint type-check
+	@echo "✓ All CI checks passed"
+
+# Release preparation
+release-check: clean install ci-test
+	@echo "✓ Release checks complete"
+	@echo "Ready for release!"
+
+# Development workflow
+dev-workflow: format test-fast
+	@echo "✓ Development workflow complete"

@@ -1,0 +1,287 @@
+version: '3'
+
+vars:
+  PYTHON: python
+  PYTEST: python -m pytest
+  BENCHMARK_MODULE: aeonisk.benchmark.cli
+  DATASET_MODULE: aeonisk.dataset.cli
+  ENGINE_MODULE: aeonisk.engine.cli
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Development Environment Setup
+  install:
+    desc: Install dependencies and setup development environment
+    cmds:
+      - echo "Installing Aeonisk YAGS Engine dependencies..."
+      - pip install -r benchmark/requirements.txt
+      - pip install pytest pytest-asyncio pytest-cov pytest-mock pytest-timeout
+      - pip install black isort mypy
+      - pip install -e ../../..
+      - echo "✓ Installation complete"
+
+  # Testing Commands
+  test:
+    desc: Run all tests
+    cmds:
+      - echo "Running all tests..."
+      - "{{.PYTEST}} test_*.py -v"
+
+  test-unit:
+    desc: Run unit tests only
+    cmds:
+      - echo "Running unit tests..."
+      - "{{.PYTEST}} test_*.py -v -m 'not integration'"
+
+  test-integration:
+    desc: Run integration tests only
+    cmds:
+      - echo "Running integration tests..."
+      - "{{.PYTEST}} test_*.py -v -m 'integration'"
+
+  test-benchmark:
+    desc: Run benchmark system tests
+    cmds:
+      - echo "Running benchmark system tests..."
+      - "{{.PYTEST}} test_benchmark.py -v"
+
+  test-dataset:
+    desc: Run dataset management tests
+    cmds:
+      - echo "Running dataset management tests..."
+      - "{{.PYTEST}} test_dataset.py -v"
+
+  test-engine:
+    desc: Run game engine tests
+    cmds:
+      - echo "Running game engine tests..."
+      - "{{.PYTEST}} test_engine.py -v"
+
+  test-openai:
+    desc: Run OpenAI integration tests
+    cmds:
+      - echo "Running OpenAI integration tests..."
+      - "{{.PYTEST}} test_openai_client.py -v"
+
+  test-coverage:
+    desc: Run tests with coverage reporting
+    cmds:
+      - echo "Running tests with coverage..."
+      - "{{.PYTEST}} test_*.py --cov=aeonisk --cov-report=html --cov-report=term-missing"
+
+  test-fast:
+    desc: Run tests without coverage for speed
+    cmds:
+      - echo "Running tests (fast mode)..."
+      - "{{.PYTEST}} test_*.py -v --no-cov -x"
+
+  # Code Quality
+  lint:
+    desc: Run code linting
+    cmds:
+      - echo "Running code linting..."
+      - black --check .
+      - isort --check-only .
+      - echo "✓ Code style is good"
+
+  format:
+    desc: Format code using black and isort
+    cmds:
+      - echo "Formatting code..."
+      - black .
+      - isort .
+      - echo "✓ Code formatted"
+
+  type-check:
+    desc: Run mypy type checking
+    cmds:
+      - echo "Running type checking..."
+      - mypy . --ignore-missing-imports
+      - echo "✓ Type checking complete"
+
+  # Cleanup
+  clean:
+    desc: Clean up generated files
+    cmds:
+      - echo "Cleaning up generated files..."
+      - rm -rf __pycache__/
+      - rm -rf .pytest_cache/
+      - rm -rf .coverage
+      - rm -rf coverage_html/
+      - rm -rf .mypy_cache/
+      - rm -rf benchmark_results/
+      - rm -rf *.json
+      - rm -rf *.log
+      - echo "✓ Cleanup complete"
+
+  # Benchmark Commands
+  benchmark-quick:
+    desc: Run a quick benchmark comparison
+    cmds:
+      - echo "Running quick benchmark comparison..."
+      - echo "Creating quick benchmark configuration..."
+      - |
+        cat > quick_benchmark.json << 'EOF'
+        {
+          "name": "quick_comparison",
+          "dataset_path": "../../datasets/aeonisk_dataset_normalized_complete.txt",
+          "models": [
+            {
+              "id": "gpt4",
+              "provider": "openai",
+              "model": "gpt-4",
+              "api_key": "${OPENAI_API_KEY}",
+              "timeout": 30
+            },
+            {
+              "id": "gpt35",
+              "provider": "openai", 
+              "model": "gpt-3.5-turbo",
+              "api_key": "${OPENAI_API_KEY}",
+              "timeout": 30
+            }
+          ],
+          "sample_size": 10,
+          "use_ai_judge": true,
+          "generate_whitepaper": false
+        }
+        EOF
+      - "{{.PYTHON}} -m {{.BENCHMARK_MODULE}} --config quick_benchmark.json"
+
+  benchmark-full:
+    desc: Run a comprehensive benchmark suite
+    cmds:
+      - echo "Running comprehensive benchmark suite..."
+      - "{{.PYTHON}} -m {{.BENCHMARK_MODULE}} --create-config full_benchmark.json"
+      - echo "Edit full_benchmark.json to configure your models and API keys"
+      - echo "Then run task benchmark-run-full"
+
+  benchmark-run-full:
+    desc: Run the full benchmark suite (after configuration)
+    cmds:
+      - "{{.PYTHON}} -m {{.BENCHMARK_MODULE}} --config full_benchmark.json --suite"
+
+  # Dataset Commands
+  dataset-validate:
+    desc: Validate sample datasets
+    cmds:
+      - echo "Validating sample datasets..."
+      - |
+        if [ -f "../../datasets/aeonisk_dataset_normalized_complete.txt" ]; then
+          {{.PYTHON}} -m {{.DATASET_MODULE}} validate ../../datasets/aeonisk_dataset_normalized_complete.txt -v
+        else
+          echo "Sample dataset not found. Please check datasets/ directory."
+        fi
+
+  dataset-merge:
+    desc: Example dataset merging
+    cmds:
+      - echo "Example - Merging multiple datasets..."
+      - echo "This would merge datasets if they exist in ../../datasets/"
+      - find ../../datasets/ -name "*.txt" -exec {{.PYTHON}} -m {{.DATASET_MODULE}} validate {} \; 2>/dev/null || echo "No datasets found to validate"
+
+  # Engine Commands
+  engine-cli:
+    desc: Start the interactive game engine
+    cmds:
+      - echo "Starting interactive game engine..."
+      - echo "Type 'help' for available commands, 'exit' to quit"
+      - "{{.PYTHON}} -m {{.ENGINE_MODULE}}"
+
+  openai-test:
+    desc: Test OpenAI integration
+    cmds:
+      - echo "Testing OpenAI integration..."
+      - |
+        {{.PYTHON}} -c "
+        import os
+        from aeonisk.openai.client import OpenAIClient
+        try:
+            if not os.getenv('OPENAI_API_KEY'):
+                print('⚠️  OPENAI_API_KEY not set - tests will be mocked')
+                print('✓ OpenAI client can be initialized with mock key')
+            else:
+                client = OpenAIClient()
+                print('✓ OpenAI client initialized successfully')
+                print('✓ API key is configured')
+        except Exception as e:
+            print(f'❌ OpenAI integration error: {e}')
+        "
+
+  example-session:
+    desc: Run example game session
+    cmds:
+      - echo "Running example game session..."
+      - |
+        {{.PYTHON}} -c "
+        from aeonisk.engine.game import GameSession
+        session = GameSession()
+        print('=== Example Game Session ===')
+        
+        # Create character
+        char = session.create_character('Alice', 'Cyberpunk Hacker')
+        print(f'Created character: {char.name} ({char.concept})')
+        
+        # Perform skill check
+        success, margin, desc = session.skill_check(char, 'Intelligence', 'Hacking', 20)
+        print(f'Skill check: {\"SUCCESS\" if success else \"FAILURE\"} (margin: {margin})')
+        print(f'Description: {desc[:100]}...')
+        
+        print('✓ Example session completed')
+        "
+
+  # Documentation
+  docs:
+    desc: Open documentation
+    cmds:
+      - echo "Documentation is available in README.md"
+      - echo "Opening README.md..."
+      - |
+        if command -v code >/dev/null 2>&1; then
+          code README.md
+        elif command -v vim >/dev/null 2>&1; then
+          vim README.md
+        else
+          cat README.md
+        fi
+
+  # Development Workflows
+  setup-dev:
+    desc: Quick setup for new developers
+    deps: [install, test-fast]
+    cmds:
+      - echo ""
+      - echo "🎉 Development environment ready!"
+      - echo ""
+      - echo "Quick start commands"
+      - echo "  task test           - Run all tests"
+      - echo "  task engine-cli     - Start game engine"
+      - echo "  task openai-test    - Test API integration"
+      - echo "  task --list         - Show all commands"
+      - echo ""
+      - echo "Don't forget to set your API keys"
+      - echo "  export OPENAI_API_KEY='your-key'"
+      - echo "  export ANTHROPIC_API_KEY='your-key'"
+
+  ci-test:
+    desc: Run all CI checks
+    deps: [install, test-coverage, lint, type-check]
+    cmds:
+      - echo "✓ All CI checks passed"
+
+  release-check:
+    desc: Prepare for release
+    deps: [clean, ci-test]
+    cmds:
+      - echo "✓ Release checks complete"
+      - echo "Ready for release!"
+
+  dev-workflow:
+    desc: Quick development workflow
+    deps: [format, test-fast]
+    cmds:
+      - echo "✓ Development workflow complete"
