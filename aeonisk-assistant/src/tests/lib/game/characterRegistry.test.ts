@@ -45,13 +45,13 @@ describe('CharacterRegistry', () => {
       pilot: 1
     },
     languages: {
-      native_language: 'Common',
-      native_level: 4,
+      native_language_name: 'Common',
+      native_language_level: 4,
       other_languages: []
     },
     advantages: [],
     disadvantages: [],
-    void_score: 0,
+    voidScore: 0,
     soulcredit: 0,
     bonds: [
       { name: 'Test Bond', type: 'Kinship', status: 'Active' }
@@ -104,7 +104,7 @@ describe('CharacterRegistry', () => {
     
     expect(parsed.name).toBe('Test Hero');
     expect(parsed.attributes.strength).toBe(3);
-    expect(parsed.void_score).toBe(0);
+    expect(parsed.voidScore).toBe(0);
   });
 
   it('should export character to YAML format', () => {
