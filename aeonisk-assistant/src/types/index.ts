@@ -1,13 +1,18 @@
 // Core Types for Aeonisk AI Assistant
 
 export interface Message {
-  role: 'system' | 'user' | 'assistant' | 'tool';
+  role: 'system' | 'user' | 'assistant' | 'tool' | 'progress' | 'error' | 'result';
   content: string;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
   timestamp?: number;
   ic?: boolean; // true = in-character, false = out-of-character
+  // Additional fields for progress tracking
+  progressType?: 'character-generation' | 'campaign-generation' | 'general';
+  progressStatus?: 'started' | 'in-progress' | 'completed' | 'failed';
+  resultData?: any; // For result messages, contains the generated data
+  errorDetails?: string; // For error messages, contains detailed error information
 }
 
 export interface ToolCall {
