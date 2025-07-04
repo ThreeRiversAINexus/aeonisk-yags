@@ -2,7 +2,7 @@ import { UnifiedLLMClient } from '../llm/adapters';
 import { AIEnhancedRAG } from '../rag';
 import { ContentProcessor } from '../content/processor';
 import { ConversationManager } from '../conversation/manager';
-import { aeoniskTools, executeTool } from '../game/tools';
+import { aeoniskTools, executeTool, toolDefinitions } from '../game/tools';
 import { useDebugStore } from '../../stores/debugStore';
 import { useProviderStore } from '../../stores/providerStore';
 import type { Message, ContentChunk, GameState, LLMConfig, ChatOptions, Character } from '../../types';
@@ -112,6 +112,10 @@ export class AeoniskChatService {
     const model = providerStore.currentModel; // Assuming model is stored per provider
     providerStore.setProvider(provider, model);
   }
+
+  forceReinitializeFromEnv(): void {
+    this.llmClient.forceReinitializeFromEnv();
+  }
   
   // Ensure this method exists and is used by CharacterPanel
   setCharacter(character: Character) {
@@ -166,7 +170,7 @@ export class AeoniskChatService {
       });
     }
 
-    const tools = this.llmClient.supportsTools() ? aeoniskTools : undefined;
+    const tools = this.llmClient.supportsTools() ? toolDefinitions : undefined;
 
     if (debugStore.isDebugMode) {
       debugStore.addLog('api', {

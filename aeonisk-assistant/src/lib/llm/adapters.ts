@@ -130,6 +130,39 @@ export class UnifiedLLMClient {
   private adapters: Map<string, LLMAdapter> = new Map();
   private currentProvider: string | null = null;
 
+  constructor() {
+    // Auto-initialize OpenAI if environment variable is available
+    this.autoInitializeOpenAI();
+  }
+
+  private autoInitializeOpenAI(): void {
+    const envApiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    if (envApiKey && envApiKey.trim() !== '') {
+      console.log('Auto-initializing OpenAI from environment variable');
+      this.addAdapter('openai', {
+        provider: 'openai',
+        apiKey: envApiKey,
+        model: 'gpt-4o'
+      });
+      this.currentProvider = 'openai';
+      
+      // Clear any invalid localStorage configurations that might interfere
+      this.clearInvalidConfigurations();
+    }
+  }
+
+  private clearInvalidConfigurations(): void {
+    // Clear any blank or invalid API keys from localStorage
+    const providers = ['openai', 'anthropic', 'google', 'groq', 'together', 'custom'];
+    for (const provider of providers) {
+      const storedKey = localStorage.getItem(`${provider}_apiKey`);
+      if (storedKey && (storedKey.trim() === '' || storedKey === 'undefined' || storedKey === 'null')) {
+        console.log(`Clearing invalid ${provider} API key from localStorage`);
+        localStorage.removeItem(`${provider}_apiKey`);
+      }
+    }
+  }
+
   addAdapter(providerName: string, config: LLMConfig): void {
     // For now, assume all are OpenAI compatible.
     // Later, we can add specific adapters for Anthropic, Google, etc.
@@ -144,6 +177,7 @@ export class UnifiedLLMClient {
       // Attempt to load config from environment or localStorage if not already configured
       let apiKey = null;
       if (providerName === 'openai') {
+        // Check environment variable first, then localStorage
         apiKey = import.meta.env.VITE_OPENAI_API_KEY || localStorage.getItem(`${providerName}_apiKey`);
       } else {
         apiKey = localStorage.getItem(`${providerName}_apiKey`);
@@ -151,7 +185,7 @@ export class UnifiedLLMClient {
       const baseURL = localStorage.getItem(`${providerName}_baseURL`);
       const model = localStorage.getItem(`${providerName}_model`); // Or get from providerStore
 
-      if (apiKey) {
+      if (apiKey && apiKey.trim() !== '') {
         this.addAdapter(providerName, { 
           provider: providerName as any, 
           apiKey, 
@@ -159,7 +193,7 @@ export class UnifiedLLMClient {
           model: model || undefined 
         });
       } else {
-        console.warn(`Provider ${providerName} not configured and no API key found in localStorage.`);
+        console.warn(`Provider ${providerName} not configured and no valid API key found.`);
         // Do not set if not configured and no stored key
         return;
       }
@@ -173,6 +207,13 @@ export class UnifiedLLMClient {
   
   getConfiguredProviders(): string[] {
     return Array.from(this.adapters.keys());
+  }
+
+  forceReinitializeFromEnv(): void {
+    // Clear all adapters and reinitialize from environment
+    this.adapters.clear();
+    this.currentProvider = null;
+    this.autoInitializeOpenAI();
   }
 
   private getAdapter(): LLMAdapter {

@@ -1,11 +1,24 @@
 import { useState } from 'react';
 import { useDebugStore } from '../stores/debugStore';
 import { useProviderStore } from '../stores/providerStore';
+import { getChatService } from '../lib/chat/service';
 
 export function DebugPanel() {
   const { logs, tokenCosts, showDebugPanel, toggleDebugPanel, clearLogs } = useDebugStore();
   const { currentProvider, currentModel } = useProviderStore();
   const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
+
+  const handleReinitializeFromEnv = () => {
+    try {
+      getChatService().forceReinitializeFromEnv();
+      // Force a re-render by updating the provider store
+      const providerStore = useProviderStore.getState();
+      providerStore.setProvider('openai', 'gpt-4o');
+      console.log('Reinitialized from environment variables');
+    } catch (error) {
+      console.error('Failed to reinitialize from environment:', error);
+    }
+  };
 
   if (!showDebugPanel) {
     return null;
@@ -82,6 +95,13 @@ export function DebugPanel() {
             className="text-xs text-gray-400 hover:text-gray-300"
           >
             Clear Logs
+          </button>
+          <button
+            onClick={handleReinitializeFromEnv}
+            className="text-xs text-blue-400 hover:text-blue-300"
+            title="Force reinitialize LLM from environment variables"
+          >
+            Reinit from Env
           </button>
           <button
             onClick={toggleDebugPanel}
