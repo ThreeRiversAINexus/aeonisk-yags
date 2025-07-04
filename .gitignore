@@ -155,3 +155,4 @@ aeonisk-assistant/node_modules/
 node_modules/*
 **/node_modules/*
 scripts/aeonisk/.venv/*
+**/.venv/*

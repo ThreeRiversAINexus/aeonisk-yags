@@ -20,7 +20,7 @@ from aeonisk.core.models import (
 from aeonisk.dataset.parser import DatasetParser
 from aeonisk.dataset.manager import DatasetManager
 from aeonisk.utils.file_utils import get_session_file, get_session_dataset_directory
-from aeonisk.openai import client as openai_client
+from aeonisk.aeonisk_openai import client as openai_client
 
 
 # Configure logging

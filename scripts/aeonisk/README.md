@@ -956,12 +956,12 @@ python -m pytest -m "not slow" -v
 All tests use mocked API calls to prevent real costs:
 
 ```python
-@patch('aeonisk.openai.client.openai.chat.completions.create')
-def test_generate_scenario(self, mock_openai):
+@patch('aeonisk.benchmark.cli.load_config_file')
+def test_generate_scenario(self, mock_load_config_file):
     # Mock OpenAI response
     mock_response = Mock()
     mock_response.choices[0].message.content = '{"test": "scenario"}'
-    mock_openai.return_value = mock_response
+    mock_load_config_file.return_value = mock_response
     
     # Test scenario generation
     client = OpenAIClient(api_key="test_key")
@@ -969,7 +969,7 @@ def test_generate_scenario(self, mock_openai):
     
     # Verify results without making real API calls
     assert result == {"test": "scenario"}
-    mock_openai.assert_called_once()
+    mock_load_config_file.assert_called_once()
 ```
 
 ### Continuous Integration

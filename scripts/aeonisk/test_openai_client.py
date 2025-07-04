@@ -10,7 +10,7 @@ import json
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any
 
-from aeonisk.openai.client import OpenAIClient, get_client
+from aeonisk.aeonisk_openai.client import OpenAIClient, get_client
 
 
 class TestOpenAIClient:
@@ -37,7 +37,7 @@ class TestOpenAIClient:
             with pytest.raises(ValueError, match="OpenAI API key is required"):
                 OpenAIClient()
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_text_success(self, mock_openai_create):
         """Test successful text generation."""
         # Mock OpenAI response
@@ -58,7 +58,7 @@ class TestOpenAIClient:
         assert len(call_args[1]['messages']) == 1
         assert call_args[1]['messages'][0]['content'] == "Test prompt"
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_text_with_system_message(self, mock_openai_create):
         """Test text generation with system message."""
         # Mock OpenAI response
@@ -81,7 +81,7 @@ class TestOpenAIClient:
         assert call_args[1]['messages'][1]['role'] == 'user'
         assert call_args[1]['messages'][1]['content'] == "Test prompt"
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_text_error(self, mock_openai_create):
         """Test text generation with API error."""
         mock_openai_create.side_effect = Exception("API Error")
@@ -91,7 +91,7 @@ class TestOpenAIClient:
         with pytest.raises(Exception, match="API Error"):
             client.generate_text("Test prompt")
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_scenario_success(self, mock_openai_create):
         """Test successful scenario generation."""
         # Mock OpenAI response with JSON
@@ -128,7 +128,7 @@ class TestOpenAIClient:
         assert result == scenario_json
         mock_openai_create.assert_called_once()
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_scenario_invalid_json(self, mock_openai_create):
         """Test scenario generation with invalid JSON response."""
         mock_response = Mock()
@@ -143,7 +143,7 @@ class TestOpenAIClient:
         assert "raw_response" in result
         assert result["raw_response"] == "This is not valid JSON content"
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_scenario_with_characters(self, mock_openai_create):
         """Test scenario generation with character list."""
         scenario_json = {
@@ -179,7 +179,7 @@ class TestOpenAIClient:
         assert "Alice" in prompt
         assert "Bob" in prompt
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_analyze_player_action_success(self, mock_openai_create):
         """Test successful player action analysis."""
         analysis_json = {
@@ -224,7 +224,7 @@ class TestOpenAIClient:
         assert "Stealthy operative" in prompt
         assert "sneak past the guards" in prompt
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_analyze_player_action_with_scenario(self, mock_openai_create):
         """Test player action analysis with scenario context."""
         analysis_json = {
@@ -274,7 +274,7 @@ class TestOpenAIClient:
         assert "Corporate infiltration" in prompt
         assert "Corporate headquarters" in prompt
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_analyze_player_action_invalid_json(self, mock_openai_create):
         """Test player action analysis with invalid JSON response."""
         mock_response = Mock()
@@ -301,7 +301,7 @@ class TestOpenAIClient:
         assert result["void_change"] == 0
         assert result["soulcredit_change"] == 0
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_npc_success(self, mock_openai_create):
         """Test successful NPC generation."""
         npc_json = {
@@ -346,7 +346,7 @@ class TestOpenAIClient:
         assert "Security Chief" in prompt
         assert "major" in prompt
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_npc_minimal_params(self, mock_openai_create):
         """Test NPC generation with minimal parameters."""
         npc_json = {
@@ -428,25 +428,25 @@ class TestOpenAIClient:
 class TestOpenAIClientGlobals:
     """Test suite for global OpenAI client functions."""
     
-    @patch('aeonisk.openai.client.OpenAIClient')
+    @patch('aeonisk.aeonisk_openai.client.OpenAIClient')
     def test_get_client(self, mock_client_class):
         """Test getting the default client."""
         mock_client = Mock()
         mock_client_class.return_value = mock_client
         
         # Reset the global client
-        import aeonisk.openai.client
-        aeonisk.openai.client.default_client = None
+        import aeonisk.aeonisk_openai.client
+        aeonisk.aeonisk_openai.client.default_client = None
         
         client = get_client()
         
         assert client == mock_client
         mock_client_class.assert_called_once()
     
-    @patch('aeonisk.openai.client.get_client')
+    @patch('aeonisk.aeonisk_openai.client.get_client')
     def test_generate_scenario_global(self, mock_get_client):
         """Test global generate_scenario function."""
-        from aeonisk.openai.client import generate_scenario
+        from aeonisk.aeonisk_openai.client import generate_scenario
         
         mock_client = Mock()
         mock_client.generate_scenario.return_value = {"test": "scenario"}
@@ -457,10 +457,10 @@ class TestOpenAIClientGlobals:
         assert result == {"test": "scenario"}
         mock_client.generate_scenario.assert_called_once_with(theme="test", difficulty="easy")
     
-    @patch('aeonisk.openai.client.get_client')
+    @patch('aeonisk.aeonisk_openai.client.get_client')
     def test_generate_npc_global(self, mock_get_client):
         """Test global generate_npc function."""
-        from aeonisk.openai.client import generate_npc
+        from aeonisk.aeonisk_openai.client import generate_npc
         
         mock_client = Mock()
         mock_client.generate_npc.return_value = {"test": "npc"}
@@ -471,10 +471,10 @@ class TestOpenAIClientGlobals:
         assert result == {"test": "npc"}
         mock_client.generate_npc.assert_called_once_with(faction="test_faction")
     
-    @patch('aeonisk.openai.client.get_client')
+    @patch('aeonisk.aeonisk_openai.client.get_client')
     def test_analyze_player_action_global(self, mock_get_client):
         """Test global analyze_player_action function."""
-        from aeonisk.openai.client import analyze_player_action
+        from aeonisk.aeonisk_openai.client import analyze_player_action
         
         mock_client = Mock()
         mock_client.analyze_player_action.return_value = {"test": "analysis"}
@@ -489,10 +489,10 @@ class TestOpenAIClientGlobals:
             action_text="test action"
         )
     
-    @patch('aeonisk.openai.client.get_client')
+    @patch('aeonisk.aeonisk_openai.client.get_client')
     def test_format_game_response_global(self, mock_get_client):
         """Test global format_game_response function."""
-        from aeonisk.openai.client import format_game_response
+        from aeonisk.aeonisk_openai.client import format_game_response
         
         mock_client = Mock()
         mock_client.format_game_response.return_value = "formatted response"
@@ -518,7 +518,7 @@ class TestOpenAIClientGlobals:
 class TestOpenAIClientErrorHandling:
     """Test suite for error handling in OpenAI client."""
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_scenario_api_error(self, mock_openai_create):
         """Test scenario generation with API error."""
         mock_openai_create.side_effect = Exception("API Error")
@@ -529,7 +529,7 @@ class TestOpenAIClientErrorHandling:
         assert "error" in result
         assert "API Error" in result["error"]
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_analyze_player_action_api_error(self, mock_openai_create):
         """Test player action analysis with API error."""
         mock_openai_create.side_effect = Exception("API Error")
@@ -552,7 +552,7 @@ class TestOpenAIClientErrorHandling:
         assert result["void_change"] == 0
         assert result["soulcredit_change"] == 0
     
-    @patch('aeonisk.openai.client.openai.chat.completions.create')
+    @patch('aeonisk.aeonisk_openai.client.openai.chat.completions.create')
     def test_generate_npc_api_error(self, mock_openai_create):
         """Test NPC generation with API error."""
         mock_openai_create.side_effect = Exception("API Error")
