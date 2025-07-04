@@ -1,4 +1,4 @@
-# Makefile for Aeonisk YAGS Engine
+THIS SHOULD BE A LINTER ERROR# Makefile for Aeonisk YAGS Engine
 # Provides convenient commands for development, testing, and usage
 
 .PHONY: help install test test-unit test-integration test-benchmark test-dataset test-engine test-openai
