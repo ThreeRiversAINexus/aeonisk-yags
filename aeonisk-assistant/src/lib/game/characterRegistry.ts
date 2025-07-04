@@ -96,8 +96,32 @@ export class CharacterRegistry {
       throw new Error(`Character ${name} not found`);
     }
 
+    // Helper to serialize inventory
+    function serializeInventory(inventory: any[] = []): string {
+      if (!inventory.length) return '  inventory: []';
+      return '  inventory:\n' + inventory.map(item => {
+        if (item.type === 'talisman') {
+          return `    - name: "${item.name}"
+      type: "talisman"
+      element: "${item.element}"
+      current_charge: ${item.current_charge}
+      max_charge: ${item.max_charge}
+      size: "${item.size}"
+      attuned: ${item.attuned}
+      notes: "${item.notes || ''}"`;
+        } else {
+          return `    - name: "${item.name}"
+      type: "${item.type}"
+      equipped: ${item.equipped || false}
+      quantity: ${item.quantity || 1}
+      notes: "${item.notes || ''}"`;
+        }
+      }).join('\n');
+    }
+
     // Convert to YAML format matching the dataset structure
     const yaml = `- character_name: "${character.name}"
+  name: "${character.name}"
   player_name: "${character.name || ''}"
   campaign: "${character.origin_faction || ''}"
   game_master: ""
@@ -128,23 +152,23 @@ export class CharacterRegistry {
     move_base: ${character.secondary_attributes?.move || 0}
   
   talents:
-    athletics: ${character.talents.athletics}
-    awareness: ${character.talents.awareness}
-    brawl: ${character.talents.brawl}
-    charm: ${character.talents.charm}
-    guile: ${character.talents.guile}
-    sleight: ${character.talents.sleight}
-    stealth: ${character.talents.stealth}
-    throw: ${character.talents.throw}
+    athletics: ${(character.talents && character.talents.athletics) || 2}
+    awareness: ${(character.talents && character.talents.awareness) || 2}
+    brawl: ${(character.talents && character.talents.brawl) || 2}
+    charm: ${(character.talents && character.talents.charm) || 2}
+    guile: ${(character.talents && character.talents.guile) || 2}
+    sleight: ${(character.talents && character.talents.sleight) || 2}
+    stealth: ${(character.talents && character.talents.stealth) || 2}
+    throw: ${(character.talents && character.talents.throw) || 2}
   
-  standard_skills:${Object.entries(character.skills).filter(([k, v]) => v && v > 0).length > 0 ? '\n' + Object.entries(character.skills).filter(([k, v]) => v && v > 0).map(([k, v]) => `    ${k}: ${v}`).join('\n') : ' {}'}
+  skills:${Object.entries(character.skills).filter(([k, v]) => v && v > 0).length > 0 ? '\n' + Object.entries(character.skills).filter(([k, v]) => v && v > 0).map(([k, v]) => `    ${k}: ${v}`).join('\n') : ' {}'}
   
   languages:
-    native_language_name: "${character.languages.native_language}"
-    native_language_level: ${character.languages.native_level}
-    other_languages:${character.languages.other_languages && character.languages.other_languages.length > 0 ? '\n' + character.languages.other_languages.map(l => `      - language_name: "${l.name}"\n        level: ${l.level}`).join('\n') : ' []'}
+    native_language_name: "${character.languages?.native_language_name || ''}"
+    native_language_level: ${character.languages?.native_language_level || 4}
+    other_languages:${character.languages?.other_languages && character.languages.other_languages.length > 0 ? '\n' + character.languages.other_languages.map(l => `      - language_name: "${l.name}"\n        level: ${l.level}`).join('\n') : ' []'}
   
-  techniques:${character.techniques && character.techniques.length > 0 ? '\n' + character.techniques.map(t => `    - name: "${t.name}"\n      skill_basis: "${t.skill_basis}"\n      cost_level: ${t.cost_level}\n      description: "${t.description}"`).join('\n') : ' []'}
+  techniques:${character.techniques && character.techniques.length > 0 ? '\n' + character.techniques.map(t => `    - name: "${t.name}"\n      skill: "${t.skill}"\n      cost: ${t.cost}\n      description: "${t.description}"`).join('\n') : ' []'}
   
   advantages:${character.advantages && character.advantages.length > 0 ? '\n' + character.advantages.map(a => `    - name: "${a.name}"\n      cost_level: ${a.cost || 0}\n      description: "${a.description}"`).join('\n') : ' []'}
   
@@ -158,11 +182,11 @@ export class CharacterRegistry {
       statement: "${character.trueWill || ''}"
       alignment_bonus_active: ${character.trueWill ? true : false}
     bonds:${character.bonds.length > 0 ? '\n' + character.bonds.map(b => `      - name: "${b.name}"\n        type: "${b.type}"\n        status: "${b.status}"`).join('\n') : ' []'}
-    primary_ritual_item:${character.primary_ritual_item ? `
-      name: "${character.primary_ritual_item.name}"
-      description: "${character.primary_ritual_item.description}"
-      effects_if_lost: "${character.primary_ritual_item.effects_if_lost}"` : ' null'}
-    offerings_carried:${character.offerings && character.offerings.length > 0 ? '\n' + character.offerings.map(o => `      - offering_name: "${o.name}"\n        description: "${o.description}"`).join('\n') : ' []'}`;
+    primary_ritual_item:${(character as any).primary_ritual_item ? `\n      name: "${(character as any).primary_ritual_item.name}"\n      description: "${(character as any).primary_ritual_item.description}"\n      effects_if_lost: "${(character as any).primary_ritual_item.effects_if_lost}"` : ' null'}
+    offerings_carried:${(character as any).offerings && (character as any).offerings.length > 0 ? '\n' + (character as any).offerings.map((o: any) => `      - offering_name: "${o.name}"\n        description: "${o.description}"`).join('\n') : ' []'}
+
+${serializeInventory(character.inventory)}
+`;
 
     return yaml;
   }
@@ -205,8 +229,8 @@ export class CharacterRegistry {
         move: character.attributes.strength + character.attributes.agility + 6
       };
       character.languages = character.languages || {
-        native_language: 'Common',
-        native_level: 4
+        native_language_name: 'Common',
+        native_language_level: 4
       };
       character.bonds = character.bonds || [];
       
@@ -249,6 +273,82 @@ export class CharacterRegistry {
     return Array.from(this.characters.keys());
   }
 
+  /**
+   * Inventory and Talisman Management
+   */
+  addItemToInventory(characterName: string, item: any): void {
+    const character = this.characters.get(characterName);
+    if (!character) throw new Error(`Character ${characterName} not found`);
+    if (!character.inventory) character.inventory = [];
+    character.inventory.push(item);
+  }
+
+  removeItemFromInventory(characterName: string, itemId: string): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.filter(item => item.id !== itemId);
+  }
+
+  updateItemInInventory(characterName: string, itemId: string, updates: any): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.map(item =>
+      item.id === itemId ? { ...item, ...updates } : item
+    );
+  }
+
+  equipItem(characterName: string, itemId: string): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.map(item =>
+      item.id === itemId ? { ...item, equipped: true } : item
+    );
+  }
+
+  unequipItem(characterName: string, itemId: string): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.map(item =>
+      item.id === itemId ? { ...item, equipped: false } : item
+    );
+  }
+
+  attuneTalisman(characterName: string, itemId: string): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.map(item =>
+      item.id === itemId && item.type === 'talisman'
+        ? { ...item, attuned: true }
+        : item
+    );
+  }
+
+  spendTalismanCharge(characterName: string, itemId: string, amount: number): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.map(item => {
+      if (item.id === itemId && item.type === 'talisman') {
+        const talisman = item as any; // TalismanItem
+        const newCharge = Math.max(0, (talisman.current_charge || 0) - amount);
+        return { ...talisman, current_charge: newCharge };
+      }
+      return item;
+    });
+  }
+
+  rechargeTalisman(characterName: string, itemId: string, amount: number): void {
+    const character = this.characters.get(characterName);
+    if (!character || !character.inventory) return;
+    character.inventory = character.inventory.map(item => {
+      if (item.id === itemId && item.type === 'talisman') {
+        const talisman = item as any; // TalismanItem
+        const maxCharge = talisman.max_charge || 1;
+        const newCharge = Math.min(maxCharge, (talisman.current_charge || 0) + amount);
+        return { ...talisman, current_charge: newCharge };
+      }
+      return item;
+    });
+  }
 }
 
 // Singleton instance

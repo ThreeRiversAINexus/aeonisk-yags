@@ -7,6 +7,7 @@ export interface Message {
   tool_call_id?: string;
   name?: string;
   timestamp?: number;
+  ic?: boolean; // true = in-character, false = out-of-character
 }
 
 export interface ToolCall {
@@ -147,6 +148,26 @@ export interface Language {
   isNative: boolean;
 }
 
+export interface Item {
+  id: string;
+  name: string;
+  type: string; // e.g., 'talisman', 'weapon', 'armor', 'offering', etc.
+  equipped?: boolean;
+  quantity?: number;
+  notes?: string;
+}
+
+export type TalismanElement = 'Grain' | 'Drip' | 'Spark' | 'Breath' | 'Hollow' | 'Seed';
+
+export interface TalismanItem extends Item {
+  type: 'talisman';
+  element: TalismanElement;
+  current_charge: number;
+  max_charge: number;
+  size: 'Single' | 'Band' | 'Sigil' | 'Core' | 'Vault';
+  attuned: boolean;
+}
+
 export interface Character {
   // Basic Info
   name: string;
@@ -193,6 +214,9 @@ export interface Character {
   backgroundExperience?: Record<string, number>; // Skills being learned through background
   jobExperience?: Record<string, number>; // Skills being learned through work
   trainingProgress?: Record<string, number>; // Skills being learned through training
+
+  // Inventory System
+  inventory?: Item[]; // All items, including talismans, offerings, gear, etc.
 }
 
 export interface Bond {

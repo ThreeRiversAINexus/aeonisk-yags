@@ -483,6 +483,8 @@ export function CampaignPlanningWizard({ onComplete, onCancel }: CampaignPlannin
   };
 
   const handleComplete = () => {
+    // Persist campaign data to localStorage
+    localStorage.setItem('aeoniskCampaign', JSON.stringify(campaign));
     onComplete(campaign);
   };
 

@@ -30,6 +30,13 @@ export function ChatInterface() {
   // Track debug data for messages
   const [messageDebugData, setMessageDebugData] = useState<Map<number, any>>(new Map());
 
+  const [icMode, setIcMode] = useState(true);
+
+  const [pendingAdventure, setPendingAdventure] = useState(() => {
+    // If a character was just loaded, set pending adventure
+    return localStorage.getItem('pendingAdventure') === 'true';
+  });
+
   useEffect(() => {
     // Load conversation history
     const history = chatService.getConversationHistory();
@@ -116,6 +123,9 @@ export function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // Helper to get knowledge level
+  const getKnowledgeLevel = () => localStorage.getItem('aeoniskKnowledgeLevel') || 'low';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
@@ -124,14 +134,10 @@ export function ChatInterface() {
     setInput('');
     setIsLoading(true);
 
-    // Add user message to display
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setMessages(prev => [...prev, { role: 'user', content: userMessage, ic: icMode }]);
 
     try {
-      // Get response from chat service
-      const response = await chatService.chat(userMessage);
-      
-      // Update messages with the response
+      const response = await chatService.chat(userMessage, { ic: icMode, knowledge: getKnowledgeLevel() });
       setMessages(chatService.getConversationHistory());
     } catch (error) {
       console.error('Chat error:', error);
@@ -171,8 +177,65 @@ export function ChatInterface() {
     setShowExport(false);
   };
 
+  // Render Begin Adventure button if pending
+  const renderBeginAdventure = () => {
+    // Load campaign and character from localStorage
+    let campaign = null;
+    let character = null;
+    try {
+      const campaignStr = localStorage.getItem('aeoniskCampaign');
+      if (campaignStr) campaign = JSON.parse(campaignStr);
+    } catch {}
+    try {
+      character = chatService.getCharacter();
+    } catch {}
+
+    let intro = '';
+    if (campaign && character) {
+      // Build a dynamic intro based on campaign and character
+      const location = (campaign.scenarios && campaign.scenarios[0]?.location) || 'an unknown district';
+      const theme = campaign.theme || 'Adventure';
+      const factions = campaign.factions?.length ? campaign.factions.join(', ') : 'various factions';
+      const charName = character.name || 'yourself';
+      const origin = character.origin_faction || character.concept || 'a wanderer';
+
+      // Flavor for Freeborn
+      let flavor = '';
+      if (origin.toLowerCase().includes('freeborn')) {
+        flavor = `The air is thick with the scent of rebellion in the Freeborn district. The streets are alive with the hustle of those who have chosen not to be bound by the dynasties that seek to control them.\n\nAmong them, you stand, ${charName}, embracing the wild freedom of your kind. The graffiti on the bathroom mirror echoes the sentiment you've always felt: "You are not your dynasty's mouthpiece."\n\nAs a Freeborn, your will is wild and untamed. You can form only one Bond, but this Bond is something of immense significance, as it can only be sacrificed with great cost.\n\nNow, as you wander this district, what is it you seek? Knowledge? Connections? Or perhaps the elusive Hollow Seed, a symbol of the freedom you cherish?`;
+      } else {
+        flavor = `You awaken in ${location}, a place shaped by the theme of "${theme}". The influence of ${factions} is felt everywhere.\n\nAs ${charName}, ${origin}, you sense that today will be different. Whispers of strange events reach your ears, and the air is thick with anticipation.\n\nWhat do you do?`;
+      }
+      intro = flavor;
+    } else {
+      // Fallback generic intro
+      intro = `You awaken in a world of sacred trust and spiritual commerce. The air hums with the energy of talismans and the distant echo of ritual. What do you do?`;
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <button
+          className="px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white text-lg rounded-lg shadow-lg transition-colors"
+          onClick={() => {
+            setPendingAdventure(false);
+            localStorage.setItem('pendingAdventure', 'false');
+            setMessages(prev => [
+              ...prev,
+              { role: 'assistant', content: intro, ic: true }
+            ]);
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+          }}
+        >
+          Begin Adventure
+        </button>
+        <p className="mt-4 text-gray-300 text-center">Click to start your campaign with an immersive scene.</p>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-full">
+      {pendingAdventure && renderBeginAdventure()}
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
@@ -190,10 +253,13 @@ export function ChatInterface() {
             <div
               className={`max-w-[80%] rounded-lg px-4 py-2 ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-800 text-gray-100'
+                  ? message.ic === false ? 'bg-gray-600 text-white border border-yellow-400' : 'bg-blue-600 text-white'
+                  : message.ic === false ? 'bg-gray-700 text-yellow-200 border border-yellow-400' : 'bg-gray-800 text-gray-100'
               }`}
             >
+              {message.ic === false && (
+                <span className="text-xs font-bold text-yellow-300 mr-2">[OOC]</span>
+              )}
               {message.role === 'assistant' ? (
                 <div className="prose prose-invert prose-sm max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -253,11 +319,21 @@ export function ChatInterface() {
         </div>
         
         <form onSubmit={handleSubmit} className="flex gap-2">
+          <select
+            value={icMode ? 'ic' : 'ooc'}
+            onChange={e => setIcMode(e.target.value === 'ic')}
+            className="bg-gray-800 text-gray-200 rounded-lg px-2 py-1 focus:outline-none border border-gray-700"
+            style={{ minWidth: 70 }}
+            aria-label="IC/OOC toggle"
+          >
+            <option value="ic">IC</option>
+            <option value="ooc">OOC</option>
+          </select>
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about rules, lore, or describe an action..."
+            placeholder={icMode ? "Speak or act in character..." : "Out-of-character (rules, clarifications, etc.)"}
             className="flex-1 bg-gray-800 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           />
