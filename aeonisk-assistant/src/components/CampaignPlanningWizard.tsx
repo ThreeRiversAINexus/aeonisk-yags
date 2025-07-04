@@ -4,6 +4,7 @@ import type { Character, NPC, Dreamline } from '../types';
 interface CampaignPlanningWizardProps {
   onComplete: (campaign: CampaignData) => void;
   onCancel: () => void;
+  prefill?: CampaignData;
 }
 
 interface CampaignData {
@@ -104,17 +105,19 @@ const NPC_TEMPLATES = [
   }
 ];
 
-export function CampaignPlanningWizard({ onComplete, onCancel }: CampaignPlanningWizardProps) {
+export function CampaignPlanningWizard({ onComplete, onCancel, prefill }: CampaignPlanningWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>('overview');
-  const [campaign, setCampaign] = useState<CampaignData>({
-    name: '',
-    description: '',
-    theme: '',
-    factions: [],
-    npcs: [],
-    scenarios: [],
-    dreamlines: []
-  });
+  const [campaign, setCampaign] = useState<CampaignData>(() =>
+    prefill ? { ...prefill } : {
+      name: '',
+      description: '',
+      theme: '',
+      factions: [],
+      npcs: [],
+      scenarios: [],
+      dreamlines: []
+    }
+  );
 
   const updateCampaign = (updates: Partial<CampaignData>) => {
     setCampaign(prev => ({ ...prev, ...updates }));

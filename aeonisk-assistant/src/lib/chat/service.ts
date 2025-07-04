@@ -7,6 +7,7 @@ import { useDebugStore } from '../../stores/debugStore';
 import { useProviderStore } from '../../stores/providerStore';
 import type { Message, ContentChunk, GameState, LLMConfig, ChatOptions, Character } from '../../types';
 import { getCharacterRegistry } from '../game/characterRegistry'; // Added for character access
+import YAML from 'yaml';
 
 export class AeoniskChatService {
   private llmClient: UnifiedLLMClient;
@@ -403,6 +404,60 @@ export class AeoniskChatService {
 
   getConversationSummary(): string {
     return this.conversationManager.getConversationSummary();
+  }
+
+  /**
+   * Generate a campaign proposal using the LLM, based on the provided character.
+   * Returns a CampaignData object (theme, location, factions, npcs, scenario seed, etc.).
+   */
+  async generateCampaignProposalFromCharacter(character: Character): Promise<any> {
+    const systemPrompt = `You are the AI DM for the Aeonisk YAGS tabletop RPG. Your job is to propose a campaign setup tailored to the following player character. Generate a JSON or YAML object with the following fields: name, description, theme, factions (array), npcs (array of {name, faction, role, description}), scenarios (array of {id, name, description, location, factions, objectives, complications}), and dreamlines (array, can be empty). Be creative, immersive, and make sure the campaign fits the character's background, origin, and skills.\n\nCharacter:\n${JSON.stringify(character, null, 2)}\n\nRespond ONLY with the campaign object, no extra commentary.`;
+    const messages: Message[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Please generate the campaign proposal.' }
+    ];
+    const response = await this.llmClient.chat(messages, { temperature: 0.8, model: undefined });
+    let content = response.content || '';
+    // Log the raw LLM response for debugging
+    console.log('[LLM Campaign Proposal] Raw response:', content);
+    // Always extract and parse code block content first (if present)
+    let campaign = null;
+    const codeBlockMatch = content.match(/```(?:json|yaml)?([\s\S]*?)```/i);
+    if (codeBlockMatch) {
+      const code = codeBlockMatch[1].trim();
+      try {
+        campaign = JSON.parse(code);
+      } catch {
+        try {
+          campaign = YAML.parse(code);
+        } catch {}
+      }
+    }
+    // Only fall back to parsing the whole string if there is no code block
+    if (!campaign) {
+      try {
+        campaign = JSON.parse(content);
+      } catch {
+        try {
+          campaign = YAML.parse(content);
+        } catch {}
+      }
+    }
+    // If campaign is a function/tool output (OpenAI style), extract from 'properties' array
+    if (campaign && Array.isArray(campaign.properties)) {
+      const obj: any = {};
+      for (const prop of campaign.properties) {
+        if (prop.name && prop.value !== undefined) {
+          obj[prop.name] = prop.value;
+        }
+      }
+      campaign = obj;
+    }
+    // If campaign is still not a usable object, fallback to null
+    if (!campaign || typeof campaign !== 'object' || Array.isArray(campaign) || Object.keys(campaign).length === 0) {
+      throw new Error('Failed to parse campaign proposal from LLM response.');
+    }
+    return campaign;
   }
 }
 

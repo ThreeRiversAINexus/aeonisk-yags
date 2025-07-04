@@ -152,3 +152,4 @@ cython_debug/
 .pypirc
 
 aeonisk-assistant/node_modules/
+node_modules/*
