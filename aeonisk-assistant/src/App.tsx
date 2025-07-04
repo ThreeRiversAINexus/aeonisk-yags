@@ -185,38 +185,40 @@ function App() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex">
-        {/* Left panel (Character) */}
+      {/* Main content: Stacked layout */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {/* Character Panel (stacked at top, full width) */}
         {showCharacter && (
-          <div className="w-80 border-r border-gray-700 bg-gray-800 overflow-y-auto">
+          <div className="w-full max-w-3xl mx-auto mt-4 mb-2 rounded-xl shadow-lg bg-gray-800 border border-gray-700 p-6 transition-all duration-300 max-h-[60vh] overflow-y-auto">
             <CharacterPanel onClose={() => setShowCharacter(false)} />
           </div>
         )}
 
-        {/* Chat interface */}
-        <div className="flex-1 flex flex-col">
+        {/* Settings Panel (modal style, overlays content) */}
+        {showSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+            <div className="w-full max-w-lg rounded-xl shadow-2xl bg-gray-800 border border-gray-700 p-6">
+              <SettingsPanel
+                onClose={() => setShowSettings(false)}
+                onProviderConfig={(provider, config) => {
+                  chatService.configureProvider(provider, config);
+                  setCurrentProvider(provider);
+                  setShowSettings(false);
+                }}
+                onProviderChange={(provider) => {
+                  chatService.setProvider(provider);
+                  setCurrentProvider(provider);
+                }}
+                currentProvider={currentProvider}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Chat interface (always below character panel, scrolls independently) */}
+        <div className="flex-1 min-h-0 w-full max-w-3xl mx-auto mb-4 rounded-xl shadow-lg bg-gray-900 border border-gray-800 p-4 overflow-y-auto transition-all duration-300">
           <ChatInterface />
         </div>
-
-        {/* Right panel (Settings) */}
-                 {showSettings && (
-           <div className="w-80 border-l border-gray-700 bg-gray-800 overflow-y-auto">
-             <SettingsPanel
-               onClose={() => setShowSettings(false)}
-               onProviderConfig={(provider, config) => {
-                 chatService.configureProvider(provider, config);
-                 setCurrentProvider(provider);
-                 setShowSettings(false);
-               }}
-               onProviderChange={(provider) => {
-                 chatService.setProvider(provider);
-                 setCurrentProvider(provider);
-               }}
-               currentProvider={currentProvider}
-             />
-           </div>
-         )}
       </div>
 
       {/* Debug panel */}
