@@ -178,6 +178,7 @@ class AIJudge:
     def __init__(self, judge_model: str = "gpt-4", api_key: str = None):
         """Initialize the AI judge."""
         self.judge_model = judge_model
+        self.api_key = api_key
         self.client = OpenAI(api_key=api_key) if api_key else None
         self.metrics = EvaluationMetrics()
     
@@ -320,8 +321,6 @@ Be thorough but concise in your evaluation. Focus on how well the response would
             return EvaluationResult(
                 task_id=task.task_id,
                 model_name=response.model_name,
-                overall_score=automated_metrics['overall_score'],
-                gold_standard_similarity=automated_metrics['gold_standard_similarity'],
                 judge_rationale=f"Evaluation error: {str(e)}",
                 **automated_metrics
             )

@@ -54,33 +54,27 @@ class DatasetParser:
         try:
             # Split the content into sections based on the '---' separator
             sections = re.split(r'^---$', content, flags=re.MULTILINE)
-            
-            # Parse the first section as the main dataset
-            main_section = sections[0]
+            # Skip empty or whitespace-only sections at the start
+            nonempty_sections = [s for s in sections if s.strip()]
+            if not nonempty_sections:
+                raise DatasetParseError("No valid YAML sections found")
+            # Parse the first non-empty section as the main dataset
+            main_section = nonempty_sections[0]
             dataset = yaml.safe_load(main_section)
-            
             if not isinstance(dataset, dict):
                 raise DatasetParseError("Dataset must be a dictionary")
-            
             # Parse additional sections if they exist
-            if len(sections) > 1:
-                for i, section in enumerate(sections[1:], 1):
-                    if not section.strip():
-                        continue
-                    
-                    section_data = yaml.safe_load(section)
-                    if not isinstance(section_data, dict):
-                        continue
-                    
-                    # If the section has a task_id, use it as a key
-                    if "task_id" in section_data:
-                        task_id = section_data["task_id"]
-                        if "tasks" not in dataset:
-                            dataset["tasks"] = {}
-                        dataset["tasks"][task_id] = section_data
-            
+            for section in nonempty_sections[1:]:
+                section_data = yaml.safe_load(section)
+                if not isinstance(section_data, dict):
+                    continue
+                # If the section has a task_id, use it as a key
+                if "task_id" in section_data:
+                    task_id = section_data["task_id"]
+                    if "tasks" not in dataset:
+                        dataset["tasks"] = {}
+                    dataset["tasks"][task_id] = section_data
             return dataset
-            
         except yaml.YAMLError as e:
             raise DatasetParseError(f"Failed to parse dataset: {str(e)}")
         except Exception as e:

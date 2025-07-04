@@ -7,7 +7,7 @@ import os
 from unittest.mock import patch, MagicMock
 
 import pytest
-from aeonisk.openai.client import OpenAIClient, generate_scenario, generate_npc
+from aeonisk.aeonisk_openai.client import OpenAIClient, generate_scenario, generate_npc
 
 
 class TestOpenAIClient:
@@ -215,7 +215,7 @@ class TestOpenAIClient:
         assert user_message is not None
         assert "nightmare" in user_message
 
-    @patch("aeonisk.openai.client.OpenAIClient")
+    @patch("aeonisk.aeonisk_openai.client.OpenAIClient")
     def test_generate_scenario_function(self, mock_client_class):
         """Test the generate_scenario function."""
         # Mock the OpenAIClient instance
@@ -224,13 +224,13 @@ class TestOpenAIClient:
         mock_client_class.return_value = mock_client
 
         # Patch the get_client function to return our mock
-        with patch("aeonisk.openai.client.get_client", return_value=mock_client):
+        with patch("aeonisk.aeonisk_openai.client.get_client", return_value=mock_client):
             result = generate_scenario(theme="test")
 
         assert result == {"title": "Test Scenario"}
         mock_client.generate_scenario.assert_called_once_with(theme="test")
 
-    @patch("aeonisk.openai.client.OpenAIClient")
+    @patch("aeonisk.aeonisk_openai.client.OpenAIClient")
     def test_generate_npc_function(self, mock_client_class):
         """Test the generate_npc function."""
         # Mock the OpenAIClient instance
@@ -239,7 +239,7 @@ class TestOpenAIClient:
         mock_client_class.return_value = mock_client
 
         # Patch the get_client function to return our mock
-        with patch("aeonisk.openai.client.get_client", return_value=mock_client):
+        with patch("aeonisk.aeonisk_openai.client.get_client", return_value=mock_client):
             result = generate_npc(faction="test")
 
         assert result == {"name": "Test NPC"}
