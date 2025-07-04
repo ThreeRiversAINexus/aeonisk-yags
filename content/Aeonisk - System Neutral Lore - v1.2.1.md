@@ -158,7 +158,6 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Core Factional Training Paths**
 
-*(Narrative Backgrounds Only – Confer No Mechanical Advantage)*
 
 **Sovereign Nexus - The Continuity Curriculum**
 *   **Curriculum Highlights:** Talisman calculus, behavioral schema bonding, Sovereign Law (Version 683.4.AR), history according to the Elaras Line.
@@ -399,11 +398,6 @@ Ruling: Broker declared Spiritually Bankrupt. Assets seized by ACG restructuring
 
 > When the rites failed to echo, when the offerings lay inert upon the altars, we learned it was not numbers that mattered, but weight. Some offerings weighed too little, empty gestures lacking intent. Some Wills pulled too far, tearing the Weave instead of shaping it. From that lesson, the Codex changed. It no longer merely counted the toll — it learned to listen for the break, for the silence where resonance should be.
 
-<!--
----
-*Story Vignettes Section Remains Unchanged*
----
--->
 ## SECTION XI: Echo Children - The Ones Rewritten
 
 *Document Type: Restricted Anthropological Study (Excerpt)*
@@ -421,32 +415,6 @@ These individuals perceive the world differently:
 The Sovereign Nexus classifies them under **Codex Status Zeta‑Oblique**: monitored, studied, sometimes utilized as living sensors for temporal instability or Void incursions, but never fully trusted. Factional interest varies: Arcane Genetics seeks to replicate their resilience, mapping their unique neural pathways. The Unified Hand studies their capacity for enduring spiritual trauma. Tempest Industries whispers they are the first true citizens of the Hollow Age, liberated from linear causality. Freeborn networks often shelter them, recognizing a shared state of being outside the Codex's neat lines. They are walking reminders that the Codex, and reality itself, can be rewritten.
 
 Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Story Vignettes
 
@@ -520,9 +488,63 @@ Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
 > You nod. “Tonight we decide who it chooses.”
 > The apartment hums, waiting.
 
-------
+## 8 ▸ **Bumming around Aeonisk Prime**
 
-*End of sampler. Additional vignettes may be appended as the Codex unfolds.*
+The hum of Aeonisk Prime was a lie Kaelen had learned to love. It was a sound of absolute control, a perfectly tuned chord played by a civilization that had mistaken harmony for truth. It emanated from the crystalline ley-conductors that webbed the alabaster spires, from the silent glide of Choir-class ferries overhead, and from the million hushed affirmations of citizens checking their Soulcredit on public kiosks. To everyone else, it was the sound of peace. To Kaelen, it was the resonant frequency of a cage.
+
+He sat cross-legged in the shadow of a gargantuan statue of Matriarch Aurora, his back against the cold, smooth plasteel. His clothes, a patchwork of frayed synth-weaves, were threadbare but clean. Before him, on a stained but carefully folded piece of sailcloth, lay his world: a set of obsidian carving tools, a cracked whisper wax tablet, and a single, unattuned Raw Seed that pulsed with a faint, chaotic light. It was a sphere of pure potential, a concept so antithetical to the meticulously Bonded and recorded lives around him that it felt like a shout in a library.
+
+Kaelen was a ghost in the machine, a Freeborn adherent to the Fractal Praxis living like a beggar-monk in the heart of the Sovereign Nexus. The Praxis taught that the universe’s grandest truths were self-similar, repeating in the smallest of patterns. To understand the lie of the Nexus, one didn’t need to storm the Codex Cathedral; one only had to watch the morning commute. He watched the Bond-paired couples in their shimmering Spark-couture, their steps so synchronized they barely disturbed the mnemonic mist that clung to the plazas. Their Bonds were visible to his trained eye—shimmering amber ropes of fealty, passion, and debt tying them not just to each other, but to their factions, their lineages, and the all-seeing ledger of the Codex. They were beautiful. They were predictable. They were trapped.
+
+His only companion, a Dustling Drone he called Static, whirred quietly at his side, its single optical sensor blinking with placid loyalty. Theirs was a Bond of simple utility and shared solitude, an absurdity to the grand spiritual economy of the Nexus. A Freeborn with only one Bond, and to a mundane custodian bot? It was a joke that had long lost its novelty to the passing citizens, who now simply averted their eyes, their own Soulcredit a shield against his unformatted existence.
+
+"Filter's clogged again, Kae," Static buzzed, its voice a low thrum of synthesized air. "The ambient grief quotient in this plaza is… high. Fraying my incense matrix."
+
+Kaelen grunted, rolling the Raw Seed in his palm. The unstable energy felt warm, alive. “Grief is a commodity here, Static. They bottle it as Dripmist for the tourists. Let’s find you a new filter.”
+
+He gathered his few belongings, tucked the Seed into a lead-lined pouch, and rose. Static hovered dutifully at his shoulder as he navigated the immaculate concourse. They passed a kiosk where a young woman with the Halessan family crest tattooed on her wrist was having her ledger reviewed.
+
+“Soulcredit: +3,” the kiosk chimed pleasantly.“Will integrity: stable. No pending reviews.”
+
+Kaelen smirked. Stable. The word they used for a securely fastened bolt.
+
+The Vending Node 92B was an automated alcove gleaming with sterile light, offering everything from Breathwater Flasks to pre-packaged Bondcake Slices. Kaelen ignored them all, interfacing with the commerce plate.
+
+**“Present Soulcredit or elemental talisman for transaction,”** the node’s voice stated, devoid of warmth.
+
+Kaelen reached into his pouch, bypassing the glittering Sparksticks and Flavorglyph Strips. He produced a Talisman Blank, a smooth, unattuned piece of ritual substrate. “I offer this.”
+
+**“Item unrecognized. Potential is not currency. Please present sanctioned tender.”**
+
+“Not yet, it isn’t,” Kaelen murmured. He took one of his obsidian tools and, with swift, practiced motions, began carving into the blank. He didn’t carve a standard glyph of value. He etched a fractal—a dizzying, self-replicating pattern of interlocking lines. It was a core concept of the Praxis: a glyph of recursive need, a visual prayer that folded in on itself infinitely. He was not offering a thing of value; he was offering the *idea* of value itself.
+
+He slid the newly carved talisman into the slot. The node hummed, its internal logic struggling with the paradox. After a long moment, it spat out a small, mesh-like Drip-filter. **“Transaction… logged. Resonance… irregular. Have a harmonious cycle.”**
+
+As Kaelen took the filter, a shadow fell over him. “Resonance irregularity. Funny how that follows you, Unbound.”
+
+He didn’t need to turn. The voice was clipped, armored in authority. He recognized the hum of Pantheon Security-issue armor. He turned slowly to face Warden Ireveth, her face a mask of stern duty, the crest of her line—a stylized spire—etched on her gorget.
+
+“Warden,” Kaelen said, his tone deliberately mild. “Just performing a little praxis on your rigid economy.”
+
+Her eyes narrowed, scanning him from head to toe. The scanner on her wrist would be showing her his ledger: Soulcredit Null, a single anomalous Bond, Faction designation Unbound. To her, he was a walking error message.
+
+“Your presence is a disruption,” she stated flatly. “You carry un-attuned ritual gear. You form Bonds with sanitation automata. You exist in the margins, and the margins are where the Void bleeds through.”
+
+“The Void is honest, at least,” Kaelen retorted, meeting her gaze without flinching. “It doesn’t pretend to be a garden. I’m studying the cracks in the echo, Warden. It’s where the truth leaks out.”
+
+Ireveth took a step closer, her voice dropping. “There are no cracks on Aeonisk Prime. There is only the Weave, and the Will of the Nexus.”
+
+It was then that Kaelen saw it. A flicker. Not in the plaza’s humming lights, but *behind* them. In the Veil itself. A momentary, silent hiccup in the fabric of the world. It was a shade of wrongness he’d only ever read about in forbidden texts—a Void-shear, a subtle tearing of reality’s skin. It lasted less than a heartbeat, but in the reflection of Warden Ireveth’s polished visor, he saw the world ripple, just once.
+
+“Did you see that?” he asked, his voice suddenly sharp.
+
+The Warden blinked, her focus momentarily broken. “See what? Another power fluctuation from the lower spires. The technicians are lazy.” She dismissed it, her attention snapping back to him, the designated problem. “You are a loose thread, Kaelen. And I will not have you unraveling the pattern. Move along.”
+
+She turned and strode away, a pillar of certitude in a world Kaelen now knew for a fact was lying. It wasn't a power fluctuation. He had seen the pattern in its brief, horrifying absence. It was a tiny error, but the Fractal Praxis taught that an error in the seed was an error in the tree, the forest, the world.
+
+He pocketed the filter for Static. His simple task was complete, but a new, terrifying one had just begun. The hum of Aeonisk Prime sounded different now. He could hear, beneath the perfect chord, the faintest trace of a scream. He and Static melted back into the alleys of the great, beautiful, fractured city, a philosopher and his dust-bot against the coming silence.
+
+------
 
 ## Aeonisk Permissive Commercial License
 

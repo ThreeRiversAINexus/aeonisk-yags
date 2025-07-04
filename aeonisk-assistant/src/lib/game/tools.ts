@@ -1,5 +1,42 @@
-import type { Character, Tool } from '../../types';
+import type { Character, AIPlayer, Ritual, Session, Dreamline, Tool } from '../../types';
 import { characterRegistry } from './characterRegistry';
+import { 
+  createDefaultCharacter, 
+  validateCharacter, 
+  calculateExperienceCost,
+  getAvailableAdvantages,
+  getAvailableDisadvantages,
+  getAvailableTechniques,
+  getAvailableFamiliarities,
+  calculatePriorityAllocation
+} from './characterCreation';
+import {
+  resolveRitual,
+  canCastRitual,
+  getAvailableRituals,
+  getRitualByName,
+  calculateVoidInfluence,
+  checkVoidSpike
+} from './ritualSystem';
+import {
+  generateAIPersonality,
+  generatePlayerGoals,
+  generateDecisionStrategy,
+  makeAIDecision,
+  decideRitualCasting,
+  generateNPC,
+  generateDreamline,
+  runAISession
+} from './aiDM';
+import {
+  exportSessionToDataset,
+  exportCharacterToYAML,
+  exportSessionToJSONL,
+  exportToFineTuneFormat,
+  exportAnalysisData,
+  validateDatasetEntry,
+  generateDatasetMetadata
+} from './datasetExport';
 
 /**
  * Roll YAGS dice and calculate successes
@@ -128,160 +165,357 @@ export function executeSkillCheck(
 /**
  * Game tools for the AI assistant to use
  */
-export const aeoniskTools: Tool[] = [
+export const aeoniskTools = {
+  // Character Management
+  createCharacter: (name: string, concept: string, faction?: string): Character => {
+    const character = createDefaultCharacter();
+    character.name = name;
+    character.concept = concept;
+    if (faction) character.origin_faction = faction;
+    return character;
+  },
+
+  validateCharacter: (character: Character) => {
+    return validateCharacter(character);
+  },
+
+  calculateExperienceCost: (character: Character) => {
+    return calculateExperienceCost(character);
+  },
+
+  getAvailableAdvantages: (character: Character) => {
+    return getAvailableAdvantages(character);
+  },
+
+  getAvailableDisadvantages: (character: Character) => {
+    return getAvailableDisadvantages(character);
+  },
+
+  getAvailableTechniques: (character: Character) => {
+    return getAvailableTechniques(character);
+  },
+
+  getAvailableFamiliarities: (character: Character) => {
+    return getAvailableFamiliarities(character);
+  },
+
+  calculatePriorityAllocation: (campaignLevel: string, priorityPools: any) => {
+    return calculatePriorityAllocation(campaignLevel as any, priorityPools);
+  },
+
+  // Dice Rolling (existing functionality)
+  rollDice: (sides: number, count: number = 1): number[] => {
+    const results: number[] = [];
+    for (let i = 0; i < count; i++) {
+      results.push(Math.floor(Math.random() * sides) + 1);
+    }
+    return results;
+  },
+
+  skillCheck: (character: Character, attribute: string, skill: string, difficulty: number = 20) => {
+    const attrValue = character.attributes[attribute] || 3;
+    const skillValue = character.skills[skill] || 0;
+    const roll = Math.floor(Math.random() * 20) + 1;
+    const total = attrValue * skillValue + roll;
+    const success = total >= difficulty;
+    const margin = success ? total - difficulty : difficulty - total;
+
+    return {
+      success,
+      margin,
+      total,
+      roll,
+      attribute: attrValue,
+      skill: skillValue,
+      difficulty,
+      character: character.name
+    };
+  },
+
+  // Ritual System
+  castRitual: (ritualName: string, caster: Character, offering: string, participants: Character[] = []) => {
+    const ritual = getRitualByName(ritualName);
+    if (!ritual) {
+      throw new Error(`Ritual "${ritualName}" not found`);
+    }
+
+    const validation = canCastRitual(ritual, caster, participants);
+    if (!validation.canCast) {
+      throw new Error(`Cannot cast ritual: ${validation.reasons.join(', ')}`);
+    }
+
+    return resolveRitual(ritual, caster, offering, participants);
+  },
+
+  getAvailableRituals: (character: Character) => {
+    return getAvailableRituals(character);
+  },
+
+  calculateVoidInfluence: (voidScore: number) => {
+    return calculateVoidInfluence(voidScore);
+  },
+
+  checkVoidSpike: (character: Character, voidGained: number) => {
+    return checkVoidSpike(character, voidGained);
+  },
+
+  // AI DM System
+  generateAIPlayer: (character: Character, faction: string): AIPlayer => {
+    const personality = generateAIPersonality(faction);
+    const goals = generatePlayerGoals(character, personality);
+    const decisionStrategy = generateDecisionStrategy(personality);
+
+    return {
+      id: `ai-${Date.now()}`,
+      character,
+      personality,
+      faction,
+      goals,
+      playStyle: personality.voidCuriosity > 6 ? 'void-seeker' : 
+                 personality.bondPreference === 'seeks' ? 'bond-builder' : 'cautious',
+      decisionMaking: decisionStrategy
+    };
+  },
+
+  makeAIDecision: (player: AIPlayer, context: string, options: string[]) => {
+    return makeAIDecision(player, context, options);
+  },
+
+  decideRitualCasting: (player: AIPlayer, availableRituals: Ritual[], situation: string) => {
+    return decideRitualCasting(player, availableRituals, situation);
+  },
+
+  generateNPC: (faction: string, role: string) => {
+    return generateNPC(faction, role);
+  },
+
+  generateDreamline: (theme: string, participants: AIPlayer[], config: any) => {
+    return generateDreamline(theme, participants, config);
+  },
+
+  runAISession: (dreamline: Dreamline, aiPlayers: AIPlayer[], config: any) => {
+    return runAISession(dreamline, aiPlayers, config);
+  },
+
+  // Dataset Export
+  exportCharacterToYAML: (character: Character) => {
+    return exportCharacterToYAML(character);
+  },
+
+  exportSessionToDataset: (session: Session, dreamline: Dreamline) => {
+    return exportSessionToDataset(session, dreamline);
+  },
+
+  exportSessionToJSONL: (session: Session, dreamline: Dreamline) => {
+    return exportSessionToJSONL(session, dreamline);
+  },
+
+  exportToFineTuneFormat: (sessions: Session[], dreamlines: Dreamline[]) => {
+    return exportToFineTuneFormat(sessions, dreamlines);
+  },
+
+  exportAnalysisData: (sessions: Session[], dreamlines: Dreamline[]) => {
+    return exportAnalysisData(sessions, dreamlines);
+  },
+
+  validateDatasetEntry: (entry: any) => {
+    return validateDatasetEntry(entry);
+  },
+
+  generateDatasetMetadata: (sessions: Session[], dreamlines: Dreamline[]) => {
+    return generateDatasetMetadata(sessions, dreamlines);
+  },
+
+  // Character Registry Integration
+  getCharacter: (name: string) => {
+    return characterRegistry.getCharacter(name);
+  },
+
+  getAllCharacters: () => {
+    return characterRegistry.listAllCharacters();
+  },
+
+  addCharacter: (character: Character) => {
+    return characterRegistry.addCharacter(character);
+  },
+
+  removeCharacter: (name: string) => {
+    return characterRegistry.removeCharacter(name);
+  },
+
+  exportCharactersToYAML: () => {
+    const characters = characterRegistry.listAllCharacters();
+    return characters.map((char: Character) => exportCharacterToYAML(char)).join('\n---\n');
+  }
+};
+
+// Tool definitions for AI integration
+export const toolDefinitions: Tool[] = [
   {
     type: 'function',
     function: {
-      name: 'roll_dice',
-      description: 'Roll dice for YAGS system. Returns the result and number of successes.',
+      name: 'createCharacter',
+      description: 'Create a new character with basic information',
       parameters: {
         type: 'object',
         properties: {
-          count: {
-            type: 'number',
-            description: 'Number of d20s to roll'
-          },
-          target: {
-            type: 'number',
-            description: 'Target number to beat (default: 15)'
-          },
-          advantage: {
-            type: 'boolean',
-            description: 'Roll with advantage (sum two highest dice)'
-          },
-          disadvantage: {
-            type: 'boolean',
-            description: 'Roll with disadvantage (sum two lowest dice)'
-          }
+          name: { type: 'string', description: 'Character name' },
+          concept: { type: 'string', description: 'Character concept' },
+          faction: { type: 'string', description: 'Character faction', enum: ['Sovereign Nexus', 'Tempest Industries', 'Arcane Genetics', 'Astral Commerce Group', 'Resonance Communes', 'Freeborn'] }
         },
-        required: ['count']
+        required: ['name', 'concept']
       }
     }
   },
   {
     type: 'function',
     function: {
-      name: 'skill_check',
-      description: 'Perform a skill check for a character using their actual stats and skills.',
+      name: 'validateCharacter',
+      description: 'Validate a character against creation rules',
       parameters: {
         type: 'object',
         properties: {
-          character: {
-            type: 'string',
-            description: 'Name of the character making the check'
-          },
-          skill: {
-            type: 'string',
-            description: 'Skill being used (e.g., Athletics, Stealth, Social)'
-          },
-          stat: {
-            type: 'string',
-            description: 'Attribute being used (e.g., Strength, Dexterity, Intelligence)'
-          },
-          difficulty: {
-            type: 'number',
-            description: 'Difficulty of the check (default: 15)'
-          },
-          advantage: {
-            type: 'boolean',
-            description: 'Roll with advantage'
-          },
-          disadvantage: {
-            type: 'boolean',
-            description: 'Roll with disadvantage'
-          },
-          bonus: {
-            type: 'number',
-            description: 'Additional bonus or penalty to the roll'
-          }
+          character: { type: 'object', description: 'Character object to validate' }
         },
-        required: ['character', 'skill', 'stat']
+        required: ['character']
       }
     }
   },
   {
     type: 'function',
     function: {
-      name: 'get_character_info',
-      description: 'Get information about a character in the registry.',
+      name: 'skillCheck',
+      description: 'Perform a YAGS skill check',
       parameters: {
         type: 'object',
         properties: {
-          name: {
-            type: 'string',
-            description: 'Name of the character'
-          }
+          characterName: { type: 'string', description: 'Name of the character' },
+          attribute: { type: 'string', description: 'Attribute to use', enum: ['Strength', 'Health', 'Agility', 'Dexterity', 'Perception', 'Intelligence', 'Empathy', 'Willpower'] },
+          skill: { type: 'string', description: 'Skill to use' },
+          difficulty: { type: 'number', description: 'Difficulty target number', default: 20 }
         },
-        required: ['name']
+        required: ['characterName', 'attribute', 'skill']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'castRitual',
+      description: 'Cast a ritual using Aeonisk ritual system',
+      parameters: {
+        type: 'object',
+        properties: {
+          ritualName: { type: 'string', description: 'Name of the ritual to cast' },
+          casterName: { type: 'string', description: 'Name of the character casting the ritual' },
+          offering: { type: 'string', description: 'Offering for the ritual' },
+          participantNames: { type: 'array', items: { type: 'string' }, description: 'Names of ritual participants' }
+        },
+        required: ['ritualName', 'casterName', 'offering']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getAvailableRituals',
+      description: 'Get list of rituals available to a character',
+      parameters: {
+        type: 'object',
+        properties: {
+          characterName: { type: 'string', description: 'Name of the character' }
+        },
+        required: ['characterName']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'generateAIPlayer',
+      description: 'Generate an AI player with personality and goals',
+      parameters: {
+        type: 'object',
+        properties: {
+          characterName: { type: 'string', description: 'Name of the character to convert to AI player' },
+          faction: { type: 'string', description: 'Faction for the AI player' }
+        },
+        required: ['characterName', 'faction']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'runAISession',
+      description: 'Run an AI-only session with multiple AI players',
+      parameters: {
+        type: 'object',
+        properties: {
+          dreamlineId: { type: 'string', description: 'ID of the dreamline to run' },
+          aiPlayerIds: { type: 'array', items: { type: 'string' }, description: 'IDs of AI players to include' },
+          config: { type: 'object', description: 'Session configuration' }
+        },
+        required: ['dreamlineId', 'aiPlayerIds']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'exportSessionData',
+      description: 'Export session data in various formats',
+      parameters: {
+        type: 'object',
+        properties: {
+          sessionId: { type: 'string', description: 'ID of the session to export' },
+          format: { type: 'string', description: 'Export format', enum: ['yaml', 'jsonl', 'finetune', 'analysis'] }
+        },
+        required: ['sessionId', 'format']
       }
     }
   }
 ];
 
-/**
- * Execute a game tool function
- */
-export async function executeGameTool(
-  toolName: string,
-  args: Record<string, any>
-): Promise<any> {
+// Tool execution function
+export function executeTool(toolName: string, parameters: any): any {
   switch (toolName) {
-    case 'roll_dice': {
-      const result = rollDice(
-        args.count,
-        args.target || 15,
-        args.advantage || false,
-        args.disadvantage || false
-      );
-      return {
-        ...result,
-        description: `Rolled ${args.count}d20: [${result.dice.join(', ')}] = ${result.result} (${result.successes} ${result.successes === 1 ? 'success' : 'successes'})`
-      };
-    }
+    case 'createCharacter':
+      return aeoniskTools.createCharacter(parameters.name, parameters.concept, parameters.faction);
     
-    case 'skill_check': {
-      const result = executeSkillCheck(
-        args.character,
-        args.skill,
-        args.stat,
-        args.difficulty || 15,
-        {
-          advantage: args.advantage,
-          disadvantage: args.disadvantage,
-          bonus: args.bonus
-        }
-      );
-      
-      return {
-        ...result,
-        fullDescription: `${result.description}\nRolled: [${result.dice.join(', ')}] = ${result.result} (${result.successes} ${result.successes === 1 ? 'success' : 'successes'})`
-      };
-    }
+    case 'validateCharacter':
+      return aeoniskTools.validateCharacter(parameters.character);
     
-    case 'get_character_info': {
-      const character = characterRegistry.getCharacter(args.name);
-      if (!character) {
-        return { error: `Character "${args.name}" not found in registry` };
-      }
-      
-      return {
-        name: character.name,
-        origin_faction: character.origin_faction,
-        concept: character.concept,
-        attributes: character.attributes,
-        talents: character.talents,
-        skills: character.skills,
-        voidScore: character.voidScore,
-        soulcredit: character.soulcredit,
-        bonds: character.bonds,
-        trueWill: character.trueWill
-      };
-    }
+    case 'skillCheck':
+      const character = aeoniskTools.getCharacter(parameters.characterName);
+      if (!character) throw new Error(`Character ${parameters.characterName} not found`);
+      return aeoniskTools.skillCheck(character, parameters.attribute, parameters.skill, parameters.difficulty);
+    
+    case 'castRitual':
+      const caster = aeoniskTools.getCharacter(parameters.casterName);
+      if (!caster) throw new Error(`Character ${parameters.casterName} not found`);
+      const participants = (parameters.participantNames || []).map((name: string) => aeoniskTools.getCharacter(name)).filter(Boolean);
+      return aeoniskTools.castRitual(parameters.ritualName, caster, parameters.offering, participants);
+    
+    case 'getAvailableRituals':
+      const char = aeoniskTools.getCharacter(parameters.characterName);
+      if (!char) throw new Error(`Character ${parameters.characterName} not found`);
+      return aeoniskTools.getAvailableRituals(char);
+    
+    case 'generateAIPlayer':
+      const baseChar = aeoniskTools.getCharacter(parameters.characterName);
+      if (!baseChar) throw new Error(`Character ${parameters.characterName} not found`);
+      return aeoniskTools.generateAIPlayer(baseChar, parameters.faction);
+    
+    case 'runAISession':
+      // This would require more complex session management
+      throw new Error('runAISession not yet implemented in tool execution');
+    
+    case 'exportSessionData':
+      // This would require session storage
+      throw new Error('exportSessionData not yet implemented in tool execution');
     
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
 }
-
-// Export with the name expected by service.ts
-export const executeTool = executeGameTool;

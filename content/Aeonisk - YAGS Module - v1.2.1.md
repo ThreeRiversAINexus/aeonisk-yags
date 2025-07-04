@@ -2,7 +2,7 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.2.0
+Version 1.2.1
 
 ## 1. Introduction
 
