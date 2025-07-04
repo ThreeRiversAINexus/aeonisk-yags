@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  rag-backend:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: aeonisk-rag-backend:latest
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./aeonisk-chromadb.sqlite:/app/aeonisk-chromadb.sqlite
+    restart: unless-stopped 

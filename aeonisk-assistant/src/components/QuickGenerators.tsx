@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getChatService } from '../lib/chat/service';
 import type { Character } from '../types';
 
@@ -10,7 +10,22 @@ interface QuickGeneratorsProps {
 export function QuickGenerators({ onCharacterGenerated, onCampaignGenerated }: QuickGeneratorsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationType, setGenerationType] = useState<'character' | 'campaign' | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const chatService = getChatService();
+
+  // Collapse by default on mobile, expanded on desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setCollapsed(true);
+      } else {
+        setCollapsed(false);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleGenerateCharacter = async () => {
     if (isGenerating) return;
@@ -143,46 +158,56 @@ export function QuickGenerators({ onCharacterGenerated, onCampaignGenerated }: Q
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-4 space-y-4">
-      <h3 className="text-lg font-semibold text-white">Quick Generators</h3>
-      <p className="text-sm text-gray-300">
-        Generate characters and campaigns instantly. All progress will be shown in the chat.
-      </p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div className={`bg-gray-800 rounded-lg transition-all duration-300 ${collapsed ? 'p-1' : 'p-4'} shadow-md mb-2`}
+         style={{ minHeight: collapsed ? 0 : undefined, overflow: 'hidden' }}>
+      <div className="flex items-center justify-between">
+        <h3 className={`text-lg font-semibold text-white transition-opacity duration-200 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>Quick Generators</h3>
         <button
-          onClick={handleGenerateCharacter}
-          disabled={isGenerating}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
+          onClick={() => setCollapsed(!collapsed)}
+          className="ml-auto px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs text-gray-200 transition-colors"
+          aria-label={collapsed ? 'Expand Quick Generators' : 'Collapse Quick Generators'}
         >
-          {isGenerating && generationType === 'character' ? 'Generating...' : '🎭 Generate Character'}
-        </button>
-        
-        <button
-          onClick={handleGenerateCampaign}
-          disabled={isGenerating}
-          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
-        >
-          {isGenerating && generationType === 'campaign' ? 'Generating...' : '🌟 Generate Campaign'}
-        </button>
-        
-        <button
-          onClick={handleGenerateCharacterAndCampaign}
-          disabled={isGenerating}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
-        >
-          {isGenerating ? 'Generating...' : '🚀 Generate Both'}
+          {collapsed ? '▼ Show' : '▲ Hide'}
         </button>
       </div>
-      
-      {isGenerating && (
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
-          <span>
-            {generationType === 'character' && 'Creating your character...'}
-            {generationType === 'campaign' && 'Designing your campaign...'}
-          </span>
-        </div>
+      {!collapsed && (
+        <>
+          <p className="text-sm text-gray-300 mt-2 mb-4">
+            Generate characters and campaigns instantly. All progress will be shown in the chat.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <button
+              onClick={handleGenerateCharacter}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
+            >
+              {isGenerating && generationType === 'character' ? 'Generating...' : '🎭 Generate Character'}
+            </button>
+            <button
+              onClick={handleGenerateCampaign}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
+            >
+              {isGenerating && generationType === 'campaign' ? 'Generating...' : '🌟 Generate Campaign'}
+            </button>
+            <button
+              onClick={handleGenerateCharacterAndCampaign}
+              disabled={isGenerating}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded text-white transition-colors"
+            >
+              {isGenerating ? 'Generating...' : '🚀 Generate Both'}
+            </button>
+          </div>
+          {isGenerating && (
+            <div className="flex items-center gap-2 text-sm text-gray-400 mt-4">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+              <span>
+                {generationType === 'character' && 'Creating your character...'}
+                {generationType === 'campaign' && 'Designing your campaign...'}
+              </span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
