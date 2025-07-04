@@ -1,8 +1,9 @@
 version: '3'
 
 vars:
-  PYTHON: python
-  PYTEST: python -m pytest
+  PYTHON: python3
+  PIP: python3 -m pip
+  PYTEST: python3 -m pytest
   BENCHMARK_MODULE: aeonisk.benchmark.cli
   DATASET_MODULE: aeonisk.dataset.cli
   ENGINE_MODULE: aeonisk.engine.cli
@@ -18,63 +19,86 @@ tasks:
     desc: Install dependencies and setup development environment
     cmds:
       - echo "Installing Aeonisk YAGS Engine dependencies..."
-      - pip install -r benchmark/requirements.txt
-      - pip install pytest pytest-asyncio pytest-cov pytest-mock pytest-timeout
-      - pip install black isort mypy
-      - pip install -e ../../..
+      - "{{.PIP}} install --user --break-system-packages --upgrade pip"
+      - "{{.PIP}} install --user --break-system-packages -r benchmark/requirements.txt"
+      - "{{.PIP}} install --user --break-system-packages pytest pytest-asyncio pytest-cov pytest-mock pytest-timeout"
+      - "{{.PIP}} install --user --break-system-packages black isort mypy"
+      - "{{.PIP}} install --user --break-system-packages python-dotenv"  # Add python-dotenv for loading .env files
+      - "{{.PIP}} install --user --break-system-packages -e ."  # Install current directory as editable package
       - echo "✓ Installation complete"
 
   # Testing Commands
   test:
     desc: Run all tests
+    deps: [install]
+    env:
+      OPENAI_API_KEY: "{{.OPENAI_API_KEY}}"
+      ANTHROPIC_API_KEY: "{{.ANTHROPIC_API_KEY}}"
+    dotenv: ['.env']
     cmds:
       - echo "Running all tests..."
       - "{{.PYTEST}} test_*.py -v"
 
   test-unit:
     desc: Run unit tests only
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running unit tests..."
       - "{{.PYTEST}} test_*.py -v -m 'not integration'"
 
   test-integration:
     desc: Run integration tests only
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running integration tests..."
       - "{{.PYTEST}} test_*.py -v -m 'integration'"
 
   test-benchmark:
     desc: Run benchmark system tests
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running benchmark system tests..."
       - "{{.PYTEST}} test_benchmark.py -v"
 
   test-dataset:
     desc: Run dataset management tests
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running dataset management tests..."
       - "{{.PYTEST}} test_dataset.py -v"
 
   test-engine:
     desc: Run game engine tests
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running game engine tests..."
       - "{{.PYTEST}} test_engine.py -v"
 
   test-openai:
     desc: Run OpenAI integration tests
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running OpenAI integration tests..."
       - "{{.PYTEST}} test_openai_client.py -v"
 
   test-coverage:
     desc: Run tests with coverage reporting
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running tests with coverage..."
       - "{{.PYTEST}} test_*.py --cov=aeonisk --cov-report=html --cov-report=term-missing"
 
   test-fast:
     desc: Run tests without coverage for speed
+    deps: [install]
+    dotenv: ['.env']
     cmds:
       - echo "Running tests (fast mode)..."
       - "{{.PYTEST}} test_*.py -v --no-cov -x"
@@ -252,20 +276,23 @@ tasks:
   # Development Workflows
   setup-dev:
     desc: Quick setup for new developers
-    deps: [install, test-fast]
+    deps: [install]
+    env:
+      OPENAI_API_KEY: "{{.OPENAI_API_KEY}}"
+      ANTHROPIC_API_KEY: "{{.ANTHROPIC_API_KEY}}"
+    dotenv: ['.env']
     cmds:
+      - "{{.PYTEST}} test_*.py -v --no-cov -x"
       - echo ""
       - echo "🎉 Development environment ready!"
       - echo ""
-      - echo "Quick start commands"
-      - echo "  task test           - Run all tests"
-      - echo "  task engine-cli     - Start game engine"
-      - echo "  task openai-test    - Test API integration"
-      - echo "  task --list         - Show all commands"
+      - echo "Quick start commands:"
+      - echo "  ./bin/task test           - Run all tests"
+      - echo "  ./bin/task engine-cli     - Start game engine"
+      - echo "  ./bin/task openai-test    - Test API integration"
+      - echo "  ./bin/task --list         - Show all commands"
       - echo ""
-      - echo "Don't forget to set your API keys"
-      - echo "  export OPENAI_API_KEY='your-key'"
-      - echo "  export ANTHROPIC_API_KEY='your-key'"
+      - echo "API keys loaded from .env file ✓"
 
   ci-test:
     desc: Run all CI checks

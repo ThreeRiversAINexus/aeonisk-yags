@@ -14,6 +14,10 @@ import os
 from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock, MagicMock
 from typing import Dict, Any, List
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import benchmark modules
 from aeonisk.benchmark import (
@@ -534,22 +538,37 @@ class TestAIJudge:
         assert evaluation.overall_score == 0.8
     
     @pytest.mark.asyncio
-    @patch('aeonisk.benchmark.evaluator.openai.chat.completions.create')
-    async def test_evaluate_batch(self, mock_openai):
+    @patch('aeonisk.benchmark.evaluator.OpenAI')
+    async def test_evaluate_batch(self, mock_openai_class):
         """Test evaluating a batch of responses."""
-        # Mock OpenAI response
-        mock_openai.return_value.choices = [Mock()]
-        mock_openai.return_value.choices[0].message.content = json.dumps({
-            "mechanical_accuracy": 0.8,
-            "narrative_quality": 0.9,
-            "rules_adherence": 0.7,
-            "consistency": 0.8,
-            "creativity": 0.6,
-            "difficulty_appropriate": 0.8,
-            "overall_quality": 0.8,
-            "reasoning": "Test reasoning"
+        # Mock OpenAI client and response
+        mock_client = Mock()
+        mock_openai_class.return_value = mock_client
+        
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message.content = json.dumps({
+            "scores": {
+                "mechanical_accuracy": 8,
+                "narrative_quality": 9,
+                "rules_adherence": 7,
+                "consistency": 8,
+                "creativity": 6,
+                "difficulty_appropriate": 8,
+                "overall_quality": 8
+            },
+            "overall_score": 8,
+            "gold_standard_similarity": 0.8,
+            "judge_rationale": "Test reasoning",
+            "attribute_correct": True,
+            "skill_correct": True,
+            "difficulty_within_range": True,
+            "formula_correct": True,
+            "outcomes_plausible": True
         })
         
+        mock_client.chat.completions.create.return_value = mock_response
+
         judge = AIJudge(judge_model="gpt-4", api_key="test_key")
         
         task = BenchmarkTask(
@@ -579,7 +598,7 @@ class TestAIJudge:
         assert evaluations[0].task_id == "YAGS-TEST-001"
         assert evaluations[0].model_name == "gpt-4"
         
-        mock_openai.assert_called_once()
+        mock_client.chat.completions.create.assert_called_once()
 
 
 class TestDatasetLoader:

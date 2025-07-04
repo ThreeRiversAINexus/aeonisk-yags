@@ -6,7 +6,7 @@ ensuring type safety and validation.
 """
 
 from typing import Dict, List, Optional, Union, Any
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class Attribute(BaseModel):
@@ -58,7 +58,8 @@ class Character(BaseModel):
     attuned_seeds: Dict[str, int] = Field(default_factory=dict)
     current_cycle: int = Field(default=0)
 
-    @validator('attributes', pre=True, always=True)
+    @field_validator('attributes', mode='before')
+    @classmethod
     def set_default_attributes(cls, v):
         """Set default attributes if not provided."""
         default_attributes = {
@@ -75,7 +76,8 @@ class Character(BaseModel):
             return default_attributes
         return v
 
-    @validator('skills', pre=True, always=True)
+    @field_validator('skills', mode='before')
+    @classmethod
     def set_default_skills(cls, v):
         """Set default skills if not provided."""
         default_skills = {
