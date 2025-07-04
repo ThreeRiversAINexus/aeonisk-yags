@@ -173,26 +173,44 @@ export function CharacterPanel({ onClose }: CharacterPanelProps) {
           </div>
         </div>
 
+        {/* Faction */}
+        {character.origin_faction && (
+          <div>
+            <h3 className="text-sm font-medium mb-2">Faction</h3>
+            <div className="bg-gray-700 rounded px-3 py-2">
+              <span className="text-sm font-medium text-blue-400">{character.origin_faction}</span>
+            </div>
+          </div>
+        )}
+
         {/* Spiritual Status */}
         <div>
           <h3 className="text-sm font-medium mb-2">Spiritual Status</h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm">Void Score:</span>
-              <span className={`font-medium ${character.voidScore >= 5 ? 'text-red-400' : 'text-gray-300'}`}>
+              <span className={`font-medium ${character.voidScore >= 5 ? 'text-red-400' : character.voidScore >= 3 ? 'text-yellow-400' : 'text-gray-300'}`}>
                 {character.voidScore}/10
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm">Soulcredit:</span>
               <span className={`font-medium ${
-                character.soulcredit > 0 ? 'text-green-400' : 
-                character.soulcredit < 0 ? 'text-red-400' : 
-                'text-gray-300'
+                character.soulcredit >= 6 ? 'text-purple-400' :
+                character.soulcredit >= 1 ? 'text-green-400' : 
+                character.soulcredit >= -5 ? 'text-yellow-400' :
+                character.soulcredit >= -9 ? 'text-orange-400' :
+                'text-red-400'
               }`}>
-                {character.soulcredit > 0 ? '+' : ''}{character.soulcredit}
+                {character.soulcredit > 0 ? '+' : ''}{character.soulcredit}/10
               </span>
             </div>
+            {character.trueWill && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm">True Will:</span>
+                <span className="text-sm text-blue-400 italic">{character.trueWill}</span>
+              </div>
+            )}
           </div>
         </div>
 

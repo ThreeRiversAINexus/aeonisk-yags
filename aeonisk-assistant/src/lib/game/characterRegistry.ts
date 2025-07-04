@@ -98,8 +98,8 @@ export class CharacterRegistry {
 
     // Convert to YAML format matching the dataset structure
     const yaml = `- character_name: "${character.name}"
-  player_name: "${character.player_name || ''}"
-  campaign: "${character.campaign || ''}"
+  player_name: "${character.name || ''}"
+  campaign: "${character.origin_faction || ''}"
   game_master: ""
   creation_date: "${new Date().toISOString().split('T')[0]}"
   
@@ -123,9 +123,9 @@ export class CharacterRegistry {
     willpower: ${character.attributes.willpower}
   
   secondary_attributes:
-    size: ${character.secondary_attributes.size}
-    soak_base: ${character.secondary_attributes.soak}
-    move_base: ${character.secondary_attributes.move}
+    size: ${character.secondary_attributes?.size || 0}
+    soak_base: ${character.secondary_attributes?.soak || 0}
+    move_base: ${character.secondary_attributes?.move || 0}
   
   talents:
     athletics: ${character.talents.athletics}
@@ -151,12 +151,12 @@ export class CharacterRegistry {
   disadvantages:${character.disadvantages && character.disadvantages.length > 0 ? '\n' + character.disadvantages.map(d => `    - name: "${d.name}"\n      cost_level: ${d.cost || 0}\n      description: "${d.description}"`).join('\n') : ' []'}
   
   aeonisk_data:
-    void_score: ${character.void_score}
+    void_score: ${character.voidScore}
     soulcredit: ${character.soulcredit}
     true_will:
-      declared: ${character.true_will?.declared || false}
-      statement: "${character.true_will?.statement || ''}"
-      alignment_bonus_active: ${character.true_will?.alignment_bonus_active || false}
+      declared: ${character.trueWill ? true : false}
+      statement: "${character.trueWill || ''}"
+      alignment_bonus_active: ${character.trueWill ? true : false}
     bonds:${character.bonds.length > 0 ? '\n' + character.bonds.map(b => `      - name: "${b.name}"\n        type: "${b.type}"\n        status: "${b.status}"`).join('\n') : ' []'}
     primary_ritual_item:${character.primary_ritual_item ? `
       name: "${character.primary_ritual_item.name}"

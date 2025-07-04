@@ -1,6 +1,6 @@
 import type { Character, AIPlayer, Ritual, Session, Dreamline, Tool } from '../../types';
 import { characterRegistry } from './characterRegistry';
-import { 
+import {
   createDefaultCharacter, 
   validateCharacter, 
   calculateExperienceCost,
@@ -8,7 +8,9 @@ import {
   getAvailableDisadvantages,
   getAvailableTechniques,
   getAvailableFamiliarities,
-  calculatePriorityAllocation
+  calculatePriorityAllocation,
+  getAllAvailableSkills,
+  getSkillsByCategory
 } from './characterCreation';
 import {
   resolveRitual,
@@ -346,6 +348,15 @@ export const aeoniskTools = {
   exportCharactersToYAML: () => {
     const characters = characterRegistry.listAllCharacters();
     return characters.map((char: Character) => exportCharacterToYAML(char)).join('\n---\n');
+  },
+
+  // Skill Management
+  getAllAvailableSkills: () => {
+    return getAllAvailableSkills();
+  },
+
+  getSkillsByCategory: () => {
+    return getSkillsByCategory();
   }
 };
 
@@ -474,6 +485,30 @@ export const toolDefinitions: Tool[] = [
         required: ['sessionId', 'format']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getAllAvailableSkills',
+      description: 'Get all available skills organized by category',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'getSkillsByCategory',
+      description: 'Get skills organized by thematic categories for easier selection',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
   }
 ];
 
@@ -514,6 +549,12 @@ export function executeTool(toolName: string, parameters: any): any {
     case 'exportSessionData':
       // This would require session storage
       throw new Error('exportSessionData not yet implemented in tool execution');
+    
+    case 'getAllAvailableSkills':
+      return aeoniskTools.getAllAvailableSkills();
+    
+    case 'getSkillsByCategory':
+      return aeoniskTools.getSkillsByCategory();
     
     default:
       throw new Error(`Unknown tool: ${toolName}`);
