@@ -143,8 +143,9 @@ export class AeoniskChatService {
       gameContext: this.gameState
     };
 
-    // Filter out 'tool' messages from recentMessages for LLM context
-    const filteredRecentMessages = context.recentMessages.filter(m => m.role !== 'tool');
+    // Only allow supported roles for LLM API
+    const allowedRoles = ['system', 'assistant', 'user', 'function', 'tool', 'developer'];
+    const filteredRecentMessages = context.recentMessages.filter(m => allowedRoles.includes(m.role));
 
     const retrieval = await this.rag.retrieve(messageContent, 5);
     const debugStore = useDebugStore.getState();
@@ -237,11 +238,15 @@ export class AeoniskChatService {
       gameContext: this.gameState
     };
 
+    // Only allow supported roles for LLM API
+    const allowedRoles = ['system', 'assistant', 'user', 'function', 'tool', 'developer'];
+    const filteredRecentMessages = context.recentMessages.filter(m => allowedRoles.includes(m.role));
+
     const retrieval = await this.rag.retrieve(messageContent, 5);
     const systemPrompt = this.buildSystemPrompt(retrieval.chunks, (options as any)?.ic !== false);
     const messages: Message[] = [
       { role: 'system', content: systemPrompt },
-      ...context.recentMessages,
+      ...filteredRecentMessages,
       { role: 'user', content: messageContent }
     ];
 

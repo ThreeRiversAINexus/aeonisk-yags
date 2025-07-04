@@ -172,7 +172,9 @@ export function ChatInterface() {
   };
 
   const handleRating = (index: number, rating: 'good' | 'bad' | 'edit') => {
-    chatService.rateMessage(index, rating);
+    // Remove or update this function since chatService.rateMessage does not exist
+    // chatService.rateMessage(index, rating);
+    // Optionally, implement rating logic here if needed
   };
 
   const handleClearChat = () => {
@@ -260,26 +262,31 @@ export function ChatInterface() {
       );
     }
 
+    // Use campaign's intro or first scenario if available
     let intro = '';
-    if (campaign && character) {
-      // Build a dynamic intro based on campaign and character
-      const location = (campaign.scenarios && campaign.scenarios[0]?.location) || 'an unknown district';
-      const theme = campaign.theme || 'Adventure';
-      const factions = campaign.factions?.length ? campaign.factions.join(', ') : 'various factions';
-      const charName = character.name || 'yourself';
-      const origin = character.origin_faction || character.concept || 'a wanderer';
-
-      // Flavor for Freeborn
-      let flavor = '';
-      if (origin.toLowerCase().includes('freeborn')) {
-        flavor = `The air is thick with the scent of rebellion in the Freeborn district. The streets are alive with the hustle of those who have chosen not to be bound by the dynasties that seek to control them.\n\nAmong them, you stand, ${charName}, embracing the wild freedom of your kind. The graffiti on the bathroom mirror echoes the sentiment you've always felt: "You are not your dynasty's mouthpiece."\n\nAs a Freeborn, your will is wild and untamed. You can form only one Bond, but this Bond is something of immense significance, as it can only be sacrificed with great cost.\n\nNow, as you wander this district, what is it you seek? Knowledge? Connections? Or perhaps the elusive Hollow Seed, a symbol of the freedom you cherish?`;
+    if (campaign.intro) {
+      intro = campaign.intro;
+    } else if (campaign.scenarios && campaign.scenarios.length > 0) {
+      intro = campaign.scenarios[0].description || campaign.scenarios[0].intro || '';
+    }
+    // Fallback to previous logic if no intro
+    if (!intro) {
+      if (campaign && character) {
+        const location = (campaign.scenarios && campaign.scenarios[0]?.location) || 'an unknown district';
+        const theme = campaign.theme || 'Adventure';
+        const factions = campaign.factions?.length ? campaign.factions.join(', ') : 'various factions';
+        const charName = character.name || 'yourself';
+        const origin = character.origin_faction || character.concept || 'a wanderer';
+        let flavor = '';
+        if (origin.toLowerCase().includes('freeborn')) {
+          flavor = `The air is thick with the scent of rebellion in the Freeborn district. The streets are alive with the hustle of those who have chosen not to be bound by the dynasties that seek to control them.\n\nAmong them, you stand, ${charName}, embracing the wild freedom of your kind. The graffiti on the bathroom mirror echoes the sentiment you've always felt: "You are not your dynasty's mouthpiece."\n\nAs a Freeborn, your will is wild and untamed. You can form only one Bond, but this Bond is something of immense significance, as it can only be sacrificed with great cost.\n\nNow, as you wander this district, what is it you seek? Knowledge? Connections? Or perhaps the elusive Hollow Seed, a symbol of the freedom you cherish?`;
+        } else {
+          flavor = `You awaken in ${location}, a place shaped by the theme of "${theme}". The influence of ${factions} is felt everywhere.\n\nAs ${charName}, ${origin}, you sense that today will be different. Whispers of strange events reach your ears, and the air is thick with anticipation.\n\nWhat do you do?`;
+        }
+        intro = flavor;
       } else {
-        flavor = `You awaken in ${location}, a place shaped by the theme of "${theme}". The influence of ${factions} is felt everywhere.\n\nAs ${charName}, ${origin}, you sense that today will be different. Whispers of strange events reach your ears, and the air is thick with anticipation.\n\nWhat do you do?`;
+        intro = `You awaken in a world of sacred trust and spiritual commerce. The air hums with the energy of talismans and the distant echo of ritual. What do you do?`;
       }
-      intro = flavor;
-    } else {
-      // Fallback generic intro
-      intro = `You awaken in a world of sacred trust and spiritual commerce. The air hums with the energy of talismans and the distant echo of ritual. What do you do?`;
     }
 
     return (
@@ -376,6 +383,10 @@ export function ChatInterface() {
                         // Set pending adventure state
                         localStorage.setItem('pendingAdventure', 'true');
                         setPendingAdventure(true);
+                        // Set the generated campaign as active
+                        if (message.resultData) {
+                          localStorage.setItem('aeoniskCampaign', JSON.stringify(message.resultData));
+                        }
                       }}
                       className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors"
                     >
