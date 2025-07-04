@@ -41,6 +41,27 @@ export function ChatInterface() {
     // Load conversation history
     const history = chatService.getConversationHistory();
     setMessages(history);
+
+    // Register for progress updates
+    const unsubscribe = chatService.onProgressUpdate((message: Message) => {
+      setMessages(prev => {
+        // Check if this message is already in the list to avoid duplicates
+        const existingIndex = prev.findIndex(m => 
+          m.timestamp === message.timestamp && m.role === message.role && m.content === message.content
+        );
+        
+        if (existingIndex >= 0) {
+          return prev;
+        }
+        
+        return [...prev, message];
+      });
+    });
+
+    // Clean up on unmount
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Process debug logs to extract data for messages
@@ -177,6 +198,46 @@ export function ChatInterface() {
     setShowExport(false);
   };
 
+  /**
+   * Get the appropriate styling for different message types
+   */
+  const getMessageStyling = (message: Message) => {
+    if (message.role === 'user') {
+      return message.ic === false 
+        ? 'bg-gray-600 text-white border border-yellow-400' 
+        : 'bg-blue-600 text-white';
+    } else if (message.role === 'assistant') {
+      return message.ic === false 
+        ? 'bg-gray-700 text-yellow-200 border border-yellow-400' 
+        : 'bg-gray-800 text-gray-100';
+    } else if (message.role === 'progress') {
+      return 'bg-blue-900/30 text-blue-200 border border-blue-500';
+    } else if (message.role === 'error') {
+      return 'bg-red-900/30 text-red-200 border border-red-500';
+    } else if (message.role === 'result') {
+      return 'bg-green-900/30 text-green-200 border border-green-500';
+    }
+    return 'bg-gray-800 text-gray-100';
+  };
+
+  /**
+   * Get the appropriate icon for different message types
+   */
+  const getMessageIcon = (message: Message) => {
+    if (message.role === 'progress') {
+      if (message.progressStatus === 'started') return '🚀';
+      if (message.progressStatus === 'in-progress') return '⚙️';
+      if (message.progressStatus === 'completed') return '✅';
+      if (message.progressStatus === 'failed') return '❌';
+      return '📋';
+    } else if (message.role === 'error') {
+      return '❌';
+    } else if (message.role === 'result') {
+      return '🎉';
+    }
+    return null;
+  };
+
   // Render Begin Adventure button if pending
   const renderBeginAdventure = () => {
     // Load campaign and character from localStorage
@@ -260,16 +321,32 @@ export function ChatInterface() {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                message.role === 'user'
-                  ? message.ic === false ? 'bg-gray-600 text-white border border-yellow-400' : 'bg-blue-600 text-white'
-                  : message.ic === false ? 'bg-gray-700 text-yellow-200 border border-yellow-400' : 'bg-gray-800 text-gray-100'
-              }`}
+              className={`max-w-[80%] rounded-lg px-4 py-2 ${getMessageStyling(message)}`}
             >
+              {/* Message header for special message types */}
+              {(message.role === 'progress' || message.role === 'error' || message.role === 'result') && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{getMessageIcon(message)}</span>
+                  <span className="text-xs font-bold uppercase tracking-wide">
+                    {message.role === 'progress' && `${message.progressType?.replace('-', ' ') || 'Progress'}`}
+                    {message.role === 'error' && 'Error'}
+                    {message.role === 'result' && 'Result'}
+                  </span>
+                  {message.progressStatus && (
+                    <span className="text-xs opacity-75">
+                      ({message.progressStatus})
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* IC/OOC indicator */}
               {message.ic === false && (
                 <span className="text-xs font-bold text-yellow-300 mr-2">[OOC]</span>
               )}
-              {message.role === 'assistant' ? (
+
+              {/* Message content */}
+              {message.role === 'assistant' || message.role === 'progress' || message.role === 'error' || message.role === 'result' ? (
                 <div className="prose prose-invert prose-sm max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {message.content}
@@ -278,7 +355,37 @@ export function ChatInterface() {
               ) : (
                 <p className="whitespace-pre-wrap">{message.content}</p>
               )}
+
+              {/* Action buttons for result messages */}
+              {message.role === 'result' && message.resultData && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {message.progressType === 'character-generation' && (
+                    <button
+                      onClick={() => {
+                        // Open character panel or show character details
+                        console.log('Character details:', message.resultData);
+                      }}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors"
+                    >
+                      View Character
+                    </button>
+                  )}
+                  {message.progressType === 'campaign-generation' && (
+                    <button
+                      onClick={() => {
+                        // Set pending adventure state
+                        localStorage.setItem('pendingAdventure', 'true');
+                        setPendingAdventure(true);
+                      }}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors"
+                    >
+                      Begin Adventure
+                    </button>
+                  )}
+                </div>
+              )}
               
+              {/* Message rating for assistant messages */}
               {message.role === 'assistant' && (
                 <MessageRating
                   onRate={(rating: 'good' | 'bad' | 'edit') => handleRating(index, rating)}

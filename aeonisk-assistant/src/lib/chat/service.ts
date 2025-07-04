@@ -15,6 +15,8 @@ export class AeoniskChatService {
   private conversationManager: ConversationManager;
   private gameState: GameState = {}; // Should be properly initialized
   private contentLoaded = false;
+  // Progress tracking callbacks
+  private progressCallbacks: Set<(message: Message) => void> = new Set();
 
   constructor() {
     this.llmClient = new UnifiedLLMClient();
@@ -458,6 +460,320 @@ export class AeoniskChatService {
       throw new Error('Failed to parse campaign proposal from LLM response.');
     }
     return campaign;
+  }
+
+  /**
+   * Register a callback to be notified when progress updates occur
+   */
+  onProgressUpdate(callback: (message: Message) => void): () => void {
+    this.progressCallbacks.add(callback);
+    return () => {
+      this.progressCallbacks.delete(callback);
+    };
+  }
+
+  /**
+   * Send a progress update to the chat interface
+   */
+  private notifyProgress(message: Message): void {
+    // Add to conversation history
+    this.conversationManager.addMessage(message);
+    
+    // Notify all registered callbacks
+    this.progressCallbacks.forEach(callback => {
+      try {
+        callback(message);
+      } catch (error) {
+        console.error('Error in progress callback:', error);
+      }
+    });
+  }
+
+  /**
+   * Send a progress update message to the chat interface
+   */
+  sendProgressUpdate(
+    content: string,
+    progressType: 'character-generation' | 'campaign-generation' | 'general',
+    progressStatus: 'started' | 'in-progress' | 'completed' | 'failed'
+  ): void {
+    const message: Message = {
+      role: 'progress',
+      content,
+      progressType,
+      progressStatus,
+      timestamp: Date.now()
+    };
+    this.notifyProgress(message);
+  }
+
+  /**
+   * Send an error message to the chat interface
+   */
+  sendError(
+    content: string,
+    errorDetails?: string,
+    progressType?: 'character-generation' | 'campaign-generation' | 'general'
+  ): void {
+    const message: Message = {
+      role: 'error',
+      content,
+      errorDetails,
+      progressType,
+      timestamp: Date.now()
+    };
+    this.notifyProgress(message);
+  }
+
+  /**
+   * Send a result message to the chat interface
+   */
+  sendResult(
+    content: string,
+    resultData: any,
+    progressType: 'character-generation' | 'campaign-generation' | 'general'
+  ): void {
+    const message: Message = {
+      role: 'result',
+      content,
+      resultData,
+      progressType,
+      timestamp: Date.now()
+    };
+    this.notifyProgress(message);
+  }
+
+  /**
+   * Generate a character with progress tracking
+   */
+  async generateCharacter(
+    name: string,
+    concept: string,
+    faction?: string,
+    campaignLevel?: string
+  ): Promise<Character> {
+    this.sendProgressUpdate(
+      `🎭 Starting character generation for "${name}"...`,
+      'character-generation',
+      'started'
+    );
+
+    try {
+      // Create a basic character
+      const character: Character = {
+        name,
+        concept,
+        origin_faction: faction || 'Freeborn',
+        character_level_type: campaignLevel || 'Skilled',
+        tech_level: 'Aeonisk Standard',
+        attributes: {
+          Strength: 3,
+          Health: 3,
+          Agility: 3,
+          Dexterity: 3,
+          Perception: 3,
+          Intelligence: 3,
+          Empathy: 3,
+          Willpower: 3
+        },
+        secondary_attributes: {
+          Size: 5,
+          Move: 12,
+          Soak: 12
+        },
+        skills: {
+          Athletics: 2,
+          Awareness: 2,
+          Brawl: 2,
+          Charm: 2,
+          Guile: 2,
+          Sleight: 2,
+          Stealth: 2,
+          Throw: 2
+        },
+        voidScore: 0,
+        soulcredit: 0,
+        bonds: [],
+        campaignLevel: campaignLevel as any || 'Skilled',
+        priorityPools: {
+          attributes: 'Secondary',
+          experience: 'Primary',
+          advantages: 'Tertiary'
+        }
+      };
+
+      this.sendProgressUpdate(
+        `⚡ Customizing character based on faction: ${character.origin_faction}...`,
+        'character-generation',
+        'in-progress'
+      );
+
+      // Simulate some processing time
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Apply faction-specific bonuses
+      if (faction) {
+        switch (faction) {
+          case 'Aether Dynamics':
+            character.attributes.Perception = 4;
+            character.attributes.Empathy = 4;
+            character.skills['Investigation'] = 4;
+            character.skills['Astral Arts'] = 2;
+            break;
+          case 'Sovereign Nexus':
+            character.attributes.Willpower = 4;
+            character.skills['Magick Theory'] = 3;
+            character.skills['Astral Arts'] = 3;
+            break;
+          case 'Astral Commerce Group':
+            character.attributes.Intelligence = 4;
+            character.soulcredit = 2;
+            character.skills['Corporate Influence'] = 3;
+            break;
+          case 'Pantheon Security':
+            character.attributes.Strength = 4;
+            character.skills['Brawl'] = 4;
+            character.skills['Athletics'] = 3;
+            break;
+          case 'Arcane Genetics':
+            character.attributes.Health = 4;
+            character.skills['First Aid'] = 3;
+            character.skills['Technology'] = 2;
+            break;
+          case 'Tempest Industries':
+            character.attributes.Dexterity = 4;
+            character.skills['Technology'] = 3;
+            character.skills['Pilot'] = 2;
+            break;
+          default: // Freeborn
+            character.attributes.Strength = 4;
+            character.attributes.Dexterity = 4;
+            character.attributes.Intelligence = 4;
+            break;
+        }
+      }
+
+      // Recalculate secondary attributes
+      character.secondary_attributes!.move = 
+        character.secondary_attributes!.size + 
+        character.attributes.Strength + 
+        character.attributes.Agility + 1;
+
+      this.sendProgressUpdate(
+        `📊 Finalizing character statistics...`,
+        'character-generation',
+        'in-progress'
+      );
+
+             // Save character to registry and set as active
+       const characterRegistry = getCharacterRegistry();
+       characterRegistry.addCharacter(character);
+       characterRegistry.setActivePlayer(character.name);
+      
+      // Update service state
+      this.gameState.character = character;
+
+      this.sendProgressUpdate(
+        `✅ Character generation completed successfully!`,
+        'character-generation',
+        'completed'
+      );
+
+      this.sendResult(
+        `🎭 **${character.name}** has been created and is now your active character!\n\n` +
+        `**Concept:** ${character.concept}\n` +
+        `**Faction:** ${character.origin_faction}\n` +
+        `**Level:** ${character.character_level_type}\n\n` +
+        `**Key Attributes:**\n` +
+        `• Strength: ${character.attributes.Strength}\n` +
+        `• Health: ${character.attributes.Health}\n` +
+        `• Agility: ${character.attributes.Agility}\n` +
+        `• Perception: ${character.attributes.Perception}\n` +
+        `• Intelligence: ${character.attributes.Intelligence}\n` +
+        `• Empathy: ${character.attributes.Empathy}\n` +
+        `• Willpower: ${character.attributes.Willpower}\n\n` +
+        `**Void Score:** ${character.voidScore} | **Soulcredit:** ${character.soulcredit}\n\n` +
+        `You can view full character details in the Character Panel or start creating a campaign!`,
+        character,
+        'character-generation'
+      );
+
+      return character;
+    } catch (error) {
+      this.sendError(
+        `❌ Character generation failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : String(error),
+        'character-generation'
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Generate a campaign with progress tracking
+   */
+  async generateCampaign(character: Character): Promise<any> {
+    this.sendProgressUpdate(
+      `🌟 Starting campaign generation for ${character.name}...`,
+      'campaign-generation',
+      'started'
+    );
+
+    try {
+      this.sendProgressUpdate(
+        `🤖 AI DM is analyzing your character's background and creating a tailored campaign...`,
+        'campaign-generation',
+        'in-progress'
+      );
+
+      const campaign = await this.generateCampaignProposalFromCharacter(character);
+
+      this.sendProgressUpdate(
+        `📝 Finalizing campaign details...`,
+        'campaign-generation',
+        'in-progress'
+      );
+
+      // Save campaign to localStorage
+      localStorage.setItem('aeoniskCampaign', JSON.stringify(campaign));
+
+      // Also add to campaigns list
+      let campaigns = [];
+      try {
+        const stored = localStorage.getItem('aeoniskCampaigns');
+        if (stored) campaigns = JSON.parse(stored);
+      } catch {}
+      
+      campaigns.push(campaign);
+      localStorage.setItem('aeoniskCampaigns', JSON.stringify(campaigns));
+
+      this.sendProgressUpdate(
+        `✅ Campaign generation completed successfully!`,
+        'campaign-generation',
+        'completed'
+      );
+
+      this.sendResult(
+        `🌟 **${campaign.name}** campaign has been created and is now active!\n\n` +
+        `**Theme:** ${campaign.theme}\n` +
+        `**Description:** ${campaign.description}\n\n` +
+        `**Key Factions:** ${campaign.factions?.join(', ') || 'None'}\n` +
+        `**NPCs:** ${campaign.npcs?.length || 0}\n` +
+        `**Scenarios:** ${campaign.scenarios?.length || 0}\n\n` +
+        `Your campaign is ready to begin! Click the "Begin Adventure" button to start playing.`,
+        campaign,
+        'campaign-generation'
+      );
+
+      return campaign;
+    } catch (error) {
+      this.sendError(
+        `❌ Campaign generation failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : String(error),
+        'campaign-generation'
+      );
+      throw error;
+    }
   }
 }
 
