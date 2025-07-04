@@ -190,6 +190,15 @@ export function ChatInterface() {
       character = chatService.getCharacter();
     } catch {}
 
+    if (!campaign) {
+      return (
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="text-red-400 mb-2">No active campaign selected.</div>
+          <div className="text-gray-300 mb-4">Please select a campaign from the dashboard above.</div>
+        </div>
+      );
+    }
+
     let intro = '';
     if (campaign && character) {
       // Build a dynamic intro based on campaign and character
