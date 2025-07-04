@@ -4,6 +4,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { CharacterPanel } from './components/CharacterPanel';
 import { DebugPanel } from './components/DebugPanel';
 import { WelcomeModal } from './components/WelcomeModal';
+import { CampaignDashboard } from './components/CampaignDashboard';
 import { getChatService } from './lib/chat/service';
 import { useDebugStore } from './stores/debugStore';
 import { useProviderStore } from './stores/providerStore';
@@ -191,6 +192,10 @@ function App() {
 
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
+        {/* Campaign Dashboard */}
+        <div className="w-full max-w-2xl mx-auto">
+          <CampaignDashboard />
+        </div>
         {/* Chat area */}
         <div className="flex-1">
           {isConfigured ? (

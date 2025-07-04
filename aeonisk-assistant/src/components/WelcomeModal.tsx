@@ -187,6 +187,15 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
   };
 
   const handleCampaignComplete = (campaignData: any) => {
+    // Save to campaign list
+    let campaigns = [];
+    try {
+      const stored = localStorage.getItem('aeoniskCampaigns');
+      if (stored) campaigns = JSON.parse(stored);
+    } catch {}
+    campaigns.push(campaignData);
+    localStorage.setItem('aeoniskCampaigns', JSON.stringify(campaigns));
+    // Set as active campaign
     setCampaign(campaignData);
     localStorage.setItem('aeoniskCampaign', JSON.stringify(campaignData));
     setCurrentView('home');
