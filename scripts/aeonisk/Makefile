@@ -1,4 +1,4 @@
-THIS SHOULD BE A LINTER ERROR# Makefile for Aeonisk YAGS Engine
+# Makefile for Aeonisk YAGS Engine
 # Provides convenient commands for development, testing, and usage
 
 .PHONY: help install test test-unit test-integration test-benchmark test-dataset test-engine test-openai
@@ -122,31 +122,29 @@ clean:
 benchmark-quick:
 	@echo "Running quick benchmark comparison..."
 	@echo "Creating quick benchmark configuration..."
-	@cat > quick_benchmark.json << 'EOF'
-{
-  "name": "quick_comparison",
-  "dataset_path": "../../datasets/aeonisk_dataset_normalized_complete.txt",
-  "models": [
-    {
-      "id": "gpt4",
-      "provider": "openai",
-      "model": "gpt-4",
-      "api_key": "$${OPENAI_API_KEY}",
-      "timeout": 30
-    },
-    {
-      "id": "gpt35",
-      "provider": "openai", 
-      "model": "gpt-3.5-turbo",
-      "api_key": "$${OPENAI_API_KEY}",
-      "timeout": 30
-    }
-  ],
-  "sample_size": 10,
-  "use_ai_judge": true,
-  "generate_whitepaper": false
-}
-EOF
+	@echo '{' > quick_benchmark.json
+	@echo '  "name": "quick_comparison",' >> quick_benchmark.json
+	@echo '  "dataset_path": "../../datasets/aeonisk_dataset_normalized_complete.txt",' >> quick_benchmark.json
+	@echo '  "models": [' >> quick_benchmark.json
+	@echo '    {' >> quick_benchmark.json
+	@echo '      "id": "gpt4",' >> quick_benchmark.json
+	@echo '      "provider": "openai",' >> quick_benchmark.json
+	@echo '      "model": "gpt-4",' >> quick_benchmark.json
+	@echo '      "api_key": "'$${OPENAI_API_KEY}'",' >> quick_benchmark.json
+	@echo '      "timeout": 30' >> quick_benchmark.json
+	@echo '    },' >> quick_benchmark.json
+	@echo '    {' >> quick_benchmark.json
+	@echo '      "id": "gpt35",' >> quick_benchmark.json
+	@echo '      "provider": "openai",' >> quick_benchmark.json
+	@echo '      "model": "gpt-3.5-turbo",' >> quick_benchmark.json
+	@echo '      "api_key": "'$${OPENAI_API_KEY}'",' >> quick_benchmark.json
+	@echo '      "timeout": 30' >> quick_benchmark.json
+	@echo '    }' >> quick_benchmark.json
+	@echo '  ],' >> quick_benchmark.json
+	@echo '  "sample_size": 10,' >> quick_benchmark.json
+	@echo '  "use_ai_judge": true,' >> quick_benchmark.json
+	@echo '  "generate_whitepaper": false' >> quick_benchmark.json
+	@echo '}' >> quick_benchmark.json
 	python -m aeonisk.benchmark.cli --config quick_benchmark.json
 
 benchmark-full:
