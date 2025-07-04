@@ -4,6 +4,7 @@ import { getChatService } from '../lib/chat/service';
 import { CharacterCreationWizard } from './CharacterCreationWizard';
 import { CampaignPlanningWizard } from './CampaignPlanningWizard';
 import YAML from 'yaml';
+import ReactMarkdown from 'react-markdown';
 
 interface WelcomeModalProps {
   onComplete: (character: Character) => void;
@@ -21,6 +22,9 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     return stored ? JSON.parse(stored) : null;
   });
   const [character, setCharacter] = useState<Character | null>(null);
+  const [campaignPrefill, setCampaignPrefill] = useState<any>(null);
+  const [isGeneratingCampaign, setIsGeneratingCampaign] = useState(false);
+  const [llmProposalMessage, setLlmProposalMessage] = useState<string | null>(null);
 
   const handleQuickstart = () => {
     setShowQuickstartOptions(true);
@@ -33,7 +37,11 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     }
   }, [character, campaign]);
 
-  const handleGenerateCharacter = () => {
+  const handleGenerateCharacter = async () => {
+    console.log('[Quickstart] handleGenerateCharacter called');
+    setCampaign(null);
+    setCampaignPrefill(null);
+    localStorage.removeItem('aeoniskCampaign');
     const quickstartCharacter: Character = {
       name: 'Quick Explorer',
       concept: 'Curious Investigator - Aether Dynamics member',
@@ -100,10 +108,34 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     chatService.setCharacter(quickstartCharacter);
     setCharacter(quickstartCharacter);
     onComplete(quickstartCharacter);
+
+    // LLM campaign proposal logic
+    setIsGeneratingCampaign(true);
+    try {
+      console.log('[Quickstart] Calling generateCampaignProposalFromCharacter');
+      const proposal = await chatService.generateCampaignProposalFromCharacter(quickstartCharacter);
+      console.log('[Quickstart] Proposal received:', proposal);
+      setCampaignPrefill(proposal);
+      setCurrentView('campaign');
+      setLlmProposalMessage(
+        'The AI DM proposes the following campaign based on your character:\n\n' +
+        '```yaml\n' + YAML.stringify(proposal) + '\n```\n' +
+        'You can edit or accept this campaign in the planner.'
+      );
+      console.log('[Quickstart] Campaign prefill and message set, planner opened');
+    } catch (err: any) {
+      console.error('[Quickstart] Failed to generate campaign proposal:', err);
+      setLlmProposalMessage('Failed to generate campaign proposal: ' + (err.message || err));
+    } finally {
+      setIsGeneratingCampaign(false);
+    }
   };
 
   const handleYAMLUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
+    setCampaign(null);
+    setCampaignPrefill(null);
+    localStorage.removeItem('aeoniskCampaign');
     const file = e.target.files?.[0];
     if (!file) return;
     try {
@@ -128,6 +160,27 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
       chatService.setCharacter(character);
       setCharacter(character);
       onComplete(character);
+
+      // LLM campaign proposal logic
+      setIsGeneratingCampaign(true);
+      try {
+        console.log('[YAML] Calling generateCampaignProposalFromCharacter');
+        const proposal = await chatService.generateCampaignProposalFromCharacter(character);
+        console.log('[YAML] Proposal received:', proposal);
+        setCampaignPrefill(proposal);
+        setCurrentView('campaign');
+        setLlmProposalMessage(
+          'The AI DM proposes the following campaign based on your character:\n\n' +
+          '```yaml\n' + YAML.stringify(proposal) + '\n```\n' +
+          'You can edit or accept this campaign in the planner.'
+        );
+        console.log('[YAML] Campaign prefill and message set, planner opened');
+      } catch (err: any) {
+        console.error('[YAML] Failed to generate campaign proposal:', err);
+        setLlmProposalMessage('Failed to generate campaign proposal: ' + (err.message || err));
+      } finally {
+        setIsGeneratingCampaign(false);
+      }
     } catch (err: any) {
       setUploadError('Failed to parse YAML: ' + (err.message || err));
     }
@@ -138,6 +191,11 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     localStorage.setItem('aeoniskCampaign', JSON.stringify(campaignData));
     setCurrentView('home');
   };
+
+  // Deep debug: log currentView, campaignPrefill, and modal open state at every render
+  console.log('[WelcomeModal] Modal open');
+  console.log('[WelcomeModal] currentView:', currentView);
+  console.log('[WelcomeModal] campaignPrefill:', campaignPrefill);
 
   const renderQuickstartOptions = () => (
     <div className="space-y-6">
@@ -214,11 +272,50 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     );
   };
 
-  const renderCampaignPlanning = () => (
-    <CampaignPlanningWizard
-      onComplete={handleCampaignComplete}
-      onCancel={() => setCurrentView('home')}
-    />
+  // Render a full-screen loading overlay when generating the campaign proposal
+  const renderLoadingOverlay = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+      <div className="flex flex-col items-center gap-4">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-400 border-opacity-50 mb-4"></div>
+        <div className="text-xl text-blue-200 font-bold text-center">The AI DM is preparing a campaign for you...</div>
+      </div>
+    </div>
+  );
+
+  // Render the campaign planner with the proposal message
+  const renderCampaignPlanning = () => {
+    console.log('[WelcomeModal] Rendering CampaignPlanningWizard', campaignPrefill);
+    return (
+      <div>
+        {llmProposalMessage && (
+          <div className="mb-4 p-4 bg-gray-800 rounded text-gray-200 prose prose-invert border-2 border-blue-500 shadow-lg">
+            <ReactMarkdown>{llmProposalMessage}</ReactMarkdown>
+          </div>
+        )}
+        <CampaignPlanningWizard
+          onComplete={handleCampaignComplete}
+          onCancel={() => setCurrentView('home')}
+          prefill={campaignPrefill}
+        />
+      </div>
+    );
+  };
+
+  // Render a fallback error message with retry if proposal generation fails
+  const renderProposalError = () => (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="text-red-400 text-lg font-bold mb-4">Failed to generate campaign proposal.</div>
+      <div className="mb-4 text-gray-300">Please check your connection or try again.</div>
+      <button
+        className="px-6 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg shadow"
+        onClick={() => {
+          // Retry logic: re-run the last character's proposal
+          if (character) handleGenerateCharacter();
+        }}
+      >
+        Retry
+      </button>
+    </div>
   );
 
   const renderBeginAdventure = () => (
@@ -243,9 +340,10 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     </div>
   );
 
+  // Main modal render
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
+      <div className="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 relative">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">
             {currentView === 'character' ? 'Character Creation' : 
@@ -260,13 +358,30 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
           </button>
         </div>
 
-        {((character && campaign) || localStorage.getItem('pendingAdventure') === 'true')
-          ? renderBeginAdventure()
-          : showQuickstartOptions
-            ? renderQuickstartOptions()
-            : currentView === 'home' && renderHome()}
-        {currentView === 'character' && renderCharacterCreation()}
-        {currentView === 'campaign' && renderCampaignPlanning()}
+        {/* Show loading overlay if generating campaign proposal */}
+        {isGeneratingCampaign && renderLoadingOverlay()}
+
+        {/* Show error if proposal generation failed */}
+        {!isGeneratingCampaign && llmProposalMessage && llmProposalMessage.startsWith('Failed to generate') && renderProposalError()}
+
+        {/* TEMP: Always render campaign planner if campaignPrefill is set, for debugging */}
+        {campaignPrefill && (
+          <div className="mb-8 border-4 border-yellow-400 rounded-lg shadow-lg">
+            <div className="text-yellow-300 font-bold text-center p-2">[DEBUG] Forcing Campaign Planner Render (campaignPrefill is set)</div>
+            {renderCampaignPlanning()}
+          </div>
+        )}
+
+        {/* Main modal content, dimmed if loading */}
+        <div className={isGeneratingCampaign ? 'pointer-events-none opacity-30' : ''}>
+          {((character && campaign) || localStorage.getItem('pendingAdventure') === 'true')
+            ? renderBeginAdventure()
+            : showQuickstartOptions
+              ? renderQuickstartOptions()
+              : currentView === 'home' && renderHome()}
+          {currentView === 'character' && renderCharacterCreation()}
+          {currentView === 'campaign' && renderCampaignPlanning()}
+        </div>
       </div>
     </div>
   );
