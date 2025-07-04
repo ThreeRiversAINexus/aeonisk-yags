@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Character } from '../types';
 import { getChatService } from '../lib/chat/service';
 import { CharacterCreationWizard } from './CharacterCreationWizard';
+import { CampaignPlanningWizard } from './CampaignPlanningWizard';
+import YAML from 'yaml';
 
 interface WelcomeModalProps {
   onComplete: (character: Character) => void;
@@ -10,15 +12,28 @@ interface WelcomeModalProps {
 
 type WelcomeView = 'home' | 'quickstart' | 'character' | 'campaign';
 
-
-
-
 export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
   const [currentView, setCurrentView] = useState<WelcomeView>('home');
-
-
+  const [showQuickstartOptions, setShowQuickstartOptions] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [campaign, setCampaign] = useState<any>(() => {
+    const stored = localStorage.getItem('aeoniskCampaign');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [character, setCharacter] = useState<Character | null>(null);
 
   const handleQuickstart = () => {
+    setShowQuickstartOptions(true);
+  };
+
+  useEffect(() => {
+    if (character && campaign) {
+      localStorage.setItem('pendingAdventure', 'true');
+      localStorage.setItem('pendingAdventureCharacterName', character.name);
+    }
+  }, [character, campaign]);
+
+  const handleGenerateCharacter = () => {
     const quickstartCharacter: Character = {
       name: 'Quick Explorer',
       concept: 'Curious Investigator - Aether Dynamics member',
@@ -41,7 +56,6 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
         Soak: 12
       },
       skills: {
-        // YAGS Talents at 2
         Athletics: 2,
         Awareness: 2,
         Brawl: 2,
@@ -50,7 +64,6 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
         Sleight: 2,
         Stealth: 2,
         Throw: 2,
-        // Professional skills
         Investigation: 4,
         'Astral Arts': 2,
         'Magick Theory': 1,
@@ -72,8 +85,8 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
           { name: 'High Arcanum', level: 2 }
         ]
       },
-      voidScore: 0, // Aether Dynamics starts at 0
-      soulcredit: 0, // Aether Dynamics starts at 0
+      voidScore: 0,
+      soulcredit: 0,
       bonds: [],
       campaignLevel: 'Skilled',
       priorityPools: {
@@ -83,15 +96,77 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
       },
       controller: 'player'
     };
-    
-    // Set the character in the chat service
     const chatService = getChatService();
     chatService.setCharacter(quickstartCharacter);
-    
+    setCharacter(quickstartCharacter);
     onComplete(quickstartCharacter);
   };
 
+  const handleYAMLUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = YAML.parse(text);
+      let character: Character | undefined;
+      if (Array.isArray(parsed)) {
+        character = parsed[0];
+      } else if (parsed.characters && Array.isArray(parsed.characters)) {
+        character = parsed.characters[0];
+      } else if (parsed.character_name || parsed.name) {
+        character = parsed;
+      }
+      if (!character) throw new Error('No character found in YAML.');
+      if (!character.name && (character as any).character_name) {
+        character.name = (character as any).character_name;
+      }
+      if (!(character as any).skills && (character as any).standard_skills) {
+        (character as any).skills = (character as any).standard_skills;
+      }
+      const chatService = getChatService();
+      chatService.setCharacter(character);
+      setCharacter(character);
+      onComplete(character);
+    } catch (err: any) {
+      setUploadError('Failed to parse YAML: ' + (err.message || err));
+    }
+  };
 
+  const handleCampaignComplete = (campaignData: any) => {
+    setCampaign(campaignData);
+    localStorage.setItem('aeoniskCampaign', JSON.stringify(campaignData));
+    setCurrentView('home');
+  };
+
+  const renderQuickstartOptions = () => (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-center">Quickstart</h2>
+      <p className="text-gray-300 text-center">Choose how you want to begin your adventure:</p>
+      <div className="grid grid-cols-1 gap-4">
+        <label className="p-6 bg-green-900 hover:bg-green-800 rounded-lg transition-colors text-left cursor-pointer">
+          <h3 className="text-lg font-semibold mb-2">Upload Character Sheet (YAML)</h3>
+          <p className="text-gray-300 mb-2">Use your exported character sheet to start with your own hero.</p>
+          <input type="file" accept=".yaml,.yml" className="hidden" onChange={handleYAMLUpload} />
+          <span className="inline-block bg-gray-700 text-xs text-white px-2 py-1 rounded">Choose File</span>
+        </label>
+        <button
+          onClick={handleGenerateCharacter}
+          className="p-6 bg-blue-900 hover:bg-blue-800 rounded-lg transition-colors text-left"
+        >
+          <h3 className="text-lg font-semibold mb-2">Generate New Character</h3>
+          <p className="text-gray-300">Let the system create a new character for you and drop you into a campaign.</p>
+        </button>
+      </div>
+      {uploadError && <div className="text-red-400 text-sm text-center">{uploadError}</div>}
+      <button
+        onClick={() => setShowQuickstartOptions(false)}
+        className="w-full px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 mt-4"
+      >
+        Back
+      </button>
+    </div>
+  );
 
   const renderHome = () => (
     <div className="space-y-6">
@@ -139,83 +214,32 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
     );
   };
 
-
   const renderCampaignPlanning = () => (
-    <div className="space-y-4">
-      <h3 className="text-xl font-bold">Campaign Planning</h3>
-      <p className="text-gray-300">Set the stage for your Aeonisk story</p>
-      
-      <div className="space-y-3">
-        <div>
-          <h4 className="font-semibold mb-2">Campaign Level</h4>
-          <select className="w-full p-2 bg-gray-800 rounded border border-gray-700">
-            <option value="mundane">Mundane - Normal people, abnormal situations</option>
-            <option value="skilled" selected>Skilled - Trained professionals (Default)</option>
-            <option value="exceptional">Exceptional - Well above average</option>
-            <option value="heroic">Heroic - Hollywood action heroes</option>
-          </select>
-        </div>
+    <CampaignPlanningWizard
+      onComplete={handleCampaignComplete}
+      onCancel={() => setCurrentView('home')}
+    />
+  );
 
-        <div>
-          <h4 className="font-semibold mb-2">Primary Themes</h4>
-          <div className="space-y-2">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" defaultChecked />
-              <span>Sacred trust and betrayal</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" defaultChecked />
-              <span>Power bought with spirit, not coin</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" defaultChecked />
-              <span>The slow erosion of self under Void</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" />
-              <span>Faction politics and intrigue</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded" />
-              <span>Exploration of True Will</span>
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <h4 className="font-semibold mb-2">Starting Location</h4>
-          <select className="w-full p-2 bg-gray-800 rounded border border-gray-700">
-            <option>Aeonisk Prime - Heart of the Nexus</option>
-            <option>Arcadia Station - Trade hub</option>
-            <option>Elysium - Frontier colony</option>
-            <option>Nimbus - Contested space</option>
-            <option>Custom Location</option>
-          </select>
-        </div>
-
-        <div>
-          <h4 className="font-semibold mb-2">Campaign Notes</h4>
-          <textarea
-            className="w-full p-2 bg-gray-800 rounded border border-gray-700 h-24"
-            placeholder="Add any specific notes about your campaign..."
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          onClick={() => setCurrentView('home')}
-          className="flex-1 px-4 py-2 bg-gray-700 rounded hover:bg-gray-600"
-        >
-          Back
-        </button>
-        <button
-          onClick={onClose}
-          className="flex-1 px-4 py-2 bg-green-600 rounded hover:bg-green-700"
-        >
-          Save Campaign Settings
-        </button>
-      </div>
+  const renderBeginAdventure = () => (
+    <div className="flex flex-col items-center justify-center py-8">
+      <button
+        className="px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white text-lg rounded-lg shadow-lg transition-colors"
+        onClick={() => {
+          if (localStorage.getItem('pendingAdventure') === 'true') {
+            const chatService = getChatService();
+            chatService.chat(
+              `You awaken in the heart of Aeonisk Prime, the city of sacred trust and spiritual commerce. The air hums with the energy of talismans and the distant echo of ritual. As ${localStorage.getItem('pendingAdventureCharacterName')}, what do you do first?`,
+              { ic: true }
+            );
+            localStorage.removeItem('pendingAdventure');
+            localStorage.removeItem('pendingAdventureCharacterName');
+          }
+        }}
+      >
+        Begin Adventure
+      </button>
+      <p className="mt-4 text-gray-300 text-center">Click to start your campaign with an immersive scene.</p>
     </div>
   );
 
@@ -236,7 +260,11 @@ export function WelcomeModal({ onComplete, onClose }: WelcomeModalProps) {
           </button>
         </div>
 
-        {currentView === 'home' && renderHome()}
+        {((character && campaign) || localStorage.getItem('pendingAdventure') === 'true')
+          ? renderBeginAdventure()
+          : showQuickstartOptions
+            ? renderQuickstartOptions()
+            : currentView === 'home' && renderHome()}
         {currentView === 'character' && renderCharacterCreation()}
         {currentView === 'campaign' && renderCampaignPlanning()}
       </div>

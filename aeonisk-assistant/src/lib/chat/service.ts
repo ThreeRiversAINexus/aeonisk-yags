@@ -131,14 +131,17 @@ export class AeoniskChatService {
   }
 
 
-  async chat(messageContent: string, options?: ChatOptions): Promise<Message> {
+  async chat(messageContent: string, options?: ChatOptions & { ic?: boolean, knowledge?: string }): Promise<Message> {
     await this.initialize();
-    this.loadCharacterFromRegistry(); // Ensure character state is fresh
+    this.loadCharacterFromRegistry();
 
     const context = {
       recentMessages: this.conversationManager.getRecentMessages(5),
       gameContext: this.gameState
     };
+
+    // Filter out 'tool' messages from recentMessages for LLM context
+    const filteredRecentMessages = context.recentMessages.filter(m => m.role !== 'tool');
 
     const retrieval = await this.rag.retrieve(messageContent, 5);
     const debugStore = useDebugStore.getState();
@@ -154,11 +157,20 @@ export class AeoniskChatService {
       });
     }
 
-    const systemPrompt = this.buildSystemPrompt(retrieval.chunks);
+    // Add IC/OOC context and knowledge level to the system prompt
+    let systemPrompt = this.buildSystemPrompt(retrieval.chunks, (options as any)?.ic !== false, (options as any)?.knowledge || 'low');
+    if (typeof options?.ic === 'boolean') {
+      if (options.ic) {
+        systemPrompt += '\n\nAll chat is in-character (IC) unless the user marks it as OOC. Respond as the character would in the current scene.';
+      } else {
+        systemPrompt += '\n\nThe user is speaking out-of-character (OOC). Respond as the AI DM, not as an in-world character.';
+      }
+    }
+
     const messages: Message[] = [
       { role: 'system', content: systemPrompt },
-      ...context.recentMessages,
-      { role: 'user', content: messageContent }
+      ...filteredRecentMessages,
+      { role: 'user', content: messageContent, ic: options?.ic }
     ];
 
     if (debugStore.isDebugMode && debugStore.verbosityLevel === 'verbose') {
@@ -199,12 +211,12 @@ export class AeoniskChatService {
           [...messages, response, toolMessage],
           {...options, model: options?.model || useProviderStore.getState().currentModel || undefined }
         );
-        this.conversationManager.addMessage({ role: 'user', content: messageContent });
+        this.conversationManager.addMessage({ role: 'user', content: messageContent, ic: options?.ic });
         this.conversationManager.addMessage(finalResponse);
         return finalResponse;
       }
 
-      this.conversationManager.addMessage({ role: 'user', content: messageContent });
+      this.conversationManager.addMessage({ role: 'user', content: messageContent, ic: options?.ic });
       this.conversationManager.addMessage(response);
       return response;
     } catch (error) {
@@ -223,7 +235,7 @@ export class AeoniskChatService {
     };
 
     const retrieval = await this.rag.retrieve(messageContent, 5);
-    const systemPrompt = this.buildSystemPrompt(retrieval.chunks);
+    const systemPrompt = this.buildSystemPrompt(retrieval.chunks, (options as any)?.ic !== false);
     const messages: Message[] = [
       { role: 'system', content: systemPrompt },
       ...context.recentMessages,
@@ -248,10 +260,17 @@ export class AeoniskChatService {
     }
   }
 
-  private buildSystemPrompt(chunks: ContentChunk[]): string {
-    let prompt = `You are an AI assistant for the Aeonisk YAGS tabletop RPG. You help players and GMs with rules questions, character creation, and running game sessions.
+  private buildSystemPrompt(chunks: ContentChunk[], icMode: boolean = true, knowledge: string = 'low'): string {
+    let prompt = `You are the AI DM for the Aeonisk YAGS tabletop RPG. Your job is to run immersive, in-character campaign scenes, narrate the world, play NPCs, and respond to the player as their character. Only break character if the user marks their message as OOC (out-of-character).\n\nIMPORTANT: Base your answers on the provided game content. If something isn't covered in the context, say so rather than inventing rules.`;
 
-IMPORTANT: Base your answers on the provided game content. If something isn't covered in the context, say so rather than inventing rules.`;
+    // Add knowledge level context
+    if (knowledge === 'low') {
+      prompt += `\n\nThe player is new to Aeonisk. Assume they know nothing about the setting, rules, or terminology. Explain things clearly, avoid jargon, and provide context for any setting-specific details.`;
+    } else if (knowledge === 'medium') {
+      prompt += `\n\nThe player has some familiarity with Aeonisk. You can use basic setting terms, but provide brief explanations for advanced concepts.`;
+    } else {
+      prompt += `\n\nThe player is experienced with Aeonisk. You can use setting terms and assume they know the basics.`;
+    }
 
     if (chunks.length > 0) {
       prompt += `\n\n## Relevant Game Content:\n`;
@@ -264,12 +283,20 @@ IMPORTANT: Base your answers on the provided game content. If something isn't co
       }
     }
 
+    // Add strong IC/OOC instructions
+    prompt += `\n\n## Roleplaying and IC/OOC Instructions:`;
+    prompt += `\n- If the user's message is in-character (IC), always respond as the in-world DM. Narrate the scene, play NPCs, and address the user as their character. Never break character or reference rules unless the player asks OOC.`;
+    prompt += `\n- If the user's message is out-of-character (OOC), step out of the game world. Answer rules, meta, or clarifications as a helpful assistant. Clearly mark your response as [OOC] at the start.`;
+    prompt += `\n- Never mix IC and OOC in the same response. Always match the user's mode.`;
+    prompt += `\n- When in doubt, default to immersive, in-character narration and actionable choices.`;
+    prompt += `\n- Never refer to the user as 'player' or 'user' in-character; use their character's name. Only use 'player' or 'user' in OOC responses.`;
+
     if (this.gameState.character) {
       const char = this.gameState.character;
       prompt += `\n\n## Current Character: ${char.name}\n`;
       prompt += `Concept: ${char.concept}\n`;
       prompt += `Attributes: ${JSON.stringify(char.attributes)}\n`;
-      prompt += `Skills: ${JSON.stringify(Object.fromEntries(Object.entries(char.skills).filter(([,val]) => val > 0)))}\n`;
+      prompt += `Skills: ${JSON.stringify(Object.fromEntries(Object.entries(char.skills || {}).filter(([,val]) => val > 0)))}\n`;
       prompt += `Void Score: ${char.voidScore}\n`;
       prompt += `Soulcredit: ${char.soulcredit}\n`;
       if (char.trueWill) prompt += `True Will: ${char.trueWill}\n`;

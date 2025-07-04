@@ -49,6 +49,9 @@ export function SettingsPanel({ onClose, onProviderConfig, onProviderChange, cur
   const [baseUrl, setBaseUrl] = useState('');
   const [model, setModel] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [aeoniskKnowledge, setAeoniskKnowledge] = useState(() => {
+    return localStorage.getItem('aeoniskKnowledgeLevel') || 'low';
+  });
 
   const { isDebugMode, verbosityLevel, toggleDebugMode, setVerbosityLevel } = useDebugStore();
   const { setProvider: setProviderInStore } = useProviderStore();
@@ -74,6 +77,7 @@ export function SettingsPanel({ onClose, onProviderConfig, onProviderChange, cur
     // Clear sensitive data
     setApiKey('');
     setBaseUrl('');
+    localStorage.setItem('aeoniskKnowledgeLevel', aeoniskKnowledge);
   };
 
   const providerConfig = PROVIDER_CONFIGS[selectedProvider as keyof typeof PROVIDER_CONFIGS];
@@ -156,6 +160,19 @@ export function SettingsPanel({ onClose, onProviderConfig, onProviderChange, cur
             </select>
           </div>
         )}
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Aeonisk Knowledge Level</label>
+          <select
+            value={aeoniskKnowledge}
+            onChange={e => setAeoniskKnowledge(e.target.value)}
+            className="w-full bg-gray-700 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="low">Low (I know nothing or very little about Aeonisk)</option>
+            <option value="medium">Medium (I know the basics or have played a little)</option>
+            <option value="high">High (I know the setting and rules well)</option>
+          </select>
+        </div>
 
         <button
           onClick={handleSave}
