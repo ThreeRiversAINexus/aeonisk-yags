@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@chroma-core/default-embed": "^0.1.8",
     "better-sqlite3": "^12.2.0",
     "chromadb": "^3.0.6",
     "cors": "^2.8.5",

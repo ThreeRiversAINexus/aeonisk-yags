@@ -43,6 +43,56 @@ services:
       - PERSIST_DIRECTORY=/chroma/chroma
       - ANONYMIZED_TELEMETRY=FALSE
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aeonisk-backend
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://aeonisk:aeonisk_password@postgres:5432/aeonisk_game
+      - REDIS_URL=redis://redis:6379
+      - CHROMA_URL=http://chromadb:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+      - chromadb
+    volumes:
+      - ./:/app
+    command: ["npm", "run", "dev"]
+
+  frontend:
+    build:
+      context: ./aeonisk-assistant
+      dockerfile: Dockerfile
+    container_name: aeonisk-frontend
+    environment:
+      - NODE_ENV=development
+      - VITE_BACKEND_URL=http://localhost:3000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./aeonisk-assistant:/app
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+  rag-backend:
+    build:
+      context: ./aeonisk-rag-backend
+      dockerfile: Containerfile
+    container_name: aeonisk-rag-backend
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./aeonisk-rag-backend/aeonisk-chromadb.sqlite:/app/aeonisk-chromadb.sqlite
+    depends_on:
+      - chromadb
+    command: ["node", "server.js"]
+
 volumes:
   postgres_data:
   redis_data:
