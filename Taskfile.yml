@@ -115,3 +115,18 @@ tasks:
     desc: Run type checking
     cmds:
       - npm run typecheck
+
+  stack:
+    desc: Start the entire stack (frontend, backend, rag-backend, and infrastructure) with podman compose
+    cmds:
+      - podman compose up --build
+
+  stack:down:
+    desc: Stop the entire stack and remove containers (keeps data)
+    cmds:
+      - podman compose down
+
+  infra:
+    desc: Start only infrastructure services (Postgres, Redis, ChromaDB, rag-backend)
+    cmds:
+      - podman compose up postgres redis chromadb rag-backend
