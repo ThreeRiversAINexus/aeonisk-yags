@@ -1,4 +1,4 @@
-# Aeonisk Tactical Addendum Clarifications (v1.2)
+# Aeonisk Tactical Module - v1.2.1
 
 **Integrating the Aeonisk Tactical Layer with YAGS Core**
 
@@ -38,40 +38,39 @@ This system is designed to make tactical combat flow quickly, emphasize narrativ
 4.  **Shock reduces INIT**, can reroll by forfeit turn (halved at INIT 0) 
 
 **Round Structure**
-1.  **Declare** (ascending INIT): State Major, Minor, Free actions, **Allocate Defence Token**.
-2.  **Fast** actions (descending INIT)
-3.  **Normal** actions (descending INIT)
-4.  **Slow** actions (descending INIT)
-5.  **Cleanup** (morale, effects, recovery)
+1.  **Declare Phase:** In ascending Initiative order, players state their intended Major and Minor actions. No rolls are made or effects resolved in this phase. The Defence Token is allocated.
+2.  **Fast Phase (Reactions):** In descending Initiative order, resolve Reactions like Parries, spending Tokens, or Bonded Defence.
+3.  **Slow Phase (Major/Minor Actions):** In descending Initiative order, resolve all declared Major and Minor actions.
+4.  **Cleanup Phase:** Resolve lingering effects, check Wounds/Stun, make morale checks.
 
 **Actions per Turn**
 | Type         | Count     | Notes                                                                |
 |--------------|-----------|----------------------------------------------------------------------|
 | **Major**    | 1         | Big moves: attacks, two-band shifts                                  |
-| **Minor**    | 1         | Small but meaningful: one-band shift, Disengage, **draw/reload/item swap**, Guard, Claim a token  |
+| **Minor**    | 1         | Shift 1 Band, Reload, Claim/Swap Token, Overwatch Setup, Stand from Prone |
 | **Free**     | Unlimited | Flavor narrations only: shout orders, drop an item (after you swapped it), quick emotive beats |
-| **Reaction** | 1         | Interrupts: Parry, Overwatch, Token spend, Bonded Defence            |
+| **Reaction** | 1         | Interrupts during Fast Phase: Parry, Overwatch, Token spend, Bonded Defence |
 
-**Damage & Recovery**
+**Damage & Wound Tracking**
 *   **Damage Roll:** Strength + Weapon Bonus + d20
-*   **Soak:** Subtract from damage
-*   **Wounds/Stun:** Every 5 damage = 1 Wound (serious) or 1 Stun (non-lethal) 
-*   **Fatal:** > 5 Wounds → health check or die
+*   **Soak:** Subtract from damage.
+*   **Wounds:** 1 Wound per hit ≥ Soak, +1 per full +5 damage over Soak.
+*   **Fatal:** At 5 Wounds, make a Health check (Hea × 2 vs. DC 20 + 5 per extra Wound).
+*   **Wound Ladder:** A printable “Wound ladder” tracker should be provided.
 
 ---
 
 ### 1. Initiative, Tempo, and Round Structure
 
-*   **Rolling Initiative:** At combat start, roll (Agility × 4) + d20. Natural 1 = Initiative 0 (Halves skill checks, all actions Slow for the round, unless Fatigue is taken).  Initiative score is generally kept for the encounter.
+*   **Rolling Initiative:** Re-roll (Agility × 4) + d20 at the **start of every round**.
+    *   **Ties:** Break ties by the highest single Skill rank, then the highest governing Attribute.
+    *   **Natural 1:** Results in Initiative 0 for the round (all skill checks halved, all actions are Slow).
 *   **Shock:** Reduces current Initiative. Can forfeit turn to re-roll Initiative (Agility x 4 + d20), halved if current Initiative is 0. 
 *   **Round Order:**
-    1.  **Declare Phase:** Characters (lowest to highest Initiative) declare their Major, Minor, and significant Free actions. They also allocate their Defence Token (see Section 4). Actions are committed.
-    2.  **Action Resolution Phase:** Actions are resolved (highest to lowest Initiative) within Speed Bands:
-        *   **Fast Actions** (e.g., Reactions like Parry, Token Spend) resolve first.
-        *   **Normal Actions** (e.g., Minor Actions like 1-band shift, Item Swap, Guard) resolve next.
-        *   **Slow Actions** (e.g., Major Actions like Attack, 2-band shift, Rituals) resolve last.
-        *   *Note:* Higher Initiative always resolves first within its Speed Band.
-    3.  **Cleanup Phase:** Resolve lingering effects, check Wounds/Stun, make morale checks.
+    1.  **Declare Phase:** In ascending Initiative order, players state their intended Major and Minor actions. No rolls are made or effects resolved. The Defence Token is allocated.
+    2.  **Fast Phase (Reactions):** In descending Initiative order, resolve Reactions (Parry, Spend Token, Bonded Defence).
+    3.  **Slow Phase (Major/Minor Actions):** In descending Initiative order, resolve all declared Major and Minor actions.
+    4.  **Cleanup Phase:** Resolve lingering effects, check Wounds/Stun, make morale checks.
 
 #### Tactical Interaction Example
 
@@ -97,13 +96,13 @@ This example demonstrates how higher Initiative provides a tactical advantage by
 Each round, characters typically have:
 
 *   **Major Action (1):** Complex actions (Attack, Shift 2 Bands, Ritual).
-*   **Minor Action (1):** Moderate actions (Shift 1 Band, Aim, **Draw/Reload/Item Swap**, Guard, Claim Tactical Token, Disengage). 
-*   **Free Action (Unlimited within reason):** Simple, narrative actions (Shout, Drop item already swapped).
-*   **Reaction (1):** Interrupts (Parry, Overwatch fire, Spend Tactical Token, Bonded Defence). Refreshes at start of your turn.
+*   **Minor Action (1):** A character may only perform **one** Minor action per round. Typical Minor actions include: Shift 1 Range Band, Reload, Claim/Swap a Tactical Token, set up an Overwatch arc, or Stand from Prone.
+*   **Free Action (Unlimited within reason):** Simple, narrative actions (Shout, Drop item).
+*   **Reaction (1):** Interrupts that occur during the **Fast Phase** (e.g., Parry, Overwatch fire, Spend Tactical Token, Bonded Defence). Refreshes at the start of your turn.
 
 ### 3. Range-Band Zones & Movement
 
-Combat occurs across four abstract Range Bands, relative to a character's position. 
+Combat occurs across four abstract Range Bands. These bands are **always measured pair-wise** between any two combatants, not from a central point on the battlefield.
 
 | Band        | Scope       | Range Mod (to Attack) | Typical Actions          |
 |-------------|-------------|-----------------------|--------------------------|
@@ -133,21 +132,19 @@ Aeonisk Tactical introduces a single **Defence Token** that represents your focu
   • It refreshes automatically at the beginning of the next round.
 
 * **Allocating**  
-  • During the **Declare Phase** you allocate your token to **one visible foe**.  
-  • The allocation is fixed until the round ends (you may re-allocate next round).
+  • During the **Declare Phase**, you **must** allocate your token to one visible foe. This allocation lasts for the entire round.
+  • **If you forget to allocate,** you are considered to have no Defence Token active, and all attackers gain the benefit of Flanking (+2 to their attack rolls against you).
 
 * **Benefit vs Allocated Foe**  
-  • While the token is on that foe, they suffer **–2 to any roll that targets you directly** (attacks, aimed rituals, grapples).  
-  • The –2 is a **Minor** rung modifier and stacks normally with other situational bonuses/penalties, but it counts toward the roll’s overall ±2/±4/±6 cap.
+  • While the token is on that foe, they suffer **–2 to any roll that targets you directly** (attacks, aimed rituals, grapples).
 
 * **Consequence vs Un-allocated Foes**  
-  • Attacks from foes **not** holding your token count as **Flanking**: you take **–2 to your own Defence roll** (or, if you use static Defence, the attacker gains +2).  
-  • This mirrors the existing Flanking rule and keeps risk-reward balanced.
+  • Attacks from foes **not** holding your token count as **Flanking**: you take **–2 to your own Defence roll** (or, if you use static Defence, the attacker gains +2).
 
-* **Evade Reaction (optional heroic burn)**  
-  • **Once per battle** you may **burn** your Defence Token *after* you become the declared target of an attack.  
-  • That single attack suffers **–4** instead of –2 (Major rung).  
-  • The token is expended for the rest of the battle and will not refresh until combat ends.
+* **Heroic Burn (Evade Reaction)**  
+  • **Once per combat,** you may choose to upgrade your Defence Token's effect to **–4**.
+  • This decision can be made when you allocate the token or as a reaction to being attacked.
+  • The token is considered **burned** and does **not** refresh for the remainder of the combat.
 
 * **Interaction with Standard YAGS Defences**  
   • You still choose which incoming attacks to actively defend against per the core YAGS rules.  
@@ -165,19 +162,40 @@ Aeonisk Tactical introduces a single **Defence Token** that represents your focu
 Tokens represent temporary advantages from terrain or position. 
 
 *   **Lifecycle:**
-    1.  **Claim (Free/Minor Action):** Narrate securing the position (e.g., diving behind cover). Place token on your sheet.
-    2.  **Spend (Reaction):** Flip token before a relevant roll/effect to gain its benefit.
-    3.  **Discard:** Token is removed after use.
+    1.  **Claim (Minor Action):** Use a Minor action to claim a token representing a tactical advantage.
+    2.  **Spend (Reaction):** Spend the token as a Reaction during the **Fast Phase** to gain its benefit.
+    3.  **Discard:** The token is removed after use.
 *   **Cap:** Only one (1) Tactical Token can be active per PC at a time.
-*   **Synergy Cap:** Bonuses from Tactical Tokens (and other sources) cap at +2 per roll where Synergy applies.
 
 | Token         | Claim Trigger (Narrative) | Spend Effect (Mechanical)                       |
 |---------------|---------------------------|-------------------------------------------------|
 | **Cover**     | Reach a solid object      | Grant +2 Soak against a single incoming attack.  |
 | **High-Ground**| Climb to an elevation    | Gain +2 to an attack roll & ignore the Near band's range penalty for that attack.  |
+| **Energy Hub**| Access a power conduit    | Gain +2 to one damage or effect roll. This bonus persists until nullified. |
+| **Vent**      | Open a steam/gas vent     | Create a temporary area of obscurement.         |
 | **Ley-Node**  | Enter a glowing sigil     | Gain +2 to a Dreamwork or Ritual roll.  |
 | **Void Slick**| Step on an oily shimmer   | Target an enemy moving through it with an Agility save (DC 20) or they fall prone; may cause +1 Void splash to those in it.  |
 | **Sprint Lane**| Find/clear a dash path  | Immediately make an extra Minor action band shift.  |
+
+---
+
+### 5a. Terrain & Obstructions
+
+Movement through cluttered or hazardous environments requires an **Agility + Athletics** check before the movement is resolved. The DC is set by the GM based on the severity of the terrain.
+
+| Terrain Type        | DC |
+|---------------------|----|
+| Light Clutter       | 10 |
+| Unstable Crates     | 15 |
+| Vacuum Breach       | 20 |
+
+**Failure:** If the check fails, the character's declared movement (and any associated action, like a Charge) is lost, and they become **Prone**.
+
+### 5b. Prone & Invalidated Actions
+
+*   **Becoming Prone:** A character can be forced Prone by a failed terrain check or by an opponent's action.
+*   **Invalidated Actions:** If an earlier-acting combatant forces you Prone **before** your Slow step, any declared action that requires standing (e.g., Charge, Sprint) automatically **fails**. You may not substitute this failed action; your Major action for the round is lost.
+*   **Standing Up:** Standing from Prone costs a **Minor action** on your next turn.
 
 ---
 
@@ -201,7 +219,7 @@ Situational modifiers apply as simple flat bonuses or penalties.
 |-------------|----------|----------------------------------|----------------------------------------------------------------------------------------------------------|
 | **Suppress**| Major    | Weapon with Rate of Fire (RoF) ≥ 3 | On a successful hit: the target must choose to either Dive (immediately shift 1 band & lose Cover token if held) OR Hunker Down (suffer –4 to all their attack and defense rolls until their next turn).  |
 | **Charge**  | Major    | Must start in Near or Far band   | Shift directly into the Engaged band with a chosen foe. Gain +2 to your first melee damage roll against that foe this turn, but you suffer –2 to your own defenses until your next turn.  |
-| **Overwatch**| Minor to set up, uses Reaction to fire | Declare a 90° arc you are watching. | Make an immediate ranged attack (as a Reaction) against the first foe to enter or act significantly within that declared arc.  |
+| **Overwatch**| Minor to set up, uses Reaction to fire | Declare a 90° arc you are watching. | Make an immediate ranged attack (as a Reaction) against the first foe to enter or act significantly within that declared arc. This triggers **once** per round during the **Fast Phase**. |
 | **Disengage**| Minor   | Must currently be Engaged        | Make an Athletics check (e.g., vs Difficulty 20) to shift 1 band away safely without provoking a Breakaway free strike.  |
 
 ---
@@ -232,9 +250,20 @@ Next time Nyx defends: they roll with –2 to that defence roll as the backlash 
 ### 9. Character Sheet Integration
 
 Minimal additions are needed:
-*   **Stance:** A field to note character's current combat stance (normal / aggressive / defensive). *(Specific mechanical effects of stances were noted as a design decision needed in the source material.)*
+*   **Phase Reminder:** A one-line reminder of the round structure: *Declare → Fast → Slow*.
+*   **Stance:** A field to note character's current combat stance (normal / aggressive / defensive).
 *   **Cover_Mod:** A temporary tracker for the +2 Soak granted by a Cover token.
 *   No new persistent resource pools beyond core YAGS (Wounds, Soak, Void, etc.).
+
+---
+
+### 10. Roll Transparency Guidance
+
+To maintain clarity and trust at the table, the GM should announce the raw d20 roll plus all modifiers aloud for each significant check. Alternatively, a log of rolls can be posted at the end of each character's turn.
+
+### 11. Optional Zone Map Variant
+
+For groups that prefer a more visual, board-game-like experience, an appendix can provide pre-fabricated maps with defined zones and their default Range Band relationships. For example, a cargo hold map could be divided into 5 zones: "Catwalk," "Central Crates," "Loading Bay," "Maintenance Tunnel," and "Control Room," with a table defining the band distance between each pair of zones.
 
 ---
 
@@ -256,7 +285,7 @@ Distributed under the GPL v2 as described by Samuel Penn, the creator of Yet Ano
 
 By Samuel Penn (sam@glendale.org.uk) and Aeonisk customization completed by Three Rivers AI Nexus.
 
-Aeonisk YAGS Module is free content: you can redistribute it and/or modify
+Aeonisk YAGS Tactical Module is free content: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, version 2.
 
