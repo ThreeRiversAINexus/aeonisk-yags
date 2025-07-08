@@ -105,9 +105,12 @@ Title: *How We Navigate the Stars: Will, Ritual, and Resonance*
 
 Excerpt:
 
-> Travel between core worlds is not a matter of propulsion. It is attunement. Ritual astronavigation, often requiring considerable skill in **Pilot**ing through treacherous ley-currents, demands alignment with the interplanetary ley grid. This grid is maintained through harmonics radiated from sanctified planetary nodes, often overseen by those of the Ossai Line.
+> Travel between core worlds is not a matter of simple propulsion; it is a profound act of attunement. Ritual astronavigation, often demanding considerable skill in piloting through treacherous ley-currents, requires a deep alignment with the interplanetary ley grid. This grid is maintained through harmonics radiated from sanctified planetary nodes, frequently overseen by those of the Ossai Line.
 >
-> Not all ships may enter slipstream. Passage requires: — Resonance Aligner calibrated to pilot’s Soulcredit standing — Bonded ley-reader with **Dream Ring** training (often Nymir Line, enabling Dreamwork rolls to navigate psychic hazards of the Veil) — Astral lodestone (a fossilized Seed fragment, itself carefully attuned to the intended route)
+> Not all ships may enter the slipstream. Passage necessitates:
+> — A Resonance Aligner calibrated to the pilot’s Soulcredit standing.
+> — A bonded ley-reader with Dream Ring training (a specialization often found among the Nymir Line) enabling them to interpret and navigate the psychic hazards of the Veil.
+> — An Astral lodestone, typically a fossilized Seed fragment, itself carefully attuned to the intended route)
 
 Example Insert: Pilot’s Invocation – The Breath Cut
 
@@ -116,19 +119,19 @@ Example Insert: Pilot’s Invocation – The Breath Cut
 Ley Route Summary:
 
 > **Spiral Strand**: Aeonisk ⇌ Arcadia
-> Primary Use: Ritual goods, biotech, Seed transfers
-> Protection: Choir-class escort ships (Pantheon Security Contracts)
-> Rite of Purification mandatory upon Arcadia arrival
-> Average Time: 3 cycles
+> Primary Use: Ritual goods, biotech, Seed transfers.
+> Protection: Typically patrolled by Choir-class escort ships under Pantheon Security Contracts.
+> Customs: A Rite of Purification is mandatory upon arrival in Arcadia.
+> Journey Duration: Travel along this strand usually takes around three cycles.
 
 > **Breath Cut**: Aeonisk ⇌ Nimbus
-> Primary Use: Soulcredit media, Spark artifacts, encrypted cargo (often House of Vox broadcasts)
-> Risk Level: High — pirate activity common; ritual surveillance intense
-> Average Time: 8 to 12 cycles
+> Primary Use: Soulcredit media, Spark artifacts, encrypted cargo (often House of Vox broadcasts).
+> Dangers: This route is known for its significant perils, with frequent pirate activity and intense ritual surveillance.
+> Journey Duration: Passage typically requires eight to twelve cycles.
 
 > **Hollow Vector**: Arcadia ⇌ Nimbus
-> Unofficial Use: Illicit Seed, Void weaponry, unregistered Bonds, sometimes Thaurin Line relics
-> Codex Status: Untraceable — vessels may return altered, their passage marked by a subtle dimming of their Soulcredit echo. Rumors persist that logs from this route feed not the Codex, but the aberrant resonance known as the Eye of Breach.
+> Unofficial Use: Often exploited for trafficking illicit Seed, Void weaponry, unregistered Bonds, and sometimes Thaurin Line relics.
+> Codex Status: Journeys along this vector are untraceable by the Codex. Vessels may return altered, their passage marked by a subtle dimming of their Soulcredit echo. Rumors persist that logs from this route feed not the Codex, but the aberrant resonance known as the Eye of Breach.
 
 Fragment: Shipboard Journal Compilation
 
@@ -155,7 +158,6 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Core Factional Training Paths**
 
-*(Narrative Backgrounds Only – Confer No Mechanical Advantage)*
 
 **Sovereign Nexus - The Continuity Curriculum**
 *   **Curriculum Highlights:** Talisman calculus, behavioral schema bonding, Sovereign Law (Version 683.4.AR), history according to the Elaras Line.
@@ -187,7 +189,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *   **What They Never Tell You:** The communion is being archived. Every. Single. Pulse. For analysis by Nexus regulators.
 
 **Tempest Industries - The Hollow Path (Unofficial/Subversive)**
-*   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, advanced **Drone Operation** for stealth and sabotage, study of Siblings of the Black Horizon texts.
+*   **Curriculum Highlights:** Void survival, resonance disruption, reverse-engineering of attuned Seeds, Null-ritual theory, advanced drone operation for stealth and sabotage, study of Siblings of the Black Horizon texts.
 *   **Deployment Style:** Void-runner, ritual hacker, Hollow Seed courier, echo saboteur, drone swarm coordinator.
 *   **Hidden Curriculum:** Stability is stagnation. The only true state is the potential before the Bond.
 *   **Expulsion Cause:** Forming lasting, non-instrumental Bonds. Seeking Soulcredit validation. Refusing dissolution.
@@ -221,24 +223,24 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 >
 > Some arm themselves for war. Others, for remembrance. Choose wisely, for the weight of your choice is carried long after the battle ends. An Emmerant duelist chooses differently than an Ireveth gatewarden.
 
-**Classified Weapon Systems (Summary)**
+**Classified Weapon Systems (Narrative Descriptions)**
 
-| Class             | Effect                                                       | Example                                                      |
-| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| **Bonded**        | Resonates with attuned user, enhancing focus and deflecting harm; feels inert or actively resists others | Mnemonic Blade (strikes deeper when tied to emotional trauma, echoes the pain) |
-| **Glyph-Encoded** | Bypasses specific wards through elemental resonance; requires ritual alignment | Shrike Cannon (disrupts ritual shields, must be ritually recalibrated or its song fades) |
-| **Void-Infused**  | Tears through defenses with unnatural force, but deepens the user's connection to the Hollow with every strike | Ash Pulse Pike (stuns astral beings, risks tearing the Veil wider with careless use) |
-| **Spirit-Weave**  | Hums with purpose when wielded in alignment with True Will, falters or whispers warnings otherwise | Wraithroot Vineblade (warns wearer in sleep of impending dissonances, favored by Aether Dynamics) |
-| **Contractual**   | Remains inert unless the user's standing in the Codex meets its embedded oath | Debtbreaker Sidearm (locks or sends silent alarms to ACG when user falls out of contractual grace) |
-| **Conventional**  | Lacks ritual signature; reliable baseline gear               | Union-Issue Pistol, Breach Hammer (effective, but leaves no echo beyond the physical) |
+| Class             | Nature & Reputation                                                                    | Example                                                      |
+| ----------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| **Bonded**        | These weapons resonate deeply with an attuned wielder, seeming to sharpen their resolve and turn aside incoming threats. To others, they feel inert or may actively resist an unbonded touch. | Mnemonic Blade (said to strike deeper when its wielder is connected to profound emotional trauma, echoing the pain) |
+| **Glyph-Encoded** | Crafted to bypass specific protective wards through principles of elemental resonance; their efficacy often depends on careful ritual alignment by the wielder. | Shrike Cannon (known for its ability to disrupt ritual shields, though its potent song is said to fade if not ritually recalibrated) |
+| **Void-Infused**  | Imbued with unnatural energies, these weapons can sunder defenses with terrifying force, yet each use is rumored to draw the wielder closer to the Hollow. | Ash Pulse Pike (capable of momentarily overwhelming astral beings, but careless use risks further tearing the fabric of the Veil) |
+| **Spirit-Weave**  | These items are said to hum with purpose when wielded by someone in alignment with their True Will, but may falter or whisper warnings if their bearer strays. | Wraithroot Vineblade (reputed to warn its wearer in their sleep of impending spiritual dissonances, and is favored by Aether Dynamics) |
+| **Contractual**   | Such items reportedly remain inert unless the wielder's standing within the Codex meets the conditions of an oath embedded within the object itself. | Debtbreaker Sidearm (rumored to lock itself or send silent alarms to the Astral Commerce Group if its user falls out of contractual grace) |
+| **Conventional**  | These weapons lack any discernible ritual signature, serving as reliable, if unremarkable, baseline gear. | Union-Issue Pistol, Breach Hammer (effective in a purely physical sense, but their use leaves no echo beyond the material impact) |
 
-**Armor Class Examples**
+**Armor Examples (Narrative Descriptions)**
 
-*   **Bondweave Mantle**: Redistributes harm between bonded allies, sharing the weight of impact
-*   **Rainthread Vestment**: Absorbs ambient grief, shields against emotional manipulation
-*   **Voidshroud Drape**: Phases briefly through reality—but invites the Hollow's gaze with prolonged use
-*   **Urban Riot Carapace**: Conventional crowd-control plate, requires no Soulcredit attunement
-*   **Ley-Weave Cloak:** Doesn't absorb damage, but subtly redirects hostile energy patterns into the ambient ley field (requires attunement, may cause local distortions if overloaded, common among Aether Dynamics field agents).
+*   **Bondweave Mantle**: Said to redistribute the burden of harm between bonded allies, allowing them to share the weight of an impact.
+*   **Rainthread Vestment**: Woven with materials that reputedly absorb ambient grief, offering a shield against some forms of emotional manipulation.
+*   **Voidshroud Drape**: Rumored to allow the wearer to phase briefly out of sync with reality, though such an act is said to invite the Hollow's dangerous gaze with prolonged use.
+*   **Urban Riot Carapace**: Conventional crowd-control plate, functioning irrespective of Soulcredit standing.
+*   **Ley-Weave Cloak:** This cloak isn't designed to absorb direct damage; instead, it is believed to subtly redirect hostile energy patterns into the ambient ley field. Attunement is necessary for this effect, and overloading it may cause local distortions. Such cloaks are commonly seen among Aether Dynamics field agents.
 
 **Excerpt: Combat Tribunal Memo – Incident 447.Nimbus**
 
@@ -264,11 +266,11 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 | Type               | Description                                              | Effect on the World                                          |
 | ------------------ | -------------------------------------------------------- | ------------------------------------------------------------ |
-| **Soulcredit**     | Your public record of spiritual debt/credit; your echo   | Affects access, surveillance, legal standing, civic trust    |
-| **Talismans**      | Elemental markers (Spark, Drip, Breath, Grain) derived from ritually **Attuned Seeds** or other sources. | Power rituals, fuel resonant gear, carry social weight.      |
-| **Raw Seeds**      | Unstable, unaligned potential. Degrade over cycles.      | Must be ritually attuned to an element before safe/effective use. Using Raw Seeds directly often incurs Void. |
-| **Hollow Seeds**   | Illicit energy from fractured Bonds or forbidden rituals; or Raw Seeds that have degraded. | Fuel Voidtech, bypass Codex scrutiny, invite corruption.      |
-| **Will Offerings** | Rare—unique acts of sacrifice or profound intent         | May sway the Codex's echo or leave a lasting mark on the Weave |
+| **Soulcredit**     | Your public record of spiritual debt/credit.             | Affects access, surveillance, legal standing, civic trust.   |
+| **Talismans**      | Elemental markers (Spark, Drip, Breath, Grain) derived from ritually attuned Seeds or other sources. | Used to power rituals, fuel resonant gear, and carry social weight. |
+| **Raw Seeds**      | Unstable, unaligned potential. They degrade over cycles.   | Must be ritually attuned to an element before they can be safely or effectively used. Using Raw Seeds directly often incurs Void. |
+| **Hollow Seeds**   | Illicit energy from fractured Bonds or forbidden rituals; or Raw Seeds that have degraded. | Can fuel Voidtech, bypass Codex scrutiny, and invite corruption. |
+| **Will Offerings** | Rare—unique acts of sacrifice or profound intent.        | May sway the Codex's echo or leave a lasting mark on the Weave. |
 
 **Excerpt: Marketplace Ritual Broker (Arcadia)**
 
@@ -276,7 +278,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Codex Advisory Note (Factional Memorandum)**
 
-> “Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly Attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual.”
+> “Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual.”
 
 Sovereign Nexus Motto: *Law is Bond. The Void is Real. All Acts Count.*
 
@@ -396,11 +398,6 @@ Ruling: Broker declared Spiritually Bankrupt. Assets seized by ACG restructuring
 
 > When the rites failed to echo, when the offerings lay inert upon the altars, we learned it was not numbers that mattered, but weight. Some offerings weighed too little, empty gestures lacking intent. Some Wills pulled too far, tearing the Weave instead of shaping it. From that lesson, the Codex changed. It no longer merely counted the toll — it learned to listen for the break, for the silence where resonance should be.
 
-<!--
----
-*Story Vignettes Section Remains Unchanged*
----
--->
 ## SECTION XI: Echo Children - The Ones Rewritten
 
 *Document Type: Restricted Anthropological Study (Excerpt)*
@@ -418,32 +415,6 @@ These individuals perceive the world differently:
 The Sovereign Nexus classifies them under **Codex Status Zeta‑Oblique**: monitored, studied, sometimes utilized as living sensors for temporal instability or Void incursions, but never fully trusted. Factional interest varies: Arcane Genetics seeks to replicate their resilience, mapping their unique neural pathways. The Unified Hand studies their capacity for enduring spiritual trauma. Tempest Industries whispers they are the first true citizens of the Hollow Age, liberated from linear causality. Freeborn networks often shelter them, recognizing a shared state of being outside the Codex's neat lines. They are walking reminders that the Codex, and reality itself, can be rewritten.
 
 Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Story Vignettes
 
@@ -517,9 +488,63 @@ Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
 > You nod. “Tonight we decide who it chooses.”
 > The apartment hums, waiting.
 
-------
+## 8 ▸ **Bumming around Aeonisk Prime**
 
-*End of sampler. Additional vignettes may be appended as the Codex unfolds.*
+The hum of Aeonisk Prime was a lie Kaelen had learned to love. It was a sound of absolute control, a perfectly tuned chord played by a civilization that had mistaken harmony for truth. It emanated from the crystalline ley-conductors that webbed the alabaster spires, from the silent glide of Choir-class ferries overhead, and from the million hushed affirmations of citizens checking their Soulcredit on public kiosks. To everyone else, it was the sound of peace. To Kaelen, it was the resonant frequency of a cage.
+
+He sat cross-legged in the shadow of a gargantuan statue of Matriarch Aurora, his back against the cold, smooth plasteel. His clothes, a patchwork of frayed synth-weaves, were threadbare but clean. Before him, on a stained but carefully folded piece of sailcloth, lay his world: a set of obsidian carving tools, a cracked whisper wax tablet, and a single, unattuned Raw Seed that pulsed with a faint, chaotic light. It was a sphere of pure potential, a concept so antithetical to the meticulously Bonded and recorded lives around him that it felt like a shout in a library.
+
+Kaelen was a ghost in the machine, a Freeborn adherent to the Fractal Praxis living like a beggar-monk in the heart of the Sovereign Nexus. The Praxis taught that the universe’s grandest truths were self-similar, repeating in the smallest of patterns. To understand the lie of the Nexus, one didn’t need to storm the Codex Cathedral; one only had to watch the morning commute. He watched the Bond-paired couples in their shimmering Spark-couture, their steps so synchronized they barely disturbed the mnemonic mist that clung to the plazas. Their Bonds were visible to his trained eye—shimmering amber ropes of fealty, passion, and debt tying them not just to each other, but to their factions, their lineages, and the all-seeing ledger of the Codex. They were beautiful. They were predictable. They were trapped.
+
+His only companion, a Dustling Drone he called Static, whirred quietly at his side, its single optical sensor blinking with placid loyalty. Theirs was a Bond of simple utility and shared solitude, an absurdity to the grand spiritual economy of the Nexus. A Freeborn with only one Bond, and to a mundane custodian bot? It was a joke that had long lost its novelty to the passing citizens, who now simply averted their eyes, their own Soulcredit a shield against his unformatted existence.
+
+"Filter's clogged again, Kae," Static buzzed, its voice a low thrum of synthesized air. "The ambient grief quotient in this plaza is… high. Fraying my incense matrix."
+
+Kaelen grunted, rolling the Raw Seed in his palm. The unstable energy felt warm, alive. “Grief is a commodity here, Static. They bottle it as Dripmist for the tourists. Let’s find you a new filter.”
+
+He gathered his few belongings, tucked the Seed into a lead-lined pouch, and rose. Static hovered dutifully at his shoulder as he navigated the immaculate concourse. They passed a kiosk where a young woman with the Halessan family crest tattooed on her wrist was having her ledger reviewed.
+
+“Soulcredit: +3,” the kiosk chimed pleasantly.“Will integrity: stable. No pending reviews.”
+
+Kaelen smirked. Stable. The word they used for a securely fastened bolt.
+
+The Vending Node 92B was an automated alcove gleaming with sterile light, offering everything from Breathwater Flasks to pre-packaged Bondcake Slices. Kaelen ignored them all, interfacing with the commerce plate.
+
+**“Present Soulcredit or elemental talisman for transaction,”** the node’s voice stated, devoid of warmth.
+
+Kaelen reached into his pouch, bypassing the glittering Sparksticks and Flavorglyph Strips. He produced a Talisman Blank, a smooth, unattuned piece of ritual substrate. “I offer this.”
+
+**“Item unrecognized. Potential is not currency. Please present sanctioned tender.”**
+
+“Not yet, it isn’t,” Kaelen murmured. He took one of his obsidian tools and, with swift, practiced motions, began carving into the blank. He didn’t carve a standard glyph of value. He etched a fractal—a dizzying, self-replicating pattern of interlocking lines. It was a core concept of the Praxis: a glyph of recursive need, a visual prayer that folded in on itself infinitely. He was not offering a thing of value; he was offering the *idea* of value itself.
+
+He slid the newly carved talisman into the slot. The node hummed, its internal logic struggling with the paradox. After a long moment, it spat out a small, mesh-like Drip-filter. **“Transaction… logged. Resonance… irregular. Have a harmonious cycle.”**
+
+As Kaelen took the filter, a shadow fell over him. “Resonance irregularity. Funny how that follows you, Unbound.”
+
+He didn’t need to turn. The voice was clipped, armored in authority. He recognized the hum of Pantheon Security-issue armor. He turned slowly to face Warden Ireveth, her face a mask of stern duty, the crest of her line—a stylized spire—etched on her gorget.
+
+“Warden,” Kaelen said, his tone deliberately mild. “Just performing a little praxis on your rigid economy.”
+
+Her eyes narrowed, scanning him from head to toe. The scanner on her wrist would be showing her his ledger: Soulcredit Null, a single anomalous Bond, Faction designation Unbound. To her, he was a walking error message.
+
+“Your presence is a disruption,” she stated flatly. “You carry un-attuned ritual gear. You form Bonds with sanitation automata. You exist in the margins, and the margins are where the Void bleeds through.”
+
+“The Void is honest, at least,” Kaelen retorted, meeting her gaze without flinching. “It doesn’t pretend to be a garden. I’m studying the cracks in the echo, Warden. It’s where the truth leaks out.”
+
+Ireveth took a step closer, her voice dropping. “There are no cracks on Aeonisk Prime. There is only the Weave, and the Will of the Nexus.”
+
+It was then that Kaelen saw it. A flicker. Not in the plaza’s humming lights, but *behind* them. In the Veil itself. A momentary, silent hiccup in the fabric of the world. It was a shade of wrongness he’d only ever read about in forbidden texts—a Void-shear, a subtle tearing of reality’s skin. It lasted less than a heartbeat, but in the reflection of Warden Ireveth’s polished visor, he saw the world ripple, just once.
+
+“Did you see that?” he asked, his voice suddenly sharp.
+
+The Warden blinked, her focus momentarily broken. “See what? Another power fluctuation from the lower spires. The technicians are lazy.” She dismissed it, her attention snapping back to him, the designated problem. “You are a loose thread, Kaelen. And I will not have you unraveling the pattern. Move along.”
+
+She turned and strode away, a pillar of certitude in a world Kaelen now knew for a fact was lying. It wasn't a power fluctuation. He had seen the pattern in its brief, horrifying absence. It was a tiny error, but the Fractal Praxis taught that an error in the seed was an error in the tree, the forest, the world.
+
+He pocketed the filter for Static. His simple task was complete, but a new, terrifying one had just begun. The hum of Aeonisk Prime sounded different now. He could hear, beneath the perfect chord, the faintest trace of a scream. He and Static melted back into the alleys of the great, beautiful, fractured city, a philosopher and his dust-bot against the coming silence.
+
+------
 
 ## Aeonisk Permissive Commercial License
 
@@ -571,9 +596,15 @@ The Trademark remains the Licensor’s property. You may use it only:
 	•	(c) in the official APCL badge (Sec. 5).
 You may not use “Aeonisk” in a company name, imprint, or product line title (e.g., “Aeonisk Studios”) without a custom license.
 
+Any distribution of Aeonisk-derived content (including digital, print, audio, or interactive formats) must include, in a visible spot (credits page, About box, README, etc.), a statement like:
+
+“Aeonisk © [Year] [Your Name]. Used under the Aeonisk Permissive Commercial License v1.0.”
+
+You don’t have to get my permission or send me anything—just include that line so folks know where it came from.
+
 ⸻
 
-5. APCL Badge
+1. APCL Badge
 
 A “Built under the APCL” badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor’s site. Badge permission may be revoked for misuse or violation of this license.
 
