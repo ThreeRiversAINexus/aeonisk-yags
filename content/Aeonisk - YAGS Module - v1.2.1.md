@@ -29,12 +29,12 @@ Aeonisk YAGS focuses on:
 It is ideal for:
 
 - GMs who love story-first design with consequence-driven mechanics.
-- Players who want their character’s choices to echo in the Astral.
+- Players who want their character's choices to echo in the Astral.
 - Groups comfortable with intimacy, ideology, and irreversible sacrifice.
 
 ### 1.2. The Core Trinity of Aeonisk
 
-- **Will:** Your purpose — not your desire, but your alignment with the world’s  hidden pattern. Following it empowers you. Betraying it breaks you.
+- **Will:** Your purpose — not your desire, but your alignment with the world's  hidden pattern. Following it empowers you. Betraying it breaks you.
 - **Bond:** A sacred, formal connection. Emotional, spiritual, sometimes political — but never casual. Bonds are the true structure of parties, not classes.
 - **Void:** The result of power without connection. Isolation made manifest. The  astral price of intention unanchored to empathy or sacrifice.
 
@@ -53,6 +53,20 @@ Aeonisk uses the core YAGS mechanics but modifies or adds the following:
 | Ritual Tools          | Requires a Primary Ritual Item (non-consumable) and a sacrificial Offering  (consumed). No offering = +1 Void, potential outcome downgrade. |
 | Tech/Enchantments     | Require significant offerings, narrative weight, and carry Void risk or spiritual cost. May interact with Soulcredit/Will. |
 | Initiative (Optional) | Agility × 4 + d20                                            |
+
+### 1.4. Birth & Origin (Biocreche Pod Gestation)
+
+All civilized Aeonisk sapients—player characters and NPCs—originate from sealed **Biocreche Pods** rather than natural birth. During gestation, the pod merges a formal **Matron Bond** between two women with their contributed Raw Seeds, forming an Echo-Seed embryo that is sculpted through mnemonic infusions. When the pod matures it opens in a public *Rite of Unveiling*, assigning Covenant Ring, first Soulcredit imprint, and lineage records.
+
+Characters with the **Freeborn / Unbound** origin are the sole exception: they may record the rare `natural` birth method, carrying a *Discordant Echo* until later harmonisation.
+
+Record a new field on every character sheet:
+
+```yaml
+birth_method: biocreche_pod   # or 'natural' for Freeborn
+```
+
+A valid Matron Bond is presumed for pod-gestated characters unless explicitly broken for story reasons.
 
 ## 2. Core YAGS Mechanics
 
@@ -263,7 +277,7 @@ Formal, mutual metaphysical connections based on ritual or oath. The backbone of
 
 ### 3.4. True Will
 
-Your soul’s sacred trajectory or purpose. Not a motto, but a metaphysical path.
+Your soul's sacred trajectory or purpose. Not a motto, but a metaphysical path.
 
 - **Declaration:** Starts undefined. Declared mid-play through insight, ritual, or character growth.
 - **Alignment:** Acting *in* alignment grants +1 to *all* Willpower-based rolls.
@@ -470,7 +484,7 @@ The Margin Outcome Table covers the raw mechanical results. For immediate narrat
 
 - Sparks of uncontrolled charge dance around runes.
 - Sigils or ritual tools crack, losing potency for a moment.
-- Nearby creatures are swept by an emotional echo, reliving someone else’s memory.
+- Nearby creatures are swept by an emotional echo, reliving someone else's memory.
 - A minor spirit stirs in response, hinting at future complications.
 - Bonds strain or pulse painfully, testing PC connections.
 - Ritual intent inverts—healing inflicts pain, wards invite intrusion.
@@ -504,7 +518,7 @@ The Margin Outcome Table covers the raw mechanical results. For immediate narrat
 
 ### 6.5. Ritual Library v1 (Examples)
 
-*(See Appendix 2 for full list and template). Tag each ritual entry with a subdomain (e.g. `ritual_healing`, `ritual_binding`, `ritual_scrying`, `ritual_snare`) so it’s easy to index.*
+*(See Appendix 2 for full list and template). Tag each ritual entry with a subdomain (e.g. `ritual_healing`, `ritual_binding`, `ritual_scrying`, `ritual_snare`) so it's easy to index.*
 
 **Minor (Threshold 16):**
 
@@ -729,13 +743,13 @@ Mnemonic Blade, Shrike Cannon, Ash Pulse Pike (+2 Void on crit), Compact Drone H
 
 ### 9.3. Aeonisk Currency System (Detailed)
 
-*“You don’t trade money. You transfer charged energy.”*
+*“You don't trade money. You transfer charged energy.”*
 
 ---
 
 #### Core Principles
 
-No abstract “coins” or “notes.” Every transaction moves elemental charge stored in **talismans**. Spending siphons energy **to** the recipient or ritual, not **from** the item itself. Empty talismans can be **recharged** at leylines or **sacrificed** in a ritual to permanently release their remaining potential.
+No abstract "coins" or "notes." Every transaction moves elemental charge stored in **talismans**. Spending siphons energy **to** the recipient or ritual, not **from** the item itself. Empty talismans can be **recharged** at leylines or **sacrificed** in a ritual to permanently release their remaining potential.
 
 ---
 
@@ -777,13 +791,13 @@ No abstract “coins” or “notes.” Every transaction moves elemental charge
 
 #### Quick Notes
 
-* **No fixed “exchange rate”:** All talismans trade energy → energy, but local markets set rates dynamically.
+* **No fixed "exchange rate":** All talismans trade energy → energy, but local markets set rates dynamically.
 
 * **Attunement required:** Only attuned Seeds (Spark, Drip, Grain, Breath) function as stable currency.
 
 * **Raw vs Hollow:** Raw Seeds must be attuned before use; unattended, they degrade into Hollows (black-market energy, high risk).
 
-* **GM fiat:** Feel free to reflavor or adjust relative scarcity per node or story beats—the toolkit above simply lets everyone speak the same “currency language.”
+* **GM fiat:** Feel free to reflavor or adjust relative scarcity per node or story beats—the toolkit above simply lets everyone speak the same "currency language."
 
 #### Soulcredit Interaction
 
