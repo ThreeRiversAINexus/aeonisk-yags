@@ -1,5 +1,11 @@
-THIS SHOULD BE A LINTER ERROR# Aeonisk Character Examples
+# Aeonisk Character Examples
 # This file contains example character sheets for reference.
+
+default_birth_method: biocreche_pod
+birth_methods:
+  - biocreche_pod
+  - natural
+matron_bond_required: true
 
 characters:
   - character_name: "Kaelia Virash"
@@ -7,6 +13,7 @@ characters:
     campaign: "Spiral Strand Severance"
     game_master: ""
     creation_date: "2025-05-17"
+    birth_method: biocreche_pod
 
     # YAGS Level & Pools
     character_level_type: "Skilled"
@@ -92,12 +99,12 @@ characters:
     advantages:
       - name: "Ritual Savant"
         cost_level: 3 # Point cost for the advantage
-        description: "Once per session, treat a d20 roll as ‘0’ (no fumble risk) for a non-combat ritual."
+        description: "Once per session, treat a d20 roll as '0' (no fumble risk) for a non-combat ritual."
 
     disadvantages:
       - name: "Veil Sensitivity"
         cost_level: -2 # Points gained from the disadvantage
-        description: "Suffers –1 penalty to non-ritual rolls when Void ≥5."
+        description: "Suffers -1 penalty to non-ritual rolls when Void ≥5."
     
     # Aeonisk Specific Mechanics (example values)
     aeonisk_data:
@@ -125,6 +132,7 @@ game_master: GPT-Aeonisk
 creation_date: 2025-05-20
 experience_points_total: 0
 experience_points_spent: 0
+birth_method: natural
 
 character_level_type: Skilled
 point_pool_priority:
@@ -202,13 +210,14 @@ equipment:
 
 notes: >
   Tavros acts in silence and precision. He is not the public face of the operation —
-  that’s Lady Alvara. But he enforces deals, takes the spiritual risk, and gets his hands dirty so she doesn’t have to.
+  that's Lady Alvara. But he enforces deals, takes the spiritual risk, and gets his hands dirty so she doesn't have to.
 
  character_name: "Vere Soltra"
   player_name: ""
   campaign: "Ember Vault One-Shot"
   game_master: "GPT-Aeonisk"
   creation_date: "2025-05-21"
+  birth_method: biocreche_pod
 
   character_level_type: "Skilled"
   point_pool_priority:
@@ -283,7 +292,7 @@ notes: >
   advantages:
     - name: "Echoed Memory – Dierin Soltra (Bond)"
       cost_level: 2
-      description: "+2 to one ritual per session. Bond burns if ritual fails by ≤4. +1 Soak while defending Dierin’s echo locus."
+      description: "+2 to one ritual per session. Bond burns if ritual fails by ≤4. +1 Soak while defending Dierin's echo locus."
 
   disadvantages:
     - name: "Unoffered Will"
@@ -303,7 +312,7 @@ notes: >
         benefit: "Burned. Echo lingers as phantom tether."
     primary_ritual_item:
       name: "Personal Blood Sigil"
-      description: "Used to anchor emergency rites. Tied to Vere’s Will."
+      description: "Used to anchor emergency rites. Tied to Vere's Will."
       effects_if_lost: "+2 Void to all rituals until replaced. Cannot stabilize Seeds."
     offerings_carried:
       - offering_name: "None"
@@ -320,6 +329,7 @@ player_name: ""
 campaign: "Liturgy of Embers"
 game_master: ""
 creation_date: "2025-05-21"
+birth_method: biocreche_pod
 
 character_level_type: "Skilled"
 point_pool_priority:
@@ -391,4 +401,4 @@ current_void: 0
 bond_slots: 4
 
 notes: >
-  Vehalin Halessan is a Tribunal Liaison of the Breath Line, wielding Charm and Guile like sacred instruments. She knows the Seer’s record better than he does — because she once changed it.
+  Vehalin Halessan is a Tribunal Liaison of the Breath Line, wielding Charm and Guile like sacred instruments. She knows the Seer's record better than he does — because she once changed it.
