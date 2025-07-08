@@ -10,9 +10,16 @@ Clearance: Civilian Circulation
 
 Aeonisk is not a world defined by land or flag. It is shaped by memory, Bond, and consequence. Every action is recorded in the spiritual substrate of the Codex, the omnipresent system of record and judgment that governs interstellar society. Will is power, Bond is law, and Void is what waits when either breaks.
 
-This lorebook is not a textbook. It is a compilation of public documents, recovered fragments, leaked correspondences, folk rituals, tribunal records, and astronavigation logs. Each section reveals part of Aeonisk’s world not through theory, but through usage. You will not find a glossary here. You will find how words are lived.
+This lorebook is not a textbook. It is a compilation of public documents, recovered fragments, leaked correspondences, folk rituals, tribunal records, and astronavigation logs. Each section reveals part of Aeonisk's world not through theory, but through usage. You will not find a glossary here. You will find how words are lived.
 
 Let this be your entry into the living archive.
+
+### Birth & Origin: Biocreche Pod Gestation
+
+1. **Biocreche Default** – All civilized Aeonisk sapients (excluding Freeborn) are gestated and "born" in sealed Biocreche Pods that fuse two women's Matron Bond and Raw Seeds into an Echo-Seed embryo, sculpted via mnemonic infusions.
+2. **Matron Bond** – A formal Kinship ritual between two women whose oaths and Soulcredit fund and authorize the pod gestation. Each Matron contributes one Raw Seed, ensuring balanced heritage.
+3. **Pod Ceremony** – Upon maturity, the pod opens in a public Rite of Unveiling: glyph-burning, Covenant Ring assignment, and first Soulcredit imprint.
+4. **Freeborn Exception** – Individuals rejecting all Kinship Bonds—or born outside Nexus influence—undergo natural pregnancy and birth, carrying a *Discordant Echo* until later harmonization.
 
 —
 
@@ -73,7 +80,7 @@ Source: First-Cycle Bonding Curriculum, Nexus Academy
 
 Title: *What Does It Cost to Be Seen?*
 
-Instructor’s Voice:
+Instructor's Voice:
 
 > Every action is a ritual. Every ritual leaves an imprint. The Codex does not judge your heart. It observes your record.
 >
@@ -81,11 +88,11 @@ Instructor’s Voice:
 
 Example Insert: Civic Exchange Transcript (Public Market – Aeonisk Prime)
 
-> Vendor: “One bonded ration. Your standing is clear?”
+> Vendor: "One bonded ration. Your standing is clear?"
 >
-> Customer: “My ledger shows +1.”
+> Customer: "My ledger shows +1."
 >
-> Vendor: “Good. Bond confirmed. Take two — you’re nourishing more than yourself.”
+> Vendor: "Good. Bond confirmed. Take two — you're nourishing more than yourself."
 
 Note from Codex Officer Training Manual:
 
@@ -108,11 +115,11 @@ Excerpt:
 > Travel between core worlds is not a matter of simple propulsion; it is a profound act of attunement. Ritual astronavigation, often demanding considerable skill in piloting through treacherous ley-currents, requires a deep alignment with the interplanetary ley grid. This grid is maintained through harmonics radiated from sanctified planetary nodes, frequently overseen by those of the Ossai Line.
 >
 > Not all ships may enter the slipstream. Passage necessitates:
-> — A Resonance Aligner calibrated to the pilot’s Soulcredit standing.
+> — A Resonance Aligner calibrated to the pilot's Soulcredit standing.
 > — A bonded ley-reader with Dream Ring training (a specialization often found among the Nymir Line) enabling them to interpret and navigate the psychic hazards of the Veil.
 > — An Astral lodestone, typically a fossilized Seed fragment, itself carefully attuned to the intended route)
 
-Example Insert: Pilot’s Invocation – The Breath Cut
+Example Insert: Pilot's Invocation – The Breath Cut
 
 > "By oath and Will, we cross the Breath. Let no forgotten Bond echo behind us, lest the stars refuse our passage."
 
@@ -147,7 +154,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *Document Type: Multi-source composite – curriculum excerpts, propaganda leaflets, personal testimony*
 *Source: Codex Education Repository, Interfactional Public Access Feed*
 
-**Title: “You Were Not Raised. You Were Shaped.”**
+**Title: "You Were Not Raised. You Were Shaped."**
 *(Excerpt from Sovereign Nexus Curriculum: Continuity Cohort Orientation)*
 
 > There are no idle youths in Aeonisk. Only unaligned Wills awaiting convergence.
@@ -164,7 +171,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *   **Deployment Style:** Embedded advisor, Will auditor, sanctum warden, Tribunal clerk.
 *   **Hidden Curriculum:** Obedience must be shaped like elegance. Control is continuity.
 *   **Expulsion Cause:** Unsanctioned ritual logic. Sovereign impersonation. Questioning the Spiral Reconciliation's finality.
-*   **What They Never Tell You:** Even the Sovereign elite use forbidden rituals internally. You won’t be permitted their clarity, only their reflection.
+*   **What They Never Tell You:** Even the Sovereign elite use forbidden rituals internally. You won't be permitted their clarity, only their reflection.
 
 **Arcane Genetics - Bio-Ascension Protocols**
 *   **Curriculum Highlights:** Fleshcrafting labs under Vireya Line supervision, Will-to-Form modulation, hybrid talisman compatibility studies, Seed germination ethics (as defined by ArcGen).
@@ -201,11 +208,11 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *   **Deployment Style:** Burner, blackout ritualist, rogue nexus-faker, smuggler, mirror traitor.
 *   **Hidden Curriculum:** You will outlast your myth, or it will outlast you. Trust is a luxury paid for by others.
 *   **Expulsion Cause:** You were never enrolled — only discovered and sometimes tolerated. Betraying the network's anonymity.
-*   **What They Never Tell You:** The unbound network keeps score too. You just can’t see the ledgers, but the favors accrue weight.
+*   **What They Never Tell You:** The unbound network keeps score too. You just can't see the ledgers, but the favors accrue weight.
 
-**Insert: A Whisper from the Underground Zine \*Break Your Bond Before It Breaks You\***
+**Insert: A Whisper from the Underground Zine *Break Your Bond Before It Breaks You***
 
-> “They say the Sovereign shapes your Will. But what if your Will doesn’t bend? Some of us remember what it means to be unformatted. We weren’t educated. We were trained to forget. So now we write it back into the glyphs — our own curriculum, in stolen Sparks and defiant silence. Find us where the Codex signal weakens.”
+> "They say the Sovereign shapes your Will. But what if your Will doesn't bend? Some of us remember what it means to be unformatted. We weren't educated. We were trained to forget. So now we write it back into the glyphs — our own curriculum, in stolen Sparks and defiant silence. Find us where the Codex signal weakens."
 
 *(Additional Faction Paths like Pantheon Security, Fractal Praxis, House of Vox, etc., can be detailed similarly if desired for deeper world-building).*
 
@@ -216,7 +223,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *Document Type: Combat Readiness Catalog (Youth Tier III – Restricted)*
 *Source: Codex Arsenal Primer – Approved for Tactical Instruction Use*
 
-**Title: “What You Carry Speaks Louder Than You Do”**
+**Title: "What You Carry Speaks Louder Than You Do"**
 *(Introductory brief – Sovereign Defense Lecture, Sanctum 14)*
 
 > Weapons in Aeonisk are not tools. They are echoes. Every blade you wield, every talisman you bond, every drone you awaken — each reflects your Will and stains your Echo in the Codex.
@@ -244,11 +251,11 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Excerpt: Combat Tribunal Memo – Incident 447.Nimbus**
 
-> “The accused [Designation Withheld, Karsel Line suspected] carried a Voidcradle anti-ritual bot. Illegally modified. When questioned, they claimed it was for ‘self-defense.’
+> "The accused [Designation Withheld, Karsel Line suspected] carried a Voidcradle anti-ritual bot. Illegally modified. When questioned, they claimed it was for 'self-defense.'
 >
 > But the Codex recorded no imminent threat. Only intent, sharp and cold.
 >
-> Verdict: Soulcredit ledger remains unchanged. Item absorbed into Nexus Arsenal. Must seek purification rites within 1 cycle to cleanse the lingering resonance.”
+> Verdict: Soulcredit ledger remains unchanged. Item absorbed into Nexus Arsenal. Must seek purification rites within 1 cycle to cleanse the lingering resonance."
 
 ------
 
@@ -257,7 +264,7 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 *Document Type: Ritual Resource Ledger – Standard Educational Copy*
 *Source: Codex Division: Trade and Talismanic Flow*
 
-**Title: “Talismans, Spark, and the Cost of Your Echo”**
+**Title: "Talismans, Spark, and the Cost of Your Echo"**
 
 > Money is memory made manifest.
 > Talismans are not mere tokens — they are containers of meaning, harvested from emotion, aligned with planetary flows, and exchanged with spiritual consequence. The weight of your transactions is felt in the Codex. Handling Spark feels like contained static, waiting to leap. Drip carries the cool weight of unshed tears. Breath is a held note, vibrating. A Hollow Seed is a vacuum, pulling warmth from your palm.
@@ -274,11 +281,11 @@ Astral Commerce Group (ACG) Motto: *Debt is Structure. Structure is Value.*
 
 **Excerpt: Marketplace Ritual Broker (Arcadia)**
 
-> “You want this bonded graft? Bring me a Spark Talisman. One that remembers something *real*, something with weight. None of that prefab grief sludge synthesized for the masses.”
+> "You want this bonded graft? Bring me a Spark Talisman. One that remembers something *real*, something with weight. None of that prefab grief sludge synthesized for the masses."
 
 **Codex Advisory Note (Factional Memorandum)**
 
-> “Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual.”
+> "Never accept talismans or Seeds from unknown origins. If their hum feels wrong, dissonant, they may be Hollow, or worse, a Raw Seed masquerading as attuned. A Raw Seed's touch can stain your own spiritual matrix if mishandled, and using one in place of a properly attuned Seed invites disaster. Ensure all Seeds are ritually verified before integration into critical systems or personal ritual."
 
 Sovereign Nexus Motto: *Law is Bond. The Void is Real. All Acts Count.*
 
@@ -293,17 +300,17 @@ Clearance: Youth Tier III (Public Circulation)
 ### Core Planets of Aeonisk Interstellar Civilization
 
 1.  **Aeonisk Prime (Homeworld)**
-    • Seat of the Sovereign Nexus and the Codex Cathedral. Dominant Lines: Elaras, Halessan, Ireveth.
-    • Spider‑webbed with sanctified ley networks & ancestral archives of the Osiris and Isis Aeons.
-    • World motto: *“All Acts Count.”*
+     • Seat of the Sovereign Nexus and the Codex Cathedral. Dominant Lines: Elaras, Halessan, Ireveth.
+     • Spider‑webbed with sanctified ley networks & ancestral archives of the Osiris and Isis Aeons.
+     • World motto: *"All Acts Count."*
 2.  **Arcadia**
-    • Lush, biotech‑driven biosphere; gene‑temples & Seed arboreta dot its rain‑hued jungles. Strong Arcane Genetics presence, many Vireya Line adepts.
-    • Partially governed (by treaty) by Arcane Genetics (Bio‑Ascension Protocols).
-    • Viewed as the “living laboratory” of the Nexus — pilgrims arrive hungry for new forms, leaving offerings of old ones behind.
+     • Lush, biotech‑driven biosphere; gene‑temples & Seed arboreta dot its rain‑hued jungles. Strong Arcane Genetics presence, many Vireya Line adepts.
+     • Partially governed (by treaty) by Arcane Genetics (Bio‑Ascension Protocols).
+     • Viewed as the "living laboratory" of the Nexus — pilgrims arrive hungry for new forms, leaving offerings of old ones behind.
 3.  **Nimbus**
-    • Storm‑lashed gas‑giant moon ringed by sky‑cities & cauldron‑cloud archipelagoes. Significant Freeborn population, House of Vox broadcast towers, rumored Tempest cells.
-    • Freeborn merchant clans, rogue engineers, Vox broadcast temples vie for air‑space. Nymir Line influence palpable in surveillance networks.
-    • Technomagical hothouse where black‑market Seed‑fusion experiments spark blue lightning against perpetual twilight. Suspected primary node for the Eye of Breach.
+     • Storm‑lashed gas‑giant moon ringed by sky‑cities & cauldron‑cloud archipelagoes. Significant Freeborn population, House of Vox broadcast towers, rumored Tempest cells.
+     • Freeborn merchant clans, rogue engineers, Vox broadcast temples vie for air‑space. Nymir Line influence palpable in surveillance networks.
+     • Technomagical hothouse where black‑market Seed‑fusion experiments spark blue lightning against perpetual twilight. Suspected primary node for the Eye of Breach.
 
 ### Ley‑Synced Trade Routes (Basic Pilgrim Guide)
 
@@ -315,20 +322,20 @@ Clearance: Youth Tier III (Public Circulation)
 | **Binding Arc**   | Tri‑leg circuit (Aeonisk → Arcadia → Nimbus → Aeonisk) | Diplomatic convoys, pilgrimage fleets                 | Choir‑linked commerce; rituals at each port required to rebalance crew resonance |
 | **Unstrung Path** | ???                                                    | Unknown                                               | Rumoured route beyond Outer Beacon Σ; whispers say it requires a Voidcore engine & a Bond willingly broken by one of the Xalith Line |
 
-> **Smuggler’s Maxim:** “The Hollow Vector is for shadows seeking silence. The Breath Cut is for ghosts wanting to be heard.”
+> **Smuggler's Maxim:** "The Hollow Vector is for shadows seeking silence. The Breath Cut is for ghosts wanting to be heard."
 
 **Why Most Freighters Break Via Arcadia**
-Arcadia’s biotech customs offer “soft‑laundering” of cargo glyph‑signatures, letting merchants mask true origin before slipping to Nimbus. Soulcredit audits reset if the offering is sufficient, Seeds bleach to neutral, and stories change shape like Arcadian flora.
+Arcadia's biotech customs offer "soft‑laundering" of cargo glyph‑signatures, letting merchants mask true origin before slipping to Nimbus. Soulcredit audits reset if the offering is sufficient, Seeds bleach to neutral, and stories change shape like Arcadian flora.
 
 **Why Brave (or Foolish) Pilots Still Fly the Breath Cut**
 Legend. Survive the Cut, and your name echoes through dock‑cantinas—worth more than any ledger. Just mind the Vox arrays; they record your song and sell the remix, with or without your consent.
 
 **Ley‑Synced Star Navigation Primer**
-Ley lines radiate past atmospheres, braiding into astral slipstreams. Pilots don’t chart coordinates—they attune intent, offering Will to the Weave. Miss the ritual harmony, let the Offering fall short, and a ship may phase into a collapsed timeline or arrive at tribunal before the crime is committed. A Resonance Aligner, Ley‑Reader (or fossilized Seed astrolith) is mandatory to even attempt the passage.
+Ley lines radiate past atmospheres, braiding into astral slipstreams. Pilots don't chart coordinates—they attune intent, offering Will to the Weave. Miss the ritual harmony, let the Offering fall short, and a ship may phase into a collapsed timeline or arrive at tribunal before the crime is committed. A Resonance Aligner, Ley‑Reader (or fossilized Seed astrolith) is mandatory to even attempt the passage.
 
 Dockside Graffito (Port Gale‑Spire, Arcadia)
 
-> “Tithe your Will, temper your Bond, and keep one eye on the Veil— the stars remember a liar, even if the Codex doesn't mark them immediately.”
+> "Tithe your Will, temper your Bond, and keep one eye on the Veil— the stars remember a liar, even if the Codex doesn't mark them immediately."
 
 ## SECTION VIII: THE ECHO IN THE STATIC – THE EYE OF BREACH
 
@@ -344,7 +351,7 @@ Protocols for containment are purely theoretical, whispered among rogue technoma
 
 ## SECTION IX: LEY FLIGHT NETWORK & INTERPLANE ROUTES
 
-**Document Type:** Navigator’s Almanac (683.AR Edition)
+**Document Type:** Navigator's Almanac (683.AR Edition)
 **Source:** Codex Division – Transit & Trade Oversight
 **Intended Use:** Licensed Slipstream Pilots, Choir‑class Quartermasters
 
@@ -358,12 +365,12 @@ Protocols for containment are purely theoretical, whispered among rogue technoma
 **Route Hazard Bulletins:**
 
 *   **Hollow Vector** resonance storms every 11 days — *pilots return older than departure clocks, their echoes frayed*.
-*   **Breath Cut** piracy up 14% — *Tempest “ghost buoys” mimic the resonance of lost Seeds to snare unwary ritual scanners*.
-*   New micro‑route **“Mother’s Whisper”** (*unlicensed*) detected between low Arcadian orbit & the Veil — *Eye of Breach issues NO‑FLY decree, citing unstable reality signatures*.
+*   **Breath Cut** piracy up 14% — *Tempest "ghost buoys" mimic the resonance of lost Seeds to snare unwary ritual scanners*.
+*   New micro‑route **"Mother's Whisper"** (*unlicensed*) detected between low Arcadian orbit & the Veil — *Eye of Breach issues NO‑FLY decree, citing unstable reality signatures*.
 
 Dockside Notice (Port Eidolon, Nimbus)
 
-> “ATTENTION DUST‑CLASS CAPTAINS: Any vessel arriving with unregistered Echo Children will be quarantined until lineage trace complete and resonance stabilized. Thank you for remembering that memory is a weapon, and some echoes are sharper than others.”
+> "ATTENTION DUST‑CLASS CAPTAINS: Any vessel arriving with unregistered Echo Children will be quarantined until lineage trace complete and resonance stabilized. Thank you for remembering that memory is a weapon, and some echoes are sharper than others."
 
 ## SECTION X: FAILURE ANNOTATIONS – SEALED TRIBUNAL CASEFILES
 
@@ -378,7 +385,7 @@ Ruling: Perpetrator memory‑blanked; site declared Living Warning – a place w
 
 *Case 105‑Ω "Seed of Glass"*
 Location: Forge‑Station K‑27 (Arcadia orbit)
-Summary: Engine‑monk, desperate, used a Raw Seed as nav‑lode; the Seed’s Will was insufficient for the passage, it hollowed mid‑jump. The ship duplicated for 0.4 sec, then reality snapped back, re‑merging the echoes.
+Summary: Engine‑monk, desperate, used a Raw Seed as nav‑lode; the Seed's Will was insufficient for the passage, it hollowed mid‑jump. The ship duplicated for 0.4 sec, then reality snapped back, re‑merging the echoes.
 Consequence: Crew holds dual, conflicting memories; Soulcredit ledgers flutter between states.
 Directive: Observation ongoing by Arcane Genetics; no second heartbeat permitted among the crew, lest the paradox deepen.
 
@@ -426,11 +433,11 @@ Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
 
 > *Sanctum‑Hive 44, modest classroom, warm Breath‑lamps humming.*
 >
-> **Instructor Varis:** “Pattern is sacred. Structure is revelation. Names *are* power—who said that?”
-> **Student chorus (half‑awake):** “Osiris, First Sovereign.”
-> **Varis:** “Good. Now open your civics tablets to Treaty of the Ten Provinces. No slides—*read* the stone coordinates; taste the geometry. When the ten ritual cities aligned their towers, what *changed*?”
-> **Student Liora (whispering):** “The sky sang.”
-> **Varis (smiling):** “Show, don’t tell, Liora—sing it for us.”
+> **Instructor Varis:** "Pattern is sacred. Structure is revelation. Names *are* power—who said that?"
+> **Student chorus (half‑awake):** "Osiris, First Sovereign."
+> **Varis:** "Good. Now open your civics tablets to Treaty of the Ten Provinces. No slides—*read* the stone coordinates; taste the geometry. When the ten ritual cities aligned their towers, what *changed*?"
+> **Student Liora (whispering):** "The sky sang."
+> **Varis (smiling):** "Show, don't tell, Liora—sing it for us."
 > Liora inhales Drip‑ink air, hums the heliac chord. The classroom lights stutter, glyphs bloom on every desk. Nobody writes a note; everyone *feels* the calendar click into place.
 
 ------
@@ -439,19 +446,19 @@ Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
 
 > *After twelve hours trapped inside the Nexus training construct.*
 >
-> Nyx blinks against laboratory glare. Dr Xara’s voice—too bright, too near: “You were only supposed to dance with projections, not *die* in them.”
-> Nyx flexes her splinted synth‑bone arm, crimson sigils pulsing. “Next time load extra rounds.”
-> “Next time,” Xara mutters, keying a soulcredit voucher. The monitor stamps **+0.3 Merit — survivability test**. Nyx doesn’t see it; she’s already scanning the ceiling for exits that aren’t there.
+> Nyx blinks against laboratory glare. Dr Xara's voice—too bright, too near: "You were only supposed to dance with projections, not *die* in them."
+> Nyx flexes her splinted synth‑bone arm, crimson sigils pulsing. "Next time load extra rounds."
+> "Next time," Xara mutters, keying a soulcredit voucher. The monitor stamps **+0.3 Merit — survivability test**. Nyx doesn't see it; she's already scanning the ceiling for exits that aren't there.
 
 ------
 
 ## 3 ▸ **Corner‑Store Kiosk, Vending Node 92B**
 
 > The Breathwater flask recognises your thumbprint, warms to body‑temp.
-> **Vendor‑Drone:** “Balance: +1 Soulcredit. Daily limit satisfied.”
+> **Vendor‑Drone:** "Balance: +1 Soulcredit. Daily limit satisfied."
 > You hesitate, eyeing the glossy Hollow Cone—black sugar, forbidden irony.
-> A child tugs your coat: “Mister, if you buy that, the mirror tags start *whispering*.”
-> You buy it anyway. The wrapper unravels into silver threads spelling *void is origin*. You tuck them into your pocket; later you’ll burn them, or maybe you won’t.
+> A child tugs your coat: "Mister, if you buy that, the mirror tags start *whispering*."
+> You buy it anyway. The wrapper unravels into silver threads spelling *void is origin*. You tuck them into your pocket; later you'll burn them, or maybe you won't.
 
 ------
 
@@ -463,29 +470,29 @@ Codex Fragment - On Scars: *Not all wounds heal clean. Some become lenses.*
 
 ------
 
-## 5 ▸ **Shipwright’s Yard – Spiral Strand Orbit**
+## 5 ▸ **Shipwright's Yard – Spiral Strand Orbit**
 
 > Scaffold lights ripple over the half‑finished *Caelum Splitter*. Seed‑drives twitch like pupae.
-> **Bondwright Olen:** “Sign here, here, and bleed *there*. Three drops—no more. The ship must know your Will but not drink it.”
+> **Bondwright Olen:** "Sign here, here, and bleed *there*. Three drops—no more. The ship must know your Will but not drink it."
 > The client presses thumb to copper seal. Glyphs crawl across the hull, spelling a name only the void can pronounce.
 > In the distance a Tempest Voidwake Cutter folds space, leaving a torn aurora that refuses to heal.
 
 ------
 
-## 6 ▸ **Illicit Zine Scrap – ‘Break Your Bond’**
+## 6 ▸ **Illicit Zine Scrap – 'Break Your Bond'**
 
 > *Corner of a bathroom mirror, freeborn district.*
-> **Graffito:** *You are not your dynasty’s mouthpiece. Bonds harvest you. Hunger proves you’re still becoming. Break your tether—walk hollow, walk free.*
+> **Graffito:** *You are not your dynasty's mouthpiece. Bonds harvest you. Hunger proves you're still becoming. Break your tether—walk hollow, walk free.*
 > Beneath the words: a tiny Hollow Seed glued with black wax, still warm.
 
 ------
 
 ## 7 ▸ **Domestic Quiet – Communion Meal**
 
-> Wren sets the Drip wine between you. No words. The bottle’s condensation sketches spiral roots on the table.
-> You break starch bread, place one fragment in the burn‑bowl. Smoke curls upward, carrying yesterday’s resentment into the vents.
-> Wren finally speaks: “Seed’s still in the bowl.”
-> You nod. “Tonight we decide who it chooses.”
+> Wren sets the Drip wine between you. No words. The bottle's condensation sketches spiral roots on the table.
+> You break starch bread, place one fragment in the burn‑bowl. Smoke curls upward, carrying yesterday's resentment into the vents.
+> Wren finally speaks: "Seed's still in the bowl."
+> You nod. "Tonight we decide who it chooses."
 > The apartment hums, waiting.
 
 ## 8 ▸ **Bumming around Aeonisk Prime**
@@ -494,51 +501,51 @@ The hum of Aeonisk Prime was a lie Kaelen had learned to love. It was a sound of
 
 He sat cross-legged in the shadow of a gargantuan statue of Matriarch Aurora, his back against the cold, smooth plasteel. His clothes, a patchwork of frayed synth-weaves, were threadbare but clean. Before him, on a stained but carefully folded piece of sailcloth, lay his world: a set of obsidian carving tools, a cracked whisper wax tablet, and a single, unattuned Raw Seed that pulsed with a faint, chaotic light. It was a sphere of pure potential, a concept so antithetical to the meticulously Bonded and recorded lives around him that it felt like a shout in a library.
 
-Kaelen was a ghost in the machine, a Freeborn adherent to the Fractal Praxis living like a beggar-monk in the heart of the Sovereign Nexus. The Praxis taught that the universe’s grandest truths were self-similar, repeating in the smallest of patterns. To understand the lie of the Nexus, one didn’t need to storm the Codex Cathedral; one only had to watch the morning commute. He watched the Bond-paired couples in their shimmering Spark-couture, their steps so synchronized they barely disturbed the mnemonic mist that clung to the plazas. Their Bonds were visible to his trained eye—shimmering amber ropes of fealty, passion, and debt tying them not just to each other, but to their factions, their lineages, and the all-seeing ledger of the Codex. They were beautiful. They were predictable. They were trapped.
+Kaelen was a ghost in the machine, a Freeborn adherent to the Fractal Praxis living like a beggar-monk in the heart of the Sovereign Nexus. The Praxis taught that the universe's grandest truths were self-similar, repeating in the smallest of patterns. To understand the lie of the Nexus, one didn't need to storm the Codex Cathedral; one only had to watch the morning commute. He watched the Bond-paired couples in their shimmering Spark-couture, their steps so synchronized they barely disturbed the mnemonic mist that clung to the plazas. Their Bonds were visible to his trained eye—shimmering amber ropes of fealty, passion, and debt tying them not just to each other, but to their factions, their lineages, and the all-seeing ledger of the Codex. They were beautiful. They were predictable. They were trapped.
 
 His only companion, a Dustling Drone he called Static, whirred quietly at his side, its single optical sensor blinking with placid loyalty. Theirs was a Bond of simple utility and shared solitude, an absurdity to the grand spiritual economy of the Nexus. A Freeborn with only one Bond, and to a mundane custodian bot? It was a joke that had long lost its novelty to the passing citizens, who now simply averted their eyes, their own Soulcredit a shield against his unformatted existence.
 
 "Filter's clogged again, Kae," Static buzzed, its voice a low thrum of synthesized air. "The ambient grief quotient in this plaza is… high. Fraying my incense matrix."
 
-Kaelen grunted, rolling the Raw Seed in his palm. The unstable energy felt warm, alive. “Grief is a commodity here, Static. They bottle it as Dripmist for the tourists. Let’s find you a new filter.”
+Kaelen grunted, rolling the Raw Seed in his palm. The unstable energy felt warm, alive. "Grief is a commodity here, Static. They bottle it as Dripmist for the tourists. Let's find you a new filter."
 
 He gathered his few belongings, tucked the Seed into a lead-lined pouch, and rose. Static hovered dutifully at his shoulder as he navigated the immaculate concourse. They passed a kiosk where a young woman with the Halessan family crest tattooed on her wrist was having her ledger reviewed.
 
-“Soulcredit: +3,” the kiosk chimed pleasantly.“Will integrity: stable. No pending reviews.”
+"Soulcredit: +3," the kiosk chimed pleasantly."Will integrity: stable. No pending reviews."
 
 Kaelen smirked. Stable. The word they used for a securely fastened bolt.
 
 The Vending Node 92B was an automated alcove gleaming with sterile light, offering everything from Breathwater Flasks to pre-packaged Bondcake Slices. Kaelen ignored them all, interfacing with the commerce plate.
 
-**“Present Soulcredit or elemental talisman for transaction,”** the node’s voice stated, devoid of warmth.
+**"Present Soulcredit or elemental talisman for transaction,"** the node's voice stated, devoid of warmth.
 
-Kaelen reached into his pouch, bypassing the glittering Sparksticks and Flavorglyph Strips. He produced a Talisman Blank, a smooth, unattuned piece of ritual substrate. “I offer this.”
+Kaelen reached into his pouch, bypassing the glittering Sparksticks and Flavorglyph Strips. He produced a Talisman Blank, a smooth, unattuned piece of ritual substrate. "I offer this."
 
-**“Item unrecognized. Potential is not currency. Please present sanctioned tender.”**
+**"Item unrecognized. Potential is not currency. Please present sanctioned tender."**
 
-“Not yet, it isn’t,” Kaelen murmured. He took one of his obsidian tools and, with swift, practiced motions, began carving into the blank. He didn’t carve a standard glyph of value. He etched a fractal—a dizzying, self-replicating pattern of interlocking lines. It was a core concept of the Praxis: a glyph of recursive need, a visual prayer that folded in on itself infinitely. He was not offering a thing of value; he was offering the *idea* of value itself.
+"Not yet, it isn't," Kaelen murmured. He took one of his obsidian tools and, with swift, practiced motions, began carving into the blank. He didn't carve a standard glyph of value. He etched a fractal—a dizzying, self-replicating pattern of interlocking lines. It was a core concept of the Praxis: a glyph of recursive need, a visual prayer that folded in on itself infinitely. He was not offering a thing of value; he was offering the *idea* of value itself.
 
-He slid the newly carved talisman into the slot. The node hummed, its internal logic struggling with the paradox. After a long moment, it spat out a small, mesh-like Drip-filter. **“Transaction… logged. Resonance… irregular. Have a harmonious cycle.”**
+He slid the newly carved talisman into the slot. The node hummed, its internal logic struggling with the paradox. After a long moment, it spat out a small, mesh-like Drip-filter. **"Transaction… logged. Resonance… irregular. Have a harmonious cycle."**
 
-As Kaelen took the filter, a shadow fell over him. “Resonance irregularity. Funny how that follows you, Unbound.”
+As Kaelen took the filter, a shadow fell over him. "Resonance irregularity. Funny how that follows you, Unbound."
 
-He didn’t need to turn. The voice was clipped, armored in authority. He recognized the hum of Pantheon Security-issue armor. He turned slowly to face Warden Ireveth, her face a mask of stern duty, the crest of her line—a stylized spire—etched on her gorget.
+He didn't need to turn. The voice was clipped, armored in authority. He recognized the hum of Pantheon Security-issue armor. He turned slowly to face Warden Ireveth, her face a mask of stern duty, the crest of her line—a stylized spire—etched on her gorget.
 
-“Warden,” Kaelen said, his tone deliberately mild. “Just performing a little praxis on your rigid economy.”
+"Warden," Kaelen said, his tone deliberately mild. "Just performing a little praxis on your rigid economy."
 
 Her eyes narrowed, scanning him from head to toe. The scanner on her wrist would be showing her his ledger: Soulcredit Null, a single anomalous Bond, Faction designation Unbound. To her, he was a walking error message.
 
-“Your presence is a disruption,” she stated flatly. “You carry un-attuned ritual gear. You form Bonds with sanitation automata. You exist in the margins, and the margins are where the Void bleeds through.”
+"Your presence is a disruption," she stated flatly. "You carry un-attuned ritual gear. You form Bonds with sanitation automata. You exist in the margins, and the margins are where the Void bleeds through."
 
-“The Void is honest, at least,” Kaelen retorted, meeting her gaze without flinching. “It doesn’t pretend to be a garden. I’m studying the cracks in the echo, Warden. It’s where the truth leaks out.”
+"The Void is honest, at least," Kaelen retorted, meeting her gaze without flinching. "It doesn't pretend to be a garden. I'm studying the cracks in the echo, Warden. It's where the truth leaks out."
 
-Ireveth took a step closer, her voice dropping. “There are no cracks on Aeonisk Prime. There is only the Weave, and the Will of the Nexus.”
+Ireveth took a step closer, her voice dropping. "There are no cracks on Aeonisk Prime. There is only the Weave, and the Will of the Nexus."
 
-It was then that Kaelen saw it. A flicker. Not in the plaza’s humming lights, but *behind* them. In the Veil itself. A momentary, silent hiccup in the fabric of the world. It was a shade of wrongness he’d only ever read about in forbidden texts—a Void-shear, a subtle tearing of reality’s skin. It lasted less than a heartbeat, but in the reflection of Warden Ireveth’s polished visor, he saw the world ripple, just once.
+It was then that Kaelen saw it. A flicker. Not in the plaza's humming lights, but *behind* them. In the Veil itself. A momentary, silent hiccup in the fabric of the world. It was a shade of wrongness he'd only ever read about in forbidden texts—a Void-shear, a subtle tearing of reality's skin. It lasted less than a heartbeat, but in the reflection of Warden Ireveth's polished visor, he saw the world ripple, just once.
 
-“Did you see that?” he asked, his voice suddenly sharp.
+"Did you see that?" he asked, his voice suddenly sharp.
 
-The Warden blinked, her focus momentarily broken. “See what? Another power fluctuation from the lower spires. The technicians are lazy.” She dismissed it, her attention snapping back to him, the designated problem. “You are a loose thread, Kaelen. And I will not have you unraveling the pattern. Move along.”
+The Warden blinked, her focus momentarily broken. "See what? Another power fluctuation from the lower spires. The technicians are lazy." She dismissed it, her attention snapping back to him, the designated problem. "You are a loose thread, Kaelen. And I will not have you unraveling the pattern. Move along."
 
 She turned and strode away, a pillar of certitude in a world Kaelen now knew for a fact was lying. It wasn't a power fluctuation. He had seen the pattern in its brief, horrifying absence. It was a tiny error, but the Fractal Praxis taught that an error in the seed was an error in the tree, the forest, the world.
 
@@ -556,11 +563,11 @@ Plain-English clarity with legally operative language.  One printed page at norm
 
 1. Definitions
 
-“Licensor” – Three Rivers AI Nexus.
-“Aeonisk Material” – all copyrighted text, art, lore, and unique expressions published by the Licensor under the APCL.
-“Your Work” – any new product, tool, game, AI model, or publication you create that incorporates or adapts Aeonisk Material.
-“Mechanics” – underlying game rules and procedures (ideas, not expression).
-“Trademark” – the word-mark “AEONISK” and associated logos.
+"Licensor" – Three Rivers AI Nexus.
+"Aeonisk Material" – all copyrighted text, art, lore, and unique expressions published by the Licensor under the APCL.
+"Your Work" – any new product, tool, game, AI model, or publication you create that incorporates or adapts Aeonisk Material.
+"Mechanics" – underlying game rules and procedures (ideas, not expression).
+"Trademark" – the word-mark "AEONISK" and associated logos.
 
 ⸻
 
@@ -574,8 +581,8 @@ The Licensor grants you a perpetual, worldwide, non-exclusive, royalty-free lice
 
 You must place the following notice in a reasonably visible location (e.g., credits page, read-me, or product listing):
 
-“This work is based on Aeonisk, created by Three Rivers AI Nexus.
-Used under the Aeonisk Permissive Commercial License (APCL).”
+"This work is based on Aeonisk, created by Three Rivers AI Nexus.
+Used under the Aeonisk Permissive Commercial License (APCL)."
 
 You may add a URL after the statement.
 
@@ -583,30 +590,30 @@ You may add a URL after the statement.
 
 3. Independence & Endorsement
 
-You may describe Your Work as “Compatible with Aeonisk.”
+You may describe Your Work as "Compatible with Aeonisk."
 You shall not state or imply that Your Work is official, licensed by, or endorsed by the Licensor unless you have a separate written agreement.
 
 ⸻
 
 4. Trademark Use
 
-The Trademark remains the Licensor’s property. You may use it only:
+The Trademark remains the Licensor's property. You may use it only:
 	•	(a) in the required attribution;
-	•	(b) to state compatibility (“Compatible with Aeonisk”); or
+	•	(b) to state compatibility ("Compatible with Aeonisk"); or
 	•	(c) in the official APCL badge (Sec. 5).
-You may not use “Aeonisk” in a company name, imprint, or product line title (e.g., “Aeonisk Studios”) without a custom license.
+You may not use "Aeonisk" in a company name, imprint, or product line title (e.g., "Aeonisk Studios") without a custom license.
 
 Any distribution of Aeonisk-derived content (including digital, print, audio, or interactive formats) must include, in a visible spot (credits page, About box, README, etc.), a statement like:
 
-“Aeonisk © [Year] [Your Name]. Used under the Aeonisk Permissive Commercial License v1.0.”
+"Aeonisk © [Year] [Your Name]. Used under the Aeonisk Permissive Commercial License v1.0."
 
-You don’t have to get my permission or send me anything—just include that line so folks know where it came from.
+You don't have to get my permission or send me anything—just include that line so folks know where it came from.
 
 ⸻
 
 1. APCL Badge
 
-A “Built under the APCL” badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor’s site. Badge permission may be revoked for misuse or violation of this license.
+A "Built under the APCL" badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor's site. Badge permission may be revoked for misuse or violation of this license.
 
 ⸻
 
@@ -618,7 +625,7 @@ A “Built under the APCL” badge is optional and royalty-free. Badge assets an
 
 7. Warranty Disclaimer & Limitation of Liability
 
-The Aeonisk Material is provided “AS IS, WITHOUT WARRANTY OF ANY KIND.”
+The Aeonisk Material is provided "AS IS, WITHOUT WARRANTY OF ANY KIND."
 IN NO EVENT shall the Licensor be liable for any indirect, special, incidental, or consequential damages arising out of this license. Some jurisdictions do not allow such exclusions; if so, the minimum allowed by law applies.
 
 ⸻
