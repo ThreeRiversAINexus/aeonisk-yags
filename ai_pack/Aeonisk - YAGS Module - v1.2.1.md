@@ -2,7 +2,7 @@
 
 *“Will is Power. Bond is Law. Void is Real.”*
 
-Version 1.2.0
+Version 1.2.1
 
 ## 1. Introduction
 
@@ -777,13 +777,13 @@ No abstract “coins” or “notes.” Every transaction moves elemental charge
 
 #### Quick Notes
 
-No fixed “exchange rate”: All talismans trade energy → energy, but local markets set rates dynamically.
+* **No fixed “exchange rate”:** All talismans trade energy → energy, but local markets set rates dynamically.
 
-Attunement required: Only attuned Seeds (Spark, Drip, Grain, Breath) function as stable currency.
+* **Attunement required:** Only attuned Seeds (Spark, Drip, Grain, Breath) function as stable currency.
 
-Raw vs Hollow: Raw Seeds must be attuned before use; unattended, they degrade into Hollows (black-market energy, high risk).
+* **Raw vs Hollow:** Raw Seeds must be attuned before use; unattended, they degrade into Hollows (black-market energy, high risk).
 
-GM fiat: Feel free to reflavor or adjust relative scarcity per node or story beats—the toolkit above simply lets everyone speak the same “currency language.”
+* **GM fiat:** Feel free to reflavor or adjust relative scarcity per node or story beats—the toolkit above simply lets everyone speak the same “currency language.”
 
 #### Soulcredit Interaction
 
