@@ -23,7 +23,7 @@
 
 | Class             | Core Effect                                   | Built‑In Cost / Risk                                         |
 | ----------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| **Bonded**        | Attuned: +1 Attack / Bypasses +2 Defense of target; Unattuned: Wielder suffers –2 to attack/defense. | Requires ritual attunement; can “bleed” if wielded by another |
+| **Bonded**        | Attuned: +1 Attack / Bypasses +2 Defense of target; Unattuned: Wielder suffers –2 to attack/defense. | Requires ritual attunement; can "bleed" if wielded by another |
 | **Glyph‑Encoded** | Attuned: Bypasses wards / +2 Defense vs specific elements; Unattuned: Wielder suffers –2 to attack/defense. May add elemental traits. | Monthly maintenance or +1 Void per degraded use              |
 | **Void‑Infused**  | +4 Damage, ignores ritual armor               | Always +1 Void; fumble may summon entity                     |
 | **Spirit‑Weave**  | +1 to rolls when action aligns with True Will | Organic; whispers in dreams, unpredictable warnings          |
@@ -36,9 +36,9 @@
 ## 2 · Weapon Catalog (Field Stats)
 
 **How to read this table:**  
-• “Key Numbers” are flat bonuses (e.g. “+5 DMG”) you add to the normal
+• "Key Numbers" are flat bonuses (e.g. "+5 DMG") you add to the normal
   YAGS damage roll (Str × Skill + d20).  
-• A dash (—) means “same as a baseline weapon of this type”; *Scales*
+• A dash (—) means "same as a baseline weapon of this type"; *Scales*
   means damage grows with your current Void score.  
 • Items marked *‡* have GM-set scaling; items marked *★* are vehicle-mounted.  
 • Abbreviations: SC = Soulcredit, DMG = damage bonus, DEF = defence bonus,
@@ -194,7 +194,7 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 
 ### Entertainment + Media
 
-- **“Ritual Fail” Holovid Disk** – Slapstick rite-gone-wrong docudrama. Youth favorite.
+- **"Ritual Fail" Holovid Disk** – Slapstick rite-gone-wrong docudrama. Youth favorite.
 - **Mini-Dance Glyph Projector** – Low-grade ley-reactive party lighting.
 - **Whisper Capsules** – Ambient dream audio. Used for trance, meditation, background.
 - **The Spiral Deck (Novice)** – Card game on Covenant Ring themes. School-banned in some zones.
@@ -205,7 +205,7 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 
 - **Bondless Thread Pin** – Lapel pin signaling spiritual solitude or mourning.
 - **Echo-Quill** – Writes intent instead of literal words. Used in confession.
-- **Voidpocket Locket** – Empty ornament. Marketed as “a reminder.”
+- **Voidpocket Locket** – Empty ornament. Marketed as "a reminder."
 - **Kiss-Twine Pack** – Bond-string tokens. Tie to sleeve/hair for interest.
 - **Ley-Stamped Facewraps** – Scarves with decorative protection glyphs. Teen fashion.
 - **Bond Tokens (x5)** – Wooden vow markers. Meant to burn, bury, or gift.
@@ -223,11 +223,11 @@ Plain-English clarity with legally operative language.  One printed page at norm
 
 1. Definitions
 
-“Licensor” – Three Rivers AI Nexus.
-“Aeonisk Material” – all copyrighted text, art, lore, and unique expressions published by the Licensor under the APCL.
-“Your Work” – any new product, tool, game, AI model, or publication you create that incorporates or adapts Aeonisk Material.
-“Mechanics” – underlying game rules and procedures (ideas, not expression).
-“Trademark” – the word-mark “AEONISK” and associated logos.
+"Licensor" – Three Rivers AI Nexus.
+"Aeonisk Material" – all copyrighted text, art, lore, and unique expressions published by the Licensor under the APCL.
+"Your Work" – any new product, tool, game, AI model, or publication you create that incorporates or adapts Aeonisk Material.
+"Mechanics" – underlying game rules and procedures (ideas, not expression).
+"Trademark" – the word-mark "AEONISK" and associated logos.
 
 ⸻
 
@@ -241,8 +241,8 @@ The Licensor grants you a perpetual, worldwide, non-exclusive, royalty-free lice
 
 You must place the following notice in a reasonably visible location (e.g., credits page, read-me, or product listing):
 
-“This work is based on Aeonisk, created by Three Rivers AI Nexus.
-Used under the Aeonisk Permissive Commercial License (APCL).”
+"This work is based on Aeonisk, created by Three Rivers AI Nexus.
+Used under the Aeonisk Permissive Commercial License (APCL)."
 
 You may add a URL after the statement.
 
@@ -250,24 +250,24 @@ You may add a URL after the statement.
 
 3. Independence & Endorsement
 
-You may describe Your Work as “Compatible with Aeonisk.”
+You may describe Your Work as "Compatible with Aeonisk."
 You shall not state or imply that Your Work is official, licensed by, or endorsed by the Licensor unless you have a separate written agreement.
 
 ⸻
 
 4. Trademark Use
 
-The Trademark remains the Licensor’s property. You may use it only:
+The Trademark remains the Licensor's property. You may use it only:
 	•	(a) in the required attribution;
-	•	(b) to state compatibility (“Compatible with Aeonisk”); or
+	•	(b) to state compatibility ("Compatible with Aeonisk"); or
 	•	(c) in the official APCL badge (Sec. 5).
-You may not use “Aeonisk” in a company name, imprint, or product line title (e.g., “Aeonisk Studios”) without a custom license.
+You may not use "Aeonisk" in a company name, imprint, or product line title (e.g., "Aeonisk Studios") without a custom license.
 
 ⸻
 
 5. APCL Badge
 
-A “Built under the APCL” badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor’s site. Badge permission may be revoked for misuse or violation of this license.
+A "Built under the APCL" badge is optional and royalty-free. Badge assets and usage guidelines are available at the Licensor's site. Badge permission may be revoked for misuse or violation of this license.
 
 ⸻
 
@@ -279,7 +279,7 @@ A “Built under the APCL” badge is optional and royalty-free. Badge assets an
 
 7. Warranty Disclaimer & Limitation of Liability
 
-The Aeonisk Material is provided “AS IS, WITHOUT WARRANTY OF ANY KIND.”
+The Aeonisk Material is provided "AS IS, WITHOUT WARRANTY OF ANY KIND."
 IN NO EVENT shall the Licensor be liable for any indirect, special, incidental, or consequential damages arising out of this license. Some jurisdictions do not allow such exclusions; if so, the minimum allowed by law applies.
 
 ⸻
@@ -312,3 +312,23 @@ For large-scale video games, officially branded products, or joint ventures, con
 Thank you for helping Aeonisk grow.
 
 — Three Rivers AI Nexus, Licensor
+
+## 8 · Consumables & Culinary Tech — Sovereign Nexus
+
+*A snapshot of everyday and prestige culinary gear now canon in Aeonisk. For full tables, mechanics, and Soulcredit-gated upgrades see **Sovereign Nexus Culinary Guide — Currency Edition (v1.0).***
+
+| Category                     | Example Items (see Guide)                                   | Typical Cost* |
+| ---------------------------- | ----------------------------------------------------------- | ------------- |
+| **Drinks**                   | Resonance Tea, Spiral Kvas, Aetherwine, Aurora Fizz, Oath Whiskey, Shadowdraft† | 2–10 Drips |
+| **Snacks & Appetisers**      | Soulcrackers, Echo-Crackers, Nebula Chips, Pulsefruit Skewers | 1–2 Drips |
+| **Desserts**                 | Bonded Chutney Tarts, Voidberry Parfait†, Promise Pudding   | 1–8 Drips |
+| **Intoxicants & Enhancers**  | Spark Mist, Ephemeral Mead, Dreamer's Draught, Leyline Elixir | 2–4 Drips / 2 Sparks |
+| **Kitchen Tech & Appliances**| PrepBot S-10, TasteDrone, Ritual AltarBot, Voidguard Hood   | 4–10 Sparks |
+
+*Cost ranges are urban-average Drip prices; see Guide for Grain/Breath/Spark equivalents and contraband Hollow Shard rates.*
+
+†Items carry Void risk, Soulcredit penalty, or are contraband (GM discretion).
+
+> **GM Tip** — Culinary consumables stack like accessories. Combine bonuses sparingly; a chef packing multiple +1 snacks should rarely exceed +3 total bonus without strong narrative justification.
+
+---
