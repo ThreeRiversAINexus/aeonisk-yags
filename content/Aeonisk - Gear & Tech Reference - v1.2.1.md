@@ -212,6 +212,25 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 - **Mirror Words Deck** – Reflective affirmation cards that change per reader.
 - **Driftcharms** – Low-grade talismans for resonance-based attraction. Party wear.
 
+## 8 · Consumables & Culinary Tech — Sovereign Nexus
+
+*A snapshot of everyday and prestige culinary gear now canon in Aeonisk. For full tables, mechanics, and Soulcredit-gated upgrades see **Sovereign Nexus Culinary Guide — Currency Edition (v1.0).***
+
+| Category                     | Example Items (see Guide)                                   | Typical Cost* |
+| ---------------------------- | ----------------------------------------------------------- | ------------- |
+| **Drinks**                   | Resonance Tea, Spiral Kvas, Aetherwine, Aurora Fizz, Oath Whiskey, Shadowdraft† | 2–10 Drips |
+| **Snacks & Appetisers**      | Soulcrackers, Echo-Crackers, Nebula Chips, Pulsefruit Skewers | 1–2 Drips |
+| **Desserts**                 | Bonded Chutney Tarts, Voidberry Parfait†, Promise Pudding   | 1–8 Drips |
+| **Intoxicants & Enhancers**  | Spark Mist, Ephemeral Mead, Dreamer's Draught, Leyline Elixir | 2–4 Drips / 2 Sparks |
+| **Kitchen Tech & Appliances**| PrepBot S-10, TasteDrone, Ritual AltarBot, Voidguard Hood   | 4–10 Sparks |
+
+*Cost ranges are urban-average Drip prices; see Guide for Grain/Breath/Spark equivalents and contraband Hollow Shard rates.*
+
+†Items carry Void risk, Soulcredit penalty, or are contraband (GM discretion).
+
+> **GM Tip** — Culinary consumables stack like accessories. Combine bonuses sparingly; a chef packing multiple +1 snacks should rarely exceed +3 total bonus without strong narrative justification.
+
+---
 
 ## Aeonisk Permissive Commercial License
 
@@ -312,23 +331,3 @@ For large-scale video games, officially branded products, or joint ventures, con
 Thank you for helping Aeonisk grow.
 
 — Three Rivers AI Nexus, Licensor
-
-## 8 · Consumables & Culinary Tech — Sovereign Nexus
-
-*A snapshot of everyday and prestige culinary gear now canon in Aeonisk. For full tables, mechanics, and Soulcredit-gated upgrades see **Sovereign Nexus Culinary Guide — Currency Edition (v1.0).***
-
-| Category                     | Example Items (see Guide)                                   | Typical Cost* |
-| ---------------------------- | ----------------------------------------------------------- | ------------- |
-| **Drinks**                   | Resonance Tea, Spiral Kvas, Aetherwine, Aurora Fizz, Oath Whiskey, Shadowdraft† | 2–10 Drips |
-| **Snacks & Appetisers**      | Soulcrackers, Echo-Crackers, Nebula Chips, Pulsefruit Skewers | 1–2 Drips |
-| **Desserts**                 | Bonded Chutney Tarts, Voidberry Parfait†, Promise Pudding   | 1–8 Drips |
-| **Intoxicants & Enhancers**  | Spark Mist, Ephemeral Mead, Dreamer's Draught, Leyline Elixir | 2–4 Drips / 2 Sparks |
-| **Kitchen Tech & Appliances**| PrepBot S-10, TasteDrone, Ritual AltarBot, Voidguard Hood   | 4–10 Sparks |
-
-*Cost ranges are urban-average Drip prices; see Guide for Grain/Breath/Spark equivalents and contraband Hollow Shard rates.*
-
-†Items carry Void risk, Soulcredit penalty, or are contraband (GM discretion).
-
-> **GM Tip** — Culinary consumables stack like accessories. Combine bonuses sparingly; a chef packing multiple +1 snacks should rarely exceed +3 total bonus without strong narrative justification.
-
----
