@@ -1,0 +1,300 @@
+"""
+Self-playing session orchestrator that manages the complete gameplay loop.
+"""
+
+import asyncio
+import json
+import logging
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any, List, Optional
+import yaml
+
+from .base import GameCoordinator, MessageType, Message
+from .dm import AIDMAgent
+from .player import AIPlayerAgent
+from .human_interface import HumanInterface
+
+logger = logging.getLogger(__name__)
+
+
+class SelfPlayingSession:
+    """
+    Orchestrates a complete self-playing game session with AI agents
+    and optional human intervention.
+    """
+    
+    def __init__(self, config_path: str):
+        self.config = self._load_config(config_path)
+        self.coordinator: Optional[GameCoordinator] = None
+        self.agents: List[Any] = []
+        self.human_interface: Optional[HumanInterface] = None
+        self.session_id: Optional[str] = None
+        self.session_data: List[Dict[str, Any]] = []
+        self.running = False
+        
+    def _load_config(self, config_path: str) -> Dict[str, Any]:
+        """Load session configuration."""
+        with open(config_path, 'r') as f:
+            if config_path.endswith('.yaml') or config_path.endswith('.yml'):
+                return yaml.safe_load(f)
+            else:
+                return json.load(f)
+                
+    async def start_session(self):
+        """Start the complete self-playing session."""
+        logger.info("Starting self-playing session")
+        
+        # Start game coordinator
+        socket_path = self.config.get('socket_path')
+        self.coordinator = GameCoordinator(socket_path)
+        await self.coordinator.start()
+        
+        # Start human interface if enabled
+        if self.config.get('enable_human_interface', True):
+            self.human_interface = HumanInterface(str(self.coordinator.message_bus.socket_path))
+            await self.human_interface.start()
+            
+        # Create and start AI agents
+        await self._create_agents()
+        
+        # Wait for all agents to be ready
+        await self._wait_for_agents_ready()
+        
+        # Start the game session
+        self.session_id = await self.coordinator.create_session(self.config)
+        
+        # Run the gameplay loop
+        await self._run_gameplay_loop()
+        
+    async def _create_agents(self):
+        """Create and start all AI agents."""
+        agents_config = self.config.get('agents', {})
+        
+        # Create DM agent
+        dm_config = agents_config.get('dm', {})
+        dm_agent = AIDMAgent(
+            agent_id='dm_01',
+            socket_path=str(self.coordinator.message_bus.socket_path),
+            llm_config=dm_config.get('llm', {})
+        )
+        self.agents.append(dm_agent)
+        await dm_agent.start()
+        
+        # Create player agents
+        players_config = agents_config.get('players', [])
+        for i, player_config in enumerate(players_config):
+            player_agent = AIPlayerAgent(
+                agent_id=f'player_{i+1:02d}',
+                socket_path=str(self.coordinator.message_bus.socket_path),
+                character_config=player_config
+            )
+            self.agents.append(player_agent)
+            await player_agent.start()
+            
+        logger.info(f"Created {len(self.agents)} agents")
+        
+    async def _wait_for_agents_ready(self):
+        """Wait for all agents to signal readiness."""
+        # Simple wait - you could enhance with proper synchronization
+        await asyncio.sleep(2)
+        logger.info("All agents ready")
+        
+    async def _run_gameplay_loop(self):
+        """Run the main gameplay loop."""
+        self.running = True
+        turn_count = 0
+        max_turns = self.config.get('max_turns', 50)
+        
+        print(f"\n=== Starting Session {self.session_id} ===")
+        print(f"Max turns: {max_turns}")
+        print(f"Human interface: {'Enabled' if self.human_interface else 'Disabled'}")
+        
+        while self.running and turn_count < max_turns:
+            turn_count += 1
+            print(f"\n--- Turn {turn_count} ---")
+            
+            # Run player turns
+            await self._run_player_turns()
+            
+            # Run DM turn
+            await self._run_dm_turn()
+            
+            # Check for session end conditions
+            if await self._check_end_conditions():
+                break
+                
+            # Brief pause between turns
+            await asyncio.sleep(1)
+            
+        await self._end_session()
+        
+    async def _run_player_turns(self):
+        """Run all player turns."""
+        player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+        
+        # Send turn requests to all players
+        for player_agent in player_agents:
+            turn_message = Message(
+                id=f"turn_{datetime.now().isoformat()}",
+                type=MessageType.TURN_REQUEST,
+                sender='coordinator',
+                recipient=player_agent.agent_id,
+                payload={'phase': 'player_action'},
+                timestamp=datetime.now()
+            )
+            
+            await self.coordinator.message_bus._route_message(turn_message)
+            
+        # Wait for players to act (simple approach)
+        await asyncio.sleep(3)
+        
+    async def _run_dm_turn(self):
+        """Run DM turn."""
+        dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+        
+        if dm_agents:
+            dm_agent = dm_agents[0]
+            dm_message = Message(
+                id=f"dm_turn_{datetime.now().isoformat()}",
+                type=MessageType.TURN_REQUEST,
+                sender='coordinator',
+                recipient=dm_agent.agent_id,
+                payload={'phase': 'dm_narrative'},
+                timestamp=datetime.now()
+            )
+            
+            await self.coordinator.message_bus._route_message(dm_message)
+            
+        # Wait for DM response
+        await asyncio.sleep(2)
+        
+    async def _check_end_conditions(self) -> bool:
+        """Check if session should end."""
+        # Simple end conditions - enhance as needed
+        session_data = self.coordinator.get_session_data()
+        
+        # End if no activity for several turns
+        if len(session_data) == 0:
+            return False
+            
+        # Add more sophisticated end conditions here
+        return False
+        
+    async def _end_session(self):
+        """End the session and save data."""
+        print(f"\n=== Session {self.session_id} Ending ===")
+        
+        # Collect final session data
+        final_data = {
+            'session_id': self.session_id,
+            'config': self.config,
+            'turns': self.coordinator.get_session_data(),
+            'end_time': datetime.now().isoformat()
+        }
+        
+        # Save session data
+        await self._save_session_data(final_data)
+        
+        # Shutdown all agents
+        await self._shutdown_agents()
+        
+        self.running = False
+        
+    async def _save_session_data(self, data: Dict[str, Any]):
+        """Save session data for training/analysis."""
+        output_dir = Path(self.config.get('output_dir', './output'))
+        output_dir.mkdir(exist_ok=True)
+        
+        # Save as JSON for easy processing
+        json_path = output_dir / f"session_{self.session_id}.json"
+        with open(json_path, 'w') as f:
+            json.dump(data, f, indent=2, default=str)
+            
+        # Save as YAML for human readability
+        yaml_path = output_dir / f"session_{self.session_id}.yaml"
+        with open(yaml_path, 'w') as f:
+            yaml.dump(data, f, default_flow_style=False)
+            
+        print(f"Session data saved to {json_path}")
+        
+    async def _shutdown_agents(self):
+        """Shutdown all agents."""
+        # Send shutdown messages
+        shutdown_message = Message(
+            id="shutdown_all",
+            type=MessageType.SHUTDOWN,
+            sender='coordinator',
+            recipient=None,  # broadcast
+            payload={},
+            timestamp=datetime.now()
+        )
+        
+        await self.coordinator.message_bus._route_message(shutdown_message)
+        
+        # Wait for graceful shutdown
+        await asyncio.sleep(1)
+        
+        # Force shutdown agents
+        for agent in self.agents:
+            agent.shutdown()
+            
+        # Shutdown coordinator
+        self.coordinator.shutdown()
+        
+        # Shutdown human interface
+        if self.human_interface:
+            self.human_interface.shutdown()
+            
+        logger.info("All agents shutdown")
+
+
+# Configuration example
+EXAMPLE_CONFIG = {
+    "session_name": "test_session",
+    "max_turns": 20,
+    "output_dir": "./multiagent_output",
+    "enable_human_interface": True,
+    "agents": {
+        "dm": {
+            "llm": {
+                "provider": "openai",
+                "model": "gpt-4",
+                "temperature": 0.7
+            }
+        },
+        "players": [
+            {
+                "name": "Zara Nightwhisper",
+                "faction": "Tempest Industries",
+                "personality": {
+                    "riskTolerance": 8,
+                    "voidCuriosity": 9,
+                    "bondPreference": "avoids",
+                    "ritualConservatism": 2
+                },
+                "attributes": {"Body": 6, "Mind": 8, "Soul": 7},
+                "skills": {"Astral Arts": 5, "Investigation": 4},
+                "void_score": 2,
+                "soulcredit": 15,
+                "goals": ["Explore void manipulation", "Advance Tempest interests"]
+            },
+            {
+                "name": "Echo Resonance",
+                "faction": "Resonance Communes",
+                "personality": {
+                    "riskTolerance": 4,
+                    "voidCuriosity": 3,
+                    "bondPreference": "seeks",
+                    "ritualConservatism": 6
+                },
+                "attributes": {"Body": 5, "Mind": 6, "Soul": 9},
+                "skills": {"Astral Arts": 6, "Social": 5},
+                "void_score": 0,
+                "soulcredit": 12,
+                "goals": ["Form meaningful bonds", "Support community harmony"]
+            }
+        ]
+    }
+}
