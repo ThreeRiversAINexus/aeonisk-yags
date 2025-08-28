@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Aeonisk Lorebook: Fragments from the Codex
 
 Compiled under the Ministry of Continuity, Codex Division
@@ -659,7 +658,6 @@ For large-scale video games, officially branded products, or joint ventures, con
 Thank you for helping Aeonisk grow.
 
 — Three Rivers AI Nexus, Licensor
-=======
 # Aeonisk Lorebook: Fragments from the Codex
 
 Compiled under the Ministry of Continuity, Codex Division
@@ -1313,4 +1311,3 @@ For large-scale video games, officially branded products, or joint ventures, con
 Thank you for helping Aeonisk grow.
 
 — Three Rivers AI Nexus, Licensor
->>>>>>> a660271 (main - dos2unix)
