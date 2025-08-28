@@ -100,7 +100,11 @@ class AINPCAgent(Agent):
         print(f"\n[HUMAN NPC {self.npc_state.name}] Your turn as {self.npc_state.role}")
         print("What does this NPC do?")
         
-        action_input = input(f"{self.npc_state.name}> ").strip()
+        # Use asyncio-compatible input to avoid blocking event loop
+        action_input = await asyncio.get_event_loop().run_in_executor(
+            None, input, f"{self.npc_state.name}> "
+        )
+        action_input = action_input.strip()
         
         if action_input:
             self.send_message_sync(

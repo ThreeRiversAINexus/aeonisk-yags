@@ -512,8 +512,23 @@ class SimpleAeoniskSession:
             
         # Save as YAML for readability
         yaml_file = output_path / f"{session_data['session_id']}.yaml"
+        
+        # Convert any custom objects to dictionaries to avoid Python object serialization
+        def safe_dict_conversion(obj):
+            """Safely convert custom objects to dictionaries."""
+            if hasattr(obj, '__dict__'):
+                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items()}
+            elif isinstance(obj, dict):
+                return {k: safe_dict_conversion(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [safe_dict_conversion(item) for item in obj]
+            else:
+                return obj
+        
+        safe_session_data = safe_dict_conversion(session_data)
+        
         with open(yaml_file, 'w') as f:
-            yaml.dump(session_data, f, default_flow_style=False)
+            yaml.dump(safe_session_data, f, default_flow_style=False)
             
         print(f"\nSession data saved to: {json_file}")
         return json_file

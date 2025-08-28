@@ -233,7 +233,8 @@ Generate an Aeonisk scenario with:
 Return JSON with: theme, location, stakes, complication, void_influence_level (1-10), key_npcs"""
 
         try:
-            response = await openai.ChatCompletion.acreate(
+            client = openai.AsyncOpenAI()
+            response = await client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=self.temperature
@@ -300,7 +301,8 @@ Return JSON with:
 - reasoning: Why this character would take this action"""
 
         try:
-            response = await openai.ChatCompletion.acreate(
+            client = openai.AsyncOpenAI()
+            response = await client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=self.temperature
@@ -370,7 +372,8 @@ Consider Aeonisk themes: void corruption, soulcredit, bonds, family honor, facti
 Return JSON with outcome tier and detailed narrative describing what happens."""
 
         try:
-            response = await openai.ChatCompletion.acreate(
+            client = openai.AsyncOpenAI()
+            response = await client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=self.temperature
@@ -492,7 +495,8 @@ Create narrative and mechanical effects for each tier following the dataset form
 Include vivid Aeonisk-specific consequences involving void, soulcredit, bonds, technology failures, family honor."""
 
         try:
-            response = await openai.ChatCompletion.acreate(
+            client = openai.AsyncOpenAI()
+            response = await client.chat.completions.create(
                 model=self.gm.model,
                 messages=[{"role": "user", "content": outcome_prompt}],
                 temperature=0.7

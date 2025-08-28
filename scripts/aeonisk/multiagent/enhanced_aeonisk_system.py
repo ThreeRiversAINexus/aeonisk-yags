@@ -13,7 +13,7 @@ import random
 import re
 import os
 from pathlib import Path
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Dict, Any, List, Optional, Tuple
 import chromadb
 from chromadb.config import Settings
@@ -945,8 +945,22 @@ async def main():
     timestamp = int(time.time())
     dataset_file = f"./enhanced_aeonisk_{timestamp}.yaml"
     
+    # Convert dataclass objects to dictionaries to avoid Python object serialization
+    def safe_dict_conversion(obj):
+        """Safely convert dataclass objects and other types to dictionaries."""
+        if hasattr(obj, '__dataclass_fields__'):
+            return asdict(obj)
+        elif isinstance(obj, dict):
+            return {k: safe_dict_conversion(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [safe_dict_conversion(item) for item in obj]
+        else:
+            return obj
+    
+    safe_dataset = safe_dict_conversion(dataset)
+    
     with open(dataset_file, 'w') as f:
-        yaml.dump(dataset, f, default_flow_style=False)
+        yaml.dump(safe_dataset, f, default_flow_style=False)
     
     print(f"\n✅ Enhanced Aeonisk session saved to: {dataset_file}")
     print("🎮 Now with authentic family names, realistic difficulty, and advanced equipment!")
