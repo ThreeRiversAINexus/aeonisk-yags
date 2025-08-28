@@ -36,11 +36,21 @@ class SelfPlayingSession:
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
-        with open(config_path, 'r') as f:
-            if config_path.endswith('.yaml') or config_path.endswith('.yml'):
-                return yaml.safe_load(f)
-            else:
-                return json.load(f)
+        try:
+            with open(config_path, 'r') as f:
+                if config_path.endswith('.yaml') or config_path.endswith('.yml'):
+                    return yaml.safe_load(f)
+                else:
+                    return json.load(f)
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(f"Failed to access config file {config_path}: {e}")
+            raise
+        except (yaml.YAMLError, json.JSONDecodeError) as e:
+            logger.error(f"Failed to parse config file {config_path}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error loading config from {config_path}: {e}")
+            raise
                 
     async def start_session(self):
         """Start the complete self-playing session."""
@@ -214,8 +224,23 @@ class SelfPlayingSession:
             
         # Save as YAML for human readability
         yaml_path = output_dir / f"session_{self.session_id}.yaml"
+        
+        # Convert any custom objects to dictionaries to avoid Python object serialization
+        def safe_dict_conversion(obj):
+            """Safely convert custom objects to dictionaries."""
+            if hasattr(obj, '__dict__'):
+                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items()}
+            elif isinstance(obj, dict):
+                return {k: safe_dict_conversion(v) for k, v in obj.items()}
+            elif isinstance(obj, (list, tuple)):
+                return [safe_dict_conversion(item) for item in obj]
+            else:
+                return obj
+        
+        safe_data = safe_dict_conversion(data)
+        
         with open(yaml_path, 'w') as f:
-            yaml.dump(data, f, default_flow_style=False)
+            yaml.dump(safe_data, f, default_flow_style=False)
             
         print(f"Session data saved to {json_path}")
         

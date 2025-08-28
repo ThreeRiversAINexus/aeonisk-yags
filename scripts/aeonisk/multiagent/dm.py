@@ -115,15 +115,22 @@ class AIDMAgent(Agent):
         """Request scenario from human DM."""
         print(f"\n[HUMAN DM {self.agent_id}] Please describe the opening scenario:")
         print("Theme: ", end='')
-        theme = input().strip()
+        theme = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
         
         print("Location: ", end='')
-        location = input().strip()
+        location = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
         
         print("Situation: ", end='')
-        situation = input().strip()
+        situation = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
         
-        void_level = int(input("Void influence level (0-10): ").strip() or "3")
+        try:
+            void_input = await asyncio.get_event_loop().run_in_executor(
+                None, input, "Void influence level (0-10): "
+            )
+            void_level = int(void_input.strip() or "3")
+        except ValueError:
+            void_level = 3
+            print("Invalid input, using default void level 3")
         
         scenario = Scenario(
             theme=theme,

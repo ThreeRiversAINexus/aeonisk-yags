@@ -26,9 +26,13 @@ def setup_logging(level: str = "INFO"):
 
 def create_example_config(output_path: str):
     """Create an example configuration file."""
-    with open(output_path, 'w') as f:
-        json.dump(EXAMPLE_CONFIG, f, indent=2)
-    print(f"Example configuration created at: {output_path}")
+    try:
+        with open(output_path, 'w') as f:
+            json.dump(EXAMPLE_CONFIG, f, indent=2)
+        print(f"Example configuration created at: {output_path}")
+    except (OSError, PermissionError) as e:
+        print(f"Failed to create configuration file: {e}")
+        sys.exit(1)
 
 
 async def run_session(config_path: str):

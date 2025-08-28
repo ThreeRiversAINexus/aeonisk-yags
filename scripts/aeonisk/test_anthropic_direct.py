@@ -225,7 +225,7 @@ async def test_anthropic_provider():
         print("❌ ANTHROPIC_API_KEY not found in environment")
         return
     
-    print(f"✓ Found API key: {api_key[:10]}...")
+    print("✓ Found API key")
     
     # Create provider config
     config = {

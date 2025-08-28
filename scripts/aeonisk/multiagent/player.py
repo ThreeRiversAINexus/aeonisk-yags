@@ -110,7 +110,11 @@ class AIPlayerAgent(Agent):
         print("Available action types: explore, interact, ritual, combat, custom")
         print("Enter your action:")
         
-        action_input = input(f"{self.character_state.name}> ").strip()
+        # Use asyncio-compatible input to avoid blocking event loop
+        action_input = await asyncio.get_event_loop().run_in_executor(
+            None, input, f"{self.character_state.name}> "
+        )
+        action_input = action_input.strip()
         
         if not action_input:
             return
