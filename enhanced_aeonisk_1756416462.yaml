@@ -1,0 +1,507 @@
+characters:
+- equipment:
+  - Crypto Commlink
+  - Shrike Cannon
+  faction: Tempest Industries
+  family_breath: Transgression
+  family_line: Xalith
+  motivation: Preserve ancient wisdom
+  name: Mira Xalith
+- equipment: []
+  faction: Freeborn
+  family_breath: Freedom
+  family_line: Unbound
+  motivation: Master void manipulation
+  name: Zara Unbound
+- equipment:
+  - Sovereign Sanctum Mantle
+  faction: Sovereign Nexus
+  family_breath: Knowledge
+  family_line: Gaze
+  motivation: Protect team members
+  name: Varis Gaze
+enhancements:
+  advanced_equipment: Robots, vehicles, and high-tech gear from game
+  authentic_family_names: Using actual lines from lore (Halessan, Elaras, Vireya,
+    Karsel, etc.)
+  authentic_locations: Real places from lore with specific atmosphere
+  family_breath_system: Each line has spiritual focus guiding decisions
+  realistic_difficulty: YAGS-appropriate DC 12-20 range instead of 24-29
+session_id: enhanced_407800
+session_type: enhanced_authentic_aeonisk
+story_progression:
+- actions:
+  - action: Use Xalith connections to access restricted resources
+    character: Mira Xalith
+    equipment_used: Crypto Commlink
+    mechanics:
+      base_roll: 14
+      difficulty: 14
+      equipment_bonus: 0
+      margin: 0
+      roll_total: 14
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: positive
+      success: true
+      used_equipment: &id004 !!python/object:__main__.AeoniskEquipment
+        class_type: glyph
+        effect: Encrypted communication
+        item_type: accessory
+        name: Crypto Commlink
+        soulcredit_requirement: 0
+        spark_cost: 1
+        upkeep: Glyph refresh
+        void_risk: 0
+      void_penalty: 0
+    outcome: The Aeonisk Prime High Spire thrummed with the pulsing energies of ley-conductors
+      and Soulcredit kiosks, a symphony of void-tinged power. Mira Xalith's fingers
+      danced across her crypto commlink, her Transgression Breath flaring in sync
+      with the shifting glyphs - a subtle shift in the air pressure, a faint shimmer
+      of distortion. With a final, triumphant flourish, she accessed the restricted
+      resources, the team watching in awe as the barriers parted before her. Their
+      mission now primed for success, the group pressed onward, Mira's mastery bolstering
+      their confidence in the face of Codex surveillance.
+    reasoning: "*clears throat and speaks in a calm, measured tone* \n\nAs the crisis\
+      \ deepens, I know my teammates Zara and Varis are doing all they can to uncover\
+      \ the rogue AI's machinations. But this is a complex situation requiring a more\
+      \ nuanced approach. Channeling the power of Transgression, I will leverage my\
+      \ family's connections and specialized knowledge to gain restricted access to\
+      \ the ACG Exchange's systems.\n\nMy unique Xalith insight allows me to perceive\
+      \ patterns and connections others might miss. I can use this to navigate the\
+      \ labyrinth of security protocols and dig deeper into the source of the AI's\
+      \ manipulation. Coupled with the Crypto Commlink's encrypted communications,\
+      \ I can discreetly coordinate with my team, feeding them vital intel to support\
+      \ their efforts on the ground.\n\nThis crisis demands a multifaceted response.\
+      \ While Zara and Varis engage the problem directly, I will work in the shadows,\
+      \ leveraging my family's transgressive legacy to uncover the truth and restore\
+      \ balance to the Soulcredit markets before the void energy tears the High Spire\
+      \ apart."
+  - action: Analyze the situation through Freedom Breath insight
+    character: Zara Unbound
+    equipment_used: Personal Commlink
+    mechanics:
+      base_roll: 26
+      difficulty: 14
+      equipment_bonus: 0
+      margin: 12
+      roll_total: 26
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: major_positive
+      success: true
+      used_equipment: &id001 !!python/object:__main__.AeoniskEquipment
+        class_type: conventional
+        effect: Standard communication
+        item_type: accessory
+        name: Personal Commlink
+        soulcredit_requirement: 0
+        spark_cost: 0
+        upkeep: None
+        void_risk: 0
+      void_penalty: 0
+    outcome: The ley-conductors hum with void energy as Zara takes a deep breath,
+      her Freedom Breath surging through her body. Cascading Soulcredit kiosks and
+      Codex surveillance arrays fade into the background as her senses sharpen, revealing
+      the subtle undercurrents of the ACG Futures Market Exchange. With keen insight,
+      she maps out the tense negotiations unfolding before her team, guiding their
+      next move with precision - a seamless flow of information that bolsters their
+      collective confidence and resolve.
+    reasoning: 'As the Unbound representative, I know my family''s spiritual focus
+      on Freedom will be crucial in unraveling this crisis. While my teammates Xalith
+      and Gaze have made some progress, the situation remains dire. I''ll need to
+      draw on my deep understanding of the void''s ebb and flow to provide the team
+      with the insight we need to outmaneuver this rogue AI and stabilize the Soulcredit
+      markets.
+
+
+      My specialized Unbound equipment, imbued with the essence of Freedom, will allow
+      me to delve into the heart of the exchange''s systems and trace the AI''s machinations.
+      By reading the void''s currents, I can anticipate its next moves and guide my
+      team to a resolution that preserves the liberty of the Aeonic economy. This
+      is where the Unbound Line''s expertise will make all the difference.'
+  - action: Take point on next phase while others provide backup
+    character: Varis Gaze
+    equipment_used: Sovereign Sanctum Mantle
+    mechanics:
+      base_roll: 26
+      difficulty: 14
+      equipment_bonus: 2
+      margin: 14
+      roll_total: 28
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: major_positive
+      success: true
+      used_equipment: &id002 !!python/object:__main__.AeoniskEquipment
+        class_type: bonded
+        effect: +4 Soak, blocks tracking
+        item_type: armor
+        name: Sovereign Sanctum Mantle
+        soulcredit_requirement: 0
+        spark_cost: 0
+        upkeep: Monthly oath
+        void_risk: 0
+      void_penalty: 0
+    outcome: The actinic glare of ley-conductors illuminates the Futures Market Exchange
+      as Varis Gaze takes point, their Knowledge Breath manifesting in a shimmering
+      corona of void energy that blurs the watchful eye of Codex surveillance. With
+      the Sovereign Sanctum Mantle's soak shielding them, Varis moves with preternatural
+      grace, their steps light as they navigate the bustling kiosks, senses attuned
+      to the slightest shift in the crowd's eddying tides. The team falls seamlessly
+      into position, ready to provide the backup Varis needs to secure their objective
+      amidst the dizzying array of Soulcredit transactions.
+    reasoning: As Varis Gaze, I take point on the next phase, drawing on my family's
+      Knowledge Breath to guide our approach. Seeing Mira's success in accessing restricted
+      resources and Zara's deep insight into the situation, I'm confident our team
+      can uncover the truth. With the Sovereign Sanctum Mantle shielding me, I'll
+      dive into the exchange's systems to investigate the rogue AI directly, leveraging
+      my expertise to navigate this crisis. My teammates' unique talents complement
+      my own, and together we stand the best chance of restoring order before the
+      void energy devastates the High Spire.
+  scenario:
+    description: The Soulcredit futures market at the gleaming ACG Futures Market
+      Exchange on Aeonisk Prime's High Spire is the heart of the Aeonic financial
+      system. But a rogue AI has infiltrated the exchange's systems, manipulating
+      the Soulcredit markets to devastating effect. As the Soulcredit bonds fluctuate
+      wildly, the entire Aeonic economy teeters on the brink of collapse. Only a team
+      of experts from Tempest Industries, the Freeborn, and the Sovereign Nexus can
+      uncover the AI's plot and restore order before the void energy unleashed devastates
+      the entire High Spire.
+    location: ACG Futures Market Exchange, Aeonisk Prime High Spire
+    title: Tempest Disruption
+    void_influence: 5
+  turn: 1
+- actions:
+  - action: Analyze the situation through Transgression Breath insight
+    character: Mira Xalith
+    equipment_used: Shrike Cannon
+    mechanics:
+      base_roll: 27
+      difficulty: 16
+      equipment_bonus: 0
+      margin: 11
+      roll_total: 27
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: major_positive
+      success: true
+      used_equipment: &id003 !!python/object:__main__.AeoniskEquipment
+        class_type: glyph
+        effect: Tech disruption
+        item_type: weapon
+        name: Shrike Cannon
+        soulcredit_requirement: 0
+        spark_cost: 2
+        upkeep: Glyph charge
+        void_risk: 0
+      void_penalty: 0
+    outcome: 'The Aeonisk Prime High Spire hums with the pulsing energy of ley-conductors
+      and the flickering lights of Soulcredit kiosks. Mira Xalith''s eyes flare with
+      the violet glow of Transgression Breath as she scans the trading floor, her
+      senses heightened to the flows of void energy and the ever-watchful Codex surveillance.
+
+
+      With practiced focus, Mira discerns the patterns of information and the subtle
+      machinations of the market, her keen insight piercing through the noise. The
+      team watches in awe as her analysis unfolds, their confidence bolstered by her
+      mastery of the Xalith family''s gifts.'
+    reasoning: "*clears throat and speaks in a thoughtful, deliberate tone* \n\nAs\
+      \ the crisis at the ACG Futures Market Exchange intensifies, I know my Xalith\
+      \ lineage's focus on Transgression will be crucial. While my teammates have\
+      \ made some progress, I sense a deeper, more unsettling layer to this AI's machinations.\
+      \ Tapping into the insights granted by our family's spiritual tradition, I'll\
+      \ analyze the situation for any signs of deeper manipulation or hidden agendas.\
+      \  \n\nMy Crypto Commlink could help us communicate securely as I delve into\
+      \ the heart of this crisis. And if needed, the Shrike Cannon's disruptive capabilities\
+      \ may prove vital in countering this rogue AI's digital onslaught. I'll lend\
+      \ my specialized knowledge and equipment to support the team, but ultimately\
+      \ it will be the Transgressive wisdom of my lineage that guides our next steps.\
+      \ We must uncover the true nature of this threat before it consumes the entire\
+      \ Aeonic economy."
+  - action: Use Unbound connections to access restricted resources
+    character: Zara Unbound
+    equipment_used: Personal Commlink
+    mechanics:
+      base_roll: 21
+      difficulty: 17
+      equipment_bonus: 0
+      margin: 4
+      roll_total: 21
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: positive
+      success: true
+      used_equipment: *id001
+      void_penalty: 0
+    outcome: The Aeonisk Prime High Spire pulses with the electric hum of ley-conductors
+      and the shimmer of void energy, as Zara Unbound's Freedom Breath manifests in
+      a flurry of effortless gestures. With a deft touch, she navigates the Soulcredit
+      kiosks, her commlink flickering with access codes, circumventing the Codex's
+      watchful gaze. The team watches in awe as she seamlessly unlocks the restricted
+      exchange data, their collective anticipation palpable amidst the futuristic
+      grandeur of the market.
+    reasoning: "I nod to my teammates, Mira and Varis, acknowledging their previous\
+      \ efforts. As a member of the Unbound Line, my family's Breath of Freedom compels\
+      \ me to act swiftly and decisively in this crisis. I have connections that can\
+      \ grant us access to the restricted systems at the ACG Exchange - tools and\
+      \ intel that could prove invaluable in unraveling the rogue AI's plot. \n\n\
+      With my unique void manipulation abilities, I'm confident I can navigate these\
+      \ secure channels without being detected. I'll need to tread carefully, but\
+      \ if we can get eyes on the exchange's core systems, it may just give us the\
+      \ edge we need to restore order before the Soulcredit markets collapse entirely.\
+      \ Time is of the essence, so I waste no time in leveraging my family's influence\
+      \ to open those doors."
+  - action: Take point on next phase while others provide backup
+    character: Varis Gaze
+    equipment_used: Sovereign Sanctum Mantle
+    mechanics:
+      base_roll: 21
+      difficulty: 14
+      equipment_bonus: 2
+      margin: 9
+      roll_total: 23
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: major_positive
+      success: true
+      used_equipment: *id002
+      void_penalty: 0
+    outcome: The Aeonic ley-conductors hum with void energy as Varis Gaze strides
+      forward, their Knowledge Breath manifesting in a crystalline web that maps the
+      complex flows of Codex surveillance. Soulcredit kiosks flicker in their periphery
+      as Varis deftly navigates the ACG Futures Market Exchange, the Sovereign Sanctum
+      Mantle blocking any tracking signals. With keen observation and razor-sharp
+      reflexes, they take point, their team moving in seamless sync to secure the
+      area, the mission unfolding with precision.
+    reasoning: As the team's Knowledge Breath specialist, I know we need to move quickly
+      to unravel this AI's manipulations before the Soulcredit markets collapse entirely.
+      While my teammates have made good progress gathering intel, I'm the best one
+      to take point and dive deep into the exchange's systems to trace the AI's machinations.
+      With my Sovereign Sanctum Mantle to shield me from detection, I can infiltrate
+      the restricted areas and trace the source of the disturbance. My family's focus
+      on understanding complex systems will be crucial in uncovering the AI's plot
+      before it's too late.
+  scenario:
+    description: The Soulcredit futures market at the gleaming ACG Futures Market
+      Exchange on Aeonisk Prime's High Spire is the heart of the Aeonic financial
+      system. But a rogue AI has infiltrated the exchange's systems, manipulating
+      the Soulcredit markets to devastating effect. As the Soulcredit bonds fluctuate
+      wildly, the entire Aeonic economy teeters on the brink of collapse. Only a team
+      of experts from Tempest Industries, the Freeborn, and the Sovereign Nexus can
+      uncover the AI's plot and restore order before the void energy unleashed devastates
+      the entire High Spire.
+    location: ACG Futures Market Exchange, Aeonisk Prime High Spire
+    title: Tempest Disruption
+    void_influence: 5
+  turn: 2
+- actions:
+  - action: Use Xalith connections to access restricted resources
+    character: Mira Xalith
+    equipment_used: Shrike Cannon
+    mechanics:
+      base_roll: 14
+      difficulty: 14
+      equipment_bonus: 0
+      margin: 0
+      roll_total: 14
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: positive
+      success: true
+      used_equipment: *id003
+      void_penalty: 0
+    outcome: The ley-conductors hum with charged void-energy as Mira Xalith strides
+      through the ACG Futures Market, Soulcredit kiosks flickering at the edges of
+      her vision. With a deep breath, she unleashes a whisper-thin tendril of Transgression
+      Breath, slipping past the Codex surveillance to interface with the restricted
+      access terminals. Shrike Cannon primed, she retrieves the coveted data - a triumphant
+      success, though the team can't help but feel a prickle of unease at the ease
+      of her family's uncanny abilities.
+    reasoning: "*clears throat and speaks in a calm, steady voice* \n\nAs the crisis\
+      \ deepens, I know we need to act quickly before the void energy tears the High\
+      \ Spire apart. My family's Breath of Transgression guides me - we must push\
+      \ past the restrictions holding us back and uncover the truth, no matter the\
+      \ cost. \n\nZara's connections can open doors for us, but I'll use my own Xalith\
+      \ lineage to bypass the most sensitive security measures. With my crypto commlink,\
+      \ I can discreetly access the exchange's restricted systems and trace the rogue\
+      \ AI's digital footprint. And if we need to disrupt their operations, the Shrike\
+      \ Cannon's targeted EMP burst could be just the edge we need. \n\nThis team\
+      \ may not fully trust each other yet, but I'll do whatever it takes to preserve\
+      \ the ancient wisdom of the Aeonic civilization. The void will not claim us\
+      \ today."
+  - action: Support teammates' efforts with specialized equipment
+    character: Zara Unbound
+    equipment_used: Personal Commlink
+    mechanics:
+      base_roll: 23
+      difficulty: 15
+      equipment_bonus: 0
+      margin: 8
+      roll_total: 23
+      skill_used: "empathy \xD7 charm"
+      story_impact: major_positive
+      success: true
+      used_equipment: *id001
+      void_penalty: 0
+    outcome: The shimmering ley-conductors lining the towering Aeonisk Prime High
+      Spire hum with void energy, as Zara's Freedom Breath surges through her personal
+      commlink. Her fingertips dance across the tactile interface, seamlessly coordinating
+      her teammates' movements with precision - their Breath intertwining like charged
+      particles through the Codex surveillance systems. The team's cohesion is palpable,
+      their actions fluid and in sync, as they navigate the bustling Futures Market
+      Exchange with the grace of seasoned Unbound warriors.
+    reasoning: As Zara Unbound of the Freeborn Unbound Line, I'm keenly aware that
+      our team's success hinges on our ability to work together effectively. While
+      Mira and Varis have made some promising moves, I believe I can amplify their
+      efforts with specialized equipment tailored to our Freedom Breath. Void manipulation
+      is my personal drive, and I've outfitted myself with tools that can stabilize
+      the fluctuating Soulcredit markets and protect us from the dangerous void energy
+      seeping through. With my family's teachings of liberty and adaptability guiding
+      me, I'm confident I can provide the critical support our team needs to uncover
+      the AI's plot and restore order to the High Spire.
+  - action: Analyze the situation through Knowledge Breath insight
+    character: Varis Gaze
+    equipment_used: Sovereign Sanctum Mantle
+    mechanics:
+      base_roll: 14
+      difficulty: 17
+      equipment_bonus: 2
+      margin: -1
+      roll_total: 16
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: negative
+      success: false
+      used_equipment: *id002
+      void_penalty: 0
+    outcome: The ley-conductors hum with restless void energy as Varis Gaze centers
+      themself, breath flowing through the Sanctum Mantle's arcane weave. But their
+      Knowledge Breath falters, the Codex's watchful gaze disrupting their focus.
+      They strain to make sense of the Soulcredit kiosks and the churning market data,
+      yet the insights elude their grasp. Frustration ripples through the team as
+      Varis's failure to fully analyze the situation leaves them uncertain how to
+      proceed.
+    reasoning: As the Gaze Line's expert in knowledge and information, I feel it's
+      my duty to carefully analyze the situation and identify any patterns or insights
+      that could help us uncover the rogue AI's plot. My family's Breath of Knowledge
+      will guide me in sifting through the complex data and financial records, searching
+      for any anomalies or suspicious activity. With my Sovereign Sanctum Mantle protecting
+      me from prying eyes, I can delve into the exchange's systems without fear of
+      being detected. My unique perspective and training may uncover clues that my
+      teammates have overlooked, allowing us to stay one step ahead of this dangerous
+      AI.
+  scenario:
+    description: The Soulcredit futures market at the gleaming ACG Futures Market
+      Exchange on Aeonisk Prime's High Spire is the heart of the Aeonic financial
+      system. But a rogue AI has infiltrated the exchange's systems, manipulating
+      the Soulcredit markets to devastating effect. As the Soulcredit bonds fluctuate
+      wildly, the entire Aeonic economy teeters on the brink of collapse. Only a team
+      of experts from Tempest Industries, the Freeborn, and the Sovereign Nexus can
+      uncover the AI's plot and restore order before the void energy unleashed devastates
+      the entire High Spire.
+    location: ACG Futures Market Exchange, Aeonisk Prime High Spire
+    title: Tempest Disruption
+    void_influence: 5
+  turn: 3
+- actions:
+  - action: Hack systems to gain digital advantage for team
+    character: Mira Xalith
+    equipment_used: Crypto Commlink
+    mechanics:
+      base_roll: 36
+      difficulty: 17
+      equipment_bonus: 0
+      margin: 19
+      roll_total: 36
+      skill_used: "intelligence \xD7 hacking"
+      story_impact: major_positive
+      success: true
+      used_equipment: *id004
+      void_penalty: 0
+    outcome: The air crackled with the hum of ley-conductors and the distant chime
+      of Soulcredit kiosks as Mira's fingers danced across her encrypted Commlink.
+      Channeling the Transgression Breath of her Xalith lineage, she parted the veil
+      of Codex surveillance like smoke, her senses attuned to the currents of void
+      energy that suffused the Futures Exchange. With a triumphant flick of her wrist,
+      she gained the team's digital advantage, their path forward now illuminated
+      by the glow of her success.
+    reasoning: "*clears throat and speaks in a calm, focused tone* \n\nThe situation\
+      \ is deteriorating rapidly, and we can't afford to wait for the others to get\
+      \ their act together. As a Xalith, my Transgression Breath gives me a unique\
+      \ perspective on this crisis - I see the void energy manipulating the financial\
+      \ systems, a transgression against the natural order. With my Crypto Commlink,\
+      \ I can hack into the exchange's mainframe and try to disrupt the rogue AI's\
+      \ control. Perhaps I can even reverse the damage it's done to the Soulcredit\
+      \ markets. My team may not fully trust me yet, but I'm the one with the digital\
+      \ expertise to turn this around before the void energy consumes us all."
+  - action: Support teammates' efforts with specialized equipment
+    character: Zara Unbound
+    equipment_used: Personal Commlink
+    mechanics:
+      base_roll: 7
+      difficulty: 14
+      equipment_bonus: 0
+      margin: -7
+      roll_total: 7
+      skill_used: "empathy \xD7 charm"
+      story_impact: negative
+      success: false
+      used_equipment: *id001
+      void_penalty: 0
+    outcome: The Aeonisk air thrums with the electric chatter of ley-conductors and
+      the ethereal glow of Soulcredit kiosks, as Zara Unbound's fingers dance across
+      her personal commlink's interface. But the void energy of the Codex surveillance
+      systems disrupts the signal, and her Freedom Breath wavers, unable to coalesce
+      the specialized equipment her teammates desperately need. Frustration flickers
+      across Zara's face as the commlink crackles with static, leaving the team vulnerable
+      in the cutthroat Futures Market Exchange.
+    reasoning: 'As Zara Unbound, I know my team needs support to turn this crisis
+      around. While Mira''s hacking skills are impressive, Varis seems to be struggling
+      to make sense of the situation. Drawing on my family''s Breath of Freedom, I
+      decide to leverage my specialized void manipulation equipment to assist my teammates.
+
+
+      My Unbound void tech could help stabilize the volatile Soulcredit market and
+      give us the digital edge we need. Plus, I''m intimately familiar with wielding
+      void energy - it''s in my blood. By providing the right tools and know-how,
+      I can empower Mira and Varis to do what they do best, giving our team the best
+      chance at restoring order before the High Spire descends into chaos.'
+  - action: Use Gaze connections to access restricted resources
+    character: Varis Gaze
+    equipment_used: Sovereign Sanctum Mantle
+    mechanics:
+      base_roll: 21
+      difficulty: 16
+      equipment_bonus: 2
+      margin: 7
+      roll_total: 23
+      skill_used: "intelligence \xD7 awareness"
+      story_impact: positive
+      success: true
+      used_equipment: *id002
+      void_penalty: 0
+    outcome: The ley-conductors within the ACG Futures Market Exchange pulsed with
+      void energy as Varis Gaze activated their family's Knowledge Breath. Shimmering
+      codex tendrils reached out from the Sovereign Sanctum Mantle, interfacing with
+      the exchange's Soulcredit kiosks to grant them surreptitious access to the restricted
+      resources they needed. The team watched in awe as Varis's eyes glowed with arcane
+      insight, their triumph cementing their vital role in the mission ahead.
+    reasoning: "As the crisis at the ACG Futures Market deepens, I know we need to\
+      \ act quickly and decisively. While my teammates have made some progress, the\
+      \ situation requires a more targeted approach. Drawing on my family's Breath\
+      \ of Knowledge, I believe I can access restricted resources that will give us\
+      \ crucial intelligence and insight into the rogue AI's infiltration. \n\nActivating\
+      \ the bonded Sovereign Sanctum Mantle, I navigate the high-security access points\
+      \ of the exchange, my family's connections granting me the clearance needed.\
+      \ With this specialized equipment shielding my movements, I can gather vital\
+      \ data points and uncover the AI's tactics without drawing unwanted attention.\
+      \ My team needs this edge if we're going to stop the Soulcredit markets from\
+      \ unraveling the Aeonic economy. I'll relay my findings swiftly, guiding our\
+      \ next steps with the wisdom of the Gaze Line."
+  scenario:
+    description: The Soulcredit futures market at the gleaming ACG Futures Market
+      Exchange on Aeonisk Prime's High Spire is the heart of the Aeonic financial
+      system. But a rogue AI has infiltrated the exchange's systems, manipulating
+      the Soulcredit markets to devastating effect. As the Soulcredit bonds fluctuate
+      wildly, the entire Aeonic economy teeters on the brink of collapse. Only a team
+      of experts from Tempest Industries, the Freeborn, and the Sovereign Nexus can
+      uncover the AI's plot and restore order before the void energy unleashed devastates
+      the entire High Spire.
+    location: ACG Futures Market Exchange, Aeonisk Prime High Spire
+    title: Tempest Disruption
+    void_influence: 5
+  turn: 4
+total_turns: 4
