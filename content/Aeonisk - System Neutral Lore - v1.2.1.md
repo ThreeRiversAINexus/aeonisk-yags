@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Aeonisk Lorebook: Fragments from the Codex
 
 Compiled under the Ministry of Continuity, Codex Division
@@ -21,6 +20,18 @@ Let this be your entry into the living archive.
 2. **Matron Bond** – A formal Kinship ritual between two women whose oaths and Soulcredit fund and authorize the pod gestation. Each Matron contributes one Raw Seed, ensuring balanced heritage.
 3. **Pod Ceremony** – Upon maturity, the pod opens in a public Rite of Unveiling: glyph-burning, Covenant Ring assignment, and first Soulcredit imprint.
 4. **Freeborn Exception** – Individuals rejecting all Kinship Bonds—or born outside Nexus influence—undergo natural pregnancy and birth, carrying a *Discordant Echo* until later harmonization.
+## Birth & Origin
+
+1. **Biocreche Default**
+   * All civilized Aeonisk sapients (excluding Freeborn) are gestated and "born" in sealed Biocreche Pods.
+   * Pods fuse two women's Matron Bond and Raw Seeds into an Echo-Seed embryo, then sculpt body and spirit via mnemonic infusions.
+2. **Matron Bond**
+   * A formal Kinship ritual between two women whose oaths and Soulcredit fund and authorize the pod gestation.
+   * Each Matron contributes one Raw Seed; the combined Echo-Seed ensures balanced heritage.
+3. **Pod Ceremony**
+   * Upon maturity, the pod opens in a public Rite of Unveiling: glyph-burning, Covenant Ring assignment, first Soulcredit imprint.
+4. **Freeborn Exception**
+   * Only individuals explicitly rejecting all Kinship Bonds—or born outside Nexus-influenced zones—experience natural pregnancy and birth, carrying a "Discordant Echo" until later harmonization.
 
 —
 
@@ -659,7 +670,6 @@ For large-scale video games, officially branded products, or joint ventures, con
 Thank you for helping Aeonisk grow.
 
 — Three Rivers AI Nexus, Licensor
-=======
 # Aeonisk Lorebook: Fragments from the Codex
 
 Compiled under the Ministry of Continuity, Codex Division
@@ -1313,4 +1323,3 @@ For large-scale video games, officially branded products, or joint ventures, con
 Thank you for helping Aeonisk grow.
 
 — Three Rivers AI Nexus, Licensor
->>>>>>> a660271 (main - dos2unix)
