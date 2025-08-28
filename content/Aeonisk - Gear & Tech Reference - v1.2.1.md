@@ -23,7 +23,7 @@
 
 | Class             | Core Effect                                   | Built‑In Cost / Risk                                         |
 | ----------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| **Bonded**        | Attuned: +1 Attack / Bypasses +2 Defense of target; Unattuned: Wielder suffers –2 to attack/defense. | Requires ritual attunement; can "bleed" if wielded by another |
+| **Bonded**        | Attuned: +1 Attack / Bypasses +2 Defense of target; Unattuned: Wielder suffers –2 to attack/defense. | Requires ritual attunement; can “bleed” if wielded by another |
 | **Glyph‑Encoded** | Attuned: Bypasses wards / +2 Defense vs specific elements; Unattuned: Wielder suffers –2 to attack/defense. May add elemental traits. | Monthly maintenance or +1 Void per degraded use              |
 | **Void‑Infused**  | +4 Damage, ignores ritual armor               | Always +1 Void; fumble may summon entity                     |
 | **Spirit‑Weave**  | +1 to rolls when action aligns with True Will | Organic; whispers in dreams, unpredictable warnings          |
@@ -36,9 +36,9 @@
 ## 2 · Weapon Catalog (Field Stats)
 
 **How to read this table:**  
-• "Key Numbers" are flat bonuses (e.g. "+5 DMG") you add to the normal
+• “Key Numbers” are flat bonuses (e.g. “+5 DMG”) you add to the normal
   YAGS damage roll (Str × Skill + d20).  
-• A dash (—) means "same as a baseline weapon of this type"; *Scales*
+• A dash (—) means “same as a baseline weapon of this type”; *Scales*
   means damage grows with your current Void score.  
 • Items marked *‡* have GM-set scaling; items marked *★* are vehicle-mounted.  
 • Abbreviations: SC = Soulcredit, DMG = damage bonus, DEF = defence bonus,
@@ -194,7 +194,7 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 
 ### Entertainment + Media
 
-- **"Ritual Fail" Holovid Disk** – Slapstick rite-gone-wrong docudrama. Youth favorite.
+- **“Ritual Fail” Holovid Disk** – Slapstick rite-gone-wrong docudrama. Youth favorite.
 - **Mini-Dance Glyph Projector** – Low-grade ley-reactive party lighting.
 - **Whisper Capsules** – Ambient dream audio. Used for trance, meditation, background.
 - **The Spiral Deck (Novice)** – Card game on Covenant Ring themes. School-banned in some zones.
@@ -205,7 +205,7 @@ Feel free to copy, amend, or slot more gear into these tables. Every new item sh
 
 - **Bondless Thread Pin** – Lapel pin signaling spiritual solitude or mourning.
 - **Echo-Quill** – Writes intent instead of literal words. Used in confession.
-- **Voidpocket Locket** – Empty ornament. Marketed as "a reminder."
+- **Voidpocket Locket** – Empty ornament. Marketed as “a reminder.”
 - **Kiss-Twine Pack** – Bond-string tokens. Tie to sleeve/hair for interest.
 - **Ley-Stamped Facewraps** – Scarves with decorative protection glyphs. Teen fashion.
 - **Bond Tokens (x5)** – Wooden vow markers. Meant to burn, bury, or gift.
