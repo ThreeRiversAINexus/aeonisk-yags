@@ -61,11 +61,24 @@ class SceneClock:
     current: int = 0
     maximum: int = 6
     description: str = ""
+    _ever_filled: bool = field(default=False, init=False, repr=False)
 
     def advance(self, ticks: int = 1) -> bool:
-        """Advance clock, return True if filled."""
+        """
+        Advance clock, return True if NEWLY filled (first time reaching max).
+
+        Returns:
+            True only on the transition to filled, False if already filled or still incomplete
+        """
+        was_filled = self.current >= self.maximum
         self.current = min(self.current + ticks, self.maximum)
-        return self.current >= self.maximum
+        is_filled = self.current >= self.maximum
+
+        # Return True only on the transition from not-filled to filled
+        if is_filled and not was_filled:
+            self._ever_filled = True
+            return True
+        return False
 
     def regress(self, ticks: int = 1):
         """Decrease clock progress."""
@@ -75,6 +88,11 @@ class SceneClock:
     def filled(self) -> bool:
         """Check if clock is filled."""
         return self.current >= self.maximum
+
+    @property
+    def ever_filled(self) -> bool:
+        """Check if clock has ever been filled (for one-time triggers)."""
+        return self._ever_filled
 
     @property
     def progress_ratio(self) -> float:
@@ -180,17 +198,35 @@ class MechanicsEngine:
 
         # Calculate base total
         if skill_value > 0:
-            base_total = (attribute_value * skill_value) + roll
+            # Skilled: Attribute × Skill + d20
+            ability = attribute_value * skill_value
+            base_total = ability + roll
+
+            # Math verification: ensure calculation is correct
+            assert base_total == ability + roll, \
+                f"Math error (skilled): {attribute_value}×{skill_value}+{roll} should be {ability}+{roll}={ability+roll}, got {base_total}"
         else:
-            # Unskilled: just attribute + roll (with penalty)
-            base_total = attribute_value + roll - 5  # Unskilled penalty
+            # Unskilled: Attribute + d20 - 5 (unskilled penalty)
+            ability = attribute_value - 5
+            base_total = attribute_value + roll - 5
+
+            # Math verification: ensure calculation is correct
+            assert base_total == ability + roll, \
+                f"Math error (unskilled): {attribute_value}+{roll}-5 should be {ability}+{roll}={ability+roll}, got {base_total}"
 
         # Apply modifiers
         total = base_total
+        modifier_sum = 0
         if modifiers:
             for mod_name, mod_value in modifiers.items():
                 total += mod_value
+                modifier_sum += mod_value
                 logger.debug(f"Applied modifier {mod_name}: {mod_value:+d}")
+
+        # Math verification: ensure modifiers applied correctly
+        expected_total = base_total + modifier_sum
+        assert total == expected_total, \
+            f"Math error (modifiers): {base_total} + modifiers({modifier_sum}) should be {expected_total}, got {total}"
 
         # Calculate margin and outcome
         margin = total - difficulty
@@ -441,10 +477,21 @@ class MechanicsEngine:
         """Format resolution for DM narration."""
         skill_text = f"({resolution.attribute} × {resolution.skill})" if resolution.skill else f"({resolution.attribute})"
 
+        # Calculate display formula based on skill usage
+        if resolution.skill_value > 0:
+            # Skilled: Attribute × Skill + d20
+            ability = resolution.attribute_value * resolution.skill_value
+            formula = f"{resolution.attribute_value} × {resolution.skill_value} + {resolution.roll}"
+            calculation = f"{ability} + {resolution.roll}"
+        else:
+            # Unskilled: Attribute + d20 - 5
+            formula = f"{resolution.attribute_value} + {resolution.roll} - 5 (unskilled)"
+            calculation = formula
+
         return f"""
 **{resolution.intent}**
 Roll: {skill_text} + d20
-Result: {resolution.attribute_value} × {resolution.skill_value} + {resolution.roll} = **{resolution.total}** vs DC {resolution.difficulty}
+Result: {formula} = **{resolution.total}** vs DC {resolution.difficulty}
 Margin: {resolution.margin:+d}
 Outcome: **{resolution.outcome_tier.value.upper()}** {'✓' if resolution.success else '✗'}
 {resolution.narrative}
