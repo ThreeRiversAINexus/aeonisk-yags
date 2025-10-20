@@ -57,7 +57,9 @@ class AIDMAgent(Agent):
         self.message_handlers[MessageType.SESSION_START] = self._handle_session_start
         self.message_handlers[MessageType.ACTION_DECLARED] = self._handle_action_declared
         self.message_handlers[MessageType.TURN_REQUEST] = self._handle_turn_request
-        
+        self.message_handlers[MessageType.AGENT_REGISTER] = self._handle_agent_register
+        self.message_handlers[MessageType.DM_NARRATION] = self._handle_dm_narration
+
         # Human override handlers
         self.message_handlers[MessageType.PING] = self._handle_human_override_request
         
@@ -91,22 +93,45 @@ class AIDMAgent(Agent):
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI."""
-        # Use existing scenario seeds from your codebase
-        from ...game.aiDM import SCENARIO_SEEDS
         import random
-        
+
+        # Built-in scenario seeds
+        SCENARIO_SEEDS = [
+            {
+                'theme': 'Corporate Intrigue',
+                'location': 'Arcane Genetics Research Facility, Aeonisk Prime',
+                'situation': 'Memory theft from biocreche pods threatens family lineages',
+                'npcs': ['Corporate Agent', 'Facility Security'],
+                'factors': ['Corrupted pod matrices', 'Temporal instability'],
+                'void_level': 3
+            },
+            {
+                'theme': 'Void Investigation',
+                'location': 'Abandoned Ley Line Nexus, Outer Territories',
+                'situation': 'Ancient ley lines destabilizing, causing reality fluctuations',
+                'npcs': ['Void-touched Scholar', 'Tempest Industries Operative'],
+                'factors': ['Unstable astral currents', 'Malfunctioning technology'],
+                'void_level': 5
+            },
+            {
+                'theme': 'Bond Crisis',
+                'location': 'Resonance Commune Sanctuary, Nimbus',
+                'situation': 'Sacred bonding ritual sabotaged, severing spiritual connections',
+                'npcs': ['Traumatized Commune Member', 'Suspected Saboteur'],
+                'factors': ['Severed bonds', 'Spiritual trauma'],
+                'void_level': 2
+            }
+        ]
+
         seed = random.choice(SCENARIO_SEEDS)
-        
+
         scenario = Scenario(
             theme=seed['theme'],
             location=seed['location'],
-            situation=f"The situation involves {random.choice(seed['conflicts'])}",
-            active_npcs=[],
-            environmental_factors=seed.get('voidThreats', [])[:2],
-            void_level=max(
-                config.get('void_influence', 3),
-                self._estimate_void_level()
-            )
+            situation=seed['situation'],
+            active_npcs=seed.get('npcs', []),
+            environmental_factors=seed.get('factors', []),
+            void_level=seed.get('void_level', 3)
         )
         
         self.current_scenario = scenario
@@ -232,23 +257,13 @@ What do you do?
         
     async def _handle_ai_dm_response(self, player_id: str, action: Dict[str, Any]):
         """Handle action with AI DM logic."""
-        # Simplified AI response - you can enhance this with your LLM integration
         action_type = action.get('action_type', 'unknown')
         description = action.get('description', '')
-        
-        # Basic outcome determination
-        success = True  # You can add dice rolling logic here
-        
-        response_templates = {
-            'explore': f"You explore the area and discover...",
-            'interact': f"Your interaction reveals...", 
-            'ritual': f"You attempt the ritual and...",
-            'combat': f"The combat unfolds as...",
-            'default': f"Your action results in..."
-        }
-        
-        template = response_templates.get(action_type, response_templates['default'])
-        narration = f"{template} [AI DM response to {description}]"
+
+        # Generate narration using LLM if configured
+        narration = await self._generate_llm_response(
+            player_id, action_type, description
+        )
 
         persona_prompt = None
         if self._prompt_enricher and self.voice_profile:
@@ -260,6 +275,9 @@ What do you do?
                 previous_turns=previous_turns,
                 shared_state=shared_state_snapshot,
             )
+
+        # Determine success - assume success unless narration indicates failure
+        success = True  # For now, DM always allows actions to succeed
 
         outcome = {
             'dm_response': narration,
@@ -335,6 +353,74 @@ What do you do?
         self.human_controlled = not self.human_controlled
         status = "HUMAN" if self.human_controlled else "AI"
         print(f"[{status} DM {self.agent_id}] Control switched to {status} mode")
+
+    async def _handle_agent_register(self, message: Message):
+        """Handle agent registration messages (no-op for DM)."""
+        pass
+
+    async def _handle_dm_narration(self, message: Message):
+        """Handle DM narration messages (no-op - DM sends these, doesn't receive them)."""
+        pass
+
+    async def _generate_llm_response(self, player_id: str, action_type: str, description: str) -> str:
+        """Generate DM response using LLM."""
+        provider = self.llm_config.get('provider', 'openai')
+        model = self.llm_config.get('model', 'gpt-4')
+        temperature = self.llm_config.get('temperature', 0.7)
+
+        scenario_context = ""
+        if self.current_scenario:
+            scenario_context = f"""
+Current Scenario: {self.current_scenario.theme}
+Location: {self.current_scenario.location}
+Situation: {self.current_scenario.situation}
+Void Level: {self.current_scenario.void_level}/10
+"""
+
+        prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
+
+{scenario_context}
+
+Player Action: {description}
+Action Type: {action_type}
+
+As the DM, describe what happens as a result of this action. Be vivid and thematic. Include:
+1. What the player discovers or experiences
+2. Any immediate consequences or complications
+3. How the void energy might influence the outcome (if relevant)
+
+Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atmosphere."""
+
+        try:
+            if provider == 'openai':
+                import openai
+                response = await asyncio.to_thread(
+                    openai.ChatCompletion.create,
+                    model=model,
+                    messages=[{"role": "system", "content": "You are an expert Aeonisk YAGS Dungeon Master."},
+                             {"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=150
+                )
+                return response.choices[0].message.content.strip()
+
+            elif provider == 'anthropic':
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=model,
+                    max_tokens=150,
+                    temperature=temperature,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text.strip()
+
+        except Exception as e:
+            logger.error(f"LLM API error: {e}")
+            # Fallback to template
+            return f"As you {description}, the situation develops in unexpected ways. The void energy at level {self.current_scenario.void_level if self.current_scenario else 3}/10 subtly influences the outcome."
 
     def _estimate_void_level(self) -> int:
         """Estimate void severity from shared state."""
