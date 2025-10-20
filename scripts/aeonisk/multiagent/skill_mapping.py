@@ -161,4 +161,8 @@ def validate_action_mechanics(
                 f"Character lacks {corrected_skill}, using raw {corrected_attr} check"
             )
 
+    # Ensure we never return string "None" as a skill
+    if corrected_skill and corrected_skill.lower() == 'none':
+        corrected_skill = None
+
     return (corrected_attr, corrected_skill, True, "")

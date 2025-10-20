@@ -327,8 +327,9 @@ What do you do?
                     agent_id=player_id
                 )
 
-                void_change_text = f" [Void +{ritual_effects['void_change']}]" if ritual_effects['void_change'] > 0 else ""
-                narration_suffix = void_change_text + "\n" + "\n".join(ritual_effects['consequences'])
+                # NOTE: Don't add void here - outcome_parser will handle it
+                # Just show consequences
+                narration_suffix = "\n" + "\n".join(ritual_effects['consequences'])
             else:
                 # Regular action resolution
                 resolution = mechanics.resolve_action(
@@ -337,17 +338,16 @@ What do you do?
                     skill=skill,
                     attribute_value=attribute_value,
                     skill_value=skill_value,
-                    difficulty=difficulty
+                    difficulty=difficulty,
+                    agent_id=player_id
                 )
                 narration_suffix = ""
 
             # Update clocks based on outcome
             mechanics.update_clocks_from_action(resolution, action)
 
-            # Check for void triggers
-            void_gain = mechanics.check_void_trigger(intent, player_id, {})
-            if void_gain > 0:
-                narration_suffix += f"\n[Void +{void_gain} from void exposure]"
+            # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
+            # Void will be tracked via outcome_parser only
 
             # Format mechanical resolution
             mechanical_text = mechanics.format_resolution_for_narration(resolution)
@@ -364,25 +364,56 @@ What do you do?
 
             state_changes = parse_state_changes(llm_narration, action, resolution.__dict__)
 
-            # Apply clock advancements
+            # Apply clock advancements (positive=advance, negative=regress)
             clock_updates = []
             for clock_name, ticks, reason in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
-                    filled = mechanics.advance_clock(clock_name, ticks, reason)
-                    clock = mechanics.scene_clocks[clock_name]
-                    clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
-                    if filled:
-                        clock_updates.append(f"🚨 {clock_name} FILLED!")
+                    if ticks < 0:
+                        # Negative ticks = regress (improve)
+                        mechanics.scene_clocks[clock_name].regress(abs(ticks))
+                        clock = mechanics.scene_clocks[clock_name]
+                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ↓")
+                    else:
+                        # Positive ticks = advance (degrade)
+                        filled = mechanics.advance_clock(clock_name, ticks, reason)
+                        clock = mechanics.scene_clocks[clock_name]
+                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                        if filled:
+                            clock_updates.append(f"🚨 {clock_name} FILLED!")
 
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
 
-            # Apply void changes
+            # Apply void changes (use action intent as action_id to prevent duplicates)
             if state_changes['void_change'] > 0:
                 void_state = mechanics.get_void_state(player_id)
                 old_void = void_state.score
-                void_state.add_void(state_changes['void_change'], ", ".join(state_changes['void_reasons']))
-                narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                # Use intent as unique action identifier
+                action_id = f"{player_id}_{intent}_{resolution.total}"
+                void_state.add_void(
+                    state_changes['void_change'],
+                    ", ".join(state_changes['void_reasons']),
+                    action_id=action_id
+                )
+                # Only show void change if it actually changed
+                if void_state.score != old_void:
+                    narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+
+            # Apply conditions
+            from .mechanics import Condition
+            for condition_data in state_changes.get('conditions', []):
+                condition = Condition(
+                    name=condition_data['type'],
+                    type=condition_data['type'],
+                    penalty=condition_data['penalty'],
+                    description=condition_data['description'],
+                    duration=3,  # Default duration
+                    affects=[]  # Affects all by default
+                )
+                mechanics.add_condition(player_id, condition)
+
+                # Show condition application
+                narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
 
             # Check for filled clocks (triggers)
             clock_triggers = self._check_clock_triggers(mechanics)

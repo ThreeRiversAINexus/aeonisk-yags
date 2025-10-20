@@ -140,52 +140,71 @@ class SelfPlayingSession:
     async def _run_gameplay_loop(self):
         """Run the main gameplay loop."""
         self.running = True
-        turn_count = 0
-        max_turns = self.config.get('max_turns', 50)
-        
-        print(f"\n=== Starting Session {self.session_id} ===")
-        print(f"Max turns: {max_turns}")
-        print(f"Human interface: {'Enabled' if self.human_interface else 'Disabled'}")
-        
-        while self.running and turn_count < max_turns:
-            turn_count += 1
-            print(f"\n--- Turn {turn_count} ---")
-            self._turn_history.append(f"Turn {turn_count} begins")
+        round_count = 0
+        max_rounds = self.config.get('max_turns', 50)
 
-            # Run player turns
-            await self._run_player_turns()
-            
-            # Run DM turn
+        print(f"\n=== Starting Session {self.session_id} ===")
+        print(f"Max rounds: {max_rounds}")
+        print(f"Human interface: {'Enabled' if self.human_interface else 'Disabled'}")
+
+        while self.running and round_count < max_rounds:
+            round_count += 1
+            print(f"\n--- Round {round_count} ---")
+            self._turn_history.append(f"Round {round_count} begins")
+
+            # Run round with initiative-based turns
+            await self._run_initiative_round()
+
+            # Run DM turn at end of round
             await self._run_dm_turn()
-            
+
             # Check for session end conditions
             if await self._check_end_conditions():
                 break
-                
-            # Brief pause between turns
+
+            # Brief pause between rounds
             await asyncio.sleep(1)
-            
+
         await self._end_session()
         
-    async def _run_player_turns(self):
-        """Run all player turns."""
+    async def _run_initiative_round(self):
+        """Run a round with all players acting in initiative order."""
         player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
-        
-        # Send turn requests to all players
+
+        if not player_agents:
+            return
+
+        # Calculate initiative for each player (Agility × 4 + d20)
+        initiative_order = []
+        mechanics = self.shared_state.get_mechanics_engine()
+
         for player_agent in player_agents:
+            # Get player's Agility attribute
+            agility = player_agent.character_state.attributes.get('Agility', 3)
+            initiative = mechanics.calculate_initiative(agility)
+            initiative_order.append((initiative, player_agent))
+            print(f"[{player_agent.character_state.name}] Initiative: {initiative}")
+
+        # Sort by initiative (highest first)
+        initiative_order.sort(key=lambda x: x[0], reverse=True)
+
+        # Players act in initiative order
+        for initiative_score, player_agent in initiative_order:
+            print(f"\n[{player_agent.character_state.name}]'s turn (initiative {initiative_score})")
+
             turn_message = Message(
-                id=f"turn_{datetime.now().isoformat()}",
+                id=f"turn_{datetime.now().isoformat()}_{player_agent.agent_id}",
                 type=MessageType.TURN_REQUEST,
                 sender='coordinator',
                 recipient=player_agent.agent_id,
-                payload={'phase': 'player_action'},
+                payload={'phase': 'player_action', 'initiative': initiative_score},
                 timestamp=datetime.now()
             )
-            
+
             await self.coordinator.message_bus._route_message(turn_message)
-            
-        # Wait for players to act (simple approach)
-        await asyncio.sleep(3)
+
+            # Wait for this player to complete their action
+            await asyncio.sleep(3)
         
     async def _run_dm_turn(self):
         """Run DM turn."""
