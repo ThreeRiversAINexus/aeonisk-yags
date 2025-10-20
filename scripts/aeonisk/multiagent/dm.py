@@ -299,6 +299,20 @@ What do you do?
             skill_value = action.get('skill_value', 0)
             difficulty = action.get('difficulty_estimate', 20)
 
+            # CRITICAL: Re-validate ritual mechanics at DM resolution time
+            # (Player may have sent corrected values, but we enforce anyway)
+            from .skill_mapping import validate_ritual_mechanics, RITUAL_ATTRIBUTE, RITUAL_SKILL
+
+            if action_type == 'ritual' or action.get('is_ritual', False):
+                # Force ritual mechanics
+                if attribute != RITUAL_ATTRIBUTE or skill != RITUAL_SKILL:
+                    logger.warning(f"DM correcting ritual: {attribute}×{skill} → {RITUAL_ATTRIBUTE}×{RITUAL_SKILL}")
+                attribute = RITUAL_ATTRIBUTE
+                skill = RITUAL_SKILL
+                # Re-fetch values for corrected attribute/skill
+                # (We'd need character sheet access here; for now trust player sent correct values)
+                # This ensures resolve_action gets Willpower×Astral Arts
+
             # Resolve mechanically
             if action.get('is_ritual', False):
                 # Ritual resolution
@@ -344,6 +358,31 @@ What do you do?
             )
 
             narration = f"{mechanical_text}\n\n{llm_narration}{narration_suffix}"
+
+            # Parse narration for automatic state changes
+            from .outcome_parser import parse_state_changes
+
+            state_changes = parse_state_changes(llm_narration, action, resolution.__dict__)
+
+            # Apply clock advancements
+            clock_updates = []
+            for clock_name, ticks, reason in state_changes['clock_triggers']:
+                if clock_name in mechanics.scene_clocks:
+                    filled = mechanics.advance_clock(clock_name, ticks, reason)
+                    clock = mechanics.scene_clocks[clock_name]
+                    clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                    if filled:
+                        clock_updates.append(f"🚨 {clock_name} FILLED!")
+
+            if clock_updates:
+                narration += "\n\n📊 " + " | ".join(clock_updates)
+
+            # Apply void changes
+            if state_changes['void_change'] > 0:
+                void_state = mechanics.get_void_state(player_id)
+                old_void = void_state.score
+                void_state.add_void(state_changes['void_change'], ", ".join(state_changes['void_reasons']))
+                narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
             # Check for filled clocks (triggers)
             clock_triggers = self._check_clock_triggers(mechanics)

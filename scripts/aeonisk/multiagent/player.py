@@ -193,6 +193,25 @@ class AIPlayerAgent(Agent):
             # Fallback to simple personality-based choice
             action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
+        # Apply mechanical validation and corrections
+        from .skill_mapping import validate_action_mechanics, get_character_skill_value
+
+        corrected_attr, corrected_skill, is_valid, message = validate_action_mechanics(
+            action_declaration.action_type,
+            action_declaration.attribute,
+            action_declaration.skill,
+            self.character_state.skills
+        )
+
+        # Update action with corrected mechanics
+        if corrected_attr != action_declaration.attribute or corrected_skill != action_declaration.skill:
+            print(f"[{self.character_state.name}] Mechanics corrected: {action_declaration.attribute}×{action_declaration.skill} → {corrected_attr}×{corrected_skill}")
+            action_declaration.attribute = corrected_attr
+            action_declaration.skill = corrected_skill
+
+        if message:
+            print(f"[{self.character_state.name}] {message}")
+
         # Validate action (checks for duplicates)
         if validator:
             is_valid, issues = validator.validate_action(action_declaration, allow_duplicates=False)
@@ -204,7 +223,11 @@ class AIPlayerAgent(Agent):
         # Convert to dict and add character-specific data
         action = action_declaration.to_dict()
         action['attribute_value'] = self.character_state.attributes.get(action_declaration.attribute, 3)
-        action['skill_value'] = self.character_state.skills.get(action_declaration.skill, 0) if action_declaration.skill else 0
+        action['skill_value'] = get_character_skill_value(
+            self.character_state.skills,
+            action_declaration.skill,
+            fallback_value=0
+        )
         action['character'] = self.character_state.name
         action['agent_id'] = self.agent_id
 
@@ -442,27 +465,30 @@ DESCRIPTION: [narrative description]"""
             if 'ask' in intent.lower() or 'talk' in intent.lower() or 'question' in intent.lower():
                 recent_types.add('social')
 
-        # Get character's actual skills
-        has_social = 'Social' in self.character_state.skills
+        # Get character's actual skills (use canonical YAGS names)
+        has_charm = 'Charm' in self.character_state.skills
+        has_guile = 'Guile' in self.character_state.skills
+        has_social = has_charm or has_guile
         has_astral = 'Astral Arts' in self.character_state.skills
-        has_investigation = 'Investigation' in self.character_state.skills
+        has_awareness = 'Awareness' in self.character_state.skills
 
         # Choose action type based on personality, skills, and what hasn't been done recently
         if 'social' not in recent_types and has_social:
             intent = f"Question NPCs about the situation"
             action_type = "social"
             attribute = "Empathy"
-            skill = "Social"
+            # Use whichever social skill character has
+            skill = "Charm" if has_charm else "Guile"
         elif 'ritual' not in recent_types and has_astral and void_curiosity > 5:
             intent = "Use astral arts to sense void presence"
             action_type = "ritual"
             attribute = "Willpower"
             skill = "Astral Arts"
-        elif 'investigate' not in recent_types and has_investigation:
+        elif 'investigate' not in recent_types and has_awareness:
             intent = "Investigate physical evidence"
             action_type = "investigate"
             attribute = "Perception"
-            skill = "Investigation"
+            skill = "Awareness"
         elif has_astral:
             # Ritual fallback
             intent = "Perform minor ritual to assess the situation"
