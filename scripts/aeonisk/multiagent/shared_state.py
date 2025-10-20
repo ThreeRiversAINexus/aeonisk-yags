@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .mechanics import MechanicsEngine, SceneClock
+    from .action_schema import ActionValidator
+    from .knowledge_retrieval import KnowledgeRetrieval
 
 
 @dataclass
@@ -16,7 +21,10 @@ class VoidSpikeRecord:
 
 @dataclass
 class SharedState:
-    """Track communal resources accessible by all agents."""
+    """
+    Track communal resources and game state accessible by all agents.
+    Now integrated with mechanics engine and knowledge retrieval.
+    """
 
     soulcredit_pool: int = 0
     void_spikes: List[VoidSpikeRecord] = field(default_factory=list)
@@ -24,6 +32,11 @@ class SharedState:
     soulcredit_history: List[Dict[str, Any]] = field(default_factory=list)
     soulcredit_floor: int = -4
     void_threshold: int = 4
+
+    # New: mechanics integration
+    mechanics_engine: Optional['MechanicsEngine'] = None
+    action_validator: Optional['ActionValidator'] = None
+    knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
 
     def adjust_soulcredit(self, delta: int, *, reason: Optional[str] = None) -> Optional[str]:
         """Adjust communal Soulcredit and return escalation cues if thresholds are crossed."""
@@ -56,9 +69,47 @@ class SharedState:
 
     def snapshot(self) -> Dict[str, Any]:
         """Return a serialisable snapshot for prompts or logging."""
-        return {
+        snapshot_data = {
             "soulcredit_pool": self.soulcredit_pool,
             "soulcredit_history": list(self.soulcredit_history),
             "void_spikes": [record.__dict__ for record in self.void_spikes],
             "rituals": dict(self.rituals),
         }
+
+        # Add mechanics state if available
+        if self.mechanics_engine:
+            snapshot_data['mechanics'] = self.mechanics_engine.get_state_summary()
+
+        return snapshot_data
+
+    def initialize_mechanics(self):
+        """Initialize mechanics systems if not already done."""
+        if self.mechanics_engine is None:
+            from .mechanics import MechanicsEngine
+            self.mechanics_engine = MechanicsEngine()
+
+        if self.action_validator is None:
+            from .action_schema import ActionValidator
+            self.action_validator = ActionValidator()
+
+        if self.knowledge_retrieval is None:
+            from .knowledge_retrieval import KnowledgeRetrieval
+            self.knowledge_retrieval = KnowledgeRetrieval()
+
+    def get_mechanics_engine(self) -> 'MechanicsEngine':
+        """Get or create mechanics engine."""
+        if self.mechanics_engine is None:
+            self.initialize_mechanics()
+        return self.mechanics_engine
+
+    def get_action_validator(self) -> 'ActionValidator':
+        """Get or create action validator."""
+        if self.action_validator is None:
+            self.initialize_mechanics()
+        return self.action_validator
+
+    def get_knowledge_retrieval(self) -> 'KnowledgeRetrieval':
+        """Get or create knowledge retrieval."""
+        if self.knowledge_retrieval is None:
+            self.initialize_mechanics()
+        return self.knowledge_retrieval
