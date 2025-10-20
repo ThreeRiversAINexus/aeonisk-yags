@@ -258,6 +258,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         file_path = sys.argv[1]
     else:
-        file_path = "converted_yagsbook/markdown/core.md"
+        file_path = "archive/converted_yagsbook/markdown/core.md"
     
     fix_tables(file_path)

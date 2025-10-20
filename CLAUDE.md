@@ -151,4 +151,4 @@ Core tables: users, characters, game_sessions, session_characters, npcs, actions
 - Use `task stack` for full development environment  
 - Character void scores have mechanical significance at 5+ levels
 - The ritual system requires careful balance between power and consequences
-- All game content is stored as Markdown in `/content` directory
+- Canonical game content lives in the `datasets/` tree; optional archives can be placed in `archive/`

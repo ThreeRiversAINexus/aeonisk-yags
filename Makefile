@@ -8,11 +8,11 @@ PODMAN_IMAGE_NAME := yags-converter
 PODMANFILE := Podmanfile
 
 # Directories
-CONTENT_DIR := content
-RELEASES_DIR := releases
+CONTENT_DIR ?= archive/rulebooks
+RELEASES_DIR ?= archive/releases
 
 YAGS_CONVERT_SCRIPT := scripts/convert_yagsbook.sh
-CONVERTED_YAGS_BASE_DIR := converted_yagsbook
+CONVERTED_YAGS_BASE_DIR ?= archive/converted_yagsbook
 CONVERTED_YAGS_MD_DIR := $(CONVERTED_YAGS_BASE_DIR)/markdown
 CONVERTED_YAGS_EPUB_DIR := $(CONVERTED_YAGS_BASE_DIR)/epub
 
@@ -48,9 +48,9 @@ build_podman_image:
 	@echo "Building Podman image $(PODMAN_IMAGE_NAME)..."
 	@podman build -f $(PODMANFILE) -t $(PODMAN_IMAGE_NAME) .
 
-# Convert Markdown files from content/ directory
+# Convert Markdown files from $(CONTENT_DIR)/
 # This target implicitly depends on the image existing.
-# We can make it explicit if we want `make convert_markdown` to also build the image.
+# Provide your own Markdown corpus in $(CONTENT_DIR)/ before invoking.
 convert_markdown: build_podman_image
 	@echo "Converting Markdown files from $(CONTENT_DIR)/ to PDF/EPUB in $(RELEASES_DIR)/..."
 	@mkdir -p $(RELEASES_DIR)

@@ -41,27 +41,29 @@ class AeoniskVectorStore:
             metadata={"description": "Complete YAGS and Aeonisk game rules and lore"}
         )
     
-    def chunk_markdown_content(self, file_path: str) -> List[RuleChunk]:
+    def chunk_markdown_content(self, file_path: str, content: Optional[str] = None) -> List[RuleChunk]:
         """Parse markdown into meaningful rule chunks."""
         chunks = []
-        
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
+
+        if content is None:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
         # Split by headers
         sections = re.split(r'\n(#{1,4})\s+(.+)', content)
-        current_section = "Introduction"
-        
+
         for i in range(0, len(sections), 3):
             if i + 2 < len(sections):
-                header_level = sections[i + 1] if i + 1 < len(sections) else "#"
                 section_title = sections[i + 2] if i + 2 < len(sections) else "Unknown"
-                section_content = sections[i] if sections[i].strip() else sections[i + 3] if i + 3 < len(sections) else ""
-                
+                section_content = sections[i]
+
+                if not section_content.strip() and i + 3 < len(sections):
+                    section_content = sections[i + 3]
+
                 if len(section_content.strip()) > 50:  # Skip tiny sections
                     rule_type = self._classify_content(section_title, section_content)
                     tags = self._extract_tags(section_title, section_content)
-                    
+
                     chunks.append(RuleChunk(
                         content=section_content.strip(),
                         source_file=Path(file_path).name,
@@ -69,8 +71,103 @@ class AeoniskVectorStore:
                         rule_type=rule_type,
                         tags=tags
                     ))
-        
+
         return chunks
+
+    def chunk_yaml_content(self, file_path: Path) -> List[RuleChunk]:
+        """Chunk YAML or other structured datasets into retrievable sections."""
+        chunks: List[RuleChunk] = []
+        content = file_path.read_text(encoding='utf-8')
+
+        try:
+            documents = [doc for doc in yaml.safe_load_all(content) if doc is not None]
+        except yaml.YAMLError:
+            documents = []
+
+        if not documents:
+            return self.chunk_plaintext_content(file_path, content)
+
+        for doc_index, document in enumerate(documents, start=1):
+            chunks.extend(self._chunk_yaml_document(file_path, document, doc_index))
+
+        return chunks
+
+    def _chunk_yaml_document(self, file_path: Path, document: Any, doc_index: int) -> List[RuleChunk]:
+        """Create retrievable chunks from a parsed YAML document."""
+        chunks: List[RuleChunk] = []
+
+        def add_chunk(section: str, value: Any):
+            text = yaml.safe_dump(value, sort_keys=False).strip()
+            if len(text) < 50:
+                return
+            rule_type = self._classify_content(section, text)
+            tags = self._extract_tags(section, text)
+            chunks.append(RuleChunk(
+                content=text,
+                source_file=file_path.name,
+                section=section,
+                rule_type=rule_type,
+                tags=tags
+            ))
+
+        if isinstance(document, dict):
+            for key, value in document.items():
+                section_name = f"Document {doc_index} / {key}"
+                add_chunk(section_name, value)
+        elif isinstance(document, list):
+            for index, value in enumerate(document):
+                section_name = f"Document {doc_index} / Entry {index + 1}"
+                add_chunk(section_name, value)
+        else:
+            section_name = f"Document {doc_index}"
+            add_chunk(section_name, document)
+
+        return chunks
+
+    def chunk_plaintext_content(self, file_path: Path, content: Optional[str] = None) -> List[RuleChunk]:
+        """Chunk plain-text files by paragraph."""
+        if content is None:
+            content = file_path.read_text(encoding='utf-8')
+
+        chunks: List[RuleChunk] = []
+        segments = [segment.strip() for segment in re.split(r'\n{2,}', content) if segment.strip()]
+
+        for index, segment in enumerate(segments, start=1):
+            if len(segment) < 50:
+                continue
+
+            first_line = segment.splitlines()[0].strip()
+            section_title = first_line if first_line else f"Section {index}"
+            rule_type = self._classify_content(section_title, segment)
+            tags = self._extract_tags(section_title, segment)
+
+            chunks.append(RuleChunk(
+                content=segment,
+                source_file=file_path.name,
+                section=section_title,
+                rule_type=rule_type,
+                tags=tags
+            ))
+
+        return chunks
+
+    def chunk_rule_file(self, file_path: Path) -> List[RuleChunk]:
+        """Select the appropriate chunking strategy for the provided file."""
+        suffix = file_path.suffix.lower()
+
+        if suffix in {'.md', '.markdown'}:
+            return self.chunk_markdown_content(str(file_path))
+
+        if suffix in {'.txt'}:
+            content = file_path.read_text(encoding='utf-8')
+            if content.lstrip().startswith('#'):
+                return self.chunk_markdown_content(str(file_path), content)
+            return self.chunk_plaintext_content(file_path, content)
+
+        if suffix in {'.yaml', '.yml'}:
+            return self.chunk_yaml_content(file_path)
+
+        return self.chunk_plaintext_content(file_path)
     
     def _classify_content(self, title: str, content: str) -> str:
         """Classify content type for better retrieval."""
@@ -107,22 +204,20 @@ class AeoniskVectorStore:
         
         # Define all the rule files to process
         rule_files = [
-            "ai_pack/core.md",
-            "ai_pack/character.md", 
-            "ai_pack/scifitech.md",
-            "content/Aeonisk - YAGS Module - v1.2.1.md",
-            "content/Aeonisk - System Neutral Lore - v1.2.1.md",
-            "content/Aeonisk - Gear & Tech Reference - v1.2.1.md",
-            "content/experimental/Aeonisk - Tactical Module - v1.2.1.md"
+            Path("datasets/aeonisk_glossary.md"),
+            Path("datasets/aeonisk_dataset_guidelines.txt"),
+            Path("datasets/aeonisk_dataset_normalized_complete.yaml"),
+            Path("datasets/new/ember-vault-one-shot.txt"),
+            Path("datasets/new/aeonisk-ledger-ascends.txt"),
+            Path("datasets/new/liturgy_of_embers.txt")
         ]
         
         all_chunks = []
         
         for file_path in rule_files:
-            full_path = Path(file_path)
-            if full_path.exists():
+            if file_path.exists():
                 print(f"Processing {file_path}...")
-                chunks = self.chunk_markdown_content(str(full_path))
+                chunks = self.chunk_rule_file(file_path)
                 all_chunks.extend(chunks)
             else:
                 print(f"Warning: {file_path} not found")

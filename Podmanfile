@@ -37,6 +37,6 @@ ENTRYPOINT []
 CMD ["/usr/local/bin/internal_podman_convert.sh"]
 
 # To build: podman build -f Podmanfile -t yags-converter .
-# To run (assuming your CWD has content/ and you want output in releases/):
-# mkdir -p releases
-# podman run --rm -v ./content:/app/content:ro -v ./releases:/app/releases:Z yags-converter
+# To run (mount a directory of Markdown sources and choose an output directory):
+# mkdir -p archive/releases
+# podman run --rm -v ./archive/rulebooks:/app/content:ro -v ./archive/releases:/app/releases:Z yags-converter

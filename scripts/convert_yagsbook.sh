@@ -18,9 +18,11 @@ BASE_NAME=$(basename "$INPUT_FILE" .yags)
 
 # Set up directory paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TEMP_DIR="$(pwd)/temp_docbook_processing"
-MARKDOWN_OUTPUT_DIR="$(pwd)/converted_yagsbook/markdown"
-EPUB_OUTPUT_DIR="$(pwd)/converted_yagsbook/epub"
+PROJECT_ROOT="$(pwd)"
+ARCHIVE_ROOT="${ARCHIVE_ROOT:-$PROJECT_ROOT/archive}"
+TEMP_DIR="$PROJECT_ROOT/temp_docbook_processing"
+MARKDOWN_OUTPUT_DIR="$ARCHIVE_ROOT/converted_yagsbook/markdown"
+EPUB_OUTPUT_DIR="$ARCHIVE_ROOT/converted_yagsbook/epub"
 
 # Create necessary directories
 mkdir -p "$TEMP_DIR"
@@ -32,9 +34,9 @@ cp "$INPUT_FILE" "$TEMP_DIR/$BASE_NAME.yags"
 echo "Copied input file to temporary directory: $TEMP_DIR/$BASE_NAME.yags"
 
 # Set up paths for container volumes
-HOST_INPUT_DIR="$(pwd)/temp_docbook_processing"
-HOST_OUTPUT_MARKDOWN_DIR="$(pwd)/converted_yagsbook/markdown"
-HOST_OUTPUT_EPUB_DIR="$(pwd)/converted_yagsbook/epub"
+HOST_INPUT_DIR="$PROJECT_ROOT/temp_docbook_processing"
+HOST_OUTPUT_MARKDOWN_DIR="$ARCHIVE_ROOT/converted_yagsbook/markdown"
+HOST_OUTPUT_EPUB_DIR="$ARCHIVE_ROOT/converted_yagsbook/epub"
 
 # Display information
 echo "Input YAGS file (host): $INPUT_FILE"
