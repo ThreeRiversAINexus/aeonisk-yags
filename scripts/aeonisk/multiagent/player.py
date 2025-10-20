@@ -5,11 +5,13 @@ AI Player agent for multi-agent self-playing system.
 import asyncio
 import logging
 import random
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 
 from .base import Agent, Message, MessageType
+from .shared_state import SharedState
+from .voice_profiles import VoiceProfile
 
 logger = logging.getLogger(__name__)
 
@@ -33,14 +35,28 @@ class AIPlayerAgent(Agent):
     and goals, with option for human takeover.
     """
     
-    def __init__(self, agent_id: str, socket_path: str, character_config: Dict[str, Any]):
+    def __init__(
+        self,
+        agent_id: str,
+        socket_path: str,
+        character_config: Dict[str, Any],
+        *,
+        voice_profile: Optional[VoiceProfile] = None,
+        shared_state: Optional[SharedState] = None,
+        prompt_enricher: Optional[Callable[..., str]] = None,
+        history_supplier: Optional[Callable[[], Iterable[str]]] = None,
+    ):
         super().__init__(agent_id, socket_path)
         self.character_config = character_config
         self.character_state: Optional[CharacterState] = None
         self.human_controlled = False
         self.personality = character_config.get('personality', {})
         self.current_scenario: Optional[Dict[str, Any]] = None
-        
+        self.voice_profile = voice_profile
+        self.shared_state = shared_state
+        self._prompt_enricher = prompt_enricher
+        self._history_supplier = history_supplier
+
         # Set up player-specific message handlers
         self.message_handlers[MessageType.SCENARIO_SETUP] = self._handle_scenario_setup
         self.message_handlers[MessageType.TURN_REQUEST] = self._handle_turn_request
@@ -187,7 +203,18 @@ class AIPlayerAgent(Agent):
                 'void_curiosity': void_curiosity
             }
         }
-        
+
+        if self._prompt_enricher and self.voice_profile:
+            previous_turns = list(self._history_supplier() or []) if self._history_supplier else []
+            shared_state_snapshot = self.shared_state.snapshot() if self.shared_state else {}
+            enriched = self._prompt_enricher(
+                "Propose your action and justify the risk.",
+                self.voice_profile,
+                previous_turns=previous_turns,
+                shared_state=shared_state_snapshot,
+            )
+            action['prompt_context'] = enriched
+
         self.send_message_sync(
             MessageType.ACTION_DECLARED,
             None,

@@ -5,8 +5,15 @@ This file contains fixtures and setup for the test suite.
 """
 
 import os
+import sys
 import pytest
 from pathlib import Path
+
+# Ensure the in-repo package is importable during tests
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SCRIPTS_PATH = ROOT_DIR / "scripts"
+if str(SCRIPTS_PATH) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_PATH))
 
 
 @pytest.fixture
