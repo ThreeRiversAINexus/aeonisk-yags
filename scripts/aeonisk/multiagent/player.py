@@ -41,6 +41,7 @@ class AIPlayerAgent(Agent):
         socket_path: str,
         character_config: Dict[str, Any],
         *,
+        llm_config: Optional[Dict[str, Any]] = None,
         voice_profile: Optional[VoiceProfile] = None,
         shared_state: Optional[SharedState] = None,
         prompt_enricher: Optional[Callable[..., str]] = None,
@@ -48,6 +49,7 @@ class AIPlayerAgent(Agent):
     ):
         super().__init__(agent_id, socket_path)
         self.character_config = character_config
+        self.llm_config = llm_config or {}
         self.character_state: Optional[CharacterState] = None
         self.human_controlled = False
         self.personality = character_config.get('personality', {})
@@ -62,6 +64,8 @@ class AIPlayerAgent(Agent):
         self.message_handlers[MessageType.TURN_REQUEST] = self._handle_turn_request
         self.message_handlers[MessageType.ACTION_RESOLVED] = self._handle_action_resolved
         self.message_handlers[MessageType.DM_NARRATION] = self._handle_dm_narration
+        self.message_handlers[MessageType.AGENT_REGISTER] = self._handle_agent_register
+        self.message_handlers[MessageType.SESSION_START] = self._handle_session_start
         
     async def on_start(self):
         """Initialize player agent."""
@@ -170,30 +174,33 @@ class AIPlayerAgent(Agent):
         """Handle AI player turn using personality-driven decision making."""
         if not self.current_scenario:
             return
-            
-        # Use existing AI decision making from your codebase
-        action_options = [
-            'explore the environment carefully',
-            'interact with other party members', 
-            'investigate the immediate situation',
-            'prepare for potential danger',
-            'attempt to gather information',
-            'look for ritual opportunities'
-        ]
-        
-        # Simple personality-based choice (enhance with your existing logic)
+
+        # Generate action using LLM if configured, otherwise use simple logic
         risk_tolerance = self.personality.get('riskTolerance', 5)
         void_curiosity = self.personality.get('voidCuriosity', 3)
-        
-        if void_curiosity > 6 and 'void' in str(self.current_scenario).lower():
-            chosen_action = 'investigate the void presence'
-        elif risk_tolerance > 6:
-            chosen_action = 'take bold action to advance the situation'
-        elif risk_tolerance < 4:
-            chosen_action = random.choice([opt for opt in action_options if 'careful' in opt or 'prepare' in opt])
+
+        if self.llm_config:
+            chosen_action = await self._generate_llm_action()
         else:
-            chosen_action = random.choice(action_options)
-            
+            # Fallback to simple personality-based choice
+            action_options = [
+                'explore the environment carefully',
+                'interact with other party members',
+                'investigate the immediate situation',
+                'prepare for potential danger',
+                'attempt to gather information',
+                'look for ritual opportunities'
+            ]
+
+            if void_curiosity > 6 and 'void' in str(self.current_scenario).lower():
+                chosen_action = 'investigate the void presence'
+            elif risk_tolerance > 6:
+                chosen_action = 'take bold action to advance the situation'
+            elif risk_tolerance < 4:
+                chosen_action = random.choice([opt for opt in action_options if 'careful' in opt or 'prepare' in opt])
+            else:
+                chosen_action = random.choice(action_options)
+
         action = {
             'action_type': 'explore' if 'explore' in chosen_action else 'interact',
             'description': chosen_action,
@@ -220,7 +227,7 @@ class AIPlayerAgent(Agent):
             None,
             action
         )
-        
+
         print(f"[{self.character_state.name}] AI Action: {chosen_action}")
         
     async def _handle_action_resolved(self, message: Message):
@@ -245,10 +252,18 @@ class AIPlayerAgent(Agent):
         narration = message.payload.get('narration', '')
         if narration:
             print(f"\n[DM] {narration}")
-            
+
             if self.human_controlled:
                 print(f"[HUMAN - {self.character_state.name}] How do you respond?")
-                
+
+    async def _handle_agent_register(self, message: Message):
+        """Handle agent registration messages (no-op for players)."""
+        pass
+
+    async def _handle_session_start(self, message: Message):
+        """Handle session start messages (no-op for players - handled via SCENARIO_SETUP)."""
+        pass
+
     def _show_character_status(self):
         """Show current character status."""
         print(f"\n=== {self.character_state.name} Status ===")
@@ -265,7 +280,79 @@ class AIPlayerAgent(Agent):
         self.human_controlled = not self.human_controlled
         status = "HUMAN" if self.human_controlled else "AI"
         print(f"[{status} - {self.character_state.name}] Control switched to {status} mode")
-        
+
         if self.human_controlled:
             print("Available commands: explore, interact, ritual, combat, status, release_control")
             print("Or type any freeform action description")
+
+    async def _generate_llm_action(self) -> str:
+        """Generate player action using LLM based on character personality and scenario."""
+        provider = self.llm_config.get('provider', 'openai')
+        model = self.llm_config.get('model', 'gpt-4')
+        temperature = self.llm_config.get('temperature', 0.8)
+
+        scenario_context = ""
+        if self.current_scenario:
+            scenario_context = f"""
+Current Scenario: {self.current_scenario.get('theme', 'Unknown')}
+Location: {self.current_scenario.get('location', 'Unknown')}
+Situation: {self.current_scenario.get('situation', 'Unknown')}
+Void Level: {self.current_scenario.get('void_level', 0)}/10
+"""
+
+        character_context = f"""
+Character: {self.character_state.name}
+Faction: {self.character_state.faction}
+Void Score: {self.character_state.void_score}/10
+Goals: {', '.join(self.character_state.goals)}
+Personality Traits:
+- Risk Tolerance: {self.personality.get('riskTolerance', 5)}/10
+- Void Curiosity: {self.personality.get('voidCuriosity', 3)}/10
+"""
+
+        prompt = f"""You are playing as {self.character_state.name} in an Aeonisk YAGS game session.
+
+{character_context}
+
+{scenario_context}
+
+Based on your character's personality and the current situation, decide what action you want to take.
+Respond with a single, concise action (1-2 sentences). Stay in character and consider your goals and personality traits.
+
+Examples:
+- "I carefully examine the corrupted pod matrices for signs of tampering"
+- "I approach the void-touched scholar and ask about the ley line destabilization"
+- "I prepare a protective ritual to shield the party from void influence"
+
+Your action:"""
+
+        try:
+            if provider == 'openai':
+                import openai
+                response = await asyncio.to_thread(
+                    openai.ChatCompletion.create,
+                    model=model,
+                    messages=[{"role": "system", "content": f"You are {self.character_state.name}, a character in an Aeonisk YAGS RPG game."},
+                             {"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=100
+                )
+                return response.choices[0].message.content.strip()
+
+            elif provider == 'anthropic':
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=model,
+                    max_tokens=100,
+                    temperature=temperature,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text.strip()
+
+        except Exception as e:
+            logger.error(f"LLM API error for player action: {e}")
+            # Fallback to simple action
+            return "investigate the immediate situation"
