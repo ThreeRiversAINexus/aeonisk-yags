@@ -156,3 +156,12 @@ node_modules/*
 **/node_modules/*
 scripts/aeonisk/.venv/*
 **/.venv/*
+
+# Generated artifacts
+multiagent_output/
+*.pyc
+__pycache__/
+
+# Environment files
+.env
+.env.local
