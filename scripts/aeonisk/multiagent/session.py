@@ -15,6 +15,8 @@ from .base import GameCoordinator, MessageType, Message
 from .dm import AIDMAgent
 from .player import AIPlayerAgent
 from .human_interface import HumanInterface
+from .shared_state import SharedState
+from .voice_profiles import VoiceLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,9 @@ class SelfPlayingSession:
         self.session_id: Optional[str] = None
         self.session_data: List[Dict[str, Any]] = []
         self.running = False
+        self.shared_state = SharedState()
+        self.voice_library = VoiceLibrary()
+        self._turn_history: List[str] = []
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
@@ -84,21 +89,34 @@ class SelfPlayingSession:
         
         # Create DM agent
         dm_config = agents_config.get('dm', {})
+        dm_voice = self.voice_library.get_profile('ritual_scholar')
         dm_agent = AIDMAgent(
             agent_id='dm_01',
             socket_path=str(self.coordinator.message_bus.socket_path),
-            llm_config=dm_config.get('llm', {})
+            llm_config=dm_config.get('llm', {}),
+            voice_profile=dm_voice,
+            shared_state=self.shared_state,
+            prompt_enricher=self.voice_library.enrich_prompt,
+            history_supplier=self._recent_history,
         )
         self.agents.append(dm_agent)
         await dm_agent.start()
-        
+
         # Create player agents
         players_config = agents_config.get('players', [])
+        assignments = self.voice_library.assign_to_agents(
+            [f'player_{i+1:02d}' for i in range(len(players_config))]
+        )
         for i, player_config in enumerate(players_config):
+            agent_id = f'player_{i+1:02d}'
             player_agent = AIPlayerAgent(
-                agent_id=f'player_{i+1:02d}',
+                agent_id=agent_id,
                 socket_path=str(self.coordinator.message_bus.socket_path),
-                character_config=player_config
+                character_config=player_config,
+                voice_profile=assignments.get(agent_id),
+                shared_state=self.shared_state,
+                prompt_enricher=self.voice_library.enrich_prompt,
+                history_supplier=self._recent_history,
             )
             self.agents.append(player_agent)
             await player_agent.start()
@@ -124,7 +142,8 @@ class SelfPlayingSession:
         while self.running and turn_count < max_turns:
             turn_count += 1
             print(f"\n--- Turn {turn_count} ---")
-            
+            self._turn_history.append(f"Turn {turn_count} begins")
+
             # Run player turns
             await self._run_player_turns()
             
@@ -201,7 +220,9 @@ class SelfPlayingSession:
             'session_id': self.session_id,
             'config': self.config,
             'turns': self.coordinator.get_session_data(),
-            'end_time': datetime.now().isoformat()
+            'end_time': datetime.now().isoformat(),
+            'shared_state': self.shared_state.snapshot(),
+            'voice_profiles': [profile.as_dict() for profile in self.voice_library.all_profiles()],
         }
         
         # Save session data
@@ -271,8 +292,12 @@ class SelfPlayingSession:
         # Shutdown human interface
         if self.human_interface:
             self.human_interface.shutdown()
-            
+
         logger.info("All agents shutdown")
+
+    def _recent_history(self) -> List[str]:
+        """Return a small slice of recent turn history for prompt context."""
+        return self._turn_history[-5:]
 
 
 # Configuration example
