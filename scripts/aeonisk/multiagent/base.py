@@ -59,11 +59,11 @@ class Message:
     timestamp: datetime
     
     def to_json(self) -> str:
-        """Serialize message to JSON."""
+        """Serialize message to JSON with newline delimiter."""
         data = asdict(self)
         data['type'] = self.type.value
         data['timestamp'] = self.timestamp.isoformat()
-        return json.dumps(data)
+        return json.dumps(data) + '\n'
     
     @classmethod
     def from_json(cls, json_str: str) -> 'Message':
@@ -126,29 +126,39 @@ class MessageBus:
     async def _handle_client(self, client_socket: socket.socket):
         """Handle messages from a client connection."""
         client_id = None
-        
+        buffer = ""
+
         try:
             while self.running:
                 data = await asyncio.get_event_loop().sock_recv(client_socket, 4096)
                 if not data:
                     break
-                    
-                try:
-                    message = Message.from_json(data.decode())
-                    
-                    # Register client on first message
-                    if client_id is None:
-                        client_id = message.sender
-                        self.clients[client_id] = client_socket
-                        logger.info(f"Client {client_id} connected")
-                    
-                    # Route message
-                    await self._route_message(message)
-                    
-                except json.JSONDecodeError:
-                    logger.error("Invalid JSON received")
-                except Exception as e:
-                    logger.error(f"Error processing message: {e}")
+
+                buffer += data.decode()
+
+                # Process all complete messages (delimited by newlines)
+                while '\n' in buffer:
+                    line, buffer = buffer.split('\n', 1)
+
+                    if not line.strip():
+                        continue
+
+                    try:
+                        message = Message.from_json(line)
+
+                        # Register client on first message
+                        if client_id is None:
+                            client_id = message.sender
+                            self.clients[client_id] = client_socket
+                            logger.info(f"Client {client_id} connected")
+
+                        # Route message
+                        await self._route_message(message)
+
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Invalid JSON received: {line[:100]!r} - {e}")
+                    except Exception as e:
+                        logger.error(f"Error processing message: {e}", exc_info=True)
                     
         except Exception as e:
             logger.error(f"Client connection error: {e}")
@@ -165,13 +175,14 @@ class MessageBus:
             if message.recipient in self.clients:
                 await self._send_to_client(self.clients[message.recipient], message)
             else:
-                logger.warning(f"Recipient {message.recipient} not found")
+                logger.warning(f"Recipient {message.recipient} not found in clients: {list(self.clients.keys())}")
         else:
-            # Broadcast to all clients except sender
+            # Broadcast to all clients (don't exclude sender if sender is not a client)
             for client_id, client_socket in self.clients.items():
-                if client_id != message.sender:
+                # Only exclude sender if sender is actually a client
+                if message.sender not in self.clients or client_id != message.sender:
                     await self._send_to_client(client_socket, message)
-                    
+
         # Invoke local handlers
         for handler in self.message_handlers.values():
             try:
@@ -268,15 +279,25 @@ class Agent(ABC):
         
     async def _message_loop(self):
         """Main message handling loop."""
+        buffer = ""
         while self.running:
             try:
                 data = await asyncio.get_event_loop().sock_recv(self.socket, 4096)
                 if not data:
                     break
-                    
-                message = Message.from_json(data.decode())
-                await self._handle_message(message)
-                
+
+                buffer += data.decode()
+
+                # Process all complete messages (delimited by newlines)
+                while '\n' in buffer:
+                    line, buffer = buffer.split('\n', 1)
+
+                    if not line.strip():
+                        continue
+
+                    message = Message.from_json(line)
+                    await self._handle_message(message)
+
             except Exception as e:
                 logger.error(f"Agent {self.agent_id} message loop error: {e}")
                 await asyncio.sleep(0.1)
@@ -289,8 +310,7 @@ class Agent(ABC):
                 await handler(message)
             except Exception as e:
                 logger.error(f"Agent {self.agent_id} handler error: {e}")
-        else:
-            logger.warning(f"No handler for message type {message.type}")
+        # Silently ignore messages without handlers - they may be handled by coordinator
             
     async def _send_message(self, message: Message):
         """Send message via message bus."""
@@ -387,7 +407,7 @@ class GameCoordinator:
         if message.type == MessageType.AGENT_REGISTER:
             self.agents[message.sender] = message.payload.get('agent_type', 'Unknown')
             logger.info(f"Registered agent {message.sender} ({self.agents[message.sender]})")
-            
+
         elif message.type == MessageType.ACTION_DECLARED:
             # Record action for data collection
             self.session_data.append({
@@ -396,10 +416,36 @@ class GameCoordinator:
                 'action': message.payload,
                 'timestamp': message.timestamp.isoformat()
             })
-            
+
         elif message.type == MessageType.GAME_STATE_UPDATE:
             # Update shared game state
             self.game_state = GameState(**message.payload)
+
+        elif message.type == MessageType.SESSION_START:
+            # Track session start
+            logger.info(f"Session started: {message.payload.get('session_id')}")
+            self.session_data.append({
+                'type': 'session_start',
+                'config': message.payload.get('config', {}),
+                'timestamp': message.timestamp.isoformat()
+            })
+
+        elif message.type == MessageType.SCENARIO_SETUP:
+            # Track scenario setup
+            logger.info(f"Scenario: {message.payload.get('scenario', {}).get('theme', 'Unknown')}")
+            self.session_data.append({
+                'type': 'scenario',
+                'scenario': message.payload.get('scenario', {}),
+                'timestamp': message.timestamp.isoformat()
+            })
+
+        elif message.type == MessageType.DM_NARRATION:
+            # Track DM narration
+            self.session_data.append({
+                'type': 'narration',
+                'narration': message.payload.get('narration', ''),
+                'timestamp': message.timestamp.isoformat()
+            })
             
     async def create_session(self, config: Dict[str, Any]) -> str:
         """Create and start a new game session."""
