@@ -38,6 +38,13 @@ class SelfPlayingSession:
         self.shared_state = SharedState()
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
+
+        # Initialize mechanics systems
+        print("Initializing mechanics systems...")
+        self.shared_state.initialize_mechanics()
+        print("✓ Mechanics engine ready")
+        print("✓ Action validator ready")
+        print("✓ Knowledge retrieval ready")
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
@@ -215,7 +222,26 @@ class SelfPlayingSession:
     async def _end_session(self):
         """End the session and save data."""
         print(f"\n=== Session {self.session_id} Ending ===")
-        
+
+        # Print final state summary
+        if self.shared_state.mechanics_engine:
+            print("\n--- Final State Summary ---")
+            state_summary = self.shared_state.mechanics_engine.get_state_summary()
+
+            # Print scene clocks
+            if state_summary.get('scene_clocks'):
+                print("\nScene Clocks:")
+                for name, clock in state_summary['scene_clocks'].items():
+                    print(f"  {name}: {clock['progress']} {'[FILLED]' if clock['filled'] else ''}")
+
+            # Print void states
+            if state_summary.get('void_states'):
+                print("\nVoid States:")
+                for agent_id, void_info in state_summary['void_states'].items():
+                    print(f"  {agent_id}: {void_info['score']}/10 ({void_info['level']})")
+
+            print("=" * 40)
+
         # Collect final session data
         final_data = {
             'session_id': self.session_id,
@@ -225,7 +251,7 @@ class SelfPlayingSession:
             'shared_state': self.shared_state.snapshot(),
             'voice_profiles': [profile.as_dict() for profile in self.voice_library.all_profiles()],
         }
-        
+
         # Save session data
         await self._save_session_data(final_data)
         

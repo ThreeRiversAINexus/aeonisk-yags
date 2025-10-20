@@ -171,78 +171,76 @@ class AIPlayerAgent(Agent):
         print(f"[{self.character_state.name}] Declared: {description}")
         
     async def _ai_player_turn(self):
-        """Handle AI player turn using personality-driven decision making."""
+        """Handle AI player turn using personality-driven decision making with mechanics."""
         if not self.current_scenario:
             return
 
-        # Generate action using LLM if configured, otherwise use simple logic
+        # Get action validator for de-duplication
+        if self.shared_state:
+            validator = self.shared_state.get_action_validator()
+            recent_intents = validator.deduplicator.get_recent_intents(self.agent_id)
+        else:
+            validator = None
+            recent_intents = []
+
+        # Generate action using LLM if configured
         risk_tolerance = self.personality.get('riskTolerance', 5)
         void_curiosity = self.personality.get('voidCuriosity', 3)
 
         if self.llm_config:
-            chosen_action = await self._generate_llm_action()
+            action_declaration = await self._generate_llm_action_structured(recent_intents)
         else:
             # Fallback to simple personality-based choice
-            action_options = [
-                'explore the environment carefully',
-                'interact with other party members',
-                'investigate the immediate situation',
-                'prepare for potential danger',
-                'attempt to gather information',
-                'look for ritual opportunities'
-            ]
+            action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
-            if void_curiosity > 6 and 'void' in str(self.current_scenario).lower():
-                chosen_action = 'investigate the void presence'
-            elif risk_tolerance > 6:
-                chosen_action = 'take bold action to advance the situation'
-            elif risk_tolerance < 4:
-                chosen_action = random.choice([opt for opt in action_options if 'careful' in opt or 'prepare' in opt])
-            else:
-                chosen_action = random.choice(action_options)
+        # Validate action (checks for duplicates)
+        if validator:
+            is_valid, issues = validator.validate_action(action_declaration, allow_duplicates=False)
+            if not is_valid:
+                print(f"[{self.character_state.name}] Action rejected: {issues[0]}")
+                # Try again with simpler action
+                action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
-        action = {
-            'action_type': 'explore' if 'explore' in chosen_action else 'interact',
-            'description': chosen_action,
-            'character': self.character_state.name,
-            'personality_factors': {
-                'risk_tolerance': risk_tolerance,
-                'void_curiosity': void_curiosity
-            }
-        }
+        # Convert to dict and add character-specific data
+        action = action_declaration.to_dict()
+        action['attribute_value'] = self.character_state.attributes.get(action_declaration.attribute, 3)
+        action['skill_value'] = self.character_state.skills.get(action_declaration.skill, 0) if action_declaration.skill else 0
+        action['character'] = self.character_state.name
+        action['agent_id'] = self.agent_id
 
-        if self._prompt_enricher and self.voice_profile:
-            previous_turns = list(self._history_supplier() or []) if self._history_supplier else []
-            shared_state_snapshot = self.shared_state.snapshot() if self.shared_state else {}
-            enriched = self._prompt_enricher(
-                "Propose your action and justify the risk.",
-                self.voice_profile,
-                previous_turns=previous_turns,
-                shared_state=shared_state_snapshot,
-            )
-            action['prompt_context'] = enriched
-
+        # Send action declaration
         self.send_message_sync(
             MessageType.ACTION_DECLARED,
             None,
             action
         )
 
-        print(f"[{self.character_state.name}] AI Action: {chosen_action}")
+        print(f"\n[{self.character_state.name}] {action_declaration.get_summary()}")
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
         if message.recipient == self.agent_id or message.recipient is None:
             outcome = message.payload.get('outcome', {})
             narration = message.payload.get('narration', '')
-            
-            print(f"\n[{self.character_state.name}] DM Response: {narration}")
-            
+
+            print(f"\n[{self.character_state.name}] Received resolution")
+
+            # Update void state from mechanics engine
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                void_state = mechanics.get_void_state(self.agent_id)
+                self.character_state.void_score = void_state.score
+
+                if len(void_state.history) > 0:
+                    last_change = void_state.history[-1]
+                    if last_change['new_score'] != last_change['old_score']:
+                        print(f"[{self.character_state.name}] Void: {last_change['old_score']} → {last_change['new_score']} ({last_change['reason']})")
+
             # Update character state based on outcome
             if 'void_gained' in outcome:
                 self.character_state.void_score += outcome['void_gained']
                 print(f"[{self.character_state.name}] Void Score: {self.character_state.void_score}")
-                
+
             if 'soulcredit_cost' in outcome:
                 self.character_state.soulcredit -= outcome['soulcredit_cost']
                 print(f"[{self.character_state.name}] Soulcredit: {self.character_state.soulcredit}")
@@ -285,11 +283,24 @@ class AIPlayerAgent(Agent):
             print("Available commands: explore, interact, ritual, combat, status, release_control")
             print("Or type any freeform action description")
 
-    async def _generate_llm_action(self) -> str:
-        """Generate player action using LLM based on character personality and scenario."""
-        provider = self.llm_config.get('provider', 'openai')
-        model = self.llm_config.get('model', 'gpt-4')
-        temperature = self.llm_config.get('temperature', 0.8)
+    async def _generate_llm_action_structured(self, recent_intents: List[str]):
+        """Generate structured action using LLM with enhanced prompts."""
+        from .enhanced_prompts import get_player_system_prompt
+        from .action_schema import ActionDeclaration
+
+        # Build system prompt with mechanical scaffolding
+        system_prompt = get_player_system_prompt(
+            character_name=self.character_state.name,
+            character_stats={
+                'attributes': self.character_state.attributes,
+                'skills': self.character_state.skills,
+                'soulcredit': self.character_state.soulcredit
+            },
+            personality=self.personality,
+            goals=self.character_state.goals,
+            recent_intents=recent_intents,
+            void_score=self.character_state.void_score
+        )
 
         scenario_context = ""
         if self.current_scenario:
@@ -297,62 +308,182 @@ class AIPlayerAgent(Agent):
 Current Scenario: {self.current_scenario.get('theme', 'Unknown')}
 Location: {self.current_scenario.get('location', 'Unknown')}
 Situation: {self.current_scenario.get('situation', 'Unknown')}
-Void Level: {self.current_scenario.get('void_level', 0)}/10
 """
 
-        character_context = f"""
-Character: {self.character_state.name}
-Faction: {self.character_state.faction}
-Void Score: {self.character_state.void_score}/10
-Goals: {', '.join(self.character_state.goals)}
-Personality Traits:
-- Risk Tolerance: {self.personality.get('riskTolerance', 5)}/10
-- Void Curiosity: {self.personality.get('voidCuriosity', 3)}/10
-"""
-
-        prompt = f"""You are playing as {self.character_state.name} in an Aeonisk YAGS game session.
-
-{character_context}
+        prompt = f"""{system_prompt}
 
 {scenario_context}
 
-Based on your character's personality and the current situation, decide what action you want to take.
-Respond with a single, concise action (1-2 sentences). Stay in character and consider your goals and personality traits.
-
-Examples:
-- "I carefully examine the corrupted pod matrices for signs of tampering"
-- "I approach the void-touched scholar and ask about the ley line destabilization"
-- "I prepare a protective ritual to shield the party from void influence"
-
-Your action:"""
+Declare your next action using the required format:
+INTENT: [what you're doing]
+ATTRIBUTE: [which attribute]
+SKILL: [which skill or None]
+DIFFICULTY: [estimate]
+JUSTIFICATION: [why that difficulty]
+ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
+DESCRIPTION: [narrative description]"""
 
         try:
-            if provider == 'openai':
-                import openai
-                response = await asyncio.to_thread(
-                    openai.ChatCompletion.create,
-                    model=model,
-                    messages=[{"role": "system", "content": f"You are {self.character_state.name}, a character in an Aeonisk YAGS RPG game."},
-                             {"role": "user", "content": prompt}],
-                    temperature=temperature,
-                    max_tokens=100
-                )
-                return response.choices[0].message.content.strip()
+            provider = self.llm_config.get('provider', 'anthropic')
+            model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+            temperature = self.llm_config.get('temperature', 0.8)
 
-            elif provider == 'anthropic':
+            if provider == 'anthropic':
                 import anthropic
                 import os
                 client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
                 response = await asyncio.to_thread(
                     client.messages.create,
                     model=model,
-                    max_tokens=100,
+                    max_tokens=300,
                     temperature=temperature,
                     messages=[{"role": "user", "content": prompt}]
                 )
-                return response.content[0].text.strip()
+                llm_text = response.content[0].text.strip()
+            else:
+                # Fallback to simple action
+                return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
+
+            # Parse LLM response into ActionDeclaration
+            action = self._parse_action_from_llm(llm_text)
+            return action
 
         except Exception as e:
             logger.error(f"LLM API error for player action: {e}")
             # Fallback to simple action
-            return "investigate the immediate situation"
+            return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
+
+    def _parse_action_from_llm(self, llm_text: str):
+        """Parse structured action from LLM response."""
+        from .action_schema import ActionDeclaration
+
+        lines = llm_text.strip().split('\n')
+        data = {
+            'intent': 'investigate the situation',
+            'description': llm_text[:200],
+            'attribute': 'Perception',
+            'skill': None,
+            'difficulty_estimate': 20,
+            'difficulty_justification': 'moderate challenge',
+            'action_type': 'investigate',
+            'character_name': self.character_state.name,
+            'agent_id': self.agent_id
+        }
+
+        # Valid attributes with proper capitalization
+        VALID_ATTRIBUTES = {
+            'strength': 'Strength',
+            'agility': 'Agility',
+            'endurance': 'Endurance',
+            'perception': 'Perception',
+            'intelligence': 'Intelligence',
+            'empathy': 'Empathy',
+            'willpower': 'Willpower',
+            'charisma': 'Charisma'
+        }
+
+        # Parse fields from LLM output
+        for line in lines:
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip().lower()
+                value = value.strip()
+
+                if 'intent' in key:
+                    data['intent'] = value
+                elif 'attribute' in key:
+                    # Normalize attribute name
+                    attr_lower = value.lower()
+                    data['attribute'] = VALID_ATTRIBUTES.get(attr_lower, 'Perception')
+                elif 'skill' in key:
+                    data['skill'] = value if value.lower() != 'none' else None
+                elif 'difficulty' in key and not 'justification' in key:
+                    try:
+                        data['difficulty_estimate'] = int(value.split()[0])
+                        if '-' in value:
+                            data['difficulty_justification'] = value.split('-', 1)[1].strip()
+                    except:
+                        pass
+                elif 'justification' in key:
+                    data['difficulty_justification'] = value
+                elif 'action_type' in key or 'type' in key:
+                    data['action_type'] = value.lower()
+                elif 'description' in key:
+                    data['description'] = value
+
+        try:
+            return ActionDeclaration(**data)
+        except Exception as e:
+            logger.error(f"Failed to create ActionDeclaration: {e}")
+            # Return minimal valid action
+            return ActionDeclaration(
+                intent=data['intent'],
+                description=data['description'],
+                attribute=data['attribute'],
+                skill=data.get('skill'),
+                difficulty_estimate=data['difficulty_estimate'],
+                difficulty_justification=data['difficulty_justification'],
+                action_type=data['action_type'],
+                character_name=self.character_state.name,
+                agent_id=self.agent_id
+            )
+
+    def _generate_simple_action(self, recent_intents: List[str], risk_tolerance: int, void_curiosity: int):
+        """Generate simple action based on personality without LLM."""
+        from .action_schema import ActionDeclaration
+
+        # Avoid recently used action types
+        recent_types = set()
+        for intent in recent_intents:
+            if 'scan' in intent.lower() or 'investigate' in intent.lower():
+                recent_types.add('investigate')
+            if 'ritual' in intent.lower() or 'harmoniz' in intent.lower():
+                recent_types.add('ritual')
+            if 'ask' in intent.lower() or 'talk' in intent.lower() or 'question' in intent.lower():
+                recent_types.add('social')
+
+        # Get character's actual skills
+        has_social = 'Social' in self.character_state.skills
+        has_astral = 'Astral Arts' in self.character_state.skills
+        has_investigation = 'Investigation' in self.character_state.skills
+
+        # Choose action type based on personality, skills, and what hasn't been done recently
+        if 'social' not in recent_types and has_social:
+            intent = f"Question NPCs about the situation"
+            action_type = "social"
+            attribute = "Empathy"
+            skill = "Social"
+        elif 'ritual' not in recent_types and has_astral and void_curiosity > 5:
+            intent = "Use astral arts to sense void presence"
+            action_type = "ritual"
+            attribute = "Willpower"
+            skill = "Astral Arts"
+        elif 'investigate' not in recent_types and has_investigation:
+            intent = "Investigate physical evidence"
+            action_type = "investigate"
+            attribute = "Perception"
+            skill = "Investigation"
+        elif has_astral:
+            # Ritual fallback
+            intent = "Perform minor ritual to assess the situation"
+            action_type = "ritual"
+            attribute = "Willpower"
+            skill = "Astral Arts"
+        else:
+            # Explore with raw perception (no skill)
+            intent = "Carefully examine the environment"
+            action_type = "explore"
+            attribute = "Perception"
+            skill = None
+
+        return ActionDeclaration(
+            intent=intent,
+            description=f"{self.character_state.name} attempts to {intent.lower()}",
+            attribute=attribute,
+            skill=skill,
+            difficulty_estimate=20,
+            difficulty_justification="moderate task in current conditions",
+            action_type=action_type,
+            character_name=self.character_state.name,
+            agent_id=self.agent_id
+        )

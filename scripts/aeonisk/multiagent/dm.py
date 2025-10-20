@@ -103,7 +103,12 @@ class AIDMAgent(Agent):
                 'situation': 'Memory theft from biocreche pods threatens family lineages',
                 'npcs': ['Corporate Agent', 'Facility Security'],
                 'factors': ['Corrupted pod matrices', 'Temporal instability'],
-                'void_level': 3
+                'void_level': 3,
+                'clocks': [
+                    ('Corporate Suspicion', 6, 'Company security closing in'),
+                    ('Evidence Trail', 6, 'Uncovering the memory theft conspiracy'),
+                    ('Facility Lockdown', 4, 'Time before facility seals')
+                ]
             },
             {
                 'theme': 'Void Investigation',
@@ -111,15 +116,25 @@ class AIDMAgent(Agent):
                 'situation': 'Ancient ley lines destabilizing, causing reality fluctuations',
                 'npcs': ['Void-touched Scholar', 'Tempest Industries Operative'],
                 'factors': ['Unstable astral currents', 'Malfunctioning technology'],
-                'void_level': 5
+                'void_level': 5,
+                'clocks': [
+                    ('Reality Collapse', 6, 'Ley line nexus destabilizing'),
+                    ('Void Contamination', 6, 'Group exposure to void energy'),
+                    ('Investigation Progress', 6, 'Understanding the cause')
+                ]
             },
             {
                 'theme': 'Bond Crisis',
                 'location': 'Resonance Commune Sanctuary, Nimbus',
                 'situation': 'Sacred bonding ritual sabotaged, severing spiritual connections',
-                'npcs': ['Traumatized Commune Member', 'Suspected Saboteur'],
+                'npcs': ['Traumatized Commune Member', 'Suspected Saboteur', 'Acolyte Senna'],
                 'factors': ['Severed bonds', 'Spiritual trauma'],
-                'void_level': 2
+                'void_level': 2,
+                'clocks': [
+                    ('Sanctuary Corruption', 6, 'Void contamination spreading'),
+                    ('Saboteur Exposure', 6, 'Identifying the inside collaborator'),
+                    ('Communal Stability', 6, 'Social cohesion of the commune')
+                ]
             }
         ]
 
@@ -133,9 +148,18 @@ class AIDMAgent(Agent):
             environmental_factors=seed.get('factors', []),
             void_level=seed.get('void_level', 3)
         )
-        
+
         self.current_scenario = scenario
-        
+
+        # Initialize mechanics and create scenario-specific clocks
+        if self.shared_state:
+            self.shared_state.initialize_mechanics()
+            mechanics = self.shared_state.get_mechanics_engine()
+
+            for clock_name, max_value, description in seed.get('clocks', []):
+                mechanics.create_scene_clock(clock_name, max_value, description)
+                print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
+
         # Broadcast scenario setup
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
@@ -150,7 +174,7 @@ class AIDMAgent(Agent):
                 'opening_narration': self._generate_opening_narration(scenario)
             }
         )
-        
+
         print(f"\n[DM {self.agent_id}] Generated scenario: {scenario.theme}")
         print(f"Location: {scenario.location}")
         print(f"Situation: {scenario.situation}")
@@ -256,33 +280,102 @@ What do you do?
         )
         
     async def _handle_ai_dm_response(self, player_id: str, action: Dict[str, Any]):
-        """Handle action with AI DM logic."""
+        """Handle action with AI DM logic using mechanical resolution."""
         action_type = action.get('action_type', 'unknown')
         description = action.get('description', '')
+        intent = action.get('intent', description)
 
-        # Generate narration using LLM if configured
-        narration = await self._generate_llm_response(
-            player_id, action_type, description
-        )
+        # Get mechanics engine
+        resolution = None
+        narration = ""
 
-        persona_prompt = None
-        if self._prompt_enricher and self.voice_profile:
-            previous_turns = list(self._history_supplier() or []) if self._history_supplier else []
-            shared_state_snapshot = self.shared_state.snapshot() if self.shared_state else {}
-            persona_prompt = self._prompt_enricher(
-                "Resolve the player action and escalate if thresholds demand it.",
-                self.voice_profile,
-                previous_turns=previous_turns,
-                shared_state=shared_state_snapshot,
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+
+            # Extract mechanical details from action
+            attribute = action.get('attribute', 'Perception')
+            skill = action.get('skill')
+            attribute_value = action.get('attribute_value', 3)
+            skill_value = action.get('skill_value', 0)
+            difficulty = action.get('difficulty_estimate', 20)
+
+            # Resolve mechanically
+            if action.get('is_ritual', False):
+                # Ritual resolution
+                resolution, ritual_effects = mechanics.resolve_ritual(
+                    intent=intent,
+                    willpower=attribute_value if attribute == 'Willpower' else 3,
+                    astral_arts=skill_value if skill == 'Astral Arts' else 0,
+                    difficulty=difficulty,
+                    has_primary_tool=action.get('has_primary_tool', False),
+                    has_offering=action.get('has_offering', False),
+                    sanctified_altar=action.get('at_altar', False),
+                    agent_id=player_id
+                )
+
+                void_change_text = f" [Void +{ritual_effects['void_change']}]" if ritual_effects['void_change'] > 0 else ""
+                narration_suffix = void_change_text + "\n" + "\n".join(ritual_effects['consequences'])
+            else:
+                # Regular action resolution
+                resolution = mechanics.resolve_action(
+                    intent=intent,
+                    attribute=attribute,
+                    skill=skill,
+                    attribute_value=attribute_value,
+                    skill_value=skill_value,
+                    difficulty=difficulty
+                )
+                narration_suffix = ""
+
+            # Update clocks based on outcome
+            mechanics.update_clocks_from_action(resolution, action)
+
+            # Check for void triggers
+            void_gain = mechanics.check_void_trigger(intent, player_id, {})
+            if void_gain > 0:
+                narration_suffix += f"\n[Void +{void_gain} from void exposure]"
+
+            # Format mechanical resolution
+            mechanical_text = mechanics.format_resolution_for_narration(resolution)
+
+            # Generate narrative description using LLM
+            llm_narration = await self._generate_llm_response(
+                player_id, action_type, description, resolution
             )
 
-        # Determine success - assume success unless narration indicates failure
-        success = True  # For now, DM always allows actions to succeed
+            narration = f"{mechanical_text}\n\n{llm_narration}{narration_suffix}"
+
+            # Check for filled clocks (triggers)
+            clock_triggers = self._check_clock_triggers(mechanics)
+            if clock_triggers:
+                narration += f"\n\n{clock_triggers}"
+
+        else:
+            # Fallback if no mechanics available
+            narration = await self._generate_llm_response(
+                player_id, action_type, description
+            )
+
+        # Prepare serializable outcome
+        resolution_data = None
+        if resolution:
+            # Convert resolution to JSON-serializable dict
+            resolution_data = {
+                'intent': resolution.intent,
+                'attribute': resolution.attribute,
+                'skill': resolution.skill,
+                'total': resolution.total,
+                'difficulty': resolution.difficulty,
+                'margin': resolution.margin,
+                'outcome_tier': resolution.outcome_tier.value,  # Convert enum to string
+                'success': resolution.success
+            }
 
         outcome = {
             'dm_response': narration,
-            'success': success,
-            'consequences': []
+            'success': resolution.success if resolution else True,
+            'consequences': [],
+            'resolution': resolution_data
         }
 
         self.send_message_sync(
@@ -291,12 +384,13 @@ What do you do?
             {
                 'original_action': action,
                 'outcome': outcome,
-                'narration': narration,
-                'persona_prompt': persona_prompt
+                'narration': narration
             }
         )
-        
-        print(f"[DM {self.agent_id}] Responded to {player_id}: {narration}")
+
+        print(f"\n[DM {self.agent_id}] ===== Resolution =====")
+        print(narration)
+        print("=" * 40)
         
     async def _handle_turn_request(self, message: Message):
         """Handle request for DM turn (narrative, NPC actions, etc.)."""
@@ -323,20 +417,37 @@ What do you do?
         
     async def _ai_dm_turn(self):
         """Handle AI DM turn."""
-        # Generate environmental/narrative progression
-        narration = "The situation evolves... [AI DM narrative]"
-        
-        self.send_message_sync(
-            MessageType.DM_NARRATION,
-            None,
-            {
-                'narration': narration,
-                'environmental_changes': [],
-                'npc_actions': []
-            }
-        )
-        
-        print(f"[DM {self.agent_id}] Narrative: {narration}")
+        # DM turn: provide status update instead of empty narration
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+
+            # Build status summary
+            status_parts = []
+
+            # Show clock states
+            for clock_name, clock in mechanics.scene_clocks.items():
+                status_parts.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+
+            if status_parts:
+                narration = "📊 " + " | ".join(status_parts)
+            else:
+                # Skip DM turn if nothing to report
+                return
+
+            self.send_message_sync(
+                MessageType.DM_NARRATION,
+                None,
+                {
+                    'narration': narration,
+                    'environmental_changes': [],
+                    'npc_actions': []
+                }
+            )
+
+            print(f"[DM {self.agent_id}] Status: {narration}")
+        else:
+            # Skip DM turn if no mechanics
+            return
         
     async def _handle_human_override_request(self, message: Message):
         """Handle requests to switch between AI/human control."""
@@ -362,7 +473,7 @@ What do you do?
         """Handle DM narration messages (no-op - DM sends these, doesn't receive them)."""
         pass
 
-    async def _generate_llm_response(self, player_id: str, action_type: str, description: str) -> str:
+    async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None) -> str:
         """Generate DM response using LLM."""
         provider = self.llm_config.get('provider', 'openai')
         model = self.llm_config.get('model', 'gpt-4')
@@ -377,17 +488,26 @@ Situation: {self.current_scenario.situation}
 Void Level: {self.current_scenario.void_level}/10
 """
 
+        resolution_context = ""
+        if resolution:
+            outcome_text = "succeeded" if resolution.success else "failed"
+            resolution_context = f"""
+Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
+"""
+
         prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
+{resolution_context}
 
 Player Action: {description}
 Action Type: {action_type}
 
-As the DM, describe what happens as a result of this action. Be vivid and thematic. Include:
+As the DM, describe what happens narratively as a result of this action. Be vivid and thematic. Include:
 1. What the player discovers or experiences
 2. Any immediate consequences or complications
 3. How the void energy might influence the outcome (if relevant)
+4. Provide a new clue, complication, or piece of information to advance the story
 
 Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atmosphere."""
 
@@ -420,7 +540,34 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
         except Exception as e:
             logger.error(f"LLM API error: {e}")
             # Fallback to template
+            if resolution:
+                if resolution.success:
+                    return f"You {description} successfully. You notice something unusual about the situation that provides a new lead."
+                else:
+                    return f"Your attempt to {description} doesn't go as planned. The failure reveals an unexpected complication."
             return f"As you {description}, the situation develops in unexpected ways. The void energy at level {self.current_scenario.void_level if self.current_scenario else 3}/10 subtly influences the outcome."
+
+    def _check_clock_triggers(self, mechanics) -> str:
+        """Check if any clocks filled and return trigger narration."""
+        triggers = []
+
+        for clock_name, clock in mechanics.scene_clocks.items():
+            if clock.filled:
+                # Generate appropriate trigger based on clock name
+                if "Corruption" in clock_name:
+                    triggers.append(f"🚨 **{clock_name} FILLED!** The void corruption manifests - a minor entity coalesces from the corrupted field!")
+                elif "Exposure" in clock_name:
+                    triggers.append(f"🚨 **{clock_name} FILLED!** You've identified the perpetrator - they make a desperate move!")
+                elif "Stability" in clock_name:
+                    triggers.append(f"🚨 **{clock_name} FILLED!** The communal bonds fracture - panic spreads through the group!")
+                elif "Evidence" in clock_name or "Investigation" in clock_name:
+                    triggers.append(f"✅ **{clock_name} FILLED!** The pieces fall into place - you understand the full picture!")
+                elif "Lockdown" in clock_name or "Collapse" in clock_name:
+                    triggers.append(f"⚠️ **{clock_name} FILLED!** The situation reaches critical mass!")
+                else:
+                    triggers.append(f"📍 **{clock_name} FILLED!** A major story beat occurs!")
+
+        return "\n".join(triggers) if triggers else ""
 
     def _estimate_void_level(self) -> int:
         """Estimate void severity from shared state."""
