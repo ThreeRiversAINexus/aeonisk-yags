@@ -123,6 +123,33 @@ class TestDatasetCLI:
         """Test handling of no command."""
         exit_code = main([])
         assert exit_code == 1
-        
+
         captured = capsys.readouterr()
         assert "Error: No command specified" in captured.out
+
+    def test_quickstart_command(self, capsys):
+        """Quickstart command should output a compact onboarding brief."""
+        exit_code = main(["quickstart"])
+        assert exit_code == 0
+
+        captured = capsys.readouterr()
+        assert "Aeonisk Character & Ritual Quickstart" in captured.out
+        assert "Page 1: Character Spark" in captured.out
+
+    def test_currency_example_command(self, capsys):
+        """Currency example command should show the Spark Core conversion."""
+        exit_code = main(["currency-example"])
+        assert exit_code == 0
+
+        captured = capsys.readouterr()
+        assert "Spark Core" in captured.out
+        assert "Drip" in captured.out
+
+    def test_guiding_principle_command(self, capsys):
+        """Guiding principle helper command should surface crisis prompts."""
+        exit_code = main(["guiding-principle"])
+        assert exit_code == 0
+
+        captured = capsys.readouterr()
+        assert "Check every 2 sessions" in captured.out
+        assert "crisis" in captured.out.lower()

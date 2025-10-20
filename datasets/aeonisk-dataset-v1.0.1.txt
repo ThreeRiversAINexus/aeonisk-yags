@@ -1,0 +1,13 @@
+attributes:
+  primary:
+    Strength:
+      abbreviation: Str
+      description: Physical power
+skills:
+  types:
+    Talents:
+      description: Core talents
+character_generation:
+  aeonisk_specific:
+    origin: Biocreche
+    ritual_loop: True
