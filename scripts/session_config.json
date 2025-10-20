@@ -1,0 +1,87 @@
+{
+  "session_name": "test_session",
+  "max_turns": 20,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Zara Nightwhisper",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 9,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2
+        },
+        "skills": {
+          "Astral Arts": 5,
+          "Investigation": 4
+        },
+        "void_score": 2,
+        "soulcredit": 15,
+        "goals": [
+          "Explore void manipulation",
+          "Advance Tempest interests"
+        ]
+      },
+      {
+        "name": "Echo Resonance",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Social": 5
+        },
+        "void_score": 0,
+        "soulcredit": 12,
+        "goals": [
+          "Form meaningful bonds",
+          "Support community harmony"
+        ]
+      }
+    ]
+  }
+}

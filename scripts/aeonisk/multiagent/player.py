@@ -194,7 +194,25 @@ class AIPlayerAgent(Agent):
             action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
         # Apply mechanical validation and corrections
-        from .skill_mapping import validate_action_mechanics, get_character_skill_value
+        from .skill_mapping import validate_action_mechanics, get_character_skill_value, RITUAL_ATTRIBUTE, RITUAL_SKILL
+
+        # Detect ritual intent and force ritual mechanics
+        intent_lower = action_declaration.intent.lower()
+        ritual_keywords = ['ritual', 'channel', 'attune', 'harmoniz', 'weave', 'resonance', 'astral']
+        is_ritual_intent = any(keyword in intent_lower for keyword in ritual_keywords)
+
+        # Force ritual type if detected
+        if is_ritual_intent and action_declaration.action_type != 'ritual':
+            action_declaration.action_type = 'ritual'
+            action_declaration.is_ritual = True
+
+        # Force ritual mechanics for any ritual action
+        if action_declaration.action_type == 'ritual' or action_declaration.is_ritual:
+            if action_declaration.attribute != RITUAL_ATTRIBUTE or action_declaration.skill != RITUAL_SKILL:
+                print(f"[{self.character_state.name}] Ritual detected: forcing {RITUAL_ATTRIBUTE}×{RITUAL_SKILL}")
+                action_declaration.attribute = RITUAL_ATTRIBUTE
+                action_declaration.skill = RITUAL_SKILL
+                action_declaration.is_ritual = True
 
         corrected_attr, corrected_skill, is_valid, message = validate_action_mechanics(
             action_declaration.action_type,

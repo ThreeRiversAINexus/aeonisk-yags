@@ -98,7 +98,11 @@ class ActionDeclaration:
 
     def get_summary(self) -> str:
         """Get a brief summary for logging."""
-        skill_text = f" × {self.skill}" if self.skill else ""
+        # Never show "×None" - only show skill if it's a valid non-None value
+        if self.skill and self.skill.lower() != 'none':
+            skill_text = f" × {self.skill}"
+        else:
+            skill_text = ""
         return f"{self.character_name}: {self.intent} ({self.attribute}{skill_text} vs ~{self.difficulty_estimate})"
 
 

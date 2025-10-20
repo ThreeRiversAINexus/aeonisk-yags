@@ -32,21 +32,27 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int) -> List
     ]):
         triggers.append(('Corporate Suspicion', 2, "Major incident"))
 
-    # Evidence Trail triggers - concrete clues discovered
+    # Evidence Trail / Saboteur Exposure triggers - concrete clues discovered
     if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional'] and margin >= 0:
         # Physical/digital evidence
-        if any(phrase in narration_lower for phrase in [
+        evidence_phrases = [
             'badge', 'terminal', 'signature', 'log', 'trace',
             'pattern', 'evidence', 'fingerprint', 'id', 'credential',
             'device', 'tech', 'equipment', 'tool', 'neural-capture',
             'crystalline', 'residue', 'fracture', 'tampering',
             'maintenance duct', 'tunnel', 'path', 'trail',
             'syndicate', 'corporate', 'logo', 'insignia', 'sigil',
-            'identifier', 'sequence', 'protocol', 'unauthorized'
-        ]):
+            'identifier', 'sequence', 'protocol', 'unauthorized',
+            # Cult/saboteur specific
+            'obsidian path', 'crimson chorus', 'symmetry collective',
+            'ritual-keeper', 'hegemony', 'inside job', 'saboteur',
+            'acolyte', 'operative', 'infiltrator', 'collaborator'
+        ]
+        if any(phrase in narration_lower for phrase in evidence_phrases):
             # Stronger evidence for better success
             ticks = 2 if margin >= 10 else 1
             triggers.append(('Evidence Trail', ticks, f"Concrete evidence discovered (margin +{margin})"))
+            triggers.append(('Saboteur Exposure', ticks, f"Saboteur clue found (margin +{margin})"))
 
     # Sanctuary/Facility specific clocks
     if any(phrase in narration_lower for phrase in [
@@ -62,12 +68,22 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int) -> List
     ]):
         triggers.append(('Sanctuary Corruption', 1, "Void corruption spreading"))
 
-    # Communal Stability (degrades on failures)
+    # Communal Stability (degrades on failures, improves on healing successes)
     if outcome_tier in ['failure', 'critical_failure']:
         if any(phrase in narration_lower for phrase in [
-            'panic', 'traumat', 'scream', 'catatonic', 'shared consciousness'
+            'panic', 'traumat', 'scream', 'catatonic', 'shared consciousness',
+            'discord', 'fracture', 'sever', 'broken bonds', 'disrupted'
         ]):
-            triggers.append(('Communal Stability', 1, "Social cohesion degrading"))
+            ticks = 2 if outcome_tier == 'critical_failure' else 1
+            triggers.append(('Communal Stability', ticks, "Social cohesion degrading"))
+    elif outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
+        # Successful healing/stabilization improves stability (regress the degradation clock)
+        if any(phrase in narration_lower for phrase in [
+            'stabiliz', 'heal', 'mend', 'bond', 'harmoni', 'protective',
+            'reconstitute', 'restore', 'strengthen', 'repair'
+        ]):
+            # Note: This should REGRESS the clock (improvement), handled in DM logic
+            triggers.append(('Communal Stability', -1, "Bonds stabilized"))
 
     return triggers
 
