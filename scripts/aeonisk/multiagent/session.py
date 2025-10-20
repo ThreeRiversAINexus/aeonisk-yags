@@ -113,6 +113,7 @@ class SelfPlayingSession:
                 agent_id=agent_id,
                 socket_path=str(self.coordinator.message_bus.socket_path),
                 character_config=player_config,
+                llm_config=player_config.get('llm', {}),
                 voice_profile=assignments.get(agent_id),
                 shared_state=self.shared_state,
                 prompt_enricher=self.voice_library.enrich_prompt,

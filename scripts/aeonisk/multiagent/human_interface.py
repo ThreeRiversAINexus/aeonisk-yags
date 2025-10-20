@@ -57,18 +57,18 @@ class HumanInterface:
         print("Type 'agents' to see available agents")
         print("Type 'control <agent_name>' to take control of an agent")
         
-    def _handle_agent_register(self, message):
+    async def _handle_agent_register(self, message):
         """Track agent registrations."""
         agent_id = message.sender
         agent_type = message.payload.get('agent_type', 'unknown')
         self.available_agents[agent_id] = agent_type
-        
-    def _handle_agent_ready(self, message):
+
+    async def _handle_agent_ready(self, message):
         """Track when agents are ready."""
         agent_id = message.sender
         agent_type = message.payload.get('agent_type', 'unknown')
         self.available_agents[agent_id] = agent_type
-        
+
         if message.payload.get('character'):
             char_name = message.payload['character']['name']
             print(f"\n[System] {char_name} ({agent_type}) is ready")

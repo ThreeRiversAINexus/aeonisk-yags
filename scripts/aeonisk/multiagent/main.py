@@ -8,8 +8,12 @@ import json
 import logging
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
 from .session import SelfPlayingSession, EXAMPLE_CONFIG
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def setup_logging(level: str = "INFO"):
