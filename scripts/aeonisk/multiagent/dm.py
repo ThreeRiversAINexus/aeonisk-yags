@@ -4,11 +4,13 @@ AI Dungeon Master agent for multi-agent self-playing system.
 
 import asyncio
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 
 from .base import Agent, Message, MessageType
+from .shared_state import SharedState
+from .voice_profiles import VoiceProfile
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +32,26 @@ class AIDMAgent(Agent):
     and drives narrative forward.
     """
     
-    def __init__(self, agent_id: str, socket_path: str, llm_config: Dict[str, Any]):
+    def __init__(
+        self,
+        agent_id: str,
+        socket_path: str,
+        llm_config: Dict[str, Any],
+        *,
+        voice_profile: Optional[VoiceProfile] = None,
+        shared_state: Optional[SharedState] = None,
+        prompt_enricher: Optional[Callable[..., str]] = None,
+        history_supplier: Optional[Callable[[], Iterable[str]]] = None,
+    ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
         self.current_scenario: Optional[Scenario] = None
         self.human_controlled = False
         self.human_input_queue = asyncio.Queue()
+        self.voice_profile = voice_profile
+        self.shared_state = shared_state
+        self._prompt_enricher = prompt_enricher
+        self._history_supplier = history_supplier
         
         # Set up DM-specific message handlers
         self.message_handlers[MessageType.SESSION_START] = self._handle_session_start
@@ -87,7 +103,10 @@ class AIDMAgent(Agent):
             situation=f"The situation involves {random.choice(seed['conflicts'])}",
             active_npcs=[],
             environmental_factors=seed.get('voidThreats', [])[:2],
-            void_level=config.get('void_influence', 3)
+            void_level=max(
+                config.get('void_influence', 3),
+                self._estimate_void_level()
+            )
         )
         
         self.current_scenario = scenario
@@ -230,20 +249,32 @@ What do you do?
         
         template = response_templates.get(action_type, response_templates['default'])
         narration = f"{template} [AI DM response to {description}]"
-        
+
+        persona_prompt = None
+        if self._prompt_enricher and self.voice_profile:
+            previous_turns = list(self._history_supplier() or []) if self._history_supplier else []
+            shared_state_snapshot = self.shared_state.snapshot() if self.shared_state else {}
+            persona_prompt = self._prompt_enricher(
+                "Resolve the player action and escalate if thresholds demand it.",
+                self.voice_profile,
+                previous_turns=previous_turns,
+                shared_state=shared_state_snapshot,
+            )
+
         outcome = {
             'dm_response': narration,
             'success': success,
             'consequences': []
         }
-        
+
         self.send_message_sync(
             MessageType.ACTION_RESOLVED,
             player_id,
             {
                 'original_action': action,
                 'outcome': outcome,
-                'narration': narration
+                'narration': narration,
+                'persona_prompt': persona_prompt
             }
         )
         
@@ -304,3 +335,9 @@ What do you do?
         self.human_controlled = not self.human_controlled
         status = "HUMAN" if self.human_controlled else "AI"
         print(f"[{status} DM {self.agent_id}] Control switched to {status} mode")
+
+    def _estimate_void_level(self) -> int:
+        """Estimate void severity from shared state."""
+        if not self.shared_state:
+            return 0
+        return sum(spike.severity for spike in self.shared_state.void_spikes)
