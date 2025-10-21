@@ -110,6 +110,7 @@ class AIPlayerAgent(Agent):
         # Set up player-specific message handlers
         self.message_handlers[MessageType.SCENARIO_SETUP] = self._handle_scenario_setup
         self.message_handlers[MessageType.TURN_REQUEST] = self._handle_turn_request
+        self.message_handlers[MessageType.ACTION_DECLARED] = self._handle_action_declared
         self.message_handlers[MessageType.ACTION_RESOLVED] = self._handle_action_resolved
         self.message_handlers[MessageType.DM_NARRATION] = self._handle_dm_narration
         self.message_handlers[MessageType.AGENT_REGISTER] = self._handle_agent_register
@@ -197,7 +198,25 @@ class AIPlayerAgent(Agent):
         
         if self.human_controlled:
             print(f"\n[HUMAN - {self.character_state.name}] Waiting for your input...")
-        
+
+    async def _handle_action_declared(self, message: Message):
+        """Handle action declarations from other players - show character voice."""
+        action = message.payload
+
+        # Don't show our own actions (we already printed them)
+        if action.get('agent_id') == self.agent_id:
+            return
+
+        character_name = action.get('character_name', 'Unknown')
+        description = action.get('description', '')
+        intent = action.get('intent', '')
+
+        # Show the character voice description
+        if description:
+            print(f"\n[{character_name}] {description}")
+        else:
+            print(f"\n[{character_name}] {intent}")
+
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
         if self.human_controlled:
@@ -373,7 +392,9 @@ class AIPlayerAgent(Agent):
             action
         )
 
-        print(f"\n[{self.character_state.name}] {action_declaration.get_summary()}")
+        # Display with character voice
+        print(f"\n[{self.character_state.name}] {action_declaration.description}")
+        print(f"   └─ {action_declaration.get_summary()}")
 
         # If this was a free action (inter-party dialogue), generate a second action
         if is_free_action:
@@ -425,7 +446,9 @@ class AIPlayerAgent(Agent):
                 main_action_dict
             )
 
-            print(f"\n[{self.character_state.name}] {main_action.get_summary()}")
+            # Display with character voice
+            print(f"\n[{self.character_state.name}] {main_action.description}")
+            print(f"   └─ {main_action.get_summary()}")
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
