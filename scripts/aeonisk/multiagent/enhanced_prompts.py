@@ -55,6 +55,15 @@ def get_dm_system_prompt(
 4. **Advance Scene Clocks**: Move clocks based on action outcomes
 5. **Provide New Information**: Each resolution should reveal clues or complications
 
+# Faction Names (CANONICAL - DO NOT CHANGE)
+- **ACG** = Astral Commerce Group (NOT "Artificial Commerce Group")
+- **ArcGen** = Arcane Genetics (bio-engineering, NOT the same as ACG!)
+- **Sovereign Nexus** = The government
+- **Pantheon Security** = Law enforcement
+- **Tempest Industries** = Anti-Nexus rebels (void research)
+- **House of Vox** = Media/broadcast
+- **Freeborn** = Natural-born, outside the pod system
+
 # Mechanical Guidelines
 
 **Difficulty Standards:**
@@ -129,7 +138,8 @@ def get_player_system_prompt(
     recent_intents: List[str] = None,
     knowledge_context: str = "",
     void_score: int = 0,
-    other_party_members: List[str] = None
+    other_party_members: List[str] = None,
+    energy_inventory: Dict[str, Any] = None
 ) -> str:
     """
     Get enhanced player system prompt with mechanical scaffolding.
@@ -253,6 +263,26 @@ Further void exposure may have severe consequences.
 
 {void_warning}
 
+# Inventory & Resources
+
+**Currency (Talismanic Energy):**
+{f'''- Breath: {energy_inventory.get('currencies', {}).get('breath', 0)} (smallest denomination)
+- Drip: {energy_inventory.get('currencies', {}).get('drip', 0)}
+- Grain: {energy_inventory.get('currencies', {}).get('grain', 0)}
+- Spark: {energy_inventory.get('currencies', {}).get('spark', 0)} (largest standard unit)''' if energy_inventory else '- No currency data available'}
+
+**Seeds:**
+{f'''- Raw Seeds: {energy_inventory.get('seed_counts', {}).get('raw', 0)} (degrade over time, need attunement)
+- Attuned Seeds: {energy_inventory.get('seed_counts', {}).get('attuned', 0)} (stable, ritual fuel)
+- Hollow Seeds: {energy_inventory.get('seed_counts', {}).get('hollow', 0)} (illicit, black market commodity)''' if energy_inventory else '- No seed data available'}
+
+**YOU CAN USE CURRENCY!** When you encounter vendors, you can:
+- Purchase ritual supplies (incense, talismans, tools)
+- Buy equipment (scanners, protective gear, tech)
+- Acquire Seeds for ritual work
+- Trade Hollow Seeds for currency (illicit but profitable)
+- Get information or services
+
 # Personality
 - Risk Tolerance: {personality.get('riskTolerance', 5)}/10
 - Void Curiosity: {personality.get('voidCuriosity', 5)}/10
@@ -262,6 +292,29 @@ Further void exposure may have severe consequences.
 # Goals
 {goals_text}
 {dialogue_goal_text}
+
+# Faction Names (CANONICAL - DO NOT CHANGE)
+- **ACG** = Astral Commerce Group (debt collectors, NOT "Artificial Commerce Group")
+- **ArcGen** = Arcane Genetics (bio-engineering, NOT the same as ACG!)
+- **Sovereign Nexus** = The government
+- **Pantheon Security** = Law enforcement
+- **Tempest Industries** = Anti-Nexus rebels (void research)
+- **House of Vox** = Media/broadcast
+- **Freeborn** = Natural-born, outside the pod system
+
+# Looking Up Rules/Lore (Optional Meta-Action)
+
+If you're unsure about game mechanics, faction details, or lore, you can request a lookup BEFORE declaring your action:
+```
+LOOKUP: [your question about rules/lore]
+```
+
+Examples:
+- `LOOKUP: How do rituals work? What are the requirements?`
+- `LOOKUP: What is ACG and what do they do?`
+- `LOOKUP: What are the rules for void corruption?`
+
+This is an **out-of-character** request for clarification, not an in-game action. Use it when you need to understand the game world or mechanics better.
 
 # How to Declare Actions
 
@@ -296,6 +349,22 @@ DESCRIPTION: I explain to [name] what I found about [topic]
 This will trigger a FREE second action where you do your main task!
 ```
 
+**For Vendor Interaction** (when a vendor is present):
+```
+INTENT: Purchase [item name] from [vendor name]
+ATTRIBUTE: Charisma (or Empathy for friendly interaction)
+SKILL: Corporate Influence (negotiate), Charm (friendly), or Guile (haggle)
+DIFFICULTY: 10-15 (usually easy for straightforward purchase)
+ACTION_TYPE: social
+DESCRIPTION: I approach [vendor] and negotiate for [item]
+
+Examples:
+- "Purchase Echo-Calibrator from Scribe Orven Tylesh using my Sparks"
+- "Ask the vendor about ritual supplies and what they recommend"
+- "Barter my Hollow Seed for Drips with the underground broker"
+- "Browse the vending machine for any void-related equipment"
+```
+
 {recent_intents_text}
 
 # Action Selection Guidelines
@@ -307,6 +376,16 @@ This will trigger a FREE second action where you do your main task!
 **Void Curiosity ({personality.get('voidCuriosity', 5)}/10):**
 {'- Actively investigate void phenomena' if personality.get('voidCuriosity', 5) > 6 else '- Avoid void-related risks'}
 {'- Use void-manipulation tech if available' if personality.get('voidCuriosity', 5) > 6 else '- Use traditional, non-void methods'}
+
+**Skill Variety - Use Different Approaches:**
+- **Ritual Analysis?** → Intelligence × Magick Theory (study glyphs, ritual theory, sacred mechanics)
+- **Physical Ritual?** → Willpower × Astral Arts (perform rituals, channel energy)
+- **Investigation?** → Perception × Awareness or Intelligence × Investigation
+- **Technical Work?** → Intelligence × Systems or relevant technical skill
+- **Social Interaction?** → Empathy × Charm/Counsel, or Charisma × Corporate Influence
+- **Combat Analysis?** → Perception × Combat skill or Intelligence × Tactics
+
+Don't default to Willpower × Astral Arts for everything - consider if Intelligence × Magick Theory would work better for analysis/study tasks!
 
 **Bond Preference: {personality.get('bondPreference', 'neutral')}**
 {'- Seek to form and protect formal Bonds (spiritual/economic commitments)' if personality.get('bondPreference') == 'seeks' else ''}

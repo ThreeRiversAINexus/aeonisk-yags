@@ -27,6 +27,8 @@ class Scenario:
     environmental_factors: List[str]
     void_level: int
     active_vendor: Optional[Vendor] = None  # Vendor present in this scenario
+    required_purchase: Optional[str] = None  # Item that MUST be purchased to proceed
+    vendor_gate_description: Optional[str] = None  # Description of why purchase is needed
 
 
 class AIDMAgent(Agent):
@@ -99,6 +101,9 @@ class AIDMAgent(Agent):
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI with lore grounding."""
+        # Check if vendor-gated scenario is requested
+        force_vendor_gate = config.get('force_vendor_gate', False)
+
         # Query knowledge retrieval for Aeonisk lore
         lore_context = ""
         variety_context = ""
@@ -152,9 +157,14 @@ class AIDMAgent(Agent):
             # Get variety requirements
             variety_context = self.shared_state.get_recent_scenario_info()
 
-        # Use LLM to generate dynamic scenario
-        try:
-            scenario_prompt = f"""Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
+        # Use vendor-gated scenario if requested
+        if force_vendor_gate:
+            logger.info("Force vendor gate enabled - using vendor-gated scenario template")
+            scenario_data = self._create_vendor_gated_scenario()
+        else:
+            # Use LLM to generate dynamic scenario
+            try:
+                scenario_prompt = f"""Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
 
 {party_context}
 {lore_context}
@@ -184,77 +194,90 @@ IMPORTANT:
 - Three planets: Aeonisk Prime, Nimbus, Arcadia (space travel between them is possible)
 - Humans only, NO aliens
 - Pick a DIFFERENT theme and location from recently used ones (if listed above)
-- Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, etc.
+- Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, **tribunal/trial**, **bond dispute (marriage gone wrong, broken contract)**, **debt settlement**, **trade negotiation**, **vendor conflict**, **economic disputes**, **social scandal**, etc.
+- **INCLUDE NON-VIOLENT OPTIONS**: Not all scenarios need combat or danger! Social conflicts, economic disputes, tribunals, and negotiations are equally valid
+- **Vendor/Economy scenarios**: Characters might need to acquire resources, negotiate prices, settle debts with vendors, or investigate economic crime
 - If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence
 - ⚠️ CRITICAL: Respect the party composition above. DO NOT create scenarios where characters betray their own faction
 - ⚠️ CRITICAL: Align scenarios with character goals OR create interesting cross-faction cooperation (e.g., Sovereign Nexus + ArcGen investigating a shared threat)
 - Good examples: ACG hires party to recover stolen debt contracts, Pantheon investigates void corruption, factions team up against common enemy
 - BAD examples: ACG hires Sovereign Nexus to steal from Codex Cathedral, hiring characters to sabotage their own faction"""
 
-            provider = self.llm_config.get('provider', 'anthropic')
-            model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+                provider = self.llm_config.get('provider', 'anthropic')
+                model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
 
-            import anthropic
-            import os
-            client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-            response = await asyncio.to_thread(
-                client.messages.create,
-                model=model,
-                max_tokens=500,
-                temperature=0.9,
-                messages=[{"role": "user", "content": scenario_prompt}]
-            )
-            llm_text = response.content[0].text.strip()
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=model,
+                    max_tokens=500,
+                    temperature=0.9,
+                    messages=[{"role": "user", "content": scenario_prompt}]
+                )
+                llm_text = response.content[0].text.strip()
 
-            # Parse LLM response
-            scenario_data = self._parse_scenario_from_llm(llm_text)
+                # Parse LLM response
+                scenario_data = self._parse_scenario_from_llm(llm_text)
 
-            # Enforce variety - reject if location matches recent scenarios
-            if self.shared_state:
-                recent_scenarios = self.shared_state.recent_scenarios
-                location_lower = scenario_data['location'].lower()
+                # Enforce variety - reject if location matches recent scenarios
+                if self.shared_state:
+                    recent_scenarios = self.shared_state.recent_scenarios
+                    location_lower = scenario_data['location'].lower()
 
-                # Check if this location was recently used
-                for recent in recent_scenarios:
-                    if recent['location'].lower() in location_lower or location_lower in recent['location'].lower():
-                        print(f"[DM {self.agent_id}] Location '{scenario_data['location']}' was recently used - regenerating...")
+                    # Check if this location was recently used
+                    for recent in recent_scenarios:
+                        if recent['location'].lower() in location_lower or location_lower in recent['location'].lower():
+                            print(f"[DM {self.agent_id}] Location '{scenario_data['location']}' was recently used - regenerating...")
 
-                        # Try ONE more time with stronger emphasis
-                        retry_prompt = scenario_prompt.replace(
-                            "Pick a DIFFERENT theme and location",
-                            "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
-                        )
+                            # Try ONE more time with stronger emphasis
+                            retry_prompt = scenario_prompt.replace(
+                                "Pick a DIFFERENT theme and location",
+                                "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
+                            )
 
-                        response = await asyncio.to_thread(
-                            client.messages.create,
-                            model=model,
-                            max_tokens=500,
-                            temperature=1.0,  # Higher temperature for more creativity
-                            messages=[{"role": "user", "content": retry_prompt}]
-                        )
-                        llm_text = response.content[0].text.strip()
-                        scenario_data = self._parse_scenario_from_llm(llm_text)
-                        break  # Only check first match and retry once
+                            response = await asyncio.to_thread(
+                                client.messages.create,
+                                model=model,
+                                max_tokens=500,
+                                temperature=1.0,  # Higher temperature for more creativity
+                                messages=[{"role": "user", "content": retry_prompt}]
+                            )
+                            llm_text = response.content[0].text.strip()
+                            scenario_data = self._parse_scenario_from_llm(llm_text)
+                            break  # Only check first match and retry once
 
-        except Exception as e:
-            logger.error(f"Failed to generate AI scenario: {e}, using fallback")
-            # Fallback to simple random scenario
-            import random
-            themes = ['Corporate Intrigue', 'Void Investigation', 'Bond Crisis', 'Tech Heist', 'Ritual Gone Wrong']
-            scenario_data = {
-                'theme': random.choice(themes),
-                'location': 'Unknown Location',
-                'situation': 'The party finds themselves in a mysterious situation',
-                'void_level': 3,
-                'clocks': [
-                    ('Danger Level', 6, 'Escalating threat'),
-                    ('Investigation', 6, 'Uncovering the truth'),
-                    ('Time Pressure', 6, 'Running out of time')
-                ]
-            }
+            except Exception as e:
+                logger.error(f"Failed to generate AI scenario: {e}, using fallback")
+                # Fallback to simple random scenario
+                themes = ['Corporate Intrigue', 'Void Investigation', 'Bond Crisis', 'Tech Heist', 'Ritual Gone Wrong']
+                scenario_data = {
+                    'theme': random.choice(themes),
+                    'location': 'Unknown Location',
+                    'situation': 'The party finds themselves in a mysterious situation',
+                    'void_level': 3,
+                    'clocks': [
+                        ('Danger Level', 6, 'Escalating threat'),
+                        ('Investigation', 6, 'Uncovering the truth'),
+                        ('Time Pressure', 6, 'Running out of time')
+                    ]
+                }
 
         # Scenario-aware vendor encounter
-        active_vendor = self._select_contextual_vendor(scenario_data['theme'])
+        # If vendor-gated scenario, force specific vendor type
+        if scenario_data.get('required_vendor_type'):
+            required_type = scenario_data['required_vendor_type']
+            eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == required_type]
+            if eligible_vendors:
+                active_vendor = random.choice(eligible_vendors)
+                logger.info(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
+                print(f"[DM {self.agent_id}] 🔒 VENDOR REQUIRED: {active_vendor.name}")
+            else:
+                logger.error(f"No vendor of type {required_type} available!")
+                active_vendor = None
+        else:
+            active_vendor = self._select_contextual_vendor(scenario_data['theme'])
         if active_vendor:
             logger.info(f"Vendor encounter: {active_vendor.name} ({active_vendor.vendor_type.value})")
             print(f"[DM {self.agent_id}] 💰 {active_vendor.name} present")
@@ -266,7 +289,9 @@ IMPORTANT:
             active_npcs=[],
             environmental_factors=[],
             void_level=scenario_data['void_level'],
-            active_vendor=active_vendor
+            active_vendor=active_vendor,
+            required_purchase=scenario_data.get('required_purchase'),
+            vendor_gate_description=scenario_data.get('vendor_gate_description')
         )
 
         self.current_scenario = scenario
@@ -303,7 +328,14 @@ IMPORTANT:
             'theme': scenario.theme,
             'location': scenario.location,
             'situation': scenario.situation,
-            'void_level': scenario.void_level
+            'void_level': scenario.void_level,
+            'active_vendor': {
+                'name': scenario.active_vendor.name,
+                'type': scenario.active_vendor.vendor_type.value,
+                'faction': scenario.active_vendor.faction,
+                'greeting': scenario.active_vendor.greeting,
+                'inventory_preview': [item.name for item in scenario.active_vendor.inventory[:3]]  # First 3 items
+            } if scenario.active_vendor else None
         }
         if self.shared_state:
             mechanics = self.shared_state.get_mechanics_engine()
@@ -431,6 +463,113 @@ IMPORTANT:
 
         return scenario_data
 
+    def _create_vendor_gated_scenario(self) -> Dict[str, Any]:
+        """
+        Create a scenario where purchasing a specific item is REQUIRED to proceed.
+
+        Returns scenario_data dict with vendor requirements baked in.
+        """
+        templates = [
+            {
+                'theme': 'Locked Tech Gate',
+                'location': 'Sealed Research Facility (Arcadia)',
+                'situation': 'The facility requires a Scrambled ID Chip to bypass security. The entrance scanner rejects all standard credentials.',
+                'void_level': 3,
+                'required_purchase': 'Scrambled ID Chip',
+                'vendor_gate': 'Without a Scrambled ID Chip, the security system cannot be bypassed.',
+                'required_vendor_type': VendorType.HUMAN_TRADER,  # "Cipher" has this
+                'clocks': [
+                    ('Security Lockdown', 6, 'Facility going into full lockdown'),
+                    ('Data Extraction', 6, 'Retrieving critical intel before wipe'),
+                    ('Rival Team', 5, 'Competing group closing in')
+                ]
+            },
+            {
+                'theme': 'Ritual Emergency',
+                'location': 'Unstable Ley Node (Nimbus)',
+                'situation': 'Raw Seeds in the area are degrading rapidly into Hollow Seeds. You need an Echo-Calibrator to stabilize them before they corrupt the node.',
+                'void_level': 5,
+                'required_purchase': 'Echo-Calibrator',
+                'vendor_gate': 'Without an Echo-Calibrator, the Seeds cannot be stabilized and will become Hollow.',
+                'required_vendor_type': VendorType.HUMAN_TRADER,  # Scribe Orven Tylesh or vending
+                'clocks': [
+                    ('Seed Corruption', 6, 'Raw Seeds degrading into Hollow'),
+                    ('Node Destabilization', 8, 'Ley node collapsing'),
+                    ('Void Bleed', 5, 'Environmental corruption spreading')
+                ]
+            },
+            {
+                'theme': 'Debt Settlement',
+                'location': 'ACG Collections Office (Aeonisk Prime)',
+                'situation': 'A contact owes you critical information, but ACG has seized their assets. They demand payment: either 8 Spark or a Bond Insurance Policy to release them from debt.',
+                'void_level': 2,
+                'required_purchase': 'Bond Insurance Policy',  # or pay 8 Spark
+                'vendor_gate': 'The contact cannot be freed without either 8 Spark payment or a Bond Insurance Policy.',
+                'required_vendor_type': VendorType.HUMAN_TRADER,  # Contract Specialist Rhen
+                'clocks': [
+                    ('Asset Liquidation', 6, 'Contact losing everything'),
+                    ('Information Window', 5, 'Intel becoming outdated'),
+                    ('ACG Pressure', 6, 'Collections becoming aggressive')
+                ]
+            },
+            {
+                'theme': 'Informant Bribe',
+                'location': 'Underground Market (Floating Exchange)',
+                'situation': 'A black market informant has intel on a void cult, but refuses to talk. They demand Sparksticks (addictive buzz twigs) as payment.',
+                'void_level': 4,
+                'required_purchase': 'Sparksticks',
+                'vendor_gate': 'The informant will not provide intel without Sparksticks.',
+                'required_vendor_type': VendorType.VENDING_MACHINE,  # SnackHub has this
+                'clocks': [
+                    ('Cult Ritual', 6, 'Void cult completing dangerous ritual'),
+                    ('Informant Patience', 4, 'Informant leaving if not paid'),
+                    ('Market Surveillance', 5, 'Pantheon Security closing in')
+                ]
+            },
+            {
+                'theme': 'Medical Crisis',
+                'location': 'Abandoned Transit Station (Nimbus)',
+                'situation': 'A party member has been exposed to void toxin. You need a Med Kit (Tactical) from the Pantheon supply drone to treat them before corruption spreads.',
+                'void_level': 6,
+                'required_purchase': 'Med Kit (Tactical)',
+                'vendor_gate': 'Without medical treatment, the exposed character will gain +3 void corruption.',
+                'required_vendor_type': VendorType.SUPPLY_DRONE,  # Pantheon Field Supply
+                'clocks': [
+                    ('Toxin Spread', 5, 'Corruption spreading to others'),
+                    ('Medical Window', 4, 'Treatment window closing'),
+                    ('Station Collapse', 6, 'Structure failing')
+                ]
+            },
+            {
+                'theme': 'Trade Negotiation',
+                'location': 'House of Vox Broadcast Hub',
+                'situation': 'You need access to restricted archives, but the archivist demands a Data Slate (Encrypted) as payment for black market access codes.',
+                'void_level': 2,
+                'required_purchase': 'Data Slate (Encrypted)',
+                'vendor_gate': 'Archive access requires the Data Slate as barter.',
+                'required_vendor_type': VendorType.SUPPLY_DRONE,  # House of Vox Courier
+                'clocks': [
+                    ('Archive Purge', 6, 'Data being deleted'),
+                    ('Archivist Trust', 5, 'Window of cooperation'),
+                    ('Media Sweep', 6, 'Vox censoring information')
+                ]
+            }
+        ]
+
+        # Select random template
+        template = random.choice(templates)
+
+        return {
+            'theme': template['theme'],
+            'location': template['location'],
+            'situation': template['situation'],
+            'void_level': template['void_level'],
+            'clocks': template['clocks'],
+            'required_purchase': template['required_purchase'],
+            'vendor_gate_description': template['vendor_gate'],
+            'required_vendor_type': template['required_vendor_type']
+        }
+
     def _detect_faction_conflicts(self, scenario: Scenario, players_config: List[Dict]) -> List[Dict[str, str]]:
         """
         Detect if the scenario conflicts with any player's faction or goals.
@@ -552,9 +691,18 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     narration += f"\n   {conflict['conflict']}"
                 narration += "\n   Proceeding may damage your spiritual standing."
 
+        # Add vendor-gate requirement if present
+        if scenario.required_purchase and scenario.vendor_gate_description:
+            narration += f"\n\n🔒 CRITICAL REQUIREMENT:"
+            narration += f"\n   {scenario.vendor_gate_description}"
+            narration += f"\n   Required item: **{scenario.required_purchase}**"
+
         # Add vendor description if present
         if scenario.active_vendor:
-            narration += f"\n\nNearby, you notice {scenario.active_vendor.name}, a {scenario.active_vendor.faction} trader. They seem to have goods for sale or barter."
+            if scenario.required_purchase:
+                narration += f"\n\nFortunately, {scenario.active_vendor.name} is nearby - a {scenario.active_vendor.faction} {scenario.active_vendor.vendor_type.value}. They may have what you need."
+            else:
+                narration += f"\n\nNearby, you notice {scenario.active_vendor.name}, a {scenario.active_vendor.faction} trader. They seem to have goods for sale or barter."
 
         narration += "\n\nWhat do you do?"
         return narration.strip()
@@ -852,12 +1000,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Calculate DC
             is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
+            is_inter_party = action.get('is_free_action', False)  # Free actions are inter-party
             difficulty = mechanics.calculate_dc(
                 intent=intent,
                 action_type=action_type,
                 is_ritual=is_ritual_action,
                 is_extreme=action.get('is_extreme', False),
-                is_multi_stage=action.get('is_multi_stage', False)
+                is_multi_stage=action.get('is_multi_stage', False),
+                is_inter_party=is_inter_party
             )
 
             # Perform resolution (apply coordination bonus via modifiers)

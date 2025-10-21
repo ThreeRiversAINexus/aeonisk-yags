@@ -56,6 +56,8 @@ class KnowledgeRetrieval:
             persist_dir = Path.home() / ".aeonisk" / "chromadb"
             persist_dir.mkdir(parents=True, exist_ok=True)
 
+            logger.info(f"🔧 Initializing ChromaDB at {persist_dir}")
+
             self.client = chromadb.Client(Settings(
                 persist_directory=str(persist_dir),
                 anonymized_telemetry=False
@@ -69,19 +71,23 @@ class KnowledgeRetrieval:
 
             # Index content if collection is empty
             if self.collection.count() == 0:
+                logger.info("📚 Collection is empty, indexing content files...")
                 self._index_content()
+            else:
+                logger.info(f"✅ ChromaDB ready with {self.collection.count()} documents")
 
-            logger.info(f"ChromaDB initialized with {self.collection.count()} documents")
+            logger.info(f"✅ ChromaDB ACTIVE - Using semantic search for knowledge retrieval")
 
         except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB: {e}")
+            logger.error(f"❌ Failed to initialize ChromaDB: {e}")
+            logger.warning("⚠️  Falling back to keyword search")
             self.client = None
             self.collection = None
             self._initialize_fallback()
 
     def _initialize_fallback(self):
         """Initialize fallback keyword search from markdown files."""
-        logger.info("Initializing fallback knowledge retrieval")
+        logger.warning("⚠️  Using FALLBACK mode - keyword search only (ChromaDB unavailable)")
 
         # Load key content files
         key_files = [
@@ -107,8 +113,22 @@ class KnowledgeRetrieval:
 
         logger.info("Indexing content files...")
 
-        # Find all markdown files
+        # Find all markdown files from content directory (including subdirectories like supplemental/)
         md_files = list(self.content_dir.rglob("*.md"))
+        logger.info(f"Found {len(md_files)} markdown files in content directory")
+
+        # Also include YAGS core files
+        project_root = self.content_dir.parent
+        yags_dir = project_root / "converted_yagsbook" / "markdown"
+        if yags_dir.exists():
+            yags_core_files = ['character.md', 'core.md', 'scifitech.md', 'combat.md', 'hightech.md']
+            yags_count = 0
+            for filename in yags_core_files:
+                yags_file = yags_dir / filename
+                if yags_file.exists():
+                    md_files.append(yags_file)
+                    yags_count += 1
+            logger.info(f"Added {yags_count} YAGS core files")
 
         documents = []
         metadatas = []
@@ -119,8 +139,15 @@ class KnowledgeRetrieval:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
 
+                # Determine source path (relative to content_dir if possible, otherwise just filename)
+                try:
+                    source_path = str(filepath.relative_to(self.content_dir))
+                except ValueError:
+                    # File is not in content_dir (e.g., YAGS core or reference files)
+                    source_path = filepath.name
+
                 # Split into sections (by headings)
-                sections = self._split_into_sections(content, str(filepath.relative_to(self.content_dir)))
+                sections = self._split_into_sections(content, source_path)
 
                 for section_idx, section in enumerate(sections):
                     documents.append(section['content'])
@@ -195,6 +222,8 @@ class KnowledgeRetrieval:
     def _query_chromadb(self, query_text: str, n_results: int) -> List[Dict[str, Any]]:
         """Query using ChromaDB semantic search."""
         try:
+            logger.debug(f"📚 ChromaDB Query: '{query_text}' (requesting {n_results} results)")
+
             results = self.collection.query(
                 query_texts=[query_text],
                 n_results=n_results
@@ -202,21 +231,39 @@ class KnowledgeRetrieval:
 
             formatted_results = []
             if results and results['documents']:
+                logger.debug(f"✅ ChromaDB returned {len(results['documents'][0])} chunks")
+
                 for i in range(len(results['documents'][0])):
+                    content = results['documents'][0][i]
+                    metadata = results['metadatas'][0][i] if results['metadatas'] else {}
+                    distance = results['distances'][0][i] if results.get('distances') else 0
+
                     formatted_results.append({
-                        'content': results['documents'][0][i],
-                        'metadata': results['metadatas'][0][i] if results['metadatas'] else {},
-                        'distance': results['distances'][0][i] if results.get('distances') else 0
+                        'content': content,
+                        'metadata': metadata,
+                        'distance': distance
                     })
+
+                    # Log each chunk with preview
+                    source = metadata.get('source', 'unknown')
+                    heading = metadata.get('heading', 'unknown')
+                    preview = content[:150].replace('\n', ' ')  # First 150 chars, single line
+                    logger.debug(f"  Chunk {i+1}: [{source}] § {heading} (distance: {distance:.3f})")
+                    logger.debug(f"    Preview: {preview}...")
+            else:
+                logger.warning("ChromaDB returned no results")
 
             return formatted_results
 
         except Exception as e:
-            logger.error(f"ChromaDB query failed: {e}")
+            logger.error(f"❌ ChromaDB query failed: {e}")
+            logger.debug("Falling back to keyword search")
             return self._query_fallback(query_text, n_results)
 
     def _query_fallback(self, query_text: str, n_results: int) -> List[Dict[str, Any]]:
         """Fallback keyword-based search."""
+        logger.debug(f"🔍 Fallback Query: '{query_text}' (requesting {n_results} results)")
+
         keywords = query_text.lower().split()
         results = []
 
@@ -242,7 +289,17 @@ class KnowledgeRetrieval:
 
         # Sort by score and return top results
         results.sort(key=lambda x: x.get('score', 0), reverse=True)
-        return results[:n_results]
+        top_results = results[:n_results]
+
+        logger.debug(f"✅ Fallback returned {len(top_results)} chunks")
+        for i, result in enumerate(top_results):
+            source = result['metadata'].get('source', 'unknown')
+            score = result.get('score', 0)
+            preview = result['content'][:150].replace('\n', ' ')
+            logger.debug(f"  Chunk {i+1}: [{source}] (score: {score})")
+            logger.debug(f"    Preview: {preview}...")
+
+        return top_results
 
     def get_rule(self, rule_name: str) -> Optional[str]:
         """Get specific rule by name."""
@@ -292,16 +349,28 @@ class KnowledgeRetrieval:
         Returns:
             Formatted string ready for prompt inclusion
         """
+        logger.info(f"📖 Knowledge Query for Prompt: '{query}'")
+
         results = self.query(query, n_results=2)
 
         if not results:
+            logger.warning(f"No knowledge chunks found for: '{query}'")
             return ""
 
         formatted = "=== Relevant Game Rules ===\n\n"
 
-        for result in results:
+        for idx, result in enumerate(results):
             source = result.get('metadata', {}).get('source', 'Unknown')
+            heading = result.get('metadata', {}).get('heading', '')
             content = result['content'][:max_length]
             formatted += f"From {source}:\n{content}\n\n"
 
-        return formatted[:max_length]
+            # Log what's being included in the prompt
+            preview = content[:100].replace('\n', ' ')
+            logger.info(f"  Including chunk {idx+1}: [{source}] § {heading}")
+            logger.debug(f"    Preview: {preview}...")
+
+        final_output = formatted[:max_length]
+        logger.info(f"✅ Knowledge context added to prompt ({len(final_output)} chars)")
+
+        return final_output

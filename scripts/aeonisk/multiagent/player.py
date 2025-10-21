@@ -33,13 +33,13 @@ class CharacterState:
 
     def __post_init__(self):
         """Initialize default inventory and energy inventory if not provided."""
-        # Initialize energy inventory
+        # Initialize energy inventory with randomized currency
         if self.energy_inventory is None:
             self.energy_inventory = EnergyInventory(
-                breath=20,  # Increased for better economy flow
-                drip=15,
-                grain=5,
-                spark=4,
+                breath=random.randint(5, 15),  # Variable starting amounts
+                drip=random.randint(3, 10),
+                grain=random.randint(0, 3),
+                spark=random.randint(0, 2),  # Most start with 0-2 Spark
                 seeds=[]
             )
             # Add some starter seeds based on faction (varying freshness)
@@ -172,7 +172,7 @@ class AIPlayerAgent(Agent):
             attributes=self.character_config.get('attributes', {}),
             skills=self.character_config.get('skills', {}),
             void_score=self.character_config.get('void_score', 0),
-            soulcredit=self.character_config.get('soulcredit', 10),
+            soulcredit=self.character_config.get('soulcredit', random.randint(4, 7)),  # Lower, varied starting soulcredit
             bonds=self.character_config.get('bonds', []),
             goals=self.character_config.get('goals', []),
             inventory=inventory
@@ -538,7 +538,54 @@ class AIPlayerAgent(Agent):
             if 'soulcredit_cost' in outcome:
                 self.character_state.soulcredit -= outcome['soulcredit_cost']
                 print(f"[{self.character_state.name}] Soulcredit: {self.character_state.soulcredit}")
-                
+
+            # Handle vendor purchases - deduct currency if action succeeded
+            intent = original_action.get('intent', '').lower()
+            if ('purchase' in intent or 'buy' in intent) and outcome.get('success', False):
+                self._process_purchase(intent, outcome)
+
+    def _process_purchase(self, intent: str, outcome: Dict[str, Any]):
+        """Process a successful purchase and deduct currency."""
+        # Simple item price lookup (prices from energy_economy.py)
+        item_prices = {
+            'breathwater flask': {'drip': 2},
+            'dripfruit chews': {'drip': 1},
+            'med kit (basic)': {'drip': 5},
+            'med kit (tactical)': {'drip': 6},
+            'ration pack': {'drip': 2},
+            'glowsticks': {'breath': 8},
+            'comm unit': {'drip': 3},
+            'sparksticks': {'breath': 3},
+            'echo-calibrator': {'spark': 8},
+            'scrambled id chip': {'spark': 4},
+            'bond insurance policy': {'spark': 12},
+            'data slate (encrypted)': {'drip': 10},
+            'incense stick': {'breath': 10},
+            'ritual altar access': {'spark': 1},
+            'void scanner (basic)': {'spark': 4},
+        }
+
+        # Extract item name from intent (very simple parsing)
+        purchased_item = None
+        for item_name in item_prices.keys():
+            if item_name in intent:
+                purchased_item = item_name
+                break
+
+        if purchased_item and self.character_state.energy_inventory:
+            price = item_prices[purchased_item]
+            currency_type = list(price.keys())[0]
+            amount = price[currency_type]
+
+            # Attempt to spend currency
+            if self.character_state.energy_inventory.spend_currency(currency_type, amount):
+                logger.info(f"{self.character_state.name} purchased {purchased_item} for {amount} {currency_type}")
+                print(f"[{self.character_state.name}] 💰 Purchased {purchased_item} (-{amount} {currency_type})")
+                print(f"[{self.character_state.name}] Currency: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+            else:
+                logger.warning(f"{self.character_state.name} couldn't afford {purchased_item} ({amount} {currency_type})")
+                print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} for {purchased_item}")
+
     async def _handle_dm_narration(self, message: Message):
         """Handle general DM narration."""
         narration = message.payload.get('narration', '')
@@ -617,6 +664,7 @@ class AIPlayerAgent(Agent):
             other_players = self.shared_state.get_other_players(self.agent_id)
 
         # Build system prompt with mechanical scaffolding
+        # Note: Knowledge context is empty by default - agents can research when needed
         system_prompt = get_player_system_prompt(
             character_name=self.character_state.name,
             character_stats={
@@ -628,16 +676,32 @@ class AIPlayerAgent(Agent):
             goals=self.character_state.goals,
             recent_intents=recent_intents,
             void_score=self.character_state.void_score,
-            other_party_members=other_players
+            other_party_members=other_players,
+            energy_inventory=self.character_state.energy_inventory.as_dict() if self.character_state.energy_inventory else None,
+            knowledge_context=""  # Empty - they can research if they want
         )
 
         scenario_context = ""
         if self.current_scenario:
+            vendor_info = ""
+            if self.current_scenario.get('active_vendor'):
+                vendor = self.current_scenario['active_vendor']
+                vendor_info = f"""
+
+**💰 VENDOR AVAILABLE: {vendor['name']}**
+- Type: {vendor['type']}
+- Faction: {vendor['faction']}
+- "{vendor['greeting']}"
+- Sample goods: {', '.join(vendor.get('inventory_preview', []))}
+
+You can purchase items, barter, or ask for information! Use your currency (Sparks, Drips, Breath, Grain).
+"""
+
             scenario_context = f"""
 Current Scenario: {self.current_scenario.get('theme', 'Unknown')}
 Location: {self.current_scenario.get('location', 'Unknown')}
 Situation: {self.current_scenario.get('situation', 'Unknown')}
-
+{vendor_info}
 **Your Affiliation**: {self.character_state.faction}
 - Consider how your background and affiliations might be relevant to this situation
 - Others can see your affiliation unless you actively disguise it
@@ -693,6 +757,13 @@ DESCRIPTION: [narrative description]"""
                 # Fallback to simple action
                 return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
 
+            # Check if agent requested a rules/lore lookup
+            if 'LOOKUP:' in llm_text:
+                logger.info(f"🔍 Agent {self.character_state.name} requested a lookup")
+                lookup_result = await self._handle_lookup_request(llm_text, prompt, provider, model, temperature)
+                if lookup_result:
+                    llm_text = lookup_result  # Use the response after lookup
+
             # Parse LLM response into ActionDeclaration
             action = self._parse_action_from_llm(llm_text)
             return action
@@ -701,6 +772,65 @@ DESCRIPTION: [narrative description]"""
             logger.error(f"LLM API error for player action: {e}")
             # Fallback to simple action
             return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
+
+    async def _handle_lookup_request(self, initial_response: str, original_prompt: str, provider: str, model: str, temperature: float):
+        """Handle a LOOKUP request from the agent."""
+        import re
+
+        # Extract the lookup query
+        lookup_match = re.search(r'LOOKUP:\s*(.+?)(?:\n|$)', initial_response, re.IGNORECASE | re.DOTALL)
+        if not lookup_match:
+            return None
+
+        lookup_query = lookup_match.group(1).strip()
+
+        # Clean up markdown formatting from query
+        lookup_query = lookup_query.replace('```', '').strip()
+        lookup_query = lookup_query.replace('`', '').strip()
+
+        # If query is too short or empty after cleaning, skip
+        if len(lookup_query) < 3:
+            logger.warning(f"  LOOKUP query too short or empty after cleaning: '{lookup_query}'")
+            return None
+
+        logger.info(f"  Query: '{lookup_query}'")
+
+        # Query ChromaDB
+        knowledge_context = ""
+        if self.shared_state:
+            knowledge = self.shared_state.get_knowledge_retrieval()
+            if knowledge:
+                from .enhanced_prompts import format_knowledge_for_prompt
+                knowledge_context = format_knowledge_for_prompt(knowledge, lookup_query, max_length=800)
+
+        if not knowledge_context:
+            logger.warning("  No results found for lookup query")
+            knowledge_context = "No relevant information found in the knowledge base."
+
+        # Send results back to agent and request final action
+        followup_prompt = f"""{original_prompt}
+
+**LOOKUP RESULTS:**
+{knowledge_context}
+
+Now that you have this information, declare your action using the required format."""
+
+        try:
+            if provider == 'anthropic':
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=model,
+                    max_tokens=300,
+                    temperature=temperature,
+                    messages=[{"role": "user", "content": followup_prompt}]
+                )
+                return response.content[0].text.strip()
+        except Exception as e:
+            logger.error(f"Error in lookup followup: {e}")
+            return None
 
     def _parse_action_from_llm(self, llm_text: str):
         """Parse structured action from LLM response."""

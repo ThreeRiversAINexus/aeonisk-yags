@@ -439,7 +439,8 @@ class SelfPlayingSession:
             for name, clock in mechanics.scene_clocks.items():
                 clocks_status.append(f"{name}: {clock.current}/{clock.maximum}")
 
-        # Prompt each player for debrief
+        # Prompt each player for debrief (sequential for conversation flow)
+        debriefs = []
         for player in player_agents:
             try:
                 import anthropic
@@ -450,7 +451,15 @@ class SelfPlayingSession:
                 if player.current_scenario:
                     scenario_situation = player.current_scenario.get('situation', 'Unknown situation')
 
-                debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) after completing a mission.
+                # Build conversation history from previous debriefs
+                conversation_so_far = ""
+                if debriefs:
+                    conversation_so_far = "\n\n**What others have said:**\n"
+                    for prev_name, prev_statement in debriefs:
+                        conversation_so_far += f"{prev_name}: \"{prev_statement}\"\n"
+                    conversation_so_far += "\nYou can respond to what they said or add your own perspective.\n"
+
+                debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) in a post-mission debrief conversation.
 
 **Mission Context:**
 {scenario_situation}
@@ -461,24 +470,27 @@ class SelfPlayingSession:
 
 **Your Faction**: {player.character_state.faction}
 **Your Goals**: {', '.join(player.character_state.goals)}
+{conversation_so_far}
 
 Provide a brief (2-3 sentence) debrief statement in character voice:
 - What did you accomplish or learn?
-- How do you feel about working with your companion?
+- How do you feel about working with your companion(s)?
 - What are your concerns going forward?
+{"- You can respond to what your companion said" if debriefs else ""}
 
-Keep it conversational and in character. Address your companion by name if relevant."""
+Keep it conversational and in character. This is a dialogue, not a report."""
 
                 response = await asyncio.to_thread(
                     client.messages.create,
                     model=player.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                    max_tokens=200,
+                    max_tokens=250,
                     temperature=0.8,
                     messages=[{"role": "user", "content": debrief_prompt}]
                 )
 
                 debrief_text = response.content[0].text.strip()
                 print(f"[{player.character_state.name}] {debrief_text}\n")
+                debriefs.append((player.character_state.name, debrief_text))
 
                 # Log debrief to JSONL
                 if mechanics and mechanics.jsonl_logger:
@@ -529,11 +541,28 @@ Keep it conversational and in character. Address your companion by name if relev
                 for name, clock in state_summary['scene_clocks'].items():
                     print(f"  {name}: {clock['progress']} {'[FILLED]' if clock['filled'] else ''}")
 
-            # Print void states
+            # Print character final states
             if state_summary.get('void_states'):
-                print("\nVoid States:")
+                print("\nCharacter Final States:")
                 for agent_id, void_info in state_summary['void_states'].items():
-                    print(f"  {agent_id}: {void_info['score']}/10 ({void_info['level']})")
+                    # Find the character details from player agents
+                    char_details = None
+                    for player in [a for a in self.agents if hasattr(a, 'character_state')]:
+                        if player.agent_id == agent_id:
+                            char_details = player.character_state
+                            break
+
+                    if char_details:
+                        # Get key equipment/skills
+                        top_skills = sorted(char_details.skills.items(), key=lambda x: x[1], reverse=True)[:3]
+                        skills_str = ", ".join([f"{skill} {val}" for skill, val in top_skills])
+
+                        print(f"  {char_details.name} ({char_details.faction}):")
+                        print(f"    Void: {void_info['score']}/10 ({void_info['level']})")
+                        print(f"    Soulcredit: {char_details.soulcredit}")
+                        print(f"    Top Skills: {skills_str}")
+                    else:
+                        print(f"  {agent_id}: {void_info['score']}/10 ({void_info['level']})")
 
             print("=" * 40)
 

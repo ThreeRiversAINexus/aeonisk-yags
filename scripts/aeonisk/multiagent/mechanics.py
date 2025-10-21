@@ -576,7 +576,8 @@ class MechanicsEngine:
         action_type: str = "general",
         is_ritual: bool = False,
         is_extreme: bool = False,
-        is_multi_stage: bool = False
+        is_multi_stage: bool = False,
+        is_inter_party: bool = False
     ) -> int:
         """
         Calculate appropriate DC for an action based on context.
@@ -584,6 +585,7 @@ class MechanicsEngine:
         Codex Nexum guidance:
         - Routine/pressured checks: 18-22
         - Only 26+ for truly extreme, multi-stage actions
+        - Inter-party communication: 10 (easy) unless environmental factors
 
         Args:
             intent: Action description
@@ -591,14 +593,22 @@ class MechanicsEngine:
             is_ritual: Whether this is a ritual action
             is_extreme: Whether this is extreme/dangerous
             is_multi_stage: Whether this requires multiple stages
+            is_inter_party: Whether this is communication between party members
 
         Returns:
             Calculated DC (10-40 range)
         """
         intent_lower = intent.lower()
 
+        # Inter-party communication is usually easy unless environmental factors
+        if is_inter_party and action_type == "social":
+            # Check for environmental complications
+            if any(kw in intent_lower for kw in ['shout', 'scream', 'distant', 'far away', 'across', 'noise', 'chaos', 'combat']):
+                base_dc = Difficulty.ROUTINE.value  # 18 - complicated communication
+            else:
+                base_dc = Difficulty.EASY.value  # 10 - normal party communication
         # Base DC by action type
-        if is_ritual:
+        elif is_ritual:
             base_dc = Difficulty.CHALLENGING.value  # 22 - rituals are always challenging
         elif action_type == "combat":
             base_dc = Difficulty.ROUTINE.value  # 18 - combat is time-pressured

@@ -66,6 +66,7 @@ class ActionRouter:
                 'Debt Law': 'Intelligence',
                 'Corporate Influence': 'Charisma',
                 'Investigation': 'Perception',
+                'Magick Theory': 'Intelligence',
                 # Social skills
                 'Charm': 'Empathy',
                 'Guile': 'Charisma',
