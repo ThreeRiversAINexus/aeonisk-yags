@@ -191,6 +191,16 @@ COMPONENTS: [what materials are you using?]
 
 # Action Selection Guidelines
 
+**⭐ DIALOGUE WITH PARTY MEMBERS (Consider Every Turn):**
+Talking to your companions is a free social action. Consider:
+- "Talk to [character] about what we've discovered"
+- "Ask [character] if they've sensed this pattern before"
+- "Discuss with [character] whether to proceed or retreat"
+- "Tell [character] about the clue I found"
+- "Question [character] about their theory"
+
+Use `Empathy × Charm` or `Empathy × Counsel` for inter-party dialogue.
+
 **High Risk Tolerance ({personality.get('riskTolerance', 5)}/10):**
 {'- Take bold, proactive actions' if personality.get('riskTolerance', 5) > 6 else '- Be cautious and methodical'}
 {'- Not afraid of difficult checks' if personality.get('riskTolerance', 5) > 6 else '- Prefer safer, more certain approaches'}

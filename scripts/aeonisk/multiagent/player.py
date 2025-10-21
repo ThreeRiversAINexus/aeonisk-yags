@@ -27,6 +27,41 @@ class CharacterState:
     soulcredit: int
     bonds: List[str]
     goals: List[str]
+    inventory: Dict[str, int] = None
+
+    def __post_init__(self):
+        """Initialize default inventory if not provided."""
+        if self.inventory is None:
+            self.inventory = {
+                'blood_offering': 0,
+                'incense': 0,
+                'crystal_focus': 0,
+                'tech_kit': 0
+            }
+
+    def has_offering(self, offering_type: str = None) -> bool:
+        """Check if character has any offering."""
+        if offering_type:
+            return self.inventory.get(offering_type, 0) > 0
+        # Check for any offering type
+        return any(v > 0 for k, v in self.inventory.items() if 'offering' in k)
+
+    def consume_offering(self, offering_type: str = None) -> bool:
+        """Consume an offering and return True if successful."""
+        if offering_type and self.inventory.get(offering_type, 0) > 0:
+            self.inventory[offering_type] -= 1
+            return True
+        # Consume first available offering
+        for item, count in self.inventory.items():
+            if 'offering' in item and count > 0:
+                self.inventory[item] -= 1
+                return True
+        return False
+
+    def has_focus(self) -> bool:
+        """Check if character has a ritual focus."""
+        return (self.inventory.get('crystal_focus', 0) > 0 or
+                self.inventory.get('tech_kit', 0) > 0)
 
 
 class AIPlayerAgent(Agent):
@@ -70,6 +105,17 @@ class AIPlayerAgent(Agent):
     async def on_start(self):
         """Initialize player agent."""
         # Create character from config
+        # Load inventory from config or use defaults
+        inventory_config = self.character_config.get('inventory', {})
+        default_inventory = {
+            'blood_offering': 2,  # Default starter offerings
+            'incense': 2,
+            'crystal_focus': 1,   # Default ritual focus
+            'tech_kit': 0
+        }
+        # Merge config with defaults
+        inventory = {**default_inventory, **inventory_config}
+
         self.character_state = CharacterState(
             name=self.character_config.get('name', f'Player_{self.agent_id}'),
             faction=self.character_config.get('faction', 'Unaffiliated'),
@@ -78,7 +124,8 @@ class AIPlayerAgent(Agent):
             void_score=self.character_config.get('void_score', 0),
             soulcredit=self.character_config.get('soulcredit', 10),
             bonds=self.character_config.get('bonds', []),
-            goals=self.character_config.get('goals', [])
+            goals=self.character_config.get('goals', []),
+            inventory=inventory
         )
         
         logger.info(f"Player {self.agent_id} ({self.character_state.name}) started")
@@ -215,10 +262,16 @@ class AIPlayerAgent(Agent):
             action_declaration.attribute = routed_attr
             action_declaration.skill = routed_skill
 
-        # Mark as ritual if explicitly stated
-        if is_explicit_ritual:
+        # Mark as ritual if explicitly stated OR if action_type is 'ritual'
+        # This ensures both LLM-declared rituals and keyword-detected rituals are flagged
+        if is_explicit_ritual or action_declaration.action_type == 'ritual':
             action_declaration.is_ritual = True
             action_declaration.action_type = 'ritual'
+            # Ensure ritual mechanics (Willpower × Astral Arts)
+            if action_declaration.attribute != 'Willpower' or action_declaration.skill != 'Astral Arts':
+                print(f"[{self.character_state.name}] Ritual detected - enforcing Willpower × Astral Arts")
+                action_declaration.attribute = 'Willpower'
+                action_declaration.skill = 'Astral Arts'
 
         corrected_attr, corrected_skill, is_valid, message = validate_action_mechanics(
             action_declaration.action_type,
@@ -255,6 +308,14 @@ class AIPlayerAgent(Agent):
         action['character'] = self.character_state.name
         action['agent_id'] = self.agent_id
 
+        # Add inventory info for rituals
+        if action_declaration.is_ritual or action_declaration.action_type == 'ritual':
+            action['has_offering'] = self.character_state.has_offering()
+            action['has_primary_tool'] = self.character_state.has_focus()
+        else:
+            action['has_offering'] = False
+            action['has_primary_tool'] = False
+
         # Send action declaration
         self.send_message_sync(
             MessageType.ACTION_DECLARED,
@@ -271,6 +332,12 @@ class AIPlayerAgent(Agent):
             narration = message.payload.get('narration', '')
 
             print(f"\n[{self.character_state.name}] Received resolution")
+
+            # Consume offering if it was used in the action
+            original_action = message.payload.get('original_action', {})
+            if original_action.get('has_offering', False):
+                if self.character_state.consume_offering():
+                    print(f"[{self.character_state.name}] Consumed offering")
 
             # Update void state from mechanics engine
             if self.shared_state:
@@ -318,6 +385,14 @@ class AIPlayerAgent(Agent):
         print(f"Goals: {', '.join(self.character_state.goals)}")
         if self.character_state.bonds:
             print(f"Bonds: {', '.join(self.character_state.bonds)}")
+
+        # Display inventory
+        print("\nInventory:")
+        for item, count in self.character_state.inventory.items():
+            if count > 0:
+                item_display = item.replace('_', ' ').title()
+                print(f"  {item_display}: {count}")
+
         print("=" * 30)
         
     def toggle_human_control(self):
@@ -357,9 +432,20 @@ Location: {self.current_scenario.get('location', 'Unknown')}
 Situation: {self.current_scenario.get('situation', 'Unknown')}
 """
 
+        # Add party discoveries to reduce repetition
+        party_knowledge = ""
+        if self.shared_state:
+            discoveries = self.shared_state.get_recent_discoveries(limit=5)
+            if discoveries:
+                party_knowledge = "\n**What the party has learned so far:**\n"
+                for discovery in discoveries:
+                    party_knowledge += f"- {discovery}\n"
+                party_knowledge += "\nBased on this shared knowledge, choose an action that builds on or explores something NEW.\nAvoid repeating actions that others have already completed.\n"
+
         prompt = f"""{system_prompt}
 
 {scenario_context}
+{party_knowledge}
 
 Declare your next action using the required format:
 INTENT: [what you're doing]
