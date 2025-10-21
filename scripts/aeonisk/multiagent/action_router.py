@@ -30,21 +30,68 @@ class ActionRouter:
         intent: str,
         action_type: str,
         character_skills: dict,
-        is_explicit_ritual: bool = False
+        is_explicit_ritual: bool = False,
+        declared_skill: Optional[str] = None
     ) -> Tuple[str, Optional[str], str]:
         """
         Route an action to the appropriate attribute and skill.
+
+        IMPORTANT: If the character has declared a skill they actually possess,
+        we TRUST that declaration and don't override it.
 
         Args:
             intent: The action intent text
             action_type: Declared action type
             character_skills: Character's skill dict
             is_explicit_ritual: Whether this is explicitly marked as a ritual
+            declared_skill: The skill the character declared (if any)
 
         Returns:
             Tuple of (attribute, skill, rationale)
         """
         intent_lower = intent.lower()
+
+        # NEW: If they declared a valid skill they actually have, trust it
+        # (Unless it's a ritual override situation)
+        if declared_skill and declared_skill in character_skills and not is_explicit_ritual:
+            # Determine appropriate attribute for the skill
+            skill_to_attribute = {
+                # Technical skills
+                'Drone Operation': 'Intelligence',
+                'Pilot': 'Agility',
+                'Systems': 'Intelligence',
+                # Knowledge skills
+                'Debt Law': 'Intelligence',
+                'Corporate Influence': 'Charisma',
+                'Investigation': 'Perception',
+                # Social skills
+                'Charm': 'Empathy',
+                'Guile': 'Charisma',
+                'Counsel': 'Empathy',
+                'Command': 'Charisma',
+                'Intimidation': 'Charisma',
+                'Intimacy Ritual': 'Empathy',
+                # Perception skills
+                'Awareness': 'Perception',
+                'Attunement': 'Perception',
+                # Spiritual skills
+                'Astral Arts': 'Willpower',
+                'Dreamwork': 'Willpower',
+                'Discipline': 'Willpower',
+            }
+
+            if declared_skill in skill_to_attribute:
+                return (skill_to_attribute[declared_skill], declared_skill, f'Valid {declared_skill} skill')
+            # If we don't know the pairing, make an educated guess
+            else:
+                # Default pairing based on skill name
+                if any(word in declared_skill.lower() for word in ['tech', 'system', 'drone', 'hack']):
+                    return ('Intelligence', declared_skill, f'Valid {declared_skill} skill (technical)')
+                elif any(word in declared_skill.lower() for word in ['social', 'charm', 'counsel']):
+                    return ('Empathy', declared_skill, f'Valid {declared_skill} skill (social)')
+                else:
+                    # Use Intelligence as safe default for unknown skills
+                    return ('Intelligence', declared_skill, f'Valid {declared_skill} skill')
 
         # 1. RECOVERY MOVES (highest priority - help players recover void)
         if any(kw in intent_lower for kw in self.GROUNDING_KEYWORDS):

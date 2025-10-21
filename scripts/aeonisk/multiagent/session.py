@@ -17,6 +17,7 @@ from .player import AIPlayerAgent
 from .human_interface import HumanInterface
 from .shared_state import SharedState
 from .voice_profiles import VoiceLibrary
+from .energy_economy import SeedType
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,9 @@ class SelfPlayingSession:
         else:
             selected_players = players_config
 
+        # Update config to only include selected players (so DM sees correct party)
+        self.config['agents']['players'] = selected_players
+
         assignments = self.voice_library.assign_to_agents(
             [f'player_{i+1:02d}' for i in range(len(selected_players))]
         )
@@ -162,6 +166,14 @@ class SelfPlayingSession:
                 initial_sc = getattr(player.character_state, 'soulcredit', 0)
                 mechanics.get_soulcredit_state(player.agent_id, initial_score=initial_sc)
                 logger.info(f"Initialized {player.character_state.name} soulcredit: {initial_sc}")
+
+                # Degrade Raw Seeds (1 cycle per session)
+                if hasattr(player.character_state, 'energy_inventory') and player.character_state.energy_inventory:
+                    player.character_state.energy_inventory.degrade_raw_seeds(cycles=1)
+                    raw_count = player.character_state.energy_inventory.count_seeds(SeedType.RAW)
+                    hollow_count = player.character_state.energy_inventory.count_seeds(SeedType.HOLLOW)
+                    if hollow_count > 0:
+                        logger.info(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
 
         logger.info(f"Created {len(self.agents)} agents")
         
@@ -454,11 +466,27 @@ Keep it conversational and in character. Address your companion by name if relev
         if 'agents' in session_config and 'players' in session_config['agents']:
             session_config['agents']['players'] = active_player_configs
 
+        # Load JSONL events if available
+        jsonl_events = []
+        if mechanics and mechanics.jsonl_logger:
+            try:
+                import json
+                with open(mechanics.jsonl_logger.log_file, 'r') as f:
+                    for line in f:
+                        if line.strip():
+                            jsonl_events.append(json.loads(line))
+            except Exception as e:
+                logger.warning(f"Failed to load JSONL events: {e}")
+
+        # Restructure events into rounds and turns
+        structured_rounds = self._restructure_events_into_rounds(jsonl_events)
+
         # Collect final session data
         final_data = {
             'session_id': self.session_id,
             'config': session_config,  # Filtered config with only active players
-            'turns': self.coordinator.get_session_data(),
+            'rounds': structured_rounds,  # NEW: Properly nested rounds/turns/resolutions
+            'raw_events': jsonl_events,  # Keep raw events for debugging
             'end_time': datetime.now().isoformat(),
             'shared_state': self.shared_state.snapshot(),
             'voice_profiles': active_voice_profiles,  # Only active players
@@ -472,6 +500,133 @@ Keep it conversational and in character. Address your companion by name if relev
         
         self.running = False
         
+    def _restructure_events_into_rounds(self, events: List[Dict]) -> List[Dict]:
+        """
+        Restructure flat event list into nested rounds -> turns -> resolutions.
+
+        Expected structure:
+        [
+            {
+                "round_number": 1,
+                "scenario": {...},  // Only in round 1
+                "turns": [
+                    {
+                        "agent": "player_01",
+                        "character": "Gestator Lyss",
+                        "action": {...},
+                        "resolution": {...},
+                        "narration": "...",
+                        "clocks_after": {...}
+                    }
+                ]
+            }
+        ]
+        """
+        if not events:
+            return []
+
+        rounds = []
+        current_round = None
+        pending_actions = {}  # Map agent_id -> action dict
+        scenario_info = None  # Store scenario from session start
+
+        for event in events:
+            event_type = event.get('event_type')
+
+            # Capture scenario information (typically from coordinator's session_data)
+            if event_type == 'scenario':
+                scenario_info = event.get('scenario')
+
+            # Start new round
+            if event_type == 'round_start':
+                if current_round and current_round.get('turns'):
+                    # Save previous round if it has turns
+                    rounds.append(current_round)
+
+                current_round = {
+                    'round_number': event.get('round'),
+                    'timestamp': event.get('ts'),
+                    'turns': []
+                }
+
+                # Add scenario to round 1
+                if event.get('round') == 1 and scenario_info:
+                    current_round['scenario'] = scenario_info
+
+            # Record action declaration
+            elif event_type == 'action':
+                agent = event.get('agent')
+                action_data = event.get('action', {})
+                pending_actions[agent] = {
+                    'agent': agent,
+                    'character': action_data.get('character_name', action_data.get('character', 'Unknown')),
+                    'action': action_data,
+                    'timestamp': event.get('ts')
+                }
+
+            # Record action resolution
+            elif event_type == 'action_resolution':
+                agent = event.get('agent')
+                context = event.get('context', {})
+                roll = event.get('roll', {})
+                economy = event.get('economy', {})
+                clocks = event.get('clocks', {})
+                effects = event.get('effects', [])
+
+                # Build turn entry
+                turn_entry = {
+                    'agent': agent,
+                    'character': agent,  # Will be overridden if we have pending action
+                    'action': {
+                        'intent': event.get('action'),
+                        'description': context.get('description', ''),
+                        'action_type': context.get('action_type', 'unknown'),
+                        'is_ritual': context.get('is_ritual', False),
+                        'faction': context.get('faction', 'Unknown')
+                    },
+                    'resolution': {
+                        'roll': roll,
+                        'success': roll.get('success', False),
+                        'margin': roll.get('margin', 0),
+                        'tier': roll.get('tier', 'unknown'),
+                        'narration': context.get('narration', '')
+                    },
+                    'economy': economy,
+                    'clocks_after': clocks,
+                    'effects': effects,
+                    'timestamp': event.get('ts')
+                }
+
+                # Merge with pending action if available
+                if agent in pending_actions:
+                    pending_action = pending_actions.pop(agent)
+                    turn_entry['character'] = pending_action['character']
+                    # Merge action details
+                    turn_entry['action'] = {**pending_action['action'], **turn_entry['action']}
+
+                # Add to current round
+                if current_round:
+                    current_round['turns'].append(turn_entry)
+
+            # Record mission debrief
+            elif event_type == 'mission_debrief':
+                # Add debrief to the last round or create a debrief section
+                if current_round:
+                    if 'debriefs' not in current_round:
+                        current_round['debriefs'] = []
+                    current_round['debriefs'].append({
+                        'character': event.get('character'),
+                        'debrief': event.get('debrief'),
+                        'final_state': event.get('final_state'),
+                        'timestamp': event.get('ts')
+                    })
+
+        # Add final round
+        if current_round and current_round.get('turns'):
+            rounds.append(current_round)
+
+        return rounds
+
     async def _save_session_data(self, data: Dict[str, Any]):
         """Save session data for training/analysis."""
         output_dir = Path(self.config.get('output_dir', './output'))

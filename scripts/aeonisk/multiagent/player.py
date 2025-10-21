@@ -12,6 +12,7 @@ from datetime import datetime
 from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
+from .energy_economy import EnergyInventory, Seed, SeedType, Element, create_raw_seed
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +29,31 @@ class CharacterState:
     bonds: List[str]
     goals: List[str]
     inventory: Dict[str, int] = None
+    energy_inventory: Optional['EnergyInventory'] = None
 
     def __post_init__(self):
-        """Initialize default inventory if not provided."""
+        """Initialize default inventory and energy inventory if not provided."""
+        # Initialize energy inventory
+        if self.energy_inventory is None:
+            self.energy_inventory = EnergyInventory(
+                breath=20,  # Increased for better economy flow
+                drip=15,
+                grain=5,
+                spark=4,
+                seeds=[]
+            )
+            # Add some starter seeds based on faction (varying freshness)
+            if 'Tempest' in self.faction:
+                # Tempest gets Hollow seeds (stable, no decay)
+                self.energy_inventory.add_seed(Seed(SeedType.HOLLOW, origin="tempest_supply"))
+            elif 'Sovereign' in self.faction or 'Pantheon' in self.faction:
+                # Pro-Nexus factions get Attuned seeds (stable)
+                self.energy_inventory.add_seed(Seed(SeedType.ATTUNED, element=Element.SPIRIT, origin="nexus_sanctified"))
+            else:
+                # Others get Raw seeds with random freshness (might be aged/old)
+                raw_seed = create_raw_seed(origin="leyline_harvest", freshness="random")
+                self.energy_inventory.add_seed(raw_seed)
+
         if self.inventory is None:
             self.inventory = {
                 # Ritual Consumables
@@ -306,7 +329,8 @@ class AIPlayerAgent(Agent):
             action_declaration.intent,
             action_declaration.action_type,
             self.character_state.skills,
-            is_explicit_ritual
+            is_explicit_ritual,
+            declared_skill=action_declaration.skill  # Pass declared skill so router can trust it
         )
 
         # Apply routing if it differs from declared
@@ -412,7 +436,8 @@ class AIPlayerAgent(Agent):
                 main_action.intent,
                 main_action.action_type,
                 self.character_state.skills,
-                router.is_explicit_ritual(main_action.intent)
+                router.is_explicit_ritual(main_action.intent),
+                declared_skill=main_action.skill
             )
 
             if main_routed_attr != main_action.attribute or main_routed_skill != main_action.skill:
