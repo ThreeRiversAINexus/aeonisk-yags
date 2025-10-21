@@ -4,6 +4,7 @@ AI Dungeon Master agent for multi-agent self-playing system.
 
 import asyncio
 import logging
+import random
 from typing import Dict, Any, List, Optional, Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
@@ -11,6 +12,7 @@ from datetime import datetime
 from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
+from .energy_economy import Vendor, VendorType, create_standard_vendors
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,7 @@ class Scenario:
     active_npcs: List[str]
     environmental_factors: List[str]
     void_level: int
+    active_vendor: Optional[Vendor] = None  # Vendor present in this scenario
 
 
 class AIDMAgent(Agent):
@@ -52,7 +55,10 @@ class AIDMAgent(Agent):
         self.shared_state = shared_state
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
-        
+
+        # Vendor pool for random encounters
+        self.vendor_pool = create_standard_vendors()
+
         # Set up DM-specific message handlers
         self.message_handlers[MessageType.SESSION_START] = self._handle_session_start
         self.message_handlers[MessageType.ACTION_DECLARED] = self._handle_action_declared
@@ -96,6 +102,36 @@ class AIDMAgent(Agent):
         # Query knowledge retrieval for Aeonisk lore
         lore_context = ""
         variety_context = ""
+        party_context = ""
+
+        # Extract player information from config
+        players_config = config.get('agents', {}).get('players', [])
+        if players_config:
+            party_context = "=== PARTY COMPOSITION ===\n"
+            party_context += "Your scenario MUST be appropriate for this specific party:\n\n"
+
+            for player in players_config:
+                name = player.get('name', 'Unknown')
+                faction = player.get('faction', 'Unknown')
+                goals = player.get('goals', [])
+
+                party_context += f"**{name}** ({faction})\n"
+                party_context += f"  Goals:\n"
+                for goal in goals:
+                    party_context += f"  - {goal}\n"
+                party_context += "\n"
+
+            party_context += "CRITICAL FACTION RULES:\n"
+            party_context += "- DO NOT create scenarios where characters must betray their own faction\n"
+            party_context += "- DO NOT hire characters to steal from/sabotage their own faction's assets\n"
+            party_context += "- Sovereign Nexus owns: Codex Cathedral, Sanctified Archives, Gestation Chambers, Ley Networks\n"
+            party_context += "- Pantheon Security owns: Law enforcement facilities, civic infrastructure, security systems\n"
+            party_context += "- ACG owns: Debt registries, contract archives, commerce hubs\n"
+            party_context += "- ArcGen owns: Biocreche facilities, genetic research labs, pod gestation tech\n"
+            party_context += "- Tempest owns: Void energy facilities, industrial complexes, autonomous systems\n"
+            party_context += "- If creating faction conflict scenarios, make it BETWEEN different factions, not against one's own\n"
+            party_context += "- Characters should be aligned with their faction's interests OR face a clear moral dilemma\n\n"
+
         if self.shared_state:
             knowledge = self.shared_state.get_knowledge_retrieval()
             if knowledge:
@@ -120,6 +156,7 @@ class AIDMAgent(Agent):
         try:
             scenario_prompt = f"""Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
 
+{party_context}
 {lore_context}
 {variety_context}
 
@@ -148,7 +185,11 @@ IMPORTANT:
 - Humans only, NO aliens
 - Pick a DIFFERENT theme and location from recently used ones (if listed above)
 - Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, etc.
-- If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence"""
+- If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence
+- ⚠️ CRITICAL: Respect the party composition above. DO NOT create scenarios where characters betray their own faction
+- ⚠️ CRITICAL: Align scenarios with character goals OR create interesting cross-faction cooperation (e.g., Sovereign Nexus + ArcGen investigating a shared threat)
+- Good examples: ACG hires party to recover stolen debt contracts, Pantheon investigates void corruption, factions team up against common enemy
+- BAD examples: ACG hires Sovereign Nexus to steal from Codex Cathedral, hiring characters to sabotage their own faction"""
 
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
@@ -212,13 +253,20 @@ IMPORTANT:
                 ]
             }
 
+        # Scenario-aware vendor encounter
+        active_vendor = self._select_contextual_vendor(scenario_data['theme'])
+        if active_vendor:
+            logger.info(f"Vendor encounter: {active_vendor.name} ({active_vendor.vendor_type.value})")
+            print(f"[DM {self.agent_id}] 💰 {active_vendor.name} present")
+
         scenario = Scenario(
             theme=scenario_data['theme'],
             location=scenario_data['location'],
             situation=scenario_data['situation'],
             active_npcs=[],
             environmental_factors=[],
-            void_level=scenario_data['void_level']
+            void_level=scenario_data['void_level'],
+            active_vendor=active_vendor
         )
 
         self.current_scenario = scenario
@@ -232,18 +280,44 @@ IMPORTANT:
                 mechanics.create_scene_clock(clock_name, max_value, description)
                 print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
 
+        # Validate scenario against party composition
+        faction_conflicts = self._detect_faction_conflicts(scenario, players_config)
+
+        # Apply soulcredit penalties for high-severity conflicts
+        if faction_conflicts and self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                for conflict in faction_conflicts:
+                    if conflict['severity'] == 'high' and conflict['type'] == 'faction_betrayal':
+                        # Find the affected player's agent_id
+                        character_name = conflict['character']
+                        # Apply -2 soulcredit penalty for faction betrayal
+                        # Note: We'd need to map character name to agent_id here
+                        # For now, log the warning
+                        logger.warning(f"⚠️ FACTION BETRAYAL DETECTED: {conflict['conflict']}")
+                        print(f"\n⚠️  WARNING: {conflict['conflict']}")
+                        print(f"   This may result in soulcredit loss if pursued.")
+
+        # Log scenario to JSONL
+        scenario_data = {
+            'theme': scenario.theme,
+            'location': scenario.location,
+            'situation': scenario.situation,
+            'void_level': scenario.void_level
+        }
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_scenario(scenario_data)
+
         # Broadcast scenario setup
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
             {
-                'scenario': {
-                    'theme': scenario.theme,
-                    'location': scenario.location,
-                    'situation': scenario.situation,
-                    'void_level': scenario.void_level
-                },
-                'opening_narration': self._generate_opening_narration(scenario)
+                'scenario': scenario_data,
+                'opening_narration': self._generate_opening_narration(scenario, faction_conflicts),
+                'faction_conflicts': faction_conflicts  # Warn players of potential issues
             }
         )
 
@@ -282,26 +356,33 @@ IMPORTANT:
         
         scenario = Scenario(
             theme=theme,
-            location=location, 
+            location=location,
             situation=situation,
             active_npcs=[],
             environmental_factors=[],
             void_level=void_level
         )
-        
+
         self.current_scenario = scenario
-        
+
+        # Log scenario to JSONL
+        scenario_data = {
+            'theme': theme,
+            'location': location,
+            'situation': situation,
+            'void_level': void_level
+        }
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_scenario(scenario_data)
+
         # Broadcast scenario
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,
             {
-                'scenario': {
-                    'theme': theme,
-                    'location': location,
-                    'situation': situation,
-                    'void_level': void_level
-                },
+                'scenario': scenario_data,
                 'opening_narration': input("Opening narration: ").strip()
             }
         )
@@ -350,14 +431,133 @@ IMPORTANT:
 
         return scenario_data
 
-    def _generate_opening_narration(self, scenario: Scenario) -> str:
-        """Generate opening narration for scenario."""
-        return f"""
-The party finds themselves at {scenario.location}. {scenario.situation}.
-The air carries a distinct tension, and you sense the void's influence at level {scenario.void_level}/10.
+    def _detect_faction_conflicts(self, scenario: Scenario, players_config: List[Dict]) -> List[Dict[str, str]]:
+        """
+        Detect if the scenario conflicts with any player's faction or goals.
 
-What do you do?
-        """.strip()
+        Returns list of conflicts: [{'character': name, 'conflict': description, 'severity': low/medium/high}]
+        """
+        conflicts = []
+
+        if not players_config:
+            return conflicts
+
+        situation_lower = scenario.situation.lower()
+        location_lower = scenario.location.lower()
+
+        # Faction ownership mappings
+        faction_assets = {
+            'sovereign nexus': ['codex cathedral', 'sanctified', 'ley network', 'gestation chamber', 'archive'],
+            'pantheon': ['pantheon', 'security', 'law enforcement', 'civic', 'patrol'],
+            'acg': ['astral commerce', 'debt', 'contract', 'commerce hub'],
+            'arcgen': ['arcane genetics', 'biocreche', 'genetic', 'pod gestation'],
+            'tempest': ['tempest industries', 'void energy', 'industrial', 'autonomous'],
+        }
+
+        # Check each player for conflicts
+        for player in players_config:
+            name = player.get('name', 'Unknown')
+            faction = player.get('faction', '').lower()
+            goals = [g.lower() for g in player.get('goals', [])]
+
+            # Check if scenario involves stealing from/sabotaging own faction
+            if faction in faction_assets:
+                for asset in faction_assets[faction]:
+                    # Check if targeting their faction's assets
+                    if asset in location_lower or asset in situation_lower:
+                        # Check if action is hostile (steal, infiltrate, sabotage)
+                        hostile_keywords = ['steal', 'infiltrate', 'sabotage', 'extract', 'hack', 'break into', 'unauthorized']
+                        if any(keyword in situation_lower for keyword in hostile_keywords):
+                            conflicts.append({
+                                'character': name,
+                                'conflict': f"{name} ({faction}) is being asked to act against {faction} assets",
+                                'severity': 'high',
+                                'type': 'faction_betrayal'
+                            })
+
+            # Check if goals are contradicted
+            goal_conflicts = []
+            for goal in goals:
+                # Example: goal is "prevent unauthorized void exposure" but scenario is "use void energy"
+                if 'prevent' in goal and any(keyword in situation_lower for keyword in goal.split() if len(keyword) > 4):
+                    goal_conflicts.append(goal)
+
+            if goal_conflicts:
+                conflicts.append({
+                    'character': name,
+                    'conflict': f"{name}'s goals ({', '.join(goal_conflicts)}) may conflict with this mission",
+                    'severity': 'medium',
+                    'type': 'goal_conflict'
+                })
+
+        return conflicts
+
+    def _select_contextual_vendor(self, scenario_theme: str) -> Optional[Vendor]:
+        """
+        Select vendor based on scenario context.
+
+        Safe zones (social, market, downtime) → Human traders (50% chance)
+        Neutral zones (investigation, heist, exploration) → Vending machines/drones (40% chance)
+        Hot zones (combat, crisis, void outbreak) → Emergency caches only (10% chance) or None
+        """
+        theme_lower = scenario_theme.lower()
+
+        # Classify scenario zone
+        safe_keywords = ['market', 'social', 'gathering', 'festival', 'ceremony', 'negotiation', 'diplomatic', 'downtime']
+        neutral_keywords = ['investigation', 'heist', 'exploration', 'mystery', 'infiltration', 'search', 'transit', 'travel']
+        hot_keywords = ['combat', 'battle', 'firefight', 'ambush', 'assault', 'crisis', 'outbreak', 'emergency', 'escape', 'chase']
+
+        zone = 'neutral'  # Default
+        if any(keyword in theme_lower for keyword in safe_keywords):
+            zone = 'safe'
+        elif any(keyword in theme_lower for keyword in hot_keywords):
+            zone = 'hot'
+        elif any(keyword in theme_lower for keyword in neutral_keywords):
+            zone = 'neutral'
+
+        # Filter vendors by appropriate type
+        eligible_vendors = []
+
+        if zone == 'safe':
+            # Human traders + vending machines
+            eligible_vendors = [v for v in self.vendor_pool if v.vendor_type in [VendorType.HUMAN_TRADER, VendorType.VENDING_MACHINE]]
+            spawn_chance = 0.5  # 50% chance
+        elif zone == 'neutral':
+            # Vending machines + supply drones (no human traders in active zones)
+            eligible_vendors = [v for v in self.vendor_pool if v.vendor_type in [VendorType.VENDING_MACHINE, VendorType.SUPPLY_DRONE]]
+            spawn_chance = 0.4  # 40% chance
+        elif zone == 'hot':
+            # Emergency caches only (rare)
+            eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == VendorType.EMERGENCY_CACHE]
+            spawn_chance = 0.1  # 10% chance (desperate situations)
+
+        # Roll for vendor appearance
+        if eligible_vendors and random.random() < spawn_chance:
+            return random.choice(eligible_vendors)
+
+        return None
+
+    def _generate_opening_narration(self, scenario: Scenario, faction_conflicts: List[Dict] = None) -> str:
+        """Generate opening narration for scenario."""
+        narration = f"""
+The party finds themselves at {scenario.location}. {scenario.situation}.
+The air carries a distinct tension, and you sense the void's influence at level {scenario.void_level}/10."""
+
+        # Add faction conflict warnings
+        if faction_conflicts:
+            high_conflicts = [c for c in faction_conflicts if c['severity'] == 'high']
+            if high_conflicts:
+                narration += "\n\n⚠️  ETHICAL CONCERN:"
+                for conflict in high_conflicts:
+                    narration += f"\n   {conflict['conflict']}"
+                narration += "\n   Proceeding may damage your spiritual standing."
+
+        # Add vendor description if present
+        if scenario.active_vendor:
+            narration += f"\n\nNearby, you notice {scenario.active_vendor.name}, a {scenario.active_vendor.faction} trader. They seem to have goods for sale or barter."
+
+        narration += "\n\nWhat do you do?"
+        return narration.strip()
         
     async def _handle_action_declared(self, message: Message):
         """Handle player action declarations - respond as DM."""
@@ -823,7 +1023,53 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
         elif void_level >= 2:
             void_impact = "\n**MILD VOID (2-3)**: Faint corruption traces, occasional static - minimal but noticeable environmental effects."
 
-        prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
+        # Detect if this is character-to-character dialogue
+        is_dialogue_with_pc = False
+        target_character = None
+        if action and action_type == 'social':
+            intent = action.get('intent', '').lower()
+            description_lower = description.lower()
+
+            # Check if targeting another player character
+            if self.shared_state:
+                registered_players = self.shared_state.registered_players
+                for reg_player in registered_players:
+                    player_name = reg_player.get('name', '').lower()
+                    if player_name and (player_name in intent or player_name in description_lower):
+                        is_dialogue_with_pc = True
+                        target_character = reg_player.get('name')
+                        break
+
+        # Build prompt based on whether this is PC-to-PC dialogue
+        if is_dialogue_with_pc and target_character:
+            prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
+
+{scenario_context}
+{character_context}
+{resolution_context}
+
+Player Action: {description}
+Action Type: {action_type} (DIALOGUE with {target_character})
+{void_impact}
+
+This is a conversation between {character_name if action else 'the character'} and {target_character}.
+
+Generate ACTUAL DIALOGUE using quoted speech. Include:
+1. What {character_name if action else 'the character'} says (in quotes)
+2. How {target_character} responds (in quotes)
+3. Any body language or environmental details
+
+Example format:
+"{character_name if action else 'The character'} leans forward, voice lowered. "What did you find in the archives?"
+
+{target_character} hesitates, glancing at the security cameras. "The memory fragments... they're not what we thought. Someone's been editing them."
+
+{void_impact if void_level >= 4 else ""}
+
+Keep it to 2-4 lines of dialogue. Be concise and natural. Include actual quoted speech."""
+
+        else:
+            prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
 {character_context}

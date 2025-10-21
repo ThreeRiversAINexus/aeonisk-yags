@@ -14,6 +14,15 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+# Import energy economy types for seed attunement
+try:
+    from .energy_economy import SeedType, Element, Seed
+except ImportError:
+    logger.warning("energy_economy module not found, seed attunement will not be available")
+    SeedType = None
+    Element = None
+    Seed = None
+
 
 class OutcomeTier(Enum):
     """Outcome quality tiers based on margin of success."""
@@ -184,6 +193,16 @@ class JSONLLogger:
             "delta": delta,
             "reason": reason,
             "capped": capped
+        }
+        self._write_event(event)
+
+    def log_scenario(self, scenario: Dict[str, Any]):
+        """Log scenario setup."""
+        event = {
+            "event_type": "scenario",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "scenario": scenario
         }
         self._write_event(event)
 
@@ -1179,3 +1198,275 @@ DC: {resolution.difficulty} | Margin: {resolution.margin:+d} | Tier: **{resoluti
                 for action in self.action_history[-5:]
             ]
         }
+
+    def attempt_seed_attunement(
+        self,
+        player_id: str,
+        element: str,
+        method: str = "altar",
+        willpower: int = 3,
+        astral_arts: int = 3,
+        dex: int = 3,
+        tech: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Attempt to attune a Raw Seed to an element.
+
+        Two methods:
+        - Ritual Altar: Willpower × Astral Arts vs DC 18 (grants +1 soulcredit on success)
+        - Echo-Calibrator: Dex × Tech vs DC 16 (more foolproof, no SC bonus, uses 1 Drip per 3 uses)
+
+        Args:
+            player_id: Character ID
+            element: Target element (fire, water, air, earth, spirit, void)
+            method: "altar" or "echo_calibrator"
+            willpower: Willpower attribute
+            astral_arts: Astral Arts skill
+            dex: Dexterity attribute
+            tech: Tech skill
+
+        Returns:
+            Dict with success, margin, seed_created, void_gain, soulcredit_gain
+        """
+        if SeedType is None or Element is None or Seed is None:
+            return {
+                'success': False,
+                'error': 'Energy economy module not available',
+                'narrative': 'The ritual components are not available.'
+            }
+
+        # Normalize element name
+        element_map = {
+            'fire': Element.FIRE,
+            'water': Element.WATER,
+            'air': Element.AIR,
+            'earth': Element.EARTH,
+            'spirit': Element.SPIRIT,
+            'void': Element.VOID
+        }
+
+        element_lower = element.lower()
+        if element_lower not in element_map:
+            return {
+                'success': False,
+                'error': f'Invalid element: {element}',
+                'narrative': f'The element "{element}" is not recognized by the ritual.'
+            }
+
+        element_enum = element_map[element_lower]
+
+        # Determine method and calculate roll
+        if method == "altar":
+            # Ritual altar: Willpower × Astral Arts vs DC 18
+            ability = willpower * astral_arts
+            dc = 18
+            roll = random.randint(1, 20)
+            total = ability + roll
+            margin = total - dc
+            success = total >= dc
+            grants_sc = True
+
+            action_text = f"Ritual attunement to {element.capitalize()} via altar"
+            formula = f"{willpower} × {astral_arts} + d20({roll}) = {total} vs DC {dc}"
+
+        elif method == "echo_calibrator":
+            # Echo-Calibrator: Dex × Tech vs DC 16 (more foolproof)
+            ability = dex * tech
+            dc = 16
+            roll = random.randint(1, 20)
+            total = ability + roll
+            margin = total - dc
+            success = total >= dc
+            grants_sc = False  # Tech method doesn't grant spiritual credit
+
+            action_text = f"Echo-Calibrator attunement to {element.capitalize()}"
+            formula = f"{dex} × {tech} + d20({roll}) = {total} vs DC {dc}"
+
+        else:
+            return {
+                'success': False,
+                'error': f'Invalid method: {method}',
+                'narrative': f'The method "{method}" is not recognized.'
+            }
+
+        # Calculate outcome tier
+        if margin >= 20:
+            tier = OutcomeTier.EXCEPTIONAL
+        elif margin >= 15:
+            tier = OutcomeTier.EXCELLENT
+        elif margin >= 10:
+            tier = OutcomeTier.GOOD
+        elif margin >= 5:
+            tier = OutcomeTier.MODERATE
+        elif margin >= 0:
+            tier = OutcomeTier.MARGINAL
+        elif margin >= -20:
+            tier = OutcomeTier.FAILURE
+        else:
+            tier = OutcomeTier.CRITICAL_FAILURE
+
+        result = {
+            'success': success,
+            'margin': margin,
+            'tier': tier.value,
+            'formula': formula,
+            'void_gain': 0,
+            'soulcredit_gain': 0,
+            'seed_created': None,
+            'action_text': action_text
+        }
+
+        # SUCCESS: Create Attuned Seed
+        if success:
+            # Create the attuned seed
+            attuned_seed = Seed(
+                seed_type=SeedType.ATTUNED,
+                element=element_enum,
+                origin=f"attuned_via_{method}"
+            )
+            result['seed_created'] = attuned_seed
+
+            # Altar method grants soulcredit
+            if grants_sc:
+                result['soulcredit_gain'] = 1
+                result['narrative'] = f"""
+**{action_text}** - {tier.value.upper()} ✓
+{formula}
+Margin: {margin:+d}
+
+The Raw Seed resonates with {element_lower} essence, stabilizing into an Attuned Seed. The ritual reflects your spiritual discipline. (+1 Soulcredit)
+""".strip()
+            else:
+                result['narrative'] = f"""
+**{action_text}** - {tier.value.upper()} ✓
+{formula}
+Margin: {margin:+d}
+
+The Echo-Calibrator hums as it channels {element_lower} resonance into the Raw Seed, stabilizing it into an Attuned Seed through technical precision.
+""".strip()
+
+        # FAILURE: Void risk
+        else:
+            result['seed_created'] = None  # Raw Seed consumed but no Attuned Seed created
+
+            # Calculate void gain based on margin
+            if tier == OutcomeTier.CRITICAL_FAILURE:
+                void_gain = 2
+                consequence = "The ritual collapses catastrophically, void energy flooding the workspace."
+            elif margin < -10:
+                void_gain = 1
+                consequence = "The ritual destabilizes, leaving residual void corruption."
+            else:
+                void_gain = 0
+                consequence = "The attunement fails to stabilize, but you avoid void corruption."
+
+            result['void_gain'] = void_gain
+
+            if method == "altar":
+                result['narrative'] = f"""
+**{action_text}** - {tier.value.upper()} ✗
+{formula}
+Margin: {margin:+d}
+
+{consequence} The Raw Seed is consumed in the failed ritual. {f"(+{void_gain} Void)" if void_gain > 0 else ""}
+""".strip()
+            else:
+                result['narrative'] = f"""
+**{action_text}** - {tier.value.upper()} ✗
+{formula}
+Margin: {margin:+d}
+
+{consequence} The Echo-Calibrator overheats, and the Raw Seed shatters. {f"(+{void_gain} Void)" if void_gain > 0 else ""}
+""".strip()
+
+            # Apply void gain if any
+            if void_gain > 0:
+                void_state = self.get_void_state(player_id)
+                void_state.add_void(void_gain, f"Failed seed attunement: {action_text}")
+
+        # Log to JSONL if available
+        if self.jsonl_logger:
+            self.jsonl_logger.log_event({
+                'event_type': 'seed_attunement',
+                'player_id': player_id,
+                'element': element_lower,
+                'method': method,
+                'success': success,
+                'margin': margin,
+                'tier': tier.value,
+                'void_gain': result['void_gain'],
+                'soulcredit_gain': result['soulcredit_gain']
+            })
+
+        return result
+
+    def consume_gear_fuel(
+        self,
+        player_id: str,
+        gear_name: str,
+        fuel_type: str = "spark",
+        fuel_amount: int = 1,
+        energy_inventory = None
+    ) -> Dict[str, Any]:
+        """
+        Lightweight optional gear fuel consumption.
+
+        Only used for high-tech/powered gear that explicitly requires fuel.
+        Most gear doesn't need fuel tracking.
+
+        Args:
+            player_id: Character ID
+            gear_name: Name of gear being used
+            fuel_type: Type of fuel ("spark", "drip", "breath", "grain")
+            fuel_amount: Amount of fuel consumed per use
+            energy_inventory: EnergyInventory instance (from CharacterState)
+
+        Returns:
+            Dict with success (bool), consumed (int), narrative (str)
+        """
+        if energy_inventory is None:
+            # No inventory provided, assume fuel is not required
+            return {
+                'success': True,
+                'consumed': 0,
+                'narrative': f"{gear_name} operates normally."
+            }
+
+        # Attempt to spend fuel
+        fuel_available = getattr(energy_inventory, fuel_type, 0)
+
+        if fuel_available >= fuel_amount:
+            # Consume fuel
+            success = energy_inventory.spend_currency(fuel_type, fuel_amount)
+
+            if success:
+                narrative = f"{gear_name} consumes {fuel_amount} {fuel_type.capitalize()} and activates."
+            else:
+                # Spend failed (shouldn't happen, but handle gracefully)
+                narrative = f"{gear_name} has insufficient {fuel_type.capitalize()}."
+                success = False
+        else:
+            # Not enough fuel
+            success = False
+            narrative = f"{gear_name} requires {fuel_amount} {fuel_type.capitalize()}, but only {fuel_available} available. Cannot activate."
+
+        result = {
+            'success': success,
+            'consumed': fuel_amount if success else 0,
+            'narrative': narrative,
+            'fuel_type': fuel_type,
+            'fuel_remaining': getattr(energy_inventory, fuel_type, 0)
+        }
+
+        # Log to JSONL if available
+        if self.jsonl_logger and success:
+            self.jsonl_logger.log_event({
+                'event_type': 'gear_fuel_consumption',
+                'player_id': player_id,
+                'gear_name': gear_name,
+                'fuel_type': fuel_type,
+                'amount': fuel_amount,
+                'remaining': result['fuel_remaining']
+            })
+
+        return result
