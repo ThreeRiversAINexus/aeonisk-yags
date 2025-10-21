@@ -38,6 +38,9 @@ class SharedState:
     action_validator: Optional['ActionValidator'] = None
     knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
 
+    # Party-wide shared knowledge to reduce repetitive actions
+    party_discoveries: List[str] = field(default_factory=list)
+
     def adjust_soulcredit(self, delta: int, *, reason: Optional[str] = None) -> Optional[str]:
         """Adjust communal Soulcredit and return escalation cues if thresholds are crossed."""
         self.soulcredit_pool += delta
@@ -66,6 +69,18 @@ class SharedState:
     def advance_ritual(self, name: str, *, progress: int = 1) -> None:
         """Advance communal ritual progress."""
         self.rituals[name] = self.rituals.get(name, 0) + progress
+
+    def add_discovery(self, discovery: str) -> None:
+        """Add to party's shared knowledge pool."""
+        if discovery and discovery not in self.party_discoveries:
+            self.party_discoveries.append(discovery)
+            # Keep only the most recent 10 discoveries
+            if len(self.party_discoveries) > 10:
+                self.party_discoveries = self.party_discoveries[-10:]
+
+    def get_recent_discoveries(self, limit: int = 5) -> List[str]:
+        """Get the most recent party discoveries."""
+        return self.party_discoveries[-limit:] if self.party_discoveries else []
 
     def snapshot(self) -> Dict[str, Any]:
         """Return a serialisable snapshot for prompts or logging."""

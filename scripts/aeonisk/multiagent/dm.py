@@ -92,14 +92,34 @@ class AIDMAgent(Agent):
             await self._generate_ai_scenario(config)
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
-        """Generate scenario using AI."""
+        """Generate scenario using AI with lore grounding."""
+        # Query knowledge retrieval for Aeonisk lore
+        lore_context = ""
+        if self.shared_state:
+            knowledge = self.shared_state.get_knowledge_retrieval()
+            if knowledge:
+                # Query for canonical locations, factions, and setting elements
+                lore_results = knowledge.query("Aeonisk setting locations factions floating cities Arcadia Nimbus Elysium void corruption", n_results=3)
+                if lore_results:
+                    lore_context = "CANONICAL AEONISK LORE (you MUST use this):\n\n"
+                    for result in lore_results:
+                        lore_context += f"{result['content'][:400]}\n\n"
+                    lore_context += "\nKEY CONSTRAINTS:\n"
+                    lore_context += "- Setting: Aeonisk Prime (SINGLE PLANET - no space travel, no orbital stations)\n"
+                    lore_context += "- Species: Humans only (NO aliens, NO other species)\n"
+                    lore_context += "- Locations: Floating cities (Arcadia, Nimbus, Elysium) OR terrestrial zones\n"
+                    lore_context += "- Factions: Tempest Industries, Resonance Communes, Astral Commerce Group, etc.\n"
+                    lore_context += "- Themes: Memory manipulation, void corruption, corporate intrigue, bond economics\n\n"
+
         # Use LLM to generate dynamic scenario
         try:
-            scenario_prompt = """Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
+            scenario_prompt = f"""Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
+
+{lore_context}
 
 Create a scenario with:
 1. Theme (2-3 words): The type of situation
-2. Location: A specific place in the Aeonisk setting
+2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
 3. Situation (1-2 sentences): What's happening
 4. Void level (0-10): How much void corruption is present
 5. Three clocks/timers (name, max ticks 4-8, description) that track:
@@ -109,14 +129,14 @@ Create a scenario with:
 
 Format:
 THEME: [theme]
-LOCATION: [location]
+LOCATION: [location from canonical lore]
 SITUATION: [situation]
 VOID_LEVEL: [number]
 CLOCK1: [name] | [max] | [description]
 CLOCK2: [name] | [max] | [description]
 CLOCK3: [name] | [max] | [description]
 
-Make it creative and thematic to Aeonisk's dark sci-fi setting."""
+IMPORTANT: Base your scenario on the canonical lore provided above. NO space travel, NO aliens, ONLY locations and factions from Aeonisk Prime."""
 
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
@@ -452,6 +472,14 @@ What do you do?
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
 
+            # Extract and record party discoveries from successful actions
+            if resolution.success and resolution.margin >= 5:
+                # Extract key discovery from the narration (simple heuristic)
+                # Look for sentences that suggest new information
+                discovery_text = self._extract_discovery_from_narration(llm_narration, intent)
+                if discovery_text:
+                    self.shared_state.add_discovery(discovery_text)
+
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
                 void_state = mechanics.get_void_state(player_id)
@@ -755,3 +783,34 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
         if not self.shared_state:
             return 0
         return sum(spike.severity for spike in self.shared_state.void_spikes)
+
+    def _extract_discovery_from_narration(self, narration: str, intent: str) -> Optional[str]:
+        """
+        Extract a key discovery from the DM's narration.
+
+        Simple heuristic: Take the first sentence that suggests new information.
+        """
+        if not narration:
+            return None
+
+        # Split into sentences
+        sentences = [s.strip() for s in narration.split('.') if s.strip()]
+
+        # Discovery keywords that suggest new information
+        discovery_keywords = [
+            'discover', 'find', 'notice', 'reveal', 'uncover', 'detect',
+            'sense', 'identify', 'realize', 'learn', 'see', 'observe',
+            'recognize', 'spot', 'trace', 'glimpse'
+        ]
+
+        for sentence in sentences:
+            sentence_lower = sentence.lower()
+            # Check if sentence contains discovery keywords
+            if any(keyword in sentence_lower for keyword in discovery_keywords):
+                # Clean up and return
+                discovery = sentence.strip()
+                if len(discovery) > 20 and len(discovery) < 200:  # Reasonable length
+                    return discovery
+
+        # Fallback: return intent as discovery if action was successful
+        return f"Investigated: {intent[:100]}" if intent else None
