@@ -15,6 +15,7 @@
     "players": [
     {
       "name": "ACG Auditor Kress Valen",
+      "pronouns": "he/him",
       "faction": "Astral Commerce Group",
       "llm": {
         "provider": "anthropic",
@@ -52,6 +53,7 @@
     },
     {
       "name": "Freeborn Trader Mira Seln",
+      "pronouns": "she/her",
       "faction": "Freeborn",
       "llm": {
         "provider": "anthropic",

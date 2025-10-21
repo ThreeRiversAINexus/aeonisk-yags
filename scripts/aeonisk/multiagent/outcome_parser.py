@@ -10,6 +10,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def parse_soulcredit_markers(narration: str) -> Tuple[int, str]:
+    """
+    Parse explicit soulcredit markers from LLM narration.
+
+    Format: ⚖️ Soulcredit: +X (reason) or -X (reason)
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Tuple of (soulcredit_delta, reason)
+        Returns (0, "") if no marker found
+    """
+    # Look for lines like: ⚖️ Soulcredit: -2 (created Hollow Seed)
+    sc_pattern = r'⚖️\s*[Ss]oulcredit:\s*([+-]?\d+)\s*(?:\(([^)]+)\))?'
+
+    match = re.search(sc_pattern, narration)
+    if match:
+        delta = int(match.group(1))
+        reason = match.group(2).strip() if match.group(2) else "Soulcredit change"
+        logger.info(f"Parsed soulcredit marker: {delta:+d} ({reason})")
+        return (delta, reason)
+
+    return (0, "")
+
+
 def parse_explicit_clock_markers(narration: str, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
     """
     Parse explicit clock markers from LLM narration.
@@ -386,5 +412,10 @@ def parse_state_changes(
             'penalty': -2,
             'description': 'Damaged equipment'
         })
+
+    # Parse soulcredit markers (explicit ⚖️ Soulcredit: +/- markers from DM)
+    sc_delta, sc_reason = parse_soulcredit_markers(narration)
+    state_changes['soulcredit_change'] = sc_delta
+    state_changes['soulcredit_reasons'] = [sc_reason] if sc_reason else []
 
     return state_changes

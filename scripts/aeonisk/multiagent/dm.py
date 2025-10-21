@@ -1066,6 +1066,61 @@ Generate appropriate consequences based on what makes sense for that specific cl
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
 
+            # Apply void changes (both gains and reductions)
+            if state_changes['void_change'] != 0:
+                void_state = mechanics.get_void_state(player_id)
+                old_void = void_state.score
+
+                if state_changes['void_change'] > 0:
+                    # Void gain (corruption increasing)
+                    action_id = f"{player_id}_{intent}_{resolution.total}"
+                    void_state.add_void(
+                        state_changes['void_change'],
+                        ", ".join(state_changes['void_reasons']),
+                        action_id=action_id
+                    )
+                    # Show void increase if it actually changed
+                    if void_state.score != old_void:
+                        narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                else:
+                    # Void reduction (recovery moves)
+                    void_state.reduce_void(
+                        abs(state_changes['void_change']),
+                        ", ".join(state_changes['void_reasons'])
+                    )
+                    # Show void decrease if it actually changed
+                    if void_state.score != old_void:
+                        narration += f"\n\n⚫ Void: {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+
+                # Check for Eye of Breach appearance on high void
+                eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
+                if eye_of_breach_event:
+                    narration += f"\n\n{eye_of_breach_event}"
+
+            # Apply soulcredit changes (private knowledge - each player sees their own SC)
+            if state_changes.get('soulcredit_change', 0) != 0:
+                sc_state = mechanics.get_soulcredit_state(player_id)
+                reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
+                sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
+                # NOTE: SC changes are shown PRIVATELY to the affected player in their prompt
+                # Other players do NOT see each other's soulcredit (asymmetric information)
+
+            # Apply conditions
+            from .mechanics import Condition
+            for condition_data in state_changes.get('conditions', []):
+                condition = Condition(
+                    name=condition_data['type'],
+                    type=condition_data['type'],
+                    penalty=condition_data['penalty'],
+                    description=condition_data['description'],
+                    duration=3,  # Default duration
+                    affects=[]  # Affects all by default
+                )
+                mechanics.add_condition(player_id, condition)
+
+                # Show condition application
+                narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
+
         return {
             'resolution': resolution,
             'narration': narration,
@@ -1289,13 +1344,13 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if eye_of_breach_event:
                     narration += f"\n\n{eye_of_breach_event}"
 
-            # Apply soulcredit changes (tracked silently - players check Codex ledger)
+            # Apply soulcredit changes (private knowledge - each player sees their own SC)
             if state_changes.get('soulcredit_change', 0) != 0:
                 sc_state = mechanics.get_soulcredit_state(player_id)
                 reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
                 sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
-                # NOTE: SC changes are logged to JSONL but NOT shown to players
-                # Players must check the Codex ledger to see their spiritual reputation
+                # NOTE: SC changes are shown PRIVATELY to the affected player in their prompt
+                # Other players do NOT see each other's soulcredit (asymmetric information)
 
             # Apply conditions
             from .mechanics import Condition
@@ -1558,6 +1613,26 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
                 if clock_lines:
                     clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
                     clock_context += "\n\nAt the end of your narration, if this action should affect any clocks, add a line:\n📊 [Clock Name]: +X or -X (reason)"
+                    clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
+                    clock_context += "\n**DEFAULT: +0 for 80-90% of actions. Only exceptional moral/immoral acts affect SC.**"
+                    clock_context += "\n\nIf this action affects the character's Soulcredit (social trust/reputation), add a marker:\n⚖️ Soulcredit: +X (reason) or -X (reason)"
+                    clock_context += "\n\nSC Scoring Rules:"
+                    clock_context += "\n  • MOST actions: +0 (no marker) - negotiations, purchases, investigations, etc."
+                    clock_context += "\n  • Deception/lying/fraud: ALWAYS negative, even if successful"
+                    clock_context += "\n  • Using Guile skill: Usually -1 or -2 (misrepresentation/deception)"
+                    clock_context += "\n  • Success ≠ positive SC, Failure ≠ negative SC"
+                    clock_context += "\n  • Following normal protocols/procedures: +0 (not morally exceptional)"
+                    clock_context += "\n  • Legitimate business dealings: +0 (normal behavior)"
+                    clock_context += "\n\nExamples:"
+                    clock_context += "\n  • Lying to authorities (Guile check): ⚖️ Soulcredit: -1 (deceived officials)"
+                    clock_context += "\n  • Misrepresenting credentials: ⚖️ Soulcredit: -2 (fraudulent identity claim)"
+                    clock_context += "\n  • Creating Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)"
+                    clock_context += "\n  • Fulfilling contracts honorably: ⚖️ Soulcredit: +1 (upheld agreement)"
+                    clock_context += "\n  • Selfless act helping strangers: ⚖️ Soulcredit: +1 (showed compassion)"
+                    clock_context += "\n  • Betraying faction tenets: ⚖️ Soulcredit: -3 (violated faction code)"
+                    clock_context += "\n  • Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)"
+                    clock_context += "\n  • Accepting bribes: ⚖️ Soulcredit: -1 (corrupt dealing)"
+                    clock_context += "\n  • Normal negotiation/purchase/exploration: +0 (no marker)"
 
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False

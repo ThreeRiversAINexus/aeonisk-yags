@@ -28,6 +28,7 @@ class CharacterState:
     soulcredit: int
     bonds: List[str]
     goals: List[str]
+    pronouns: str = "they/them"  # Default to gender-neutral
     inventory: Dict[str, int] = None
     energy_inventory: Optional['EnergyInventory'] = None
 
@@ -175,6 +176,7 @@ class AIPlayerAgent(Agent):
             soulcredit=self.character_config.get('soulcredit', random.randint(4, 7)),  # Lower, varied starting soulcredit
             bonds=self.character_config.get('bonds', []),
             goals=self.character_config.get('goals', []),
+            pronouns=self.character_config.get('pronouns', 'they/them'),
             inventory=inventory
         )
         
