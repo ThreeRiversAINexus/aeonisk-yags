@@ -45,6 +45,11 @@ class SelfPlayingSession:
         print("✓ Mechanics engine ready")
         print("✓ Action validator ready")
         print("✓ Knowledge retrieval ready")
+
+        # Load DM notes for scenario variety
+        dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
+        self.shared_state.load_dm_notes(str(dm_notes_path))
+        self.dm_notes_path = dm_notes_path
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""

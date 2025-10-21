@@ -39,7 +39,14 @@ class SharedState:
     knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
 
     # Party-wide shared knowledge to reduce repetitive actions
-    party_discoveries: List[str] = field(default_factory=list)
+    # Each discovery is a dict with 'discovery' and 'character' keys
+    party_discoveries: List[Dict[str, str]] = field(default_factory=list)
+
+    # Track registered player characters for dialogue
+    registered_players: List[Dict[str, str]] = field(default_factory=list)
+
+    # Track recent scenarios for variety
+    recent_scenarios: List[Dict[str, str]] = field(default_factory=list)
 
     def adjust_soulcredit(self, delta: int, *, reason: Optional[str] = None) -> Optional[str]:
         """Adjust communal Soulcredit and return escalation cues if thresholds are crossed."""
@@ -70,17 +77,95 @@ class SharedState:
         """Advance communal ritual progress."""
         self.rituals[name] = self.rituals.get(name, 0) + progress
 
-    def add_discovery(self, discovery: str) -> None:
-        """Add to party's shared knowledge pool."""
-        if discovery and discovery not in self.party_discoveries:
-            self.party_discoveries.append(discovery)
+    def add_discovery(self, discovery: str, character_name: str = None) -> None:
+        """Add to party's shared knowledge pool with character attribution."""
+        if not discovery:
+            return
+
+        # Check if this exact discovery already exists
+        existing = [d for d in self.party_discoveries if d.get('discovery') == discovery]
+        if not existing:
+            self.party_discoveries.append({
+                'discovery': discovery,
+                'character': character_name or 'Unknown'
+            })
             # Keep only the most recent 10 discoveries
             if len(self.party_discoveries) > 10:
                 self.party_discoveries = self.party_discoveries[-10:]
 
-    def get_recent_discoveries(self, limit: int = 5) -> List[str]:
-        """Get the most recent party discoveries."""
+    def get_recent_discoveries(self, limit: int = 5) -> List[Dict[str, str]]:
+        """Get the most recent party discoveries with character attribution."""
         return self.party_discoveries[-limit:] if self.party_discoveries else []
+
+    def register_player(self, agent_id: str, name: str, faction: str) -> None:
+        """Register a player character for party awareness."""
+        # Check if already registered
+        for player in self.registered_players:
+            if player['agent_id'] == agent_id:
+                return
+        self.registered_players.append({
+            'agent_id': agent_id,
+            'name': name,
+            'faction': faction
+        })
+
+    def get_other_players(self, current_agent_id: str) -> List[str]:
+        """Get names of other player characters (excluding current agent)."""
+        return [p['name'] for p in self.registered_players if p['agent_id'] != current_agent_id]
+
+    def add_scenario(self, theme: str, location: str) -> None:
+        """Record a scenario for variety tracking."""
+        self.recent_scenarios.append({
+            'theme': theme,
+            'location': location
+        })
+        # Keep only last 5 scenarios
+        if len(self.recent_scenarios) > 5:
+            self.recent_scenarios = self.recent_scenarios[-5:]
+
+    def load_dm_notes(self, notes_path: str = 'dm_notes.json') -> None:
+        """Load DM notes from persistent storage."""
+        from pathlib import Path
+        import json
+
+        if Path(notes_path).exists():
+            try:
+                with open(notes_path, 'r') as f:
+                    notes = json.load(f)
+                    self.recent_scenarios = notes.get('recent_scenarios', [])
+            except Exception:
+                pass  # Silent fail, start fresh
+
+    def save_dm_notes(self, notes_path: str = 'dm_notes.json') -> None:
+        """Save DM notes to persistent storage."""
+        import json
+
+        notes = {
+            'recent_scenarios': self.recent_scenarios,
+            'last_updated': str(__import__('datetime').datetime.now())
+        }
+
+        try:
+            with open(notes_path, 'w') as f:
+                json.dump(notes, f, indent=2)
+        except Exception:
+            pass  # Silent fail
+
+    def get_recent_scenario_info(self) -> str:
+        """Get formatted info about recent scenarios for variety prompting."""
+        if not self.recent_scenarios:
+            return ""
+
+        themes = [s['theme'] for s in self.recent_scenarios]
+        locations = [s['location'] for s in self.recent_scenarios]
+
+        return f"""
+**Recently Used (AVOID THESE):**
+- Recent themes: {', '.join(themes)}
+- Recent locations: {', '.join(locations)}
+
+Generate something DIFFERENT from these recent scenarios.
+"""
 
     def snapshot(self) -> Dict[str, Any]:
         """Return a serialisable snapshot for prompts or logging."""

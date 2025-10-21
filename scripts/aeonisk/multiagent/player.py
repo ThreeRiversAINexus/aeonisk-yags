@@ -33,10 +33,23 @@ class CharacterState:
         """Initialize default inventory if not provided."""
         if self.inventory is None:
             self.inventory = {
+                # Ritual Consumables
                 'blood_offering': 0,
                 'incense': 0,
+                'neural_stimulant': 0,
+                'memory_crystal': 0,
+
+                # Tools & Focuses
                 'crystal_focus': 0,
-                'tech_kit': 0
+                'tech_kit': 0,
+                'neural_interface_module': 0,
+                'void_scanner': 0,
+                'resonance_tuner': 0,
+
+                # Medical/Utility
+                'med_kit': 0,
+                'data_slate': 0,
+                'comm_unit': 0,
             }
 
     def has_offering(self, offering_type: str = None) -> bool:
@@ -108,10 +121,23 @@ class AIPlayerAgent(Agent):
         # Load inventory from config or use defaults
         inventory_config = self.character_config.get('inventory', {})
         default_inventory = {
-            'blood_offering': 2,  # Default starter offerings
+            # Ritual Consumables
+            'blood_offering': 2,
             'incense': 2,
-            'crystal_focus': 1,   # Default ritual focus
-            'tech_kit': 0
+            'neural_stimulant': 1,
+            'memory_crystal': 3,
+
+            # Tools & Focuses
+            'crystal_focus': 1,
+            'tech_kit': 1,
+            'neural_interface_module': 1,
+            'void_scanner': 1,
+            'resonance_tuner': 1,
+
+            # Medical/Utility
+            'med_kit': 2,
+            'data_slate': 1,
+            'comm_unit': 1,
         }
         # Merge config with defaults
         inventory = {**default_inventory, **inventory_config}
@@ -129,7 +155,15 @@ class AIPlayerAgent(Agent):
         )
         
         logger.info(f"Player {self.agent_id} ({self.character_state.name}) started")
-        
+
+        # Register with shared state for party awareness
+        if self.shared_state:
+            self.shared_state.register_player(
+                self.agent_id,
+                self.character_state.name,
+                self.character_state.faction
+            )
+
         # Announce readiness
         self.send_message_sync(
             MessageType.AGENT_READY,
@@ -264,7 +298,9 @@ class AIPlayerAgent(Agent):
 
         # Mark as ritual if explicitly stated OR if action_type is 'ritual'
         # This ensures both LLM-declared rituals and keyword-detected rituals are flagged
-        if is_explicit_ritual or action_declaration.action_type == 'ritual':
+        # EXCEPTION: If action was routed to dialogue (Empathy × Charm/Counsel), don't override
+        is_dialogue_action = (routed_attr == 'Empathy' and routed_skill in ['Charm', 'Counsel'])
+        if not is_dialogue_action and (is_explicit_ritual or action_declaration.action_type == 'ritual'):
             action_declaration.is_ritual = True
             action_declaration.action_type = 'ritual'
             # Ensure ritual mechanics (Willpower × Astral Arts)
@@ -297,6 +333,18 @@ class AIPlayerAgent(Agent):
                 # Try again with simpler action
                 action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
+        # Detect if this is inter-party dialogue (free action)
+        is_free_action = False
+        if is_dialogue_action and self.shared_state:
+            other_players = self.shared_state.get_other_players(self.agent_id)
+            # Check if intent mentions any party member name
+            intent_lower = action_declaration.intent.lower()
+            for player_name in other_players:
+                if player_name.lower() in intent_lower:
+                    is_free_action = True
+                    print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
+                    break
+
         # Convert to dict and add character-specific data
         action = action_declaration.to_dict()
         action['attribute_value'] = self.character_state.attributes.get(action_declaration.attribute, 3)
@@ -307,6 +355,8 @@ class AIPlayerAgent(Agent):
         )
         action['character'] = self.character_state.name
         action['agent_id'] = self.agent_id
+        action['faction'] = self.character_state.faction  # Track faction affiliation
+        action['is_free_action'] = is_free_action  # Mark free inter-party dialogue
 
         # Add inventory info for rituals
         if action_declaration.is_ritual or action_declaration.action_type == 'ritual':
@@ -324,6 +374,58 @@ class AIPlayerAgent(Agent):
         )
 
         print(f"\n[{self.character_state.name}] {action_declaration.get_summary()}")
+
+        # If this was a free action (inter-party dialogue), generate a second action
+        if is_free_action:
+            print(f"[{self.character_state.name}] Free action used - generating main action...")
+            await asyncio.sleep(0.5)  # Small delay for readability
+
+            # Generate main action (excluding dialogue to avoid infinite loop)
+            if self.llm_config:
+                main_action = await self._generate_llm_action_structured(recent_intents, exclude_dialogue=True)
+            else:
+                main_action = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity, exclude_dialogue=True)
+
+            # Apply same routing and validation
+            main_routed_attr, main_routed_skill, main_rationale = router.route_action(
+                main_action.intent,
+                main_action.action_type,
+                self.character_state.skills,
+                router.is_explicit_ritual(main_action.intent)
+            )
+
+            if main_routed_attr != main_action.attribute or main_routed_skill != main_action.skill:
+                print(f"[{self.character_state.name}] Routed: {main_action.attribute}×{main_action.skill or 'None'} → {main_routed_attr}×{main_routed_skill or 'None'} ({main_rationale})")
+                main_action.attribute = main_routed_attr
+                main_action.skill = main_routed_skill
+
+            # Convert and send
+            main_action_dict = main_action.to_dict()
+            main_action_dict['attribute_value'] = self.character_state.attributes.get(main_action.attribute, 3)
+            main_action_dict['skill_value'] = get_character_skill_value(
+                self.character_state.skills,
+                main_action.skill,
+                fallback_value=0
+            )
+            main_action_dict['character'] = self.character_state.name
+            main_action_dict['agent_id'] = self.agent_id
+            main_action_dict['faction'] = self.character_state.faction
+            main_action_dict['is_free_action'] = False
+
+            if main_action.is_ritual or main_action.action_type == 'ritual':
+                main_action_dict['has_offering'] = self.character_state.has_offering()
+                main_action_dict['has_primary_tool'] = self.character_state.has_focus()
+            else:
+                main_action_dict['has_offering'] = False
+                main_action_dict['has_primary_tool'] = False
+
+            self.send_message_sync(
+                MessageType.ACTION_DECLARED,
+                None,
+                main_action_dict
+            )
+
+            print(f"\n[{self.character_state.name}] {main_action.get_summary()}")
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
@@ -386,12 +488,33 @@ class AIPlayerAgent(Agent):
         if self.character_state.bonds:
             print(f"Bonds: {', '.join(self.character_state.bonds)}")
 
-        # Display inventory
+        # Display inventory organized by category
         print("\nInventory:")
-        for item, count in self.character_state.inventory.items():
-            if count > 0:
-                item_display = item.replace('_', ' ').title()
-                print(f"  {item_display}: {count}")
+
+        consumables = {k: v for k, v in self.character_state.inventory.items()
+                      if 'offering' in k or 'stimulant' in k or 'crystal' in k}
+        tools = {k: v for k, v in self.character_state.inventory.items()
+                if 'focus' in k or 'kit' in k or 'scanner' in k or 'tuner' in k or 'module' in k}
+        utility = {k: v for k, v in self.character_state.inventory.items()
+                  if k not in consumables and k not in tools}
+
+        if any(v > 0 for v in consumables.values()):
+            print("  Consumables:")
+            for item, count in consumables.items():
+                if count > 0:
+                    print(f"    - {item.replace('_', ' ').title()}: {count}")
+
+        if any(v > 0 for v in tools.values()):
+            print("  Tools:")
+            for item, count in tools.items():
+                if count > 0:
+                    print(f"    - {item.replace('_', ' ').title()}: {count}")
+
+        if any(v > 0 for v in utility.values()):
+            print("  Utility:")
+            for item, count in utility.items():
+                if count > 0:
+                    print(f"    - {item.replace('_', ' ').title()}: {count}")
 
         print("=" * 30)
         
@@ -405,10 +528,15 @@ class AIPlayerAgent(Agent):
             print("Available commands: explore, interact, ritual, combat, status, release_control")
             print("Or type any freeform action description")
 
-    async def _generate_llm_action_structured(self, recent_intents: List[str]):
+    async def _generate_llm_action_structured(self, recent_intents: List[str], exclude_dialogue: bool = False):
         """Generate structured action using LLM with enhanced prompts."""
         from .enhanced_prompts import get_player_system_prompt
         from .action_schema import ActionDeclaration
+
+        # Get other party members for dialogue prompts
+        other_players = []
+        if self.shared_state:
+            other_players = self.shared_state.get_other_players(self.agent_id)
 
         # Build system prompt with mechanical scaffolding
         system_prompt = get_player_system_prompt(
@@ -421,7 +549,8 @@ class AIPlayerAgent(Agent):
             personality=self.personality,
             goals=self.character_state.goals,
             recent_intents=recent_intents,
-            void_score=self.character_state.void_score
+            void_score=self.character_state.void_score,
+            other_party_members=other_players
         )
 
         scenario_context = ""
@@ -430,17 +559,26 @@ class AIPlayerAgent(Agent):
 Current Scenario: {self.current_scenario.get('theme', 'Unknown')}
 Location: {self.current_scenario.get('location', 'Unknown')}
 Situation: {self.current_scenario.get('situation', 'Unknown')}
+
+**Your Affiliation**: {self.character_state.faction}
+- Consider how your background and affiliations might be relevant to this situation
+- Others can see your affiliation unless you actively disguise it
 """
 
-        # Add party discoveries to reduce repetition
+        # Add party discoveries to reduce repetition and encourage dialogue
         party_knowledge = ""
         if self.shared_state:
             discoveries = self.shared_state.get_recent_discoveries(limit=5)
             if discoveries:
-                party_knowledge = "\n**What the party has learned so far:**\n"
-                for discovery in discoveries:
-                    party_knowledge += f"- {discovery}\n"
-                party_knowledge += "\nBased on this shared knowledge, choose an action that builds on or explores something NEW.\nAvoid repeating actions that others have already completed.\n"
+                party_knowledge = "\n**What the party has discovered:**\n"
+                for disc_info in discoveries:
+                    character = disc_info.get('character', 'Unknown')
+                    discovery = disc_info.get('discovery', '')
+                    party_knowledge += f"- **{character}** discovered: {discovery}\n"
+                party_knowledge += "\nYou can:\n"
+                party_knowledge += "- Build on these discoveries with new investigation\n"
+                party_knowledge += "- Talk to your companions about what they found\n"
+                party_knowledge += "- Explore a completely different angle\n"
 
         prompt = f"""{system_prompt}
 
@@ -561,7 +699,7 @@ DESCRIPTION: [narrative description]"""
                 agent_id=self.agent_id
             )
 
-    def _generate_simple_action(self, recent_intents: List[str], risk_tolerance: int, void_curiosity: int):
+    def _generate_simple_action(self, recent_intents: List[str], risk_tolerance: int, void_curiosity: int, exclude_dialogue: bool = False):
         """Generate simple action based on personality without LLM."""
         from .action_schema import ActionDeclaration
         import random
@@ -583,16 +721,30 @@ DESCRIPTION: [narrative description]"""
         has_astral = 'Astral Arts' in self.character_state.skills
         has_awareness = 'Awareness' in self.character_state.skills
 
-        # 30% chance of social interaction with other players
-        if 'social' not in recent_types and random.random() < 0.3:
-            # Get other player names from current scenario
-            social_actions = [
-                "Discuss findings with the group",
-                "Share observations with companions",
-                "Coordinate strategy with party members",
-                "Ask others about their insights",
-                "Suggest a collaborative approach",
-            ]
+        # 30% chance of social interaction with other players (unless excluded)
+        if not exclude_dialogue and 'social' not in recent_types and random.random() < 0.3:
+            # Get other player names for character-specific dialogue
+            other_players = []
+            if self.shared_state:
+                other_players = self.shared_state.get_other_players(self.agent_id)
+
+            if other_players:
+                # Character-specific dialogue actions
+                target = random.choice(other_players)
+                social_actions = [
+                    f"Ask {target} about their findings",
+                    f"Share observations with {target}",
+                    f"Discuss the situation with {target}",
+                    f"Coordinate next steps with {target}",
+                    f"Tell {target} what you've learned",
+                ]
+            else:
+                # Fallback to generic group dialogue
+                social_actions = [
+                    "Discuss findings with the group",
+                    "Share observations with companions",
+                    "Coordinate strategy with party members",
+                ]
             intent = random.choice(social_actions)
             action_type = "social"
             attribute = "Empathy"
