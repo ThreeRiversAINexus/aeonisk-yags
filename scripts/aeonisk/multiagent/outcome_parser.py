@@ -10,9 +10,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def parse_clock_triggers(narration: str, outcome_tier: str, margin: int) -> List[Tuple[str, int, str]]:
+def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
     """
     Parse narration and outcome to determine clock advancements.
+
+    Works with dynamic clock names by pattern matching themes/categories.
+
+    Args:
+        narration: DM's narrative text
+        outcome_tier: Action outcome tier
+        margin: Success margin
+        active_clocks: Dict of active clock names to Clock objects (optional)
 
     Returns:
         List of (clock_name, ticks, reason) tuples
@@ -20,21 +28,51 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int) -> List
     triggers = []
     narration_lower = narration.lower()
 
-    # Corporate Suspicion triggers
-    if any(phrase in narration_lower for phrase in [
+    # If no active clocks provided, return empty (no clocks to advance)
+    if not active_clocks:
+        return triggers
+
+    # Categorize each active clock by keywords in its name/description
+    danger_clocks = []
+    investigation_clocks = []
+    corruption_clocks = []
+    time_clocks = []
+    stability_clocks = []
+
+    for clock_name, clock_obj in active_clocks.items():
+        name_lower = clock_name.lower()
+        desc_lower = getattr(clock_obj, 'description', '').lower()
+        combined = name_lower + ' ' + desc_lower
+
+        # Categorize by theme
+        if any(kw in combined for kw in ['danger', 'threat', 'escalation', 'suspicion', 'security', 'alarm', 'alert', 'lockdown', 'response']):
+            danger_clocks.append(clock_name)
+        if any(kw in combined for kw in ['investigation', 'progress', 'evidence', 'exposure', 'discovery', 'data', 'extraction']):
+            investigation_clocks.append(clock_name)
+        if any(kw in combined for kw in ['corruption', 'void', 'contamination', 'sanctuary', 'taint', 'manifests']):
+            corruption_clocks.append(clock_name)
+        if any(kw in combined for kw in ['time', 'pressure', 'deadline', 'clock', 'countdown']):
+            time_clocks.append(clock_name)
+        if any(kw in combined for kw in ['stability', 'sanity', 'morale', 'cohesion', 'crew', 'communal', 'bonds']):
+            stability_clocks.append(clock_name)
+
+    # DANGER/SECURITY triggers (advances danger-themed clocks)
+    if danger_clocks and any(phrase in narration_lower for phrase in [
         'security', 'alarm', 'alert', 'drone', 'protocol',
-        'lockdown', 'surveillance', 'detected', 'suspicious'
+        'lockdown', 'surveillance', 'detected', 'suspicious', 'patrol', 'guard'
     ]):
-        triggers.append(('Corporate Suspicion', 1, "Security response"))
+        for clock_name in danger_clocks:
+            triggers.append((clock_name, 1, "Security response"))
 
-    if any(phrase in narration_lower for phrase in [
-        'psi-lockdown', 'facility-wide', 'catatonic', 'panic'
+    if danger_clocks and any(phrase in narration_lower for phrase in [
+        'psi-lockdown', 'facility-wide', 'catatonic', 'panic', 'emergency', 'crisis'
     ]):
-        triggers.append(('Corporate Suspicion', 2, "Major incident"))
+        for clock_name in danger_clocks:
+            triggers.append((clock_name, 2, "Major incident"))
 
-    # Evidence Trail / Saboteur Exposure triggers - concrete clues discovered
-    if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional'] and margin >= 0:
-        # Physical/digital evidence
+    # INVESTIGATION triggers (advances investigation-themed clocks on successes)
+    if investigation_clocks and outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional'] and margin >= 0:
+        # Physical/digital evidence discovered
         evidence_phrases = [
             'badge', 'terminal', 'signature', 'log', 'trace',
             'pattern', 'evidence', 'fingerprint', 'id', 'credential',
@@ -43,47 +81,69 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int) -> List
             'maintenance duct', 'tunnel', 'path', 'trail',
             'syndicate', 'corporate', 'logo', 'insignia', 'sigil',
             'identifier', 'sequence', 'protocol', 'unauthorized',
+            'clue', 'discovery', 'found', 'uncovered', 'revealed',
             # Cult/saboteur specific
             'obsidian path', 'crimson chorus', 'symmetry collective',
             'ritual-keeper', 'hegemony', 'inside job', 'saboteur',
-            'acolyte', 'operative', 'infiltrator', 'collaborator'
+            'acolyte', 'operative', 'infiltrator', 'collaborator',
+            # Tech/data specific
+            'data', 'file', 'record', 'database', 'archive', 'network'
         ]
         if any(phrase in narration_lower for phrase in evidence_phrases):
             # Stronger evidence for better success
             ticks = 2 if margin >= 10 else 1
-            triggers.append(('Evidence Trail', ticks, f"Concrete evidence discovered (margin +{margin})"))
-            triggers.append(('Saboteur Exposure', ticks, f"Saboteur clue found (margin +{margin})"))
+            for clock_name in investigation_clocks:
+                triggers.append((clock_name, ticks, f"Evidence discovered (margin +{margin})"))
 
-    # Sanctuary/Facility specific clocks
-    if any(phrase in narration_lower for phrase in [
-        'lockdown', 'sealed', 'containment', 'quarantine',
-        'drones converging', 'security converging', 'armed response',
-        'psi backlash', 'psychic backlash', 'feedback', 'cascad',
-        'families collapsing', 'catatonic', 'chaos', 'disorder'
-    ]):
-        triggers.append(('Facility Lockdown', 1, "Security/chaos escalation"))
-
-    if any(phrase in narration_lower for phrase in [
-        'corruption', 'void manifests', 'contamination spreads'
-    ]):
-        triggers.append(('Sanctuary Corruption', 1, "Void corruption spreading"))
-
-    # Communal Stability (degrades on failures, improves on healing successes)
-    if outcome_tier in ['failure', 'critical_failure']:
+    # CORRUPTION triggers (advances corruption-themed clocks on void exposure/failures)
+    if corruption_clocks:
         if any(phrase in narration_lower for phrase in [
-            'panic', 'traumat', 'scream', 'catatonic', 'shared consciousness',
-            'discord', 'fracture', 'sever', 'broken bonds', 'disrupted'
+            'corruption', 'void manifests', 'contamination spreads', 'tainted',
+            'void energy', 'void exposure', 'corrupted', 'defiled', 'infected'
         ]):
-            ticks = 2 if outcome_tier == 'critical_failure' else 1
-            triggers.append(('Communal Stability', ticks, "Social cohesion degrading"))
-    elif outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
-        # Successful healing/stabilization improves stability (regress the degradation clock)
+            for clock_name in corruption_clocks:
+                triggers.append((clock_name, 1, "Void corruption spreading"))
+
+        # Failed void manipulation increases corruption
+        if outcome_tier in ['failure', 'critical_failure']:
+            if any(phrase in narration_lower for phrase in [
+                'void', 'ritual', 'astral', 'channel', 'corruption', 'taint'
+            ]):
+                ticks = 2 if outcome_tier == 'critical_failure' else 1
+                for clock_name in corruption_clocks:
+                    triggers.append((clock_name, ticks, "Failed void manipulation"))
+
+    # TIME triggers (advances time-pressure clocks automatically or on delays)
+    if time_clocks:
         if any(phrase in narration_lower for phrase in [
-            'stabiliz', 'heal', 'mend', 'bond', 'harmoni', 'protective',
-            'reconstitute', 'restore', 'strengthen', 'repair'
+            'time passes', 'hours pass', 'delay', 'wait', 'slow', 'take too long',
+            'meanwhile', 'during this', 'while you'
         ]):
-            # Note: This should REGRESS the clock (improvement), handled in DM logic
-            triggers.append(('Communal Stability', -1, "Bonds stabilized"))
+            for clock_name in time_clocks:
+                triggers.append((clock_name, 1, "Time passing"))
+
+    # STABILITY triggers (degrades on failures, improves on healing successes)
+    if stability_clocks:
+        # Degradation on social/mental failures
+        if outcome_tier in ['failure', 'critical_failure']:
+            if any(phrase in narration_lower for phrase in [
+                'panic', 'traumat', 'scream', 'catatonic', 'shared consciousness',
+                'discord', 'fracture', 'sever', 'broken bonds', 'disrupted',
+                'fear', 'terror', 'horror', 'despair', 'breakdown', 'collapse'
+            ]):
+                ticks = 2 if outcome_tier == 'critical_failure' else 1
+                for clock_name in stability_clocks:
+                    triggers.append((clock_name, ticks, "Social cohesion degrading"))
+
+        # Improvement on successful healing/stabilization
+        elif outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
+            if any(phrase in narration_lower for phrase in [
+                'stabiliz', 'heal', 'mend', 'bond', 'harmoni', 'protective',
+                'reconstitute', 'restore', 'strengthen', 'repair', 'comfort', 'calm'
+            ]):
+                # Negative ticks = regress (improve)
+                for clock_name in stability_clocks:
+                    triggers.append((clock_name, -1, "Bonds stabilized"))
 
     return triggers
 
@@ -152,7 +212,8 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
 def parse_state_changes(
     narration: str,
     action: Dict,
-    resolution: Dict
+    resolution: Dict,
+    active_clocks: dict = None
 ) -> Dict[str, any]:
     """
     Parse complete state changes from a resolution.
@@ -161,6 +222,7 @@ def parse_state_changes(
         narration: DM's narrative text
         action: Original action dict
         resolution: Resolution data (outcome_tier, margin, etc.)
+        active_clocks: Dict of active clock names to Clock objects (optional)
 
     Returns:
         Dict with state changes: clocks, void, conditions, etc.
@@ -183,12 +245,29 @@ def parse_state_changes(
     else:
         outcome_tier = str(outcome_tier_raw).lower()
 
-    # Parse clock triggers
-    clock_triggers = parse_clock_triggers(narration, outcome_tier, margin)
+    # Parse clock triggers (with dynamic clock support)
+    clock_triggers = parse_clock_triggers(narration, outcome_tier, margin, active_clocks)
     state_changes['clock_triggers'] = clock_triggers
 
     # Parse void triggers
     void_change, void_reasons = parse_void_triggers(narration, intent, outcome_tier)
+
+    # RECOVERY MOVES: Reduce void on successful grounding/purge
+    intent_lower = intent.lower()
+    grounding_keywords = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
+    purge_keywords = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
+
+    if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
+        if any(kw in intent_lower for kw in grounding_keywords):
+            # Successful grounding: -1 personal void
+            void_change = -1
+            void_reasons = ['Grounding meditation success']
+            state_changes['notes'].append("Grounding: -1 Void (personal recovery)")
+
+        elif any(kw in intent_lower for kw in purge_keywords):
+            # Successful purge: -scene void (handled by DM, mark as note)
+            state_changes['notes'].append("Purge: -Scene Void pressure (one round)")
+
     state_changes['void_change'] = void_change
     state_changes['void_reasons'] = void_reasons
 

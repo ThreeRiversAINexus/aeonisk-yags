@@ -152,6 +152,12 @@ class SelfPlayingSession:
             print(f"\n--- Round {round_count} ---")
             self._turn_history.append(f"Round {round_count} begins")
 
+            # Reset void caps for all characters at round start
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                for agent_id, void_state in mechanics.void_states.items():
+                    void_state.reset_round_void()
+
             # Run round with initiative-based turns
             await self._run_initiative_round()
 

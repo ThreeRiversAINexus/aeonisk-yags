@@ -195,24 +195,30 @@ class AIPlayerAgent(Agent):
 
         # Apply mechanical validation and corrections
         from .skill_mapping import validate_action_mechanics, get_character_skill_value, RITUAL_ATTRIBUTE, RITUAL_SKILL
+        from .action_router import ActionRouter
 
-        # Detect ritual intent and force ritual mechanics
-        intent_lower = action_declaration.intent.lower()
-        ritual_keywords = ['ritual', 'channel', 'attune', 'harmoniz', 'weave', 'resonance', 'astral']
-        is_ritual_intent = any(keyword in intent_lower for keyword in ritual_keywords)
+        # Use action router to determine correct attribute/skill
+        router = ActionRouter()
+        is_explicit_ritual = router.is_explicit_ritual(action_declaration.intent)
 
-        # Force ritual type if detected
-        if is_ritual_intent and action_declaration.action_type != 'ritual':
-            action_declaration.action_type = 'ritual'
+        # Route action to appropriate attribute + skill
+        routed_attr, routed_skill, rationale = router.route_action(
+            action_declaration.intent,
+            action_declaration.action_type,
+            self.character_state.skills,
+            is_explicit_ritual
+        )
+
+        # Apply routing if it differs from declared
+        if routed_attr != action_declaration.attribute or routed_skill != action_declaration.skill:
+            print(f"[{self.character_state.name}] Routed: {action_declaration.attribute}×{action_declaration.skill or 'None'} → {routed_attr}×{routed_skill or 'None'} ({rationale})")
+            action_declaration.attribute = routed_attr
+            action_declaration.skill = routed_skill
+
+        # Mark as ritual if explicitly stated
+        if is_explicit_ritual:
             action_declaration.is_ritual = True
-
-        # Force ritual mechanics for any ritual action
-        if action_declaration.action_type == 'ritual' or action_declaration.is_ritual:
-            if action_declaration.attribute != RITUAL_ATTRIBUTE or action_declaration.skill != RITUAL_SKILL:
-                print(f"[{self.character_state.name}] Ritual detected: forcing {RITUAL_ATTRIBUTE}×{RITUAL_SKILL}")
-                action_declaration.attribute = RITUAL_ATTRIBUTE
-                action_declaration.skill = RITUAL_SKILL
-                action_declaration.is_ritual = True
+            action_declaration.action_type = 'ritual'
 
         corrected_attr, corrected_skill, is_valid, message = validate_action_mechanics(
             action_declaration.action_type,
@@ -472,6 +478,7 @@ DESCRIPTION: [narrative description]"""
     def _generate_simple_action(self, recent_intents: List[str], risk_tolerance: int, void_curiosity: int):
         """Generate simple action based on personality without LLM."""
         from .action_schema import ActionDeclaration
+        import random
 
         # Avoid recently used action types
         recent_types = set()
@@ -480,7 +487,7 @@ DESCRIPTION: [narrative description]"""
                 recent_types.add('investigate')
             if 'ritual' in intent.lower() or 'harmoniz' in intent.lower():
                 recent_types.add('ritual')
-            if 'ask' in intent.lower() or 'talk' in intent.lower() or 'question' in intent.lower():
+            if 'ask' in intent.lower() or 'talk' in intent.lower() or 'question' in intent.lower() or 'discuss' in intent.lower():
                 recent_types.add('social')
 
         # Get character's actual skills (use canonical YAGS names)
@@ -490,12 +497,26 @@ DESCRIPTION: [narrative description]"""
         has_astral = 'Astral Arts' in self.character_state.skills
         has_awareness = 'Awareness' in self.character_state.skills
 
+        # 30% chance of social interaction with other players
+        if 'social' not in recent_types and random.random() < 0.3:
+            # Get other player names from current scenario
+            social_actions = [
+                "Discuss findings with the group",
+                "Share observations with companions",
+                "Coordinate strategy with party members",
+                "Ask others about their insights",
+                "Suggest a collaborative approach",
+            ]
+            intent = random.choice(social_actions)
+            action_type = "social"
+            attribute = "Empathy"
+            skill = "Charm" if has_charm else ("Guile" if has_guile else None)
         # Choose action type based on personality, skills, and what hasn't been done recently
-        if 'social' not in recent_types and has_social:
+        elif 'social' not in recent_types and has_social and not has_astral:
+            # Non-astral characters prefer social
             intent = f"Question NPCs about the situation"
             action_type = "social"
             attribute = "Empathy"
-            # Use whichever social skill character has
             skill = "Charm" if has_charm else "Guile"
         elif 'ritual' not in recent_types and has_astral and void_curiosity > 5:
             intent = "Use astral arts to sense void presence"

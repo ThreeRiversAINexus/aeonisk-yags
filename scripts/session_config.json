@@ -38,7 +38,9 @@
         },
         "skills": {
           "Astral Arts": 5,
-          "Investigation": 4
+          "Attunement": 4,
+          "Systems": 3,
+          "Awareness": 4
         },
         "void_score": 2,
         "soulcredit": 15,
@@ -73,7 +75,9 @@
         },
         "skills": {
           "Astral Arts": 6,
-          "Social": 5
+          "Attunement": 5,
+          "Charm": 5,
+          "Counsel": 4
         },
         "void_score": 0,
         "soulcredit": 12,

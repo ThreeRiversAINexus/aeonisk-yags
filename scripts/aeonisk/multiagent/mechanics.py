@@ -127,13 +127,18 @@ class VoidState:
     score: int = 0  # 0-10
     history: List[Dict[str, Any]] = field(default_factory=list)
     _processed_actions: set = field(default_factory=set, init=False, repr=False)
+    _round_void_gain: int = field(default=0, init=False, repr=False)
 
     def add_void(self, amount: int, reason: str, action_id: Optional[str] = None) -> int:
         """
-        Add void corruption, return new score.
+        Add void corruption with caps, return new score.
+
+        Caps:
+        - Max +1 void per action
+        - Max +2 void per round per character
 
         Args:
-            amount: Void to add
+            amount: Void to add (will be capped)
             reason: Why void is being added
             action_id: Unique action identifier to prevent duplicates
 
@@ -145,11 +150,23 @@ class VoidState:
             logger.debug(f"Skipping duplicate void add for action {action_id}")
             return self.score
 
+        # Cap per action: max +1
+        capped_amount = min(amount, 1)
+
+        # Cap per round: max +2 total
+        if self._round_void_gain >= 2:
+            logger.info(f"Void cap reached for this round (already +{self._round_void_gain})")
+            return self.score
+
+        # Apply remaining room in round cap
+        actual_add = min(capped_amount, 2 - self._round_void_gain)
+        self._round_void_gain += actual_add
+
         old_score = self.score
-        self.score = min(self.score + amount, 10)
+        self.score = min(self.score + actual_add, 10)
 
         self.history.append({
-            'change': amount,
+            'change': actual_add,
             'reason': reason,
             'old_score': old_score,
             'new_score': self.score
@@ -158,7 +175,13 @@ class VoidState:
         if action_id:
             self._processed_actions.add(action_id)
 
+        logger.info(f"Void added: +{actual_add} (requested {amount}, round total {self._round_void_gain}/2)")
         return self.score
+
+    def reset_round_void(self):
+        """Reset round void counter. Call at start of each round."""
+        self._round_void_gain = 0
+        logger.debug(f"Reset round void counter")
 
     def reduce_void(self, amount: int, reason: str) -> int:
         """Reduce void corruption, return new score."""
@@ -350,6 +373,9 @@ class MechanicsEngine:
         """
         Resolve a ritual action with requirements and consequences.
 
+        NOTE: This should ONLY be called for explicit ritual actions.
+        Non-ritual actions (sensing, tech, social) should use resolve_action() instead.
+
         Args:
             intent: What the ritual aims to accomplish
             willpower: Character's Willpower attribute
@@ -370,18 +396,20 @@ class MechanicsEngine:
             'consequences': []
         }
 
-        # Apply modifiers for proper preparation
+        # Apply modifiers for proper preparation (RITUAL-SPECIFIC)
         if has_primary_tool:
             modifiers['primary_tool'] = 2
         else:
+            # Missing tool: player can accept +5 DC instead of void (future enhancement)
             ritual_effects['void_change'] += 1
-            ritual_effects['consequences'].append("No primary tool: +1 Void risk")
+            ritual_effects['consequences'].append("Missing ritual focus")
 
         if sanctified_altar:
             modifiers['sanctified_altar'] = 3
         elif not has_offering:
+            # Missing offering: player can accept +5 DC instead of void (future enhancement)
             ritual_effects['void_change'] += 1
-            ritual_effects['consequences'].append("No offering: +1 Void")
+            ritual_effects['consequences'].append("No offering made")
         else:
             modifiers['offering'] = 1
 
