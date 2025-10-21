@@ -1,0 +1,109 @@
+{
+  "session_name": "combat_scenario_test",
+  "max_turns": 5,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+  "vendor_spawn_frequency": 2,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 6,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9
+      },
+      "goals": [
+        "Investigate void-related crimes and neutralize threats",
+        "Track down illegal dissolution advocacy",
+        "Maintain order through force when necessary"
+      ],
+      "attributes": {
+        "Strength": 3,
+        "Agility": 4,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 2,
+        "Willpower": 3,
+        "Charisma": 3
+      },
+      "skills": {
+        "Combat": 5,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 4
+      },
+      "inventory": {
+        "union_issue_pistol": 1,
+        "riot_carapace": 1,
+        "breach_hammer": 1,
+        "restraint_cuffs": 2,
+        "med_kit": 1
+      }
+    },
+    {
+      "name": "Drifter Sable",
+      "pronouns": "they/them",
+      "faction": "Freeborn Loner",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 8,
+        "voidCuriosity": 5,
+        "bondPreference": "avoids",
+        "ritualConservatism": 3
+      },
+      "goals": [
+        "Stay off the Nexus grid and avoid ledger tracking",
+        "Survive by any means necessary",
+        "Keep independence from corporate entanglements"
+      ],
+      "attributes": {
+        "Strength": 3,
+        "Agility": 4,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 2,
+        "Willpower": 3,
+        "Charisma": 2
+      },
+      "skills": {
+        "Combat": 5,
+        "Stealth": 5,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Pilot": 3
+      },
+      "inventory": {
+        "smuggler_pistol": 1,
+        "conventional_blade": 1,
+        "void_cloak": 1,
+        "med_kit": 1
+      }
+    }
+    ]
+  },
+  "notes": "Combat scenario test - ambush, firefight, battle, or hostile encounter"
+}

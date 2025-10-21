@@ -3,6 +3,7 @@
   "max_turns": 5,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
+  "vendor_spawn_frequency": 3,
   "agents": {
     "dm": {
       "llm": {

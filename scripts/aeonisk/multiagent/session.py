@@ -249,6 +249,9 @@ class SelfPlayingSession:
             # Run DM turn at end of round
             await self._run_dm_turn()
 
+            # Check for random vendor spawns
+            await self._check_vendor_spawn(round_count)
+
             # Check if we've completed enough rounds
             if round_count >= max_rounds:
                 print(f"\n=== Completed {round_count} rounds ===")
@@ -397,9 +400,67 @@ class SelfPlayingSession:
             )
             
             await self.coordinator.message_bus._route_message(dm_message)
-            
+
         # Wait for DM response
         await asyncio.sleep(2)
+
+    async def _check_vendor_spawn(self, round_count: int):
+        """Check if a vendor should randomly spawn this round."""
+        vendor_frequency = self.config.get('vendor_spawn_frequency', -1)
+
+        # -1 means vendors never spawn randomly
+        if vendor_frequency <= 0:
+            return
+
+        # Check if this is a spawn round
+        if round_count % vendor_frequency != 0:
+            return
+
+        # Get DM agent
+        dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+        if not dm_agents:
+            return
+
+        dm_agent = dm_agents[0]
+
+        # Get current scenario theme for context-aware vendor selection
+        scenario = dm_agent.current_scenario
+        scenario_theme = scenario.theme if scenario else "neutral"
+
+        # Use DM's contextual vendor selection logic
+        vendor = dm_agent._select_contextual_vendor(scenario_theme)
+
+        if vendor:
+            # Update scenario with active vendor
+            if scenario:
+                scenario.active_vendor = vendor
+
+            # Announce vendor arrival to all players
+            print(f"\n💰 [Vendor Arrives] {vendor.name} ({vendor.vendor_type.value})")
+            print(f"   Faction: {vendor.faction}")
+            print(f"   {vendor.greeting}")
+
+            # Send notification to all players
+            player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+
+            vendor_announcement = f"\n💰 **{vendor.name} arrives!**\n"
+            vendor_announcement += f"A {vendor.faction} {vendor.vendor_type.value} approaches.\n"
+            vendor_announcement += f'"{vendor.greeting}"\n'
+            vendor_announcement += f"They have goods for sale or barter."
+
+            for player_agent in player_agents:
+                # Send as a DM narration message
+                vendor_msg = Message(
+                    id=f"vendor_spawn_{round_count}_{datetime.now().isoformat()}",
+                    type=MessageType.DM_NARRATION,
+                    sender='dm',
+                    recipient=player_agent.agent_id,
+                    payload={'narration': vendor_announcement},
+                    timestamp=datetime.now()
+                )
+                await self.coordinator.message_bus._route_message(vendor_msg)
+
+            logger.info(f"Round {round_count}: Spawned vendor {vendor.name}")
 
     async def _run_mission_debrief(self):
         """Run post-mission debrief where players discuss what happened."""

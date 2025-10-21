@@ -101,8 +101,9 @@ class AIDMAgent(Agent):
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI with lore grounding."""
-        # Check if vendor-gated scenario is requested
+        # Check if vendor-gated or combat scenario is requested
         force_vendor_gate = config.get('force_vendor_gate', False)
+        force_combat = config.get('force_combat', False)
 
         # Query knowledge retrieval for Aeonisk lore
         lore_context = ""
@@ -157,10 +158,13 @@ class AIDMAgent(Agent):
             # Get variety requirements
             variety_context = self.shared_state.get_recent_scenario_info()
 
-        # Use vendor-gated scenario if requested
+        # Use vendor-gated or combat scenario if requested
         if force_vendor_gate:
             logger.info("Force vendor gate enabled - using vendor-gated scenario template")
             scenario_data = self._create_vendor_gated_scenario()
+        elif force_combat:
+            logger.info("Force combat enabled - using combat scenario template")
+            scenario_data = self._create_combat_scenario()
         else:
             # Use LLM to generate dynamic scenario
             try:
@@ -194,9 +198,14 @@ IMPORTANT:
 - Three planets: Aeonisk Prime, Nimbus, Arcadia (space travel between them is possible)
 - Humans only, NO aliens
 - Pick a DIFFERENT theme and location from recently used ones (if listed above)
-- Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, **tribunal/trial**, **bond dispute (marriage gone wrong, broken contract)**, **debt settlement**, **trade negotiation**, **vendor conflict**, **economic disputes**, **social scandal**, etc.
-- **INCLUDE NON-VIOLENT OPTIONS**: Not all scenarios need combat or danger! Social conflicts, economic disputes, tribunals, and negotiations are equally valid
-- **Vendor/Economy scenarios**: Characters might need to acquire resources, negotiate prices, settle debts with vendors, or investigate economic crime
+- Be creative with scenario types:
+  * COMBAT: **ambush**, **firefight**, **battle**, **siege**, **assault**, **defense**, **void creature attack**, **hostile extraction**, **combat rescue**, **gang warfare**
+  * SOCIAL: tribunal/trial, bond dispute, debt settlement, trade negotiation, vendor conflict, economic disputes, social scandal
+  * INTRIGUE: heist, investigation, ritual gone wrong, faction conflict, ancient mystery, political intrigue, transit crisis
+  * CRISIS: void outbreak, station breach, emergency evacuation, containment failure
+- **VARIETY IS KEY**: Mix combat scenarios with social/economic ones. Not every scenario needs combat, but battles and firefights should appear regularly
+- **Combat scenarios**: Ambushes by rival factions, void-corrupted threats, gang turf wars, hostile encounters during missions, defensive stands
+- **Vendor/Economy scenarios**: Resource acquisition, price negotiations, debt settlement, economic crime investigation
 - If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence
 - ⚠️ CRITICAL: Respect the party composition above. DO NOT create scenarios where characters betray their own faction
 - ⚠️ CRITICAL: Align scenarios with character goals OR create interesting cross-faction cooperation (e.g., Sovereign Nexus + ArcGen investigating a shared threat)
@@ -570,6 +579,147 @@ IMPORTANT:
             'required_vendor_type': template['required_vendor_type']
         }
 
+    def _create_combat_scenario(self) -> Dict[str, Any]:
+        """
+        Create a combat-focused scenario (ambush, firefight, battle, etc.).
+
+        Returns scenario_data dict for immediate combat situations.
+        """
+        templates = [
+            {
+                'theme': 'Gang Ambush',
+                'location': 'Undercity Maintenance Tunnels (Arcadia)',
+                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions.',
+                'void_level': 3,
+                'clocks': [
+                    ('Reinforcements Arriving', 5, 'More gang members responding to gunfire'),
+                    ('Escape Route', 6, 'Tunnel collapse blocking exit'),
+                    ('Civilian Panic', 5, 'Nearby residents calling Pantheon Security')
+                ]
+            },
+            {
+                'theme': 'Hostile Extraction',
+                'location': 'Pantheon Detention Facility (Aeonisk Prime)',
+                'situation': 'Security forces have been alerted to your presence. Riot carapace troops are advancing down the corridor, shock batons crackling. You need to fight your way out.',
+                'void_level': 2,
+                'clocks': [
+                    ('Lockdown Protocol', 6, 'Facility sealing all exits'),
+                    ('Security Response', 5, 'Tactical teams deploying'),
+                    ('Asset Extraction', 6, 'Getting your contact out before they\'re moved')
+                ]
+            },
+            {
+                'theme': 'Void Creature Attack',
+                'location': 'Collapsed Ley Nexus (Nimbus)',
+                'situation': 'Void-touched creatures emerge from a breach in reality - warped humanoid forms with too many limbs, their bodies flickering between states. They\'re hostile and closing fast.',
+                'void_level': 7,
+                'clocks': [
+                    ('Breach Expansion', 6, 'Reality tear growing larger'),
+                    ('Creature Swarm', 5, 'More entities emerging from void'),
+                    ('Void Exposure', 5, 'Environmental corruption affecting party')
+                ]
+            },
+            {
+                'theme': 'Faction Firefight',
+                'location': 'Contested Transit Hub (Floating Exchange)',
+                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy while Pantheon Security responds. You\'re caught in the three-way firefight - the pirates want to liberate "debt slaves", ACG wants their assets back, and Pantheon wants everyone in custody.',
+                'void_level': 3,
+                'clocks': [
+                    ('Freeborn Escape', 6, 'Pirates fighting their way to ships'),
+                    ('ACG Asset Seizure', 6, 'ACG trying to secure cargo'),
+                    ('Pantheon Lockdown', 7, 'Security sealing all exits')
+                ]
+            },
+            {
+                'theme': 'Defense Stand',
+                'location': 'Resonance Commune Sanctuary (Nimbus)',
+                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls.',
+                'void_level': 5,
+                'clocks': [
+                    ('Perimeter Breach', 7, 'Raiders breaking through defenses'),
+                    ('Civilian Evacuation', 8, 'Getting non-combatants to safety'),
+                    ('Void Corruption', 6, 'Raiders spreading corruption')
+                ]
+            },
+            {
+                'theme': 'Assassination Attempt',
+                'location': 'ACG Executive Tower (Aeonisk Prime)',
+                'situation': 'Hostile operatives have breached the building - they\'re here to kill someone you\'re protecting. Professional killers with military-grade weapons, moving through the floors toward your position.',
+                'void_level': 2,
+                'clocks': [
+                    ('Assassin Approach', 6, 'Killers closing in on target'),
+                    ('Building Lockdown', 5, 'Security systems being hacked'),
+                    ('Extraction Window', 6, 'Opportunity to escape closing')
+                ]
+            },
+            {
+                'theme': 'Siege Breakout',
+                'location': 'Surrounded Safe House (Arcadia)',
+                'situation': 'You\'re pinned down in a safe house. Pantheon Security has the building surrounded with riot teams, drones, and heavy weapons. They\'re demanding surrender, but you know too much to be taken alive.',
+                'void_level': 3,
+                'clocks': [
+                    ('Breach Attempt', 7, 'Security forces preparing assault'),
+                    ('Supply Depletion', 6, 'Running out of ammo and medical supplies'),
+                    ('Negotiation Window', 5, 'Opportunity for peaceful resolution fading')
+                ]
+            },
+            {
+                'theme': 'Combat Rescue',
+                'location': 'Crashed Transport Ship (Nimbus Wastes)',
+                'situation': 'A transport went down in hostile territory. Survivors are pinned in the wreckage by scavenger gangs and void-touched wildlife. You need to extract them under fire.',
+                'void_level': 6,
+                'clocks': [
+                    ('Scavenger Assault', 6, 'Gangs moving to overwhelm survivors'),
+                    ('Void Creatures', 5, 'Corrupted wildlife drawn to the crash'),
+                    ('Survivor Casualties', 7, 'Wounded dying without immediate help')
+                ]
+            },
+            {
+                'theme': 'Turf War',
+                'location': 'Black Market District (Floating Exchange)',
+                'situation': 'Two rival gangs are going to war over Hollow Seed territory, and you\'re in the kill zone. Automatic weapons fire tears through the market stalls as both sides fight for control.',
+                'void_level': 4,
+                'clocks': [
+                    ('Gang A Dominance', 6, 'Red Coil gang taking control'),
+                    ('Gang B Counterattack', 6, 'Void Saints fighting back'),
+                    ('Pantheon Response', 5, 'Security forces mobilizing')
+                ]
+            },
+            {
+                'theme': 'Facility Assault',
+                'location': 'Tempest Research Station (Orbital)',
+                'situation': 'You\'re leading an assault on a Tempest black site. Automated defenses are active - combat drones, turrets, and security systems. Eye of Breach may be controlling the facility.',
+                'void_level': 8,
+                'clocks': [
+                    ('Defense Systems', 7, 'Automated weapons engaging'),
+                    ('Eye of Breach Activation', 6, 'Rogue AI taking direct control'),
+                    ('Mission Objective', 8, 'Reaching critical data before destruction')
+                ]
+            },
+            {
+                'theme': 'Ideological Battle',
+                'location': 'Ley Node Nexus (Aeonisk Prime)',
+                'situation': 'Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order.',
+                'void_level': 5,
+                'clocks': [
+                    ('Tempest Installation', 6, 'Void-tech being deployed'),
+                    ('Nexus Purge', 6, 'Cleansing the site by force'),
+                    ('Civilian Casualties', 5, 'Bystanders caught in ideological war')
+                ]
+            }
+        ]
+
+        # Select random combat template
+        template = random.choice(templates)
+
+        return {
+            'theme': template['theme'],
+            'location': template['location'],
+            'situation': template['situation'],
+            'void_level': template['void_level'],
+            'clocks': template['clocks']
+        }
+
     def _detect_faction_conflicts(self, scenario: Scenario, players_config: List[Dict]) -> List[Dict[str, str]]:
         """
         Detect if the scenario conflicts with any player's faction or goals.
@@ -635,9 +785,9 @@ IMPORTANT:
         """
         Select vendor based on scenario context.
 
-        Safe zones (social, market, downtime) → Human traders (50% chance)
-        Neutral zones (investigation, heist, exploration) → Vending machines/drones (40% chance)
-        Hot zones (combat, crisis, void outbreak) → Emergency caches only (10% chance) or None
+        Safe zones (social, market, downtime) → Human traders (70% chance)
+        Neutral zones (investigation, heist, exploration) → Vending machines/drones (60% chance)
+        Hot zones (combat, crisis, void outbreak) → Emergency caches only (20% chance) or None
         """
         theme_lower = scenario_theme.lower()
 
@@ -660,15 +810,15 @@ IMPORTANT:
         if zone == 'safe':
             # Human traders + vending machines
             eligible_vendors = [v for v in self.vendor_pool if v.vendor_type in [VendorType.HUMAN_TRADER, VendorType.VENDING_MACHINE]]
-            spawn_chance = 0.5  # 50% chance
+            spawn_chance = 0.7  # 70% chance (increased for more economic gameplay)
         elif zone == 'neutral':
             # Vending machines + supply drones (no human traders in active zones)
             eligible_vendors = [v for v in self.vendor_pool if v.vendor_type in [VendorType.VENDING_MACHINE, VendorType.SUPPLY_DRONE]]
-            spawn_chance = 0.4  # 40% chance
+            spawn_chance = 0.6  # 60% chance (increased for more economic gameplay)
         elif zone == 'hot':
             # Emergency caches only (rare)
             eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == VendorType.EMERGENCY_CACHE]
-            spawn_chance = 0.1  # 10% chance (desperate situations)
+            spawn_chance = 0.2  # 20% chance (increased for more economic gameplay)
 
         # Roll for vendor appearance
         if eligible_vendors and random.random() < spawn_chance:
