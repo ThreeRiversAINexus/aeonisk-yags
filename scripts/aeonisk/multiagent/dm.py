@@ -613,6 +613,8 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         # Process each action mechanically (fastest → slowest, same as actions list)
         resolutions = []
+        mechanics = self.shared_state.mechanics_engine if self.shared_state else None
+
         for action_entry in actions:
             player_id = action_entry['player_id']
             character_name = action_entry['character_name']
@@ -628,6 +630,31 @@ The air carries a distinct tension, and you sense the void's influence at level 
             print(f"\n{resolution['narration']}")
             print("=" * 40)
 
+            # Log the resolution
+            if mechanics and mechanics.jsonl_logger:
+                # Extract resolution data for logging
+                action_resolution = resolution.get('resolution')
+                if action_resolution:
+                    mechanics.jsonl_logger.log_action_resolution(
+                        round_num=round_num,
+                        phase="adjudicate",
+                        agent_name=character_name,
+                        action=action.get('intent', action.get('description', 'unknown')),
+                        resolution=action_resolution,
+                        economy_changes={},  # Could extract from resolution if available
+                        clock_states={},      # Could extract from resolution if available
+                        effects=[],           # Could extract from resolution if available
+                        context={
+                            "action_type": action.get('action_type', 'unknown'),
+                            "is_ritual": action.get('is_ritual', False),
+                            "faction": action.get('faction', 'Unknown'),
+                            "description": action.get('description', ''),
+                            "narration": resolution.get('narration', ''),
+                            "is_free_action": action.get('is_free_action', False),
+                            "initiative": initiative
+                        }
+                    )
+
             resolutions.append({
                 'player_id': player_id,
                 'character_name': character_name,
@@ -642,9 +669,32 @@ The air carries a distinct tension, and you sense the void's influence at level 
         print(synthesis)
         print("=" * 40)
 
-        # Log synthesis
+        # Parse synthesis for consequences (void gains, character deaths)
         if self.shared_state and self.shared_state.mechanics_engine:
             mechanics = self.shared_state.mechanics_engine
+
+            # Check for void corruption mentioned in synthesis
+            from .outcome_parser import parse_void_triggers
+            void_change, void_reasons = parse_void_triggers(synthesis, "", "moderate")
+
+            if void_change > 0:
+                # Apply void to ALL characters (consequence of filled clock)
+                print(f"\n⚠️  Synthesis indicates +{void_change} void corruption to all characters!")
+                for agent_id in mechanics.void_states.keys():
+                    mechanics.void_states[agent_id].add_void(
+                        void_change,
+                        f"Clock consequence: {', '.join(void_reasons)}",
+                        action_id=f"synthesis_{round_num}"
+                    )
+                    new_void = mechanics.void_states[agent_id].score
+                    print(f"  {agent_id}: Now at {new_void}/10 void")
+
+                    # Check for dissolution
+                    if new_void >= 10:
+                        print(f"\n💀 {agent_id} HAS REACHED VOID 10 - DISSOLUTION")
+                        # Character is lost
+
+            # Log synthesis
             if mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_synthesis(round_num, synthesis)
 
@@ -701,12 +751,33 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         outcomes_text = "\n".join(outcomes_summary)
 
+        # Get current clock state and check for filled clocks
+        clock_state_text = ""
+        filled_clocks_text = ""
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.scene_clocks:
+                clock_lines = []
+                for name, clock in mechanics.scene_clocks.items():
+                    status = "FILLED!" if clock.filled else f"{clock.current}/{clock.maximum}"
+                    clock_lines.append(f"  - {name}: {status}")
+                if clock_lines:
+                    clock_state_text = "\n\n**Current Clock State:**\n" + "\n".join(clock_lines)
+
+                # Check for newly filled clocks
+                filled_clocks = mechanics.get_and_clear_filled_clocks()
+                if filled_clocks:
+                    filled_names = [f['clock_name'] for f in filled_clocks]
+                    filled_clocks_text = f"\n\n⚠️  **CLOCKS JUST FILLED:** {', '.join(filled_names)}\nYou MUST describe what catastrophic/dramatic consequences occur as a result!"
+
         # Use LLM to generate synthesis if available
         if self.llm_config:
             prompt = f"""You are the DM for a dark sci-fi TTRPG. Multiple characters just acted simultaneously.
 
 **What they tried to do:**
 {outcomes_text}
+{clock_state_text}
+{filled_clocks_text}
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:
 - Timing: Actions resolved fastest → slowest based on initiative
@@ -714,8 +785,20 @@ The air carries a distinct tension, and you sense the void's influence at level 
 - Conflicts: If multiple people tried similar things, who got there first? What did the slower person encounter?
 - Cause and effect: How did earlier successes/failures change the situation for later actors?
 - Overall outcome: What's the new situation now that the dust has settled?
+- **IMPORTANT**: If objectives (clocks) are not advancing despite actions, acknowledge this! Characters should feel the pressure of marginal success or outright failure.
 
-Be vivid and cinematic. Show how these actions interacted and created a dynamic scene. Describe the final state of the situation after all actions resolved."""
+Be vivid and cinematic. Show how these actions interacted and created a dynamic scene. Describe the final state of the situation after all actions resolved.
+
+If the team is failing their objectives (clocks not advancing or bad clocks filling), your narration should reflect the growing desperation, consequences, and danger.
+
+**CRITICAL**: If any clocks just filled, you MUST describe the dramatic consequences. This could include:
+- Character injury or void corruption (specify who and how much void: "+2 void")
+- Character death/dissolution if appropriate
+- Mission failure or catastrophic events
+- Environmental changes or new threats
+- Success and rewards if it's a positive clock
+
+Generate appropriate consequences based on what makes sense for that specific clock in this scenario."""
 
             try:
                 import anthropic
@@ -757,6 +840,16 @@ Be vivid and cinematic. Show how these actions interacted and created a dynamic 
             attribute_value = action.get('attribute_value', 3)
             skill_value = action.get('skill_value', 0)
 
+            # Check for coordination bonus
+            coordination_bonus = 0
+            coordination_from = None
+            if self.shared_state:
+                bonus_info = self.shared_state.consume_coordination_bonus(player_id)
+                if bonus_info:
+                    coordination_bonus = bonus_info['bonus']
+                    coordination_from = bonus_info['from']
+                    print(f"💡 {action.get('character', 'Character')} receives +{coordination_bonus} coordination bonus from {coordination_from}!")
+
             # Calculate DC
             is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
             difficulty = mechanics.calculate_dc(
@@ -767,7 +860,11 @@ Be vivid and cinematic. Show how these actions interacted and created a dynamic 
                 is_multi_stage=action.get('is_multi_stage', False)
             )
 
-            # Perform resolution
+            # Perform resolution (apply coordination bonus via modifiers)
+            modifiers = {}
+            if coordination_bonus > 0:
+                modifiers['coordination'] = coordination_bonus
+
             resolution = mechanics.resolve_action(
                 intent=intent,
                 attribute=attribute,
@@ -775,7 +872,8 @@ Be vivid and cinematic. Show how these actions interacted and created a dynamic 
                 attribute_value=attribute_value,
                 skill_value=skill_value,
                 difficulty=difficulty,
-                agent_id=player_id
+                agent_id=player_id,
+                modifiers=modifiers if modifiers else None
             )
 
             # Format mechanical resolution
@@ -1298,6 +1396,19 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
         elif void_level >= 2:
             void_impact = "\n**MILD VOID (2-3)**: Faint corruption traces, occasional static - minimal but noticeable environmental effects."
 
+        # Add clock context
+        clock_context = ""
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.scene_clocks:
+                clock_lines = []
+                for name, clock in mechanics.scene_clocks.items():
+                    status = "FILLED!" if clock.filled else f"{clock.current}/{clock.maximum}"
+                    clock_lines.append(f"  - {name}: {status}")
+                if clock_lines:
+                    clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
+                    clock_context += "\n\nAt the end of your narration, if this action should affect any clocks, add a line:\n📊 [Clock Name]: +X or -X (reason)"
+
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False
         target_character = None
@@ -1353,6 +1464,7 @@ Keep it to 2-4 lines of dialogue. Be concise and natural. Include actual quoted 
 Player Action: {description}
 Action Type: {action_type}
 {void_impact}
+{clock_context}
 
 As the DM, describe what happens narratively as a result of this action. Be vivid and thematic. Include:
 1. What the player discovers or experiences (or fails to discover if they failed)

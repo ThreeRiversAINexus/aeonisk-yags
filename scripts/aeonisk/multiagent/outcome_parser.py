@@ -10,6 +10,45 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def parse_explicit_clock_markers(narration: str, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
+    """
+    Parse explicit clock markers from LLM narration.
+
+    Format: 📊 [Clock Name]: +X (reason) or -X (reason)
+
+    Args:
+        narration: DM's narrative text
+        active_clocks: Dict of active clock names to Clock objects (optional)
+
+    Returns:
+        List of (clock_name, ticks, reason) tuples
+    """
+    triggers = []
+
+    if not active_clocks:
+        return triggers
+
+    # Look for lines like: 📊 Passenger Safety: +2 (evacuation successful)
+    clock_pattern = r'📊\s*([^:]+):\s*([+-]?\d+)\s*(?:\(([^)]+)\))?'
+
+    for match in re.finditer(clock_pattern, narration):
+        clock_name = match.group(1).strip()
+        ticks = int(match.group(2))
+        reason = match.group(3).strip() if match.group(3) else "Clock update"
+
+        # Check if this clock exists
+        if clock_name in active_clocks:
+            triggers.append((clock_name, ticks, reason))
+        else:
+            # Try case-insensitive match
+            for actual_clock_name in active_clocks.keys():
+                if actual_clock_name.lower() == clock_name.lower():
+                    triggers.append((actual_clock_name, ticks, reason))
+                    break
+
+    return triggers
+
+
 def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
     """
     Parse narration and outcome to determine clock advancements.
@@ -32,12 +71,20 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
     if not active_clocks:
         return triggers
 
+    # PRIORITY 1: Check for explicit clock markers first
+    explicit_triggers = parse_explicit_clock_markers(narration, active_clocks)
+    if explicit_triggers:
+        # If LLM explicitly marked clocks, use those and skip pattern matching
+        return explicit_triggers
+
     # Categorize each active clock by keywords in its name/description
     danger_clocks = []
     investigation_clocks = []
     corruption_clocks = []
     time_clocks = []
     stability_clocks = []
+    safety_clocks = []  # NEW: Safety/evacuation/rescue clocks
+    containment_clocks = []  # NEW: Surge/energy containment clocks
 
     for clock_name, clock_obj in active_clocks.items():
         name_lower = clock_name.lower()
@@ -53,8 +100,14 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             corruption_clocks.append(clock_name)
         if any(kw in combined for kw in ['time', 'pressure', 'deadline', 'clock', 'countdown']):
             time_clocks.append(clock_name)
-        if any(kw in combined for kw in ['stability', 'sanity', 'morale', 'cohesion', 'crew', 'communal', 'bonds']):
+        if any(kw in combined for kw in ['stability', 'sanity', 'morale', 'cohesion', 'crew', 'communal', 'bonds', 'bond', 'integrity']):
             stability_clocks.append(clock_name)
+        # NEW: Safety/evacuation/rescue themed clocks
+        if any(kw in combined for kw in ['safety', 'passenger', 'civilian', 'evacuation', 'rescue', 'protect', 'save', 'survivors']):
+            safety_clocks.append(clock_name)
+        # NEW: Containment/surge/cascade themed clocks (bad when they fill)
+        if any(kw in combined for kw in ['cascade', 'surge', 'energy', 'meltdown', 'overload', 'breach', 'rupture']):
+            containment_clocks.append(clock_name)
 
     # DANGER/SECURITY triggers (advances danger-themed clocks)
     if danger_clocks and any(phrase in narration_lower for phrase in [
@@ -145,6 +198,43 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
                 for clock_name in stability_clocks:
                     triggers.append((clock_name, -1, "Bonds stabilized"))
 
+    # SAFETY/EVACUATION triggers (advances on successful evacuation/protection)
+    if safety_clocks and outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional'] and margin >= 0:
+        # Successful evacuation, rescue, protection of civilians
+        safety_phrases = [
+            'evacuate', 'evacuation', 'rescued', 'save', 'protect', 'shield', 'shelter',
+            'passenger', 'civilian', 'corridor', 'safe passage', 'safe zone', 'safe path',
+            'redirect flow', 'redirect passenger', 'reroute', 'guide', 'waypoint',
+            'barrier', 'protective field', 'resonance anchor', 'safe alternative',
+            'emergency route', 'escape path', 'exodus', 'flee', 'sanctuary'
+        ]
+        if any(phrase in narration_lower for phrase in safety_phrases):
+            # Better success = more people saved
+            ticks = 3 if margin >= 15 else (2 if margin >= 8 else 1)
+            for clock_name in safety_clocks:
+                triggers.append((clock_name, ticks, f"Evacuation progress (margin +{margin})"))
+
+    # CONTAINMENT triggers (advances on failures - these are BAD clocks that fill toward disaster)
+    if containment_clocks:
+        # Failed containment actions make things worse
+        if outcome_tier in ['failure', 'critical_failure']:
+            if any(phrase in narration_lower for phrase in [
+                'surge', 'cascade', 'energy', 'void', 'ritual', 'channel', 'contain',
+                'redirect', 'stabiliz', 'barrier', 'field', 'diversion'
+            ]):
+                ticks = 3 if outcome_tier == 'critical_failure' else 2
+                for clock_name in containment_clocks:
+                    triggers.append((clock_name, ticks, "Failed containment"))
+
+        # Even marginal successes might not be enough to prevent cascade
+        elif outcome_tier == 'marginal' and margin <= 2:
+            if any(phrase in narration_lower for phrase in [
+                'barely', 'tenuous', 'struggle', 'strain', 'flicker', 'unstable',
+                'temporary', 'hold', 'fragile', 'wobble', 'waver'
+            ]):
+                for clock_name in containment_clocks:
+                    triggers.append((clock_name, 1, "Barely contained"))
+
     return triggers
 
 
@@ -160,14 +250,20 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
     narration_lower = narration.lower()
     intent_lower = action_intent.lower()
 
-    # Explicit void mentions
-    if '+1 void' in narration_lower or 'void +1' in narration_lower:
-        void_change += 1
-        reasons.append("Explicit void gain mentioned")
+    # Explicit void mentions (look for any variant)
+    void_patterns = [
+        (r'\+(\d+)\s*void', 'Void corruption'),
+        (r'void\s*\+(\d+)', 'Void corruption'),
+        (r'gains?\s+(\d+)\s+void', 'Void corruption'),
+        (r'(\d+)\s+void\s+corruption', 'Void corruption'),
+    ]
 
-    if '+2 void' in narration_lower or 'void +2' in narration_lower:
-        void_change += 2
-        reasons.append("Major void gain mentioned")
+    for pattern, reason_text in void_patterns:
+        for match in re.finditer(pattern, narration_lower):
+            amount = int(match.group(1))
+            void_change = max(void_change, amount)  # Take highest mentioned
+            if reason_text not in reasons:
+                reasons.append(reason_text)
 
     # Ritual failures
     if 'ritual' in intent_lower and outcome_tier in ['failure', 'critical_failure']:

@@ -400,6 +400,21 @@ class AIPlayerAgent(Agent):
                         print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
                     else:
                         print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
+
+                    # Grant coordination bonus to the target
+                    # Detect coordination keywords
+                    coordination_keywords = [
+                        'share', 'tell', 'inform', 'coordinate', 'discuss', 'ask',
+                        'brief', 'report', 'advise', 'warn', 'update', 'consult'
+                    ]
+                    if any(kw in intent_lower for kw in coordination_keywords):
+                        self.shared_state.grant_coordination_bonus(
+                            from_agent=self.agent_id,
+                            from_name=self.character_state.name,
+                            to_name=player_name,
+                            reason="coordinated information sharing"
+                        )
+
                     break
 
         # Convert to dict and add character-specific data
