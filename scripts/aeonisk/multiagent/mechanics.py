@@ -207,6 +207,18 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_debrief(self, character_name: str, debrief_text: str, character_state: Dict[str, Any]):
+        """Log mission debrief statement from a character."""
+        event = {
+            "event_type": "mission_debrief",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "character": character_name,
+            "debrief": debrief_text,
+            "final_state": character_state
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:
@@ -416,6 +428,61 @@ class VoidState:
             return "Lost to Void"
 
 
+@dataclass
+class SoulcreditState:
+    """
+    Tracks soulcredit (spiritual reputation) for an entity.
+
+    Range: -10 to +10
+    Represents trust, honor, and spiritual standing based on contracts, oaths, and social actions.
+    """
+    score: int = 0  # -10 to +10
+    history: List[Dict[str, Any]] = field(default_factory=list)
+
+    def adjust(self, amount: int, reason: str) -> int:
+        """
+        Adjust soulcredit and clamp to [-10, +10] range.
+
+        Args:
+            amount: Soulcredit delta (can be positive or negative)
+            reason: Why soulcredit is changing
+
+        Returns:
+            New soulcredit score
+        """
+        old_score = self.score
+        self.score = max(-10, min(10, self.score + amount))
+
+        if self.score != old_score:
+            self.history.append({
+                'change': self.score - old_score,
+                'reason': reason,
+                'old_score': old_score,
+                'new_score': self.score
+            })
+            logger.info(f"Soulcredit: {old_score} → {self.score} ({reason})")
+
+        return self.score
+
+    @property
+    def reputation_level(self) -> str:
+        """Get descriptive reputation level."""
+        if self.score >= 8:
+            return "Exemplary"
+        elif self.score >= 5:
+            return "Honorable"
+        elif self.score >= 2:
+            return "Trustworthy"
+        elif self.score >= -1:
+            return "Neutral"
+        elif self.score >= -4:
+            return "Questionable"
+        elif self.score >= -7:
+            return "Disreputable"
+        else:
+            return "Pariah"
+
+
 class MechanicsEngine:
     """
     Core mechanics engine for YAGS resolution in Aeonisk.
@@ -431,6 +498,7 @@ class MechanicsEngine:
     def __init__(self, jsonl_logger: Optional[JSONLLogger] = None):
         self.scene_clocks: Dict[str, SceneClock] = {}
         self.void_states: Dict[str, VoidState] = {}  # agent_id -> VoidState
+        self.soulcredit_states: Dict[str, SoulcreditState] = {}  # agent_id -> SoulcreditState
         self.action_history: List[ActionResolution] = []
         self.conditions: Dict[str, List[Condition]] = {}  # agent_id -> conditions
         self.scene_void_level: int = 0  # 0-10 scene void pressure
@@ -628,7 +696,8 @@ class MechanicsEngine:
         has_primary_tool: bool = False,
         has_offering: bool = False,
         sanctified_altar: bool = False,
-        agent_id: Optional[str] = None
+        agent_id: Optional[str] = None,
+        faction: Optional[str] = None
     ) -> Tuple[ActionResolution, Dict[str, Any]]:
         """
         Resolve a ritual action with requirements and consequences.
@@ -712,16 +781,179 @@ class MechanicsEngine:
             ritual_effects['void_change'] += 1
             ritual_effects['consequences'].append("Failed ritual: +1 Void")
 
+        # Calculate soulcredit change
+        # Pass intent to detect contract/oath fulfillment, cleansing rituals, etc.
+        sc_delta, sc_reasons = self.calculate_soulcredit_change(
+            resolution=resolution,
+            action_type='ritual',
+            is_ritual=True,
+            has_offering=has_offering,
+            faction=faction,
+            action_intent=intent,
+            action_narration=""  # DM will provide narration in post-resolution phase
+        )
+        ritual_effects['soulcredit_change'] = sc_delta
+        if sc_reasons:
+            ritual_effects['consequences'].extend(sc_reasons)
+
         # Store void change in ritual_effects but don't apply it yet
         # The DM will apply void from outcome_parser to avoid duplicate tracking
 
         return resolution, ritual_effects
+
+    def calculate_soulcredit_change(
+        self,
+        resolution: 'ActionResolution',
+        action_type: str,
+        is_ritual: bool = False,
+        has_offering: bool = False,
+        faction: str = None,
+        action_intent: str = "",
+        action_narration: str = ""
+    ) -> Tuple[int, List[str]]:
+        """
+        Calculate soulcredit changes based on social/spiritual actions.
+
+        Soulcredit is spiritual reputation, not ritual quality. It tracks:
+        - Fulfilling/breaking contracts, oaths, bonds
+        - Upholding/violating faction tenets
+        - Intentional cleansing rituals
+        - Public witnessed rituals aligned with character principles
+
+        Based on Aeonisk YAGS Module v1.2.2 soulcredit rules.
+
+        Args:
+            resolution: Action resolution with success/margin
+            action_type: Type of action
+            is_ritual: Whether this is a ritual action
+            has_offering: Whether offering was provided
+            faction: Character's faction (for faction-specific logic)
+            action_intent: Player's declared intent (for detecting contracts/oaths)
+            action_narration: DM narration (for detecting social outcomes)
+
+        Returns:
+            (soulcredit_delta, reasons)
+        """
+        delta = 0
+        reasons = []
+
+        # Combine intent and narration for analysis
+        action_text = (action_intent + " " + action_narration).lower()
+
+        # GAINING SOULCREDIT
+
+        # Fulfill Ritual Contract/Oath (+1) - formal, witnessed
+        if any(keyword in action_text for keyword in ['fulfill contract', 'fulfill oath', 'complete contract',
+                                                        'honor oath', 'uphold contract', 'fulfill agreement']):
+            if resolution.success:
+                delta += 1
+                reasons.append("Fulfilled ritual contract/oath (+1 SC)")
+
+        # Aid Another's Ritual with Offering (+1)
+        if any(keyword in action_text for keyword in ['aid ritual', 'help ritual', 'assist ritual',
+                                                        'support ritual', 'join ritual']):
+            if has_offering and resolution.success:
+                delta += 1
+                reasons.append("Aided another's ritual with offering (+1 SC)")
+
+        # Void Cleansing Ritual (+2-3) - intentional SC improvement action
+        if any(keyword in action_text for keyword in ['cleanse void', 'purify void', 'remove void',
+                                                        'void cleansing', 'spiritual cleansing']):
+            if resolution.success:
+                # +3 for Strong Resonance+ (margin 10+), +2 otherwise
+                cleanse_bonus = 3 if resolution.margin >= 10 else 2
+                delta += cleanse_bonus
+                reasons.append(f"Void cleansing ritual (+{cleanse_bonus} SC)")
+
+        # Public Ritual aligned with Bond/Will (+2) - witnessed, significant, Solid+ margin
+        if any(keyword in action_text for keyword in ['public ritual', 'witnessed ritual', 'ceremonial ritual']):
+            if resolution.success and resolution.margin >= 5:  # Solid margin
+                delta += 2
+                reasons.append("Public ritual aligned with principles (+2 SC)")
+
+        # Uphold Faction Tenets at cost (+1)
+        # ACG: enforce debt law fairly, uphold contracts
+        # Pantheon: uphold law/order, maintain civic trust
+        # Tempest: resist commodification, maintain autonomy
+        # Communes: community rituals, mutual aid
+        if faction:
+            faction_keywords = {
+                'ACG': ['enforce debt', 'uphold debt law', 'collect debt fairly', 'enforce contract'],
+                'Pantheon': ['uphold law', 'enforce order', 'maintain civic', 'protect citizens'],
+                'Tempest': ['resist commodification', 'maintain autonomy', 'refuse contract', 'preserve freedom'],
+                'Communes': ['community ritual', 'mutual aid', 'share resources', 'collective ritual']
+            }
+
+            if faction in faction_keywords:
+                if any(keyword in action_text for keyword in faction_keywords[faction]):
+                    if resolution.success and 'at cost' in action_text or 'sacrifice' in action_text:
+                        delta += 1
+                        reasons.append(f"Upheld {faction} tenets at personal cost (+1 SC)")
+
+        # Ritual Success with Strong Resonance+ (+1) - margin 10+
+        # NOTE: This is a minor bonus compared to the social actions above
+        if is_ritual and resolution.success and resolution.margin >= 10:
+            # Only award if not already awarded for cleansing or public ritual
+            if not any('cleansing' in r or 'Public ritual' in r for r in reasons):
+                delta += 1
+                reasons.append("Ritual success with strong resonance (+1 SC)")
+
+        # LOSING SOULCREDIT
+
+        # Break Ritual Contract/Oath/Bond (-2) - formal, witnessed
+        if any(keyword in action_text for keyword in ['break contract', 'break oath', 'violate contract',
+                                                        'betray bond', 'default on oath', 'abandon contract']):
+            delta -= 2
+            reasons.append("Broke ritual contract/oath (-2 SC)")
+
+        # Refuse/Default on Ritual Debt (-2) - especially ACG-logged
+        if any(keyword in action_text for keyword in ['refuse debt', 'default on debt', 'dodge debt',
+                                                        'evade payment', 'skip payment']):
+            delta -= 2
+            reasons.append("Defaulted on ritual debt (-2 SC)")
+
+        # Betray Declared Guiding Principle (-3) - also costs Void
+        if any(keyword in action_text for keyword in ['betray principle', 'violate principle',
+                                                        'abandon belief', 'contradict guiding']):
+            delta -= 3
+            reasons.append("Betrayed guiding principle (-3 SC)")
+
+        # Actions Contradicting Faction Tenets (-1-2)
+        if faction:
+            faction_violations = {
+                'ACG': ['forgive debt', 'waive contract', 'ignore debt law'],
+                'Pantheon': ['break law', 'corrupt official', 'abuse authority'],
+                'Tempest': ['commodify ritual', 'sell ritual', 'commercialize magic'],
+                'Communes': ['hoard resources', 'refuse aid', 'individual gain']
+            }
+
+            if faction in faction_violations:
+                if any(keyword in action_text for keyword in faction_violations[faction]):
+                    delta -= 2
+                    reasons.append(f"Contradicted {faction} tenets (-2 SC)")
+
+        # Ritual Failure from Negligence (-1) - GM call
+        # Only applies if ritual failed AND there's evidence of lack of preparation
+        if is_ritual and not resolution.success:
+            negligence_indicators = ['unprepared', 'no offering', 'rushed', 'careless', 'negligent']
+            if any(indicator in action_text for indicator in negligence_indicators):
+                delta -= 1
+                reasons.append("Ritual failure from negligence (-1 SC)")
+
+        return (delta, reasons)
 
     def get_void_state(self, agent_id: str) -> VoidState:
         """Get or create void state for an agent."""
         if agent_id not in self.void_states:
             self.void_states[agent_id] = VoidState()
         return self.void_states[agent_id]
+
+    def get_soulcredit_state(self, agent_id: str, initial_score: int = 0) -> SoulcreditState:
+        """Get or create soulcredit state for an agent."""
+        if agent_id not in self.soulcredit_states:
+            state = SoulcreditState(score=initial_score)
+            self.soulcredit_states[agent_id] = state
+        return self.soulcredit_states[agent_id]
 
     def check_void_trigger(
         self,
