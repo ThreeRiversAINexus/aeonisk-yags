@@ -213,7 +213,7 @@ class AIPlayerAgent(Agent):
         """Handle scenario setup from DM."""
         self.current_scenario = message.payload.get('scenario', {})
         opening = message.payload.get('opening_narration', '')
-        
+
         print(f"\n[{self.character_state.name}] === New Scenario ===")
         print(f"Theme: {self.current_scenario.get('theme', 'Unknown')}")
         print(f"Location: {self.current_scenario.get('location', 'Unknown')}")
@@ -296,6 +296,7 @@ class AIPlayerAgent(Agent):
     async def _ai_player_turn(self):
         """Handle AI player turn using personality-driven decision making with mechanics."""
         if not self.current_scenario:
+            logger.debug(f"{self.character_state.name} has no scenario, returning without action")
             return
 
         # Get action validator for de-duplication

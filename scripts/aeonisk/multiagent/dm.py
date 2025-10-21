@@ -561,14 +561,243 @@ The air carries a distinct tension, and you sense the void's influence at level 
         
     async def _handle_action_declared(self, message: Message):
         """Handle player action declarations - respond as DM."""
-        action = message.payload
+        payload = message.payload
         player_id = message.sender
-        
-        if self.human_controlled:
-            await self._handle_human_dm_response(player_id, action)
+
+        # Check what phase we're in
+        phase = payload.get('phase')
+
+        if phase == 'adjudication':
+            # Adjudication phase - DM processes all actions together
+            await self._handle_adjudication(payload)
+            return
+
+        elif phase == 'resolution':
+            # Old resolution phase (kept for compatibility)
+            action = payload.get('action', payload)
+            if self.human_controlled:
+                await self._handle_human_dm_response(player_id, action)
+            else:
+                await self._handle_ai_dm_response(player_id, action)
+            return
+
         else:
-            await self._handle_ai_dm_response(player_id, action)
+            # Declaration phase - acknowledge but don't resolve
+            print(f"[DM {self.agent_id}] Noted: {player_id} declared action")
+            return
             
+    async def _handle_adjudication(self, payload: Dict[str, Any]):
+        """
+        Adjudicate all declared actions together.
+        This is where the DM sees all intentions and decides what actually happens.
+        """
+        actions = payload.get('actions', [])
+        round_num = payload.get('round', 0)
+
+        if not actions:
+            # No actions to adjudicate - signal completion
+            self.send_message_sync(
+                MessageType.ACTION_RESOLVED,
+                None,
+                {'agent_id': 'adjudication'}
+            )
+            return
+
+        print(f"\n[DM {self.agent_id}] ===== Adjudicating {len(actions)} actions =====")
+
+        # Process each action mechanically (fastest → slowest, same as actions list)
+        resolutions = []
+        for action_entry in actions:
+            player_id = action_entry['player_id']
+            character_name = action_entry['character_name']
+            initiative = action_entry['initiative']
+            action = action_entry['action']
+
+            print(f"\n[{character_name}] (initiative {initiative})")
+
+            # Resolve action mechanically
+            resolution = await self._resolve_action_mechanically(player_id, action)
+
+            # Print the resolution
+            print(f"\n{resolution['narration']}")
+            print("=" * 40)
+
+            resolutions.append({
+                'player_id': player_id,
+                'character_name': character_name,
+                'initiative': initiative,
+                'action': action,
+                'resolution': resolution
+            })
+
+        # Generate synthesis of what happened
+        synthesis = await self._synthesize_round_outcome(resolutions, round_num)
+        print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
+        print(synthesis)
+        print("=" * 40)
+
+        # Send individual resolutions to each player
+        for res in resolutions:
+            self.send_message_sync(
+                MessageType.ACTION_RESOLVED,
+                None,  # Broadcast
+                {
+                    'agent_id': res['player_id'],
+                    'original_action': res['action'],
+                    'outcome': res['resolution']['outcome'],
+                    'narration': res['resolution']['narration']
+                }
+            )
+
+        # Broadcast the round synthesis to all players
+        self.send_message_sync(
+            MessageType.DM_NARRATION,
+            None,  # Broadcast
+            {
+                'narration': synthesis,
+                'is_round_synthesis': True,
+                'round': round_num
+            }
+        )
+
+        # Signal that adjudication is complete
+        self.send_message_sync(
+            MessageType.ACTION_RESOLVED,
+            None,
+            {'agent_id': 'adjudication'}
+        )
+
+        print(f"\n[DM {self.agent_id}] ===== Adjudication Complete =====\n")
+
+    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int) -> str:
+        """
+        Synthesize all resolutions into a cohesive narrative about what happened.
+        This is where conflicts are detected and described.
+        """
+        if not resolutions:
+            return "The moment passes without incident."
+
+        # Build context about what happened
+        outcomes_summary = []
+        for res in resolutions:
+            char_name = res['character_name']
+            success = res['resolution']['resolution'].success if res['resolution'].get('resolution') else True
+            intent = res['action'].get('intent', res['action'].get('description', 'unknown action'))
+
+            status = "succeeded" if success else "failed"
+            outcomes_summary.append(f"- {char_name} {status} at: {intent}")
+
+        outcomes_text = "\n".join(outcomes_summary)
+
+        # Use LLM to generate synthesis if available
+        if self.llm_config:
+            prompt = f"""You are the DM for a dark sci-fi TTRPG. Multiple characters just acted simultaneously.
+
+**What they tried to do:**
+{outcomes_text}
+
+**Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:
+- Timing: Actions resolved fastest → slowest based on initiative
+- Interactions: How did each person's success/failure affect the others?
+- Conflicts: If multiple people tried similar things, who got there first? What did the slower person encounter?
+- Cause and effect: How did earlier successes/failures change the situation for later actors?
+- Overall outcome: What's the new situation now that the dust has settled?
+
+Be vivid and cinematic. Show how these actions interacted and created a dynamic scene. Describe the final state of the situation after all actions resolved."""
+
+            try:
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                    max_tokens=500,
+                    temperature=0.8,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text.strip()
+            except Exception as e:
+                logger.error(f"Synthesis generation failed: {e}")
+                return f"Round {round_num} completes with mixed results:\n{outcomes_text}"
+        else:
+            return f"Round {round_num} completes:\n{outcomes_text}"
+
+    async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve a single action mechanically (rolls, difficulty, narration).
+        Returns resolution data.
+        """
+        # This is essentially the same as _handle_ai_dm_response but returns data instead of sending messages
+        action_type = action.get('action_type', 'unknown')
+        description = action.get('description', '')
+        intent = action.get('intent', description)
+
+        resolution = None
+        narration = ""
+
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+
+            # Extract mechanical details
+            attribute = action.get('attribute', 'Perception')
+            skill = action.get('skill')
+            attribute_value = action.get('attribute_value', 3)
+            skill_value = action.get('skill_value', 0)
+
+            # Calculate DC
+            is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
+            difficulty = mechanics.calculate_dc(
+                intent=intent,
+                action_type=action_type,
+                is_ritual=is_ritual_action,
+                is_extreme=action.get('is_extreme', False),
+                is_multi_stage=action.get('is_multi_stage', False)
+            )
+
+            # Perform resolution
+            resolution = mechanics.resolve_action(
+                intent=intent,
+                attribute=attribute,
+                skill=skill,
+                attribute_value=attribute_value,
+                skill_value=skill_value,
+                difficulty=difficulty,
+                agent_id=player_id
+            )
+
+            # Format mechanical resolution
+            mechanical_text = mechanics.format_resolution_for_narration(resolution)
+
+            # Generate narrative description using LLM
+            if self.llm_config:
+                llm_narration = await self._generate_llm_response(
+                    player_id, action_type, description, resolution, action
+                )
+                narration = f"{mechanical_text}\n\n{llm_narration}"
+            else:
+                narration = f"{mechanical_text}\n\n{resolution.narrative}"
+
+        return {
+            'resolution': resolution,
+            'narration': narration,
+            'outcome': {
+                'dm_response': narration,
+                'success': resolution.success if resolution else True,
+                'consequences': [],
+                'resolution': {
+                    'intent': resolution.intent,
+                    'attribute': resolution.attribute,
+                    'skill': resolution.skill,
+                    'total': resolution.total,
+                    'difficulty': resolution.difficulty,
+                    'margin': resolution.margin,
+                    'outcome_tier': resolution.outcome_tier.value if hasattr(resolution.outcome_tier, 'value') else str(resolution.outcome_tier),
+                    'success': resolution.success
+                } if resolution else {}
+            }
+        }
+
     async def _handle_human_dm_response(self, player_id: str, action: Dict[str, Any]):
         """Handle action with human DM input."""
         print(f"\n[HUMAN DM] {player_id} declared action:")
@@ -591,11 +820,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
             print("Enter roll requirements (attribute+skill, difficulty):")
             roll_req = input().strip()
             outcome['roll_required'] = roll_req
-            
+
         self.send_message_sync(
             MessageType.ACTION_RESOLVED,
             None,  # Broadcast so all players see each other's results
             {
+                'agent_id': player_id,  # Include player_id so session knows who completed
                 'original_action': action,
                 'outcome': outcome,
                 'narration': dm_response
@@ -879,6 +1109,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
             MessageType.ACTION_RESOLVED,
             None,  # Broadcast so all players see each other's results
             {
+                'agent_id': player_id,  # Include player_id so session knows who completed
                 'original_action': action,
                 'outcome': outcome,
                 'narration': narration
@@ -913,8 +1144,9 @@ The air carries a distinct tension, and you sense the void's influence at level 
             )
         
     async def _ai_dm_turn(self):
-        """Handle AI DM turn."""
-        # DM turn: provide status update instead of empty narration
+        """Handle AI DM turn - provide synthesis of the round."""
+        # For now, just provide status
+        # TODO: Full synthesis would require tracking all resolutions and generating narrative
         if self.shared_state and self.shared_state.mechanics_engine:
             mechanics = self.shared_state.mechanics_engine
 
@@ -926,7 +1158,10 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 status_parts.append(f"{clock_name}: {clock.current}/{clock.maximum}")
 
             if status_parts:
-                narration = "📊 " + " | ".join(status_parts)
+                status_line = "📊 " + " | ".join(status_parts)
+
+                # Simple narrative wrapper
+                narration = f"The situation evolves...\n\n{status_line}"
             else:
                 # Skip DM turn if nothing to report
                 return
@@ -941,7 +1176,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 }
             )
 
-            print(f"[DM {self.agent_id}] Status: {narration}")
+            print(f"\n[DM {self.agent_id}] {narration}")
         else:
             # Skip DM turn if no mechanics
             return
