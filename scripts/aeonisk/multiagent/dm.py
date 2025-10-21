@@ -93,60 +93,73 @@ class AIDMAgent(Agent):
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI."""
-        import random
+        # Use LLM to generate dynamic scenario
+        try:
+            scenario_prompt = """Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
 
-        # Built-in scenario seeds
-        SCENARIO_SEEDS = [
-            {
-                'theme': 'Corporate Intrigue',
-                'location': 'Arcane Genetics Research Facility, Aeonisk Prime',
-                'situation': 'Memory theft from biocreche pods threatens family lineages',
-                'npcs': ['Corporate Agent', 'Facility Security'],
-                'factors': ['Corrupted pod matrices', 'Temporal instability'],
+Create a scenario with:
+1. Theme (2-3 words): The type of situation
+2. Location: A specific place in the Aeonisk setting
+3. Situation (1-2 sentences): What's happening
+4. Void level (0-10): How much void corruption is present
+5. Three clocks/timers (name, max ticks 4-8, description) that track:
+   - A threat/danger that could escalate
+   - Something the players are trying to accomplish
+   - A complication or secondary concern
+
+Format:
+THEME: [theme]
+LOCATION: [location]
+SITUATION: [situation]
+VOID_LEVEL: [number]
+CLOCK1: [name] | [max] | [description]
+CLOCK2: [name] | [max] | [description]
+CLOCK3: [name] | [max] | [description]
+
+Make it creative and thematic to Aeonisk's dark sci-fi setting."""
+
+            provider = self.llm_config.get('provider', 'anthropic')
+            model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+
+            import anthropic
+            import os
+            client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+            response = await asyncio.to_thread(
+                client.messages.create,
+                model=model,
+                max_tokens=500,
+                temperature=0.9,
+                messages=[{"role": "user", "content": scenario_prompt}]
+            )
+            llm_text = response.content[0].text.strip()
+
+            # Parse LLM response
+            scenario_data = self._parse_scenario_from_llm(llm_text)
+
+        except Exception as e:
+            logger.error(f"Failed to generate AI scenario: {e}, using fallback")
+            # Fallback to simple random scenario
+            import random
+            themes = ['Corporate Intrigue', 'Void Investigation', 'Bond Crisis', 'Tech Heist', 'Ritual Gone Wrong']
+            scenario_data = {
+                'theme': random.choice(themes),
+                'location': 'Unknown Location',
+                'situation': 'The party finds themselves in a mysterious situation',
                 'void_level': 3,
                 'clocks': [
-                    ('Corporate Suspicion', 6, 'Company security closing in'),
-                    ('Evidence Trail', 6, 'Uncovering the memory theft conspiracy'),
-                    ('Facility Lockdown', 4, 'Time before facility seals')
-                ]
-            },
-            {
-                'theme': 'Void Investigation',
-                'location': 'Abandoned Ley Line Nexus, Outer Territories',
-                'situation': 'Ancient ley lines destabilizing, causing reality fluctuations',
-                'npcs': ['Void-touched Scholar', 'Tempest Industries Operative'],
-                'factors': ['Unstable astral currents', 'Malfunctioning technology'],
-                'void_level': 5,
-                'clocks': [
-                    ('Reality Collapse', 6, 'Ley line nexus destabilizing'),
-                    ('Void Contamination', 6, 'Group exposure to void energy'),
-                    ('Investigation Progress', 6, 'Understanding the cause')
-                ]
-            },
-            {
-                'theme': 'Bond Crisis',
-                'location': 'Resonance Commune Sanctuary, Nimbus',
-                'situation': 'Sacred bonding ritual sabotaged, severing spiritual connections',
-                'npcs': ['Traumatized Commune Member', 'Suspected Saboteur', 'Acolyte Senna'],
-                'factors': ['Severed bonds', 'Spiritual trauma'],
-                'void_level': 2,
-                'clocks': [
-                    ('Sanctuary Corruption', 6, 'Void contamination spreading'),
-                    ('Saboteur Exposure', 6, 'Identifying the inside collaborator'),
-                    ('Communal Stability', 6, 'Social cohesion of the commune')
+                    ('Danger Level', 6, 'Escalating threat'),
+                    ('Investigation', 6, 'Uncovering the truth'),
+                    ('Time Pressure', 6, 'Running out of time')
                 ]
             }
-        ]
-
-        seed = random.choice(SCENARIO_SEEDS)
 
         scenario = Scenario(
-            theme=seed['theme'],
-            location=seed['location'],
-            situation=seed['situation'],
-            active_npcs=seed.get('npcs', []),
-            environmental_factors=seed.get('factors', []),
-            void_level=seed.get('void_level', 3)
+            theme=scenario_data['theme'],
+            location=scenario_data['location'],
+            situation=scenario_data['situation'],
+            active_npcs=[],
+            environmental_factors=[],
+            void_level=scenario_data['void_level']
         )
 
         self.current_scenario = scenario
@@ -156,7 +169,7 @@ class AIDMAgent(Agent):
             self.shared_state.initialize_mechanics()
             mechanics = self.shared_state.get_mechanics_engine()
 
-            for clock_name, max_value, description in seed.get('clocks', []):
+            for clock_name, max_value, description in scenario_data.get('clocks', []):
                 mechanics.create_scene_clock(clock_name, max_value, description)
                 print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
 
@@ -226,12 +239,55 @@ class AIDMAgent(Agent):
             }
         )
         
+    def _parse_scenario_from_llm(self, llm_text: str) -> Dict[str, Any]:
+        """Parse scenario from LLM-generated text."""
+        lines = llm_text.strip().split('\n')
+        scenario_data = {
+            'theme': 'Unknown',
+            'location': 'Unknown Location',
+            'situation': 'Something mysterious is happening',
+            'void_level': 3,
+            'clocks': []
+        }
+
+        for line in lines:
+            line = line.strip()
+            if ':' in line or '|' in line:
+                if line.startswith('THEME:'):
+                    scenario_data['theme'] = line.split(':', 1)[1].strip()
+                elif line.startswith('LOCATION:'):
+                    scenario_data['location'] = line.split(':', 1)[1].strip()
+                elif line.startswith('SITUATION:'):
+                    scenario_data['situation'] = line.split(':', 1)[1].strip()
+                elif line.startswith('VOID_LEVEL:'):
+                    try:
+                        scenario_data['void_level'] = int(line.split(':', 1)[1].strip())
+                    except:
+                        pass
+                elif line.startswith('CLOCK'):
+                    # Format: CLOCK1: Name | 6 | Description
+                    parts = line.split(':', 1)[1].split('|')
+                    if len(parts) >= 3:
+                        name = parts[0].strip()
+                        try:
+                            max_ticks = int(parts[1].strip())
+                        except:
+                            max_ticks = 6
+                        description = parts[2].strip()
+                        scenario_data['clocks'].append((name, max_ticks, description))
+
+        # Ensure we have at least 2 clocks
+        if len(scenario_data['clocks']) < 2:
+            scenario_data['clocks'].append(('Danger Escalation', 6, 'The situation worsens'))
+            scenario_data['clocks'].append(('Player Progress', 6, 'Investigating the mystery'))
+
+        return scenario_data
+
     def _generate_opening_narration(self, scenario: Scenario) -> str:
         """Generate opening narration for scenario."""
         return f"""
-The party finds themselves at {scenario.location}. {scenario.situation}. 
+The party finds themselves at {scenario.location}. {scenario.situation}.
 The air carries a distinct tension, and you sense the void's influence at level {scenario.void_level}/10.
-{' '.join(scenario.environmental_factors[:1])} looms as a potential threat.
 
 What do you do?
         """.strip()
@@ -362,7 +418,10 @@ What do you do?
             # Parse narration for automatic state changes
             from .outcome_parser import parse_state_changes
 
-            state_changes = parse_state_changes(llm_narration, action, resolution.__dict__)
+            # Get active clocks for dynamic clock progression
+            active_clocks = mechanics.scene_clocks if mechanics else {}
+
+            state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
 
             # Apply clock advancements (positive=advance, negative=regress)
             clock_updates = []
@@ -384,20 +443,31 @@ What do you do?
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
 
-            # Apply void changes (use action intent as action_id to prevent duplicates)
-            if state_changes['void_change'] > 0:
+            # Apply void changes (both gains and reductions)
+            if state_changes['void_change'] != 0:
                 void_state = mechanics.get_void_state(player_id)
                 old_void = void_state.score
-                # Use intent as unique action identifier
-                action_id = f"{player_id}_{intent}_{resolution.total}"
-                void_state.add_void(
-                    state_changes['void_change'],
-                    ", ".join(state_changes['void_reasons']),
-                    action_id=action_id
-                )
-                # Only show void change if it actually changed
-                if void_state.score != old_void:
-                    narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+
+                if state_changes['void_change'] > 0:
+                    # Void gain (corruption increasing)
+                    action_id = f"{player_id}_{intent}_{resolution.total}"
+                    void_state.add_void(
+                        state_changes['void_change'],
+                        ", ".join(state_changes['void_reasons']),
+                        action_id=action_id
+                    )
+                    # Show void increase if it actually changed
+                    if void_state.score != old_void:
+                        narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                else:
+                    # Void reduction (recovery moves)
+                    void_state.reduce_void(
+                        abs(state_changes['void_change']),
+                        ", ".join(state_changes['void_reasons'])
+                    )
+                    # Show void decrease if it actually changed
+                    if void_state.score != old_void:
+                        narration += f"\n\n⚫ Void: {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
             # Apply conditions
             from .mechanics import Condition
@@ -414,6 +484,11 @@ What do you do?
 
                 # Show condition application
                 narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
+
+            # Display notes from outcome parser (e.g., recovery move explanations)
+            if state_changes.get('notes'):
+                for note in state_changes['notes']:
+                    narration += f"\n\n💡 {note}"
 
             # Check for filled clocks (triggers)
             clock_triggers = self._check_clock_triggers(mechanics)
