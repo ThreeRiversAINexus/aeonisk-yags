@@ -365,6 +365,23 @@ Examples:
 - "Browse the vending machine for any void-related equipment"
 ```
 
+**For Currency/Item Transfers** (pooling resources with party):
+```
+INTENT: Give [amount] [currency] to [character name]
+ATTRIBUTE: Empathy or Charisma
+SKILL: Charm (friendly) or None (simple transfer)
+DIFFICULTY: 10 (trivial if willing)
+ACTION_TYPE: social
+DESCRIPTION: I offer my currency to help pool resources
+
+Examples:
+- "Give 1 Spark to Mira Seln to help buy the Echo-Calibrator"
+- "Transfer 5 Drip to Kress to pool our funds"
+- "Offer my Grain to the party for the purchase"
+
+Note: This is a FREE action - you can transfer AND take another action in the same turn!
+```
+
 {recent_intents_text}
 
 # Action Selection Guidelines
