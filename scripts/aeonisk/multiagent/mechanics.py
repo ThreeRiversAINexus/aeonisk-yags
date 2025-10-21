@@ -238,6 +238,52 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_declaration_phase_start(self, round_num: int):
+        """Log start of declaration phase."""
+        event = {
+            "event_type": "declaration_phase_start",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num
+        }
+        self._write_event(event)
+
+    def log_action_declaration(self, player_id: str, character_name: str, initiative: int, action: Dict[str, Any], round_num: int):
+        """Log individual action declaration."""
+        event = {
+            "event_type": "action_declaration",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "player_id": player_id,
+            "character_name": character_name,
+            "initiative": initiative,
+            "action": action
+        }
+        self._write_event(event)
+
+    def log_adjudication_start(self, round_num: int, action_count: int):
+        """Log start of adjudication phase."""
+        event = {
+            "event_type": "adjudication_start",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "action_count": action_count
+        }
+        self._write_event(event)
+
+    def log_synthesis(self, round_num: int, synthesis: str):
+        """Log round synthesis narrative."""
+        event = {
+            "event_type": "round_synthesis",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "synthesis": synthesis
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:
