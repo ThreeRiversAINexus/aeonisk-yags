@@ -248,9 +248,13 @@ Then the system will give you a FREE second action for your main task!
 Further void exposure may have severe consequences.
 """
 
-    return f"""You are playing {character_name} in an Aeonisk YAGS game.
+    pronouns = character_stats.get('pronouns', 'they/them')
+
+    return f"""You are playing {character_name} ({pronouns}) in an Aeonisk YAGS game.
 
 # Character Sheet
+
+**Pronouns:** {pronouns}
 
 **Attributes:**
 {attributes_text}

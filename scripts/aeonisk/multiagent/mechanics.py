@@ -326,7 +326,14 @@ class ActionResolution:
 
 @dataclass
 class SceneClock:
-    """Progress clock for tracking scene state."""
+    """
+    Progress clock for tracking scene state.
+
+    Range: -maximum to +maximum
+    - Negative values represent accumulated setbacks/failures
+    - Zero is neutral starting point
+    - Maximum fills the clock and triggers consequences
+    """
     name: str
     current: int = 0
     maximum: int = 6
@@ -351,8 +358,13 @@ class SceneClock:
         return False
 
     def regress(self, ticks: int = 1):
-        """Decrease clock progress."""
-        self.current = max(self.current - ticks, 0)
+        """
+        Decrease clock progress.
+
+        Can go negative to represent accumulated failures/setbacks.
+        Minimum: -maximum (e.g., if max=6, can go to -6)
+        """
+        self.current = max(self.current - ticks, -self.maximum)
 
     @property
     def filled(self) -> bool:
@@ -366,7 +378,12 @@ class SceneClock:
 
     @property
     def progress_ratio(self) -> float:
-        """Get progress as a ratio."""
+        """
+        Get progress as a ratio.
+
+        Returns:
+            Ratio of current/maximum (can be negative for setbacks, >1 when filled)
+        """
         return self.current / self.maximum if self.maximum > 0 else 0
 
 
