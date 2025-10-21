@@ -67,26 +67,36 @@ class SelfPlayingSession:
     async def start_session(self):
         """Start the complete self-playing session."""
         logger.info("Starting self-playing session")
-        
+
         # Start game coordinator
         socket_path = self.config.get('socket_path')
         self.coordinator = GameCoordinator(socket_path)
         await self.coordinator.start()
-        
+
         # Start human interface if enabled
         if self.config.get('enable_human_interface', True):
             self.human_interface = HumanInterface(str(self.coordinator.message_bus.socket_path))
             await self.human_interface.start()
-            
+
         # Create and start AI agents
         await self._create_agents()
-        
+
         # Wait for all agents to be ready
         await self._wait_for_agents_ready()
-        
+
         # Start the game session
         self.session_id = await self.coordinator.create_session(self.config)
-        
+
+        # Initialize JSONL logger for machine-readable events
+        from .mechanics import JSONLLogger
+        output_dir = self.config.get('output_dir', './output')
+        jsonl_logger = JSONLLogger(self.session_id, output_dir)
+
+        # Attach logger to mechanics engine
+        if self.shared_state and self.shared_state.mechanics_engine:
+            self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
+            print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
+
         # Run the gameplay loop
         await self._run_gameplay_loop()
         
@@ -155,6 +165,12 @@ class SelfPlayingSession:
             # Reset void caps for all characters at round start
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
+                mechanics.current_round = round_count  # Update round counter for logging
+
+                # Log round start event
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_round_start(round_count)
+
                 for agent_id, void_state in mechanics.void_states.items():
                     void_state.reset_round_void()
 
@@ -266,6 +282,12 @@ class SelfPlayingSession:
                     print(f"  {agent_id}: {void_info['score']}/10 ({void_info['level']})")
 
             print("=" * 40)
+
+            # Log session end event
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_session_end(state_summary)
+                print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
 
         # Collect final session data
         final_data = {

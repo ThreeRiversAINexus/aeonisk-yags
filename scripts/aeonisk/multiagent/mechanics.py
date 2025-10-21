@@ -5,6 +5,9 @@ Implements core dice mechanics, rituals, void progression, and scene clocks.
 
 import random
 import logging
+import json
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
@@ -24,16 +27,185 @@ class OutcomeTier(Enum):
 
 
 class Difficulty(Enum):
-    """Standard difficulty ratings."""
-    TRIVIAL = 5
-    EASY = 10
-    ROUTINE = 15
-    MODERATE = 20
-    CHALLENGING = 25
-    DIFFICULT = 30
-    VERY_DIFFICULT = 35
-    FORMIDABLE = 40
-    NEARLY_IMPOSSIBLE = 50
+    """
+    Standard difficulty ratings (YAGS canonical + Aeonisk calibration).
+
+    Codex Nexum guidance: Routine/pressured checks 18-22; only 26+ for extreme, multi-stage actions.
+    """
+    TRIVIAL = 10          # Nearly automatic for skilled characters
+    EASY = 15             # Low-risk, straightforward actions
+    ROUTINE = 18          # Standard pressured action (combat-pace, time-sensitive)
+    MODERATE = 20         # Default for uncertain outcomes
+    CHALLENGING = 22      # Requires focus and skill
+    DIFFICULT = 26        # Extreme, multi-stage, or dangerous
+    VERY_DIFFICULT = 30   # Legendary, desperate, or void-corrupted
+    FORMIDABLE = 35       # Nearly impossible without preparation
+    LEGENDARY = 40        # Requires exceptional circumstances
+
+
+class JSONLLogger:
+    """
+    Machine-readable event logger for Aeonisk YAGS sessions.
+
+    Codex Nexum guidance: "JSONL events alongside prose" for observability and replay.
+    Each line is a complete JSON object representing one game event.
+    """
+
+    def __init__(self, session_id: str, output_dir: str = "./output"):
+        self.session_id = session_id
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+        self.log_file = self.output_dir / f"session_{session_id}.jsonl"
+
+        # Initialize log file with session start event
+        self._write_event({
+            "event_type": "session_start",
+            "ts": datetime.now().isoformat(),
+            "session": session_id
+        })
+
+    def _write_event(self, event: Dict[str, Any]):
+        """Write a single event as a JSON line."""
+        with open(self.log_file, 'a') as f:
+            f.write(json.dumps(event, default=str) + '\n')
+
+    def log_action_resolution(
+        self,
+        round_num: int,
+        phase: str,
+        agent_name: str,
+        action: str,
+        resolution: 'ActionResolution',
+        economy_changes: Dict[str, Any],
+        clock_states: Dict[str, str],
+        effects: List[str],
+        context: Dict[str, Any] = None
+    ):
+        """
+        Log a complete action resolution event.
+
+        Schema matches Codex Nexum specification:
+        {
+          "ts": "ISO-8601",
+          "session": "uuid",
+          "round": 14,
+          "phase": "declare|resolve",
+          "agent": "Zara Nightwhisper",
+          "action": "Resonance Barrier",
+          "context": {"range": "Near", "cover": true, "stance": "braced"},
+          "roll": {"attr": "Willpower", "attr_val": 3, "skill": "Astral Arts",
+                   "skill_val": 2, "ability": 6, "d20": 12, "total": 18,
+                   "dc": 20, "margin": -2, "tier": "Failure"},
+          "economy": {"void_delta": +1, "soulcredit_delta": 0,
+                      "offering_used": false, "bonds_applied": []},
+          "clocks": {"core_access": "7/8", "infection": "2/6"},
+          "effects": ["Barrier fails; backlash ripples"]
+        }
+        """
+        # Calculate ability score
+        if resolution.skill and resolution.skill_value > 0:
+            ability = resolution.attribute_value * resolution.skill_value
+        else:
+            ability = resolution.attribute_value - 5  # Unskilled penalty
+
+        event = {
+            "event_type": "action_resolution",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "phase": phase,
+            "agent": agent_name,
+            "action": action,
+            "context": context or {},
+            "roll": {
+                "attr": resolution.attribute,
+                "attr_val": resolution.attribute_value,
+                "skill": resolution.skill,
+                "skill_val": resolution.skill_value,
+                "ability": ability,
+                "d20": resolution.roll,
+                "total": resolution.total,
+                "dc": resolution.difficulty,
+                "margin": resolution.margin,
+                "tier": resolution.outcome_tier.value,
+                "success": resolution.success
+            },
+            "economy": economy_changes,
+            "clocks": clock_states,
+            "effects": effects
+        }
+
+        self._write_event(event)
+
+    def log_clock_event(
+        self,
+        round_num: int,
+        clock_name: str,
+        old_value: int,
+        new_value: int,
+        maximum: int,
+        filled: bool,
+        reason: str
+    ):
+        """Log a clock advancement event."""
+        event = {
+            "event_type": "clock_advancement",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "clock_name": clock_name,
+            "old_value": old_value,
+            "new_value": new_value,
+            "maximum": maximum,
+            "filled": filled,
+            "reason": reason
+        }
+        self._write_event(event)
+
+    def log_void_change(
+        self,
+        round_num: int,
+        agent_name: str,
+        old_void: int,
+        new_void: int,
+        delta: int,
+        reason: str,
+        capped: bool = False
+    ):
+        """Log a void corruption change event."""
+        event = {
+            "event_type": "void_change",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent": agent_name,
+            "old_void": old_void,
+            "new_void": new_void,
+            "delta": delta,
+            "reason": reason,
+            "capped": capped
+        }
+        self._write_event(event)
+
+    def log_round_start(self, round_num: int):
+        """Log round start event."""
+        event = {
+            "event_type": "round_start",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num
+        }
+        self._write_event(event)
+
+    def log_session_end(self, final_state: Dict[str, Any]):
+        """Log session end event with final state."""
+        event = {
+            "event_type": "session_end",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "final_state": final_state
+        }
+        self._write_event(event)
 
 
 @dataclass
@@ -123,24 +295,32 @@ class SceneClock:
 
 @dataclass
 class VoidState:
-    """Tracks void corruption for an entity."""
+    """
+    Tracks void corruption for an entity with multi-level caps.
+
+    Codex Nexum guidance: Limit automatic void gain per scene (max +3) unless player opts into high-risk rites.
+    """
     score: int = 0  # 0-10
     history: List[Dict[str, Any]] = field(default_factory=list)
     _processed_actions: set = field(default_factory=set, init=False, repr=False)
     _round_void_gain: int = field(default=0, init=False, repr=False)
+    _scene_void_gain: int = field(default=0, init=False, repr=False)  # Scene-level tracking
+    _scene_opted_in_high_risk: bool = field(default=False, init=False, repr=False)  # Opt-in flag
 
-    def add_void(self, amount: int, reason: str, action_id: Optional[str] = None) -> int:
+    def add_void(self, amount: int, reason: str, action_id: Optional[str] = None, is_high_risk_ritual: bool = False) -> int:
         """
-        Add void corruption with caps, return new score.
+        Add void corruption with multi-level caps, return new score.
 
-        Caps:
+        Caps (Codex Nexum canonical):
         - Max +1 void per action
         - Max +2 void per round per character
+        - Max +3 void per scene (automatic) - unless player opts into high-risk rituals
 
         Args:
             amount: Void to add (will be capped)
             reason: Why void is being added
             action_id: Unique action identifier to prevent duplicates
+            is_high_risk_ritual: Whether this is an opt-in high-risk ritual (bypasses scene cap)
 
         Returns:
             New void score
@@ -154,13 +334,28 @@ class VoidState:
         capped_amount = min(amount, 1)
 
         # Cap per round: max +2 total
-        if self._round_void_gain >= 2:
-            logger.info(f"Void cap reached for this round (already +{self._round_void_gain})")
+        if self._round_void_gain >= 2 and not is_high_risk_ritual:
+            logger.info(f"Round void cap reached (already +{self._round_void_gain}/2)")
             return self.score
 
-        # Apply remaining room in round cap
-        actual_add = min(capped_amount, 2 - self._round_void_gain)
+        # Cap per scene: max +3 automatic (unless opted into high-risk)
+        if self._scene_void_gain >= 3 and not is_high_risk_ritual:
+            logger.warning(f"Scene void cap reached (already +{self._scene_void_gain}/3 automatic). Use high-risk ritual to opt-in for more.")
+            return self.score
+
+        # Apply remaining room in caps
+        remaining_round = 2 - self._round_void_gain
+        remaining_scene = 3 - self._scene_void_gain if not is_high_risk_ritual else 10
+        actual_add = min(capped_amount, remaining_round, remaining_scene)
+
+        if actual_add <= 0:
+            return self.score
+
         self._round_void_gain += actual_add
+        self._scene_void_gain += actual_add
+
+        if is_high_risk_ritual:
+            self._scene_opted_in_high_risk = True
 
         old_score = self.score
         self.score = min(self.score + actual_add, 10)
@@ -169,19 +364,26 @@ class VoidState:
             'change': actual_add,
             'reason': reason,
             'old_score': old_score,
-            'new_score': self.score
+            'new_score': self.score,
+            'high_risk': is_high_risk_ritual
         })
 
         if action_id:
             self._processed_actions.add(action_id)
 
-        logger.info(f"Void added: +{actual_add} (requested {amount}, round total {self._round_void_gain}/2)")
+        logger.info(f"Void added: +{actual_add} (requested {amount}, round {self._round_void_gain}/2, scene {self._scene_void_gain}/{3 if not is_high_risk_ritual else '∞'})")
         return self.score
 
     def reset_round_void(self):
         """Reset round void counter. Call at start of each round."""
         self._round_void_gain = 0
         logger.debug(f"Reset round void counter")
+
+    def reset_scene_void(self):
+        """Reset scene void counter. Call at start of new scene."""
+        self._scene_void_gain = 0
+        self._scene_opted_in_high_risk = False
+        logger.info(f"Reset scene void counter")
 
     def reduce_void(self, amount: int, reason: str) -> int:
         """Reduce void corruption, return new score."""
@@ -226,11 +428,69 @@ class MechanicsEngine:
         "Intelligence", "Empathy", "Willpower", "Charisma"
     ]
 
-    def __init__(self):
+    def __init__(self, jsonl_logger: Optional[JSONLLogger] = None):
         self.scene_clocks: Dict[str, SceneClock] = {}
         self.void_states: Dict[str, VoidState] = {}  # agent_id -> VoidState
         self.action_history: List[ActionResolution] = []
         self.conditions: Dict[str, List[Condition]] = {}  # agent_id -> conditions
+        self.scene_void_level: int = 0  # 0-10 scene void pressure
+        self.jsonl_logger: Optional[JSONLLogger] = jsonl_logger  # Machine-readable event log
+        self.current_round: int = 0  # Track current round for logging
+
+    def calculate_dc(
+        self,
+        intent: str,
+        action_type: str = "general",
+        is_ritual: bool = False,
+        is_extreme: bool = False,
+        is_multi_stage: bool = False
+    ) -> int:
+        """
+        Calculate appropriate DC for an action based on context.
+
+        Codex Nexum guidance:
+        - Routine/pressured checks: 18-22
+        - Only 26+ for truly extreme, multi-stage actions
+
+        Args:
+            intent: Action description
+            action_type: sensing, technical, ritual, social, investigation, combat
+            is_ritual: Whether this is a ritual action
+            is_extreme: Whether this is extreme/dangerous
+            is_multi_stage: Whether this requires multiple stages
+
+        Returns:
+            Calculated DC (10-40 range)
+        """
+        intent_lower = intent.lower()
+
+        # Base DC by action type
+        if is_ritual:
+            base_dc = Difficulty.CHALLENGING.value  # 22 - rituals are always challenging
+        elif action_type == "combat":
+            base_dc = Difficulty.ROUTINE.value  # 18 - combat is time-pressured
+        elif action_type == "social":
+            base_dc = Difficulty.ROUTINE.value  # 18 - most social actions
+        elif action_type in ["sensing", "investigation"]:
+            base_dc = Difficulty.MODERATE.value  # 20 - perception/analysis
+        elif action_type == "technical":
+            base_dc = Difficulty.MODERATE.value  # 20 - technical work
+        else:
+            # Default for general actions
+            base_dc = Difficulty.ROUTINE.value  # 18
+
+        # Adjust for extreme/multi-stage actions
+        if is_extreme or is_multi_stage:
+            base_dc = max(base_dc, Difficulty.DIFFICULT.value)  # 26+ for extreme
+
+        # Adjust for void pressure (high void makes everything harder)
+        if self.scene_void_level >= 7:
+            base_dc += 4  # High void: +4 DC
+        elif self.scene_void_level >= 4:
+            base_dc += 2  # Moderate void: +2 DC
+
+        # Clamp to reasonable range (10-40)
+        return max(10, min(base_dc, 40))
 
     def resolve_action(
         self,
@@ -400,18 +660,24 @@ class MechanicsEngine:
         if has_primary_tool:
             modifiers['primary_tool'] = 2
         else:
-            # Missing tool: player can accept +5 DC instead of void (future enhancement)
+            # Missing tool: +1 Void (no tier downgrade, just void)
             ritual_effects['void_change'] += 1
-            ritual_effects['consequences'].append("Missing ritual focus")
+            ritual_effects['consequences'].append("Missing ritual focus (+1 Void)")
 
         if sanctified_altar:
             modifiers['sanctified_altar'] = 3
-        elif not has_offering:
-            # Missing offering: player can accept +5 DC instead of void (future enhancement)
-            ritual_effects['void_change'] += 1
-            ritual_effects['consequences'].append("No offering made")
-        else:
+            ritual_effects['consequences'].append("Sanctified altar (+3)")
+
+        # OFFERING REQUIREMENT (Codex Nexum canonical)
+        # Every ritual must consume an offering OR apply +1 Void and downgrade tier on success
+        if has_offering:
             modifiers['offering'] = 1
+            ritual_effects['consequences'].append("Offering consumed (+1)")
+        else:
+            # No offering: +1 Void AND tier downgrade on success
+            ritual_effects['void_change'] += 1
+            ritual_effects['tier_downgrade'] = True  # Mark for tier downgrade
+            ritual_effects['consequences'].append("No offering: +1 Void, tier downgraded")
 
         # Resolve the action
         resolution = self.resolve_action(
@@ -421,8 +687,24 @@ class MechanicsEngine:
             attribute_value=willpower,
             skill_value=astral_arts,
             difficulty=difficulty,
-            modifiers=modifiers
+            modifiers=modifiers,
+            agent_id=agent_id
         )
+
+        # Apply tier downgrade if no offering and successful
+        if ritual_effects.get('tier_downgrade') and resolution.success:
+            # Downgrade outcome tier by one level
+            tier_map = {
+                OutcomeTier.EXCEPTIONAL: OutcomeTier.EXCELLENT,
+                OutcomeTier.EXCELLENT: OutcomeTier.GOOD,
+                OutcomeTier.GOOD: OutcomeTier.MODERATE,
+                OutcomeTier.MODERATE: OutcomeTier.MARGINAL,
+                OutcomeTier.MARGINAL: OutcomeTier.MARGINAL,  # Can't go lower while still success
+            }
+            if resolution.outcome_tier in tier_map:
+                old_tier = resolution.outcome_tier.value
+                resolution.outcome_tier = tier_map[resolution.outcome_tier]
+                ritual_effects['consequences'].append(f"Tier downgraded: {old_tier} → {resolution.outcome_tier.value}")
 
         # Calculate potential void consequences based on outcome
         # NOTE: Don't apply void here - let outcome_parser handle it to avoid duplicates
@@ -612,30 +894,27 @@ class MechanicsEngine:
             return Difficulty.MODERATE.value  # Default
 
     def format_resolution_for_narration(self, resolution: ActionResolution) -> str:
-        """Format resolution for DM narration."""
+        """
+        Format resolution for DM narration with full transparency.
+
+        Codex Nexum guidance: Always emit Attribute × Skill, d20, total, DC, margin, tier.
+        """
         # Format skill text - never show "×None"
         if resolution.skill and resolution.skill_value > 0:
-            skill_text = f"({resolution.attribute} × {resolution.skill})"
-        else:
-            skill_text = f"({resolution.attribute})"
-
-        # Calculate display formula based on skill usage
-        if resolution.skill and resolution.skill_value > 0:
-            # Skilled: Attribute × Skill + d20
+            skill_text = f"{resolution.attribute} × {resolution.skill}"
             ability = resolution.attribute_value * resolution.skill_value
-            formula = f"{resolution.attribute_value} × {resolution.skill_value} + {resolution.roll}"
-            calculation = f"{ability} + {resolution.roll}"
+            formula = f"{resolution.attribute_value} × {resolution.skill_value} + d20({resolution.roll})"
         else:
-            # Unskilled: Attribute + d20 - 5
-            formula = f"{resolution.attribute_value} + {resolution.roll} - 5 (unskilled)"
-            calculation = formula
+            skill_text = f"{resolution.attribute} (unskilled)"
+            ability = resolution.attribute_value - 5
+            formula = f"{resolution.attribute_value} + d20({resolution.roll}) - 5"
 
+        # Transparent roll display
         return f"""
 **{resolution.intent}**
-Roll: {skill_text} + d20
-Result: {formula} = **{resolution.total}** vs DC {resolution.difficulty}
-Margin: {resolution.margin:+d}
-Outcome: **{resolution.outcome_tier.value.upper()}** {'✓' if resolution.success else '✗'}
+Roll: {skill_text}
+Calculation: {formula} = **{resolution.total}**
+DC: {resolution.difficulty} | Margin: {resolution.margin:+d} | Tier: **{resolution.outcome_tier.value.upper()}** {'✓' if resolution.success else '✗'}
 {resolution.narrative}
 """.strip()
 

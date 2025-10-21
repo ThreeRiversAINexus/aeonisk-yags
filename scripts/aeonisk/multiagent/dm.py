@@ -353,7 +353,16 @@ What do you do?
             skill = action.get('skill')
             attribute_value = action.get('attribute_value', 3)
             skill_value = action.get('skill_value', 0)
-            difficulty = action.get('difficulty_estimate', 20)
+
+            # Calculate DC using mechanics engine (don't trust player estimate)
+            is_ritual_action = action_type == 'ritual' or action.get('is_ritual', False)
+            difficulty = mechanics.calculate_dc(
+                intent=intent,
+                action_type=action_type,
+                is_ritual=is_ritual_action,
+                is_extreme=action.get('is_extreme', False),
+                is_multi_stage=action.get('is_multi_stage', False)
+            )
 
             # CRITICAL: Re-validate ritual mechanics at DM resolution time
             # (Player may have sent corrected values, but we enforce anyway)
@@ -494,6 +503,44 @@ What do you do?
             clock_triggers = self._check_clock_triggers(mechanics)
             if clock_triggers:
                 narration += f"\n\n{clock_triggers}"
+
+            # JSONL Logging: Log complete action resolution
+            if mechanics.jsonl_logger:
+                # Get character name from action payload
+                character_name = action.get('character', player_id)
+
+                # Build economy changes
+                economy_changes = {
+                    "void_delta": state_changes.get('void_change', 0),
+                    "soulcredit_delta": 0,  # TODO: track soulcredit changes
+                    "offering_used": action.get('has_offering', False),
+                    "bonds_applied": []  # TODO: track bond applications
+                }
+
+                # Build clock states
+                clock_states = {
+                    name: f"{clock.current}/{clock.maximum}"
+                    for name, clock in mechanics.scene_clocks.items()
+                }
+
+                # Build effects list
+                effects = state_changes.get('notes', []) + state_changes.get('consequences', [])
+
+                # Log the action resolution
+                mechanics.jsonl_logger.log_action_resolution(
+                    round_num=mechanics.current_round,
+                    phase="resolve",
+                    agent_name=character_name,
+                    action=intent,
+                    resolution=resolution,
+                    economy_changes=economy_changes,
+                    clock_states=clock_states,
+                    effects=effects,
+                    context={
+                        "action_type": action_type,
+                        "is_ritual": action.get('is_ritual', False)
+                    }
+                )
 
         else:
             # Fallback if no mechanics available
@@ -693,26 +740,15 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
             return f"As you {description}, the situation develops in unexpected ways. The void energy at level {self.current_scenario.void_level if self.current_scenario else 3}/10 subtly influences the outcome."
 
     def _check_clock_triggers(self, mechanics) -> str:
-        """Check if any clocks filled and return trigger narration."""
-        triggers = []
+        """
+        Check if any clocks filled and return trigger narration.
 
-        for clock_name, clock in mechanics.scene_clocks.items():
-            if clock.filled:
-                # Generate appropriate trigger based on clock name
-                if "Corruption" in clock_name:
-                    triggers.append(f"🚨 **{clock_name} FILLED!** The void corruption manifests - a minor entity coalesces from the corrupted field!")
-                elif "Exposure" in clock_name:
-                    triggers.append(f"🚨 **{clock_name} FILLED!** You've identified the perpetrator - they make a desperate move!")
-                elif "Stability" in clock_name:
-                    triggers.append(f"🚨 **{clock_name} FILLED!** The communal bonds fracture - panic spreads through the group!")
-                elif "Evidence" in clock_name or "Investigation" in clock_name:
-                    triggers.append(f"✅ **{clock_name} FILLED!** The pieces fall into place - you understand the full picture!")
-                elif "Lockdown" in clock_name or "Collapse" in clock_name:
-                    triggers.append(f"⚠️ **{clock_name} FILLED!** The situation reaches critical mass!")
-                else:
-                    triggers.append(f"📍 **{clock_name} FILLED!** A major story beat occurs!")
-
-        return "\n".join(triggers) if triggers else ""
+        Codex Nexum guidance: On first fill, trigger consequence → replace or reset;
+        do not re-announce a filled clock.
+        """
+        # This method is now deprecated - clock fills are announced inline when they occur
+        # We keep it for compatibility but don't re-announce filled clocks
+        return ""
 
     def _estimate_void_level(self) -> int:
         """Estimate void severity from shared state."""
