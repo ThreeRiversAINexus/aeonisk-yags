@@ -39,6 +39,11 @@ class SelfPlayingSession:
         self.shared_state = SharedState()
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
+        self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
+        self._pending_declarations: Dict[str, asyncio.Event] = {}  # Track when declarations complete
+        self._declared_actions: Dict[str, Dict[str, Any]] = {}  # Buffer actions during declaration phase
+        self._in_declaration_phase: bool = False  # Track current phase
+        self._scenario_ready: asyncio.Event = asyncio.Event()  # Track when scenario is generated
 
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
@@ -79,6 +84,20 @@ class SelfPlayingSession:
         self.coordinator = GameCoordinator(socket_path)
         await self.coordinator.start()
 
+        # Register message handlers
+        self.coordinator.message_bus.add_handler(
+            'session_resolution_tracker',
+            self._handle_action_resolved
+        )
+        self.coordinator.message_bus.add_handler(
+            'session_declaration_buffer',
+            self._handle_action_declared
+        )
+        self.coordinator.message_bus.add_handler(
+            'session_scenario_tracker',
+            self._handle_scenario_setup
+        )
+
         # Start human interface if enabled
         if self.config.get('enable_human_interface', True):
             self.human_interface = HumanInterface(str(self.coordinator.message_bus.socket_path))
@@ -102,6 +121,12 @@ class SelfPlayingSession:
         if self.shared_state and self.shared_state.mechanics_engine:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
+
+        # Wait for DM to generate initial scenario before starting gameplay
+        # SESSION_START triggers scenario generation, wait for SCENARIO_SETUP message
+        print("Waiting for scenario generation...")
+        await self._scenario_ready.wait()
+        print("Scenario ready!")
 
         # Run the gameplay loop
         await self._run_gameplay_loop()
@@ -242,7 +267,12 @@ class SelfPlayingSession:
         await self._end_session()
         
     async def _run_initiative_round(self):
-        """Run a round with all players acting in initiative order."""
+        """
+        Run a round with proper tactical flow:
+        1. Declaration phase (slowest → fastest)
+        2. Resolution phase (fastest → slowest)
+        3. DM describes overall outcome
+        """
         player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
 
         if not player_agents:
@@ -262,23 +292,90 @@ class SelfPlayingSession:
         # Sort by initiative (highest first)
         initiative_order.sort(key=lambda x: x[0], reverse=True)
 
-        # Players act in initiative order
-        for initiative_score, player_agent in initiative_order:
-            print(f"\n[{player_agent.character_state.name}]'s turn (initiative {initiative_score})")
+        # PHASE 1: DECLARATIONS (slowest → fastest, so faster players can react)
+        print("\n=== Declaration Phase ===")
+        self._in_declaration_phase = True
+        self._declared_actions.clear()
+
+        for initiative_score, player_agent in reversed(initiative_order):  # Reversed = slowest first
+            print(f"\n[{player_agent.character_state.name}] declaring (initiative {initiative_score})...")
+
+            # Create event to track when this player's declaration arrives
+            declaration_event = asyncio.Event()
+            self._pending_declarations[player_agent.agent_id] = declaration_event
 
             turn_message = Message(
                 id=f"turn_{datetime.now().isoformat()}_{player_agent.agent_id}",
                 type=MessageType.TURN_REQUEST,
                 sender='coordinator',
                 recipient=player_agent.agent_id,
-                payload={'phase': 'player_action', 'initiative': initiative_score},
+                payload={'phase': 'declaration', 'initiative': initiative_score},
                 timestamp=datetime.now()
             )
 
             await self.coordinator.message_bus._route_message(turn_message)
 
-            # Wait for this player to complete their action
-            await asyncio.sleep(3)
+            # Wait for this player's declaration to be buffered
+            await declaration_event.wait()
+            logger.debug(f"{player_agent.character_state.name} declaration received")
+
+            # Clean up the event
+            if player_agent.agent_id in self._pending_declarations:
+                del self._pending_declarations[player_agent.agent_id]
+
+        self._in_declaration_phase = False
+
+        # PHASE 2: DM ADJUDICATION
+        # Send ALL declarations to DM for adjudication
+        print("\n=== Resolution Phase ===")
+        print("DM adjudicating all actions...")
+
+        # Build list of all actions with initiative order
+        actions_for_adjudication = []
+        for initiative_score, player_agent in initiative_order:  # Sorted by initiative
+            if player_agent.agent_id in self._declared_actions:
+                buffered_action = self._declared_actions[player_agent.agent_id]
+                actions_for_adjudication.append({
+                    'player_id': player_agent.agent_id,
+                    'character_name': player_agent.character_state.name,
+                    'initiative': initiative_score,
+                    'action': buffered_action['action']
+                })
+
+        if not actions_for_adjudication:
+            logger.warning("No actions to adjudicate")
+            return
+
+        # Create event to track when adjudication completes
+        adjudication_event = asyncio.Event()
+        self._pending_resolutions['adjudication'] = adjudication_event
+
+        # Send all actions to DM for adjudication
+        adjudication_message = Message(
+            id=f"adjudicate_{datetime.now().isoformat()}",
+            type=MessageType.ACTION_DECLARED,
+            sender='coordinator',
+            recipient='dm_01',
+            payload={
+                'phase': 'adjudication',
+                'actions': actions_for_adjudication,
+                'round': mechanics.current_round if mechanics else 0
+            },
+            timestamp=datetime.now()
+        )
+
+        await self.coordinator.message_bus._route_message(adjudication_message)
+
+        # Wait for DM to complete adjudication
+        await adjudication_event.wait()
+        logger.debug("Adjudication complete")
+
+        # Clean up
+        if 'adjudication' in self._pending_resolutions:
+            del self._pending_resolutions['adjudication']
+
+        # Clear the action buffer for next round
+        self._declared_actions.clear()
         
     async def _run_dm_turn(self):
         """Run DM turn."""
@@ -692,6 +789,50 @@ Keep it conversational and in character. Address your companion by name if relev
     def _recent_history(self) -> List[str]:
         """Return a small slice of recent turn history for prompt context."""
         return self._turn_history[-5:]
+
+    def _handle_scenario_setup(self, message: Message):
+        """Track when scenario is ready."""
+        if message.type != MessageType.SCENARIO_SETUP:
+            return
+
+        self._scenario_ready.set()
+
+    def _handle_action_declared(self, message: Message):
+        """Buffer ACTION_DECLARED messages during declaration phase."""
+        if message.type != MessageType.ACTION_DECLARED:
+            return
+
+        # Only buffer during declaration phase
+        if not self._in_declaration_phase:
+            return
+
+        # Buffer the action
+        # Note: message.payload IS the action dict (not nested under 'action' key)
+        agent_id = message.sender
+        self._declared_actions[agent_id] = {
+            'agent_id': agent_id,
+            'action': message.payload,  # Payload IS the action
+            'timestamp': message.timestamp
+        }
+        logger.debug(f"Buffered action from {agent_id}")
+
+        # Signal that this agent's declaration is complete
+        if agent_id in self._pending_declarations:
+            self._pending_declarations[agent_id].set()
+        else:
+            logger.warning(f"No pending declaration event for {agent_id}")
+
+    def _handle_action_resolved(self, message: Message):
+        """Handle ACTION_RESOLVED messages to signal turn completion."""
+        if message.type != MessageType.ACTION_RESOLVED:
+            return
+
+        # Extract the agent who completed their action
+        agent_id = message.payload.get('agent_id')
+        if agent_id and agent_id in self._pending_resolutions:
+            # Signal that this agent's resolution/adjudication is complete
+            self._pending_resolutions[agent_id].set()
+            logger.debug(f"Resolution complete for {agent_id}")
 
 
 # Configuration example
