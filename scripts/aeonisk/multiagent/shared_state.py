@@ -48,6 +48,10 @@ class SharedState:
     # Track recent scenarios for variety
     recent_scenarios: List[Dict[str, str]] = field(default_factory=list)
 
+    # Track coordination bonuses (who gave bonus to whom)
+    # Format: {recipient_agent_id: {'bonus': +2, 'from': giver_name, 'reason': 'shared intel'}}
+    coordination_bonuses: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+
     def adjust_soulcredit(self, delta: int, *, reason: Optional[str] = None) -> Optional[str]:
         """Adjust communal Soulcredit and return escalation cues if thresholds are crossed."""
         self.soulcredit_pool += delta
@@ -112,6 +116,40 @@ class SharedState:
     def get_other_players(self, current_agent_id: str) -> List[str]:
         """Get names of other player characters (excluding current agent)."""
         return [p['name'] for p in self.registered_players if p['agent_id'] != current_agent_id]
+
+    def grant_coordination_bonus(self, from_agent: str, from_name: str, to_name: str, reason: str = "coordination") -> bool:
+        """
+        Grant a +2 coordination bonus to another character.
+        Returns True if successfully granted, False if target not found.
+        """
+        # Find the target agent_id from name
+        target_agent = None
+        for player in self.registered_players:
+            if player['name'].lower() == to_name.lower():
+                target_agent = player['agent_id']
+                break
+
+        if not target_agent:
+            return False
+
+        # Grant the bonus (replaces any existing bonus)
+        self.coordination_bonuses[target_agent] = {
+            'bonus': 2,
+            'from': from_name,
+            'reason': reason
+        }
+        print(f"✓ {from_name} granted +2 coordination bonus to {to_name} ({reason})")
+        return True
+
+    def consume_coordination_bonus(self, agent_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Check if an agent has a coordination bonus and consume it.
+        Returns the bonus dict if present, None otherwise.
+        """
+        if agent_id in self.coordination_bonuses:
+            bonus = self.coordination_bonuses.pop(agent_id)
+            return bonus
+        return None
 
     def add_scenario(self, theme: str, location: str) -> None:
         """Record a scenario for variety tracking."""

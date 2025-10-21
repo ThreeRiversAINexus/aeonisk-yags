@@ -171,7 +171,18 @@ Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS
 - Teamwork advances your goals more than working alone
 - Note: Casual coordination ≠ forming a formal Bond (capital B)
 
-**IMPORTANT**: Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+**IMPORTANT**:
+- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+
+**HOW TO TRIGGER THE BONUS:**
+Declare a simple dialogue action using natural phrasing:
+- "Tell [name] about what I discovered"
+- "Ask [name] what they found"
+- "Share my findings with [name]"
+- "Inform [name] about [specific detail]"
+
+Then the system will give you a FREE second action for your main task!
 """
         elif any('tempest' in goal.lower() or 'corporate' in goal.lower() or 'advance' in goal.lower() for goal in goals):
             dialogue_goal_text = f"""
@@ -184,7 +195,18 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 - Two operatives working together > working separately
 - Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
 
-**IMPORTANT**: Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+**IMPORTANT**:
+- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+
+**HOW TO TRIGGER THE BONUS:**
+Declare a simple dialogue action using natural phrasing:
+- "Tell [name] about what I discovered"
+- "Ask [name] what they found"
+- "Share my findings with [name]"
+- "Inform [name] about [specific detail]"
+
+Then the system will give you a FREE second action for your main task!
 """
         else:
             dialogue_goal_text = f"""
@@ -195,7 +217,18 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 - Share discoveries to piece together the full picture
 - Working together ≠ formal Bonds (you can coordinate without commitment)
 
-**IMPORTANT**: Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+**IMPORTANT**:
+- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!
+
+**HOW TO TRIGGER THE BONUS:**
+Declare a simple dialogue action using natural phrasing:
+- "Tell [name] about what I discovered"
+- "Ask [name] what they found"
+- "Share my findings with [name]"
+- "Inform [name] about [specific detail]"
+
+Then the system will give you a FREE second action for your main task!
 """
 
     void_warning = ""
@@ -250,6 +283,17 @@ RITUAL: yes
 PRIMARY_TOOL: [yes/no - do you have the required focus?]
 OFFERING: [yes/no - are you making an offering?]
 COMPONENTS: [what materials are you using?]
+```
+
+**For Coordination Dialogue** (FREE ACTION that grants +2 bonus):
+```
+INTENT: Tell [companion name] about [what I discovered]
+ATTRIBUTE: Empathy
+SKILL: Charm (or Counsel)
+ACTION_TYPE: social
+DESCRIPTION: I explain to [name] what I found about [topic]
+
+This will trigger a FREE second action where you do your main task!
 ```
 
 {recent_intents_text}
