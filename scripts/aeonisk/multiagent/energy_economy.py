@@ -192,6 +192,17 @@ class EnergyInventory:
         logger.warning(f"Insufficient {currency_type} (needed {amount})")
         return False
 
+    def transfer_currency_to(self, other_inventory: 'EnergyInventory', currency_type: str, amount: int) -> bool:
+        """
+        Transfer currency from this inventory to another.
+        Returns True if successful, False if insufficient funds.
+        """
+        if self.spend_currency(currency_type, amount):
+            other_inventory.add_currency(currency_type, amount)
+            logger.info(f"Transferred {amount} {currency_type} to another character")
+            return True
+        return False
+
     def convert_currency(self, from_type: str, to_type: str, amount: int) -> bool:
         """
         Convert between currency types using market rates.

@@ -544,6 +544,10 @@ class AIPlayerAgent(Agent):
             if ('purchase' in intent or 'buy' in intent) and outcome.get('success', False):
                 self._process_purchase(intent, outcome)
 
+            # Handle currency/item transfers between players
+            if ('give' in intent or 'transfer' in intent or 'pool' in intent) and outcome.get('success', False):
+                self._process_transfer(intent, outcome)
+
     def _process_purchase(self, intent: str, outcome: Dict[str, Any]):
         """Process a successful purchase and deduct currency."""
         # Simple item price lookup (prices from energy_economy.py)
@@ -585,6 +589,94 @@ class AIPlayerAgent(Agent):
             else:
                 logger.warning(f"{self.character_state.name} couldn't afford {purchased_item} ({amount} {currency_type})")
                 print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} for {purchased_item}")
+
+    def _process_transfer(self, intent: str, outcome: Dict[str, Any]):
+        """Process currency or item transfers between players."""
+        # Extract recipient name and amount from intent
+        # Format: "Give 2 Spark to Mira" or "Transfer 5 Drip to Kress"
+        import re
+
+        # Find currency type and amount
+        currency_match = re.search(r'(\d+)\s+(spark|drip|grain|breath)', intent, re.IGNORECASE)
+        if not currency_match:
+            return  # Not a currency transfer
+
+        amount = int(currency_match.group(1))
+        currency_type = currency_match.group(2).lower()
+
+        # Find recipient (character name)
+        # Look for "to [Name]" pattern
+        recipient_match = re.search(r'to\s+(\w+(?:\s+\w+)*)', intent, re.IGNORECASE)
+        if not recipient_match:
+            return
+
+        recipient_name = recipient_match.group(1).strip()
+
+        # Find the recipient character via shared state
+        if not self.shared_state:
+            logger.warning("Cannot transfer without shared state")
+            return
+
+        # Get all other players
+        other_players = self.shared_state.get_other_players(self.agent_id)
+        recipient_agent = None
+
+        for player in other_players:
+            if recipient_name.lower() in player.get('name', '').lower():
+                # Found the recipient! Get their agent from session
+                # We need to access the actual agent object to modify their inventory
+                # This is a bit hacky - we'll store the transfer in shared state for now
+                recipient_agent = player
+                break
+
+        if not recipient_agent:
+            logger.warning(f"Could not find recipient: {recipient_name}")
+            print(f"[{self.character_state.name}] ⚠️ Could not find {recipient_name} to transfer to")
+            return
+
+        # Attempt the transfer
+        if self.character_state.energy_inventory.spend_currency(currency_type, amount):
+            # Store pending transfer in shared state
+            if not hasattr(self.shared_state, 'pending_transfers'):
+                self.shared_state.pending_transfers = []
+
+            self.shared_state.pending_transfers.append({
+                'from': self.agent_id,
+                'to': recipient_agent.get('agent_id'),
+                'currency_type': currency_type,
+                'amount': amount,
+                'from_name': self.character_state.name,
+                'to_name': recipient_agent.get('name')
+            })
+
+            logger.info(f"{self.character_state.name} transferred {amount} {currency_type} to {recipient_name}")
+            print(f"[{self.character_state.name}] 💸 Gave {amount} {currency_type} to {recipient_name}")
+            print(f"[{self.character_state.name}] Remaining: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+        else:
+            logger.warning(f"{self.character_state.name} couldn't afford to transfer {amount} {currency_type}")
+            print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} to give")
+
+    def _process_incoming_transfers(self):
+        """Check for and accept pending transfers addressed to this agent."""
+        if not self.shared_state or not hasattr(self.shared_state, 'pending_transfers'):
+            return
+
+        # Find transfers for this agent
+        incoming = [t for t in self.shared_state.pending_transfers if t['to'] == self.agent_id]
+
+        for transfer in incoming:
+            # Add the currency
+            self.character_state.energy_inventory.add_currency(
+                transfer['currency_type'],
+                transfer['amount']
+            )
+
+            logger.info(f"{self.character_state.name} received {transfer['amount']} {transfer['currency_type']} from {transfer['from_name']}")
+            print(f"[{self.character_state.name}] 💰 Received {transfer['amount']} {transfer['currency_type']} from {transfer['from_name']}")
+            print(f"[{self.character_state.name}] New total: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+
+            # Remove from pending
+            self.shared_state.pending_transfers.remove(transfer)
 
     async def _handle_dm_narration(self, message: Message):
         """Handle general DM narration."""
