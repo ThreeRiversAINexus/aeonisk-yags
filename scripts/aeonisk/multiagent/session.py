@@ -124,12 +124,21 @@ class SelfPlayingSession:
         self.agents.append(dm_agent)
         await dm_agent.start()
 
-        # Create player agents
+        # Create player agents (randomly select 2 from pool)
+        import random
         players_config = agents_config.get('players', [])
+
+        # Randomly select 2 players from the pool
+        if len(players_config) > 2:
+            selected_players = random.sample(players_config, 2)
+            logger.info(f"Selected players: {[p['name'] for p in selected_players]}")
+        else:
+            selected_players = players_config
+
         assignments = self.voice_library.assign_to_agents(
-            [f'player_{i+1:02d}' for i in range(len(players_config))]
+            [f'player_{i+1:02d}' for i in range(len(selected_players))]
         )
-        for i, player_config in enumerate(players_config):
+        for i, player_config in enumerate(selected_players):
             agent_id = f'player_{i+1:02d}'
             player_agent = AIPlayerAgent(
                 agent_id=agent_id,
@@ -162,7 +171,15 @@ class SelfPlayingSession:
         print(f"Max rounds: {max_rounds}")
         print(f"Human interface: {'Enabled' if self.human_interface else 'Disabled'}")
 
-        while self.running and round_count < max_rounds:
+        # Show selected players
+        player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+        if player_agents:
+            print(f"Selected Players:")
+            for player in player_agents:
+                print(f"  - {player.character_state.name} ({player.character_state.faction})")
+        print()
+
+        while self.running:
             round_count += 1
             print(f"\n--- Round {round_count} ---")
             self._turn_history.append(f"Round {round_count} begins")
