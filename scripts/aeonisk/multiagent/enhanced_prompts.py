@@ -5,6 +5,28 @@ Enhanced prompts with mechanical scaffolding for DM and Player agents.
 from typing import Dict, Any, Optional, List
 
 
+def _format_dialogue_examples(other_party_members: List[str] = None) -> str:
+    """Format dialogue examples with actual character names if available."""
+    if not other_party_members or len(other_party_members) == 0:
+        return """
+- "Talk to my companions about what we've discovered"
+- "Ask the group if they've sensed this pattern before"
+- "Discuss with the party whether to proceed or retreat"
+"""
+
+    # Generate examples with actual names
+    examples = []
+    for name in other_party_members:
+        examples.extend([
+            f'- "Ask {name} about what they discovered"',
+            f'- "Tell {name} about the clue I found"',
+            f'- "Discuss with {name} whether to proceed or retreat"'
+        ])
+
+    # Return up to 5 examples to avoid clutter
+    return "\n".join(examples[:5]) + "\n"
+
+
 def get_dm_system_prompt(
     knowledge_context: str = "",
     current_clocks: Dict[str, Any] = None,
@@ -106,7 +128,8 @@ def get_player_system_prompt(
     goals: List[str],
     recent_intents: List[str] = None,
     knowledge_context: str = "",
-    void_score: int = 0
+    void_score: int = 0,
+    other_party_members: List[str] = None
 ) -> str:
     """
     Get enhanced player system prompt with mechanical scaffolding.
@@ -133,6 +156,47 @@ You MUST try a different approach, tool, location, or angle. Repeating the same 
 """
 
     goals_text = "\n".join([f"- {goal}" for goal in goals])
+
+    # Build goal-aligned dialogue prompts
+    dialogue_goal_text = ""
+    if other_party_members:
+        if any('bond' in goal.lower() or 'harmony' in goal.lower() or 'community' in goal.lower() for goal in goals):
+            dialogue_goal_text = f"""
+
+**🎯 HOW TO ACHIEVE YOUR GOALS:**
+Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS!
+- Coordinate with {', '.join(other_party_members)} about the situation
+- Share what you've learned to build trust and cooperation
+- Ask them about their findings to work together more effectively
+- Teamwork advances your goals more than working alone
+- Note: Casual coordination ≠ forming a formal Bond (capital B)
+
+**IMPORTANT**: Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+"""
+        elif any('tempest' in goal.lower() or 'corporate' in goal.lower() or 'advance' in goal.lower() for goal in goals):
+            dialogue_goal_text = f"""
+
+**🎯 HOW TO ACHIEVE YOUR GOALS:**
+Advancing corporate interests requires COORDINATION and INFORMATION.
+- Share tactical intelligence with {', '.join(other_party_members)}
+- Coordinate strategy to maximize mission efficiency
+- Learn what they've discovered to complete objectives faster
+- Two operatives working together > working separately
+- Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
+
+**IMPORTANT**: Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+"""
+        else:
+            dialogue_goal_text = f"""
+
+**🎯 COORDINATION STRATEGY:**
+- Talk to {', '.join(other_party_members)} about what you've learned
+- Coordinate your next moves to avoid duplication of effort
+- Share discoveries to piece together the full picture
+- Working together ≠ formal Bonds (you can coordinate without commitment)
+
+**IMPORTANT**: Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+"""
 
     void_warning = ""
     if void_score >= 5:
@@ -164,6 +228,7 @@ Further void exposure may have severe consequences.
 
 # Goals
 {goals_text}
+{dialogue_goal_text}
 
 # How to Declare Actions
 
@@ -191,16 +256,6 @@ COMPONENTS: [what materials are you using?]
 
 # Action Selection Guidelines
 
-**⭐ DIALOGUE WITH PARTY MEMBERS (Consider Every Turn):**
-Talking to your companions is a free social action. Consider:
-- "Talk to [character] about what we've discovered"
-- "Ask [character] if they've sensed this pattern before"
-- "Discuss with [character] whether to proceed or retreat"
-- "Tell [character] about the clue I found"
-- "Question [character] about their theory"
-
-Use `Empathy × Charm` or `Empathy × Counsel` for inter-party dialogue.
-
 **High Risk Tolerance ({personality.get('riskTolerance', 5)}/10):**
 {'- Take bold, proactive actions' if personality.get('riskTolerance', 5) > 6 else '- Be cautious and methodical'}
 {'- Not afraid of difficult checks' if personality.get('riskTolerance', 5) > 6 else '- Prefer safer, more certain approaches'}
@@ -210,9 +265,11 @@ Use `Empathy × Charm` or `Empathy × Counsel` for inter-party dialogue.
 {'- Use void-manipulation tech if available' if personality.get('voidCuriosity', 5) > 6 else '- Use traditional, non-void methods'}
 
 **Bond Preference: {personality.get('bondPreference', 'neutral')}**
-{'- Seek to form and protect bonds' if personality.get('bondPreference') == 'seeks' else ''}
-{'- Avoid entangling bonds' if personality.get('bondPreference') == 'avoids' else ''}
-{'- Pragmatic about bonds' if personality.get('bondPreference') == 'neutral' else ''}
+{'- Seek to form and protect formal Bonds (spiritual/economic commitments)' if personality.get('bondPreference') == 'seeks' else ''}
+{'- Avoid formal Bond commitments (but casual teamwork/coordination is fine)' if personality.get('bondPreference') == 'avoids' else ''}
+{'- Pragmatic about formal Bonds' if personality.get('bondPreference') == 'neutral' else ''}
+
+Note: **Bonds** (capital B) are formal spiritual/economic commitments. Casual coordination and teamwork do NOT create Bonds.
 
 {knowledge_context}
 

@@ -95,6 +95,7 @@ class AIDMAgent(Agent):
         """Generate scenario using AI with lore grounding."""
         # Query knowledge retrieval for Aeonisk lore
         lore_context = ""
+        variety_context = ""
         if self.shared_state:
             knowledge = self.shared_state.get_knowledge_retrieval()
             if knowledge:
@@ -105,17 +106,21 @@ class AIDMAgent(Agent):
                     for result in lore_results:
                         lore_context += f"{result['content'][:400]}\n\n"
                     lore_context += "\nKEY CONSTRAINTS:\n"
-                    lore_context += "- Setting: Aeonisk Prime (SINGLE PLANET - no space travel, no orbital stations)\n"
+                    lore_context += "- Setting: Three inhabited planets (Aeonisk Prime, Nimbus, Arcadia) with space travel between them\n"
                     lore_context += "- Species: Humans only (NO aliens, NO other species)\n"
-                    lore_context += "- Locations: Floating cities (Arcadia, Nimbus, Elysium) OR terrestrial zones\n"
+                    lore_context += "- Locations: Floating cities, terrestrial zones, orbital stations, space transit\n"
                     lore_context += "- Factions: Tempest Industries, Resonance Communes, Astral Commerce Group, etc.\n"
                     lore_context += "- Themes: Memory manipulation, void corruption, corporate intrigue, bond economics\n\n"
+
+            # Get variety requirements
+            variety_context = self.shared_state.get_recent_scenario_info()
 
         # Use LLM to generate dynamic scenario
         try:
             scenario_prompt = f"""Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
 
 {lore_context}
+{variety_context}
 
 Create a scenario with:
 1. Theme (2-3 words): The type of situation
@@ -136,7 +141,12 @@ CLOCK1: [name] | [max] | [description]
 CLOCK2: [name] | [max] | [description]
 CLOCK3: [name] | [max] | [description]
 
-IMPORTANT: Base your scenario on the canonical lore provided above. NO space travel, NO aliens, ONLY locations and factions from Aeonisk Prime."""
+IMPORTANT:
+- Base your scenario on the canonical lore provided above
+- Three planets: Aeonisk Prime, Nimbus, Arcadia (space travel between them is possible)
+- Humans only, NO aliens
+- Pick a DIFFERENT theme and location from recently used ones (if listed above)
+- Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, etc."""
 
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
@@ -155,6 +165,33 @@ IMPORTANT: Base your scenario on the canonical lore provided above. NO space tra
 
             # Parse LLM response
             scenario_data = self._parse_scenario_from_llm(llm_text)
+
+            # Enforce variety - reject if location matches recent scenarios
+            if self.shared_state:
+                recent_scenarios = self.shared_state.recent_scenarios
+                location_lower = scenario_data['location'].lower()
+
+                # Check if this location was recently used
+                for recent in recent_scenarios:
+                    if recent['location'].lower() in location_lower or location_lower in recent['location'].lower():
+                        print(f"[DM {self.agent_id}] Location '{scenario_data['location']}' was recently used - regenerating...")
+
+                        # Try ONE more time with stronger emphasis
+                        retry_prompt = scenario_prompt.replace(
+                            "Pick a DIFFERENT theme and location",
+                            "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
+                        )
+
+                        response = await asyncio.to_thread(
+                            client.messages.create,
+                            model=model,
+                            max_tokens=500,
+                            temperature=1.0,  # Higher temperature for more creativity
+                            messages=[{"role": "user", "content": retry_prompt}]
+                        )
+                        llm_text = response.content[0].text.strip()
+                        scenario_data = self._parse_scenario_from_llm(llm_text)
+                        break  # Only check first match and retry once
 
         except Exception as e:
             logger.error(f"Failed to generate AI scenario: {e}, using fallback")
@@ -211,6 +248,14 @@ IMPORTANT: Base your scenario on the canonical lore provided above. NO space tra
         print(f"\n[DM {self.agent_id}] Generated scenario: {scenario.theme}")
         print(f"Location: {scenario.location}")
         print(f"Situation: {scenario.situation}")
+
+        # Track scenario for variety in future sessions
+        if self.shared_state:
+            self.shared_state.add_scenario(scenario.theme, scenario.location)
+            # Save to persistent dm_notes.json
+            from pathlib import Path
+            dm_notes_path = Path('./multiagent_output') / 'dm_notes.json'
+            self.shared_state.save_dm_notes(str(dm_notes_path))
         
     async def _request_human_scenario(self, config: Dict[str, Any]):
         """Request scenario from human DM."""
@@ -347,7 +392,7 @@ What do you do?
             
         self.send_message_sync(
             MessageType.ACTION_RESOLVED,
-            player_id,
+            None,  # Broadcast so all players see each other's results
             {
                 'original_action': action,
                 'outcome': outcome,
@@ -439,7 +484,7 @@ What do you do?
 
             # Generate narrative description using LLM
             llm_narration = await self._generate_llm_response(
-                player_id, action_type, description, resolution
+                player_id, action_type, description, resolution, action
             )
 
             narration = f"{mechanical_text}\n\n{llm_narration}{narration_suffix}"
@@ -478,7 +523,8 @@ What do you do?
                 # Look for sentences that suggest new information
                 discovery_text = self._extract_discovery_from_narration(llm_narration, intent)
                 if discovery_text:
-                    self.shared_state.add_discovery(discovery_text)
+                    character_name = action.get('character', 'Unknown')
+                    self.shared_state.add_discovery(discovery_text, character_name)
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -554,7 +600,7 @@ What do you do?
                 # Build effects list
                 effects = state_changes.get('notes', []) + state_changes.get('consequences', [])
 
-                # Log the action resolution
+                # Log the action resolution with enriched data
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
                     phase="resolve",
@@ -566,7 +612,11 @@ What do you do?
                     effects=effects,
                     context={
                         "action_type": action_type,
-                        "is_ritual": action.get('is_ritual', False)
+                        "is_ritual": action.get('is_ritual', False),
+                        "faction": action.get('faction', 'Unknown'),
+                        "description": action.get('description', ''),
+                        "narration": llm_narration,
+                        "is_free_action": action.get('is_free_action', False)
                     }
                 )
 
@@ -600,7 +650,7 @@ What do you do?
 
         self.send_message_sync(
             MessageType.ACTION_RESOLVED,
-            player_id,
+            None,  # Broadcast so all players see each other's results
             {
                 'original_action': action,
                 'outcome': outcome,
@@ -693,7 +743,7 @@ What do you do?
         """Handle DM narration messages (no-op - DM sends these, doesn't receive them)."""
         pass
 
-    async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None) -> str:
+    async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None, action=None) -> str:
         """Generate DM response using LLM."""
         provider = self.llm_config.get('provider', 'openai')
         model = self.llm_config.get('model', 'gpt-4')
@@ -708,6 +758,16 @@ Situation: {self.current_scenario.situation}
 Void Level: {self.current_scenario.void_level}/10
 """
 
+        # Add character context including faction
+        character_context = ""
+        if action:
+            character_name = action.get('character', 'Unknown')
+            faction = action.get('faction', 'Unaffiliated')
+            character_context = f"""
+Character: {character_name} ({faction})
+Note: NPCs and other characters are aware of this affiliation. Consider how faction ties might create complications, opportunities, or conflicts.
+"""
+
         resolution_context = ""
         if resolution:
             outcome_text = "succeeded" if resolution.success else "failed"
@@ -718,6 +778,7 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
         prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
+{character_context}
 {resolution_context}
 
 Player Action: {description}
@@ -727,7 +788,8 @@ As the DM, describe what happens narratively as a result of this action. Be vivi
 1. What the player discovers or experiences
 2. Any immediate consequences or complications
 3. How the void energy might influence the outcome (if relevant)
-4. Provide a new clue, complication, or piece of information to advance the story
+4. Consider how the character's faction affiliation might be relevant (recognition, suspicion, access, etc.)
+5. Provide a new clue, complication, or piece of information to advance the story
 
 Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atmosphere."""
 
@@ -740,7 +802,7 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
                     messages=[{"role": "system", "content": "You are an expert Aeonisk YAGS Dungeon Master."},
                              {"role": "user", "content": prompt}],
                     temperature=temperature,
-                    max_tokens=150
+                    max_tokens=400
                 )
                 return response.choices[0].message.content.strip()
 
@@ -751,7 +813,7 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
                 response = await asyncio.to_thread(
                     client.messages.create,
                     model=model,
-                    max_tokens=150,
+                    max_tokens=400,
                     temperature=temperature,
                     messages=[{"role": "user", "content": prompt}]
                 )
