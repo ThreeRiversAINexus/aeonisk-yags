@@ -83,7 +83,7 @@ def main():
         '--log-level',
         default='INFO',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        help='Set logging level'
+        help='Set logging level (use DEBUG for detailed ChromaDB visibility)'
     )
     
     args = parser.parse_args()
