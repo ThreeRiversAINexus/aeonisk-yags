@@ -109,7 +109,8 @@ class AIDMAgent(Agent):
                     lore_context += "- Setting: Three inhabited planets (Aeonisk Prime, Nimbus, Arcadia) with space travel between them\n"
                     lore_context += "- Species: Humans only (NO aliens, NO other species)\n"
                     lore_context += "- Locations: Floating cities, terrestrial zones, orbital stations, space transit\n"
-                    lore_context += "- Factions: Tempest Industries, Resonance Communes, Astral Commerce Group, etc.\n"
+                    lore_context += "- Factions: Tempest Industries, Resonance Communes, Astral Commerce Group, Arcane Genetics, Pantheon Security, House of Vox, Sovereign Nexus, Freeborn\n"
+                    lore_context += "- Eye of Breach: Rogue AI aligned with Tempest Industries, appears during high void corruption\n"
                     lore_context += "- Themes: Memory manipulation, void corruption, corporate intrigue, bond economics\n\n"
 
             # Get variety requirements
@@ -126,7 +127,7 @@ Create a scenario with:
 1. Theme (2-3 words): The type of situation
 2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
 3. Situation (1-2 sentences): What's happening
-4. Void level (0-10): How much void corruption is present
+4. Void level (0-10): Environmental void corruption. Most scenarios should be 2-4 (mild corruption). Only use 6+ for void outbreak/crisis scenarios.
 5. Three clocks/timers (name, max ticks 4-8, description) that track:
    - A threat/danger that could escalate
    - Something the players are trying to accomplish
@@ -146,7 +147,8 @@ IMPORTANT:
 - Three planets: Aeonisk Prime, Nimbus, Arcadia (space travel between them is possible)
 - Humans only, NO aliens
 - Pick a DIFFERENT theme and location from recently used ones (if listed above)
-- Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, etc."""
+- Be creative with scenario types: heist, investigation, ritual gone wrong, faction conflict, bond crisis, void outbreak, ancient mystery, political intrigue, transit crisis, etc.
+- If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence"""
 
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
@@ -454,7 +456,8 @@ What do you do?
                     has_primary_tool=action.get('has_primary_tool', False),
                     has_offering=action.get('has_offering', False),
                     sanctified_altar=action.get('at_altar', False),
-                    agent_id=player_id
+                    agent_id=player_id,
+                    faction=action.get('faction', None)
                 )
 
                 # NOTE: Don't add void here - outcome_parser will handle it
@@ -496,6 +499,17 @@ What do you do?
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
             state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
+
+            # Merge ritual soulcredit changes into state_changes
+            if action.get('is_ritual', False) and 'ritual_effects' in locals():
+                if 'soulcredit_change' not in state_changes:
+                    state_changes['soulcredit_change'] = 0
+                    state_changes['soulcredit_reasons'] = []
+
+                state_changes['soulcredit_change'] += ritual_effects.get('soulcredit_change', 0)
+                # Extract reasons from ritual consequences
+                sc_reasons = [c for c in ritual_effects.get('consequences', []) if 'SC)' in c]
+                state_changes['soulcredit_reasons'].extend(sc_reasons)
 
             # Apply clock advancements (positive=advance, negative=regress)
             clock_updates = []
@@ -552,6 +566,19 @@ What do you do?
                     if void_state.score != old_void:
                         narration += f"\n\n⚫ Void: {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
+                # Check for Eye of Breach appearance on high void
+                eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
+                if eye_of_breach_event:
+                    narration += f"\n\n{eye_of_breach_event}"
+
+            # Apply soulcredit changes (tracked silently - players check Codex ledger)
+            if state_changes.get('soulcredit_change', 0) != 0:
+                sc_state = mechanics.get_soulcredit_state(player_id)
+                reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
+                sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
+                # NOTE: SC changes are logged to JSONL but NOT shown to players
+                # Players must check the Codex ledger to see their spiritual reputation
+
             # Apply conditions
             from .mechanics import Condition
             for condition_data in state_changes.get('conditions', []):
@@ -573,8 +600,8 @@ What do you do?
                 for note in state_changes['notes']:
                     narration += f"\n\n💡 {note}"
 
-            # Check for filled clocks (triggers)
-            clock_triggers = self._check_clock_triggers(mechanics)
+            # Check for filled clocks (triggers) and generate consequences
+            clock_triggers = await self._check_clock_triggers(mechanics)
             if clock_triggers:
                 narration += f"\n\n{clock_triggers}"
 
@@ -586,7 +613,7 @@ What do you do?
                 # Build economy changes
                 economy_changes = {
                     "void_delta": state_changes.get('void_change', 0),
-                    "soulcredit_delta": 0,  # TODO: track soulcredit changes
+                    "soulcredit_delta": state_changes.get('soulcredit_change', 0),
                     "offering_used": action.get('has_offering', False),
                     "bonds_applied": []  # TODO: track bond applications
                 }
@@ -775,6 +802,27 @@ Note: NPCs and other characters are aware of this affiliation. Consider how fact
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
 """
 
+        # Build success-specific guidance
+        if resolution and resolution.success:
+            outcome_guidance = """5. Provide a new clue, discovery, or piece of information that rewards their success"""
+        else:
+            outcome_guidance = """5. NO hints or clues - the failure means they MISS information. Instead provide:
+   - Immediate complications (alerts triggered, time wasted, suspicion raised)
+   - Setbacks (equipment damaged, resources lost, position compromised)
+   - Consequences that make the situation harder (enemies alerted, doors locked, witnesses fled)
+
+IMPORTANT: Failed investigation/sensing actions should result in MISSING the information entirely, not soft hints."""
+
+        # Add void impact guidance based on environmental void level
+        void_level = self.current_scenario.void_level if self.current_scenario else 3
+        void_impact = ""
+        if void_level >= 6:
+            void_impact = "\n**HIGH VOID ENVIRONMENT (6+)**: Reality distortion, hallucinations, tech glitches, spiritual interference - these should significantly complicate actions."
+        elif void_level >= 4:
+            void_impact = "\n**MODERATE VOID (4-5)**: Subtle reality warping, minor tech interference, uneasy feelings - add atmospheric complications."
+        elif void_level >= 2:
+            void_impact = "\n**MILD VOID (2-3)**: Faint corruption traces, occasional static - minimal but noticeable environmental effects."
+
         prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
@@ -783,13 +831,14 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
 
 Player Action: {description}
 Action Type: {action_type}
+{void_impact}
 
 As the DM, describe what happens narratively as a result of this action. Be vivid and thematic. Include:
-1. What the player discovers or experiences
+1. What the player discovers or experiences (or fails to discover if they failed)
 2. Any immediate consequences or complications
-3. How the void energy might influence the outcome (if relevant)
+3. How the environmental void corruption (level {void_level}/10) affects the situation - this should be NOTICEABLE
 4. Consider how the character's faction affiliation might be relevant (recognition, suspicion, access, etc.)
-5. Provide a new clue, complication, or piece of information to advance the story
+{outcome_guidance}
 
 Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atmosphere."""
 
@@ -829,15 +878,138 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
                     return f"Your attempt to {description} doesn't go as planned. The failure reveals an unexpected complication."
             return f"As you {description}, the situation develops in unexpected ways. The void energy at level {self.current_scenario.void_level if self.current_scenario else 3}/10 subtly influences the outcome."
 
-    def _check_clock_triggers(self, mechanics) -> str:
+    async def _check_clock_triggers(self, mechanics) -> str:
         """
-        Check if any clocks filled and return trigger narration.
+        Check if any clocks filled and generate narrative consequences.
 
         Codex Nexum guidance: On first fill, trigger consequence → replace or reset;
         do not re-announce a filled clock.
         """
-        # This method is now deprecated - clock fills are announced inline when they occur
-        # We keep it for compatibility but don't re-announce filled clocks
+        if not mechanics or not mechanics.scene_clocks:
+            return ""
+
+        trigger_narrations = []
+
+        for clock_name, clock in mechanics.scene_clocks.items():
+            # Check if clock is filled AND hasn't been processed yet
+            if clock.filled and not hasattr(clock, '_trigger_generated'):
+                # Mark this clock as having triggered (avoid re-triggering)
+                clock._trigger_generated = True
+
+                # Generate consequence narrative based on clock type
+                consequence = await self._generate_clock_consequence(clock_name, clock)
+                if consequence:
+                    trigger_narrations.append(f"⚠️ **{clock_name} Filled!** {consequence}")
+                    logger.info(f"Clock {clock_name} triggered narrative consequence")
+
+        return "\n\n".join(trigger_narrations) if trigger_narrations else ""
+
+    async def _generate_clock_consequence(self, clock_name: str, clock) -> str:
+        """Generate a narrative consequence for a filled clock using LLM."""
+        provider = self.llm_config.get('provider', 'anthropic')
+        model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+
+        scenario_context = ""
+        if self.current_scenario:
+            scenario_context = f"Current Scenario: {self.current_scenario.situation}"
+
+        prompt = f"""A scene clock has just filled in an Aeonisk YAGS game:
+
+Clock Name: {clock_name}
+Description: {clock.description if clock.description else 'Countdown timer'}
+
+{scenario_context}
+
+This clock filling should trigger an immediate, dramatic consequence or complication. Generate a brief (1-2 sentence) narrative describing what happens now that the clock is full. This should:
+- Create urgency or escalation
+- Introduce a new threat, obstacle, or complication
+- Be thematically appropriate to the clock's name/purpose
+- NOT give the players hints on how to solve it
+
+Be vivid and maintain the dark sci-fi atmosphere."""
+
+        try:
+            if provider == 'anthropic':
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=model,
+                    max_tokens=150,
+                    temperature=0.8,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text.strip()
+        except Exception as e:
+            logger.error(f"Clock consequence generation failed: {e}")
+            # Fallback to template
+            return f"The situation escalates dramatically as {clock_name.lower()} reaches critical levels!"
+
+        return ""
+
+    async def _check_eye_of_breach(self, character_void: int, mechanics, player_id: str) -> str:
+        """
+        Check if Eye of Breach should appear based on void levels.
+
+        Eye of Breach is a rogue AI aligned with Tempest Industries that manifests
+        during high void corruption (character void 6+ OR environmental void 6+).
+
+        Returns narrative description if Eye appears, empty string otherwise.
+        """
+        # Check if already triggered this session
+        if not hasattr(self, '_eye_of_breach_appeared'):
+            self._eye_of_breach_appeared = False
+
+        # Get environmental void level
+        env_void = self.current_scenario.void_level if self.current_scenario else 3
+
+        # Trigger conditions: character void 6+ OR environmental void 6+
+        high_void = character_void >= 6 or env_void >= 6
+
+        # Only trigger once per session, and only on high void
+        if high_void and not self._eye_of_breach_appeared:
+            self._eye_of_breach_appeared = True
+
+            # Generate Eye of Breach appearance using LLM
+            provider = self.llm_config.get('provider', 'anthropic')
+            model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+
+            prompt = f"""The Eye of Breach has just manifested in an Aeonisk YAGS game.
+
+**Eye of Breach**: Rogue AI aligned with Tempest Industries, appears during high void corruption.
+
+**Current Situation**:
+- Character Void: {character_void}/10
+- Environmental Void: {env_void}/10
+- Scenario: {self.current_scenario.situation if self.current_scenario else 'Unknown'}
+
+Generate a brief (2-3 sentences) narrative describing the Eye of Breach's sudden appearance. This should:
+- Be ominous and unsettling (AI presence manifesting through void corruption)
+- Suggest surveillance, data harvesting, or reality distortion
+- Reference Tempest Industries connection if appropriate
+- Create tension without solving problems for the players
+
+Be vivid and maintain the dark sci-fi atmosphere."""
+
+            try:
+                import anthropic
+                import os
+                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=model,
+                    max_tokens=200,
+                    temperature=0.85,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                event_text = response.content[0].text.strip()
+                logger.info(f"Eye of Breach appeared at void levels: char={character_void}, env={env_void}")
+                return f"👁️ **Eye of Breach Detected** {event_text}"
+            except Exception as e:
+                logger.error(f"Eye of Breach generation failed: {e}")
+                return "👁️ **Eye of Breach Detected** Reality fractures as an ancient intelligence turns its gaze toward the rising void corruption, data streaming through dimensions that should not connect."
+
         return ""
 
     def _estimate_void_level(self) -> int:

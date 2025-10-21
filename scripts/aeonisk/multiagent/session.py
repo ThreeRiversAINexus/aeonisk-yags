@@ -152,7 +152,17 @@ class SelfPlayingSession:
             )
             self.agents.append(player_agent)
             await player_agent.start()
-            
+
+        # Initialize mechanics state for all players
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics:
+            player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+            for player in player_agents:
+                # Initialize soulcredit state with character's starting value
+                initial_sc = getattr(player.character_state, 'soulcredit', 0)
+                mechanics.get_soulcredit_state(player.agent_id, initial_score=initial_sc)
+                logger.info(f"Initialized {player.character_state.name} soulcredit: {initial_sc}")
+
         logger.info(f"Created {len(self.agents)} agents")
         
     async def _wait_for_agents_ready(self):
@@ -202,12 +212,20 @@ class SelfPlayingSession:
             # Run DM turn at end of round
             await self._run_dm_turn()
 
+            # Check if we've completed enough rounds
+            if round_count >= max_rounds:
+                print(f"\n=== Completed {round_count} rounds ===")
+                break
+
             # Check for session end conditions
             if await self._check_end_conditions():
                 break
 
             # Brief pause between rounds
             await asyncio.sleep(1)
+
+        # Mission debrief
+        await self._run_mission_debrief()
 
         await self._end_session()
         
@@ -269,7 +287,108 @@ class SelfPlayingSession:
             
         # Wait for DM response
         await asyncio.sleep(2)
-        
+
+    async def _run_mission_debrief(self):
+        """Run post-mission debrief where players discuss what happened."""
+        print(f"\n{'='*60}")
+        print(f"=== MISSION DEBRIEF ===")
+        print(f"{'='*60}\n")
+
+        player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+
+        if not player_agents or not player_agents[0].llm_config:
+            print("[Debrief skipped - no AI players]\n")
+            return
+
+        # Build debrief context
+        mechanics = self.shared_state.get_mechanics_engine()
+
+        # Sync final state from mechanics engine to player character states
+        if mechanics:
+            for player in player_agents:
+                player_id = player.agent_id
+                # Sync void from mechanics to character state
+                if player_id in mechanics.void_states:
+                    player.character_state.void_score = mechanics.void_states[player_id].score
+                # Sync soulcredit from mechanics to character state
+                if player_id in mechanics.soulcredit_states:
+                    player.character_state.soulcredit = mechanics.soulcredit_states[player_id].score
+
+        # Get final state
+        void_states = []
+        for player in player_agents:
+            void_score = player.character_state.void_score
+            sc_score = player.character_state.soulcredit
+            void_states.append(f"{player.character_state.name}: Void {void_score}/10, Soulcredit {sc_score}")
+
+        clocks_status = []
+        if mechanics and mechanics.scene_clocks:
+            for name, clock in mechanics.scene_clocks.items():
+                clocks_status.append(f"{name}: {clock.current}/{clock.maximum}")
+
+        # Prompt each player for debrief
+        for player in player_agents:
+            try:
+                import anthropic
+                client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+                # Get scenario situation from player's current_scenario
+                scenario_situation = "Mission completed"
+                if player.current_scenario:
+                    scenario_situation = player.current_scenario.get('situation', 'Unknown situation')
+
+                debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) after completing a mission.
+
+**Mission Context:**
+{scenario_situation}
+
+**Final Status:**
+{chr(10).join(void_states)}
+{chr(10).join(clocks_status) if clocks_status else 'No clocks tracked'}
+
+**Your Faction**: {player.character_state.faction}
+**Your Goals**: {', '.join(player.character_state.goals)}
+
+Provide a brief (2-3 sentence) debrief statement in character voice:
+- What did you accomplish or learn?
+- How do you feel about working with your companion?
+- What are your concerns going forward?
+
+Keep it conversational and in character. Address your companion by name if relevant."""
+
+                response = await asyncio.to_thread(
+                    client.messages.create,
+                    model=player.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                    max_tokens=200,
+                    temperature=0.8,
+                    messages=[{"role": "user", "content": debrief_prompt}]
+                )
+
+                debrief_text = response.content[0].text.strip()
+                print(f"[{player.character_state.name}] {debrief_text}\n")
+
+                # Log debrief to JSONL
+                if mechanics and mechanics.jsonl_logger:
+                    character_state_snapshot = {
+                        'name': player.character_state.name,
+                        'faction': player.character_state.faction,
+                        'void_score': player.character_state.void_score,
+                        'soulcredit': player.character_state.soulcredit,
+                        'goals': player.character_state.goals,
+                    }
+                    mechanics.jsonl_logger.log_debrief(
+                        character_name=player.character_state.name,
+                        debrief_text=debrief_text,
+                        character_state=character_state_snapshot
+                    )
+
+                await asyncio.sleep(1)
+
+            except Exception as e:
+                print(f"[{player.character_state.name}] [Debrief generation failed: {e}]\n")
+
+        print(f"{'='*60}\n")
+
     async def _check_end_conditions(self) -> bool:
         """Check if session should end."""
         # Simple end conditions - enhance as needed
@@ -311,14 +430,38 @@ class SelfPlayingSession:
                 mechanics.jsonl_logger.log_session_end(state_summary)
                 print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
 
+        # Collect voice profiles for ONLY the players in this session (not entire pool)
+        player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+        active_voice_profiles = []
+        active_player_configs = []
+        for player in player_agents:
+            if hasattr(player, 'voice_profile') and player.voice_profile:
+                active_voice_profiles.append(player.voice_profile.as_dict())
+            # Collect character config for this player
+            active_player_configs.append({
+                'name': player.character_state.name,
+                'faction': player.character_state.faction,
+                'attributes': player.character_state.attributes,
+                'skills': player.character_state.skills,
+                'void_score': player.character_state.void_score,
+                'soulcredit': player.character_state.soulcredit,
+                'goals': player.character_state.goals,
+                'bonds': player.character_state.bonds,
+            })
+
+        # Filter config to only include active players
+        session_config = dict(self.config)
+        if 'agents' in session_config and 'players' in session_config['agents']:
+            session_config['agents']['players'] = active_player_configs
+
         # Collect final session data
         final_data = {
             'session_id': self.session_id,
-            'config': self.config,
+            'config': session_config,  # Filtered config with only active players
             'turns': self.coordinator.get_session_data(),
             'end_time': datetime.now().isoformat(),
             'shared_state': self.shared_state.snapshot(),
-            'voice_profiles': [profile.as_dict() for profile in self.voice_library.all_profiles()],
+            'voice_profiles': active_voice_profiles,  # Only active players
         }
 
         # Save session data

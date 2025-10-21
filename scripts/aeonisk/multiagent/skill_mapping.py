@@ -4,10 +4,10 @@ Skill normalization and validation for Aeonisk YAGS.
 
 from typing import Dict, Optional, Tuple
 
-# YAGS Core Skills
+# YAGS Core Skills + Aeonisk-Specific Skills
 # Based on Aeonisk v1.2.2 module
 SKILL_ALIASES = {
-    # Social skills
+    # Social skills (YAGS Base Talents)
     'social': 'Charm',
     'charm': 'Charm',
     'guile': 'Guile',
@@ -15,28 +15,52 @@ SKILL_ALIASES = {
     'persuasion': 'Charm',
     'empathy': 'Charm',  # As a skill action
 
-    # Investigation skills
+    # Investigation skills (YAGS Base)
     'investigation': 'Awareness',
     'investigate': 'Awareness',
     'awareness': 'Awareness',
     'perception': 'Awareness',  # As a skill action
     'search': 'Awareness',
 
-    # Astral/Ritual skills
+    # Combat skills (YAGS Base)
+    'combat': 'Combat',
+    'melee': 'Melee',
+    'brawl': 'Brawl',
+    'guns': 'Guns',
+
+    # Movement skills (YAGS Base)
+    'athletics': 'Athletics',
+    'stealth': 'Stealth',
+
+    # Astral/Ritual skills (Aeonisk-Specific)
     'astral arts': 'Astral Arts',
     'astral': 'Astral Arts',
     'ritual': 'Astral Arts',
+    'attunement': 'Attunement',  # Optional Aeonisk skill for sensing/ritual attuning
 
-    # Technical skills
+    # Technical skills (YAGS Base + Aeonisk)
     'tech/craft': 'Tech/Craft',
     'tech': 'Tech/Craft',
     'craft': 'Tech/Craft',
     'technology': 'Tech/Craft',
+    'systems': 'Systems',  # Technical systems operation
+    'drone operation': 'Drone Operation',  # Aeonisk-Specific
+    'pilot': 'Pilot',  # Aeonisk-Specific
 
-    # Knowledge skills
+    # Knowledge skills (YAGS Base + Aeonisk)
     'magick theory': 'Magick Theory',
     'magic theory': 'Magick Theory',
     'theory': 'Magick Theory',
+
+    # Aeonisk-Specific Social/Economic Skills
+    'corporate influence': 'Corporate Influence',
+    'debt law': 'Debt Law',
+    'intimacy ritual': 'Intimacy Ritual',
+
+    # Counseling/Support (YAGS Base or custom)
+    'counsel': 'Counsel',
+    'counseling': 'Counsel',
+    'healing': 'Healing',
 }
 
 # Ritual rules: MUST use Willpower
