@@ -17,9 +17,10 @@ class ActionRouter:
     RITUAL_KEYWORDS = ['perform a ritual', 'conduct a ritual', 'ritual to', 'begin ritual', 'cast ritual', 'invoke ritual']
     TECH_KEYWORDS = ['interface', 'hack', 'patch', 'contain', 'isolate', 'firewall', 'encrypt', 'debug', 'analyze system']
     DREAMWORK_KEYWORDS = ['dream', 'sleep', 'oneiric', 'lucid', 'nightmare', 'vision', 'memory dive']
+    DIALOGUE_KEYWORDS = ['talk to', 'speak to', 'ask', 'tell', 'discuss with', 'question', 'say to', 'converse with']
     SOCIAL_CARE_KEYWORDS = ['counsel', 'comfort', 'guide', 'heal mind', 'therapy', 'support']
     SOCIAL_COMMAND_KEYWORDS = ['order', 'command', 'rally', 'intimidate', 'coordinate', 'organize']
-    SOCIAL_GENERAL = ['discuss', 'talk', 'ask', 'share', 'question', 'convince', 'persuade']
+    SOCIAL_GENERAL = ['discuss', 'talk', 'share', 'convince', 'persuade']
     INVESTIGATION_KEYWORDS = ['investigate', 'search', 'examine', 'study', 'research', 'uncover']
     GROUNDING_KEYWORDS = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
     PURGE_KEYWORDS = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
@@ -58,7 +59,16 @@ class ActionRouter:
             else:
                 return ('Intelligence', None, 'Void purging (unskilled)')
 
-        # 2. RITUALS (opt-in only)
+        # 2. CHARACTER DIALOGUE (inter-character social interaction)
+        if any(kw in intent_lower for kw in self.DIALOGUE_KEYWORDS):
+            if 'Charm' in character_skills:
+                return ('Empathy', 'Charm', 'Dialogue with party member')
+            elif 'Counsel' in character_skills:
+                return ('Empathy', 'Counsel', 'Dialogue with party member')
+            else:
+                return ('Empathy', None, 'Dialogue (unskilled)')
+
+        # 3. RITUALS (opt-in only)
         if is_explicit_ritual or action_type == 'ritual':
             return ('Willpower', 'Astral Arts', 'Ritual action')
 
