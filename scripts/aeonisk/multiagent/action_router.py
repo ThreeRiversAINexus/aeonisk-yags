@@ -31,7 +31,8 @@ class ActionRouter:
         action_type: str,
         character_skills: dict,
         is_explicit_ritual: bool = False,
-        declared_skill: Optional[str] = None
+        declared_skill: Optional[str] = None,
+        other_players: list = None
     ) -> Tuple[str, Optional[str], str]:
         """
         Route an action to the appropriate attribute and skill.
@@ -45,6 +46,7 @@ class ActionRouter:
             character_skills: Character's skill dict
             is_explicit_ritual: Whether this is explicitly marked as a ritual
             declared_skill: The skill the character declared (if any)
+            other_players: List of other player names (for inter-party detection)
 
         Returns:
             Tuple of (attribute, skill, rationale)
@@ -115,7 +117,27 @@ class ActionRouter:
             else:
                 return ('Empathy', None, 'Dialogue (unskilled)')
 
-        # 3. RITUALS (opt-in only)
+        # 3. INTER-PARTY RITUALS (social rituals involving other characters)
+        # Check if this is a ritual that mentions another player
+        is_inter_party_ritual = False
+        if (is_explicit_ritual or action_type == 'ritual') and other_players:
+            for player_name in other_players:
+                if player_name.lower() in intent_lower:
+                    is_inter_party_ritual = True
+                    break
+
+        if is_inter_party_ritual:
+            # Rituals involving other characters are social/bonding actions → Intimacy Ritual
+            if 'Intimacy Ritual' in character_skills:
+                return ('Empathy', 'Intimacy Ritual', 'Inter-party ritual (social bonding)')
+            elif 'Charm' in character_skills:
+                return ('Empathy', 'Charm', 'Inter-party interaction (no Intimacy Ritual skill)')
+            elif 'Counsel' in character_skills:
+                return ('Empathy', 'Counsel', 'Inter-party interaction (no Intimacy Ritual skill)')
+            else:
+                return ('Empathy', None, 'Inter-party interaction (unskilled)')
+
+        # 4. RITUALS (spiritual/magical rituals - opt-in only)
         if is_explicit_ritual or action_type == 'ritual':
             return ('Willpower', 'Astral Arts', 'Ritual action')
 

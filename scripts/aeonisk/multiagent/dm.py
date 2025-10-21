@@ -605,6 +605,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         print(f"\n[DM {self.agent_id}] ===== Adjudicating {len(actions)} actions =====")
 
+        # Log adjudication start
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_adjudication_start(round_num, len(actions))
+
         # Process each action mechanically (fastest → slowest, same as actions list)
         resolutions = []
         for action_entry in actions:
@@ -635,6 +641,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
         print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
         print(synthesis)
         print("=" * 40)
+
+        # Log synthesis
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_synthesis(round_num, synthesis)
 
         # Send individual resolutions to each player
         for res in resolutions:
@@ -777,6 +789,34 @@ Be vivid and cinematic. Show how these actions interacted and created a dynamic 
                 narration = f"{mechanical_text}\n\n{llm_narration}"
             else:
                 narration = f"{mechanical_text}\n\n{resolution.narrative}"
+
+            # Parse narration for clock triggers and state changes
+            from .outcome_parser import parse_state_changes
+
+            # Get active clocks for dynamic clock progression
+            active_clocks = mechanics.scene_clocks if mechanics else {}
+
+            state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
+
+            # Apply clock advancements
+            clock_updates = []
+            for clock_name, ticks, reason in state_changes['clock_triggers']:
+                if clock_name in mechanics.scene_clocks:
+                    if ticks < 0:
+                        # Negative ticks = regress (improve)
+                        mechanics.scene_clocks[clock_name].regress(abs(ticks))
+                        clock = mechanics.scene_clocks[clock_name]
+                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ↓")
+                    else:
+                        # Positive ticks = advance (degrade)
+                        filled = mechanics.advance_clock(clock_name, ticks, reason)
+                        clock = mechanics.scene_clocks[clock_name]
+                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                        if filled:
+                            clock_updates.append(f"🚨 {clock_name} FILLED!")
+
+            if clock_updates:
+                narration += "\n\n📊 " + " | ".join(clock_updates)
 
         return {
             'resolution': resolution,

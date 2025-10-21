@@ -325,13 +325,19 @@ class AIPlayerAgent(Agent):
         router = ActionRouter()
         is_explicit_ritual = router.is_explicit_ritual(action_declaration.intent)
 
+        # Get other player names for inter-party ritual detection
+        other_players = []
+        if self.shared_state:
+            other_players = self.shared_state.get_other_players(self.agent_id)
+
         # Route action to appropriate attribute + skill
         routed_attr, routed_skill, rationale = router.route_action(
             action_declaration.intent,
             action_declaration.action_type,
             self.character_state.skills,
             is_explicit_ritual,
-            declared_skill=action_declaration.skill  # Pass declared skill so router can trust it
+            declared_skill=action_declaration.skill,  # Pass declared skill so router can trust it
+            other_players=other_players  # Pass other player names for inter-party detection
         )
 
         # Apply routing if it differs from declared
@@ -342,9 +348,13 @@ class AIPlayerAgent(Agent):
 
         # Mark as ritual if explicitly stated OR if action_type is 'ritual'
         # This ensures both LLM-declared rituals and keyword-detected rituals are flagged
-        # EXCEPTION: If action was routed to dialogue (Empathy × Charm/Counsel), don't override
+        # EXCEPTIONS:
+        #   - If action was routed to dialogue (Empathy × Charm/Counsel), don't override
+        #   - If action was routed to Intimacy Ritual (social/bonding ritual), don't override
         is_dialogue_action = (routed_attr == 'Empathy' and routed_skill in ['Charm', 'Counsel'])
-        if not is_dialogue_action and (is_explicit_ritual or action_declaration.action_type == 'ritual'):
+        is_intimacy_ritual = (routed_attr == 'Empathy' and routed_skill == 'Intimacy Ritual')
+
+        if not is_dialogue_action and not is_intimacy_ritual and (is_explicit_ritual or action_declaration.action_type == 'ritual'):
             action_declaration.is_ritual = True
             action_declaration.action_type = 'ritual'
             # Ensure ritual mechanics (Willpower × Astral Arts)
@@ -377,16 +387,19 @@ class AIPlayerAgent(Agent):
                 # Try again with simpler action
                 action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
-        # Detect if this is inter-party dialogue (free action)
+        # Detect if this is inter-party communication (free action)
+        # This includes dialogue (Charm/Counsel) and social rituals (Intimacy Ritual)
         is_free_action = False
-        if is_dialogue_action and self.shared_state:
-            other_players = self.shared_state.get_other_players(self.agent_id)
+        if (is_dialogue_action or is_intimacy_ritual) and self.shared_state:
             # Check if intent mentions any party member name
             intent_lower = action_declaration.intent.lower()
             for player_name in other_players:
                 if player_name.lower() in intent_lower:
                     is_free_action = True
-                    print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
+                    if is_intimacy_ritual:
+                        print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
+                    else:
+                        print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
                     break
 
         # Convert to dict and add character-specific data
@@ -438,7 +451,8 @@ class AIPlayerAgent(Agent):
                 main_action.action_type,
                 self.character_state.skills,
                 router.is_explicit_ritual(main_action.intent),
-                declared_skill=main_action.skill
+                declared_skill=main_action.skill,
+                other_players=other_players  # Use same other_players list
             )
 
             if main_routed_attr != main_action.attribute or main_routed_skill != main_action.skill:

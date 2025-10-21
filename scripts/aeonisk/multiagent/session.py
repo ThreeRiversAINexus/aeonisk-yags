@@ -297,6 +297,10 @@ class SelfPlayingSession:
         self._in_declaration_phase = True
         self._declared_actions.clear()
 
+        # Log declaration phase start
+        if mechanics and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_declaration_phase_start(mechanics.current_round)
+
         for initiative_score, player_agent in reversed(initiative_order):  # Reversed = slowest first
             print(f"\n[{player_agent.character_state.name}] declaring (initiative {initiative_score})...")
 
@@ -630,84 +634,71 @@ Keep it conversational and in character. Address your companion by name if relev
         for event in events:
             event_type = event.get('event_type')
 
-            # Capture scenario information (typically from coordinator's session_data)
+            # Capture scenario information
             if event_type == 'scenario':
                 scenario_info = event.get('scenario')
 
             # Start new round
-            if event_type == 'round_start':
-                if current_round and current_round.get('turns'):
-                    # Save previous round if it has turns
+            elif event_type == 'round_start':
+                if current_round and (current_round.get('declarations') or current_round.get('resolutions')):
+                    # Save previous round if it has content
                     rounds.append(current_round)
 
                 current_round = {
                     'round_number': event.get('round'),
                     'timestamp': event.get('ts'),
-                    'turns': []
+                    'declarations': [],
+                    'resolutions': [],
+                    'synthesis': None
                 }
 
                 # Add scenario to round 1
                 if event.get('round') == 1 and scenario_info:
                     current_round['scenario'] = scenario_info
 
-            # Record action declaration
-            elif event_type == 'action':
-                agent = event.get('agent')
-                action_data = event.get('action', {})
-                pending_actions[agent] = {
-                    'agent': agent,
-                    'character': action_data.get('character_name', action_data.get('character', 'Unknown')),
-                    'action': action_data,
-                    'timestamp': event.get('ts')
-                }
+            # Declaration phase start
+            elif event_type == 'declaration_phase_start':
+                # Just marks the phase, no action needed
+                pass
 
-            # Record action resolution
-            elif event_type == 'action_resolution':
-                agent = event.get('agent')
-                context = event.get('context', {})
-                roll = event.get('roll', {})
-                economy = event.get('economy', {})
-                clocks = event.get('clocks', {})
-                effects = event.get('effects', [])
-
-                # Build turn entry
-                turn_entry = {
-                    'agent': agent,
-                    'character': agent,  # Will be overridden if we have pending action
-                    'action': {
-                        'intent': event.get('action'),
-                        'description': context.get('description', ''),
-                        'action_type': context.get('action_type', 'unknown'),
-                        'is_ritual': context.get('is_ritual', False),
-                        'faction': context.get('faction', 'Unknown')
-                    },
-                    'resolution': {
-                        'roll': roll,
-                        'success': roll.get('success', False),
-                        'margin': roll.get('margin', 0),
-                        'tier': roll.get('tier', 'unknown'),
-                        'narration': context.get('narration', '')
-                    },
-                    'economy': economy,
-                    'clocks_after': clocks,
-                    'effects': effects,
-                    'timestamp': event.get('ts')
-                }
-
-                # Merge with pending action if available
-                if agent in pending_actions:
-                    pending_action = pending_actions.pop(agent)
-                    turn_entry['character'] = pending_action['character']
-                    # Merge action details
-                    turn_entry['action'] = {**pending_action['action'], **turn_entry['action']}
-
-                # Add to current round
+            # Individual action declaration
+            elif event_type == 'action_declaration':
                 if current_round:
-                    current_round['turns'].append(turn_entry)
+                    current_round['declarations'].append({
+                        'player_id': event.get('player_id'),
+                        'character_name': event.get('character_name'),
+                        'initiative': event.get('initiative'),
+                        'action': event.get('action'),
+                        'timestamp': event.get('ts')
+                    })
 
-            # Record mission debrief
+            # Adjudication phase start
+            elif event_type == 'adjudication_start':
+                # Just marks the phase, no action needed
+                pass
+
+            # Action resolution (individual)
+            elif event_type == 'action_resolution':
+                if current_round:
+                    current_round['resolutions'].append({
+                        'agent': event.get('agent'),
+                        'action': event.get('action'),
+                        'context': event.get('context', {}),
+                        'roll': event.get('roll', {}),
+                        'economy': event.get('economy', {}),
+                        'clocks': event.get('clocks', {}),
+                        'effects': event.get('effects', []),
+                        'timestamp': event.get('ts')
+                    })
+
+            # Round synthesis
+            elif event_type == 'round_synthesis':
+                if current_round:
+                    current_round['synthesis'] = event.get('synthesis')
+                    current_round['synthesis_timestamp'] = event.get('ts')
+
+            # Mission debrief
             elif event_type == 'mission_debrief':
-                # Add debrief to the last round or create a debrief section
                 if current_round:
                     if 'debriefs' not in current_round:
                         current_round['debriefs'] = []
@@ -719,7 +710,7 @@ Keep it conversational and in character. Address your companion by name if relev
                     })
 
         # Add final round
-        if current_round and current_round.get('turns'):
+        if current_round and (current_round.get('declarations') or current_round.get('resolutions')):
             rounds.append(current_round)
 
         return rounds
@@ -815,6 +806,24 @@ Keep it conversational and in character. Address your companion by name if relev
             'timestamp': message.timestamp
         }
         logger.debug(f"Buffered action from {agent_id}")
+
+        # Log the declaration
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.jsonl_logger:
+                # Find the character name and initiative for this agent
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+                if player_agent:
+                    character_name = player_agent.character_state.name
+                    # Get initiative from the payload if available, otherwise 0
+                    initiative = message.payload.get('initiative', 0)
+                    mechanics.jsonl_logger.log_action_declaration(
+                        player_id=agent_id,
+                        character_name=character_name,
+                        initiative=initiative,
+                        action=message.payload,
+                        round_num=mechanics.current_round
+                    )
 
         # Signal that this agent's declaration is complete
         if agent_id in self._pending_declarations:
