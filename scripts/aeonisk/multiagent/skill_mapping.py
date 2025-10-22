@@ -95,20 +95,42 @@ def validate_ritual_mechanics(
     skill: Optional[str]
 ) -> Tuple[str, str]:
     """
-    Enforce ritual mechanics rules.
+    Enforce ritual mechanics rules with proper skill routing.
 
-    Aeonisk Module Rule: Rituals MUST use Willpower × Astral Arts
+    Ritual Rules:
+    - Void manipulation rituals: Willpower × Astral Arts
+    - Intimacy/social rituals: Use Intimacy Ritual skill (if specified)
+    - Investigation of rituals: Use Magick Theory (not Astral Arts)
+    - Default rituals: Willpower × Astral Arts
 
     Args:
         action_type: Type of action
         attribute: Proposed attribute
-        skill: Proposed skill
+        skill: Proposed skill (may already be normalized)
 
     Returns:
         Tuple of (corrected_attribute, corrected_skill)
     """
     if action_type == 'ritual':
-        # Force Willpower × Astral Arts for all rituals
+        # Normalize skill to check what was intended
+        normalized_skill = normalize_skill(skill) if skill else None
+
+        # Intimacy rituals use their own skill
+        if normalized_skill == 'Intimacy Ritual':
+            return (RITUAL_ATTRIBUTE, normalized_skill)
+
+        # Magick Theory is for investigating/analyzing rituals, not performing them
+        # If someone is "investigating a ritual", it's not action_type='ritual'
+        # So if we're here with Magick Theory, it's likely misclassified
+        # Keep it but flag for review
+        if normalized_skill == 'Magick Theory':
+            return (attribute, normalized_skill)  # Don't force Willpower for investigation
+
+        # All other rituals (void manipulation, binding, etc.) use Astral Arts
+        if normalized_skill != 'Astral Arts':
+            return (RITUAL_ATTRIBUTE, RITUAL_SKILL)
+
+        # Already using Astral Arts, ensure Willpower
         return (RITUAL_ATTRIBUTE, RITUAL_SKILL)
 
     return (attribute, skill)

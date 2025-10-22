@@ -18,6 +18,11 @@ from .human_interface import HumanInterface
 from .shared_state import SharedState
 from .voice_profiles import VoiceLibrary
 from .energy_economy import SeedType
+from .outcome_parser import (
+    parse_session_end_marker,
+    parse_new_clock_marker,
+    parse_pivot_scenario_marker
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +49,8 @@ class SelfPlayingSession:
         self._declared_actions: Dict[str, Dict[str, Any]] = {}  # Buffer actions during declaration phase
         self._in_declaration_phase: bool = False  # Track current phase
         self._scenario_ready: asyncio.Event = asyncio.Event()  # Track when scenario is generated
+        self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
+        self._session_end_status: Optional[str] = None  # Track if DM declared session end
 
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
@@ -96,6 +103,10 @@ class SelfPlayingSession:
         self.coordinator.message_bus.add_handler(
             'session_scenario_tracker',
             self._handle_scenario_setup
+        )
+        self.coordinator.message_bus.add_handler(
+            'session_dm_narration_tracker',
+            self._handle_dm_narration
         )
 
         # Start human interface if enabled
@@ -577,16 +588,45 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         print(f"{'='*60}\n")
 
+    def _spawn_new_clocks(self, new_clocks: List[Dict[str, any]]):
+        """Spawn new clocks from DM markers."""
+        if not self.shared_state or not self.shared_state.mechanics_engine:
+            return
+
+        mechanics = self.shared_state.mechanics_engine
+
+        for clock_data in new_clocks:
+            name = clock_data['name']
+            max_ticks = clock_data['max']
+            description = clock_data['description']
+
+            # Create the new clock
+            mechanics.create_scene_clock(name, max_ticks, description)
+            print(f"\n🕐 NEW CLOCK SPAWNED: {name} (0/{max_ticks}) - {description}")
+
+            # Log the new clock
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_clock_spawn(name, max_ticks, description)
+
     async def _check_end_conditions(self) -> bool:
         """Check if session should end."""
-        # Simple end conditions - enhance as needed
-        session_data = self.coordinator.get_session_data()
-        
-        # End if no activity for several turns
-        if len(session_data) == 0:
-            return False
-            
-        # Add more sophisticated end conditions here
+        # Check if DM declared session end
+        if self._session_end_status:
+            print(f"\n🎬 DM DECLARED SESSION {self._session_end_status.upper()}")
+
+            # Log session end
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                if mechanics.jsonl_logger:
+                    # Get current state for logging
+                    final_state = mechanics.get_state_summary()
+                    final_state['session_end_status'] = self._session_end_status
+                    final_state['dm_final_narration'] = self._last_dm_narration
+                    mechanics.jsonl_logger.log_session_end(final_state)
+
+            return True
+
+        # Otherwise session continues
         return False
         
     async def _end_session(self):
@@ -934,6 +974,65 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Signal that this agent's resolution/adjudication is complete
             self._pending_resolutions[agent_id].set()
             logger.debug(f"Resolution complete for {agent_id}")
+
+    def _handle_dm_narration(self, message: Message):
+        """Handle DM narration and check for control markers."""
+        if message.type != MessageType.DM_NARRATION:
+            return
+
+        narration = message.payload.get('narration', '')
+        self._last_dm_narration = narration
+
+        # Check for session end marker
+        end_result = parse_session_end_marker(narration)
+        if end_result['status'] != 'none':
+            self._session_end_status = end_result['status']
+            logger.info(f"DM declared session end: {end_result['status']}" +
+                       (f" - {end_result['reason']}" if end_result['reason'] else ""))
+
+        # Check for new clock markers
+        new_clocks = parse_new_clock_marker(narration)
+        if new_clocks:
+            self._spawn_new_clocks(new_clocks)
+
+        # Check for scenario pivot marker
+        pivot_result = parse_pivot_scenario_marker(narration)
+        if pivot_result['should_pivot']:
+            logger.info(f"DM requested scenario pivot: {pivot_result['new_theme']}")
+
+            # Archive ALL filled clocks when scenario pivots
+            # The pivot itself means the DM has addressed the situation
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics and mechanics.scene_clocks:
+                clocks_to_archive = []
+                for clock_name, clock in list(mechanics.scene_clocks.items()):
+                    if clock.filled:  # Archive any filled clock
+                        overflow = clock.current - clock.maximum
+                        logger.info(f"🗑️  Archiving filled clock after pivot: {clock_name} ({clock.current}/{clock.maximum}, +{overflow})")
+                        clocks_to_archive.append(clock_name)
+                        del mechanics.scene_clocks[clock_name]
+
+                if clocks_to_archive:
+                    print(f"\n🔄 SCENARIO PIVOT: '{pivot_result['new_theme']}'")
+                    print(f"   Archived {len(clocks_to_archive)} filled clocks: {', '.join(clocks_to_archive)}")
+
+            # Notify all players of the scenario pivot
+            pivot_narration = f"The situation has changed! New objective: {pivot_result['new_theme']}"
+            self.bus.send_message(
+                MessageType.SCENARIO_UPDATE,
+                self.session_id,
+                None,  # Broadcast to all
+                {
+                    'new_theme': pivot_result['new_theme'],
+                    'new_situation': pivot_narration,
+                    'pivot_narration': pivot_narration
+                }
+            )
+
+            # Store pivot for DM to use in next scenario generation
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agents[0].pending_scenario_pivot = pivot_result['new_theme']
 
 
 # Configuration example

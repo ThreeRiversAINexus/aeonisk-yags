@@ -179,19 +179,29 @@ Create a scenario with:
 2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
 3. Situation (1-2 sentences): What's happening
 4. Void level (0-10): Environmental void corruption. Most scenarios should be 2-4 (mild corruption). Only use 6+ for void outbreak/crisis scenarios.
-5. Three clocks/timers (name, max ticks 4-8, description) that track:
+5. Three clocks/timers with CLEAR SEMANTICS:
    - A threat/danger that could escalate
    - Something the players are trying to accomplish
    - A complication or secondary concern
+
+   **CRITICAL**: For each clock, specify what it means to ADVANCE and REGRESS:
+   - If advancing = getting worse for players (danger increasing, time running out)
+     → Name it clearly: "Security Alert", "Structural Collapse", "Hunter Pursuit"
+   - If advancing = progress on objective (evidence gathering, defenses built)
+     → Name it clearly: "Evidence Collection", "Defenses Established", "Evacuation Progress"
+   - ALWAYS specify what happens when filled
 
 Format:
 THEME: [theme]
 LOCATION: [location from canonical lore]
 SITUATION: [situation]
 VOID_LEVEL: [number]
-CLOCK1: [name] | [max] | [description]
-CLOCK2: [name] | [max] | [description]
-CLOCK3: [name] | [max] | [description]
+CLOCK1: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
+CLOCK2: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
+CLOCK3: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
+
+Example clock:
+CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get closer to finding the team | REGRESS=Team evades or misleads pursuit | FILLED=Hunter team arrives, combat or escape required
 
 IMPORTANT:
 - Base your scenario on the canonical lore provided above
@@ -310,8 +320,18 @@ IMPORTANT:
             self.shared_state.initialize_mechanics()
             mechanics = self.shared_state.get_mechanics_engine()
 
-            for clock_name, max_value, description in scenario_data.get('clocks', []):
-                mechanics.create_scene_clock(clock_name, max_value, description)
+            for clock_data in scenario_data.get('clocks', []):
+                clock_name = clock_data[0]
+                max_value = clock_data[1]
+                description = clock_data[2] if len(clock_data) > 2 else ""
+                advance_means = clock_data[3] if len(clock_data) > 3 else ""
+                regress_means = clock_data[4] if len(clock_data) > 4 else ""
+                filled_consequence = clock_data[5] if len(clock_data) > 5 else ""
+
+                mechanics.create_scene_clock(
+                    clock_name, max_value, description,
+                    advance_means, regress_means, filled_consequence
+                )
                 print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
 
         # Validate scenario against party composition
@@ -454,7 +474,7 @@ IMPORTANT:
                     except:
                         pass
                 elif line.startswith('CLOCK'):
-                    # Format: CLOCK1: Name | 6 | Description
+                    # Format: CLOCK1: Name | 6 | Description | ADVANCE=... | REGRESS=... | FILLED=...
                     parts = line.split(':', 1)[1].split('|')
                     if len(parts) >= 3:
                         name = parts[0].strip()
@@ -463,7 +483,25 @@ IMPORTANT:
                         except:
                             max_ticks = 6
                         description = parts[2].strip()
-                        scenario_data['clocks'].append((name, max_ticks, description))
+
+                        # Extract semantic guidance
+                        advance_means = ""
+                        regress_means = ""
+                        filled_consequence = ""
+
+                        for part in parts[3:]:
+                            part = part.strip()
+                            if part.startswith('ADVANCE='):
+                                advance_means = part.replace('ADVANCE=', '').strip()
+                            elif part.startswith('REGRESS='):
+                                regress_means = part.replace('REGRESS=', '').strip()
+                            elif part.startswith('FILLED='):
+                                filled_consequence = part.replace('FILLED=', '').strip()
+
+                        scenario_data['clocks'].append((
+                            name, max_ticks, description,
+                            advance_means, regress_means, filled_consequence
+                        ))
 
         # Ensure we have at least 2 clocks
         if len(scenario_data['clocks']) < 2:
@@ -932,25 +970,65 @@ The air carries a distinct tension, and you sense the void's influence at level 
             if mechanics and mechanics.jsonl_logger:
                 # Extract resolution data for logging
                 action_resolution = resolution.get('resolution')
+                state_changes = resolution.get('state_changes', {})
+                clock_deltas = resolution.get('clock_deltas', [])
+                combat_data = resolution.get('combat_data', {})
+
                 if action_resolution:
+                    # Build economy changes dict with void and soulcredit deltas
+                    economy_changes = {
+                        'void_delta': state_changes.get('void_change', 0),
+                        'void_triggers': state_changes.get('void_reasons', []),
+                        'soulcredit_delta': state_changes.get('soulcredit_change', 0),
+                        'soulcredit_reasons': state_changes.get('soulcredit_reasons', [])
+                    }
+
+                    # Build clock states from current clock positions
+                    clock_states = {}
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        clock_states[clock_name] = f"{clock.current}/{clock.maximum}"
+
+                    # Extract effects from narration and state changes
+                    effects = []
+                    if state_changes.get('conditions'):
+                        for cond in state_changes['conditions']:
+                            effects.append(f"{cond['type']}: {cond['description']}")
+
+                    # Build context with ritual and combat info
+                    is_ritual_action = action.get('is_ritual', False) or action.get('action_type') == 'ritual'
+                    context = {
+                        "action_type": action.get('action_type', 'unknown'),
+                        "is_ritual": is_ritual_action,
+                        "faction": action.get('faction', 'Unknown'),
+                        "description": action.get('description', ''),
+                        "narration": resolution.get('narration', ''),
+                        "is_free_action": action.get('is_free_action', False),
+                        "initiative": initiative,
+                        "clock_deltas": clock_deltas  # Include clock before/after/reason
+                    }
+
+                    # Add ritual context if this was a ritual
+                    if is_ritual_action:
+                        context['ritual'] = True
+                        # Extract ritual details from action
+                        context['altar'] = action.get('has_altar', False)
+                        context['offering'] = action.get('has_offering', False)
+                        context['echo_calibrator'] = action.get('has_echo_calibrator', False)
+
+                    # Add combat triplet if present
+                    if combat_data:
+                        context['combat'] = combat_data
+
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
                         phase="adjudicate",
                         agent_name=character_name,
                         action=action.get('intent', action.get('description', 'unknown')),
                         resolution=action_resolution,
-                        economy_changes={},  # Could extract from resolution if available
-                        clock_states={},      # Could extract from resolution if available
-                        effects=[],           # Could extract from resolution if available
-                        context={
-                            "action_type": action.get('action_type', 'unknown'),
-                            "is_ritual": action.get('is_ritual', False),
-                            "faction": action.get('faction', 'Unknown'),
-                            "description": action.get('description', ''),
-                            "narration": resolution.get('narration', ''),
-                            "is_free_action": action.get('is_free_action', False),
-                            "initiative": initiative
-                        }
+                        economy_changes=economy_changes,
+                        clock_states=clock_states,
+                        effects=effects,
+                        context=context
                     )
 
             resolutions.append({
@@ -968,6 +1046,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
         print("=" * 40)
 
         # Parse synthesis for consequences (void gains, character deaths)
+        # Note: Clock spawning and pivot handling is done in session.py when synthesis is distributed
         if self.shared_state and self.shared_state.mechanics_engine:
             mechanics = self.shared_state.mechanics_engine
 
@@ -1056,9 +1135,33 @@ The air carries a distinct tension, and you sense the void's influence at level 
             mechanics = self.shared_state.get_mechanics_engine()
             if mechanics and mechanics.scene_clocks:
                 clock_lines = []
+                critical_overflow = []
                 for name, clock in mechanics.scene_clocks.items():
-                    status = "FILLED!" if clock.filled else f"{clock.current}/{clock.maximum}"
-                    clock_lines.append(f"  - {name}: {status}")
+                    if clock.filled:
+                        overflow = clock.current - clock.maximum
+                        if overflow > 0:
+                            if overflow >= 3:
+                                status = f"🚨 CRITICAL OVERFLOW: {clock.current}/{clock.maximum} (+{overflow})"
+                                critical_overflow.append(name)
+                            else:
+                                status = f"⚠️  OVERFLOWING: {clock.current}/{clock.maximum} (+{overflow})"
+                        else:
+                            status = f"FILLED: {clock.current}/{clock.maximum}"
+                    else:
+                        status = f"{clock.current}/{clock.maximum}"
+
+                    # Add semantic guidance if available
+                    clock_info = f"  - {name}: {status}"
+                    if clock.advance_means or clock.regress_means or clock.filled_consequence:
+                        clock_info += "\n    "
+                        if clock.advance_means:
+                            clock_info += f"Advance = {clock.advance_means}"
+                        if clock.regress_means:
+                            clock_info += f" | Regress = {clock.regress_means}"
+                        if clock.filled_consequence and clock.filled:
+                            clock_info += f"\n    🎯 When filled: {clock.filled_consequence}"
+
+                    clock_lines.append(clock_info)
                 if clock_lines:
                     clock_state_text = "\n\n**Current Clock State:**\n" + "\n".join(clock_lines)
 
@@ -1066,7 +1169,16 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 filled_clocks = mechanics.get_and_clear_filled_clocks()
                 if filled_clocks:
                     filled_names = [f['clock_name'] for f in filled_clocks]
-                    filled_clocks_text = f"\n\n⚠️  **CLOCKS JUST FILLED:** {', '.join(filled_names)}\nYou MUST describe what catastrophic/dramatic consequences occur as a result!"
+                    if critical_overflow:
+                        urgency = "🚨 EXTREME URGENCY 🚨"
+                    else:
+                        urgency = "⚠️  URGENT"
+                    filled_clocks_text = f"\n\n{urgency} **CLOCKS FILLED/ADVANCING:** {', '.join(filled_names)}\n"
+                    filled_clocks_text += "You MUST describe what catastrophic/dramatic consequences occur!\n"
+                    filled_clocks_text += "Consider using DM control markers:\n"
+                    filled_clocks_text += "- [NEW_CLOCK: Name | Max | Description] to spawn new pressure\n"
+                    filled_clocks_text += "- [PIVOT_SCENARIO: Theme] if situation fundamentally changes\n"
+                    filled_clocks_text += "- [SESSION_END: VICTORY/DEFEAT/DRAW] if objectives achieved/failed"
 
         # Use LLM to generate synthesis if available
         if self.llm_config:
@@ -1189,29 +1301,58 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 narration = f"{mechanical_text}\n\n{resolution.narrative}"
 
             # Parse narration for clock triggers and state changes
-            from .outcome_parser import parse_state_changes
+            from .outcome_parser import parse_state_changes, parse_combat_triplet
 
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
             state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
 
+            # Parse combat details if present
+            combat_data = parse_combat_triplet(llm_narration if self.llm_config else resolution.narrative)
+
             # Apply clock advancements
             clock_updates = []
+            clock_deltas = []  # Track before/after for logging
             for clock_name, ticks, reason in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
+                    clock = mechanics.scene_clocks[clock_name]
+                    before = clock.current
+                    maximum = clock.maximum
+
                     if ticks < 0:
                         # Negative ticks = regress (improve)
-                        mechanics.scene_clocks[clock_name].regress(abs(ticks))
-                        clock = mechanics.scene_clocks[clock_name]
+                        clock.regress(abs(ticks))
+                        after = clock.current
                         clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ↓")
+                        clock_deltas.append({
+                            'name': clock_name,
+                            'before': before,
+                            'after': after,
+                            'max': maximum,
+                            'delta': ticks,
+                            'reason': reason
+                        })
                     else:
                         # Positive ticks = advance (degrade)
                         filled = mechanics.advance_clock(clock_name, ticks, reason)
-                        clock = mechanics.scene_clocks[clock_name]
-                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
-                        if filled:
+                        after = clock.current
+                        overflow = after - maximum
+                        if overflow > 0:
+                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)")
+                        else:
+                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                        if filled and overflow == 0:
                             clock_updates.append(f"🚨 {clock_name} FILLED!")
+                        clock_deltas.append({
+                            'name': clock_name,
+                            'before': before,
+                            'after': after,
+                            'max': maximum,
+                            'delta': ticks,
+                            'filled': filled,
+                            'reason': reason
+                        })
 
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
@@ -1274,6 +1415,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
         return {
             'resolution': resolution,
             'narration': narration,
+            'state_changes': state_changes,  # Include state_changes for logging
+            'clock_updates': clock_updates,  # Include clock update strings
+            'clock_deltas': clock_deltas,  # Include clock before/after/reason for logging
+            'combat_data': combat_data,  # Include combat triplet if present
             'outcome': {
                 'dm_response': narration,
                 'success': resolution.success if resolution else True,
@@ -1447,8 +1592,12 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         # Positive ticks = advance (degrade)
                         filled = mechanics.advance_clock(clock_name, ticks, reason)
                         clock = mechanics.scene_clocks[clock_name]
-                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
-                        if filled:
+                        overflow = clock.current - clock.maximum
+                        if overflow > 0:
+                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)")
+                        else:
+                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                        if filled and overflow == 0:
                             clock_updates.append(f"🚨 {clock_name} FILLED!")
 
             if clock_updates:

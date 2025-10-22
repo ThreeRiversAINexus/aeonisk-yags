@@ -273,6 +273,18 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_clock_spawn(self, clock_name: str, max_ticks: int, description: str):
+        """Log spawning of a new scene clock."""
+        event = {
+            "event_type": "clock_spawn",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "clock_name": clock_name,
+            "max_ticks": max_ticks,
+            "description": description
+        }
+        self._write_event(event)
+
     def log_synthesis(self, round_num: int, synthesis: str):
         """Log round synthesis narrative."""
         event = {
@@ -327,32 +339,41 @@ class ActionResolution:
 @dataclass
 class SceneClock:
     """
-    Progress clock for tracking scene state.
+    Progress clock for tracking scene state with semantic guidance.
 
     Range: -maximum to +maximum
     - Negative values represent accumulated setbacks/failures
     - Zero is neutral starting point
     - Maximum fills the clock and triggers consequences
+
+    Semantic metadata helps the DM make consistent decisions about when to
+    advance/regress the clock and what consequences to narrate.
     """
     name: str
     current: int = 0
     maximum: int = 6
     description: str = ""
+    advance_means: str = ""  # What it means to advance (e.g., "Investigation progresses", "Danger increases")
+    regress_means: str = ""  # What it means to regress (e.g., "Setback in investigation", "Danger reduced")
+    filled_consequence: str = ""  # What happens when filled (e.g., "Evidence complete, pivot to confrontation")
     _ever_filled: bool = field(default=False, init=False, repr=False)
 
     def advance(self, ticks: int = 1) -> bool:
         """
-        Advance clock, return True if NEWLY filled (first time reaching max).
+        Advance clock, return True if filled (at or above max).
+
+        Clocks CAN overflow beyond maximum to indicate increasing urgency.
+        For example, a 6/6 clock can advance to 7/6, 8/6, etc.
 
         Returns:
-            True only on the transition to filled, False if already filled or still incomplete
+            True if clock is at or above maximum (indicating consequences needed)
         """
         was_filled = self.current >= self.maximum
-        self.current = min(self.current + ticks, self.maximum)
+        self.current += ticks  # Allow overflow beyond maximum
         is_filled = self.current >= self.maximum
 
-        # Return True only on the transition from not-filled to filled
-        if is_filled and not was_filled:
+        # Mark as ever filled if we've reached or exceeded maximum
+        if is_filled:
             self._ever_filled = True
             return True
         return False
@@ -1081,10 +1102,30 @@ class MechanicsEngine:
         self,
         name: str,
         maximum: int = 6,
-        description: str = ""
+        description: str = "",
+        advance_means: str = "",
+        regress_means: str = "",
+        filled_consequence: str = ""
     ) -> SceneClock:
-        """Create and register a scene clock."""
-        clock = SceneClock(name=name, maximum=maximum, description=description)
+        """
+        Create and register a scene clock with semantic metadata.
+
+        Args:
+            name: Clock name (e.g., "Evidence Collection")
+            maximum: Max ticks before filling
+            description: What the clock tracks
+            advance_means: What it means to advance (e.g., "More evidence discovered")
+            regress_means: What it means to regress (e.g., "Evidence destroyed")
+            filled_consequence: What happens when filled (e.g., "Case ready for prosecution")
+        """
+        clock = SceneClock(
+            name=name,
+            maximum=maximum,
+            description=description,
+            advance_means=advance_means,
+            regress_means=regress_means,
+            filled_consequence=filled_consequence
+        )
         self.scene_clocks[name] = clock
         return clock
 
@@ -1098,18 +1139,32 @@ class MechanicsEngine:
         Advance a scene clock.
 
         Returns:
-            True if clock filled (trigger event)
+            True if clock is filled (at or above maximum)
         """
         if clock_name not in self.scene_clocks:
             logger.warning(f"Clock {clock_name} does not exist")
             return False
 
         clock = self.scene_clocks[clock_name]
+        was_filled_before = clock.current >= clock.maximum
         filled = clock.advance(ticks)
 
         if filled:
-            logger.info(f"Clock {clock_name} FILLED! Reason: {reason}")
-            # Trigger consequences
+            overflow = clock.current - clock.maximum
+            if overflow > 0:
+                # Clock is overflowing - increasing urgency!
+                if overflow >= 3:
+                    logger.error(f"🚨 Clock {clock_name} CRITICAL OVERFLOW: {clock.current}/{clock.maximum} (+{overflow})! Reason: {reason}")
+                elif overflow >= 1:
+                    logger.warning(f"⚠️  Clock {clock_name} OVERFLOWING: {clock.current}/{clock.maximum} (+{overflow})! Reason: {reason}")
+            elif not was_filled_before:
+                # First time filling
+                logger.info(f"🔔 Clock {clock_name} FILLED: {clock.current}/{clock.maximum}! Reason: {reason}")
+            else:
+                # Already filled, but advancing at maximum
+                logger.warning(f"⚠️  Clock {clock_name} remains filled: {clock.current}/{clock.maximum}! Reason: {reason}")
+
+            # Trigger consequences (stores for DM synthesis)
             self._trigger_clock_consequences(clock_name, reason)
 
         return filled

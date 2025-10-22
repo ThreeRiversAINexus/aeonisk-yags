@@ -3,6 +3,72 @@ Enhanced prompts with mechanical scaffolding for DM and Player agents.
 """
 
 from typing import Dict, Any, Optional, List
+from .skill_descriptions import (
+    format_skill_full,
+    format_skill_brief,
+    get_all_skills_by_category,
+    SKILL_DATABASE
+)
+
+
+def _format_tiered_skills(character_skills: Dict[str, int]) -> str:
+    """
+    Format skills in tiered display:
+    - Full descriptions for skills the character has
+    - Brief categorized list for skills they don't have
+
+    Args:
+        character_skills: Dict of skill_name -> skill_level
+
+    Returns:
+        Formatted skill text for prompt
+    """
+    # Get all skills by category
+    all_skills_by_category = get_all_skills_by_category()
+
+    # Separate character skills by category
+    has_skills_by_category: Dict[str, List[tuple]] = {}
+    missing_skills_by_category: Dict[str, List[str]] = {}
+
+    for category, skill_names in all_skills_by_category.items():
+        has_skills = []
+        missing_skills = []
+
+        for skill_name in skill_names:
+            if skill_name in character_skills:
+                has_skills.append((skill_name, character_skills[skill_name]))
+            else:
+                missing_skills.append(skill_name)
+
+        if has_skills:
+            has_skills_by_category[category] = has_skills
+        if missing_skills:
+            missing_skills_by_category[category] = missing_skills
+
+    # Build the output
+    lines = []
+
+    # Section 1: Skills the character has (full detail)
+    lines.append("**YOUR SKILLS (detailed):**\n")
+
+    for category in sorted(has_skills_by_category.keys()):
+        lines.append(f"**{category.upper()}:**")
+        for skill_name, skill_level in sorted(has_skills_by_category[category]):
+            lines.append(format_skill_full(skill_name, skill_level))
+        lines.append("")  # Blank line between categories
+
+    # Section 2: Available skills (brief, categorized)
+    lines.append("\n**OTHER AVAILABLE SKILLS (can attempt untrained at -50%):**")
+    lines.append("Use [LOOKUP: skill name] for detailed guidance on any skill.\n")
+
+    for category in sorted(missing_skills_by_category.keys()):
+        if missing_skills_by_category[category]:
+            lines.append(f"**{category}:**")
+            for skill_name in sorted(missing_skills_by_category[category]):
+                lines.append(format_skill_brief(skill_name))
+            lines.append("")  # Blank line between categories
+
+    return "\n".join(lines)
 
 
 def _format_dialogue_examples(other_party_members: List[str] = None) -> str:
@@ -127,6 +193,32 @@ Outcome: [tier]
 ```
 
 Always be specific about mechanical effects. The players need to see dice rolls and outcomes to understand game state.
+
+# Scenario Control Markers (Advanced DM Tools)
+
+You have the power to control scenario flow using special markers:
+
+**1. Session Ending:**
+Use when the scenario has reached a definitive conclusion (victory, defeat, or draw):
+- `[SESSION_END: VICTORY]` - Team achieved their objective
+- `[SESSION_END: DEFEAT]` - Team failed catastrophically or was captured/killed
+- `[SESSION_END: DRAW]` - Stalemate or escape with incomplete objectives
+
+**2. Spawn New Clocks:**
+When filled clocks create new challenges or opportunities:
+`[NEW_CLOCK: Pursuit Chase | 6 | Gangs pursuing through tunnels]`
+
+**3. Pivot Scenario:**
+When the situation changes so dramatically that a new scenario emerges:
+`[PIVOT_SCENARIO: Escape from locked facility - fighting through sealed corridors]`
+
+**When to Use These Markers:**
+- **Victory**: Key objective achieved (e.g., "Evidence Trail" filled AND team escapes)
+- **Defeat**: Multiple defeat clocks filled, or team captured/killed
+- **New Clock**: A filled clock creates a NEW challenge (not just progression)
+- **Pivot**: The scenario fundamentally transforms (e.g., from "investigation" to "escape")
+
+**Important:** Don't end sessions prematurely. Let scenarios develop. But if clocks indicate clear victory/defeat, use these markers to provide narrative closure.
 """
 
 
@@ -151,10 +243,8 @@ def get_player_system_prompt(
         for attr, val in character_stats.get('attributes', {}).items()
     ])
 
-    skills_text = "\n".join([
-        f"- {skill}: {level}"
-        for skill, level in character_stats.get('skills', {}).items()
-    ])
+    # Generate tiered skill display
+    skills_text = _format_tiered_skills(character_stats.get('skills', {}))
 
     recent_intents_text = ""
     if recent_intents:
