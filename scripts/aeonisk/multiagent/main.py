@@ -27,6 +27,10 @@ def setup_logging(level: str = "INFO"):
         ]
     )
 
+    # Suppress spammy loggers for cleaner narrative output
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("aeonisk.multiagent.base").setLevel(logging.WARNING)
+
 
 def create_example_config(output_path: str):
     """Create an example configuration file."""
@@ -79,7 +83,7 @@ def main():
         '--log-level',
         default='INFO',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        help='Set logging level'
+        help='Set logging level (use DEBUG for detailed ChromaDB visibility)'
     )
     
     args = parser.parse_args()

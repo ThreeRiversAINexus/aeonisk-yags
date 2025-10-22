@@ -26,9 +26,10 @@ class MessageType(Enum):
     AGENT_READY = "agent_ready"
     SESSION_START = "session_start"
     SESSION_END = "session_end"
-    
+
     # Game flow messages
     SCENARIO_SETUP = "scenario_setup"
+    SCENARIO_UPDATE = "scenario_update"  # For mid-game scenario pivots
     TURN_REQUEST = "turn_request"
     ACTION_DECLARED = "action_declared"
     ACTION_RESOLVED = "action_resolved"

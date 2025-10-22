@@ -161,6 +161,10 @@ scripts/aeonisk/.venv/*
 multiagent_output/
 *.pyc
 __pycache__/
+multiagent.log
+
+# ChromaDB vector database
+.aeonisk/
 
 # Environment files
 .env

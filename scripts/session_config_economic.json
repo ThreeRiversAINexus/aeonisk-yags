@@ -1,0 +1,97 @@
+{
+  "session_name": "economic_scenario_test",
+  "max_turns": 5,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_vendor_gate": true,
+  "vendor_spawn_frequency": -1,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "ACG Auditor Kress Valen",
+      "pronouns": "he/him",
+      "faction": "Astral Commerce Group",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 4,
+        "voidCuriosity": 3,
+        "bondPreference": "neutral",
+        "ritualConservatism": 6
+      },
+      "goals": [
+        "Recover outstanding debts and enforce contract compliance",
+        "Maintain ACG's reputation for fairness in collections",
+        "Identify fraudulent bond formations"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 3,
+        "Endurance": 3,
+        "Perception": 4,
+        "Intelligence": 4,
+        "Empathy": 3,
+        "Willpower": 3,
+        "Charisma": 4
+      },
+      "skills": {
+        "Debt Law": 5,
+        "Corporate Influence": 5,
+        "Investigation": 4,
+        "Charm": 3,
+        "Guile": 3
+      }
+    },
+    {
+      "name": "Freeborn Trader Mira Seln",
+      "pronouns": "she/her",
+      "faction": "Freeborn",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 6,
+        "voidCuriosity": 4,
+        "bondPreference": "avoids",
+        "ritualConservatism": 3
+      },
+      "goals": [
+        "Maintain independence from corporate control",
+        "Build profitable trade networks outside official channels",
+        "Protect fellow Freeborn from exploitation"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 4,
+        "Endurance": 3,
+        "Perception": 3,
+        "Intelligence": 3,
+        "Empathy": 4,
+        "Willpower": 3,
+        "Charisma": 4
+      },
+      "skills": {
+        "Charm": 5,
+        "Guile": 4,
+        "Awareness": 4,
+        "Investigation": 3,
+        "Pilot": 3
+      }
+    }
+    ]
+  },
+  "notes": "Economic/vendor scenario test - debt dispute, trade negotiation, or vendor conflict"
+}
