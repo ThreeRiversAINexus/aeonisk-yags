@@ -1,7 +1,7 @@
 {
-  "session_name": "test_session",
-  "max_turns": 5,
-  "party_size": 2,
+  "session_name": "full_spectrum_test",
+  "max_turns": 50,
+  "party_size": 3,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
   "vendor_spawn_frequency": 3,
@@ -229,7 +229,8 @@
           "drip_talisman": 2,
           "conventional_blade": 1,
           "memory_crystal": 1
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Ash Vex",
@@ -276,7 +277,8 @@
           "hollow_seed": 2,
           "voidshroud_drape": 1,
           "neural_stimulant": 1
-        }
+        },
+        "pronouns": "he/him"
       },
       {
         "name": "Codex Scribe Tavin Mereth",
@@ -322,7 +324,8 @@
           "purification_incense": 3,
           "bond_contract_templates": 5,
           "soulcredit_scanner": 1
-        }
+        },
+        "pronouns": "he/him"
       },
       {
         "name": "Gestator Lyss Veln",
@@ -367,7 +370,8 @@
           "purification_incense": 5,
           "memory_crystal": 3,
           "soul_resonance_tuner": 1
-        }
+        },
+        "pronouns": "she/her"
       },
       {
         "name": "Enforcer Kael Dren",
@@ -414,7 +418,8 @@
           "data_recorder": 1,
           "restraint_cuffs": 2,
           "purification_incense": 2
-        }
+        },
+        "pronouns": "he/him"
       },
       {
         "name": "Ledger Agent Mira Sol",
@@ -461,7 +466,8 @@
           "debtbreaker_sidearm": 1,
           "incense": 2,
           "spark_talisman": 2
-        }
+        },
+        "pronouns": "she/her"
       },
       {
         "name": "Gene-Wright Solus",
@@ -507,7 +513,8 @@
           "memory_crystal": 2,
           "genetic_sample_kit": 1,
           "neural_stimulant": 2
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Creche Technician Vara Lux",
@@ -552,7 +559,8 @@
           "neural_interface_module": 1,
           "incense": 3,
           "med_kit": 2
-        }
+        },
+        "pronouns": "she/her"
       },
       {
         "name": "Broadcaster Nyx Thren",
@@ -598,7 +606,8 @@
           "incense": 2,
           "spark_talisman": 3,
           "comm_unit": 1
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Propagandist Echo-7",
@@ -643,7 +652,8 @@
           "bond_ritual_kit": 1,
           "incense": 4,
           "data_slate": 1
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Void Theorist Kiran Rift",
@@ -688,7 +698,8 @@
           "void_scanner": 1,
           "neural_stimulant": 2,
           "breach_compass": 1
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Pattern-Seeker Iros",
@@ -733,7 +744,8 @@
           "crystal_focus": 1,
           "memory_crystal": 3,
           "incense": 2
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Recursionist Vale",
@@ -778,7 +790,8 @@
           "crystal_focus": 1,
           "neural_stimulant": 1,
           "memory_crystal": 2
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Drifter Sable",
@@ -825,7 +838,8 @@
           "counterfeit_credentials": 2,
           "med_kit": 1,
           "drip_talisman": 2
-        }
+        },
+        "pronouns": "they/them"
       },
       {
         "name": "Unbound Jex",
@@ -872,8 +886,86 @@
           "comm_unit": 1,
           "conventional_pistol": 1,
           "spark_talisman": 2
+        },
+        "pronouns": "he/him"
+      },
+      {
+        "name": "ACG Auditor Kress Valen",
+        "pronouns": "he/him",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "goals": [
+          "Recover outstanding debts and enforce contract compliance",
+          "Maintain ACG's reputation for fairness in collections",
+          "Identify fraudulent bond formations"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4
+        },
+        "skills": {
+          "Debt Law": 5,
+          "Corporate Influence": 5,
+          "Investigation": 4,
+          "Charm": 3,
+          "Guile": 3
+        }
+      },
+      {
+        "name": "Freeborn Trader Mira Seln",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Maintain independence from corporate control",
+          "Build profitable trade networks outside official channels",
+          "Protect fellow Freeborn from exploitation"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 4
+        },
+        "skills": {
+          "Charm": 5,
+          "Guile": 4,
+          "Awareness": 4,
+          "Investigation": 3,
+          "Pilot": 3
         }
       }
     ]
-  }
+  },
+  "notes": "Full character pool - 21 characters across 10 factions. Random selection of 3 per session."
 }

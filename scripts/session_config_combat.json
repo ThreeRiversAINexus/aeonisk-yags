@@ -1,6 +1,7 @@
 {
   "session_name": "combat_scenario_test",
-  "max_turns": 5,
+  "max_turns": 50,
+  "party_size": 2,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
   "force_combat": true,
