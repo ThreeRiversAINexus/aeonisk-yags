@@ -133,6 +133,7 @@ class AIPlayerAgent(Agent):
 
         # Set up player-specific message handlers
         self.message_handlers[MessageType.SCENARIO_SETUP] = self._handle_scenario_setup
+        self.message_handlers[MessageType.SCENARIO_UPDATE] = self._handle_scenario_update
         self.message_handlers[MessageType.TURN_REQUEST] = self._handle_turn_request
         self.message_handlers[MessageType.ACTION_DECLARED] = self._handle_action_declared
         self.message_handlers[MessageType.ACTION_RESOLVED] = self._handle_action_resolved
@@ -223,6 +224,27 @@ class AIPlayerAgent(Agent):
         
         if self.human_controlled:
             print(f"\n[HUMAN - {self.character_state.name}] Waiting for your input...")
+
+    async def _handle_scenario_update(self, message: Message):
+        """Handle mid-game scenario pivot from DM."""
+        new_theme = message.payload.get('new_theme', 'Unknown')
+        new_situation = message.payload.get('new_situation', '')
+        pivot_narration = message.payload.get('pivot_narration', '')
+
+        # Update scenario with new theme while preserving location
+        if self.current_scenario:
+            self.current_scenario['theme'] = new_theme
+            if new_situation:
+                self.current_scenario['situation'] = new_situation
+        else:
+            self.current_scenario = {
+                'theme': new_theme,
+                'situation': new_situation
+            }
+
+        print(f"\n[{self.character_state.name}] 🔄 SCENARIO PIVOT: {new_theme}")
+        if pivot_narration:
+            print(f"    {pivot_narration}")
 
     async def _handle_action_declared(self, message: Message):
         """Handle action declarations from other players - show character voice."""
@@ -319,67 +341,34 @@ class AIPlayerAgent(Agent):
             # Fallback to simple personality-based choice
             action_declaration = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity)
 
-        # Apply mechanical validation and corrections
-        from .skill_mapping import validate_action_mechanics, get_character_skill_value, RITUAL_ATTRIBUTE, RITUAL_SKILL
+        # MINIMAL validation - only normalize skill name aliases, preserve all AI choices
+        # Philosophy: Let AI make "wrong" choices - that's valuable data. DM handles corrections narratively.
+        from .skill_mapping import normalize_skill, get_character_skill_value
         from .action_router import ActionRouter
 
-        # Use action router to determine correct attribute/skill
-        router = ActionRouter()
-        is_explicit_ritual = router.is_explicit_ritual(action_declaration.intent)
-
-        # Get other player names for inter-party ritual detection
+        # Get other player names for inter-party action detection
         other_players = []
         if self.shared_state:
             other_players = self.shared_state.get_other_players(self.agent_id)
 
-        # Route action to appropriate attribute + skill
-        routed_attr, routed_skill, rationale = router.route_action(
-            action_declaration.intent,
-            action_declaration.action_type,
-            self.character_state.skills,
-            is_explicit_ritual,
-            declared_skill=action_declaration.skill,  # Pass declared skill so router can trust it
-            other_players=other_players  # Pass other player names for inter-party detection
-        )
+        # Only check if action intent mentions "ritual" explicitly
+        router = ActionRouter()
+        is_explicit_ritual = router.is_explicit_ritual(action_declaration.intent)
 
-        # Apply routing if it differs from declared
-        if routed_attr != action_declaration.attribute or routed_skill != action_declaration.skill:
-            print(f"[{self.character_state.name}] Routed: {action_declaration.attribute}×{action_declaration.skill or 'None'} → {routed_attr}×{routed_skill or 'None'} ({rationale})")
-            action_declaration.attribute = routed_attr
-            action_declaration.skill = routed_skill
-
-        # Mark as ritual if explicitly stated OR if action_type is 'ritual'
-        # This ensures both LLM-declared rituals and keyword-detected rituals are flagged
-        # EXCEPTIONS:
-        #   - If action was routed to dialogue (Empathy × Charm/Counsel), don't override
-        #   - If action was routed to Intimacy Ritual (social/bonding ritual), don't override
-        is_dialogue_action = (routed_attr == 'Empathy' and routed_skill in ['Charm', 'Counsel'])
-        is_intimacy_ritual = (routed_attr == 'Empathy' and routed_skill == 'Intimacy Ritual')
-
-        if not is_dialogue_action and not is_intimacy_ritual and (is_explicit_ritual or action_declaration.action_type == 'ritual'):
+        # Mark as ritual if explicitly stated (but don't change attribute/skill)
+        if is_explicit_ritual or action_declaration.action_type == 'ritual':
             action_declaration.is_ritual = True
             action_declaration.action_type = 'ritual'
-            # Ensure ritual mechanics (Willpower × Astral Arts)
-            if action_declaration.attribute != 'Willpower' or action_declaration.skill != 'Astral Arts':
-                print(f"[{self.character_state.name}] Ritual detected - enforcing Willpower × Astral Arts")
-                action_declaration.attribute = 'Willpower'
-                action_declaration.skill = 'Astral Arts'
 
-        corrected_attr, corrected_skill, is_valid, message = validate_action_mechanics(
-            action_declaration.action_type,
-            action_declaration.attribute,
-            action_declaration.skill,
-            self.character_state.skills
-        )
+        # Normalize skill name ONLY if it's an alias (e.g., "social" → "Charm", "investigation" → "Awareness")
+        if action_declaration.skill:
+            original_skill = action_declaration.skill
+            normalized_skill = normalize_skill(action_declaration.skill)
 
-        # Update action with corrected mechanics
-        if corrected_attr != action_declaration.attribute or corrected_skill != action_declaration.skill:
-            print(f"[{self.character_state.name}] Mechanics corrected: {action_declaration.attribute}×{action_declaration.skill} → {corrected_attr}×{corrected_skill}")
-            action_declaration.attribute = corrected_attr
-            action_declaration.skill = corrected_skill
-
-        if message:
-            print(f"[{self.character_state.name}] {message}")
+            # If normalization changed the name, it was an alias - apply silently
+            if normalized_skill != original_skill:
+                action_declaration.skill = normalized_skill
+                # Don't log - this is just alias normalization
 
         # Validate action (checks for duplicates)
         if validator:
@@ -391,6 +380,8 @@ class AIPlayerAgent(Agent):
 
         # Detect if this is inter-party communication (free action)
         # This includes dialogue (Charm/Counsel) and social rituals (Intimacy Ritual)
+        is_dialogue_action = (action_declaration.attribute == 'Empathy' and action_declaration.skill in ['Charm', 'Counsel'])
+        is_intimacy_ritual = (action_declaration.skill == 'Intimacy Ritual')
         is_free_action = False
         if (is_dialogue_action or is_intimacy_ritual) and self.shared_state:
             # Check if intent mentions any party member name
@@ -791,10 +782,41 @@ class AIPlayerAgent(Agent):
 You can purchase items, barter, or ask for information! Use your currency (Sparks, Drips, Breath, Grain).
 """
 
+            # Get clock states with semantic guidance
+            clock_context = ""
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics and mechanics.scene_clocks:
+                    clock_lines = []
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        if clock.filled:
+                            overflow = clock.current - clock.maximum
+                            if overflow > 0:
+                                status = f"⚠️  {clock.current}/{clock.maximum} (OVERFLOWING +{overflow})"
+                            else:
+                                status = f"🔔 {clock.current}/{clock.maximum} (FILLED)"
+                        else:
+                            status = f"{clock.current}/{clock.maximum}"
+
+                        clock_line = f"- **{clock_name}**: {status}"
+                        if clock.advance_means:
+                            clock_line += f"\n  Advance = {clock.advance_means}"
+                        if clock.regress_means:
+                            clock_line += f" | Regress = {clock.regress_means}"
+                        if clock.filled_consequence and clock.filled:
+                            clock_line += f"\n  🎯 Consequence: {clock.filled_consequence}"
+
+                        clock_lines.append(clock_line)
+
+                    if clock_lines:
+                        clock_context = "\n\n📊 **Current Situation Clocks:**\n" + "\n".join(clock_lines)
+                        clock_context += "\n(Your actions can advance or regress these clocks)"
+
             scenario_context = f"""
 Current Scenario: {self.current_scenario.get('theme', 'Unknown')}
 Location: {self.current_scenario.get('location', 'Unknown')}
 Situation: {self.current_scenario.get('situation', 'Unknown')}
+{clock_context}
 {vendor_info}
 **Your Affiliation**: {self.character_state.faction}
 - Consider how your background and affiliations might be relevant to this situation

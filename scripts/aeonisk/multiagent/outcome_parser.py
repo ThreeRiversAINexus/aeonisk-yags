@@ -419,3 +419,124 @@ def parse_state_changes(
     state_changes['soulcredit_reasons'] = [sc_reason] if sc_reason else []
 
     return state_changes
+
+
+def parse_session_end_marker(narration: str) -> Dict[str, str]:
+    """
+    Parse session end markers from DM narration.
+
+    Format: [SESSION_END: VICTORY] or [SESSION_END: DEFEAT] or [SESSION_END: DRAW]
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Dict with 'status' (victory/defeat/draw/none) and optional 'reason'
+    """
+    pattern = r'\[SESSION_END:\s*(VICTORY|DEFEAT|DRAW)(?:\s*-\s*([^\]]+))?\]'
+    match = re.search(pattern, narration, re.IGNORECASE)
+
+    if match:
+        status = match.group(1).lower()
+        reason = match.group(2).strip() if match.group(2) else None
+        logger.info(f"Parsed session end marker: {status}" + (f" - {reason}" if reason else ""))
+        return {'status': status, 'reason': reason}
+
+    return {'status': 'none', 'reason': None}
+
+
+def parse_new_clock_marker(narration: str) -> List[Dict[str, any]]:
+    """
+    Parse new clock spawn markers from DM narration.
+
+    Format: [NEW_CLOCK: Name | Max | Description]
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        List of dicts with 'name', 'max', 'description'
+    """
+    pattern = r'\[NEW_CLOCK:\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*([^\]]+)\]'
+    matches = re.findall(pattern, narration)
+
+    new_clocks = []
+    for match in matches:
+        name = match[0].strip()
+        max_ticks = int(match[1].strip())
+        description = match[2].strip()
+
+        new_clocks.append({
+            'name': name,
+            'max': max_ticks,
+            'description': description
+        })
+        logger.info(f"Parsed new clock: {name} ({max_ticks} ticks) - {description}")
+
+    return new_clocks
+
+
+def parse_pivot_scenario_marker(narration: str) -> Dict[str, str]:
+    """
+    Parse scenario pivot markers from DM narration.
+
+    Format: [PIVOT_SCENARIO: New scenario theme and description]
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Dict with 'should_pivot' (bool) and 'new_theme' (str or None)
+    """
+    pattern = r'\[PIVOT_SCENARIO:\s*([^\]]+)\]'
+    match = re.search(pattern, narration)
+
+    if match:
+        new_theme = match.group(1).strip()
+        logger.info(f"Parsed scenario pivot: {new_theme}")
+        return {'should_pivot': True, 'new_theme': new_theme}
+
+    return {'should_pivot': False, 'new_theme': None}
+
+
+def parse_combat_triplet(narration: str) -> Dict[str, any]:
+    """
+    Parse combat triplet from narration: attack/damage/soak/post_soak_damage.
+
+    Looks for patterns like:
+    - "Attack: 18 vs DC 15"
+    - "Damage: 8 → Soak: 3 → Final: 5"
+    - "takes 5 damage"
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Dict with 'attack', 'damage', 'soak', 'post_soak_damage' or empty if not combat
+    """
+    combat_data = {}
+
+    # Look for attack roll
+    attack_pattern = r'(?:Attack|attack):\s*(\d+)\s*(?:vs|against|VS)\s*(?:DC|dc)?\s*(\d+)'
+    attack_match = re.search(attack_pattern, narration)
+    if attack_match:
+        combat_data['attack_roll'] = int(attack_match.group(1))
+        combat_data['attack_dc'] = int(attack_match.group(2))
+        combat_data['attack_hit'] = int(attack_match.group(1)) >= int(attack_match.group(2))
+
+    # Look for damage triplet (Damage → Soak → Final)
+    damage_triplet_pattern = r'(?:Damage|damage):\s*(\d+)\s*→\s*(?:Soak|soak):\s*(\d+)\s*→\s*(?:Final|final):\s*(\d+)'
+    triplet_match = re.search(damage_triplet_pattern, narration)
+    if triplet_match:
+        combat_data['damage'] = int(triplet_match.group(1))
+        combat_data['soak'] = int(triplet_match.group(2))
+        combat_data['post_soak_damage'] = int(triplet_match.group(3))
+        logger.info(f"Parsed combat triplet: {combat_data['damage']} damage, {combat_data['soak']} soaked, {combat_data['post_soak_damage']} final")
+    else:
+        # Alternative: look for "takes X damage"
+        damage_pattern = r'(?:takes|suffers)\s+(\d+)\s+damage'
+        damage_match = re.search(damage_pattern, narration, re.IGNORECASE)
+        if damage_match:
+            combat_data['post_soak_damage'] = int(damage_match.group(1))
+
+    return combat_data
