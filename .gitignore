@@ -169,3 +169,12 @@ multiagent.log
 # Environment files
 .env
 .env.local
+
+# Claude working notes
+.claude/
+
+# Game session data
+game.txt
+
+# Generated releases
+releases/
