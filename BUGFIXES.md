@@ -1,10 +1,399 @@
 # Bug Fixes - Multi-Agent Mechanics Integration
 
+## Issues Found During Testing (2025-10-22)
+
+### ✅ Fixed Issues
+
+#### 1. Players Ignoring Scenario Pivots
+
+**Issue**: When the DM used `[PIVOT_SCENARIO]` to change scenarios (e.g., "Investigation" → "Survival Horror"), players continued with investigation actions instead of adapting to the new situation. Players received the DM's narration but their internal scenario state was never updated, and they had zero visibility into clock states.
+
+**Example from game.log**:
+```
+DM: [PIVOT_SCENARIO: Survival Horror] - facility collapsing, evacuate immediately!
+NEW_CLOCK: Facility Evacuation (0/4)
+
+Players next round:
+- "perform intimacy ritual to understand what occurred"
+- "inspect ritual circle's binding sigils"
+Instead of: "Run for the exit!", "Help evacuate civilians"
+```
+
+**Root Causes**:
+1. `self.current_scenario` in player.py never updated after initial setup
+2. Players had no visibility into clock states or their semantic meanings
+3. No explicit notification when scenarios pivoted
+
+**Fix** (base.py, player.py:228-247, session.py:1018-1029):
+
+1. **Added SCENARIO_UPDATE message type** (base.py):
+```python
+class MessageType(Enum):
+    SCENARIO_SETUP = "scenario_setup"
+    SCENARIO_UPDATE = "scenario_update"  # NEW - for mid-game pivots
+```
+
+2. **Players now receive and handle pivot notifications** (player.py):
+```python
+async def _handle_scenario_update(self, message: Message):
+    """Handle mid-game scenario pivot from DM."""
+    new_theme = message.payload.get('new_theme', 'Unknown')
+    self.current_scenario['theme'] = new_theme  # Update internal state
+    print(f"\n[{self.character_state.name}] 🔄 SCENARIO PIVOT: {new_theme}")
+```
+
+3. **Session broadcasts pivots to all players** (session.py):
+```python
+if pivot_result['should_pivot']:
+    self.bus.send_message(
+        MessageType.SCENARIO_UPDATE,
+        payload={'new_theme': pivot_result['new_theme'], ...}
+    )
+```
+
+4. **Players now see clock states in their prompts** (player.py:827-855):
+```python
+📊 **Current Situation Clocks:**
+- **Facility Evacuation**: 0/4
+  Advance = Move toward exits, help civilians
+  Regress = Delays, obstacles
+  🎯 Consequence: Building collapses, everyone trapped
+```
+
+**Impact**:
+- Players receive explicit notification when scenarios pivot
+- Internal scenario state updates to match new situation
+- Clock visibility shows players what pressures exist and how to interact with them
+- Semantic guidance tells players what advancing/regressing each clock means
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/base.py` (MessageType.SCENARIO_UPDATE)
+- `scripts/aeonisk/multiagent/player.py` (_handle_scenario_update, clock visibility in prompts)
+- `scripts/aeonisk/multiagent/session.py` (broadcast pivot to players)
+
+---
+
+#### 2. Clock Archiving Too Strict
+
+**Issue**: After scenario pivots, filled clocks remained active creating UI clutter. The +5 overflow threshold meant clocks at 6/6, 7/6, 8/6 weren't being archived even though the DM had pivoted away from them.
+
+**Example**:
+```
+After [PIVOT_SCENARIO: Survival Horror]:
+Still showing: Contract Verification (10/8), Public Relations (4/4), Void Contamination (6/6)
+Only showing: Facility Evacuation (0/4)
+```
+
+**Root Cause**: Archiving logic required `overflow >= 5`, but the `[PIVOT_SCENARIO]` marker itself indicates the DM has addressed the situation.
+
+**Fix** (session.py:1003-1017):
+```python
+# Archive ALL filled clocks when scenario pivots
+# The pivot itself means the DM has addressed the situation
+for clock_name, clock in list(mechanics.scene_clocks.items()):
+    if clock.filled:  # Any filled clock, not just +5 overflow
+        clocks_to_archive.append(clock_name)
+        del mechanics.scene_clocks[clock_name]
+```
+
+**Impact**:
+- Cleaner transitions between scenarios
+- Filled clocks are archived when DM pivots (signal of "addressed")
+- New clocks start fresh without clutter from previous objectives
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/session.py` (pivot archiving logic)
+
+---
+
+#### 3. Aggressive Skill Routing Preventing AI Learning
+
+**Issue**: The skill routing system was aggressively overriding player AI decisions, forcing "correct" skill choices even when the AI deliberately chose something different. This prevented collection of useful training data showing how AI agents reason about skill selection.
+
+**Example**:
+```
+Player chooses: "intimacy ritual" → Willpower × Intimacy Ritual
+System forces: Willpower × Astral Arts (all rituals forced to this)
+Result: Lost data on AI's intentional skill choice
+```
+
+**Root Cause**: Multiple layers of coercion in player.py forced corrections regardless of AI intent.
+
+**Fix** (player.py:322-393, skill_mapping.py:114-136):
+
+1. **Softened routing to only fix missing skills**:
+```python
+should_route = False
+if action_declaration.skill:
+    skill_value = get_character_skill_value(...)
+    if skill_value == -1:  # Character doesn't have this skill
+        should_route = True  # Only route if skill missing
+```
+
+2. **Removed forced ritual mechanics**:
+```python
+# Let AI choose their own skill - Intimacy Ritual, Magick Theory, etc. valid
+if is_explicit_ritual:
+    action_declaration.is_ritual = True
+    # Note: NOT forcing Willpower × Astral Arts anymore
+```
+
+3. **Log alternatives instead of forcing**:
+```python
+print(f"Note: Using {original} (alternative: {suggested})")
+# Keep original choice - let DM handle narratively
+```
+
+**Impact**:
+- AI agents can make "wrong" choices - valuable training data
+- Intimacy Ritual uses its own skill (not forced to Astral Arts)
+- Magick Theory can be used for ritual investigation
+- DM handles mismatches narratively instead of system forcing corrections
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/player.py` (routing, ritual enforcement, validation)
+- `scripts/aeonisk/multiagent/skill_mapping.py` (ritual mechanics)
+
+**REFINEMENT (2025-10-22 evening)**: Further reduced routing aggressiveness after user feedback:
+
+**Issue**: System was still suggesting alternatives when players chose skills they didn't have, preventing unskilled attempts.
+
+**Example**:
+```
+Player chooses: Intelligence × Magick Theory (valid skill, analyzing resonance)
+System suggests: Perception × None (because character doesn't have Magick Theory)
+Result: Player forced away from deliberate skill choice
+```
+
+**User Feedback**: *"we're getting pigeon holed too hard still"*
+
+**Root Cause**: Code was routing whenever `skill_value == -1` (character doesn't have skill), but YAGS allows unskilled attempts with -50% penalty.
+
+**Fix** (player.py:344-371):
+Removed ALL routing logic except skill name normalization:
+
+```python
+# MINIMAL validation - only normalize skill name aliases
+# Philosophy: Let AI make "wrong" choices - that's valuable data.
+
+# Normalize skill name ONLY if it's an alias (e.g., "social" → "Charm")
+if action_declaration.skill:
+    original_skill = action_declaration.skill
+    normalized_skill = normalize_skill(action_declaration.skill)
+
+    if normalized_skill != original_skill:
+        action_declaration.skill = normalized_skill
+        # Don't log - this is just alias normalization
+```
+
+**What Was Removed**:
+- ❌ ActionRouter suggestions based on missing skills
+- ❌ validate_action_mechanics corrections
+- ❌ Skill availability checking
+- ❌ Any logging of "suggested" or "alternative" approaches
+
+**What Remains**:
+- ✅ Skill name alias normalization ("social" → "Charm")
+- ✅ Ritual flag detection (mark as ritual, but don't change skills)
+- ✅ That's it!
+
+**Impact**:
+- Players can now use ANY valid skill, even if they don't have it (unskilled penalty)
+- Players can choose "suboptimal" attribute/skill pairings (Intelligence × Magick Theory for analysis)
+- No more "Suggested: X → Y" messages
+- DM handles all mismatches narratively
+- 100% pure AI decision data for training
+
+---
+
+#### 4. Clock Semantic Ambiguity
+
+**Issue**: Clocks lacked clear semantics about what it means to advance/regress them, causing confusion for both the DM and players about whether clock changes were good or bad. For example, "Contract Validation" could mean either "progress on validating contracts" (advance = good) OR "contracts becoming more validated/secure" (advance = good), leading to inconsistent mechanical decisions.
+
+**Example from game.log**:
+```
+📊 Contract Validation: +2 (identified vulnerability points)  ← advancing for finding problems?
+📊 Contract Validation: -1 (reinforced wrong sections)  ← regressing for mistakes?
+DM: "Contract Validation advances to 6/8, dangerously close to completion"  ← completion of what?
+```
+
+**Root Cause**: The `SceneClock` dataclass only had:
+- `name`: str
+- `maximum`: int
+- `description`: str (generic)
+
+No guidance on what advancing/regressing meant or what consequences should occur when filled.
+
+**Fix** (mechanics.py:340-359, dm.py:182-204):
+
+1. **Enhanced SceneClock dataclass** with semantic metadata:
+```python
+@dataclass
+class SceneClock:
+    name: str
+    current: int = 0
+    maximum: int = 6
+    description: str = ""
+    advance_means: str = ""  # "Investigation progresses" or "Danger increases"
+    regress_means: str = ""  # "Setback in investigation" or "Danger reduced"
+    filled_consequence: str = ""  # "Evidence complete, pivot to confrontation"
+```
+
+2. **Updated scenario generation prompt** to require semantic guidance:
+```
+CLOCK1: [name] | [max] | [description] | ADVANCE=[meaning] | REGRESS=[meaning] | FILLED=[consequence]
+
+Example:
+CLOCK1: Security Alert | 6 | Corporate hunters closing in |
+ADVANCE=Hunters get closer to finding the team |
+REGRESS=Team evades or misleads pursuit |
+FILLED=Hunter team arrives, combat or escape required
+```
+
+3. **Enhanced DM synthesis display** to show semantics:
+```
+**Current Clock State:**
+  - Security Alert: 4/6
+    Advance = Hunters get closer to finding the team | Regress = Team evades or misleads pursuit
+    🎯 When filled: Hunter team arrives, combat or escape required
+```
+
+**Impact**:
+- DM receives clear guidance on when to advance vs regress each clock
+- Players understand whether clock changes help or hurt them
+- Filled consequences are specified upfront, ensuring consistent narrative outcomes
+- Eliminates ambiguity in clock naming (e.g., "Evidence Collection" now clearly means "advancing = gathering more evidence")
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/mechanics.py` (SceneClock dataclass, create_scene_clock method)
+- `scripts/aeonisk/multiagent/dm.py` (scenario generation prompt, parser, clock creation, synthesis display)
+
+---
+
+#### 2. Clock Advancement Capping (Filled Clocks Getting Stuck)
+
+**Issue**: Scene clocks were getting stuck at their maximum values and not advancing further, causing scenarios to stall without triggering consequences or DM control markers.
+
+**Example from game.log**:
+```
+Round 2: Data Collection FILLED (4/4), Corporate Interest FILLED (5/5)
+Round 4: Pod Corruption FILLED (6/6)
+Round 5+: Pod Corruption still at 6/6, cannot advance
+```
+
+**Root Cause** (mechanics.py:363):
+- The `SceneClock.advance()` method capped advancement with `self.current = min(self.current + ticks, self.maximum)`
+- Once a clock reached 6/6, it could never advance beyond 6
+- The method only returned `True` on the **first fill** (transition from 5→6)
+- After that, subsequent advances did nothing (6→6 returned `False`)
+- DM only got **one warning** when clock first filled
+- If DM didn't use control markers on that first warning, clock stayed stuck forever
+
+**Fix**:
+
+1. **Allow Clock Overflow** (mechanics.py:355-373):
+   - Removed `min()` cap: changed to `self.current += ticks`
+   - Clocks can now overflow beyond maximum (6/6 → 7/6 → 8/6)
+   - This indicates increasing urgency when consequences aren't addressed
+   - Method now returns `True` whenever clock is at or above maximum
+
+2. **Enhanced Overflow Warnings** (mechanics.py:1106-1144):
+   - Added overflow detection and urgency levels
+   - `+1 overflow`: `⚠️  OVERFLOWING` warning
+   - `+3 overflow`: `🚨 CRITICAL OVERFLOW` error
+   - Logs show exact overflow amount: `Pod Corruption: 8/6 (+2)`
+
+3. **Better DM Synthesis Alerts** (dm.py:1098-1130):
+   - Clock display shows overflow status in synthesis
+   - `FILLED: 6/6` for newly filled clocks
+   - `⚠️  OVERFLOWING: 7/6 (+1)` for mild overflow
+   - `🚨 CRITICAL OVERFLOW: 9/6 (+3)` for severe overflow
+   - Enhanced DM warning includes explicit control marker suggestions:
+     ```
+     🚨 EXTREME URGENCY 🚨 CLOCKS FILLED/ADVANCING: Pod Corruption
+     You MUST describe what catastrophic/dramatic consequences occur!
+     Consider using DM control markers:
+     - [NEW_CLOCK: Name | Max | Description] to spawn new pressure
+     - [PIVOT_SCENARIO: Theme] if situation fundamentally changes
+     - [SESSION_END: VICTORY/DEFEAT/DRAW] if objectives achieved/failed
+     ```
+
+4. **Action Resolution Display** (dm.py:1285-1295, 1540-1550):
+   - Clock updates now show overflow: `Pod Corruption: 7/6 ⚠️  (+1 OVERFLOW)`
+   - Players and DM see visual indicator of escalating danger
+
+**Impact**:
+- Clocks now provide continuous pressure even after filling
+- DM gets repeated, escalating warnings to take action
+- Overflow creates mechanical sense of urgency (e.g., "The pod is critically unstable at 9/6!")
+- Fixes stalled scenarios where filled clocks blocked progression
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/mechanics.py` (SceneClock.advance, advance_clock methods)
+- `scripts/aeonisk/multiagent/dm.py` (synthesis display, action resolution display)
+
+---
+
+#### 3. Clock Cleanup on Scenario Pivot
+
+**Issue**: After using `[PIVOT_SCENARIO]` markers, old clocks remained active and were displayed alongside new clocks, creating UI clutter and confusion. For example, "Evidence Collection: 17/8" would persist even after the scenario pivoted from "Investigation" to "Survival Horror".
+
+**Root Cause**: The PIVOT_SCENARIO marker was parsed but not acted upon - no code existed to clean up old clocks when scenarios changed.
+
+**Fix** (dm.py:1010-1048):
+When `[PIVOT_SCENARIO]` is detected in synthesis:
+1. Parse and create any `[NEW_CLOCK:]` markers from the same synthesis
+2. Archive clocks with **critical overflow (+5 or more)** - these have been "satisfied" by the pivot
+3. Keep clocks with moderate overflow or still in progress (they may still be relevant)
+4. Display clear feedback: `🔄 PIVOT: 'Evidence Exposure'` with archived and spawned clock counts
+
+**Code Changes**:
+```python
+# After synthesis generation
+pivot_result = parse_pivot_scenario(synthesis)
+
+if pivot_result['should_pivot']:
+    # Create new clocks from [NEW_CLOCK:] markers
+    for match in re.finditer(new_clock_pattern, synthesis):
+        clock_name, max_ticks, description = ...
+        mechanics.create_scene_clock(clock_name, max_ticks, description)
+
+    # Archive critically overflowed clocks (+5 or more)
+    for clock_name, clock in mechanics.scene_clocks.items():
+        overflow = clock.current - clock.maximum
+        if overflow >= 5:
+            del mechanics.scene_clocks[clock_name]  # Archive it
+```
+
+**Why +5 Threshold?**
+- Clocks at exactly maximum (6/6) are newly filled - keep them for immediate consequences
+- Clocks with mild overflow (+1 to +4) may still be building pressure - keep them
+- Clocks with critical overflow (+5+) have already triggered pivot - archive them
+
+**Impact**:
+- Cleaner clock displays after scenario pivots
+- Old objectives naturally retire when overtaken by events
+- New clocks spawn without clutter from completed/overflowed objectives
+- DM gets clear feedback on pivot execution
+
+**Example**:
+```
+Before pivot: Evidence Collection (17/8), Station Lockdown (5/4), Corporate Hunters (5/6)
+After pivot: Corporate Hunters (5/6), Evidence Destruction (0/6), Hunter-Killer Teams (0/4)
+              ↑ kept (overflow +1)   ↑ new clocks spawned
+Evidence Collection archived (overflow +9 satisfied by pivot)
+```
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/session.py` (pivot marker processing, lines 998-1021)
+
+---
+
 ## Issues Found During Testing (2025-10-20)
 
 ### ✅ Fixed Issues
 
-#### 1. JSON Serialization Error
+#### 4. JSON Serialization Error
 
 **Error**:
 ```
@@ -35,7 +424,7 @@ resolution_data = {
 
 ---
 
-#### 2. "The situation evolves..." Spam
+#### 5. "The situation evolves..." Spam
 
 **Issue**: DM turns were showing placeholder text repeatedly:
 ```
@@ -675,6 +1064,167 @@ Expected improvements:
    - Lines 52-58: Expanded Facility Lockdown keywords
    - Lines 102-115: Additional void manipulation triggers
    - Lines 154-162: Outcome tier enum normalization
+
+---
+
+## Issues Found During Testing (2025-10-22 Skill System)
+
+### ✅ Fixed Issues
+
+#### 18. Players Lacking Skill Context ("Underwater Basket Weaving Problem")
+
+**Issue**: Player AI agents were choosing incorrect skills because they lacked complete information about what skills exist and what each skill does.
+
+**Example from analysis**:
+```
+Player prompt showed only:
+**Skills:**
+- Charm: 5
+- Astral Arts: 4
+- Systems: 3
+
+Players had to infer:
+- What does "Charm" actually do?
+- When should I use Charm vs Guile?
+- What's the difference between Astral Arts vs Intimacy Ritual vs Magick Theory?
+- What attribute pairs with which skill?
+- What other skills exist that I don't have?
+```
+
+**Root Causes**:
+1. **No skill descriptions** - Just names and ranks ("Charm: 5")
+2. **No attribute guidance** - Players didn't know Charm uses Empathy, not Perception
+3. **No use case examples** - Players had to guess when to use each skill
+4. **No awareness of other skills** - If they didn't have "Stealth", they didn't know sneaking was possible
+5. **Confusing overlaps** - Three ritual skills with unclear boundaries:
+   - Astral Arts = performing energy-based rituals
+   - Intimacy Ritual = performing emotion-based rituals
+   - Magick Theory = understanding/analyzing rituals (NOT performing)
+
+**User Feedback**: *"i suspect the meaning of the skills isnt clear enough for the players. can you look into why this is? like they pick the wrong skill sometimes."*
+
+**Philosophy**: *"i think we want the skill mapping and coercion to be much gentler and let the AI pick what they want more often tbh. that is useful data."*
+
+**Fix** (skill_descriptions.py NEW, enhanced_prompts.py):
+
+1. **Created Comprehensive Skill Database** (skill_descriptions.py):
+```python
+SKILL_DATABASE: Dict[str, SkillInfo] = {
+    "Charm": SkillInfo(
+        name="Charm",
+        attribute="Empathy",
+        description="Persuasion, making friends, social influence (sincere or manipulative)",
+        use_cases=["Befriending NPCs", "Negotiating peacefully", "Earning trust"],
+        category="Social",
+        note="Can be sincere or insincere - it's about getting people to like you"
+    ),
+    # ... all YAGS + Aeonisk skills
+}
+```
+
+2. **Implemented Tiered Skill Display** (enhanced_prompts.py):
+
+**Tier 1: Skills Character Has (Full Detail)**
+```markdown
+**YOUR SKILLS (detailed):**
+
+**RITUAL:**
+- **Astral Arts (4)** [Willpower]: Channeling, resisting, and shaping spiritual energies; void manipulation rituals
+  → Use when: Performing energy-based rituals, Binding entities, Void cleansing
+  ℹ️  Default ritual skill for most void/energy work. Uses Willpower, not Empathy.
+
+- **Intimacy Ritual (3)** [Empathy]: Emotionally-powered or Bond-based rituals; creating connections
+  → Use when: Strengthening Bonds, Emotional connection rituals, Intimidation rituals
+  ℹ️  Use for rituals involving emotions or Bonds, NOT void manipulation.
+
+- **Magick Theory (2)** [Intelligence]: Knowledge of glyphs, ritual systems, sacred mechanics
+  → Use when: Analyzing rituals, Researching glyphs, Understanding ritual mechanics
+  ℹ️  For UNDERSTANDING rituals, not PERFORMING them. Use Intelligence, not Willpower.
+```
+
+**Tier 2: Available Skills (Brief Categorized List)**
+```markdown
+**OTHER AVAILABLE SKILLS (can attempt untrained at -50%):**
+Use [LOOKUP: skill name] for detailed guidance on any skill.
+
+**Combat:**
+- **Guns** [Perception]: Firearms, pistols, rifles, shotguns, targeting
+- **Melee** [Dexterity]: Swords, knives, clubs, hand-to-hand weapon combat
+- **Throw** [Dexterity]: Throwing weapons, grenades, accuracy
+
+**Knowledge:**
+- **Debt Law** [Intelligence]: Understanding/manipulating contracts, oaths, Soulcredit systems
+- **Science** [Intelligence]: Scientific knowledge, physics, chemistry, biology
+
+**Social:**
+- **Guile** [Empathy]: Deception, lying, reading lies, cunning misdirection
+- **Counsel** [Empathy]: Emotional support, therapy, guidance
+```
+
+**Impact**:
+- **Complete skill awareness**: Players know what skills exist, even ones they don't have
+- **Clear attribute pairing**: [Willpower], [Empathy], [Intelligence] tags show which attribute to use
+- **Use case guidance**: "Use when: Analyzing rituals, NOT performing them" prevents Magick Theory misuse
+- **Prompt efficiency**: ~415 tokens for full context (character has 8 skills, system shows all 25+ skills)
+- **Preserves AI agency**: Players still make choices, but with complete information
+- **Better training data**: "Wrong" choices with full information = genuine AI behavior to study
+
+**Design Rationale - "Underwater Basket Weaving"**:
+> "if you dont have the underwater basket weaving skill then you dont need to know all the details just that it exists. so that makes sense."
+
+Players get:
+- **Full details** for skills they have (need to use effectively)
+- **Brief descriptions** for skills they don't have (awareness without clutter)
+- **Reference mechanism**: `[LOOKUP: skill name]` for edge cases
+
+**Comparison - Old vs New Prompt**:
+
+**Before** (~50 tokens):
+```
+**Skills:**
+- Charm: 5
+- Awareness: 4
+- Astral Arts: 4
+- Intimacy Ritual: 3
+```
+
+**After** (~415 tokens):
+```
+**YOUR SKILLS (detailed):**
+
+**SOCIAL:**
+- **Charm (5)** [Empathy]: Persuasion, making friends, social influence
+  → Use when: Befriending NPCs, Negotiating peacefully, Earning trust
+  ℹ️  Can be sincere or insincere - it's about getting people to like you
+
+[... 7 more skills with full details ...]
+
+**OTHER AVAILABLE SKILLS (can attempt untrained at -50%):**
+- **Guns** [Perception]: Firearms, pistols, rifles, shotguns, targeting
+- **Guile** [Empathy]: Deception, lying, reading lies, cunning
+- **Stealth** [Agility]: Sneaking, hiding, moving quietly
+[... 17 more skills briefly listed ...]
+```
+
+**Token Cost Analysis**:
+- 365 additional tokens for complete skill context
+- ~10-15% of typical player prompt
+- Justified for complex multi-agent TTRPG simulation requiring nuanced decision-making
+
+**Testing Output**:
+```bash
+$ python3 scripts/test_skill_display.py
+Token count estimate: 415
+```
+
+**Files Modified**:
+- `scripts/aeonisk/multiagent/skill_descriptions.py` **(NEW)** - Comprehensive YAGS + Aeonisk skill database
+- `scripts/aeonisk/multiagent/enhanced_prompts.py` - Tiered skill display implementation
+
+**Files Created**:
+- `scripts/test_skill_display.py` - Test script for validating skill display output
+
+---
 
 ## Related Documentation
 
