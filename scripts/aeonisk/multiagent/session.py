@@ -150,16 +150,18 @@ class SelfPlayingSession:
         self.agents.append(dm_agent)
         await dm_agent.start()
 
-        # Create player agents (randomly select 2 from pool)
+        # Create player agents (randomly select from pool based on party_size)
         import random
         players_config = agents_config.get('players', [])
+        party_size = self.config.get('party_size', 2)  # Default to 2 if not specified
 
-        # Randomly select 2 players from the pool
-        if len(players_config) > 2:
-            selected_players = random.sample(players_config, 2)
-            logger.info(f"Selected players: {[p['name'] for p in selected_players]}")
+        # Randomly select players from the pool
+        if len(players_config) > party_size:
+            selected_players = random.sample(players_config, party_size)
+            logger.info(f"Selected {party_size} players: {[p['name'] for p in selected_players]}")
         else:
             selected_players = players_config
+            logger.info(f"Using all {len(selected_players)} players from pool")
 
         # Update config to only include selected players (so DM sees correct party)
         self.config['agents']['players'] = selected_players
