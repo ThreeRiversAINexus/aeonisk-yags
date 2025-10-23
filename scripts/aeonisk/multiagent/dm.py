@@ -1718,8 +1718,6 @@ Generate appropriate consequences based on what makes sense for that specific cl
             'resolution': resolution,
             'narration': narration,
             'state_changes': state_changes,  # Include state_changes for logging
-            'clock_updates': clock_updates,  # Include clock update strings
-            'clock_deltas': clock_deltas,  # Include clock before/after/reason for logging
             'combat_data': combat_data,  # Include combat triplet if present
             'outcome': {
                 'dm_response': narration,
