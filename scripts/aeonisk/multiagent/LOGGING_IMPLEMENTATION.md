@@ -537,10 +537,10 @@ The logging system captures **complete narrative** for story reconstruction:
    - Includes: roll results, damage, clocks, soulcredit, void changes
    - Contextual storytelling with world-building details
 
-3. **Round Synthesis** (`round_synthesis` event) ⚠️ **Method exists but not currently called**
+3. **Round Synthesis** (`round_synthesis` event) ✅
    - DM summary of entire round's events
-   - Would provide round-level narrative cohesion
-   - **Status:** Logging method implemented (mechanics.py:log_round_synthesis) but not integrated into session flow
+   - Provides round-level narrative cohesion
+   - Logs full synthesis narration after all actions resolved
 
 4. **Mission Debriefs** (`mission_debrief` event) ✅
    - Character reflections after mission completion
