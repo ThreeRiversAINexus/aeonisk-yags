@@ -23,6 +23,8 @@ from .outcome_parser import (
     parse_new_clock_marker,
     parse_pivot_scenario_marker
 )
+from .enemy_combat import EnemyCombatManager
+from .tactical_resolution import ResolutionState
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +48,10 @@ class SelfPlayingSession:
         self._turn_history: List[str] = []
         self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
         self._pending_declarations: Dict[str, asyncio.Event] = {}  # Track when declarations complete
-        self._declared_actions: Dict[str, Dict[str, Any]] = {}  # Buffer actions during declaration phase
+        self._declared_actions: Dict[str, List[Dict[str, Any]]] = {}  # Buffer actions during declaration phase (supports multiple actions per agent)
         self._in_declaration_phase: bool = False  # Track current phase
         self._scenario_ready: asyncio.Event = asyncio.Event()  # Track when scenario is generated
+        self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
 
@@ -58,6 +61,14 @@ class SelfPlayingSession:
         print("✓ Mechanics engine ready")
         print("✓ Action validator ready")
         print("✓ Knowledge retrieval ready")
+
+        # Initialize enemy combat manager
+        self.enemy_combat = EnemyCombatManager()
+        self.enemy_combat.initialize(self.config)
+        if self.enemy_combat.enabled:
+            print("✓ Enemy combat manager ENABLED")
+        else:
+            print("  Enemy combat manager disabled")
 
         # Load DM notes for scenario variety
         dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
@@ -257,7 +268,12 @@ class SelfPlayingSession:
                     void_state.reset_round_void()
 
             # Run round with initiative-based turns
-            await self._run_initiative_round()
+            combat_continues = await self._run_initiative_round()
+
+            # Check if all players defeated (TPK)
+            if not combat_continues:
+                print("\n=== SESSION ENDED - TOTAL PARTY KILL ===")
+                break
 
             # Run DM turn at end of round
             await self._run_dm_turn()
@@ -282,17 +298,24 @@ class SelfPlayingSession:
 
         await self._end_session()
         
-    async def _run_initiative_round(self):
+    async def _run_initiative_round(self) -> bool:
         """
         Run a round with proper tactical flow:
         1. Declaration phase (slowest → fastest)
         2. Resolution phase (fastest → slowest)
         3. DM describes overall outcome
+
+        Returns:
+            bool: True if combat should continue, False if all players defeated
         """
-        player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+        # Filter to alive players only (YAGS defeat mechanics)
+        player_agents = [agent for agent in self.agents
+                        if isinstance(agent, AIPlayerAgent) and agent.is_alive]
 
         if not player_agents:
-            return
+            logger.warning("All players defeated - combat should end")
+            print("\n💀 All players defeated - TPK (Total Party Kill)!")
+            return False  # Signal that combat cannot continue
 
         # Calculate initiative for each player (Agility × 4 + d20)
         initiative_order = []
@@ -302,11 +325,24 @@ class SelfPlayingSession:
             # Get player's Agility attribute
             agility = player_agent.character_state.attributes.get('Agility', 3)
             initiative = mechanics.calculate_initiative(agility)
-            initiative_order.append((initiative, player_agent))
-            print(f"[{player_agent.character_state.name}] Initiative: {initiative}")
+            initiative_order.append((initiative, 'player', player_agent))
+
+            # Display with position if available
+            position_str = f" ({player_agent.position})" if hasattr(player_agent, 'position') else ""
+            print(f"[{player_agent.character_state.name}] Initiative: {initiative}{position_str}")
+
+        # Add enemy initiative entries
+        if self.enemy_combat.enabled:
+            enemy_entries = self.enemy_combat.get_initiative_entries()
+            for init, enemy in enemy_entries:
+                initiative_order.append((init, 'enemy', enemy))
+                print(f"[{enemy.name}] (ENEMY) Initiative: {init} ({enemy.position})")
 
         # Sort by initiative (highest first)
         initiative_order.sort(key=lambda x: x[0], reverse=True)
+
+        # Display comprehensive round status
+        self._display_round_status(initiative_order, mechanics, player_agents)
 
         # PHASE 1: DECLARATIONS (slowest → fastest, so faster players can react)
         print("\n=== Declaration Phase ===")
@@ -317,86 +353,251 @@ class SelfPlayingSession:
         if mechanics and mechanics.jsonl_logger:
             mechanics.jsonl_logger.log_declaration_phase_start(mechanics.current_round)
 
-        for initiative_score, player_agent in reversed(initiative_order):  # Reversed = slowest first
-            print(f"\n[{player_agent.character_state.name}] declaring (initiative {initiative_score})...")
+        # Prepare LLM client for enemy declarations (if needed)
+        llm_client = None
+        available_tokens = []
+        if self.enemy_combat.enabled and len(self.enemy_combat.enemy_agents) > 0:
+            # Get available tactical tokens (if mechanics tracks them)
+            if mechanics and hasattr(mechanics, 'get_unclaimed_tokens'):
+                available_tokens = mechanics.get_unclaimed_tokens()
 
-            # Create event to track when this player's declaration arrives
-            declaration_event = asyncio.Event()
-            self._pending_declarations[player_agent.agent_id] = declaration_event
+            # Get DM's LLM config for enemy prompts
+            dm_agents = [a for a in self.agents if isinstance(a, AIDMAgent)]
+            if dm_agents:
+                dm_agent = dm_agents[0]
 
-            turn_message = Message(
-                id=f"turn_{datetime.now().isoformat()}_{player_agent.agent_id}",
-                type=MessageType.TURN_REQUEST,
-                sender='coordinator',
-                recipient=player_agent.agent_id,
-                payload={'phase': 'declaration', 'initiative': initiative_score},
-                timestamp=datetime.now()
-            )
+                # Create a simple wrapper for the DM's LLM functionality
+                class DMLLMClient:
+                    def __init__(self, llm_config):
+                        self.llm_config = llm_config
 
-            await self.coordinator.message_bus._route_message(turn_message)
+                    async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
+                        provider = self.llm_config.get('provider', 'anthropic')
+                        model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
 
-            # Wait for this player's declaration to be buffered
-            await declaration_event.wait()
-            logger.debug(f"{player_agent.character_state.name} declaration received")
+                        if provider == 'anthropic':
+                            import anthropic
+                            import os
+                            client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                            response = client.messages.create(
+                                model=model,
+                                max_tokens=max_tokens,
+                                temperature=temperature,
+                                messages=[{"role": "user", "content": prompt}]
+                            )
+                            return {"content": response.content[0].text}
+                        else:
+                            raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
 
-            # Clean up the event
-            if player_agent.agent_id in self._pending_declarations:
-                del self._pending_declarations[player_agent.agent_id]
+                llm_client = DMLLMClient(dm_agent.llm_config)
+
+        # Declaration loop (slowest → fastest, reversed initiative order)
+        for initiative_score, agent_type, agent in reversed(initiative_order):
+            if agent_type == 'player':
+                # Skip dead/unconscious players
+                if not agent.is_alive:
+                    print(f"\n[{agent.character_state.name}] is unconscious/defeated - cannot declare actions")
+                    continue
+
+                print(f"\n[{agent.character_state.name}] declaring (initiative {initiative_score})...")
+
+                # Create event to track when this player's declaration arrives
+                declaration_event = asyncio.Event()
+                self._pending_declarations[agent.agent_id] = declaration_event
+
+                turn_message = Message(
+                    id=f"turn_{datetime.now().isoformat()}_{agent.agent_id}",
+                    type=MessageType.TURN_REQUEST,
+                    sender='coordinator',
+                    recipient=agent.agent_id,
+                    payload={'phase': 'declaration', 'initiative': initiative_score},
+                    timestamp=datetime.now()
+                )
+
+                await self.coordinator.message_bus._route_message(turn_message)
+
+                # Wait for this player's declaration to be buffered
+                await declaration_event.wait()
+                logger.debug(f"{agent.character_state.name} declaration received")
+
+                # Clean up the event
+                if agent.agent_id in self._pending_declarations:
+                    del self._pending_declarations[agent.agent_id]
+
+            elif agent_type == 'enemy':
+                # Enemy declares inline (interleaved with PCs)
+                if llm_client:
+                    print(f"\n[{agent.name}] declaring (initiative {initiative_score})...")
+
+                    declaration = await self.enemy_combat.declare_single_enemy(
+                        enemy=agent,
+                        player_agents=player_agents,
+                        available_tokens=available_tokens,
+                        llm_client=llm_client
+                    )
+
+                    # Log enemy declaration
+                    if declaration and mechanics and mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_action_declaration(
+                            player_id=declaration['agent_id'],
+                            character_name=declaration['character_name'],
+                            initiative=declaration['initiative'],
+                            action={'major_action': declaration['major_action'], 'target': declaration.get('target')},
+                            round_num=mechanics.current_round
+                        )
 
         self._in_declaration_phase = False
 
-        # PHASE 2: DM ADJUDICATION
-        # Send ALL declarations to DM for adjudication
+        # PHASE 2: RESOLUTION (execute in descending initiative order)
         print("\n=== Resolution Phase ===")
-        print("DM adjudicating all actions...")
+        logger.debug(f"Declared actions at resolution start: {list(self._declared_actions.keys())}")
 
-        # Build list of all actions with initiative order
-        actions_for_adjudication = []
-        for initiative_score, player_agent in initiative_order:  # Sorted by initiative
-            if player_agent.agent_id in self._declared_actions:
-                buffered_action = self._declared_actions[player_agent.agent_id]
-                actions_for_adjudication.append({
-                    'player_id': player_agent.agent_id,
-                    'character_name': player_agent.character_state.name,
-                    'initiative': initiative_score,
-                    'action': buffered_action['action']
-                })
+        # Create resolution state tracker for declare/resolve cycle
+        resolution_state = ResolutionState()
 
-        if not actions_for_adjudication:
-            logger.warning("No actions to adjudicate")
-            return
+        # Collect all resolutions for synthesis at the end
+        all_resolutions = []
 
-        # Create event to track when adjudication completes
-        adjudication_event = asyncio.Event()
-        self._pending_resolutions['adjudication'] = adjudication_event
+        # Execute actions in initiative order (highest first)
+        for initiative_score, agent_type, agent in initiative_order:
+            logger.debug(f"Processing {agent_type} with initiative {initiative_score}")
+            if agent_type == 'player':
+                # Skip dead/unconscious players
+                if not agent.is_alive:
+                    logger.debug(f"{agent.character_state.name} is dead/unconscious - skipping execution")
+                    continue
 
-        # Send all actions to DM for adjudication
-        adjudication_message = Message(
-            id=f"adjudicate_{datetime.now().isoformat()}",
-            type=MessageType.ACTION_DECLARED,
-            sender='coordinator',
-            recipient='dm_01',
-            payload={
-                'phase': 'adjudication',
-                'actions': actions_for_adjudication,
-                'round': mechanics.current_round if mechanics else 0
-            },
-            timestamp=datetime.now()
-        )
+                # PC action execution via DM adjudication
+                # Process ALL buffered actions for this agent (supports free action system)
+                if agent.agent_id in self._declared_actions:
+                    buffered_actions = self._declared_actions[agent.agent_id]
 
-        await self.coordinator.message_bus._route_message(adjudication_message)
+                    print(f"\n[{agent.character_state.name}] executing action...")
 
-        # Wait for DM to complete adjudication
-        await adjudication_event.wait()
-        logger.debug("Adjudication complete")
+                    # Process each action in order (free action first, then main action)
+                    for idx, buffered_action in enumerate(buffered_actions):
+                        action_label = "FREE ACTION" if buffered_action['action'].get('is_free_action') else f"ACTION {idx+1}"
+                        logger.debug(f"Processing {action_label} for {agent.character_state.name}")
 
-        # Clean up
-        if 'adjudication' in self._pending_resolutions:
-            del self._pending_resolutions['adjudication']
+                        # Build single action for DM adjudication
+                        action_for_adjudication = {
+                            'player_id': agent.agent_id,
+                            'character_name': agent.character_state.name,
+                            'initiative': initiative_score,
+                            'action': buffered_action['action']
+                        }
+
+                        # Create event to track when this adjudication completes
+                        adjudication_event = asyncio.Event()
+                        self._pending_resolutions[f"{agent.agent_id}_{idx}"] = adjudication_event
+
+                        # Send action to DM for mechanical resolution (no synthesis yet)
+                        adjudication_message = Message(
+                            id=f"adjudicate_{datetime.now().isoformat()}_{agent.agent_id}_{idx}",
+                            type=MessageType.ACTION_DECLARED,
+                            sender='coordinator',
+                            recipient='dm_01',
+                            payload={
+                                'phase': 'resolution_only',  # Resolve mechanically but don't synthesize yet
+                                'actions': [action_for_adjudication],
+                                'round': mechanics.current_round if mechanics else 0,
+                                'action_index': idx  # Track which action this is for multi-action turns
+                            },
+                            timestamp=datetime.now()
+                        )
+
+                        await self.coordinator.message_bus._route_message(adjudication_message)
+
+                        # Wait for DM to complete adjudication
+                        await adjudication_event.wait()
+                        logger.debug(f"{agent.character_state.name} {action_label} adjudicated")
+
+                        # Clean up and collect resolution for synthesis
+                        # Get the resolution data that was stored when ACTION_RESOLVED was received
+                        resolution_data = getattr(adjudication_event, 'resolution_data', None)
+                        if resolution_data:
+                            all_resolutions.append(resolution_data)
+
+                        if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
+                            del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
+
+                        # TODO: Update resolution_state based on PC action results
+                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.)
+
+            elif agent_type == 'enemy':
+                # Enemy action execution with resolution state tracking
+                if self.enemy_combat.enabled:
+                    result = self.enemy_combat.execute_enemy_action(
+                        enemy_id=agent.agent_id,
+                        player_agents=player_agents,
+                        mechanics_engine=mechanics,
+                        resolution_state=resolution_state
+                    )
+
+                    if result:
+                        # Check if action was invalidated
+                        if result.get('result') == 'invalidated':
+                            print(f"\n⚠️  {result['narration']}")
+                        else:
+                            print(f"\n[{result['character_name']}] {result['narration']}")
+
+                        # TODO: Enemy action logging
+                        # Enemy actions use a simplified result dict that doesn't match
+                        # the ActionResolution schema. Consider implementing enemy-specific
+                        # logging or adapting the result format.
+
+        # Generate single synthesis from all collected resolutions
+        if all_resolutions:
+            print("\n=== Generating Round Synthesis ===")
+            logger.debug(f"Sending {len(all_resolutions)} resolutions to DM for synthesis")
+
+            # Reset synthesis event before requesting synthesis
+            self._synthesis_complete.clear()
+
+            synthesis_message = Message(
+                id=f"synthesis_{datetime.now().isoformat()}",
+                type=MessageType.ACTION_DECLARED,
+                sender='coordinator',
+                recipient='dm_01',
+                payload={
+                    'phase': 'synthesis',
+                    'resolutions': all_resolutions,
+                    'round': mechanics.current_round if mechanics else 0
+                },
+                timestamp=datetime.now()
+            )
+
+            await self.coordinator.message_bus._route_message(synthesis_message)
+
+            # Wait for DM to complete and broadcast synthesis
+            await self._synthesis_complete.wait()
+            logger.debug("Round synthesis complete")
+
+        # PHASE 3: CLEANUP
+        if self.enemy_combat.enabled:
+            print("\n=== Cleanup Phase ===")
+            cleanup_events = self.enemy_combat.cleanup_round()
+
+            for event in cleanup_events:
+                print(f"[CLEANUP] {event['narration']}")
+
+                if mechanics and mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event(
+                        event_type=event['type'],
+                        data=event,
+                        round_num=mechanics.current_round
+                    )
 
         # Clear the action buffer for next round
         self._declared_actions.clear()
-        
+
+        # Reset free action slots for all players
+        for agent in self.agents:
+            if hasattr(agent, 'free_action_used'):
+                agent.free_action_used = False
+
+        return True  # Combat continues
+
     async def _run_dm_turn(self):
         """Run DM turn."""
         dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
@@ -533,7 +734,34 @@ class SelfPlayingSession:
                         conversation_so_far += f"{prev_name}: \"{prev_statement}\"\n"
                     conversation_so_far += "\nYou can respond to what they said or add your own perspective.\n"
 
-                debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) in a post-mission debrief conversation.
+                # Check if player is dead and modify prompt accordingly
+                is_dead = not player.is_alive if hasattr(player, 'is_alive') else False
+                wounds = player.wounds if hasattr(player, 'wounds') else 0
+
+                if is_dead:
+                    # Dead player - give dying words
+                    debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) giving your FINAL WORDS before dying.
+
+**You are DEAD.** You took {wounds} fatal wounds and failed your death save. You are bleeding out, taking your last breaths.
+
+**Mission Context:**
+{scenario_situation}
+
+**Your Faction**: {player.character_state.faction}
+**Your Goals (unfulfilled)**: {', '.join(player.character_state.goals)}
+{conversation_so_far}
+
+Provide a brief (1-2 sentence) dying statement in character voice:
+- Final words, regrets, or defiant last stand
+- Something meaningful to say before you die
+- Keep it dramatic but not melodramatic
+
+Examples: "Tell... tell them the truth about..." or "Not like this... *coughs blood* not like this..." or "I die as I lived - fighting the void"
+
+Keep it brief and impactful. You're dying."""
+                else:
+                    # Alive player - normal debrief
+                    debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) in a post-mission debrief conversation.
 
 **Mission Context:**
 {scenario_situation}
@@ -563,7 +791,13 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 )
 
                 debrief_text = response.content[0].text.strip()
-                print(f"[{player.character_state.name}] {debrief_text}\n")
+
+                # Add death marker for dead players
+                if is_dead:
+                    print(f"💀 [{player.character_state.name}] (DYING) {debrief_text}\n")
+                else:
+                    print(f"[{player.character_state.name}] {debrief_text}\n")
+
                 debriefs.append((player.character_state.name, debrief_text))
 
                 # Log debrief to JSONL
@@ -587,6 +821,62 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 print(f"[{player.character_state.name}] [Debrief generation failed: {e}]\n")
 
         print(f"{'='*60}\n")
+
+    def _display_round_status(self, initiative_order: List[tuple], mechanics, player_agents: List):
+        """Display comprehensive round status with initiative, health, and position."""
+        print("\n=== Round Status ===")
+
+        # Group combatants by type
+        pcs = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'player']
+        enemies = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'enemy']
+
+        # Display PCs
+        if pcs:
+            print("\n  Player Characters:")
+            for init, agent in pcs:
+                # Get health info from agent's combat attributes (initialized from Size × 2)
+                current_health = getattr(agent, 'health', 0)
+                max_health = getattr(agent, 'max_health', 0)
+                health_str = f"{current_health}/{max_health} HP"
+
+                # Get position
+                position = getattr(agent, 'position', 'Unknown')
+                position_str = str(position) if position != 'Unknown' else 'Unknown'
+
+                # Get void score
+                void_score = getattr(agent.character_state, 'void_score', 0)
+                void_str = f"Void {void_score}/10"
+
+                print(f"    [{init:2d}] {agent.character_state.name:20s} | {health_str:12s} | {position_str:15s} | {void_str}")
+
+        # Display Enemies
+        if enemies:
+            print("\n  Enemies:")
+            for init, agent in enemies:
+                # Get health info
+                health = getattr(agent, 'health', '?')
+                max_health = getattr(agent, 'max_health', '?')
+                health_str = f"{health}/{max_health} HP"
+
+                # Get position
+                position = getattr(agent, 'position', 'Unknown')
+                position_str = str(position) if position != 'Unknown' else 'Unknown'
+
+                # Get group count if available
+                unit_count = getattr(agent, 'unit_count', 1)
+                count_str = f" (×{unit_count})" if unit_count > 1 else ""
+
+                print(f"    [{init:2d}] {agent.name:20s}{count_str:6s} | {health_str:12s} | {position_str:15s}")
+
+        # Display clock states if available
+        if mechanics and mechanics.scene_clocks:
+            print("\n  Scene Clocks:")
+            for name, clock in mechanics.scene_clocks.items():
+                status = f"{clock.current}/{clock.maximum}"
+                filled_str = " [FILLED]" if clock.filled else ""
+                print(f"    • {name}: {status}{filled_str}")
+
+        print()
 
     def _spawn_new_clocks(self, new_clocks: List[Dict[str, any]]):
         """Spawn new clocks from DM markers."""
@@ -914,9 +1204,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         return self._turn_history[-5:]
 
     def _handle_scenario_setup(self, message: Message):
-        """Track when scenario is ready."""
+        """Track when scenario is ready and process initial enemy spawns."""
         if message.type != MessageType.SCENARIO_SETUP:
             return
+
+        # Process enemy spawn markers from opening narration
+        opening_narration = message.payload.get('opening_narration', '')
+        if opening_narration and self.enemy_combat.enabled:
+            spawn_notifications = self.enemy_combat.process_dm_narration(opening_narration)
+            for notification in spawn_notifications:
+                print(f"\n{notification}")
 
         self._scenario_ready.set()
 
@@ -929,15 +1226,21 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if not self._in_declaration_phase:
             return
 
-        # Buffer the action
+        # Buffer the action (supports multiple actions per agent for free action system)
         # Note: message.payload IS the action dict (not nested under 'action' key)
         agent_id = message.sender
-        self._declared_actions[agent_id] = {
+
+        # Initialize list if this is the first action from this agent
+        if agent_id not in self._declared_actions:
+            self._declared_actions[agent_id] = []
+
+        # Append this action to the agent's action list
+        self._declared_actions[agent_id].append({
             'agent_id': agent_id,
             'action': message.payload,  # Payload IS the action
             'timestamp': message.timestamp
-        }
-        logger.debug(f"Buffered action from {agent_id}")
+        })
+        logger.debug(f"Buffered action from {agent_id} (total: {len(self._declared_actions[agent_id])} actions)")
 
         # Log the declaration
         if self.shared_state and self.shared_state.mechanics_engine:
@@ -970,10 +1273,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         # Extract the agent who completed their action
         agent_id = message.payload.get('agent_id')
-        if agent_id and agent_id in self._pending_resolutions:
+        action_index = message.payload.get('action_index', 0)  # Default to 0 for backward compatibility
+
+        # Build the event key (must match the key used when storing the event)
+        event_key = f"{agent_id}_{action_index}"
+
+        if event_key in self._pending_resolutions:
+            # Store resolution data on the event for later collection
+            event = self._pending_resolutions[event_key]
+            event.resolution_data = message.payload.get('resolution_data')
             # Signal that this agent's resolution/adjudication is complete
-            self._pending_resolutions[agent_id].set()
-            logger.debug(f"Resolution complete for {agent_id}")
+            event.set()
+            logger.debug(f"Resolution complete for {event_key}")
+        elif agent_id in self._pending_resolutions:
+            # Fallback for old-style keys (no index)
+            event = self._pending_resolutions[agent_id]
+            event.resolution_data = message.payload.get('resolution_data')
+            event.set()
+            logger.debug(f"Resolution complete for {agent_id} (legacy)")
 
     def _handle_dm_narration(self, message: Message):
         """Handle DM narration and check for control markers."""
@@ -982,6 +1299,17 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         narration = message.payload.get('narration', '')
         self._last_dm_narration = narration
+
+        # Check if this is a round synthesis completion
+        if message.payload.get('is_round_synthesis', False):
+            self._synthesis_complete.set()
+            logger.debug("Round synthesis received, signaling completion")
+
+        # Process enemy spawn/despawn markers
+        if self.enemy_combat.enabled:
+            spawn_notifications = self.enemy_combat.process_dm_narration(narration)
+            for notification in spawn_notifications:
+                print(f"\n{notification}")
 
         # Check for session end marker
         end_result = parse_session_end_marker(narration)
@@ -1018,16 +1346,22 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Notify all players of the scenario pivot
             pivot_narration = f"The situation has changed! New objective: {pivot_result['new_theme']}"
-            self.bus.send_message(
-                MessageType.SCENARIO_UPDATE,
-                self.session_id,
-                None,  # Broadcast to all
-                {
+            pivot_message = Message(
+                id=f"pivot_{datetime.now().isoformat()}",
+                type=MessageType.SCENARIO_UPDATE,
+                sender='coordinator',
+                recipient=None,  # Broadcast to all
+                payload={
                     'new_theme': pivot_result['new_theme'],
                     'new_situation': pivot_narration,
                     'pivot_narration': pivot_narration
-                }
+                },
+                timestamp=datetime.now()
             )
+            # Note: This is async context, but we can't await here in a non-async handler
+            # The message will be queued for delivery
+            import asyncio
+            asyncio.create_task(self.coordinator.message_bus._route_message(pivot_message))
 
             # Store pivot for DM to use in next scenario generation
             dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
