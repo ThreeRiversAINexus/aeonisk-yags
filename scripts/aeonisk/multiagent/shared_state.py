@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from .mechanics import MechanicsEngine, SceneClock
     from .action_schema import ActionValidator
     from .knowledge_retrieval import KnowledgeRetrieval
+    from .enemy_combat import EnemyCombatManager
 
 
 @dataclass
@@ -37,6 +38,10 @@ class SharedState:
     mechanics_engine: Optional['MechanicsEngine'] = None
     action_validator: Optional['ActionValidator'] = None
     knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
+    enemy_combat: Optional['EnemyCombatManager'] = None
+
+    # Player agents (for ally buff targeting)
+    player_agents: List[Any] = field(default_factory=list)
 
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys

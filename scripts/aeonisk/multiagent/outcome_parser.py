@@ -4,7 +4,7 @@ Automatically advance clocks and void based on DM narration.
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -331,6 +331,250 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
     return (void_change, reasons)
 
 
+def parse_creative_tactics_damage(
+    action_intent: str,
+    narration: str,
+    outcome_tier: str,
+    margin: int
+) -> Tuple[int, str, str]:
+    """
+    Parse creative tactics (hacking, social manipulation, environmental) for damage interpretation.
+
+    According to game analysis feedback:
+    - High-margin social/hacking successes should deal damage, not just debuffs
+    - Environmental hazards should cause actual damage
+    - Turning enemies against each other should be supported
+
+    Returns:
+        Tuple of (damage_amount, damage_type, reason)
+        damage_amount: 0 if no damage, 5-15 if damage dealt
+        damage_type: "social_manipulation", "hacking", "environmental", "none"
+        reason: Description of why damage was dealt
+    """
+    if outcome_tier not in ['moderate', 'good', 'excellent', 'exceptional']:
+        # Only successes with decent margins can deal damage
+        return (0, "none", "")
+
+    intent_lower = action_intent.lower()
+    narration_lower = narration.lower()
+    combined = intent_lower + " " + narration_lower
+
+    damage = 0
+    damage_type = "none"
+    reason = ""
+
+    # SOCIAL MANIPULATION: Corporate authority, charm, intimidation
+    social_keywords = [
+        'corporate authority', 'command', 'order', 'intimidate', 'charm',
+        'corporate influence', 'executive command', 'social manipulation',
+        'convince', 'persuade', 'dominate', 'authority', 'corporate exorcism'
+    ]
+
+    if any(kw in combined for kw in social_keywords):
+        # Check if targeting enemies (not allies)
+        enemy_keywords = ['enemy', 'hostile', 'corrupted', 'void', 'parasite', 'scanner', 'sentinel']
+        if any(kw in combined for kw in enemy_keywords):
+            # High margin = confusion causes void corruption backlash damage
+            if margin >= 15:
+                damage = 10
+                reason = "Exceptional social manipulation causes void corruption backlash in target"
+            elif margin >= 10:
+                damage = 7
+                reason = "Strong social manipulation causes void corruption backlash"
+            elif margin >= 5:
+                damage = 5
+                reason = "Social manipulation causes mild void corruption backlash"
+
+            if damage > 0:
+                damage_type = "social_manipulation"
+                logger.info(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
+
+    # HACKING: Turn enemies against each other or disable them
+    hacking_keywords = [
+        'hack', 'override', 'system', 'reprogram', 'control',
+        'subvert', 'hijack', 'remote access', 'backdoor',
+        'systems engineering', 'tech', 'interface', 'network'
+    ]
+
+    if any(kw in combined for kw in hacking_keywords):
+        enemy_target_keywords = ['scanner', 'drone', 'turret', 'corrupted', 'automated', 'security', 'tendrils']
+        if any(kw in combined for kw in enemy_target_keywords):
+            # Hacking can:
+            # 1. Turn enemy against others (friendly fire damage)
+            # 2. Disable/overload enemy (direct damage)
+
+            if 'turn against' in combined or 'attack other' in combined or 'target other' in combined:
+                # Turning enemies against each other
+                if margin >= 15:
+                    damage = 12
+                    reason = "Hacked enemy turns on allies, dealing significant friendly fire damage"
+                elif margin >= 10:
+                    damage = 8
+                    reason = "Hacked enemy attacks allies before regaining control"
+                elif margin >= 5:
+                    damage = 5
+                    reason = "Brief hacked control causes enemy to harm ally"
+            elif 'overload' in combined or 'disable' in combined or 'shutdown' in combined:
+                # Overloading/disabling causes damage
+                if margin >= 15:
+                    damage = 10
+                    reason = "System overload causes catastrophic damage to target"
+                elif margin >= 10:
+                    damage = 7
+                    reason = "System overload damages target's internal systems"
+                elif margin >= 5:
+                    damage = 5
+                    reason = "Forced shutdown causes damage to target"
+
+            if damage > 0:
+                damage_type = "hacking"
+                logger.info(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
+
+    # ENVIRONMENTAL: Trigger hazards, overload systems, use environment
+    environmental_keywords = [
+        'overload power', 'trigger hazard', 'environmental', 'facility',
+        'power surge', 'electrical', 'explosion', 'collapse',
+        'redirect energy', 'containment breach', 'cascade failure',
+        'use environment', 'trap', 'environmental damage'
+    ]
+
+    if any(kw in combined for kw in environmental_keywords):
+        # Environmental damage should be area-effect (higher damage)
+        if margin >= 15:
+            damage = 15
+            reason = "Environmental hazard triggers catastrophic damage to all in area"
+        elif margin >= 10:
+            damage = 12
+            reason = "Environmental hazard causes significant area damage"
+        elif margin >= 5:
+            damage = 10
+            reason = "Environmental hazard deals moderate area damage"
+
+        if damage > 0:
+            damage_type = "environmental"
+            logger.info(f"Creative tactic damage: {damage_type} → {damage} damage AoE (margin {margin})")
+
+    return (damage, damage_type, reason)
+
+
+def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
+    """
+    Parse position changes from narration.
+
+    Looks for patterns like:
+    - "moves from X to Y" → returns Y
+    - "shifts to Y" → returns Y
+    - "[POSITION: Y]" → returns Y (explicit marker from DM)
+    - "[TARGET_POSITION: Y]" → returns Y (player tactical declaration)
+
+    Args:
+        narration: DM's narrative text
+        action_intent: Player's action intent
+
+    Returns:
+        New position string (e.g., "Near-PC", "Engaged-Enemy") or None if no change
+    """
+    narration_lower = narration.lower()
+
+    # Look for explicit position marker first (highest priority)
+    explicit_pattern = r'\[POSITION:\s*([^\]]+)\]'
+    explicit_match = re.search(explicit_pattern, narration, re.IGNORECASE)
+    if explicit_match:
+        new_position = explicit_match.group(1).strip()
+        logger.info(f"Parsed explicit position marker: {new_position}")
+        return new_position
+
+    # Look for target position marker in player action (basic tactical movement)
+    target_pattern = r'\[TARGET_POSITION:\s*([^\]]+)\]'
+    target_match = re.search(target_pattern, action_intent, re.IGNORECASE)
+    if target_match:
+        new_position = target_match.group(1).strip()
+        logger.info(f"Parsed target position from player declaration: {new_position}")
+        return new_position
+
+    # Look for "moves from X to Y" pattern
+    moves_pattern = r'moves?\s+from\s+([A-Za-z\-]+)\s+to\s+([A-Za-z\-]+)'
+    moves_match = re.search(moves_pattern, narration_lower)
+    if moves_match:
+        new_position = moves_match.group(2)
+        # Capitalize properly (e.g., "near-pc" → "Near-PC")
+        new_position = '-'.join([word.capitalize() for word in new_position.split('-')])
+        logger.info(f"Parsed position change: {new_position}")
+        return new_position
+
+    # Look for "shifts to Y" or "moves to Y" pattern
+    shifts_pattern = r'(?:shifts?|moves?)\s+to\s+([A-Za-z\-]+(?:\s+[A-Za-z\-]+)?)'
+    shifts_match = re.search(shifts_pattern, narration_lower)
+    if shifts_match:
+        new_position = shifts_match.group(1).strip()
+        # Capitalize properly
+        new_position = '-'.join([word.capitalize() for word in new_position.split('-')])
+        logger.info(f"Parsed position change: {new_position}")
+        return new_position
+
+    return None
+
+
+def parse_condition_markers(narration: str) -> List[Dict[str, Any]]:
+    """
+    Parse condition markers from DM narration.
+
+    Format: 🎭 Condition: Unseen (description)
+            🏔️ Token Claimed: High Ground (+2 ranged)
+
+    Returns:
+        List of condition dicts with name, type, description, penalty/bonus
+    """
+    conditions = []
+
+    # Parse condition markers (🎭 Condition: Name (description))
+    condition_pattern = r'🎭\s*Condition:\s*([^\(]+)\s*\(([^\)]+)\)'
+    for match in re.finditer(condition_pattern, narration):
+        name = match.group(1).strip()
+        description = match.group(2).strip()
+
+        # Determine penalty/bonus from description
+        penalty = 0
+        if "can't be targeted" in description.lower() or "unseen" in name.lower():
+            # Unseen is special - no numeric penalty, but prevents targeting
+            conditions.append({
+                'type': 'Unseen',
+                'name': name,
+                'description': description,
+                'penalty': 0,
+                'special': 'prevents_targeting'
+            })
+        else:
+            conditions.append({
+                'type': name.replace(' ', '_'),
+                'name': name,
+                'description': description,
+                'penalty': penalty
+            })
+
+    # Parse token markers (🏔️ Token Claimed: Name (+bonus))
+    token_pattern = r'🏔️\s*Token Claimed:\s*([^\(]+)\s*\(([^\)]+)\)'
+    for match in re.finditer(token_pattern, narration):
+        token_name = match.group(1).strip()
+        description = match.group(2).strip()
+
+        # Extract bonus (e.g., "+2 ranged")
+        bonus_match = re.search(r'([+\-]\d+)', description)
+        bonus = int(bonus_match.group(1)) if bonus_match else 0
+
+        conditions.append({
+            'type': f'Token_{token_name.replace(" ", "_")}',
+            'name': f'{token_name} Token',
+            'description': description,
+            'penalty': -bonus  # Negative penalty = bonus
+        })
+
+    if conditions:
+        logger.info(f"Parsed {len(conditions)} condition/token markers")
+
+    return conditions
+
+
 def parse_state_changes(
     narration: str,
     action: Dict,
@@ -347,14 +591,15 @@ def parse_state_changes(
         active_clocks: Dict of active clock names to Clock objects (optional)
 
     Returns:
-        Dict with state changes: clocks, void, conditions, etc.
+        Dict with state changes: clocks, void, conditions, position_change, etc.
     """
     state_changes = {
         'clock_triggers': [],
         'void_change': 0,
         'void_reasons': [],
         'conditions': [],
-        'notes': []
+        'notes': [],
+        'position_change': None
     }
 
     outcome_tier_raw = resolution.get('outcome_tier', 'moderate')
@@ -417,6 +662,16 @@ def parse_state_changes(
     sc_delta, sc_reason = parse_soulcredit_markers(narration)
     state_changes['soulcredit_change'] = sc_delta
     state_changes['soulcredit_reasons'] = [sc_reason] if sc_reason else []
+
+    # Parse position changes (for tactical movement)
+    position_change = parse_position_change(narration, intent)
+    if position_change:
+        state_changes['position_change'] = position_change
+
+    # Parse condition/token markers (for skill-based movement benefits)
+    condition_markers = parse_condition_markers(narration)
+    for cond in condition_markers:
+        state_changes['conditions'].append(cond)
 
     return state_changes
 
@@ -499,6 +754,35 @@ def parse_pivot_scenario_marker(narration: str) -> Dict[str, str]:
     return {'should_pivot': False, 'new_theme': None}
 
 
+def parse_advance_story_marker(narration: str) -> Dict[str, any]:
+    """
+    Parse story advancement markers from DM narration.
+
+    Format: [ADVANCE_STORY: location | situation]
+    Example: [ADVANCE_STORY: Abandoned Transit Hub | Having escaped, you find a wounded courier with urgent intel]
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Dict with 'should_advance' (bool), 'location' (str), and 'situation' (str)
+    """
+    pattern = r'\[ADVANCE_STORY:\s*([^|]+)\|\s*([^\]]+)\]'
+    match = re.search(pattern, narration)
+
+    if match:
+        location = match.group(1).strip()
+        situation = match.group(2).strip()
+        logger.info(f"Parsed story advancement: {location} - {situation}")
+        return {
+            'should_advance': True,
+            'location': location,
+            'situation': situation
+        }
+
+    return {'should_advance': False, 'location': None, 'situation': None}
+
+
 def parse_combat_triplet(narration: str) -> Dict[str, any]:
     """
     Parse combat triplet from narration: attack/damage/soak/post_soak_damage.
@@ -540,3 +824,388 @@ def parse_combat_triplet(narration: str) -> Dict[str, any]:
             combat_data['post_soak_damage'] = int(damage_match.group(1))
 
     return combat_data
+
+
+def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
+    """
+    Parse [MECHANICAL_EFFECT] blocks from DM narration.
+
+    Supports multiple effect types:
+    - damage: Direct HP reduction
+    - debuff: Ongoing penalty to rolls
+    - status: Status effect (shocked, stunned, prone, etc.)
+    - movement: Forced position change
+    - reveal: Exposed weakness or intel
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Dict with effect details or None if no effect block found
+    """
+    # Look for [MECHANICAL_EFFECT]...[/MECHANICAL_EFFECT] block
+    pattern = r'\[MECHANICAL_EFFECT\](.*?)\[/MECHANICAL_EFFECT\]'
+    match = re.search(pattern, narration, re.DOTALL | re.IGNORECASE)
+
+    if not match:
+        return None
+
+    effect_block = match.group(1)
+    effect = {}
+
+    # Parse Type
+    type_match = re.search(r'Type:\s*(\w+)', effect_block, re.IGNORECASE)
+    if type_match:
+        effect['type'] = type_match.group(1).lower()
+    else:
+        return None  # Type is required
+
+    # Parse Target
+    target_match = re.search(r'Target:\s*(.+?)(?:\n|$)', effect_block, re.IGNORECASE)
+    if target_match:
+        effect['target'] = target_match.group(1).strip()
+
+    # Parse type-specific details
+    if effect.get('type') == 'damage':
+        # Parse damage triplet
+        damage_match = re.search(r'Damage:\s*(\d+)\s*→\s*Soak:\s*(\d+)\s*→\s*Final:\s*(\d+)', effect_block)
+        if damage_match:
+            effect['damage'] = int(damage_match.group(1))
+            effect['soak'] = int(damage_match.group(2))
+            effect['final'] = int(damage_match.group(3))
+            logger.info(f"Parsed damage effect: {effect['final']} final damage to {effect.get('target', 'unknown')}")
+        else:
+            # Try just final damage
+            final_match = re.search(r'(?:Final|Damage):\s*(\d+)', effect_block)
+            if final_match:
+                effect['final'] = int(final_match.group(1))
+
+    elif effect.get('type') == 'debuff':
+        # Parse debuff details
+        effect_match = re.search(r'Effect:\s*(.+?)(?:\n|Duration:|$)', effect_block, re.IGNORECASE)
+        duration_match = re.search(r'Duration:\s*(\d+)\s*rounds?', effect_block, re.IGNORECASE)
+
+        if effect_match:
+            effect['effect'] = effect_match.group(1).strip()
+        if duration_match:
+            effect['duration'] = int(duration_match.group(1))
+        else:
+            effect['duration'] = 3  # Default 3 rounds
+
+        # Try to extract numeric penalty
+        penalty_match = re.search(r'(-\d+)', effect.get('effect', ''))
+        if penalty_match:
+            effect['penalty'] = int(penalty_match.group(1))
+
+        logger.info(f"Parsed debuff effect: {effect.get('effect', 'unknown')} for {effect.get('duration', 3)} rounds")
+
+    elif effect.get('type') == 'status':
+        # Parse status effect
+        effect_match = re.search(r'Effect:\s*(.+?)(?:\n|$)', effect_block, re.IGNORECASE)
+        if effect_match:
+            effect['effect'] = effect_match.group(1).strip()
+
+        duration_match = re.search(r'Duration:\s*(\d+)\s*rounds?', effect_block, re.IGNORECASE)
+        if duration_match:
+            effect['duration'] = int(duration_match.group(1))
+        else:
+            effect['duration'] = 3  # Default 3 rounds
+
+        logger.info(f"Parsed status effect: {effect.get('effect', 'unknown')}")
+
+    elif effect.get('type') == 'movement':
+        # Parse movement effect
+        effect_match = re.search(r'Effect:\s*(.+?)(?:\n|$)', effect_block, re.IGNORECASE)
+        if effect_match:
+            effect['effect'] = effect_match.group(1).strip()
+
+        # Try to extract new position
+        pos_match = re.search(r'(Engaged|Near-PC|Near-Enemy|Far-PC|Far-Enemy|Extreme-PC|Extreme-Enemy)', effect.get('effect', ''))
+        if pos_match:
+            effect['new_position'] = pos_match.group(1)
+
+        logger.info(f"Parsed movement effect: {effect.get('effect', 'unknown')}")
+
+    elif effect.get('type') == 'reveal':
+        # Parse reveal/intel effect
+        effect_match = re.search(r'Effect:\s*(.+?)(?:\n|$)', effect_block, re.IGNORECASE)
+        if effect_match:
+            effect['effect'] = effect_match.group(1).strip()
+
+        # Try to extract bonus for allies
+        bonus_match = re.search(r'\+(\d+)', effect.get('effect', ''))
+        if bonus_match:
+            effect['bonus'] = int(bonus_match.group(1))
+
+        logger.info(f"Parsed reveal effect: {effect.get('effect', 'unknown')}")
+
+    return effect if effect else None
+
+
+def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any]) -> Optional[Dict[str, any]]:
+    """
+    Generate default mechanical effect when LLM doesn't include one.
+
+    Effect magnitude is based on margin of success.
+
+    Args:
+        action: The action dict with skill, target_enemy, etc.
+        resolution: Resolution dict with success, margin, etc.
+
+    Returns:
+        Effect dict ready for application, or None
+    """
+    target_enemy = action.get('target_enemy')
+    if not target_enemy:
+        return None  # No enemy target, no effect
+
+    # Only generate effects for successful actions
+    margin = resolution.get('margin', 0)
+    if margin < 0:
+        return None
+
+    skill = action.get('skill', '').lower() if action.get('skill') else ''
+    description = action.get('description', '').lower()
+
+    # Determine effect type based on skill and narrative
+    damage_keywords = ['attack', 'strike', 'blast', 'damage', 'hit', 'shoot', 'fire', 'slash', 'stab']
+    debuff_keywords = ['disrupt', 'weaken', 'impair', 'jam', 'hack', 'interfere', 'destabilize']
+
+    has_damage_intent = any(kw in description for kw in damage_keywords)
+    has_debuff_intent = any(kw in description for kw in debuff_keywords)
+
+    # Combat skills default to damage
+    combat_skills = ['guns', 'melee', 'brawl']
+    # Hybrid skills can do damage or debuffs
+    hybrid_skills = ['astral arts', 'dreamwork', 'drone operation', 'charm', 'intimidation', 'corporate influence']
+    # Tech/utility skills default to debuffs
+    utility_skills = ['systems', 'engineering', 'investigation', 'perception']
+
+    logger.info(f"Generating fallback effect: skill={skill}, margin={margin}, has_damage_intent={has_damage_intent}")
+
+    # Determine effect type and magnitude
+    if skill in combat_skills or (skill in hybrid_skills and has_damage_intent):
+        # Generate damage effect
+        # Base damage = margin // 2, min 5, max 15 for mental attacks, max 20 for physical
+        max_damage = 15 if skill in ['charm', 'intimidation', 'corporate influence'] else 20
+        base_damage = max(5, min(max_damage, margin // 2))
+
+        return {
+            'type': 'damage',
+            'target': target_enemy,
+            'final': base_damage,
+            'source': 'fallback',
+            'description': f"Fallback damage from {skill} (margin +{margin})"
+        }
+
+    elif skill in utility_skills or (skill in hybrid_skills and has_debuff_intent) or has_debuff_intent:
+        # Generate debuff effect with powerful status conditions
+        # Penalty = -1 per 5 margin, min -1, max -5
+        penalty = -max(1, min(5, margin // 5))
+        duration = 3  # 3 rounds default
+
+        # Determine status effect based on skill and margin
+        status_effect = None
+        if margin >= 20:  # Excellent success (margin ≥ 20)
+            if skill in ['charm', 'intimidation', 'corporate influence']:
+                status_effect = 'terrified (-5 to attacks, must make morale check)'
+            elif skill in ['astral arts', 'dreamwork']:
+                status_effect = 'mind-shattered (-5 to all rolls, confused)'
+            elif skill in ['systems', 'engineering']:
+                status_effect = 'systems paralyzed (cannot use tech abilities)'
+        elif margin >= 15:  # Great success (margin 15-19)
+            if skill in ['charm', 'intimidation', 'corporate influence']:
+                status_effect = 'demoralized (-3 to attacks)'
+            elif skill in ['astral arts', 'dreamwork']:
+                status_effect = 'psychically disrupted (-3 to all rolls)'
+            elif skill in ['systems', 'engineering']:
+                status_effect = 'disrupted systems (-3 to tech rolls)'
+
+        # Enhanced effect description
+        if status_effect:
+            effect_desc = f"{penalty} to rolls, {status_effect}"
+        else:
+            effect_desc = f"{penalty} to enemy rolls"
+
+        return {
+            'type': 'debuff',
+            'target': target_enemy,
+            'effect': effect_desc,
+            'penalty': penalty,
+            'duration': duration,
+            'source': 'fallback',
+            'description': f"Fallback debuff from {skill} (margin +{margin})"
+        }
+
+    elif skill == 'athletics':
+        # Generate movement/prone effect
+        return {
+            'type': 'status',
+            'target': target_enemy,
+            'effect': 'knocked prone or forced movement',
+            'duration': 1,
+            'source': 'fallback',
+            'description': f"Fallback movement from athletics (margin +{margin})"
+        }
+
+    else:
+        # Generic minor debuff for other skills
+        penalty = -max(1, margin // 10)
+        return {
+            'type': 'debuff',
+            'target': target_enemy,
+            'effect': f"{penalty} to enemy rolls",
+            'penalty': penalty,
+            'duration': 1,
+            'source': 'fallback',
+            'description': f"Fallback minor debuff from {skill} (margin +{margin})"
+        }
+
+
+def generate_fallback_buff(action: Dict[str, any], resolution: Dict[str, any]) -> Optional[Dict[str, any]]:
+    """
+    Generate default buff effect for ally-targeted support actions.
+
+    Buff magnitude is based on margin of success.
+
+    Args:
+        action: The action dict with skill, target_ally, etc.
+        resolution: Resolution dict with success, margin, etc.
+
+    Returns:
+        Buff dict ready for application, or None
+    """
+    target_ally = action.get('target_ally')
+    if not target_ally:
+        return None  # No ally target, no buff
+
+    # Only generate buffs for successful actions
+    margin = resolution.get('margin', 0)
+    if margin < 0:
+        return None
+
+    skill = action.get('skill', '').lower() if action.get('skill') else ''
+    description = action.get('description', '').lower()
+    intent = action.get('intent', '').lower()
+
+    # Support skill categories
+    support_skills = ['charm', 'counsel', 'medicine', 'first aid', 'leadership']
+    tactical_skills = ['awareness', 'perception', 'investigation', 'tactics']
+    tech_skills = ['systems', 'engineering', 'drone operation']
+
+    # Detect buff intent from description/intent
+    heal_keywords = ['heal', 'treat', 'stabilize', 'medicine', 'first aid', 'bandage']
+    inspire_keywords = ['inspire', 'encourage', 'rally', 'bolster', 'motivate', 'cheer']
+    coordinate_keywords = ['coordinate', 'spot', 'aim', 'guide', 'direct', 'target']
+    shield_keywords = ['shield', 'protect', 'cover', 'defend', 'guard']
+    enhance_keywords = ['enhance', 'boost', 'amplify', 'strengthen', 'empower']
+
+    has_heal_intent = any(kw in description or kw in intent for kw in heal_keywords)
+    has_inspire_intent = any(kw in description or kw in intent for kw in inspire_keywords)
+    has_coordinate_intent = any(kw in description or kw in intent for kw in coordinate_keywords)
+    has_shield_intent = any(kw in description or kw in intent for kw in shield_keywords)
+    has_enhance_intent = any(kw in description or kw in intent for kw in enhance_keywords)
+
+    logger.info(f"Generating fallback buff: skill={skill}, margin={margin}, target={target_ally}")
+
+    # Determine buff type and magnitude based on skill and intent
+    if has_heal_intent or skill in ['medicine', 'first aid']:
+        # Healing effect - restore HP
+        # Healing = margin // 2, min 3, max 12
+        healing_amount = max(3, min(12, margin // 2))
+        return {
+            'type': 'heal',
+            'target': target_ally,
+            'amount': healing_amount,
+            'source': 'fallback',
+            'description': f"Heals {healing_amount} HP (margin +{margin})"
+        }
+
+    elif has_inspire_intent or skill in ['charm', 'counsel', 'leadership']:
+        # Morale/inspiration buff - bonus to next attack/defense
+        # Bonus = +1 per 5 margin, min +1, max +4
+        bonus = max(1, min(4, margin // 5))
+        duration = 2  # 2 rounds
+
+        if margin >= 15:
+            effect_desc = f"inspired (+{bonus} to attacks, +2 to morale checks)"
+        else:
+            effect_desc = f"encouraged (+{bonus} to next attack)"
+
+        return {
+            'type': 'buff',
+            'target': target_ally,
+            'effect': effect_desc,
+            'bonus': bonus,
+            'duration': duration,
+            'source': 'fallback',
+            'description': f"Fallback morale buff from {skill} (margin +{margin})"
+        }
+
+    elif has_coordinate_intent or skill in tactical_skills:
+        # Tactical coordination - aim/targeting bonus
+        # Bonus = +1 per 5 margin, min +1, max +3
+        bonus = max(1, min(3, margin // 5))
+        duration = 1  # 1 round (immediate next action)
+
+        effect_desc = f"aimed shot (+{bonus} to next attack)"
+
+        return {
+            'type': 'buff',
+            'target': target_ally,
+            'effect': effect_desc,
+            'bonus': bonus,
+            'duration': duration,
+            'source': 'fallback',
+            'description': f"Fallback tactical buff from {skill} (margin +{margin})"
+        }
+
+    elif has_shield_intent:
+        # Defensive buff - bonus to defense/soak
+        bonus = max(1, min(3, margin // 5))
+        duration = 2
+
+        effect_desc = f"shielded (+{bonus} to defense, +2 soak)"
+
+        return {
+            'type': 'buff',
+            'target': target_ally,
+            'effect': effect_desc,
+            'bonus': bonus,
+            'duration': duration,
+            'source': 'fallback',
+            'description': f"Fallback shield buff from {skill} (margin +{margin})"
+        }
+
+    elif has_enhance_intent or skill in tech_skills:
+        # Enhancement buff - bonus to specific roll types
+        bonus = max(1, min(3, margin // 5))
+        duration = 2
+
+        if skill in tech_skills:
+            effect_desc = f"enhanced systems (+{bonus} to tech rolls)"
+        else:
+            effect_desc = f"empowered (+{bonus} to next action)"
+
+        return {
+            'type': 'buff',
+            'target': target_ally,
+            'effect': effect_desc,
+            'bonus': bonus,
+            'duration': duration,
+            'source': 'fallback',
+            'description': f"Fallback enhancement buff from {skill} (margin +{margin})"
+        }
+
+    else:
+        # Generic small buff for other support actions
+        bonus = max(1, margin // 10)
+        return {
+            'type': 'buff',
+            'target': target_ally,
+            'effect': f"+{bonus} to next roll",
+            'bonus': bonus,
+            'duration': 1,
+            'source': 'fallback',
+            'description': f"Fallback minor buff from {skill} (margin +{margin})"
+        }

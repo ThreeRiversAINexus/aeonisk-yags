@@ -1,154 +1,395 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with the Aeonisk YAGS project.
+
+**Additional Documentation:** For deeper architecture details and current work context, see the `.claude/` directory:
+- `.claude/README.md` - AI assistant orientation
+- `.claude/ARCHITECTURE.md` - System architecture deep-dive
+- `.claude/current-work/` - Active development notes
 
 ## Project Overview
 
-Aeonisk YAGS is a comprehensive gaming ecosystem built around a science-fantasy tabletop RPG. The repository contains multiple interconnected applications:
+**Aeonisk YAGS** is a science-fantasy tabletop RPG system with AI-powered gameplay. The project consists of:
 
-1. **aeonisk-assistant**: React/TypeScript frontend for AI-assisted game management
-2. **aeonisk-backend**: Node.js/Express backend API with PostgreSQL 
-3. **aeonisk-rag-backend**: RAG service for game content retrieval using ChromaDB
-4. **Content**: Game rules, lore, and modules in Markdown format
-5. **Datasets**: Training data and character examples for AI systems
-6. **Scripts**: Python utilities for game engine, benchmarking, and content processing
+1. **Multi-Agent Python System** (`scripts/aeonisk/multiagent/`) - **PRIMARY DEVELOPMENT FOCUS**
+   - AI agents (DM, players, enemies) playing tabletop RPG sessions
+   - Comprehensive JSONL logging for ML training
+   - Tactical combat with positioning and enemy AI
 
-## Common Development Commands
+2. **Backend API** (`src/`) - Node.js/Express/TypeScript
+   - Domain-driven design architecture
+   - PostgreSQL database with Drizzle ORM
+   - Character management, game sessions, void tracking
 
-### Primary Development Stack
-Use the Taskfile for all common operations:
+3. **Game Content** (`content/`) - Markdown-based rules and lore
+4. **Training Datasets** (`datasets/`) - Character examples and scenarios
 
+## Quick Start - Multi-Agent System
+
+### Critical: Always Use Virtual Environment
 ```bash
-# Start entire infrastructure stack  
-task stack
-
-# Start only infrastructure services
-task infra  
-
-# Development server for backend
-task dev
-
-# Run tests
-task test
-task test:watch
-task test:coverage
-
-# Build and quality checks
-task build
-task lint 
-task typecheck
+cd scripts/aeonisk
+source .venv/bin/activate  # ChromaDB/transformers requirement
 ```
 
-### Frontend Development (aeonisk-assistant)
+### Run a Game Session
 ```bash
-cd aeonisk-assistant
-npm run dev          # Vite development server
-npm run build        # Production build
-npm run test         # Vitest tests
-npm run lint         # ESLint
+# From scripts/ directory
+python3 run_multiagent_session.py session_config_combat.json
 ```
 
-### Database Operations
+### Validate Logs
 ```bash
-task db:init         # Initialize databases
-task db:psql         # PostgreSQL shell
-npm run db:migrate   # Run Drizzle migrations
-npm run db:studio    # Drizzle Studio
+cd aeonisk/multiagent
+python3 validate_logging.py ../../multiagent_output/session_*.jsonl
 ```
 
-### Service Management
+### Reconstruct Story
 ```bash
-task start          # Start all services (Postgres, Redis, ChromaDB)
-task stop           # Stop all services
-task status         # Show service status
-task logs           # View service logs
+python3 reconstruct_narrative.py ../../multiagent_output/session_*.jsonl
+python3 reconstruct_narrative.py ../../multiagent_output/session_*.jsonl > story.md
 ```
 
 ## Architecture
 
-### Backend Architecture (Domain-Driven Design)
+### Multi-Agent System (`scripts/aeonisk/multiagent/`)
+
+**Key Files:**
+- `session.py` (1500+ lines) - Orchestrates game loop, phase management, logging integration
+- `dm.py` (1800+ lines) - DM AI agent, narration generation, adjudication
+- `enemy_combat.py` (1400+ lines) - Enemy agents with tactical AI
+- `mechanics.py` (600+ lines) - Core game mechanics + JSONLLogger class
+- `base.py` - Message bus, async agent framework, GameCoordinator
+
+**Architecture Pattern:**
+```
+Player Agents ─┐
+Enemy Agents  ─┼─> Message Bus ─> DM Agent ─> Narration
+Session      ─┘                                    │
+                                                   v
+                                          Logging (JSONL)
+```
+
+### Backend API (`src/`)
+
+**Domain-Driven Design:**
 ```
 src/
-├── domain/         # Core business entities and schemas
-│   ├── entities/   # Character, GameSession classes
-│   └── schemas/    # Zod validation schemas
-├── infrastructure/ # Database and external services
-│   ├── database/   # Drizzle ORM schema
+├── api/              # HTTP layer (routes, controllers, middleware)
+├── domain/           # Core entities and schemas
+│   ├── entities/     # Character, GameSession classes
+│   └── schemas/      # Zod validation
+├── infrastructure/   # Database and external services
+│   ├── database/     # Drizzle ORM schema
 │   └── repositories/ # Data access layer
-├── services/       # Business logic services
-├── api/           # HTTP layer
-│   ├── routes/    # Express routes
-│   ├── controllers/ # Request handlers
-│   └── middleware/ # Auth, validation, error handling
-└── utils/         # Shared utilities
+├── services/         # Business logic
+└── utils/           # Shared utilities
 ```
 
-### Frontend Architecture (React + Zustand)
+## Critical Patterns - MUST FOLLOW
+
+### 1. Accessing Mechanics in Multi-Agent System
+```python
+# ✅ CORRECT - The ONLY way
+mechanics = self.shared_state.get_mechanics_engine()
+# OR
+mechanics = self.shared_state.mechanics_engine
+
+# ❌ WRONG - These don't exist
+mechanics = self.coordinator.mechanics  # GameCoordinator has no .mechanics
+mechanics = self.mechanics              # Session has no .mechanics attribute
 ```
-src/
-├── components/    # React components
-├── lib/          # Core libraries
-│   ├── chat/     # Chat service layer
-│   ├── game/     # Game logic (character creation, AI DM)
-│   ├── rag/      # ChromaDB integration
-│   └── llm/      # LLM provider adapters
-├── stores/       # Zustand state management
-└── types/        # TypeScript type definitions
+
+**Why:** Debugged this 3 times. Mechanics lives in `shared_state`, nowhere else.
+
+### 2. JSONL Logging Pattern
+```python
+# Always check for logger existence
+if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+    mechanics.jsonl_logger.log_action_resolution(...)
 ```
 
-### Key Technologies
-- **Backend**: Node.js, Express, TypeScript, Drizzle ORM, PostgreSQL
-- **Frontend**: React, Vite, TypeScript, Tailwind CSS, Zustand
-- **AI/ML**: OpenAI API, ChromaDB, Transformers.js
-- **Infrastructure**: Podman/Docker, Redis
-- **Testing**: Jest, Vitest, Supertest
+**Logger location:** `mechanics.jsonl_logger` (JSONLLogger instance in mechanics.py:55-509)
 
-## Game System Context
+### 3. Message Flow for Round Synthesis
+```
+1. Session requests (session.py:603)
+2. DM generates (dm.py:998-1012)
+3. DM broadcasts with is_round_synthesis: True
+4. Session receives (session.py:1484)
+5. Session logs it (session.py:1489-1495)  ← NOT DM!
+```
 
-Aeonisk is built on the YAGS (Yet Another Game System) foundation with these key concepts:
+**Key insight:** Content generation and logging often happen in different places.
 
-- **Character System**: Attributes + Skills + d20 mechanics
-- **Void Score**: Spiritual corruption tracking (0-10 scale)  
-- **Soulcredit**: Spiritual economy currency
-- **Bonds**: Formal character relationships as mechanical elements
-- **Ritual System**: Willpower × Astral Arts vs thresholds with consequences
-- **AI Players**: Automated characters with personality and decision-making
+## ML Logging System
 
-### Core Game Entities
-- `Character`: Player/NPC with attributes, skills, void score, bonds
-- `GameSession`: Multi-player game state with phases and action tracking  
-- `Ritual`: Magical actions with costs, risks, and mechanical effects
-- `Bond`: Formal relationships between characters with mechanical benefits
+**Status:** ✅ Complete (2025-10-23)
+**Documentation:** `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md`
 
-## Development Guidelines
+### What's Logged (10 event types)
+1. `scenario` - Theme, location, situation
+2. `action_declaration` - Player intentions (intent + description + DC estimate)
+3. `action_resolution` - DM narration (~1000 chars with roll/damage/clocks)
+4. `round_synthesis` - DM round summary
+5. `round_summary` - Aggregate statistics (success rate, damage, void)
+6. `character_state` - Health/void/soulcredit snapshots
+7. `combat_action` - Bidirectional combat (player ↔ enemy)
+8. `enemy_spawn` - Complete enemy stats
+9. `enemy_defeat` - Defeat reason + rounds survived
+10. `mission_debrief` - Character reflections
 
-### Character Creation Flow
-The system uses a priority-based character creation:
-1. Campaign Level determines overall power
-2. Priority allocation (Primary/Secondary/Tertiary) for Attributes/Experience/Advantages
-3. Point spending within allocated pools
-4. Derived stats calculation (Health = Size × 2, etc.)
+**Output:** ~20,000+ chars of narrative + structured data per session
 
-### AI Integration Points
-- **AI DM**: Game master automation using content RAG
-- **Character AI**: NPC behavior with personality-driven decision making
-- **Content Generation**: Campaign and scenario creation
-- **RAG System**: ChromaDB for rules/lore retrieval
+### Tools
+- `validate_logging.py` - Schema validation, handles dual combat schemas
+- `reconstruct_narrative.py` - Rebuild complete story from logs
 
-### Testing Approach
-- Unit tests for business logic in `lib/` and `domain/`
-- Integration tests for API endpoints
-- Component tests for React UI
-- Use `@testing-library` for React components
-- Jest for backend, Vitest for frontend
+### Dual Combat Schemas
 
-### Database Schema
-Core tables: users, characters, game_sessions, session_characters, npcs, actions, void_history. Uses Drizzle ORM for type-safe database operations.
+**Enemy → Player (full breakdown):**
+```json
+{
+  "damage": {
+    "strength": 3, "weapon_dmg": 12, "d20": 8,
+    "total": 23, "soak": 10, "dealt": 13
+  }
+}
+```
+
+**Player → Enemy (simplified):**
+```json
+{
+  "damage": {
+    "base_damage": 14, "soak": 12, "dealt": 2
+  }
+}
+```
+
+**Why:** Enemy attacks are calculated (we control player stats). Player attacks are inferred from DM narration (we don't control enemy stats).
+
+## Common Commands
+
+### Backend Development
+```bash
+# Start services (Postgres, Redis, ChromaDB)
+task start
+task infra
+
+# Development
+task dev
+task test
+task lint
+task typecheck
+
+# Database
+task db:init
+npm run db:migrate
+npm run db:studio
+```
+
+### Multi-Agent Sessions
+```bash
+# Activate venv first!
+cd scripts/aeonisk && source .venv/bin/activate
+
+# Run session
+python3 ../run_multiagent_session.py ../session_config_combat.json
+
+# Validate
+python3 multiagent/validate_logging.py ../../multiagent_output/session_*.jsonl
+
+# Reconstruct
+python3 multiagent/reconstruct_narrative.py ../../multiagent_output/session_*.jsonl
+```
+
+## Game System Mechanics
+
+### Core Concepts
+- **Attributes + Skills + d20** - Roll: `Attribute × Skill + d20` vs DC
+- **Void Score** (0-10) - Spiritual corruption, mechanical effects at 5+
+- **Soulcredit** - Spiritual economy currency
+- **Clocks** - Progress tracking (e.g., "Enemy Reinforcements: 3/10")
+- **Tactical Positioning** - Far/Near ranges, movement actions
+- **Bonds** - Formal character relationships with mechanical benefits
+
+### Character Stats
+- **Attributes:** Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma, Size
+- **Derived:** Health = Size × 2
+- **Skills:** Combat, Guns, Stealth, Awareness, Athletics, Investigation, etc.
+
+### Combat Flow
+1. **Declaration Phase** - Players declare intentions
+2. **Adjudication Phase** - DM resolves actions one by one
+3. **Synthesis Phase** - DM summarizes round
+4. **Cleanup Phase** - Enemy actions, character state logging, round summary
+
+## Common Pitfalls - AVOID THESE
+
+### 1. Forgetting Virtual Environment
+```bash
+# ❌ WRONG - Will fail with module import errors
+python3 run_multiagent_session.py session_config_combat.json
+
+# ✅ CORRECT
+cd scripts/aeonisk && source .venv/bin/activate
+python3 ../run_multiagent_session.py ../session_config_combat.json
+```
+
+### 2. Wrong Mechanics Access Pattern
+```python
+# ❌ All of these fail
+mechanics = self.coordinator.mechanics
+mechanics = self.mechanics
+mechanics = self.get_mechanics()
+
+# ✅ Only this works
+mechanics = self.shared_state.get_mechanics_engine()
+```
+
+### 3. Ignoring Suppressed Errors
+Message handler errors are caught and logged but don't crash:
+```bash
+grep ERROR game.log | tail -20
+```
+
+### 4. Field Name Mismatches
+When passing dicts between components, names must match exactly:
+```python
+# Sender
+summary = {'actions_attempted': 5}
+
+# Receiver
+count = summary.get('actions_attempted', 0)  # NOT 'action_count'!
+```
+
+### 5. Not Reading Files Before Editing
+The Edit tool requires reading files first:
+```python
+# ✅ Correct workflow
+Read(file_path)
+Edit(file_path, old_string, new_string)
+```
+
+## Debugging
+
+### Multi-Agent System
+```bash
+# Check logs
+tail -100 game.log
+tail -100 multiagent.log
+
+# Search for errors
+grep ERROR game.log | tail -20
+
+# Check if round synthesis generated
+grep "Round Synthesis" game.log
+
+# Count events by type
+cat multiagent_output/session_*.jsonl | python3 -c "
+import json, sys
+from collections import Counter
+types = Counter(json.loads(line)['event_type'] for line in sys.stdin)
+for t, c in sorted(types.items()): print(f'{t:30s}: {c}')
+"
+```
+
+### Backend API
+```bash
+# Check service status
+task status
+
+# View logs
+task logs
+
+# Database access
+task db:psql
+npm run db:studio
+```
+
+## Project Structure
+
+```
+aeonisk-yags/
+├── scripts/
+│   ├── aeonisk/
+│   │   ├── multiagent/          # Multi-agent Python system (PRIMARY)
+│   │   │   ├── session.py       # Game orchestrator
+│   │   │   ├── dm.py            # DM agent
+│   │   │   ├── enemy_combat.py  # Enemy AI
+│   │   │   ├── mechanics.py     # Game mechanics + logging
+│   │   │   ├── validate_logging.py
+│   │   │   ├── reconstruct_narrative.py
+│   │   │   └── LOGGING_IMPLEMENTATION.md
+│   │   └── .venv/               # CRITICAL: Activate before use!
+│   └── session_config_*.json    # Session configurations
+├── src/                         # Backend API (Node.js/TypeScript)
+│   ├── api/
+│   ├── domain/
+│   ├── infrastructure/
+│   └── services/
+├── content/                     # Game rules and lore (Markdown)
+├── datasets/                    # Training data
+├── multiagent_output/          # JSONL session logs
+├── game.log                    # Multi-agent debug logs
+├── .claude/                    # AI assistant documentation
+│   ├── README.md               # Orientation guide
+│   ├── ARCHITECTURE.md         # System architecture
+│   └── current-work/           # Active development notes
+└── CLAUDE.md                   # This file (auto-loaded)
+```
+
+## Git Workflow
+
+Current branch: `feature/tactical-enemy-agents` (ML logging implementation)
+
+```bash
+# Standard workflow
+git status
+git add <files>
+git commit -m "message"
+
+# Don't commit:
+- game.log (too large)
+- multiagent_output/*.jsonl (session logs)
+- .venv/ (virtual environment)
+```
 
 ## Important Notes
 
-- Always run `task typecheck` and `task lint` before committing
-- Use `task stack` for full development environment  
-- Character void scores have mechanical significance at 5+ levels
-- The ritual system requires careful balance between power and consequences
-- All game content is stored as Markdown in `/content` directory
+- **Multi-agent requires venv:** `cd scripts/aeonisk && source .venv/bin/activate`
+- **Mechanics access:** Only via `shared_state.get_mechanics_engine()`
+- **Check game.log for errors** - Message handlers catch exceptions silently
+- **Dual combat schemas** - Enemy attacks (full), player attacks (simplified)
+- **CLAUDE.md is auto-loaded** - This file is read every session
+- **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
+
+## Recent Major Work (2025-10-23)
+
+**ML Logging System - Phases 1-4 Complete:**
+- Bidirectional combat logging (player ↔ enemy)
+- Round summary aggregation (actions, success rate, damage, void)
+- Round synthesis logging (DM summaries)
+- Player action declaration capture
+- Complete narrative reconstruction
+- 100% validation passing
+
+**Commits:** 8d8cae2, a12a9de, c535ca3, f9b8741, abd45b4, bf5bcfb, 31b3ece, 4cc58c2
+
+**Files Modified:** session.py, dm.py, enemy_combat.py, mechanics.py
+**Files Added:** validate_logging.py, reconstruct_narrative.py, LOGGING_IMPLEMENTATION.md
+
+---
+
+**For Future AI Assistants:**
+
+**Start here when joining the project:**
+1. This file (CLAUDE.md) - Critical patterns and quick start
+2. `.claude/README.md` - AI assistant orientation and best practices
+3. `.claude/ARCHITECTURE.md` - System architecture deep-dive
+4. `.claude/current-work/` - Active development context for current branch
+
+**When working on the multi-agent system:**
+- Read `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` for ML logging details
+- The mechanics access pattern and dual combat schemas are critical to understand
+- Always activate venv: `cd scripts/aeonisk && source .venv/bin/activate`

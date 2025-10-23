@@ -131,6 +131,24 @@ class AIPlayerAgent(Agent):
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
 
+        # Tactical positioning (for Tactical Module v1.2.3)
+        from .enemy_agent import Position
+        self.position = Position.from_string("Near-PC")  # Default starting position
+
+        # Combat attributes (for enemy attacks and YAGS combat)
+        # Will be initialized properly in on_start() after character_state is created
+        self.health = None  # Current HP
+        self.max_health = None  # Maximum HP
+        self.soak = None  # Damage resistance
+        self.wounds = 0  # Wound count (Tactical Module wound ladder)
+        self.stuns = 0  # Stun damage (YAGS)
+
+        # Free action tracking (one per round)
+        self.free_action_used = False
+
+        # Buff tracking (positive effects from allies)
+        self.buffs = []  # List of active buffs from ally support
+
         # Set up player-specific message handlers
         self.message_handlers[MessageType.SCENARIO_SETUP] = self._handle_scenario_setup
         self.message_handlers[MessageType.SCENARIO_UPDATE] = self._handle_scenario_update
@@ -180,7 +198,23 @@ class AIPlayerAgent(Agent):
             pronouns=self.character_config.get('pronouns', 'they/them'),
             inventory=inventory
         )
-        
+
+        # Initialize combat attributes (for enemy attacks to work)
+        # Health = Size × 2 + Endurance (YAGS-compliant toughness bonus)
+        size = self.character_state.attributes.get('Size', 5)
+        endurance = self.character_state.attributes.get('Endurance', 3)
+        self.size = size
+        # HP = (Size × 2) + Endurance + 13 combat balance bonus
+        # Increased from +3 to +13 to support sustained tactical combat (3-4 rounds)
+        # e.g., Size 5 + Endurance 3 + 13 = 26 HP (was 16 HP)
+        self.max_health = (size * 2) + endurance + 13
+        self.health = self.max_health
+        self.wounds = 0  # Wound count (tactical module)
+        # Soak = YAGS standard base soak for adult humans (character.md:598-600) + combat balance
+        # Set to 10 to balance with increased HP pool - allows 5-13 damage through per hit
+        # (was 14, too high - blocked most damage causing stalemate)
+        self.soak = 10
+
         logger.info(f"Player {self.agent_id} ({self.character_state.name}) started")
 
         # Register with shared state for party awareness
@@ -211,7 +245,117 @@ class AIPlayerAgent(Agent):
     async def on_shutdown(self):
         """Cleanup on shutdown."""
         logger.info(f"Player {self.agent_id} shutting down")
-        
+
+    # === YAGS Combat Lifecycle Properties ===
+
+    @property
+    def is_alive(self) -> bool:
+        """Check if player is alive (health > 0)."""
+        return self.health is not None and self.health > 0
+
+    @property
+    def is_conscious(self) -> bool:
+        """
+        Check if player is conscious.
+
+        YAGS Rules (combat.md:406-422):
+        - At 5+ wounds (fatally wounded), must make death saves
+        - Good success: Can continue fighting (but -25 penalty)
+        - Success: Unconscious (cannot act)
+        - Failure: Dead
+        """
+        if not self.is_alive:
+            return False
+
+        # If fatally wounded (5+ wounds), must make death save
+        if self.wounds >= 5:
+            # Note: Actual death save is rolled when damage is taken
+            # This property returns current conscious state
+            # TODO: Track consciousness state separately if needed
+            return False
+
+        return True
+
+    def check_death_save(self) -> tuple[bool, str]:
+        """
+        Make YAGS death save when fatally wounded.
+
+        YAGS Rules (combat.md:406-422):
+        - At 5+ wounds (fatally wounded), make Health check
+        - DC = 20 + 5 per wound beyond fatal (5th wound)
+        - Success: Unconscious (must reroll each round)
+        - Good success (DC+10): Can continue fighting (but -25 penalty)
+        - Failure: DEAD
+
+        Returns:
+            (alive, status) where status is "conscious", "unconscious", or "dead"
+        """
+        if self.wounds < 5:
+            return True, "conscious"
+
+        # Calculate DC: 20 base + 5 per extra wound beyond 5th
+        extra_wounds = self.wounds - 5
+        dc = 20 + (5 * extra_wounds)
+
+        # Roll Health check (Health attribute × 2 + d20)
+        health_attr = self.character_state.attributes.get('Health', 3)
+        roll = random.randint(1, 20)
+        total = (health_attr * 2) + roll
+
+        logger.info(f"{self.character_state.name} death save: {health_attr}×2 + {roll} = {total} vs DC {dc} (wounds: {self.wounds})")
+
+        # Fumble (nat 1) = automatic death
+        if roll == 1:
+            logger.warning(f"{self.character_state.name} FUMBLED death save - KILLED!")
+            return False, "dead"
+
+        # Good success (beat DC by 10+) = can keep fighting
+        if total >= dc + 10:
+            logger.info(f"{self.character_state.name} passed death save with good success - still conscious!")
+            return True, "conscious"
+
+        # Success = unconscious but alive
+        elif total >= dc:
+            logger.info(f"{self.character_state.name} passed death save - unconscious but alive")
+            return True, "unconscious"
+
+        # Failure = dead
+        else:
+            logger.warning(f"{self.character_state.name} FAILED death save - KILLED!")
+            return False, "dead"
+
+    def add_buff(self, effect: str, bonus: int, duration: int, source: str = "unknown"):
+        """
+        Add a positive buff to this player from an ally action.
+
+        Args:
+            effect: Description of the buff (e.g., "aim bonus", "morale boost")
+            bonus: Positive modifier to apply
+            duration: How many rounds the buff lasts
+            source: Who provided the buff
+        """
+        buff = {
+            'effect': effect,
+            'bonus': bonus,
+            'duration': duration,
+            'source': source,
+            'rounds_remaining': duration
+        }
+        self.buffs.append(buff)
+        logger.info(f"{self.character_state.name} gained buff: {effect} (+{bonus}) from {source} for {duration} rounds")
+
+    def tick_buffs(self):
+        """Reduce buff durations and remove expired buffs."""
+        expired_buffs = []
+        for buff in self.buffs:
+            buff['rounds_remaining'] = buff.get('rounds_remaining', 1) - 1
+            if buff['rounds_remaining'] <= 0:
+                expired_buffs.append(buff)
+
+        for buff in expired_buffs:
+            logger.info(f"{self.character_state.name} buff expired: {buff['effect']}")
+            self.buffs.remove(buff)
+
     async def _handle_scenario_setup(self, message: Message):
         """Handle scenario setup from DM."""
         self.current_scenario = message.payload.get('scenario', {})
@@ -383,12 +527,31 @@ class AIPlayerAgent(Agent):
         is_dialogue_action = (action_declaration.attribute == 'Empathy' and action_declaration.skill in ['Charm', 'Counsel'])
         is_intimacy_ritual = (action_declaration.skill == 'Intimacy Ritual')
         is_free_action = False
+
+        logger.debug(f"Free action check: is_dialogue={is_dialogue_action}, attr={action_declaration.attribute}, skill={action_declaration.skill}")
+        logger.debug(f"Other players: {other_players}")
+        logger.debug(f"Intent: {action_declaration.intent}")
+
         if (is_dialogue_action or is_intimacy_ritual) and self.shared_state:
-            # Check if intent mentions any party member name
+            # Check if intent or description mentions any party member name
             intent_lower = action_declaration.intent.lower()
+            description_lower = action_declaration.description.lower()
             for player_name in other_players:
-                if player_name.lower() in intent_lower:
+                logger.debug(f"Checking if '{player_name.lower()}' or parts in '{intent_lower}'")
+                # Check if full name or significant parts are mentioned (handle "Enforcer Kael" vs "Enforcer Kael Dren")
+                name_parts = player_name.lower().split()
+                # Check if at least 2 words from name appear, or the full name
+                if player_name.lower() in intent_lower or player_name.lower() in description_lower:
                     is_free_action = True
+                elif len(name_parts) >= 2:
+                    # Check if at least 2 consecutive words from the name appear
+                    for i in range(len(name_parts) - 1):
+                        two_word_combo = f"{name_parts[i]} {name_parts[i+1]}"
+                        if two_word_combo in intent_lower or two_word_combo in description_lower:
+                            is_free_action = True
+                            break
+
+                if is_free_action:
                     if is_intimacy_ritual:
                         print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
                     else:
@@ -443,15 +606,22 @@ class AIPlayerAgent(Agent):
         print(f"   └─ {action_declaration.get_summary()}")
 
         # If this was a free action (inter-party dialogue), generate a second action
-        if is_free_action:
-            print(f"[{self.character_state.name}] Free action used - generating main action...")
+        if is_free_action and not self.free_action_used:
+            self.free_action_used = True
+            print(f"[{self.character_state.name}] Free action used - requesting main action...")
             await asyncio.sleep(0.5)  # Small delay for readability
 
-            # Generate main action (excluding dialogue to avoid infinite loop)
-            if self.llm_config:
-                main_action = await self._generate_llm_action_structured(recent_intents, exclude_dialogue=True)
-            else:
-                main_action = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity, exclude_dialogue=True)
+            try:
+                # Generate main action (excluding dialogue to avoid infinite loop)
+                if self.llm_config:
+                    main_action = await self._generate_llm_action_structured(recent_intents, exclude_dialogue=True)
+                else:
+                    main_action = self._generate_simple_action(recent_intents, risk_tolerance, void_curiosity, exclude_dialogue=True)
+            except Exception as e:
+                logger.error(f"Failed to generate main action after free action: {e}")
+                return  # Skip second action on error
+
+            logger.debug(f"Main action generated: {main_action.intent}")
 
             # Apply same routing and validation
             main_routed_attr, main_routed_skill, main_rationale = router.route_action(
@@ -488,6 +658,7 @@ class AIPlayerAgent(Agent):
                 main_action_dict['has_offering'] = False
                 main_action_dict['has_primary_tool'] = False
 
+            logger.debug(f"Sending main action: {main_action_dict['intent']}")
             self.send_message_sync(
                 MessageType.ACTION_DECLARED,
                 None,
@@ -495,51 +666,59 @@ class AIPlayerAgent(Agent):
             )
 
             # Display with character voice
-            print(f"\n[{self.character_state.name}] {main_action.description}")
+            print(f"\n[{self.character_state.name}] **MAIN ACTION:** {main_action.description}")
             print(f"   └─ {main_action.get_summary()}")
+            logger.info(f"{self.character_state.name} completed 2-action turn (free + main)")
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
-        if message.recipient == self.agent_id or message.recipient is None:
-            outcome = message.payload.get('outcome', {})
-            narration = message.payload.get('narration', '')
+        # Only process resolutions for this specific agent (filter out broadcasts meant for others)
+        resolved_agent_id = message.payload.get('agent_id')
+        if resolved_agent_id != self.agent_id:
+            return  # This resolution is for another agent
 
-            print(f"\n[{self.character_state.name}] Received resolution")
+        outcome = message.payload.get('outcome', {})
+        narration = message.payload.get('narration', '')
 
-            # Consume offering if it was used in the action
-            original_action = message.payload.get('original_action', {})
-            if original_action.get('has_offering', False):
-                if self.character_state.consume_offering():
-                    print(f"[{self.character_state.name}] Consumed offering")
+        print(f"\n[{self.character_state.name}] Received resolution")
 
-            # Update void state from mechanics engine
-            if self.shared_state:
-                mechanics = self.shared_state.get_mechanics_engine()
-                void_state = mechanics.get_void_state(self.agent_id)
-                self.character_state.void_score = void_state.score
+        # Consume offering if it was used in the action
+        original_action = message.payload.get('original_action', {})
+        if original_action.get('has_offering', False):
+            if self.character_state.consume_offering():
+                print(f"[{self.character_state.name}] Consumed offering")
 
-                if len(void_state.history) > 0:
-                    last_change = void_state.history[-1]
-                    if last_change['new_score'] != last_change['old_score']:
-                        print(f"[{self.character_state.name}] Void: {last_change['old_score']} → {last_change['new_score']} ({last_change['reason']})")
+        # Update void state from mechanics engine
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            void_state = mechanics.get_void_state(self.agent_id)
+            self.character_state.void_score = void_state.score
 
-            # Update character state based on outcome
-            if 'void_gained' in outcome:
-                self.character_state.void_score += outcome['void_gained']
-                print(f"[{self.character_state.name}] Void Score: {self.character_state.void_score}")
+            # Note: Void changes are already displayed in DM narration (⚫ Void: X → Y)
+            # Suppressing duplicate player-side print to avoid repetition
+            # if len(void_state.history) > 0:
+            #     last_change = void_state.history[-1]
+            #     if last_change['new_score'] != last_change['old_score']:
+            #         print(f"[{self.character_state.name}] Void: {last_change['old_score']} → {last_change['new_score']} ({last_change['reason']})")
 
-            if 'soulcredit_cost' in outcome:
-                self.character_state.soulcredit -= outcome['soulcredit_cost']
-                print(f"[{self.character_state.name}] Soulcredit: {self.character_state.soulcredit}")
+        # Update character state based on outcome (legacy path - usually handled by mechanics engine)
+        if 'void_gained' in outcome:
+            self.character_state.void_score += outcome['void_gained']
+            # Suppressed: void changes already shown in DM narration
+            # print(f"[{self.character_state.name}] Void Score: {self.character_state.void_score}")
 
-            # Handle vendor purchases - deduct currency if action succeeded
-            intent = original_action.get('intent', '').lower()
-            if ('purchase' in intent or 'buy' in intent) and outcome.get('success', False):
-                self._process_purchase(intent, outcome)
+        if 'soulcredit_cost' in outcome:
+            self.character_state.soulcredit -= outcome['soulcredit_cost']
+            print(f"[{self.character_state.name}] Soulcredit: {self.character_state.soulcredit}")
 
-            # Handle currency/item transfers between players
-            if ('give' in intent or 'transfer' in intent or 'pool' in intent) and outcome.get('success', False):
-                self._process_transfer(intent, outcome)
+        # Handle vendor purchases - deduct currency if action succeeded
+        intent = original_action.get('intent', '').lower()
+        if ('purchase' in intent or 'buy' in intent) and outcome.get('success', False):
+            self._process_purchase(intent, outcome)
+
+        # Handle currency/item transfers between players
+        if ('give' in intent or 'transfer' in intent or 'pool' in intent) and outcome.get('success', False):
+            self._process_transfer(intent, outcome)
 
     def _process_purchase(self, intent: str, outcome: Dict[str, Any]):
         """Process a successful purchase and deduct currency."""
@@ -673,12 +852,13 @@ class AIPlayerAgent(Agent):
 
     async def _handle_dm_narration(self, message: Message):
         """Handle general DM narration."""
-        narration = message.payload.get('narration', '')
-        if narration:
-            print(f"\n[DM] {narration}")
+        # Don't echo DM narration - users can see it from DM's output directly
+        # This prevents duplicate display of synthesis and other DM messages
 
-            if self.human_controlled:
-                print(f"[HUMAN - {self.character_state.name}] How do you respond?")
+        # Still prompt human-controlled characters for response
+        narration = message.payload.get('narration', '')
+        if narration and self.human_controlled:
+            print(f"[HUMAN - {self.character_state.name}] How do you respond?")
 
     async def _handle_agent_register(self, message: Message):
         """Handle agent registration messages (no-op for players)."""
@@ -823,6 +1003,142 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 - Others can see your affiliation unless you actively disguise it
 """
 
+        # Add tactical combat context (only when enemies are active)
+        tactical_combat_context = ""
+        logger.debug(f"Checking tactical combat context for {self.character_state.name}")
+        logger.debug(f"  has shared_state: {self.shared_state is not None}")
+        if self.shared_state:
+            logger.debug(f"  has enemy_combat attr: {hasattr(self.shared_state, 'enemy_combat')}")
+
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+            enemy_combat = self.shared_state.enemy_combat
+            logger.debug(f"  enemy_combat exists: {enemy_combat is not None}")
+            if enemy_combat:
+                logger.debug(f"  enemy_combat.enabled: {enemy_combat.enabled}")
+                logger.debug(f"  enemy_agents count: {len(enemy_combat.enemy_agents)}")
+
+            if enemy_combat and enemy_combat.enabled:
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+                logger.info(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
+
+                if active_enemies:
+                    # Build enemy positions summary
+                    enemy_positions = []
+                    for enemy in active_enemies:
+                        enemy_positions.append(f"{enemy.name} at {enemy.position} ({enemy.health}/{enemy.max_health} HP)")
+                    enemy_positions_text = "\n  - ".join(enemy_positions)
+
+                    tactical_combat_context = f"""
+
+⚔️  **ACTIVE COMBAT - ENEMIES ARE ATTACKING YOU NOW!** ⚔️
+
+🚨 **YOU ARE IN A FIREFIGHT!** These enemies are actively trying to KILL you right now.
+
+**DEFAULT ACTION: ATTACK!**
+Unless you have a SPECIFIC tactical reason (wrong range for weapon, need cover from heavy fire,
+need to charge into melee, etc.), your action should be ATTACKING an enemy.
+
+🎯 **Enemy Targets:**
+  {enemy_positions_text}
+
+**Combat Priority:**
+1. **ATTACK** - Shoot/stab/punch an enemy (specify which enemy and how)
+   - Ranged attacks: Use Agility × Combat skill
+   - Melee attacks: Use Agility × Combat skill (or Strength × Combat for heavy weapons)
+2. **REPOSITION WHILE ATTACKING** - Move + shoot (if needed for range/cover)
+3. **Only reposition without attacking if:**
+   - You're at completely wrong range for your weapon
+   - You need to charge into melee distance
+   - You're being overwhelmed and need to retreat
+
+⚠️  DO NOT endlessly reposition without attacking - you're in a fight, ACT like it!
+⚠️  Your Combat skill is {self.character_state.skills.get('Combat', 0)} - USE IT!
+
+🎯 **CRITICAL REQUIREMENT - POSITION TAGS**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  When moving, you MUST include position tags or your position will NOT update!
+
+Format: [TARGET_POSITION: PositionName]
+
+✅ GOOD Examples (USE THESE):
+  "I charge forward [TARGET_POSITION: Engaged]"
+  "I fall back to cover [TARGET_POSITION: Far-PC]"
+  "I circle to flank them [TARGET_POSITION: Near-Enemy]"
+  "I sprint to extreme range [TARGET_POSITION: Extreme-PC]"
+  "I advance cautiously [TARGET_POSITION: Near-Enemy]"
+
+❌ BAD Examples (DON'T do this - position won't update):
+  "I charge forward" ← Missing tag!
+  "I move to better position" ← Missing tag!
+  "I carefully reposition" ← Missing tag!
+
+Your Position: **{self.position}**
+Available Positions: Engaged, Near-PC, Far-PC, Extreme-PC, Near-Enemy, Far-Enemy, Extreme-Enemy
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Enemy Positions:
+  - {enemy_positions_text}
+
+**MOVEMENT SYSTEM** - You have two options:
+
+1) **Basic Tactical Movement** (automatic, no roll needed):
+   - Declare target position with [TARGET_POSITION: ...] tag (REQUIRED!)
+   - Movement happens automatically based on action economy:
+     * Minor Action: Shift 1 band (Near-PC → Engaged OR Near-PC → Far-PC)
+     * Major Action: Shift 2 bands (Far-PC → Engaged OR Engaged → Far-PC)
+
+2) **Skill-Based Movement** (roll for persistent benefit):
+   - Still use [TARGET_POSITION: ...] tag + describe HOW you move
+   - Movement happens, roll determines if you get lasting advantage
+   - Examples:
+     * "I use Stealth to circle behind them [TARGET_POSITION: Near-Enemy]" → On success: Move + Unseen
+     * "I use Athletics to sprint for cover [TARGET_POSITION: Far-PC]" → On success: Move + Cover token
+     * "I disengage using Athletics [TARGET_POSITION: Far-PC]" → On success: Move without Breakaway attack
+
+**Tactical Actions:**
+- **Attack**: Standard combat action (range penalties apply)
+- **Claim Token (Minor)**: Grab Cover/High Ground (if available)
+- **Charge (Major)**: Move to Engaged + attack (+2 damage, -2 defense)
+
+Range Penalties (same ring/same side = Melee, 0 penalty):
+- Melee (0): Same ring AND same hemisphere
+- Near (-2): 1 ring apart OR different hemisphere in Near
+- Far (-4): 2 rings apart OR different hemisphere in Far
+- Extreme (-6): 3+ rings apart
+
+**REMEMBER:** Always include [TARGET_POSITION: ...] when moving or your position stays unchanged!
+"""
+                else:
+                    # NO active enemies - make this CRYSTAL CLEAR to prevent targeting ghosts
+                    tactical_combat_context = """
+
+✅ **NO ACTIVE ENEMIES** ✅
+
+There are currently NO enemies on the battlefield. All hostile forces have been defeated or withdrawn.
+
+⚠️  **CRITICAL**: Do NOT target enemies that don't exist!
+⚠️  **DO NOT** use TARGET_ENEMY field - there are no enemies to target!
+⚠️  **DO NOT** attack "raiders" or any other generic enemy names from narration!
+
+If the DM mentions enemies in narration but they're not listed above with HP/position, they are NOT targetable enemies - they may be:
+- Already defeated
+- Not yet arrived (reinforcements)
+- Background/narrative elements only
+
+Available non-combat actions:
+- Investigate the area (Awareness, Perception)
+- Reposition tactically (Athletics)
+- Prepare defenses or fortifications
+- Search for clues/evidence (Investigation)
+- Assist/evacuate civilians
+- Prepare for incoming enemies
+
+**DO NOT ATTACK NON-EXISTENT ENEMIES!** Only attack enemies explicitly listed with HP and position.
+"""
+            else:
+                tactical_combat_context = ""
+
         # Add party discoveries to reduce repetition and encourage dialogue
         party_knowledge = ""
         if self.shared_state:
@@ -841,6 +1157,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
         prompt = f"""{system_prompt}
 
 {scenario_context}
+{tactical_combat_context}
 {party_knowledge}
 
 Declare your next action using the required format:
@@ -850,7 +1167,62 @@ SKILL: [which skill or None]
 DIFFICULTY: [estimate]
 JUSTIFICATION: [why that difficulty]
 ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
-DESCRIPTION: [narrative description]"""
+TARGET_ENEMY: [if attacking: enemy name/ID from list above, otherwise: None]
+TARGET_POSITION: [if moving: Engaged/Near-PC/Far-PC/Extreme-PC/Near-Enemy/Far-Enemy/Extreme-Enemy, otherwise: None]
+DESCRIPTION: [narrative description]
+
+**COMBAT EXAMPLES:**
+
+ATTACKING (most common - do this!):
+```
+INTENT: Shoot Void Spawn with rifle
+ATTRIBUTE: Agility
+SKILL: Combat
+DIFFICULTY: 20
+JUSTIFICATION: standard combat difficulty
+ACTION_TYPE: combat
+TARGET_ENEMY: Void Spawn
+TARGET_POSITION: None
+DESCRIPTION: I aim carefully and fire controlled bursts at the Void Spawn
+```
+
+ATTACKING WHILE MOVING:
+```
+INTENT: Advance and shoot Assault Team
+ATTRIBUTE: Agility
+SKILL: Combat
+DIFFICULTY: 22
+JUSTIFICATION: moving while shooting is slightly harder
+ACTION_TYPE: combat
+TARGET_ENEMY: Assault Team
+TARGET_POSITION: Near-Enemy
+DESCRIPTION: I move to better range while firing at the Assault Team
+```
+
+CHARGING INTO MELEE:
+```
+INTENT: Charge and attack Suppression Squad with knife
+ATTRIBUTE: Agility
+SKILL: Combat
+DIFFICULTY: 18
+JUSTIFICATION: charging gives bonus to hit
+ACTION_TYPE: combat
+TARGET_ENEMY: Suppression Squad
+TARGET_POSITION: Engaged
+DESCRIPTION: I sprint forward and engage in close combat
+```
+
+REPOSITIONING ONLY (use sparingly - only when needed):
+```
+INTENT: Fall back to cover
+ATTRIBUTE: Agility
+SKILL: Athletics
+DIFFICULTY: 18
+JUSTIFICATION: tactical movement under fire
+ACTION_TYPE: combat
+TARGET_POSITION: Far-PC
+DESCRIPTION: I retreat to better defensive position
+```"""
 
         try:
             provider = self.llm_config.get('provider', 'anthropic')
@@ -977,6 +1349,15 @@ Now that you have this information, declare your action using the required forma
             'charisma': 'Charisma'
         }
 
+        # Valid tactical positions
+        VALID_POSITIONS = {
+            'engaged', 'near-pc', 'far-pc', 'extreme-pc',
+            'near-enemy', 'far-enemy', 'extreme-enemy'
+        }
+
+        # Track if player specified a position change
+        target_position = None
+
         # Parse fields from LLM output
         for line in lines:
             if ':' in line:
@@ -1003,8 +1384,23 @@ Now that you have this information, declare your action using the required forma
                     data['difficulty_justification'] = value
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
+                elif 'target_enemy' in key:
+                    # Extract enemy target if specified
+                    if value.lower() != 'none':
+                        data['target_enemy'] = value
+                        logger.info(f"{self.character_state.name} targeting enemy: {value}")
+                elif 'target_position' in key:
+                    # Extract position if specified - STORE but don't apply yet
+                    value_lower = value.lower()
+                    if value_lower != 'none' and value_lower in VALID_POSITIONS:
+                        target_position = value
+                        data['target_position'] = target_position
+                        logger.info(f"{self.character_state.name} declared intent to move: {self.position} → {target_position}")
                 elif 'description' in key:
                     data['description'] = value
+
+        # Store target position for later application during execution
+        # (Position changes happen in execution phase, not declaration phase)
 
         try:
             return ActionDeclaration(**data)

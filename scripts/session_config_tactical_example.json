@@ -1,0 +1,168 @@
+{
+  "session_name": "tactical_combat_with_enemy_agents",
+  "max_turns": 50,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+
+  "_comment": "=== TACTICAL MODULE v1.2.3 FEATURES ===",
+
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_tactical": "When tactical_module_enabled and enemy_agents_enabled are true, DM can spawn autonomous enemies with: [SPAWN_ENEMY: name | template | count | position | tactics]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Sable",
+        "pronouns": "she/her",
+        "faction": "Unaffiliated Mercenary",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "selective",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Complete contracts efficiently",
+          "Avoid unnecessary void corruption",
+          "Maintain combat edge"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 5,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Health": 4
+        },
+        "skills": {
+          "Brawl": 4,
+          "Melee": 5,
+          "Guns": 3,
+          "Athletics": 4,
+          "Awareness": 3,
+          "Astral Arts": 2
+        },
+        "starting_position": "Near-PC",
+        "starting_void": 2,
+        "starting_credits": 500
+      },
+      {
+        "name": "Echo",
+        "pronouns": "they/them",
+        "faction": "Tech Collective",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 1,
+          "bondPreference": "cautious",
+          "ritualConservatism": 8
+        },
+        "goals": [
+          "Provide tactical support",
+          "Maintain equipment",
+          "Avoid close combat"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Health": 3
+        },
+        "skills": {
+          "Guns": 5,
+          "Awareness": 5,
+          "Systems": 4,
+          "Tech/Craft": 4,
+          "Stealth": 3
+        },
+        "starting_position": "Far-PC",
+        "starting_void": 1,
+        "starting_credits": 600
+      },
+      {
+        "name": "Nyx",
+        "pronouns": "she/they",
+        "faction": "Void Seeker",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 9,
+          "bondPreference": "intense",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Explore void phenomena",
+          "Push ritual boundaries",
+          "Support allies through void power"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 5,
+          "Health": 3
+        },
+        "skills": {
+          "Astral Arts": 5,
+          "Intimacy Ritual": 4,
+          "Magick Theory": 4,
+          "Awareness": 3,
+          "Charm": 3,
+          "Guns": 2
+        },
+        "starting_position": "Near-PC",
+        "starting_void": 4,
+        "starting_credits": 400
+      }
+    ]
+  },
+
+  "_comment_usage": "=== ENEMY SPAWN EXAMPLES ===",
+  "_example_grunt_squad": "[SPAWN_ENEMY: Syndicate Enforcers | grunt | 3 | Near-Enemy | aggressive_melee]",
+  "_example_elite_sniper": "[SPAWN_ENEMY: Void Sniper | sniper | 1 | Extreme-Enemy | extreme_range]",
+  "_example_boss": "[SPAWN_ENEMY: Faction Commander | boss | 1 | Engaged | adaptive]",
+  "_example_ambush": "[SPAWN_ENEMY: Ambush Team | ambusher | 4 | Far-PC | ambush]",
+
+  "_comment_templates": "Available templates: grunt, elite, sniper, boss, void_cultist, enforcer, support, ambusher",
+  "_comment_tactics": "Available tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, support, adaptive",
+  "_comment_positions": "Valid positions: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy"
+}
