@@ -73,6 +73,11 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
         position = match[3].strip()
         tactics = match[4].strip() if match[4] else None
 
+        # Hard cap spawns at 2 units max (combat balance)
+        if count > 2:
+            logger.warning(f"Spawn count {count} exceeds max (2) - capping to 2 units for {name}")
+            count = 2
+
         parsed.append((name, template, count, position, tactics))
         logger.info(f"Found spawn marker: {name} ({template} × {count}) at {position}")
 

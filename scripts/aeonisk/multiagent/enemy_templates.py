@@ -294,7 +294,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         },
 
         # Combat Stats
-        "health": 15,  # Base health (before group scaling)
+        "health": 12,  # Base health (before group scaling) - reduced for balance
         "soak": 0,  # Will be calculated: base + armor
         "void_score": 1,
         "size": 5,
