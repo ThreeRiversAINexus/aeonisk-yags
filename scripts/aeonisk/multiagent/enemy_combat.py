@@ -143,13 +143,14 @@ class EnemyCombatManager:
     - Handles cleanup (attrition, despawn, loot)
     """
 
-    def __init__(self):
+    def __init__(self, shared_state=None):
         self.enemy_agents: List[EnemyAgent] = []
         self.shared_intel = SharedIntel()
         self.enemy_declarations: Dict[str, EnemyDeclaration] = {}
         self.current_round: int = 0
         self.enabled: bool = False
         self.config: Dict[str, Any] = {}
+        self.shared_state = shared_state  # Reference to shared state for logging
 
     def initialize(self, session_config: Dict[str, Any]):
         """
@@ -196,6 +197,33 @@ class EnemyCombatManager:
             )
             logger.info(f"Spawned enemy: {enemy.name} (ID: {enemy.agent_id})")
 
+            # Log enemy spawn to JSONL for ML training
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    # Build stats dict
+                    stats = {
+                        "health": enemy.health,
+                        "max_health": enemy.max_health,
+                        "soak": enemy.soak,
+                        "attributes": enemy.attributes,
+                        "skills": enemy.skills,
+                        "weapons": [{"name": w.name, "attack": w.attack, "damage": w.damage, "skill": w.skill} for w in enemy.weapons],
+                        "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None,
+                        "is_group": enemy.is_group,
+                        "unit_count": enemy.unit_count if enemy.is_group else 1
+                    }
+
+                    mechanics.jsonl_logger.log_enemy_spawn(
+                        round_num=self.current_round,
+                        enemy_id=enemy.agent_id,
+                        enemy_name=enemy.name,
+                        template=enemy.template or "unknown",
+                        stats=stats,
+                        position=str(enemy.position),
+                        tactics=enemy.tactics
+                    )
+
         # Process despawns
         despawned = despawn_from_markers(narration, self.enemy_agents, self.current_round)
         for enemy in despawned:
@@ -204,6 +232,19 @@ class EnemyCombatManager:
                 f"({enemy.despawned_round - enemy.spawned_round} rounds survived)"
             )
             logger.info(f"Despawned enemy: {enemy.name} (ID: {enemy.agent_id})")
+
+            # Log enemy despawn to JSONL for ML training
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    rounds_survived = enemy.despawned_round - enemy.spawned_round
+                    mechanics.jsonl_logger.log_enemy_defeat(
+                        round_num=self.current_round,
+                        enemy_id=enemy.agent_id,
+                        enemy_name=enemy.name,
+                        defeat_reason="despawned",  # Escaped/retreated via marker
+                        rounds_survived=rounds_survived
+                    )
 
         return notifications
 
@@ -605,6 +646,10 @@ class EnemyCombatManager:
                 result['damage_dealt'] = damage_dealt
                 result['narration'] += f" ({damage_dealt} after soak)"
 
+                # Track damage for round summary
+                if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                    self.shared_state.session.track_player_damage_taken(damage_dealt)
+
                 # Calculate wounds (YAGS: every 5 points of damage = 1 wound)
                 if hasattr(target, 'wounds') and damage_dealt > 0:
                     wounds_dealt = damage_dealt // 5
@@ -643,6 +688,64 @@ class EnemyCombatManager:
                         logger.info(f"{enemy.name} defeated {target.name if hasattr(target, 'name') else target_id}")
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
+
+        # Log combat action to JSONL for ML training
+        if mechanics_engine and hasattr(mechanics_engine, 'jsonl_logger') and mechanics_engine.jsonl_logger:
+            # Build attack roll dict
+            attack_roll_data = {
+                "attr": "Perception" if weapon.skill == "Guns" else ("Dexterity" if weapon.skill == "Melee" else "Agility"),
+                "attr_val": attribute,
+                "skill": weapon.skill,
+                "skill_val": skill,
+                "weapon_bonus": weapon.attack,
+                "range_penalty": range_penalty,
+                "d20": attack_roll,
+                "total": attack_total,
+                "dc": target_defence,
+                "hit": hit,
+                "margin": attack_total - target_defence
+            }
+
+            # Build damage roll dict (if hit)
+            damage_roll_data = None
+            wounds_dealt_count = 0
+            if hit and hasattr(target, 'soak'):
+                damage_roll_data = {
+                    "strength": strength,
+                    "weapon_dmg": weapon.damage,
+                    "group_bonus": group_bonus,
+                    "d20": damage_roll,
+                    "base_damage": base_damage,
+                    "combat_balance_modifier": 0.85,
+                    "total": total_damage,
+                    "soak": target.soak,
+                    "dealt": damage_dealt
+                }
+                wounds_dealt_count = wounds_dealt if hasattr(target, 'wounds') and damage_dealt > 0 else 0
+
+            # Build defender state dict
+            defender_state = None
+            if hasattr(target, 'health'):
+                defender_state = {
+                    "health": target.health,
+                    "max_health": getattr(target, 'max_health', None),
+                    "wounds": getattr(target, 'wounds', 0),
+                    "alive": target.health > 0,
+                    "status": status if hit and target.health <= 0 and hasattr(target, 'check_death_save') else "active"
+                }
+
+            mechanics_engine.jsonl_logger.log_combat_action(
+                round_num=self.current_round,
+                attacker_id=enemy.agent_id,
+                attacker_name=enemy.name,
+                defender_id=target_id,
+                defender_name=target.name if hasattr(target, 'name') else str(target_id),
+                weapon=weapon.name,
+                attack_roll=attack_roll_data,
+                damage_roll=damage_roll_data,
+                wounds_dealt=wounds_dealt_count,
+                defender_state_after=defender_state
+            )
 
         return result
 
@@ -1214,6 +1317,19 @@ class EnemyCombatManager:
                 'loot': loot,
                 'narration': f"{enemy.name} defeated! {loot}"
             })
+
+            # Log enemy defeat to JSONL for ML training
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    rounds_survived = enemy.despawned_round - enemy.spawned_round if enemy.despawned_round else 0
+                    mechanics.jsonl_logger.log_enemy_defeat(
+                        round_num=self.current_round,
+                        enemy_id=enemy.agent_id,
+                        enemy_name=enemy.name,
+                        defeat_reason="killed" if enemy.health <= 0 else "defeated",
+                        rounds_survived=rounds_survived
+                    )
 
         # Clear old intel
         self.shared_intel.clear_old_intel(self.current_round, max_age=3)

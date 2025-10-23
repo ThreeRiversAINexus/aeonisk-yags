@@ -56,6 +56,19 @@ class SelfPlayingSession:
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
 
+        # Round statistics for ML training / balance analysis
+        self._round_stats = {
+            'actions_attempted': 0,
+            'success_count': 0,
+            'total_margin': 0,
+            'damage_dealt_by_players': 0,
+            'damage_taken_by_players': 0,
+            'void_gained': 0,
+            'void_lost': 0,
+            'clocks_advanced': 0,
+            'clocks_filled': 0
+        }
+
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
         self.shared_state.initialize_mechanics()
@@ -64,10 +77,12 @@ class SelfPlayingSession:
         print("✓ Knowledge retrieval ready")
 
         # Initialize enemy combat manager
-        self.enemy_combat = EnemyCombatManager()
+        self.enemy_combat = EnemyCombatManager(shared_state=self.shared_state)
         self.enemy_combat.initialize(self.config)
         # Add to shared state so players can access it for tactical prompts
         self.shared_state.enemy_combat = self.enemy_combat
+        # Add session reference for round stats tracking
+        self.shared_state.session = self
         if self.enemy_combat.enabled:
             print("✓ Enemy combat manager ENABLED")
         else:
@@ -140,7 +155,7 @@ class SelfPlayingSession:
         # Initialize JSONL logger for machine-readable events
         from .mechanics import JSONLLogger
         output_dir = self.config.get('output_dir', './output')
-        jsonl_logger = JSONLLogger(self.session_id, output_dir)
+        jsonl_logger = JSONLLogger(self.session_id, output_dir, config=self.config)
 
         # Attach logger to mechanics engine
         if self.shared_state and self.shared_state.mechanics_engine:
@@ -619,6 +634,73 @@ class SelfPlayingSession:
                 if hasattr(player, 'tick_buffs'):
                     player.tick_buffs()
 
+            # Log character state snapshots for all players (for ML training/balance analysis)
+            if mechanics and mechanics.jsonl_logger:
+                for player in player_agents:
+                    if hasattr(player, 'character_state'):
+                        char_state = player.character_state
+                        # Health/wounds are stored on player agent, not CharacterState
+                        mechanics.jsonl_logger.log_character_state(
+                            round_num=mechanics.current_round,
+                            character_id=player.agent_id,
+                            character_name=char_state.name,
+                            health=player.health if hasattr(player, 'health') else 0,
+                            max_health=player.max_health if hasattr(player, 'max_health') else 0,
+                            wounds=player.wounds if hasattr(player, 'wounds') else 0,
+                            void_score=char_state.void_score if hasattr(char_state, 'void_score') else 0,
+                            soulcredit=char_state.soulcredit if hasattr(char_state, 'soulcredit') else 0,
+                            position=str(getattr(player, 'position', 'Unknown')),
+                            conditions=[],  # TODO: Add condition tracking
+                            is_defeated=(player.health <= 0) if hasattr(player, 'health') else False
+                        )
+
+                # Log round summary for balance analysis
+                active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.health > 0]) if self.enemy_combat.enabled else 0
+                player_wounds_total = sum(player.wounds for player in player_agents if hasattr(player, 'wounds'))
+
+                # Compute clocks advanced/filled from clock states
+                clocks_advanced = 0
+                clocks_filled = 0
+                if mechanics.scene_clocks:
+                    for clock in mechanics.scene_clocks.values():
+                        if clock.current > 0:
+                            clocks_advanced += 1
+                        if clock.filled:
+                            clocks_filled += 1
+
+                round_summary = {
+                    'actions_attempted': self._round_stats['actions_attempted'],
+                    'success_count': self._round_stats['success_count'],
+                    'success_rate': (self._round_stats['success_count'] / self._round_stats['actions_attempted']) if self._round_stats['actions_attempted'] > 0 else 0.0,
+                    'avg_margin': (self._round_stats['total_margin'] / self._round_stats['actions_attempted']) if self._round_stats['actions_attempted'] > 0 else 0.0,
+                    'damage_dealt_by_players': self._round_stats['damage_dealt_by_players'],
+                    'damage_taken_by_players': self._round_stats['damage_taken_by_players'],
+                    'void_gained': self._round_stats['void_gained'],
+                    'void_lost': self._round_stats['void_lost'],
+                    'clocks_advanced': clocks_advanced,
+                    'clocks_filled': clocks_filled,
+                    'active_enemies': active_enemy_count,
+                    'player_wounds_total': player_wounds_total
+                }
+
+                mechanics.jsonl_logger.log_round_summary(
+                    round_num=mechanics.current_round,
+                    summary=round_summary
+                )
+
+                # Reset round stats for next round
+                self._round_stats = {
+                    'actions_attempted': 0,
+                    'success_count': 0,
+                    'total_margin': 0,
+                    'damage_dealt_by_players': 0,
+                    'damage_taken_by_players': 0,
+                    'void_gained': 0,
+                    'void_lost': 0,
+                    'clocks_advanced': 0,
+                    'clocks_filled': 0
+                }
+
         # Clear the action buffer for next round
         self._declared_actions.clear()
 
@@ -628,6 +710,28 @@ class SelfPlayingSession:
                 agent.free_action_used = False
 
         return True  # Combat continues
+
+    def track_action_resolution(self, success: bool, margin: int):
+        """Track action resolution for round summary statistics."""
+        self._round_stats['actions_attempted'] += 1
+        if success:
+            self._round_stats['success_count'] += 1
+        self._round_stats['total_margin'] += margin
+
+    def track_player_damage_dealt(self, damage: int):
+        """Track damage dealt by players for round summary."""
+        self._round_stats['damage_dealt_by_players'] += damage
+
+    def track_player_damage_taken(self, damage: int):
+        """Track damage taken by players for round summary."""
+        self._round_stats['damage_taken_by_players'] += damage
+
+    def track_void_change(self, delta: int):
+        """Track void score changes for round summary."""
+        if delta > 0:
+            self._round_stats['void_gained'] += delta
+        elif delta < 0:
+            self._round_stats['void_lost'] += abs(delta)
 
     async def _run_dm_turn(self):
         """Run DM turn."""
@@ -879,6 +983,51 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 void_str = f"Void {void_score}/10"
 
                 print(f"    [{init:2d}] {agent.character_state.name:20s} | {health_str:12s} | {position_str:15s} | {void_str}")
+
+                # Display key inventory items (offerings, seeds, currency)
+                inventory_items = []
+                if hasattr(agent.character_state, 'inventory') and agent.character_state.inventory:
+                    inv = agent.character_state.inventory
+
+                    # Ritual offerings
+                    if inv.get('blood_offering', 0) > 0:
+                        inventory_items.append(f"Blood:{inv['blood_offering']}")
+                    if inv.get('incense', 0) > 0:
+                        inventory_items.append(f"Incense:{inv['incense']}")
+                    if inv.get('crystal_focus', 0) > 0:
+                        inventory_items.append(f"Crystal:{inv['crystal_focus']}")
+
+                    # Show first 3 items to keep it compact
+                    if inventory_items:
+                        inv_str = " | ".join(inventory_items[:3])
+                        print(f"         └─ Inventory: {inv_str}")
+
+                # Display energy/seeds if available
+                if hasattr(agent.character_state, 'energy_inventory') and agent.character_state.energy_inventory:
+                    energy_inv = agent.character_state.energy_inventory
+                    energy_items = []
+
+                    # Seeds
+                    seeds = getattr(energy_inv, 'seed_counts', {})
+                    if seeds.get('attuned', 0) > 0:
+                        energy_items.append(f"Attuned Seeds:{seeds['attuned']}")
+                    if seeds.get('raw', 0) > 0:
+                        energy_items.append(f"Raw Seeds:{seeds['raw']}")
+                    if seeds.get('hollow', 0) > 0:
+                        energy_items.append(f"Hollow:{seeds['hollow']}")
+
+                    # Currency (show highest denomination available)
+                    currency = getattr(energy_inv, 'currencies', {})
+                    if currency.get('spark', 0) > 0:
+                        energy_items.append(f"Sparks:{currency['spark']}")
+                    elif currency.get('grain', 0) > 0:
+                        energy_items.append(f"Grains:{currency['grain']}")
+                    elif currency.get('drip', 0) > 0:
+                        energy_items.append(f"Drips:{currency['drip']}")
+
+                    if energy_items:
+                        energy_str = " | ".join(energy_items[:3])
+                        print(f"         └─ Resources: {energy_str}")
 
         # Display Enemies
         if enemies:
