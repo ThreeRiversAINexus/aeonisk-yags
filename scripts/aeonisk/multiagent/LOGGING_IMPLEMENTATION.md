@@ -256,8 +256,14 @@ Logs all player character states **at the end of every round** including:
 **Complete validation tool** that:
 - ✅ Validates event schemas
 - ✅ Checks required fields
+- ✅ Supports dual combat schemas (enemy vs player attacks)
 - ✅ Generates statistics report
 - ✅ Identifies missing/malformed events
+
+**Dual Schema Support:**
+The validator handles two different combat_action schemas:
+- **Enemy attacks**: Full damage breakdown (strength, weapon_dmg, d20, total, soak, dealt)
+- **Player attacks**: Simplified damage (base_damage, soak, dealt)
 
 **Usage:**
 ```bash
@@ -272,17 +278,18 @@ python validate_logging.py multiagent_output/
 # JSONL LOG VALIDATION REPORT
 # ================================================================================
 # File: session_abc123.jsonl
-# Total Events: 156
-# Valid Events: 156 (100.0%)
+# Total Events: 57
+# Valid Events: 57 (100.0%)
 # Invalid Events: 0
 #
 # --- Event Type Distribution ---
 #   action_resolution                : 42
-#   combat_action                    : 18   ← NEW!
-#   character_state                  : 12   ← NEW!
-#   enemy_spawn                      :  3   ← NEW!
+#   combat_action                    :  7   ← NEW! (bidirectional)
+#   character_state                  :  6   ← NEW!
+#   round_summary                    :  3   ← NEW!
+#   enemy_spawn                      :  2   ← NEW!
 #   enemy_defeat                     :  2   ← NEW!
-#   round_start                      : 12
+#   round_start                      :  3
 #   ...
 ```
 
