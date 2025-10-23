@@ -64,7 +64,8 @@ class Message:
         data = asdict(self)
         data['type'] = self.type.value
         data['timestamp'] = self.timestamp.isoformat()
-        return json.dumps(data) + '\n'
+        # Use default=str to handle non-serializable objects (like Enum values)
+        return json.dumps(data, default=str) + '\n'
     
     @classmethod
     def from_json(cls, json_str: str) -> 'Message':

@@ -177,6 +177,10 @@ def spawn_enemy(
     # Determine tactics
     tactics = tactics_override or template["default_tactics"]
 
+    # Extract faction from name
+    from .faction_utils import extract_faction
+    faction = extract_faction(name)
+
     # Initialize ammo
     ammo = {}
     for weapon in weapons:
@@ -188,6 +192,7 @@ def spawn_enemy(
         agent_id=agent_id,
         name=name,
         template=template_key,
+        faction=faction,
         is_group=is_group,
         unit_count=count,
         original_unit_count=count,

@@ -344,14 +344,17 @@ class EnemyAgent:
     max_health: int  # Maximum health
     soak: int  # Damage resistance (base + armor)
     wounds: int  # Wound count (Tactical Module wound ladder)
-    stuns: int = 0  # Stun damage (YAGS)
-    fatigue: int = 0  # Fatigue levels (YAGS)
 
     # =========================================================================
     # TACTICAL STATE (Tactical Module v1.2.3)
     # =========================================================================
     position: Position  # Current ring-side location
     initiative: int  # Current round initiative (re-rolled each round)
+
+    # Fields with defaults (must come after required fields)
+    faction: str = "Unknown"  # Faction allegiance (e.g., "Nexus", "Tempest", "Freeborn")
+    stuns: int = 0  # Stun damage (YAGS)
+    fatigue: int = 0  # Fatigue levels (YAGS)
     defence_token: Optional[str] = None  # Which PC agent_id are they watching?
     tactical_token: Optional[str] = None  # Claimed terrain advantage
 
