@@ -186,21 +186,48 @@ def _format_battlefield(
     available_tokens: List[str]
 ) -> str:
     """Format battlefield situation section."""
+    from .faction_utils import are_factions_allied
+
     section = f"""## BATTLEFIELD SITUATION
 {"=" * 60}
 
-### Enemy Targets (Player Characters):"""
+### Hostile Targets (Player Characters):"""
 
-    # Format PC targets
+    # Format PC targets (skip if Unseen)
+    pc_targets_shown = 0
     for pc in player_agents:
-        section += "\n" + _format_pc_target(enemy, pc)
+        pc_info = _format_pc_target(enemy, pc)
+        if pc_info:  # Only add if not None (Unseen condition returns None)
+            section += "\n" + pc_info
+            pc_targets_shown += 1
+
+    if pc_targets_shown == 0:
+        section += "\nNo visible player targets detected. They may be using stealth or concealment."
+
+    # Separate allies from hostile enemies based on faction
+    allies = []
+    hostiles = []
+    for other_enemy in enemy_agents:
+        if other_enemy.agent_id == enemy.agent_id or not other_enemy.is_active:
+            continue
+
+        if are_factions_allied(enemy.faction, other_enemy.faction):
+            allies.append(other_enemy)
+        else:
+            hostiles.append(other_enemy)
+
+    # Format hostile enemy forces (opposing factions)
+    if hostiles:
+        section += "\n\n### Hostile Forces (Opposing Faction Enemies):"
+        section += "\n**These enemy units are HOSTILE to you - treat them as targets!**"
+        for hostile in hostiles:
+            section += "\n" + _format_hostile_enemy(enemy, hostile)
 
     # Format allied enemies
-    if enemy_agents:
-        section += "\n\n### Allied Forces (Other Enemy Agents):"
-        for ally in enemy_agents:
-            if ally.agent_id != enemy.agent_id and ally.is_active:
-                section += "\n" + _format_allied_enemy(ally)
+    if allies:
+        section += "\n\n### Allied Forces (Same Faction):"
+        for ally in allies:
+            section += "\n" + _format_allied_enemy(ally)
 
     # Format tactical tokens
     if available_tokens:
@@ -212,8 +239,24 @@ def _format_battlefield(
     return section
 
 
-def _format_pc_target(enemy: EnemyAgent, pc: Any) -> str:
-    """Format individual PC target information."""
+def _format_pc_target(enemy: EnemyAgent, pc: Any) -> Optional[str]:
+    """
+    Format individual PC target information.
+
+    Returns None if PC has Unseen condition (can't be targeted).
+    """
+    # Check if PC has Unseen condition (prevents targeting)
+    try:
+        pc_conditions = getattr(pc, 'conditions', [])
+        for condition in pc_conditions:
+            if hasattr(condition, 'type') and condition.type == 'Unseen':
+                # PC is unseen - don't show as targetable
+                return None
+            elif isinstance(condition, dict) and condition.get('type') == 'Unseen':
+                return None
+    except:
+        pass  # No conditions or error checking
+
     # Calculate range
     try:
         pc_position = Position.from_string(str(pc.position if hasattr(pc, 'position') else "Near-PC"))
@@ -312,6 +355,40 @@ def _assess_threat_level(enemy: EnemyAgent, pc: Any, range_name: str, is_watchin
         return "MEDIUM"
     else:
         return "LOW"
+
+
+def _format_hostile_enemy(observer: EnemyAgent, hostile: EnemyAgent) -> str:
+    """Format hostile enemy (opposing faction) as a target."""
+    # Calculate range to hostile enemy
+    try:
+        range_name, range_penalty = observer.position.calculate_range(hostile.position)
+    except:
+        range_name, range_penalty = "Unknown", 0
+
+    health_pct = hostile.get_health_percentage()
+
+    if health_pct >= 75:
+        health_str = "~100% (healthy)"
+    elif health_pct >= 50:
+        health_str = f"~{health_pct}% (wounded)"
+    elif health_pct >= 25:
+        health_str = f"~{health_pct}% (bloodied)"
+    else:
+        health_str = f"~{health_pct}% (CRITICAL)"
+
+    unit_str = f"{hostile.unit_count} units" if hostile.is_group else "1 unit"
+    if hostile.is_group and hostile.unit_count < hostile.original_unit_count:
+        unit_str += f" (down from {hostile.original_unit_count})"
+
+    from .faction_utils import get_faction_stance
+    faction_stance = get_faction_stance(hostile.faction)
+
+    return f"""- {hostile.name} (HOSTILE {faction_stance})
+  Position: {hostile.position} (Range: {range_name}, Penalty: {range_penalty})
+  Unit Count: {unit_str}
+  Health: {health_str}
+  Tactics: {hostile.tactics}
+  **You can target this enemy agent_id for attacks!**"""
 
 
 def _format_allied_enemy(ally: EnemyAgent) -> str:
@@ -566,7 +643,7 @@ Provide your tactical decision in this EXACT format:
 
 DEFENCE_TOKEN: [PC agent_id you're watching - REQUIRED]
 MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Throw_Grenade / Retreat]
-TARGET: [PC agent_id OR ring-side location if AoE]
+TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position (Near-PC/Far-PC/Near-Enemy/etc) | For grenades: ring-side location]
 WEAPON: [weapon name if attacking]
 MINOR_ACTION: [Shift / Claim_Token / Reload / Disengage / None]
 TOKEN_TARGET: [token name if claiming]
@@ -595,6 +672,17 @@ WEAPON: Grenade
 MINOR_ACTION: Shift
 TACTICAL_REASONING: Throwing grenade at Near-Enemy to hit Sable even though Grunt Squad 2 will take friendly fire - Sable is too dangerous to leave active. Shifting away from blast zone.
 SHARE_INTEL: Grenade incoming at Near-Enemy, allied units clear zone
+```
+
+**Tactical Movement:**
+```
+DEFENCE_TOKEN: player_01
+MAJOR_ACTION: Shift_2
+TARGET: Near-PC
+WEAPON: None
+MINOR_ACTION: None
+TACTICAL_REASONING: Moving from Far range to Near range to get within optimal firing distance for my tactical_ranged doctrine. PCs are at Far-PC, so closing to Near-PC.
+SHARE_INTEL: Advancing to engage at medium range
 ```
 
 **Tactical Retreat:**
