@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def parse_soulcredit_markers(narration: str) -> Tuple[int, str]:
+def parse_soulcredit_markers(narration: str) -> Tuple[int, str, str]:
     """
     Parse explicit soulcredit markers from LLM narration.
 
@@ -20,8 +20,8 @@ def parse_soulcredit_markers(narration: str) -> Tuple[int, str]:
         narration: DM's narrative text
 
     Returns:
-        Tuple of (soulcredit_delta, reason)
-        Returns (0, "") if no marker found
+        Tuple of (soulcredit_delta, reason, source)
+        source is "dm_explicit" if marker found, "" otherwise
     """
     # Look for lines like: ⚖️ Soulcredit: -2 (created Hollow Seed)
     sc_pattern = r'⚖️\s*[Ss]oulcredit:\s*([+-]?\d+)\s*(?:\(([^)]+)\))?'
@@ -31,9 +31,36 @@ def parse_soulcredit_markers(narration: str) -> Tuple[int, str]:
         delta = int(match.group(1))
         reason = match.group(2).strip() if match.group(2) else "Soulcredit change"
         logger.debug(f"Parsed soulcredit marker: {delta:+d} ({reason})")
-        return (delta, reason)
+        return (delta, reason, "dm_explicit")
 
-    return (0, "")
+    return (0, "", "")
+
+
+def parse_explicit_void_markers(narration: str) -> Tuple[int, List[str], str]:
+    """
+    Parse explicit void markers from LLM narration.
+
+    Format: ⚫ Void: +X (reason) or ⚫ Void (Character): +X (reason)
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Tuple of (void_delta, reasons_list, source)
+        source is "dm_explicit" if marker found, "" otherwise
+    """
+    # Look for lines like: ⚫ Void: +1 (ritual backfire)
+    # or: ⚫ Void (Kael): +1 (void exposure)
+    void_pattern = r'⚫\s*[Vv]oid(?:\s*\([^)]+\))?:\s*([+-]?\d+)\s*(?:\(([^)]+)\))?'
+
+    match = re.search(void_pattern, narration)
+    if match:
+        delta = int(match.group(1))
+        reason = match.group(2).strip() if match.group(2) else "Void change"
+        logger.debug(f"Parsed explicit void marker: {delta:+d} ({reason})")
+        return (delta, [reason], "dm_explicit")
+
+    return (0, [], "")
 
 
 def parse_explicit_clock_markers(narration: str, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
@@ -75,7 +102,7 @@ def parse_explicit_clock_markers(narration: str, active_clocks: dict = None) -> 
     return triggers
 
 
-def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
+def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_clocks: dict = None) -> List[Tuple[str, int, str, str]]:
     """
     Parse narration and outcome to determine clock advancements.
 
@@ -88,7 +115,8 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
         active_clocks: Dict of active clock names to Clock objects (optional)
 
     Returns:
-        List of (clock_name, ticks, reason) tuples
+        List of (clock_name, ticks, reason, source) tuples
+        source is "dm_explicit" or "inferred_by_parser"
     """
     triggers = []
     narration_lower = narration.lower()
@@ -101,7 +129,8 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
     explicit_triggers = parse_explicit_clock_markers(narration, active_clocks)
     if explicit_triggers:
         # If LLM explicitly marked clocks, use those and skip pattern matching
-        return explicit_triggers
+        # Add source field to each trigger
+        return [(name, ticks, reason, "dm_explicit") for name, ticks, reason in explicit_triggers]
 
     # Categorize each active clock by keywords in its name/description
     danger_clocks = []
@@ -141,13 +170,13 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
         'lockdown', 'surveillance', 'detected', 'suspicious', 'patrol', 'guard'
     ]):
         for clock_name in danger_clocks:
-            triggers.append((clock_name, 1, "Security response"))
+            triggers.append((clock_name, 1, "Security response", "inferred_by_parser"))
 
     if danger_clocks and any(phrase in narration_lower for phrase in [
         'psi-lockdown', 'facility-wide', 'catatonic', 'panic', 'emergency', 'crisis'
     ]):
         for clock_name in danger_clocks:
-            triggers.append((clock_name, 2, "Major incident"))
+            triggers.append((clock_name, 2, "Major incident", "inferred_by_parser"))
 
     # INVESTIGATION triggers (advances investigation-themed clocks on successes)
     if investigation_clocks and outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional'] and margin >= 0:
@@ -172,7 +201,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             # Stronger evidence for better success
             ticks = 2 if margin >= 10 else 1
             for clock_name in investigation_clocks:
-                triggers.append((clock_name, ticks, f"Evidence discovered (margin +{margin})"))
+                triggers.append((clock_name, ticks, f"Evidence discovered (margin +{margin})", "inferred_by_parser"))
 
     # CORRUPTION triggers (advances corruption-themed clocks on void exposure/failures)
     if corruption_clocks:
@@ -181,7 +210,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             'void energy', 'void exposure', 'corrupted', 'defiled', 'infected'
         ]):
             for clock_name in corruption_clocks:
-                triggers.append((clock_name, 1, "Void corruption spreading"))
+                triggers.append((clock_name, 1, "Void corruption spreading", "inferred_by_parser"))
 
         # Failed void manipulation increases corruption
         if outcome_tier in ['failure', 'critical_failure']:
@@ -190,7 +219,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             ]):
                 ticks = 2 if outcome_tier == 'critical_failure' else 1
                 for clock_name in corruption_clocks:
-                    triggers.append((clock_name, ticks, "Failed void manipulation"))
+                    triggers.append((clock_name, ticks, "Failed void manipulation", "inferred_by_parser"))
 
     # TIME triggers (advances time-pressure clocks automatically or on delays)
     if time_clocks:
@@ -199,7 +228,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             'meanwhile', 'during this', 'while you'
         ]):
             for clock_name in time_clocks:
-                triggers.append((clock_name, 1, "Time passing"))
+                triggers.append((clock_name, 1, "Time passing", "inferred_by_parser"))
 
     # STABILITY triggers (degrades on failures, improves on healing successes)
     if stability_clocks:
@@ -212,7 +241,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             ]):
                 ticks = 2 if outcome_tier == 'critical_failure' else 1
                 for clock_name in stability_clocks:
-                    triggers.append((clock_name, ticks, "Social cohesion degrading"))
+                    triggers.append((clock_name, ticks, "Social cohesion degrading", "inferred_by_parser"))
 
         # Improvement on successful healing/stabilization
         elif outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
@@ -222,7 +251,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             ]):
                 # Negative ticks = regress (improve)
                 for clock_name in stability_clocks:
-                    triggers.append((clock_name, -1, "Bonds stabilized"))
+                    triggers.append((clock_name, -1, "Bonds stabilized", "inferred_by_parser"))
 
     # SAFETY/EVACUATION triggers (advances on successful evacuation/protection)
     if safety_clocks and outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional'] and margin >= 0:
@@ -238,7 +267,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             # Better success = more people saved
             ticks = 3 if margin >= 15 else (2 if margin >= 8 else 1)
             for clock_name in safety_clocks:
-                triggers.append((clock_name, ticks, f"Evacuation progress (margin +{margin})"))
+                triggers.append((clock_name, ticks, f"Evacuation progress (margin +{margin})", "inferred_by_parser"))
 
     # CONTAINMENT triggers (advances on failures - these are BAD clocks that fill toward disaster)
     if containment_clocks:
@@ -250,7 +279,7 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             ]):
                 ticks = 3 if outcome_tier == 'critical_failure' else 2
                 for clock_name in containment_clocks:
-                    triggers.append((clock_name, ticks, "Failed containment"))
+                    triggers.append((clock_name, ticks, "Failed containment", "inferred_by_parser"))
 
         # Even marginal successes might not be enough to prevent cascade
         elif outcome_tier == 'marginal' and margin <= 2:
@@ -259,18 +288,26 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
                 'temporary', 'hold', 'fragile', 'wobble', 'waver'
             ]):
                 for clock_name in containment_clocks:
-                    triggers.append((clock_name, 1, "Barely contained"))
+                    triggers.append((clock_name, 1, "Barely contained", "inferred_by_parser"))
 
     return triggers
 
 
-def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -> Tuple[int, List[str]]:
+def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -> Tuple[int, List[str], str]:
     """
     Parse for void gains based on narration and action context.
 
     Returns:
-        Tuple of (void_change, list_of_reasons)
+        Tuple of (void_change, list_of_reasons, source)
+        source is "dm_explicit" if explicit marker found, "inferred_by_parser" otherwise
     """
+    # PRIORITY 1: Check for explicit void markers first
+    explicit_void, explicit_reasons, source = parse_explicit_void_markers(narration)
+    if source == "dm_explicit":
+        # If LLM explicitly marked void, use that and skip pattern matching
+        return (explicit_void, explicit_reasons, "dm_explicit")
+
+    # PRIORITY 2: Keyword-based inference (fallback)
     void_change = 0
     reasons = []
     narration_lower = narration.lower()
@@ -328,7 +365,9 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
         void_change += 1
         reasons.append("Ritual shortcut (no offering)")
 
-    return (void_change, reasons)
+    # Return with source indicating this was inferred (or "none" if no void change)
+    source = "inferred_by_parser" if void_change != 0 or reasons else ""
+    return (void_change, reasons, source)
 
 
 def parse_creative_tactics_damage(
@@ -616,8 +655,8 @@ def parse_state_changes(
     clock_triggers = parse_clock_triggers(narration, outcome_tier, margin, active_clocks)
     state_changes['clock_triggers'] = clock_triggers
 
-    # Parse void triggers
-    void_change, void_reasons = parse_void_triggers(narration, intent, outcome_tier)
+    # Parse void triggers (now returns source field)
+    void_change, void_reasons, void_source = parse_void_triggers(narration, intent, outcome_tier)
 
     # RECOVERY MOVES: Reduce void on successful grounding/purge
     intent_lower = intent.lower()
@@ -637,6 +676,7 @@ def parse_state_changes(
 
     state_changes['void_change'] = void_change
     state_changes['void_reasons'] = void_reasons
+    state_changes['void_source'] = void_source
 
     # Parse conditions (wounds, stuns, etc.)
     narration_lower = narration.lower()
@@ -659,9 +699,10 @@ def parse_state_changes(
         })
 
     # Parse soulcredit markers (explicit ⚖️ Soulcredit: +/- markers from DM)
-    sc_delta, sc_reason = parse_soulcredit_markers(narration)
+    sc_delta, sc_reason, sc_source = parse_soulcredit_markers(narration)
     state_changes['soulcredit_change'] = sc_delta
     state_changes['soulcredit_reasons'] = [sc_reason] if sc_reason else []
+    state_changes['soulcredit_source'] = sc_source
 
     # Parse position changes (for tactical movement)
     position_change = parse_position_change(narration, intent)

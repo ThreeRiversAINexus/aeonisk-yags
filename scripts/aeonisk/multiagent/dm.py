@@ -1076,8 +1076,10 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     economy_changes = {
                         'void_delta': state_changes.get('void_change', 0),
                         'void_triggers': state_changes.get('void_reasons', []),
+                        'void_source': state_changes.get('void_source', ''),
                         'soulcredit_delta': state_changes.get('soulcredit_change', 0),
-                        'soulcredit_reasons': state_changes.get('soulcredit_reasons', [])
+                        'soulcredit_reasons': state_changes.get('soulcredit_reasons', []),
+                        'soulcredit_source': state_changes.get('soulcredit_source', '')
                     }
 
                     # Build clock states from current clock positions
@@ -1093,6 +1095,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
                     # Build context with ritual and combat info
                     is_ritual_action = action.get('is_ritual', False) or action.get('action_type') == 'ritual'
+
+                    # Extract clock sources from clock_triggers
+                    clock_sources = {}
+                    for clock_name, ticks, reason, source in state_changes.get('clock_triggers', []):
+                        clock_sources[clock_name] = source
+
                     context = {
                         "action_type": action.get('action_type', 'unknown'),
                         "is_ritual": is_ritual_action,
@@ -1101,7 +1109,8 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         "narration": resolution.get('narration', ''),
                         "is_free_action": action.get('is_free_action', False),
                         "initiative": initiative,
-                        "clock_deltas": clock_deltas  # Include clock before/after/reason
+                        "clock_deltas": clock_deltas,  # Include clock before/after/reason
+                        "clock_sources": clock_sources  # Include source for each clock change
                     }
 
                     # Add ritual context if this was a ritual
@@ -1814,10 +1823,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     logger.warning(f"Could not find ally '{target_ally_name}' to apply buff")
 
             # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
-            for clock_name, ticks, reason in state_changes['clock_triggers']:
+            for clock_name, ticks, reason, source in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
                     mechanics.queue_clock_update(clock_name, ticks, reason)
-                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason})")
+                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -1857,10 +1866,13 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             if state_changes.get('soulcredit_change', 0) != 0:
                 sc_state = mechanics.get_soulcredit_state(player_id)
+                old_sc = sc_state.score
                 reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
                 sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
-                # NOTE: SC changes are shown PRIVATELY to the affected player in their prompt
+                # Show SC change to the affected player only (private knowledge)
                 # Other players do NOT see each other's soulcredit (asymmetric information)
+                if sc_state.score != old_sc:
+                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.score} ({reasons_text})"
 
             # Apply conditions
             from .mechanics import Condition
@@ -2063,10 +2075,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 state_changes['soulcredit_reasons'].extend(sc_reasons)
 
             # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
-            for clock_name, ticks, reason in state_changes['clock_triggers']:
+            for clock_name, ticks, reason, source in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
                     mechanics.queue_clock_update(clock_name, ticks, reason)
-                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason})")
+                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
             # Extract and record party discoveries from successful actions
             if resolution.success and resolution.margin >= 5:
@@ -2115,10 +2127,13 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             if state_changes.get('soulcredit_change', 0) != 0:
                 sc_state = mechanics.get_soulcredit_state(player_id)
+                old_sc = sc_state.score
                 reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
                 sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
-                # NOTE: SC changes are shown PRIVATELY to the affected player in their prompt
+                # Show SC change to the affected player only (private knowledge)
                 # Other players do NOT see each other's soulcredit (asymmetric information)
+                if sc_state.score != old_sc:
+                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.score} ({reasons_text})"
 
             # Apply conditions
             from .mechanics import Condition
@@ -2551,27 +2566,41 @@ When adjudicating:
                     clock_lines.append(f"  - {name}: {status}")
                 if clock_lines:
                     clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
-                    clock_context += "\n\nAt the end of your narration, if this action should affect any clocks, add a line:\n📊 [Clock Name]: +X or -X (reason)"
-                    clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
-                    clock_context += "\n**DEFAULT: +0 for 80-90% of actions. Only exceptional moral/immoral acts affect SC.**"
-                    clock_context += "\n\nIf this action affects the character's Soulcredit (social trust/reputation), add a marker:\n⚖️ Soulcredit: +X (reason) or -X (reason)"
-                    clock_context += "\n\nSC Scoring Rules:"
-                    clock_context += "\n  • MOST actions: +0 (no marker) - negotiations, purchases, investigations, etc."
-                    clock_context += "\n  • Deception/lying/fraud: ALWAYS negative, even if successful"
-                    clock_context += "\n  • Using Guile skill: Usually -1 or -2 (misrepresentation/deception)"
-                    clock_context += "\n  • Success ≠ positive SC, Failure ≠ negative SC"
-                    clock_context += "\n  • Following normal protocols/procedures: +0 (not morally exceptional)"
-                    clock_context += "\n  • Legitimate business dealings: +0 (normal behavior)"
+                    clock_context += "\n\n**EXPLICIT STATE MARKERS** - Mark state changes at the end of your narration:\n"
+                    clock_context += "\n📊 [Clock Name]: +X or -X (reason) - Advance/regress a scene clock"
+                    clock_context += "\n⚫ Void: +X (reason) - Character gains void corruption"
+                    clock_context += "\n⚖️ Soulcredit: +X or -X (reason) - Character's spiritual trust/morality changes"
                     clock_context += "\n\nExamples:"
-                    clock_context += "\n  • Lying to authorities (Guile check): ⚖️ Soulcredit: -1 (deceived officials)"
-                    clock_context += "\n  • Misrepresenting credentials: ⚖️ Soulcredit: -2 (fraudulent identity claim)"
+                    clock_context += "\n  📊 Evidence Collection: +2 (found hidden documents)"
+                    clock_context += "\n  ⚫ Void: +1 (ritual backfire)"
+                    clock_context += "\n  ⚖️ Soulcredit: +0 (neutral combat action)"
+                    clock_context += "\n  ⚖️ Soulcredit: -2 (deceived officials)"
+                    clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
+                    clock_context += "\n**ALWAYS mark soulcredit for every action, even when +0 (neutral).**"
+                    clock_context += "\n\nSC Scoring Rules (consider CONTEXT and INTENT):"
+                    clock_context += "\n  • Combat CONTEXT matters:"
+                    clock_context += "\n    - Fighting justified enemies: ⚖️ Soulcredit: +0 (neutral combat)"
+                    clock_context += "\n    - Fighting own faction/allies: ⚖️ Soulcredit: -2 (betrayal)"
+                    clock_context += "\n    - Attacking innocents/excessive force: ⚖️ Soulcredit: -1 to -3 (unjust violence)"
+                    clock_context += "\n    - Protecting innocents in combat: ⚖️ Soulcredit: +1 (protective action)"
+                    clock_context += "\n  • Deception INTENT matters:"
+                    clock_context += "\n    - Lying for personal gain: ⚖️ Soulcredit: -1 to -2 (selfish deception)"
+                    clock_context += "\n    - Lying to protect innocents: ⚖️ Soulcredit: +0 or +1 (complex morality)"
+                    clock_context += "\n    - Fraud/identity theft: ⚖️ Soulcredit: -2 (serious deception)"
+                    clock_context += "\n  • Neutral actions: ⚖️ Soulcredit: +0"
+                    clock_context += "\n    - Exploration, investigation, normal purchases, following protocols"
+                    clock_context += "\n  • Success/failure doesn't determine SC - only moral choice matters"
+                    clock_context += "\n\nExamples (showing moral complexity):"
+                    clock_context += "\n  • Shooting hostile Tempest operatives: ⚖️ Soulcredit: +0 (justified combat)"
+                    clock_context += "\n  • Attacking own Pantheon allies: ⚖️ Soulcredit: -2 (betrayal of faction)"
+                    clock_context += "\n  • Lying to save innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)"
+                    clock_context += "\n  • Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)"
                     clock_context += "\n  • Creating Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)"
                     clock_context += "\n  • Fulfilling contracts honorably: ⚖️ Soulcredit: +1 (upheld agreement)"
-                    clock_context += "\n  • Selfless act helping strangers: ⚖️ Soulcredit: +1 (showed compassion)"
-                    clock_context += "\n  • Betraying faction tenets: ⚖️ Soulcredit: -3 (violated faction code)"
+                    clock_context += "\n  • Protecting civilians in crossfire: ⚖️ Soulcredit: +1 (selfless protection)"
                     clock_context += "\n  • Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)"
-                    clock_context += "\n  • Accepting bribes: ⚖️ Soulcredit: -1 (corrupt dealing)"
-                    clock_context += "\n  • Normal negotiation/purchase/exploration: +0 (no marker)"
+                    clock_context += "\n  • Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust violence)"
+                    clock_context += "\n  • Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)"
 
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False
