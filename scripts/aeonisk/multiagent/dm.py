@@ -1269,7 +1269,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     filled_clocks_text += "- [PIVOT_SCENARIO: Theme] if situation fundamentally changes\n"
                     filled_clocks_text += "- [SESSION_END: VICTORY/DEFEAT/DRAW] if objectives achieved/failed"
 
-        # Build enemy spawn instructions ONLY when clocks fill (tied to consequences)
+        # Build enemy spawn instructions (always available if enabled)
         enemy_spawn_prompt = ""
         has_filled_clocks = False
         if self.shared_state:
@@ -1278,21 +1278,27 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 filled_clocks = mechanics.get_and_clear_filled_clocks()
                 has_filled_clocks = bool(filled_clocks)
 
-        if self.config.get('enemy_agents_enabled', False) and has_filled_clocks:
+        if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
-**SPAWN ENEMIES AS CLOCK CONSEQUENCE (ONE-TIME):**
-Since a threat clock just filled, you can spawn autonomous enemies as a consequence:
+**SPAWN ENEMIES (OPTIONAL):**
+You can spawn autonomous enemies whenever the narrative warrants it:
 
 Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
-Example: [SPAWN_ENEMY: Reinforcements | grunt | 4 | Far-Enemy | tactical_ranged]
+Example: [SPAWN_ENEMY: Void Gremlins | grunt | 3 | Near-Enemy | aggressive_melee]
 
 Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
 Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
 Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
 
-Only spawn if it makes sense as a consequence of THIS SPECIFIC CLOCK filling. Not every clock needs enemies!
-Match threat level: 3-5 grunts for squads, 1-2 elites for professionals, 1 boss for commanders."""
+Good times to spawn:
+- Void corruption spreads → void creatures/entities emerge from reality tears
+- Security systems activate → automated defenses, combat drones, turrets
+- Reinforcements arrive → guards respond to alarms, gangs send backup
+- Environmental hazards become threats → corrupted wildlife, possessed NPCs
+- When combat would make the scene more dynamic and dangerous
+
+Match threat level to situation: 2-4 grunts for patrols, 1-2 elites for specialists, 1 boss for commanders."""
 
         # Use LLM to generate synthesis if available
         if self.llm_config:
