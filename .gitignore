@@ -169,3 +169,9 @@ multiagent.log
 # Environment files
 .env
 .env.local
+
+# Game session data
+game.txt
+
+# Generated releases
+releases/

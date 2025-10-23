@@ -60,7 +60,7 @@ class JSONLLogger:
     Each line is a complete JSON object representing one game event.
     """
 
-    def __init__(self, session_id: str, output_dir: str = "./output"):
+    def __init__(self, session_id: str, output_dir: str = "./output", config: Dict[str, Any] = None):
         self.session_id = session_id
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
@@ -70,7 +70,9 @@ class JSONLLogger:
         self._write_event({
             "event_type": "session_start",
             "ts": datetime.now().isoformat(),
-            "session": session_id
+            "session": session_id,
+            "config": config or {},
+            "version": "1.0.0"
         })
 
     def _write_event(self, event: Dict[str, Any]):
@@ -296,6 +298,218 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_event(self, event_type: str, data: Dict[str, Any], round_num: int):
+        """Log generic game event (cleanup, enemy events, etc)."""
+        event = {
+            "event_type": event_type,
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "data": data
+        }
+        self._write_event(event)
+
+    def log_combat_action(
+        self,
+        round_num: int,
+        attacker_id: str,
+        attacker_name: str,
+        defender_id: str,
+        defender_name: str,
+        weapon: str,
+        attack_roll: Dict[str, Any],
+        damage_roll: Optional[Dict[str, Any]] = None,
+        wounds_dealt: int = 0,
+        defender_state_after: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Log a combat action (attack with damage).
+
+        Args:
+            round_num: Current round
+            attacker_id: Agent ID of attacker
+            attacker_name: Display name of attacker
+            defender_id: Agent ID of defender
+            defender_name: Display name of defender
+            weapon: Weapon/ability used
+            attack_roll: Dict with keys: attr, skill, d20, total, dc, hit, margin
+            damage_roll: Optional dict with keys: strength, weapon_dmg, d20, total, soak, dealt
+            wounds_dealt: Number of wounds inflicted
+            defender_state_after: Optional dict with keys: health, max_health, wounds, alive, status
+        """
+        event = {
+            "event_type": "combat_action",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "attacker": {"id": attacker_id, "name": attacker_name},
+            "defender": {"id": defender_id, "name": defender_name},
+            "weapon": weapon,
+            "attack": attack_roll,
+            "damage": damage_roll,
+            "wounds_dealt": wounds_dealt,
+            "defender_state_after": defender_state_after
+        }
+        self._write_event(event)
+
+    def log_character_state(
+        self,
+        round_num: int,
+        character_id: str,
+        character_name: str,
+        health: int,
+        max_health: int,
+        wounds: int,
+        void_score: int,
+        soulcredit: int,
+        position: str,
+        conditions: List[str] = None,
+        is_defeated: bool = False
+    ):
+        """
+        Log character state snapshot (typically at round end).
+
+        Args:
+            round_num: Current round
+            character_id: Agent ID
+            character_name: Display name
+            health: Current health
+            max_health: Maximum health
+            wounds: Wound count
+            void_score: Current void corruption (0-10)
+            soulcredit: Current soulcredit balance
+            position: Tactical position (e.g., "Near-PC")
+            conditions: List of active conditions (debuffs, buffs)
+            is_defeated: Whether character is defeated
+        """
+        event = {
+            "event_type": "character_state",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "character_id": character_id,
+            "character_name": character_name,
+            "health": health,
+            "max_health": max_health,
+            "wounds": wounds,
+            "void_score": void_score,
+            "soulcredit": soulcredit,
+            "position": position,
+            "conditions": conditions or [],
+            "is_defeated": is_defeated
+        }
+        self._write_event(event)
+
+    def log_enemy_spawn(
+        self,
+        round_num: int,
+        enemy_id: str,
+        enemy_name: str,
+        template: str,
+        stats: Dict[str, Any],
+        position: str,
+        tactics: str
+    ):
+        """
+        Log enemy spawn event.
+
+        Args:
+            round_num: Current round
+            enemy_id: Unique enemy agent ID
+            enemy_name: Display name
+            template: Enemy template (grunt, elite, boss, etc.)
+            stats: Dict with health, attributes, skills, weapons, armor
+            position: Spawn position
+            tactics: Tactical behavior (aggressive_melee, tactical_ranged, etc.)
+        """
+        event = {
+            "event_type": "enemy_spawn",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "enemy_id": enemy_id,
+            "enemy_name": enemy_name,
+            "template": template,
+            "stats": stats,
+            "position": position,
+            "tactics": tactics
+        }
+        self._write_event(event)
+
+    def log_enemy_defeat(
+        self,
+        round_num: int,
+        enemy_id: str,
+        enemy_name: str,
+        defeat_reason: str,
+        rounds_survived: int
+    ):
+        """
+        Log enemy defeat/removal.
+
+        Args:
+            round_num: Current round
+            enemy_id: Enemy agent ID
+            enemy_name: Display name
+            defeat_reason: Reason for defeat (killed, retreated, despawned, escaped)
+            rounds_survived: Number of rounds enemy was active
+        """
+        event = {
+            "event_type": "enemy_defeat",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "enemy_id": enemy_id,
+            "enemy_name": enemy_name,
+            "defeat_reason": defeat_reason,
+            "rounds_survived": rounds_survived
+        }
+        self._write_event(event)
+
+    def log_round_summary(
+        self,
+        round_num: int,
+        summary: Dict[str, Any]
+    ):
+        """
+        Log aggregated round statistics for balance analysis.
+
+        Args:
+            round_num: Current round
+            summary: Dict with aggregate metrics:
+                - action_count: Total actions attempted
+                - success_count: Actions that succeeded
+                - success_rate: Percentage of successful actions
+                - avg_margin: Average success margin
+                - damage_dealt_by_players: Total damage dealt by players
+                - damage_taken_by_players: Total damage taken by players
+                - void_gained: Total void gained this round
+                - void_lost: Total void lost this round
+                - clocks_advanced: Number of clock advancement events
+                - clocks_filled: Number of clocks that filled
+                - active_enemies: Enemy count at round end
+                - player_wounds_total: Sum of all player wounds
+        """
+        event = {
+            "event_type": "round_summary",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "actions_attempted": summary.get('actions_attempted', 0),
+            "success_count": summary.get('success_count', 0),
+            "success_rate": summary.get('success_rate', 0.0),
+            "average_margin": summary.get('avg_margin', 0.0),
+            "damage_dealt_by_players": summary.get('damage_dealt_by_players', 0),
+            "damage_taken_by_players": summary.get('damage_taken_by_players', 0),
+            "void_gained": summary.get('void_gained', 0),
+            "void_lost": summary.get('void_lost', 0),
+            "clocks_advanced": summary.get('clocks_advanced', 0),
+            "clocks_filled": summary.get('clocks_filled', 0),
+            "active_enemies": summary.get('active_enemies', 0),
+            "player_wounds_total": summary.get('player_wounds_total', 0)
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:
@@ -341,13 +555,18 @@ class SceneClock:
     """
     Progress clock for tracking scene state with semantic guidance.
 
-    Range: -maximum to +maximum
-    - Negative values represent accumulated setbacks/failures
-    - Zero is neutral starting point
+    Range: 0 to maximum (with optional overflow)
+    - Zero is the minimum (no negative values by default)
     - Maximum fills the clock and triggers consequences
+    - Can overflow beyond maximum to indicate increasing urgency
 
     Semantic metadata helps the DM make consistent decisions about when to
     advance/regress the clock and what consequences to narrate.
+
+    Expiration: Clocks automatically expire after timeout_rounds to prevent stagnation.
+    - Low clocks (< 50% filled) expire as "crisis averted/opportunity lost"
+    - Filled clocks expire with consequences then remove
+    - Mid-range clocks expire as "situation escalates or resolves"
     """
     name: str
     current: int = 0
@@ -356,7 +575,10 @@ class SceneClock:
     advance_means: str = ""  # What it means to advance (e.g., "Investigation progresses", "Danger increases")
     regress_means: str = ""  # What it means to regress (e.g., "Setback in investigation", "Danger reduced")
     filled_consequence: str = ""  # What happens when filled (e.g., "Evidence complete, pivot to confrontation")
+    timeout_rounds: int = 5  # Rounds until clock expires (default 5)
+    allow_negative: bool = False  # If True, clock can go negative (for bidirectional trackers)
     _ever_filled: bool = field(default=False, init=False, repr=False)
+    _rounds_alive: int = field(default=0, init=False, repr=False)  # Track how long clock has existed
 
     def advance(self, ticks: int = 1) -> bool:
         """
@@ -382,10 +604,17 @@ class SceneClock:
         """
         Decrease clock progress.
 
-        Can go negative to represent accumulated failures/setbacks.
-        Minimum: -maximum (e.g., if max=6, can go to -6)
+        By default, clocks clamp at 0 (cannot go negative).
+        If allow_negative=True, can go down to -maximum.
         """
-        self.current = max(self.current - ticks, -self.maximum)
+        if self.allow_negative:
+            # Bidirectional tracker - can go negative
+            self.current = max(self.current - ticks, -self.maximum)
+        else:
+            # Standard clock - clamp at 0
+            self.current = max(self.current - ticks, 0)
+            if self.current == 0 and ticks > 0:
+                logger.debug(f"Clock {self.name} regressed to 0 (clamped, cannot go negative)")
 
     @property
     def filled(self) -> bool:
@@ -403,9 +632,35 @@ class SceneClock:
         Get progress as a ratio.
 
         Returns:
-            Ratio of current/maximum (can be negative for setbacks, >1 when filled)
+            Ratio of current/maximum (0.0 to 1.0+ normally, can be negative if allow_negative=True)
         """
         return self.current / self.maximum if self.maximum > 0 else 0
+
+    def increment_round(self):
+        """Increment the rounds_alive counter."""
+        self._rounds_alive += 1
+
+    @property
+    def is_expired(self) -> bool:
+        """Check if clock has exceeded its timeout."""
+        return self._rounds_alive >= self.timeout_rounds
+
+    @property
+    def expiration_type(self) -> str:
+        """
+        Determine how this clock should expire based on its current state.
+
+        Returns:
+            - "crisis_averted": Clock is low (< 50% filled) - danger passed, opportunity lost
+            - "force_resolve": Clock is filled - trigger consequences then remove
+            - "escalate": Clock is mid-range (50-99%) - situation must resolve one way or another
+        """
+        if self.filled:
+            return "force_resolve"
+        elif self.current < (self.maximum * 0.5):
+            return "crisis_averted"
+        else:
+            return "escalate"
 
 
 @dataclass
@@ -607,6 +862,11 @@ class MechanicsEngine:
         self.scene_void_level: int = 0  # 0-10 scene void pressure
         self.jsonl_logger: Optional[JSONLLogger] = jsonl_logger  # Machine-readable event log
         self.current_round: int = 0  # Track current round for logging
+        self._last_clock_increment_round: int = -1  # Track last round we incremented clocks
+
+        # Clock update queue - prevents cascade fills during resolution
+        # Queued updates are applied batch during synthesis phase
+        self.clock_update_queue: List[Tuple[str, int, str]] = []  # (clock_name, ticks, reason)
 
     def calculate_dc(
         self,
@@ -1105,7 +1365,8 @@ class MechanicsEngine:
         description: str = "",
         advance_means: str = "",
         regress_means: str = "",
-        filled_consequence: str = ""
+        filled_consequence: str = "",
+        timeout_rounds: int = None
     ) -> SceneClock:
         """
         Create and register a scene clock with semantic metadata.
@@ -1117,14 +1378,28 @@ class MechanicsEngine:
             advance_means: What it means to advance (e.g., "More evidence discovered")
             regress_means: What it means to regress (e.g., "Evidence destroyed")
             filled_consequence: What happens when filled (e.g., "Case ready for prosecution")
+            timeout_rounds: Rounds until clock expires (None = auto-calculated based on maximum)
         """
+        # Auto-assign varied timeouts to prevent all clocks expiring simultaneously
+        if timeout_rounds is None:
+            if maximum <= 4:
+                timeout_rounds = 4  # Small clocks expire faster (4 rounds)
+            elif maximum <= 6:
+                timeout_rounds = 6  # Medium clocks get standard time (6 rounds)
+            elif maximum <= 8:
+                timeout_rounds = 7  # Larger clocks get more time (7 rounds)
+            else:
+                timeout_rounds = 8  # Very large clocks get longest time (8 rounds)
+            logger.info(f"Clock {name} auto-assigned timeout: {timeout_rounds} rounds (based on max={maximum})")
+
         clock = SceneClock(
             name=name,
             maximum=maximum,
             description=description,
             advance_means=advance_means,
             regress_means=regress_means,
-            filled_consequence=filled_consequence
+            filled_consequence=filled_consequence,
+            timeout_rounds=timeout_rounds
         )
         self.scene_clocks[name] = clock
         return clock
@@ -1191,6 +1466,176 @@ class MechanicsEngine:
         filled = getattr(self, '_filled_clocks_this_round', [])
         self._filled_clocks_this_round = []
         return filled
+
+    def queue_clock_update(self, clock_name: str, ticks: int, reason: str):
+        """
+        Queue a clock update to be applied during synthesis phase.
+
+        This prevents cascade fills during action resolution.
+        All queued updates are applied at once via apply_queued_clock_updates().
+
+        Args:
+            clock_name: Name of the clock to update
+            ticks: Number of ticks to advance (positive) or regress (negative)
+            reason: Reason for the update
+        """
+        self.clock_update_queue.append((clock_name, ticks, reason))
+        logger.debug(f"Queued clock update: {clock_name} {ticks:+d} ({reason})")
+
+    def apply_queued_clock_updates(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Apply all queued clock updates at once during synthesis phase.
+
+        This prevents cascade fills - all updates happen simultaneously,
+        then we check for fills ONCE at the end.
+
+        Returns:
+            Dict of clock_name -> {'before': int, 'after': int, 'maximum': int, 'reason': str, 'direction': str}
+        """
+        if not self.clock_update_queue:
+            return {}
+
+        clock_final_states = {}
+
+        # Group updates by clock name to aggregate them
+        aggregated_updates = {}
+        for clock_name, ticks, reason in self.clock_update_queue:
+            if clock_name not in aggregated_updates:
+                aggregated_updates[clock_name] = {'ticks': 0, 'reasons': []}
+            aggregated_updates[clock_name]['ticks'] += ticks
+            aggregated_updates[clock_name]['reasons'].append(reason)
+
+        # Apply all aggregated updates
+        for clock_name, update_data in aggregated_updates.items():
+            if clock_name in self.scene_clocks:
+                clock = self.scene_clocks[clock_name]
+                before = clock.current
+                maximum = clock.maximum
+                total_ticks = update_data['ticks']
+                reasons = update_data['reasons']
+
+                if total_ticks < 0:
+                    # Negative ticks = regress (improve)
+                    clock.regress(abs(total_ticks))
+                    direction = "↓"
+                elif total_ticks > 0:
+                    # Positive ticks = advance
+                    clock.advance(total_ticks)
+                    direction = "↑"
+                else:
+                    # No net change
+                    direction = "→"
+
+                after = clock.current
+
+                clock_final_states[clock_name] = {
+                    'before': before,
+                    'after': after,
+                    'maximum': maximum,
+                    'reasons': reasons,
+                    'direction': direction,
+                    'filled': after >= maximum
+                }
+
+                # Log clock advancement
+                logger.info(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} (aggregated: {', '.join(reasons)})")
+
+        # Clear the queue
+        self.clock_update_queue = []
+
+        return clock_final_states
+
+    def increment_all_clock_rounds(self):
+        """
+        Increment rounds_alive for all scene clocks.
+        Call this at the start of each round.
+
+        Note: Only increments once per round (tracked via current_round).
+        """
+        # Only increment once per round
+        if self._last_clock_increment_round == self.current_round:
+            logger.debug(f"Clock rounds already incremented for round {self.current_round}, skipping")
+            return
+
+        self._last_clock_increment_round = self.current_round
+        logger.info(f"Incrementing all clock rounds (game round {self.current_round})")
+
+        for clock_name, clock in self.scene_clocks.items():
+            clock.increment_round()
+            logger.debug(f"Clock {clock_name}: round {clock._rounds_alive}/{clock.timeout_rounds}")
+
+    def check_and_expire_clocks(self) -> List[Dict[str, Any]]:
+        """
+        Check for expired clocks (both filled and timed out) and mark them for removal.
+        Returns list of expired clock data for DM to narrate.
+
+        Should be called after apply_queued_clock_updates() during synthesis.
+
+        Clocks are removed when:
+        1. Filled (reached maximum) - triggers filled_consequence, then removed
+        2. Timed out (exceeded timeout_rounds) - expires based on expiration_type
+
+        Returns:
+            List of dicts with: {
+                'clock_name': str,
+                'expiration_type': str,  # crisis_averted, force_resolve, escalate
+                'current': int,
+                'maximum': int,
+                'description': str,
+                'filled_consequence': str (if applicable),
+                'removal_reason': str  # 'filled' or 'timeout'
+            }
+        """
+        expired_clocks = []
+        clocks_to_remove = []
+
+        for clock_name, clock in self.scene_clocks.items():
+            # Check if clock is filled (reached/exceeded maximum) - remove immediately
+            if clock.filled:
+                exp_type = clock.expiration_type  # Will be 'force_resolve' for filled clocks
+
+                expired_clocks.append({
+                    'clock_name': clock_name,
+                    'expiration_type': exp_type,
+                    'current': clock.current,
+                    'maximum': clock.maximum,
+                    'description': clock.description,
+                    'filled_consequence': clock.filled_consequence,
+                    'advance_means': clock.advance_means,
+                    'regress_means': clock.regress_means,
+                    'removal_reason': 'filled'
+                })
+
+                clocks_to_remove.append(clock_name)
+
+                logger.warning(f"🔔 Clock {clock_name} FILLED: {clock.current}/{clock.maximum} - triggering consequences and removing")
+
+            elif clock.is_expired:
+                # Timed out without filling
+                exp_type = clock.expiration_type
+
+                expired_clocks.append({
+                    'clock_name': clock_name,
+                    'expiration_type': exp_type,
+                    'current': clock.current,
+                    'maximum': clock.maximum,
+                    'description': clock.description,
+                    'filled_consequence': clock.filled_consequence,
+                    'advance_means': clock.advance_means,
+                    'regress_means': clock.regress_means,
+                    'removal_reason': 'timeout'
+                })
+
+                clocks_to_remove.append(clock_name)
+
+                logger.warning(f"⏰ Clock {clock_name} TIMEOUT after {clock._rounds_alive} rounds (type: {exp_type})")
+
+        # Remove all marked clocks
+        for clock_name in clocks_to_remove:
+            del self.scene_clocks[clock_name]
+            logger.info(f"Removed clock: {clock_name}")
+
+        return expired_clocks
 
     def update_clocks_from_action(self, resolution: ActionResolution, context: Dict[str, Any]):
         """Update scene clocks based on action resolution."""

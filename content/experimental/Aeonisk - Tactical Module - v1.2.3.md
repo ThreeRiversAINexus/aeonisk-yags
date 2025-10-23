@@ -1,8 +1,14 @@
-# Aeonisk Tactical Module - v1.2.2
+# Aeonisk Tactical Module - v1.2.3
 
 **Integrating the Aeonisk Tactical Layer with YAGS Core**
 
 This document clarifies and summarizes the key rules introduced by the Aeonisk Tactical Addendum to the YAGS Core system, based on v1.2 and subsequent refinements discussed in the source material.
+
+**Version 1.2.3 Changes:**
+- Replaced pairwise range tracking with **concentric ring model** with PC/Enemy hemispheres
+- Clarified range calculation rules for same-ring positioning
+- Added "Melee Range" as distinct from "Engaged" band
+- Clarified movement around battlefield vs. pushing through center
 
 ---
 
@@ -10,7 +16,7 @@ This document clarifies and summarizes the key rules introduced by the Aeonisk T
 
 Welcome! If you're used to tabletop RPGs like D&D, you'll find a lot that's familiar here: you still roll a d20 + your character's skills and stats, aim for a target number, track damage and defense, and work together to overcome challenges.
 
-What Aeonisk Tactical does is offer a specific, structured way to handle combat encounters that moves away from counting squares on a grid. Instead, we use simple **Range Bands** (Engaged, Near, Far, Extreme) to handle distances – think of them as zones or areas on the battlefield. Movement becomes shifting between these zones, which is much faster than measuring.
+What Aeonisk Tactical does is offer a specific, structured way to handle combat encounters that moves away from counting squares on a grid. Instead, we use simple **Range Bands** (Engaged, Near, Far, Extreme) to handle distances – think of them as concentric rings around a central action point. Movement becomes shifting between these rings, which is much faster than measuring.
 
 We also add **Tactical Tokens** – physical markers on the table that represent key pieces of terrain or positional advantages (like good Cover or High Ground). You'll actively "claim" these and then "spend" them for a temporary bonus, making the environment a dynamic tool you can use.
 
@@ -29,13 +35,13 @@ This system is designed to make tactical combat flow quickly, emphasize narrativ
 **Core Task Roll**
 *   **Formula:** Attribute × Skill + d20
 *   **Difficulty:** 10 (easy) | 20 (moderate) | 30 (challenging)
-*   **Success Levels:** Every +10 over target = +1 success tier 
+*   **Success Levels:** Every +10 over target = +1 success tier
 
 **Initiative & Tempo**
-1.  **Roll once at start:** Agility × 4 + d20 (Nat 1 ⇒ INIT 0) 
+1.  **Roll once at start:** Agility × 4 + d20 (Nat 1 ⇒ INIT 0)
 2.  **Speed bands:** Fast → Normal → Slow
 3.  **Declare in ↑ INIT**, resolve in ↓ INIT (within speed bands)
-4.  **Shock reduces INIT**, can reroll by forfeit turn (halved at INIT 0) 
+4.  **Shock reduces INIT**, can reroll by forfeit turn (halved at INIT 0)
 
 **Round Structure**
 1.  **Declare Phase:** In ascending Initiative order, players state their intended Major and Minor actions. No rolls are made or effects resolved in this phase. The Defence Token is allocated.
@@ -51,12 +57,18 @@ This system is designed to make tactical combat flow quickly, emphasize narrativ
 | **Free**     | Unlimited | Flavor narrations only: shout orders, drop an item (after you swapped it), quick emotive beats |
 | **Reaction** | 1         | Interrupts during Fast Phase: Parry, Overwatch, Token spend, Bonded Defence |
 
+**Range Bands (Concentric Ring Model)**
+*   Battlefield is concentric rings with PC/Enemy hemispheres
+*   Same ring, same side = **Melee Range** (0 penalty, allows melee)
+*   Engaged band = center action zone (0 penalty)
+*   Different rings = Near (-2), Far (-4), Extreme (-6) based on rings apart
+
 **Damage & Wound Tracking**
 *   **Damage Roll:** Strength + Weapon Bonus + d20
 *   **Soak:** Subtract from damage.
 *   **Wounds:** 1 Wound per hit ≥ Soak, +1 per full +5 damage over Soak.
 *   **Fatal:** At 5 Wounds, make a Health check (Hea × 2 vs. DC 20 + 5 per extra Wound).
-*   **Wound Ladder:** A printable “Wound ladder” tracker should be provided.
+*   **Wound Ladder:** A printable "Wound ladder" tracker should be provided.
 
 ---
 
@@ -65,7 +77,7 @@ This system is designed to make tactical combat flow quickly, emphasize narrativ
 *   **Rolling Initiative:** Re-roll (Agility × 4) + d20 at the **start of every round**.
     *   **Ties:** Break ties by the highest single Skill rank, then the highest governing Attribute.
     *   **Natural 1:** Results in Initiative 0 for the round (all skill checks halved, all actions are Slow).
-*   **Shock:** Reduces current Initiative. Can forfeit turn to re-roll Initiative (Agility x 4 + d20), halved if current Initiative is 0. 
+*   **Shock:** Reduces current Initiative. Can forfeit turn to re-roll Initiative (Agility x 4 + d20), halved if current Initiative is 0.
 *   **Round Order:**
     1.  **Declare Phase:** In ascending Initiative order, players state their intended Major and Minor actions. No rolls are made or effects resolved. The Defence Token is allocated.
     2.  **Fast Phase (Reactions):** In descending Initiative order, resolve Reactions (Parry, Spend Token, Bonded Defence).
@@ -87,7 +99,7 @@ The Initiative order within the Declare and Resolution phases is crucial, especi
     *   Claiming a token is a Minor Action (Normal Speed).
     *   Normal Speed Actions resolve in descending Initiative order.
     1.  Alice's Normal Action (Claim Cover) resolves first because she has higher Initiative (28 vs 12). Alice successfully claims the Cover token.
-    2.  The Goblin's Normal Action (Claim Cover) resolves next. Since the token has already been claimed by Alice, the Goblin's action fails to secure *that specific token*. The Goblin player must either narrate an alternate outcome (e.g., trying to find *different* cover, or realizing it was taken) or their action is simply ineffective for that token this round. 
+    2.  The Goblin's Normal Action (Claim Cover) resolves next. Since the token has already been claimed by Alice, the Goblin's action fails to secure *that specific token*. The Goblin player must either narrate an alternate outcome (e.g., trying to find *different* cover, or realizing it was taken) or their action is simply ineffective for that token this round.
 
 This example demonstrates how higher Initiative provides a tactical advantage by allowing actions to resolve sooner, potentially preventing slower actors from achieving their declared goals.
 
@@ -102,24 +114,127 @@ Each round, characters typically have:
 
 ### 3. Range-Band Zones & Movement
 
-Combat occurs across four abstract Range Bands. These bands are **always measured pair-wise** between any two combatants, not from a central point on the battlefield.
+**v1.2.3 UPDATE:** Combat occurs across four abstract Range Bands arranged as **concentric rings** around a central action point, with the battlefield divided into **PC hemisphere** and **Enemy hemisphere** by a center line.
 
-| Band        | Scope       | Range Mod (to Attack) | Typical Actions          |
-|-------------|-------------|-----------------------|--------------------------|
-| **Engaged** | 0–2 m       | 0                     | Melee attacks, Tackle    |
-| **Near**    | >2m–15 m    | –2                    | Short-range gunfire, Dash|
-| **Far**     | >15m–50 m   | –4                    | Long-range attacks, Snipe|
-| **Extreme** | >50 m       | –6                    | Very long-range, Artillery|
+#### The Physical Model
 
-*   **Movement:**
-    *   **Minor Action:** Shift 1 Range Band (e.g., Near to Engaged, Far to Near).
-    *   **Major Action:** Shift 2 Range Bands (e.g., Far to Engaged) or enter Difficult Terrain within the current or an adjacent band.
-    *   **Disengage (Minor Action):** If Engaged, make an Athletics check (vs. Difficulty 20, example) to safely shift 1 band away (e.g., Engaged to Near) without provoking a Breakaway. 
-    *   **Breakaway:** If you move out of the Engaged band *without* using the Disengage action, any foes you were Engaged with may make an immediate free strike (Reaction) against you.
+Imagine the battlefield as concentric circles with a line down the middle:
 
-*   **Range Modifiers:** The Range Mod penalty applies to attack rolls made into a band or to a more distant band.
+```
+         [Enemy Hemisphere]
+    ╔═══════════════════════╗
+    ║  Extreme Ring         ║
+    ║   ┌─Far Ring──┐      ║
+    ║   │┌Near Ring┐│      ║
+    ║   ││ENGAGED  ││      ║ ← Center line (the Action)
+    ║   │└Near Ring┘│      ║
+    ║   └─Far Ring──┘      ║
+    ║  Extreme Ring         ║
+    ╚═══════════════════════╝
+         [PC Hemisphere]
+```
 
-*   **Flat Modifiers Ladder:** Many situational modifiers use consistent steps of ±2, ±4, or ±6. 
+Each combatant occupies a position defined by:
+- **Ring:** Engaged / Near / Far / Extreme
+- **Side:** PC hemisphere or Enemy hemisphere
+
+#### Range Bands
+
+| Band        | Description | Typical Positioning          |
+|-------------|-------------|------------------------------|
+| **Engaged** | 0–2 m       | The center action zone where the main clash occurs |
+| **Near**    | >2m–15 m    | First ring out from center on either side |
+| **Far**     | >15m–50 m   | Second ring out from center on either side |
+| **Extreme** | >50 m       | Outermost ring on either side |
+
+#### Range Calculation Rules
+
+The range between two combatants depends on their ring positions and which side they're on:
+
+1. **Both in Engaged Band → Engaged Range (0 penalty)**
+   - The center action zone where the main melee occurs
+
+2. **Same Ring, Same Side → Melee Range (0 penalty)**
+   - Allows melee attacks, point blank shooting, coordination
+   - Example: Two PCs both in "Near-PC" are at Melee range to each other
+   - Example: A PC who pushed through to "Far-Enemy" is at Melee range with all enemies in Far-Enemy
+   - **This is key:** If you're in the same ring on the same side, you're in each other's faces
+
+3. **Different Rings or Different Sides → Calculate through center:**
+   - Count the number of rings between positions (going through center if different sides)
+   - 1 ring apart = **Near** (-2 penalty to attacks)
+   - 2 rings apart = **Far** (-4 penalty to attacks)
+   - 3+ rings apart = **Extreme** (-6 penalty to attacks)
+
+#### Range Calculation Examples
+
+| Your Position | Target Position | Rings Apart | Range | Attack Penalty |
+|--------------|-----------------|-------------|-------|----------------|
+| Near-PC | Near-PC | 0 (same ring, same side) | Melee | 0 |
+| Engaged | Engaged | 0 (both at center) | Engaged | 0 |
+| Near-PC | Engaged | 1 ring | Near | -2 |
+| Near-PC | Near-Enemy | 2 rings (through center) | Far | -4 |
+| Far-PC | Near-Enemy | 3 rings | Extreme | -6 |
+| Far-Enemy | Far-Enemy | 0 (same ring, same side) | Melee | 0 |
+| Extreme-PC | Extreme-Enemy | 4 rings | Extreme | -6 |
+
+**Special Case - Pushed Through to Enemy Backline:**
+```
+Scenario: Sable (melee fighter) pushes through to Far-Enemy
+Far-Enemy contains: Enemy Mage, Enemy Sniper
+```
+- Sable is at **Melee range** to both enemies (same ring, same side)
+- High risk (isolated), high reward (disrupting backline at 0 penalty)
+- Enemies can all attack Sable at Melee range (0 penalty)
+
+**Melee Chasing Scenario:**
+```
+Scenario: Echo (sniper) and Sable (melee) both in Near-PC
+Echo tries to maintain distance by shooting
+```
+- Echo and Sable are at **Melee range** (same ring, same side)
+- Sable can melee Echo at 0 penalty
+- Echo shooting at point blank (0 penalty, but vulnerable to melee)
+- Echo must **shift to different ring** to gain distance advantage
+
+#### Movement
+
+*   **Minor Action:** Shift 1 Range Band toward or away from center
+    *   Near-PC → Engaged (moving toward action)
+    *   Near-PC → Far-PC (moving away from action)
+    *   Movement stays on your current side (PC or Enemy hemisphere)
+
+*   **Major Action:** Shift 2 Range Bands OR Push Through
+    *   **Shift 2 Bands:** Far-PC → Engaged (skipping Near-PC)
+    *   **Push Through:** Cross the center line to opposite hemisphere
+        - Must pass through Engaged band
+        - Example: Near-PC → Engaged → Near-Enemy (costs Major action)
+        - Risky: you may be isolated on enemy side
+
+*   **Moving Around the Outside:**
+    *   Going from your side to opposite side without pushing through requires moving through your rings
+    *   Example: Extreme-PC → Extreme-Enemy by going around
+    *   Extreme-PC → Far-PC → Near-PC → Engaged → Near-Enemy → Far-Enemy → Extreme-Enemy
+    *   This takes ~3-4 shifts (multiple rounds), much slower than pushing through (1 Major action)
+    *   Safer but slower
+
+*   **Disengage (Minor Action):** If at Melee range with hostiles, make an Athletics check (vs. Difficulty 20) to safely shift 1 band without provoking a Breakaway.
+
+*   **Breakaway:** If you move while at Melee range with foes *without* using the Disengage action, those foes may make an immediate free strike (Reaction) against you.
+
+#### Why This Model?
+
+**Simplicity:** No pairwise range tracking (O(n²)). Just track your ring and side.
+
+**Tactical Depth:** Meaningful choices remain:
+- Which ring to occupy (engage vs standoff)
+- Which side to fight from (safe vs infiltrated)
+- When to push through (aggressive flanking)
+- Defence Token allocation (who are you watching?)
+
+**Physical Intuition:** Works naturally on tabletop with token rings and a centerline divider.
+
+**Melee vs Ranged Balance:** Melee can close distance by shifting rings. Ranged can maintain distance by shifting away. Same-ring positioning forces engagement.
 
 ---
 
@@ -127,39 +242,41 @@ Combat occurs across four abstract Range Bands. These bands are **always measure
 
 Aeonisk Tactical introduces a single **Defence Token** that represents your focused situational awareness.
 
-* **Gaining & Refreshing**  
-  • You start each combat round with **one (1) Defence Token**.  
+* **Gaining & Refreshing**
+  • You start each combat round with **one (1) Defence Token**.
   • It refreshes automatically at the beginning of the next round.
 
-* **Allocating**  
+* **Allocating**
   • During the **Declare Phase**, you **must** allocate your token to one visible foe. This allocation lasts for the entire round.
   • **If you forget to allocate,** you are considered to have no Defence Token active, and all attackers gain the benefit of Flanking (+2 to their attack rolls against you).
 
-* **Benefit vs Allocated Foe**  
+* **Benefit vs Allocated Foe**
   • While the token is on that foe, they suffer **–2 to any roll that targets you directly** (attacks, aimed rituals, grapples).
 
-* **Consequence vs Un-allocated Foes**  
+* **Consequence vs Un-allocated Foes**
   • Attacks from foes **not** holding your token count as **Flanking**: you take **–2 to your own Defence roll** (or, if you use static Defence, the attacker gains +2).
 
-* **Heroic Burn (Evade Reaction)**  
+* **Heroic Burn (Evade Reaction)**
   • **Once per combat,** you may choose to upgrade your Defence Token's effect to **–4**.
   • This decision can be made when you allocate the token or as a reaction to being attacked.
   • The token is considered **burned** and does **not** refresh for the remainder of the combat.
 
-* **Interaction with Standard YAGS Defences**  
-  • You still choose which incoming attacks to actively defend against per the core YAGS rules.  
-  • The Defence Token’s modifier applies **before** you decide whether to split, full-defend, or take it on the chin.  
-  • If you full-defend against your allocated foe, both the full-defence bonus **and** the token’s –2 (or –4 if Evade) apply—subject to the normal ±6 maximum.
+* **Interaction with Standard YAGS Defences**
+  • You still choose which incoming attacks to actively defend against per the core YAGS rules.
+  • The Defence Token's modifier applies **before** you decide whether to split, full-defend, or take it on the chin.
+  • If you full-defend against your allocated foe, both the full-defence bonus **and** the token's –2 (or –4 if Evade) apply—subject to the normal ±6 maximum.
 
-* **One-Token-Per-PC Rule**  
-  • A character can never hold more than one active Defence Token.  
+* **One-Token-Per-PC Rule**
+  • A character can never hold more than one active Defence Token.
   • If a rule, item, or power would grant an additional token, treat it as upgrading the existing one (still capped at –2 / –4 per above).
+
+**Note on Flanking:** With the concentric ring model, "flanking" is primarily a **mechanical state** (attacking someone whose Defence Token is not allocated to you), not a positional requirement. Positional flanking can occur narratively (e.g., pushing through to enemy backline), but the +2 Flanking bonus is determined by Defence Token allocation.
 
 ---
 
 ### 5. Tactical Tokens (Terrain & Positioning)
 
-Tokens represent temporary advantages from terrain or position. 
+Tokens represent temporary advantages from terrain or position.
 
 *   **Lifecycle:**
     1.  **Claim (Minor Action):** Use a Minor action to claim a token representing a tactical advantage.
@@ -201,15 +318,66 @@ Movement through cluttered or hazardous environments requires an **Agility + Ath
 
 ### 6. Combat Modifiers
 
-Situational modifiers apply as simple flat bonuses or penalties. 
+Situational modifiers apply as simple flat bonuses or penalties.
 
 | Situation                      | Modifier | Notes                                     |
 |--------------------------------|----------|-------------------------------------------|
-| Flanking an enemy in Engaged   | +2       | To attack rolls by both flanking characters.  |
+| Flanking (target's Defence Token not on you) | +2 | To attack rolls against unallocated targets.  |
 | Attacking with High-Ground token | +2       | To that attack roll.  |
 | Attacking Prone target (melee) | +2       | To melee attack rolls against them.  |
 | Attacking Prone target (ranged)| –4       | To ranged attack rolls against them.  |
 | Running while shooting         | –2       | To the shooter's attack roll.  |
+
+---
+
+### 6a. Area Effect Weapons & Grenades
+
+Area effect weapons (grenades, explosives, ritual blasts) target **ring-side locations**, not individual combatants.
+
+**Targeting Rules:**
+*   **Declare Target:** Announce which ring-side you're targeting (e.g., "Grenade out at Far-Enemy!", "Ritual blast on Near-PC!")
+*   **Everyone In Zone Affected:** All combatants in that ring-side location must make appropriate saves (typically Agility × Athletics vs DC set by weapon/effect)
+*   **No Selective Targeting:** You cannot exclude specific individuals from the blast zone
+*   **Friendly Fire Is Automatic:** Your allies in the blast zone are affected just like enemies
+
+**Tactical Examples:**
+
+**Example 1 - Enemy Grenade vs Infiltrator:**
+```
+Extreme-Enemy: Sniper B (enemy)
+Far-Enemy: Player A (infiltrator), Enemy Mage, Enemy Tank
+```
+Sniper B throws grenade at Far-Enemy to stop Player A's advance.
+- **All three** make Agility saves: Player A, Enemy Mage, Enemy Tank
+- Sniper B risks fragging their own allies to stop the infiltrator
+
+**Example 2 - Coordinated AoE:**
+```
+Near-PC: Echo (preparing grenade)
+Near-Enemy: Grunt A, Grunt B, Grunt C (enemy group)
+```
+Echo to allies: "Clear Near-PC, I'm grenading Near-Enemy next round!"
+Allies shift to different rings. Next round, Echo throws grenade at Near-Enemy.
+- Only enemies affected (allies moved out of blast zone)
+- Coordination and communication matter
+
+**Example 3 - Human Shields:**
+```
+Far-Enemy: Player A (infiltrator), Enemy Commander
+```
+Enemy sniper considers grenade but realizes it would hit their Commander.
+- Player A benefits from being in same ring as high-value enemy
+- Enemy must choose: risk Commander or accept infiltration
+
+**Area Effect Advantages:**
+- **Area Denial:** Force enemies to spread across rings
+- **Crowd Control:** Punish grouping up
+- **Force Repositioning:** Make enemies choose between cover and avoiding AoE
+
+**Area Effect Risks:**
+- **Friendly Fire:** Automatic if allies are in blast zone
+- **Telegraphing:** Declaring target location in Declare Phase gives enemies a round to react
+- **Limited Ammo:** Most AoE weapons have limited uses per combat
 
 ---
 
@@ -218,15 +386,16 @@ Situational modifiers apply as simple flat bonuses or penalties.
 | Action      | Cost     | Requirement                      | Effect                                                                                                   |
 |-------------|----------|----------------------------------|----------------------------------------------------------------------------------------------------------|
 | **Suppress**| Major    | Weapon with Rate of Fire (RoF) ≥ 3 | On a successful hit: the target must choose to either Dive (immediately shift 1 band & lose Cover token if held) OR Hunker Down (suffer –4 to all their attack and defense rolls until their next turn).  |
-| **Charge**  | Major    | Must start in Near or Far band   | Shift directly into the Engaged band with a chosen foe. Gain +2 to your first melee damage roll against that foe this turn, but you suffer –2 to your own defenses until your next turn.  |
+| **Charge**  | Major    | Must start in Near or Far band   | Shift directly into Engaged band with a chosen foe (or to Melee range if targeting same-side combatant). Gain +2 to your first melee damage roll against that foe this turn, but you suffer –2 to your own defenses until your next turn.  |
 | **Overwatch**| Minor to set up, uses Reaction to fire | Declare a 90° arc you are watching. | Make an immediate ranged attack (as a Reaction) against the first foe to enter or act significantly within that declared arc. This triggers **once** per round during the **Fast Phase**. |
-| **Disengage**| Minor   | Must currently be Engaged        | Make an Athletics check (e.g., vs Difficulty 20) to shift 1 band away safely without provoking a Breakaway free strike.  |
+| **Disengage**| Minor   | Must currently be at Melee range with foes | Make an Athletics check (e.g., vs Difficulty 20) to shift 1 band safely without provoking a Breakaway free strike.  |
+| **Push Through** | Major | Must pass through Engaged band | Cross the center line to the opposite hemisphere. Risky but fast way to reach enemy backline or escape encirclement. |
 
 ---
 
 ### 8. Bond & Void Tactical Hooks
 
-Special abilities leveraging core Aeonisk concepts. 
+Special abilities leveraging core Aeonisk concepts.
 
 | Hook              | Cost          | Effect                                                                                                |
 |-------------------|---------------|-------------------------------------------------------------------------------------------------------|
@@ -252,6 +421,7 @@ Next time Nyx defends: they roll with –2 to that defence roll as the backlash 
 Minimal additions are needed:
 *   **Phase Reminder:** A one-line reminder of the round structure: *Declare → Fast → Slow*.
 *   **Stance:** A field to note character's current combat stance (normal / aggressive / defensive).
+*   **Position:** Track current Ring and Side (e.g., "Near-PC", "Far-Enemy")
 *   **Cover_Mod:** A temporary tracker for the +2 Soak granted by a Cover token.
 *   No new persistent resource pools beyond core YAGS (Wounds, Soak, Void, etc.).
 
@@ -263,7 +433,18 @@ To maintain clarity and trust at the table, the GM should announce the raw d20 r
 
 ### 11. Optional Zone Map Variant
 
-For groups that prefer a more visual, board-game-like experience, an appendix can provide pre-fabricated maps with defined zones and their default Range Band relationships. For example, a cargo hold map could be divided into 5 zones: "Catwalk," "Central Crates," "Loading Bay," "Maintenance Tunnel," and "Control Room," with a table defining the band distance between each pair of zones.
+For groups that prefer a more visual, board-game-like experience, an appendix can provide pre-fabricated maps with defined zones and their default Range Band relationships. With the concentric ring model, this could be as simple as labeled ring sections (e.g., "North Near-PC", "East Far-Enemy") with the center Engaged zone clearly marked.
+
+**Example Cargo Hold Setup:**
+```
+Extreme-PC: Cargo Bay Entrance
+Far-PC: Stacked Containers
+Near-PC: Loading Platform
+Engaged: Central Catwalk (the Action)
+Near-Enemy: Control Station
+Far-Enemy: Maintenance Access
+Extreme-Enemy: Airlock Corridor
+```
 
 ---
 
@@ -274,6 +455,20 @@ For groups that prefer a more visual, board-game-like experience, an appendix ca
 ### Appendix B: Quick-Ref Tables
 
 *(To be compiled: Summary tables for Range Bands & Modifiers, Action Economy, Flat Modifiers, New Tactical Actions, Tactical Token benefits).*
+
+### Appendix C: Battlefield Setup Guide
+
+**Physical Setup for Tabletop:**
+1. Draw or print concentric circles on your play surface
+2. Mark a clear line down the middle dividing PC/Enemy hemispheres
+3. Use different colored tokens/miniatures for PC side vs Enemy side
+4. Place Tactical Tokens (Cover, High-Ground, etc.) in narrative positions within rings
+5. Track each combatant's current ring and side
+
+**Digital Setup:**
+- Maintain a simple state: `{agent: "Sable", ring: "Near", side: "PC"}`
+- Display battlefield as ASCII art or simple diagram
+- Update positions as agents shift rings or push through
 
 ---
 

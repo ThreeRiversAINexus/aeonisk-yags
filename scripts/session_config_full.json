@@ -5,6 +5,9 @@
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
   "vendor_spawn_frequency": 3,
+  "enemy_agents_enabled": true,
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
   "agents": {
     "dm": {
       "llm": {
