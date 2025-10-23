@@ -1017,10 +1017,10 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                 logger.debug(f"  enemy_combat.enabled: {enemy_combat.enabled}")
                 logger.debug(f"  enemy_agents count: {len(enemy_combat.enemy_agents)}")
 
-            if enemy_combat and enemy_combat.enabled and len(enemy_combat.enemy_agents) > 0:
+            if enemy_combat and enemy_combat.enabled:
                 from .enemy_spawner import get_active_enemies
                 active_enemies = get_active_enemies(enemy_combat.enemy_agents)
-                logger.debug(f"  active_enemies count: {len(active_enemies)}")
+                logger.info(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
 
                 if active_enemies:
                     # Build enemy positions summary
@@ -1109,6 +1109,35 @@ Range Penalties (same ring/same side = Melee, 0 penalty):
 
 **REMEMBER:** Always include [TARGET_POSITION: ...] when moving or your position stays unchanged!
 """
+                else:
+                    # NO active enemies - make this CRYSTAL CLEAR to prevent targeting ghosts
+                    tactical_combat_context = """
+
+✅ **NO ACTIVE ENEMIES** ✅
+
+There are currently NO enemies on the battlefield. All hostile forces have been defeated or withdrawn.
+
+⚠️  **CRITICAL**: Do NOT target enemies that don't exist!
+⚠️  **DO NOT** use TARGET_ENEMY field - there are no enemies to target!
+⚠️  **DO NOT** attack "raiders" or any other generic enemy names from narration!
+
+If the DM mentions enemies in narration but they're not listed above with HP/position, they are NOT targetable enemies - they may be:
+- Already defeated
+- Not yet arrived (reinforcements)
+- Background/narrative elements only
+
+Available non-combat actions:
+- Investigate the area (Awareness, Perception)
+- Reposition tactically (Athletics)
+- Prepare defenses or fortifications
+- Search for clues/evidence (Investigation)
+- Assist/evacuate civilians
+- Prepare for incoming enemies
+
+**DO NOT ATTACK NON-EXISTENT ENEMIES!** Only attack enemies explicitly listed with HP and position.
+"""
+            else:
+                tactical_combat_context = ""
 
         # Add party discoveries to reduce repetition and encourage dialogue
         party_knowledge = ""
