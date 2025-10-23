@@ -60,6 +60,30 @@ def extract_narrative_elements(log_file: Path) -> List[Dict[str, Any]]:
                         'content': f"\n---\n# Round {event.get('round')}\n"
                     })
 
+                # Action declaration (player intentions)
+                elif event_type == 'action_declaration':
+                    # Only log player actions (not enemy tactical actions)
+                    player_id = event.get('player_id', '')
+                    if player_id.startswith('player_'):
+                        action = event.get('action', {})
+                        intent = action.get('intent', 'No intent specified')
+                        description = action.get('description', '')
+
+                        content = f"""#### {event.get('character_name', 'Unknown')} declares:
+**Intent:** {intent}
+
+{description if description else '*(No detailed description)*'}
+
+*Attribute:* {action.get('attribute', '?')} | *Skill:* {action.get('skill', '?')} | *Estimated DC:* {action.get('difficulty_estimate', '?')}
+"""
+                        narratives.append({
+                            'type': 'action_declaration',
+                            'round': event.get('round'),
+                            'timestamp': event.get('ts'),
+                            'character': event.get('character_name'),
+                            'content': content
+                        })
+
                 # Action resolution (main narrative)
                 elif event_type == 'action_resolution':
                     context = event.get('context', {})
@@ -135,12 +159,15 @@ def print_statistics(narratives: List[Dict[str, Any]]):
     type_counts = Counter(n['type'] for n in narratives)
     rounds = max(n['round'] for n in narratives if n['round'] != 999)
     actions = len([n for n in narratives if n['type'] == 'action_resolution'])
+    declarations = len([n for n in narratives if n['type'] == 'action_declaration'])
 
     print("\n" + "="*80)
     print("## Narrative Statistics\n")
     print(f"- Total rounds: {rounds}")
-    print(f"- Total actions: {actions}")
+    print(f"- Player action declarations: {declarations}")
+    print(f"- Action resolutions: {actions}")
     print(f"- Scenario setup: {type_counts.get('scenario', 0)}")
+    print(f"- Round syntheses: {type_counts.get('round_synthesis', 0)}")
     print(f"- Mission debriefs: {type_counts.get('mission_debrief', 0)}")
     print(f"- Total narrative elements: {len(narratives)}")
 
