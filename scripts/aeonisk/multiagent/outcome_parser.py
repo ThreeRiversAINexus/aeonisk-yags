@@ -331,6 +331,132 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
     return (void_change, reasons)
 
 
+def parse_creative_tactics_damage(
+    action_intent: str,
+    narration: str,
+    outcome_tier: str,
+    margin: int
+) -> Tuple[int, str, str]:
+    """
+    Parse creative tactics (hacking, social manipulation, environmental) for damage interpretation.
+
+    According to game analysis feedback:
+    - High-margin social/hacking successes should deal damage, not just debuffs
+    - Environmental hazards should cause actual damage
+    - Turning enemies against each other should be supported
+
+    Returns:
+        Tuple of (damage_amount, damage_type, reason)
+        damage_amount: 0 if no damage, 5-15 if damage dealt
+        damage_type: "social_manipulation", "hacking", "environmental", "none"
+        reason: Description of why damage was dealt
+    """
+    if outcome_tier not in ['moderate', 'good', 'excellent', 'exceptional']:
+        # Only successes with decent margins can deal damage
+        return (0, "none", "")
+
+    intent_lower = action_intent.lower()
+    narration_lower = narration.lower()
+    combined = intent_lower + " " + narration_lower
+
+    damage = 0
+    damage_type = "none"
+    reason = ""
+
+    # SOCIAL MANIPULATION: Corporate authority, charm, intimidation
+    social_keywords = [
+        'corporate authority', 'command', 'order', 'intimidate', 'charm',
+        'corporate influence', 'executive command', 'social manipulation',
+        'convince', 'persuade', 'dominate', 'authority', 'corporate exorcism'
+    ]
+
+    if any(kw in combined for kw in social_keywords):
+        # Check if targeting enemies (not allies)
+        enemy_keywords = ['enemy', 'hostile', 'corrupted', 'void', 'parasite', 'scanner', 'sentinel']
+        if any(kw in combined for kw in enemy_keywords):
+            # High margin = confusion causes void corruption backlash damage
+            if margin >= 15:
+                damage = 10
+                reason = "Exceptional social manipulation causes void corruption backlash in target"
+            elif margin >= 10:
+                damage = 7
+                reason = "Strong social manipulation causes void corruption backlash"
+            elif margin >= 5:
+                damage = 5
+                reason = "Social manipulation causes mild void corruption backlash"
+
+            if damage > 0:
+                damage_type = "social_manipulation"
+                logger.info(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
+
+    # HACKING: Turn enemies against each other or disable them
+    hacking_keywords = [
+        'hack', 'override', 'system', 'reprogram', 'control',
+        'subvert', 'hijack', 'remote access', 'backdoor',
+        'systems engineering', 'tech', 'interface', 'network'
+    ]
+
+    if any(kw in combined for kw in hacking_keywords):
+        enemy_target_keywords = ['scanner', 'drone', 'turret', 'corrupted', 'automated', 'security', 'tendrils']
+        if any(kw in combined for kw in enemy_target_keywords):
+            # Hacking can:
+            # 1. Turn enemy against others (friendly fire damage)
+            # 2. Disable/overload enemy (direct damage)
+
+            if 'turn against' in combined or 'attack other' in combined or 'target other' in combined:
+                # Turning enemies against each other
+                if margin >= 15:
+                    damage = 12
+                    reason = "Hacked enemy turns on allies, dealing significant friendly fire damage"
+                elif margin >= 10:
+                    damage = 8
+                    reason = "Hacked enemy attacks allies before regaining control"
+                elif margin >= 5:
+                    damage = 5
+                    reason = "Brief hacked control causes enemy to harm ally"
+            elif 'overload' in combined or 'disable' in combined or 'shutdown' in combined:
+                # Overloading/disabling causes damage
+                if margin >= 15:
+                    damage = 10
+                    reason = "System overload causes catastrophic damage to target"
+                elif margin >= 10:
+                    damage = 7
+                    reason = "System overload damages target's internal systems"
+                elif margin >= 5:
+                    damage = 5
+                    reason = "Forced shutdown causes damage to target"
+
+            if damage > 0:
+                damage_type = "hacking"
+                logger.info(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
+
+    # ENVIRONMENTAL: Trigger hazards, overload systems, use environment
+    environmental_keywords = [
+        'overload power', 'trigger hazard', 'environmental', 'facility',
+        'power surge', 'electrical', 'explosion', 'collapse',
+        'redirect energy', 'containment breach', 'cascade failure',
+        'use environment', 'trap', 'environmental damage'
+    ]
+
+    if any(kw in combined for kw in environmental_keywords):
+        # Environmental damage should be area-effect (higher damage)
+        if margin >= 15:
+            damage = 15
+            reason = "Environmental hazard triggers catastrophic damage to all in area"
+        elif margin >= 10:
+            damage = 12
+            reason = "Environmental hazard causes significant area damage"
+        elif margin >= 5:
+            damage = 10
+            reason = "Environmental hazard deals moderate area damage"
+
+        if damage > 0:
+            damage_type = "environmental"
+            logger.info(f"Creative tactic damage: {damage_type} → {damage} damage AoE (margin {margin})")
+
+    return (damage, damage_type, reason)
+
+
 def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
     """
     Parse position changes from narration.
