@@ -150,6 +150,13 @@ class SelfPlayingSession:
         await self._scenario_ready.wait()
         print("Scenario ready!")
 
+        # Give players time to receive and process SCENARIO_SETUP message
+        # before starting declarations (fixes race condition where enemies
+        # declare before players see the scenario)
+        print("Waiting for players to process scenario...")
+        await asyncio.sleep(2)
+        print("All agents ready to begin!")
+
         # Run the gameplay loop
         await self._run_gameplay_loop()
         
