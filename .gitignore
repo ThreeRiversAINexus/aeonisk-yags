@@ -170,9 +170,6 @@ multiagent.log
 .env
 .env.local
 
-# Claude working notes
-.claude/
-
 # Game session data
 game.txt
 
