@@ -1006,6 +1006,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         print(f"\n[DM {self.agent_id}] ===== Adjudicating {len(actions)} actions =====")
 
+        # Increment clock ages at start of each round
+        if self.shared_state and action_index == 0:  # Only on first action of the round
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                mechanics.increment_all_clock_rounds()
+
         # Log adjudication start
         if self.shared_state and self.shared_state.mechanics_engine:
             mechanics = self.shared_state.mechanics_engine
@@ -1219,12 +1225,42 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         # Apply all queued clock updates (batch application prevents cascade fills)
         clock_updates_applied = {}
+        expired_clocks = []
         if self.shared_state:
             mechanics = self.shared_state.get_mechanics_engine()
             if mechanics:
                 clock_updates_applied = mechanics.apply_queued_clock_updates()
                 if clock_updates_applied:
                     logger.info(f"Applied {len(clock_updates_applied)} queued clock updates during synthesis")
+
+                # Check for expired clocks after applying updates
+                expired_clocks = mechanics.check_and_expire_clocks()
+                if expired_clocks:
+                    logger.warning(f"Found {len(expired_clocks)} expired clocks: {[c['clock_name'] for c in expired_clocks]}")
+
+        # Build expired clocks text for DM prompt
+        expired_clocks_text = ""
+        if expired_clocks:
+            expired_lines = []
+            for exp in expired_clocks:
+                clock_name = exp['clock_name']
+                exp_type = exp['expiration_type']
+                current = exp['current']
+                maximum = exp['maximum']
+                description = exp['description']
+
+                if exp_type == "crisis_averted":
+                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - CRISIS AVERTED/OPPORTUNITY LOST")
+                    expired_lines.append(f"     The threat/opportunity has passed without resolution. Narrate how the situation defused or the window closed.")
+                elif exp_type == "force_resolve":
+                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - FORCING RESOLUTION")
+                    expired_lines.append(f"     Clock was filled too long. Trigger consequences: {exp.get('filled_consequence', 'dramatic consequences')}")
+                elif exp_type == "escalate":
+                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - SITUATION ESCALATES")
+                    expired_lines.append(f"     Stalemate breaks. Narrate how the situation suddenly intensifies or resolves one way or another.")
+
+            expired_clocks_text = "\n\n⏰ **CLOCKS EXPIRED (Auto-removed):**\n" + "\n".join(expired_lines)
+            expired_clocks_text += "\n\nYou MUST narrate what happens as these clocks expire in your synthesis!"
 
         # Get current clock state and check for filled clocks
         clock_state_text = ""
@@ -1318,6 +1354,7 @@ Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, amb
 {outcomes_text}
 {clock_state_text}
 {filled_clocks_text}
+{expired_clocks_text}
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:
 - Timing: Actions resolved fastest → slowest based on initiative

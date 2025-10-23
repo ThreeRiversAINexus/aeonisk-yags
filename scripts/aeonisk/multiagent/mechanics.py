@@ -359,6 +359,11 @@ class SceneClock:
 
     Semantic metadata helps the DM make consistent decisions about when to
     advance/regress the clock and what consequences to narrate.
+
+    Expiration: Clocks automatically expire after timeout_rounds to prevent stagnation.
+    - Low clocks (< 50% filled) expire as "crisis averted/opportunity lost"
+    - Filled clocks expire with consequences then remove
+    - Mid-range clocks expire as "situation escalates or resolves"
     """
     name: str
     current: int = 0
@@ -367,7 +372,9 @@ class SceneClock:
     advance_means: str = ""  # What it means to advance (e.g., "Investigation progresses", "Danger increases")
     regress_means: str = ""  # What it means to regress (e.g., "Setback in investigation", "Danger reduced")
     filled_consequence: str = ""  # What happens when filled (e.g., "Evidence complete, pivot to confrontation")
+    timeout_rounds: int = 5  # Rounds until clock expires (default 5)
     _ever_filled: bool = field(default=False, init=False, repr=False)
+    _rounds_alive: int = field(default=0, init=False, repr=False)  # Track how long clock has existed
 
     def advance(self, ticks: int = 1) -> bool:
         """
@@ -417,6 +424,32 @@ class SceneClock:
             Ratio of current/maximum (can be negative for setbacks, >1 when filled)
         """
         return self.current / self.maximum if self.maximum > 0 else 0
+
+    def increment_round(self):
+        """Increment the rounds_alive counter."""
+        self._rounds_alive += 1
+
+    @property
+    def is_expired(self) -> bool:
+        """Check if clock has exceeded its timeout."""
+        return self._rounds_alive >= self.timeout_rounds
+
+    @property
+    def expiration_type(self) -> str:
+        """
+        Determine how this clock should expire based on its current state.
+
+        Returns:
+            - "crisis_averted": Clock is low (< 50% filled) - danger passed, opportunity lost
+            - "force_resolve": Clock is filled - trigger consequences then remove
+            - "escalate": Clock is mid-range (50-99%) - situation must resolve one way or another
+        """
+        if self.filled:
+            return "force_resolve"
+        elif self.current < (self.maximum * 0.5):
+            return "crisis_averted"
+        else:
+            return "escalate"
 
 
 @dataclass
@@ -1120,7 +1153,8 @@ class MechanicsEngine:
         description: str = "",
         advance_means: str = "",
         regress_means: str = "",
-        filled_consequence: str = ""
+        filled_consequence: str = "",
+        timeout_rounds: int = 5
     ) -> SceneClock:
         """
         Create and register a scene clock with semantic metadata.
@@ -1132,6 +1166,7 @@ class MechanicsEngine:
             advance_means: What it means to advance (e.g., "More evidence discovered")
             regress_means: What it means to regress (e.g., "Evidence destroyed")
             filled_consequence: What happens when filled (e.g., "Case ready for prosecution")
+            timeout_rounds: Rounds until clock expires (default 5)
         """
         clock = SceneClock(
             name=name,
@@ -1139,7 +1174,8 @@ class MechanicsEngine:
             description=description,
             advance_means=advance_means,
             regress_means=regress_means,
-            filled_consequence=filled_consequence
+            filled_consequence=filled_consequence,
+            timeout_rounds=timeout_rounds
         )
         self.scene_clocks[name] = clock
         return clock
@@ -1284,6 +1320,62 @@ class MechanicsEngine:
         self.clock_update_queue = []
 
         return clock_final_states
+
+    def increment_all_clock_rounds(self):
+        """
+        Increment rounds_alive for all scene clocks.
+        Call this at the start of each round.
+        """
+        for clock_name, clock in self.scene_clocks.items():
+            clock.increment_round()
+            logger.debug(f"Clock {clock_name}: round {clock._rounds_alive}/{clock.timeout_rounds}")
+
+    def check_and_expire_clocks(self) -> List[Dict[str, Any]]:
+        """
+        Check for expired clocks and mark them for removal.
+        Returns list of expired clock data for DM to narrate.
+
+        Should be called after apply_queued_clock_updates() during synthesis.
+
+        Returns:
+            List of dicts with: {
+                'clock_name': str,
+                'expiration_type': str,  # crisis_averted, force_resolve, escalate
+                'current': int,
+                'maximum': int,
+                'description': str,
+                'filled_consequence': str (if applicable)
+            }
+        """
+        expired_clocks = []
+        clocks_to_remove = []
+
+        for clock_name, clock in self.scene_clocks.items():
+            if clock.is_expired:
+                exp_type = clock.expiration_type
+
+                expired_clocks.append({
+                    'clock_name': clock_name,
+                    'expiration_type': exp_type,
+                    'current': clock.current,
+                    'maximum': clock.maximum,
+                    'description': clock.description,
+                    'filled_consequence': clock.filled_consequence,
+                    'advance_means': clock.advance_means,
+                    'regress_means': clock.regress_means
+                })
+
+                # Mark for removal
+                clocks_to_remove.append(clock_name)
+
+                logger.warning(f"⏰ Clock {clock_name} EXPIRED after {clock._rounds_alive} rounds (type: {exp_type})")
+
+        # Remove expired clocks
+        for clock_name in clocks_to_remove:
+            del self.scene_clocks[clock_name]
+            logger.info(f"Removed expired clock: {clock_name}")
+
+        return expired_clocks
 
     def update_clocks_from_action(self, resolution: ActionResolution, context: Dict[str, Any]):
         """Update scene clocks based on action resolution."""
