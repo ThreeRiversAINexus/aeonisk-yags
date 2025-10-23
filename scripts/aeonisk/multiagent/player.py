@@ -1095,6 +1095,7 @@ SKILL: [which skill or None]
 DIFFICULTY: [estimate]
 JUSTIFICATION: [why that difficulty]
 ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
+TARGET_ENEMY: [if attacking: enemy name/ID from list above, otherwise: None]
 TARGET_POSITION: [if moving: Engaged/Near-PC/Far-PC/Extreme-PC/Near-Enemy/Far-Enemy/Extreme-Enemy, otherwise: None]
 DESCRIPTION: [narrative description]
 
@@ -1108,6 +1109,7 @@ SKILL: Combat
 DIFFICULTY: 20
 JUSTIFICATION: standard combat difficulty
 ACTION_TYPE: combat
+TARGET_ENEMY: Void Spawn
 TARGET_POSITION: None
 DESCRIPTION: I aim carefully and fire controlled bursts at the Void Spawn
 ```
@@ -1120,18 +1122,20 @@ SKILL: Combat
 DIFFICULTY: 22
 JUSTIFICATION: moving while shooting is slightly harder
 ACTION_TYPE: combat
+TARGET_ENEMY: Assault Team
 TARGET_POSITION: Near-Enemy
 DESCRIPTION: I move to better range while firing at the Assault Team
 ```
 
 CHARGING INTO MELEE:
 ```
-INTENT: Charge and attack with knife
+INTENT: Charge and attack Suppression Squad with knife
 ATTRIBUTE: Agility
 SKILL: Combat
 DIFFICULTY: 18
 JUSTIFICATION: charging gives bonus to hit
 ACTION_TYPE: combat
+TARGET_ENEMY: Suppression Squad
 TARGET_POSITION: Engaged
 DESCRIPTION: I sprint forward and engage in close combat
 ```
@@ -1308,6 +1312,11 @@ Now that you have this information, declare your action using the required forma
                     data['difficulty_justification'] = value
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
+                elif 'target_enemy' in key:
+                    # Extract enemy target if specified
+                    if value.lower() != 'none':
+                        data['target_enemy'] = value
+                        logger.info(f"{self.character_state.name} targeting enemy: {value}")
                 elif 'target_position' in key:
                     # Extract position if specified - STORE but don't apply yet
                     value_lower = value.lower()

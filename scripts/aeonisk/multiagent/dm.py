@@ -1427,6 +1427,54 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Parse combat details if present
             combat_data = parse_combat_triplet(llm_narration if self.llm_config else resolution.narrative)
 
+            # Apply damage to enemy if this was a successful attack
+            if combat_data and action.get('target_enemy') and combat_data.get('post_soak_damage', 0) > 0:
+                target_enemy_name = action.get('target_enemy')
+                damage_dealt = combat_data['post_soak_damage']
+
+                # Find the enemy agent
+                if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+                    enemy_combat = self.shared_state.enemy_combat
+                    if enemy_combat:
+                        from .enemy_spawner import get_active_enemies
+                        active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                        # Match by name (fuzzy match)
+                        target_enemy = None
+                        for enemy in active_enemies:
+                            if target_enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in target_enemy_name.lower():
+                                target_enemy = enemy
+                                break
+
+                        if target_enemy:
+                            # Apply damage
+                            old_health = target_enemy.health
+                            wounds_dealt = damage_dealt // 5  # YAGS: every 5 damage = 1 wound
+                            target_enemy.wounds += wounds_dealt
+                            target_enemy.health -= damage_dealt
+
+                            logger.info(f"Player dealt {damage_dealt} damage to {target_enemy.name} ({old_health} → {target_enemy.health} HP, +{wounds_dealt} wounds)")
+
+                            # Check if enemy died
+                            if target_enemy.health <= 0:
+                                if hasattr(target_enemy, 'check_death_save'):
+                                    alive, status = target_enemy.check_death_save()
+                                    if not alive:
+                                        logger.info(f"{target_enemy.name} KILLED by player attack!")
+                                        narration += f"\n\n💀 **{target_enemy.name} is KILLED!**"
+                                    elif status == "unconscious":
+                                        logger.info(f"{target_enemy.name} knocked unconscious!")
+                                        narration += f"\n\n😵 **{target_enemy.name} is knocked unconscious!**"
+                                    else:
+                                        logger.info(f"{target_enemy.name} critically wounded but conscious!")
+                                        narration += f"\n\n⚠️  **{target_enemy.name} is critically wounded!**"
+                                else:
+                                    # No death save - just mark as defeated
+                                    logger.info(f"{target_enemy.name} defeated!")
+                                    narration += f"\n\n💀 **{target_enemy.name} is defeated!**"
+                        else:
+                            logger.warning(f"Could not find enemy '{target_enemy_name}' to apply damage")
+
             # Apply clock advancements
             clock_final_states = {}  # Track final state of each clock for display
             clock_deltas = []  # Track before/after for logging
@@ -2139,6 +2187,14 @@ Available Actions:
 - **Attack**: Roll attack with range penalty based on distance to target
 - **Claim Cover/High Ground (Minor)**: Attempt to claim tactical token
 - **Disengage (Minor)**: Athletics DC 20 to shift without provoking Breakaway
+
+**DAMAGE SYSTEM** - When players attack enemies:
+If player ACTION includes TARGET_ENEMY field and succeeds at Combat check:
+1. Roll weapon damage (typically 2d6+4 for rifles, 1d6+3 for pistols, 1d6+Str for melee)
+2. Enemy soaks 12 damage (base Soak for human-sized targets)
+3. Include damage triplet in your narration: `Damage: X → Soak: 12 → Final: Y`
+   - Example: "Your shot hits center mass. Damage: 18 → Soak: 12 → Final: 6"
+   - On miss or failure: Don't include triplet, just narrate the miss
 
 **MOVEMENT SYSTEM** - Two types of movement:
 
