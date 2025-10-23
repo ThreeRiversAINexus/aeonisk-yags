@@ -95,8 +95,10 @@ class ActionDeclaration:
         if self.action_type not in valid_action_types:
             errors.append(f"Action type must be one of: {', '.join(valid_action_types)}")
 
-        if self.is_ritual and not self.skill == "Astral Arts":
-            errors.append("Rituals must use Astral Arts skill")
+        # Removed overly restrictive ritual validation
+        # Rituals CAN use Astral Arts, but other skills (Magick Theory, Attunement, Systems)
+        # can also interact with void/spiritual phenomena in different ways
+        # The action router handles appropriate skill selection
 
         return errors
 

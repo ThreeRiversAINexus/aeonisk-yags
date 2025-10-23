@@ -1,22 +1,23 @@
-# Quick Start: Enhanced Mechanics System
+# Quick Start: Multi-Agent System
 
-This guide shows how to immediately use the new mechanical resolution system.
+This guide shows how to run multi-agent RPG sessions and work with the mechanics system.
 
-## Installation
+## Prerequisites
+
+**CRITICAL:** Always activate the virtual environment first:
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Optional: Install ChromaDB for semantic rule lookup
-pip install chromadb
+cd scripts/aeonisk
+source .venv/bin/activate
 ```
+
+ChromaDB and sentence-transformers are required and installed in the venv.
 
 ## Running a Session
 
 ```bash
-cd scripts
-python3 run_multiagent_session.py session_config.json
+# From scripts/aeonisk directory (with venv activated)
+python3 ../run_multiagent_session.py ../session_config_combat.json
 ```
 
 The mechanics are automatically initialized via `shared_state`.
@@ -228,13 +229,18 @@ for change in void_state.history[-3:]:
 ### Pattern: Investigation Action
 
 **Player declares:**
-```
-INTENT: Scan the disrupted resonance field for technical signatures
-ATTRIBUTE: Perception
-SKILL: Tech/Craft
-DIFFICULTY: 25 - Challenging due to masked frequencies
-ACTION_TYPE: investigate
-DESCRIPTION: Zara calibrates her void-tech scanner to filter out Commune frequencies and identify the disruptor signature.
+```python
+action = ActionDeclaration(
+    intent="Scan the disrupted resonance field for technical signatures",
+    description="Zara calibrates her void-tech scanner to filter out Commune frequencies and identify the disruptor signature",
+    attribute="Perception",
+    skill="Tech/Craft",
+    difficulty_estimate=25,
+    difficulty_justification="Challenging due to masked frequencies",
+    character_name="Zara Nightwhisper",
+    agent_id=self.agent_id,
+    action_type="investigate"
+)
 ```
 
 **DM resolves:**
@@ -254,7 +260,12 @@ resolution = mechanics.resolve_action(
 
 if resolution.success:
     mechanics.advance_clock("Saboteur Exposure", 1, "Technical evidence found")
-    print("You detect a Tempest-grade disruptor signature, crudely masked with Commune frequencies.")
+
+# Log the resolution
+if mechanics.jsonl_logger:
+    mechanics.jsonl_logger.log_action_resolution(
+        resolution, character_name, round_num, narration
+    )
 ```
 
 ### Pattern: Ritual Action
@@ -344,31 +355,47 @@ for clock_name, clock in mechanics.scene_clocks.items():
 | 15-19 | Excellent | Great success, major advantage, +2 clocks |
 | 20+ | Exceptional | Outstanding, breakthrough, +2-3 clocks |
 
+## Validating Output
+
+**Validate JSONL logs:**
+```bash
+cd scripts/aeonisk/multiagent
+python3 validate_logging.py ../../multiagent_output/session_*.jsonl
+```
+
+**Reconstruct narrative:**
+```bash
+python3 reconstruct_narrative.py ../../multiagent_output/session_*.jsonl > story.md
+```
+
 ## Troubleshooting
+
+**Virtual environment not activated:**
+```bash
+# Symptoms: ModuleNotFoundError for chromadb, sentence_transformers
+# Fix: cd scripts/aeonisk && source .venv/bin/activate
+```
 
 **Player keeps trying same action:**
 - Action validator will reject with suggestions
-- DM should narrate environmental changes or NPC reactions that make repetition impossible
+- DM should narrate environmental changes that make repetition impossible
 
 **Void not increasing:**
 - Check ritual enforcement (no offering should add +1)
 - Check void trigger detection in action intents
-- Explicitly call `mechanics.check_void_trigger()` for edge cases
 
 **Clocks not advancing:**
 - DM must manually call `advance_clock()` after each resolution
-- Use `update_clocks_from_action()` for automated advancement
 - Consider margin size when determining ticks (excellent = 2 ticks, good = 1 tick)
 
-**Knowledge retrieval not working:**
-- Fallback mode works without ChromaDB
-- Check that `/content` directory has markdown files
-- First run auto-indexes, may take a moment
+**Suppressed errors:**
+```bash
+grep ERROR game.log | tail -20
+```
 
 ## Next Steps
 
-1. Read `MULTIAGENT_MECHANICS_UPGRADE.md` for architecture details
-2. Review `/content/Aeonisk - YAGS Module - v1.2.2.md` for core rules
-3. Experiment with different scenarios and clock configurations
-4. Tune difficulty recommendations based on your group's power level
-5. Expand ritual components database for validation
+1. Read `.claude/ARCHITECTURE.md` for system architecture
+2. Review `content/Aeonisk - YAGS Module - v1.2.2.md` for core rules
+3. Read `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` for ML logging details
+4. Experiment with different scenarios and clock configurations
