@@ -86,7 +86,7 @@ def validate_event(event: Dict[str, Any], line_num: int) -> List[str]:
     # Check if event type is known
     if event_type not in EVENT_SCHEMAS:
         # Generic events are allowed but noted
-        if event_type not in ["action_declaration", "adjudication_start", "declaration_phase_start", "clock_spawn", "round_synthesis", "mission_debrief", "session_end"]:
+        if event_type not in ["action_declaration", "adjudication_start", "declaration_phase_start", "clock_spawn", "round_synthesis", "mission_debrief", "session_end", "attrition"]:
             errors.append(f"Line {line_num}: Unknown event_type '{event_type}' (may be legacy or generic)")
         return errors
 
@@ -108,10 +108,12 @@ def validate_event(event: Dict[str, Any], line_num: int) -> List[str]:
                     errors.append(f"Line {line_num}: combat_action.attack missing field '{field}'")
 
         # Validate damage roll structure (if present)
+        # Two schemas: enemy attacks (full breakdown) vs player attacks (simplified)
         if "damage" in event and event["damage"] is not None:
             damage = event["damage"]
-            required_damage_fields = ["strength", "weapon_dmg", "d20", "total", "soak", "dealt"]
-            for field in required_damage_fields:
+            # Core fields that must be present in both schemas
+            core_damage_fields = ["soak", "dealt"]
+            for field in core_damage_fields:
                 if field not in damage:
                     errors.append(f"Line {line_num}: combat_action.damage missing field '{field}'")
 
