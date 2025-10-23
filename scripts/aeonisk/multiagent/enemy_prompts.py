@@ -563,6 +563,16 @@ def _format_tactical_analysis(enemy: EnemyAgent, player_agents: List[Any]) -> st
     preferred_range = TACTICAL_DOCTRINES.get(enemy.tactics, {}).get('preferred_range', 'Any')
     section += f"\n\nDoctrine '{enemy.tactics}' prefers: {preferred_range} range"
 
+    # Movement guidance
+    section += "\n\n### Position Selection Guidance:"
+    section += f"\nYour current position: **{enemy.position}**"
+    section += "\n\n**When choosing TARGET for Shift/Shift_2 actions:**"
+    section += "\n- Match your doctrine's preferred range (see above)"
+    section += "\n- Consider where PCs are located (see Range Analysis)"
+    section += "\n- Available positions: Engaged-PC, Near-PC, Far-PC, Extreme-PC, Engaged-Enemy, Near-Enemy, Far-Enemy, Extreme-Enemy"
+    section += f"\n- Example: If PCs are at Far-PC and you prefer Near range → TARGET: Near-PC"
+    section += f"\n- Example: If PCs are at Near-Enemy and you prefer Extreme range → TARGET: Far-Enemy or Extreme-Enemy"
+
     # Threat assessment
     section += "\n\n### Threat Assessment:"
     section += f"\nBased on priority '{enemy.threat_priority}':\n"
@@ -681,7 +691,7 @@ MAJOR_ACTION: Shift_2
 TARGET: Near-PC
 WEAPON: None
 MINOR_ACTION: None
-TACTICAL_REASONING: Moving from Far range to Near range to get within optimal firing distance for my tactical_ranged doctrine. PCs are at Far-PC, so closing to Near-PC.
+TACTICAL_REASONING: PCs are at Far-PC (Far range from me). My doctrine prefers Near range for optimal effectiveness. Moving from my current position to Near-PC to close distance.
 SHARE_INTEL: Advancing to engage at medium range
 ```
 
