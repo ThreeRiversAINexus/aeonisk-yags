@@ -286,7 +286,7 @@ def despawn_enemy(
     Mark enemy agent as inactive (despawned).
 
     Args:
-        agent_id: ID of agent to despawn
+        agent_id: ID or name of agent to despawn
         agents: List of all enemy agents
         reason: Reason for despawn
         current_round: Current combat round
@@ -294,8 +294,17 @@ def despawn_enemy(
     Returns:
         Despawned agent, or None if not found
     """
+    # First try to match by agent_id
     for agent in agents:
         if agent.agent_id == agent_id:
+            # Safety check: skip if already inactive or defeated
+            if not agent.is_active:
+                logger.info(f"Agent {agent.name} already inactive, skipping despawn")
+                return None
+            if agent.health <= 0:
+                logger.info(f"Agent {agent.name} already defeated (HP ≤ 0), skipping despawn")
+                return None
+
             agent.is_active = False
             agent.despawned_round = current_round
 
@@ -306,7 +315,28 @@ def despawn_enemy(
 
             return agent
 
-    logger.warning(f"Could not find agent to despawn: {agent_id}")
+    # If not found by ID, try to match by name
+    for agent in agents:
+        if agent.name == agent_id:
+            # Safety check: skip if already inactive or defeated
+            if not agent.is_active:
+                logger.info(f"Agent {agent.name} already inactive, skipping despawn")
+                return None
+            if agent.health <= 0:
+                logger.info(f"Agent {agent.name} already defeated (HP ≤ 0), skipping despawn")
+                return None
+
+            agent.is_active = False
+            agent.despawned_round = current_round
+
+            logger.info(
+                f"Despawned {agent.name} "
+                f"(matched by name, reason={reason}, round={current_round})"
+            )
+
+            return agent
+
+    logger.warning(f"Could not find agent to despawn: {agent_id} (tried ID and name matching)")
     return None
 
 

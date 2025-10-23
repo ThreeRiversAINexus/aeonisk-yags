@@ -679,7 +679,7 @@ IMPORTANT:
                 'situation': 'Freeborn pirates are raiding an ACG debt collection convoy. You\'re caught in the crossfire - the pirates open fire thinking you\'re ACG backup. [SPAWN_ENEMY: Freeborn Pirates | grunt | 2 | Near-Enemy | tactical_ranged]',
                 'void_level': 3,
                 'clocks': [
-                    ('Freeborn Escape', 4, 'Pirates fighting their way to ships'),
+                    ('Freeborn Escape', 4, 'Pirates fighting their way to ships', 'ADVANCE=Pirates advancing toward escape route', 'REGRESS=Blocking pirate escape', 'FILLED=Pirates successfully disengage and escape! [DESPAWN_ENEMY: Freeborn Pirates | escaped]'),
                     ('ACG Asset Seizure', 4, 'ACG trying to secure cargo'),
                     ('Pantheon Response', 5, 'Security arriving', 'ADVANCE=Pantheon forces mobilizing', 'REGRESS=Delaying security', 'FILLED=Pantheon tactical team arrives! [SPAWN_ENEMY: Pantheon Squad | grunt | 2 | Extreme-Enemy | tactical_ranged]')
                 ]
@@ -1344,7 +1344,17 @@ Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer 
 Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
 Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
 
-**WHY THIS RESTRICTION**: Mid-round spawns bypass clock-based pacing and overwhelm players. Spawns must be predictable and tied to clock advancement."""
+**WHY THIS RESTRICTION**: Mid-round spawns bypass clock-based pacing and overwhelm players. Spawns must be predictable and tied to clock advancement.
+
+**DESPAWN ENEMIES - AUTOMATIC MECHANIC:**
+When a clock with [DESPAWN_ENEMY: ...] in its filled_consequence fills, that enemy is automatically removed from combat.
+
+Syntax: [DESPAWN_ENEMY: enemy_name | reason]
+Example from filled clock: [DESPAWN_ENEMY: Freeborn Pirates | escaped]
+
+Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
+
+**IMPORTANT**: You still narrate the escape/withdrawal, but the [DESPAWN_ENEMY: ...] marker is already in the clock's filled_consequence. Just copy the consequence text including the marker when you describe what happens."""
 
         # Use LLM to generate synthesis if available
         if self.llm_config:
