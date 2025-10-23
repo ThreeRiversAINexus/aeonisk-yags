@@ -188,9 +188,11 @@ Create a scenario with:
    **CRITICAL**: For each clock, specify what it means to ADVANCE and REGRESS:
    - If advancing = getting worse for players (danger increasing, time running out)
      → Name it clearly: "Security Alert", "Structural Collapse", "Hunter Pursuit"
+     → Use MECHANICAL clock: FILLED should include [SPAWN_ENEMY: ...]
    - If advancing = progress on objective (evidence gathering, defenses built)
      → Name it clearly: "Evidence Collection", "Defenses Established", "Evacuation Progress"
-   - ALWAYS specify what happens when filled
+     → Use NARRATIVE clock: FILLED should include [PIVOT_SCENARIO: ...] or [ADVANCE_STORY: ...]
+   - ALWAYS specify what happens when filled (mechanical OR narrative marker required)
 
 Format:
 THEME: [theme]
@@ -201,8 +203,31 @@ CLOCK1: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRES
 CLOCK2: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK3: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 
-Example clock:
-CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get closer to finding the team | REGRESS=Team evades or misleads pursuit | FILLED=Hunter team arrives, combat or escape required
+Example clocks (MECHANICAL - with spawn markers):
+CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get closer to finding the team | REGRESS=Team evades or misleads pursuit | FILLED=Hunter team arrives [SPAWN_ENEMY: Corporate Hunters | elite | 2 | Far-Enemy | tactical_ranged]
+CLOCK2: Containment Failure | 4 | Void breach imminent | ADVANCE=Breach worsens | REGRESS=Containment reinforced | FILLED=Void creature emerges [SPAWN_ENEMY: Void Manifestation | boss | 1 | Near-Enemy | aggressive_melee]
+
+Example clocks (NARRATIVE - with scenario markers):
+CLOCK3: Evidence Collection | 8 | Gathering proof of corruption | ADVANCE=More evidence found | REGRESS=Evidence destroyed | FILLED=Case ready, evidence complete [PIVOT_SCENARIO: Confrontation with the corrupt magistrate]
+CLOCK4: Escape Route | 6 | Finding way out of the facility | ADVANCE=Exit path revealed | REGRESS=Path blocked | FILLED=Exit found! [ADVANCE_STORY: Maintenance Tunnels | You emerge into the tunnels. Allies are regrouping ahead]
+CLOCK5: Void Resonance | 4 | Growing instability | ADVANCE=Resonance intensifies | REGRESS=Stabilization efforts succeed | FILLED=New void rift opening [NEW_CLOCK: Rift Manifestation | 6 | Entities crossing over]
+
+**IMPORTANT**: ALL clocks MUST have consequences in their FILLED field. Use:
+- **Mechanical markers** for spawns/despawns: [SPAWN_ENEMY: ...], [DESPAWN_ENEMY: ...]
+- **Scenario markers** for narrative progression: [PIVOT_SCENARIO: ...], [ADVANCE_STORY: ...], [NEW_CLOCK: ...]
+
+**ENEMY SPAWNING**: For combat/danger clocks, add enemy spawn markers to FILLED consequences:
+- Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
+- Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
+- Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
+- Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
+- Use for: Security teams, void creatures, gang members, hostile factions, corrupted entities
+- Example: [SPAWN_ENEMY: Security Team | grunt | 2 | Far-Enemy | tactical_ranged]
+
+**ENEMY DESPAWNING**: For escape/retreat clocks, add despawn markers:
+- Syntax: [DESPAWN_ENEMY: enemy_name | reason]
+- Reasons: escaped, retreated, teleported, fled, recalled, withdrew
+- Example: [DESPAWN_ENEMY: Corporate Hunters | escaped through emergency exit]
 
 IMPORTANT:
 - Base your scenario on the canonical lore provided above
@@ -210,12 +235,13 @@ IMPORTANT:
 - Humans only, NO aliens
 - Pick a DIFFERENT theme and location from recently used ones (if listed above)
 - Be creative with scenario types:
-  * COMBAT: **ambush**, **firefight**, **battle**, **siege**, **assault**, **defense**, **void creature attack**, **hostile extraction**, **combat rescue**, **gang warfare**
+  * COMBAT (50% of scenarios): **ambush**, **firefight**, **battle**, **siege**, **assault**, **defense**, **void creature attack**, **hostile extraction**, **combat rescue**, **gang warfare**, **security breach**
   * SOCIAL: tribunal/trial, bond dispute, debt settlement, trade negotiation, vendor conflict, economic disputes, social scandal
   * INTRIGUE: heist, investigation, ritual gone wrong, faction conflict, ancient mystery, political intrigue, transit crisis
   * CRISIS: void outbreak, station breach, emergency evacuation, containment failure
-- **VARIETY IS KEY**: Mix combat scenarios with social/economic ones. Not every scenario needs combat, but battles and firefights should appear regularly
-- **Combat scenarios**: Ambushes by rival factions, void-corrupted threats, gang turf wars, hostile encounters during missions, defensive stands
+- **VARIETY IS KEY**: Mix combat scenarios with social/economic ones. About 50% of scenarios should have combat elements (enemies spawning when danger clocks fill)
+- **Combat scenarios MUST include**: At least one clock with [SPAWN_ENEMY: ...] in its FILLED consequence
+- **Good combat setups**: Ambushes by rival factions, void-corrupted threats, gang turf wars, hostile encounters during missions, defensive stands, security teams responding to alarms
 - **Vendor/Economy scenarios**: Resource acquisition, price negotiations, debt settlement, economic crime investigation
 - If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence
 - ⚠️ CRITICAL: Respect the party composition above. DO NOT create scenarios where characters betray their own faction
@@ -1102,6 +1128,13 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         context=context
                     )
 
+                    # Track action for round summary statistics
+                    if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                        self.shared_state.session.track_action_resolution(
+                            success=action_resolution.success,
+                            margin=action_resolution.margin
+                        )
+
             resolutions.append({
                 'player_id': player_id,
                 'character_name': character_name,
@@ -1248,19 +1281,40 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 current = exp['current']
                 maximum = exp['maximum']
                 description = exp['description']
+                advance_means = exp.get('advance_means', '')
+                regress_means = exp.get('regress_means', '')
+                filled_consequence = exp.get('filled_consequence', '')
+
+                # Build semantic context for expired clock
+                semantic_context = ""
+                if advance_means or regress_means:
+                    semantic_context = "\n     📊 SEMANTIC CONTEXT:"
+                    if advance_means:
+                        semantic_context += f"\n        Advance = {advance_means}"
+                    if regress_means:
+                        semantic_context += f"\n        Regress = {regress_means}"
+                    semantic_context += f"\n     ⚠️  Use this to interpret if {current}/{maximum} is good or bad!"
 
                 if exp_type == "crisis_averted":
-                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - CRISIS AVERTED/OPPORTUNITY LOST")
+                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - CRISIS AVERTED/OPPORTUNITY LOST{semantic_context}")
                     expired_lines.append(f"     The threat/opportunity has passed without resolution. Narrate how the situation defused or the window closed.")
                 elif exp_type == "force_resolve":
-                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - FORCING RESOLUTION")
-                    expired_lines.append(f"     Clock was filled too long. Trigger consequences: {exp.get('filled_consequence', 'dramatic consequences')}")
+                    expired_lines.append(f"  🔔 **{clock_name}** (FILLED: {current}/{maximum}) - TRIGGERING CONSEQUENCES{semantic_context}")
+                    if filled_consequence:
+                        expired_lines.append(f"     Consequence: {filled_consequence}")
+                        # Check if this is a mechanical clock (has markers) or narrative clock
+                        if any(marker in filled_consequence for marker in ['[SPAWN_ENEMY:', '[DESPAWN_ENEMY:', '[NEW_CLOCK:', '[PIVOT_SCENARIO:', '[ADVANCE_STORY:']):
+                            expired_lines.append(f"     → Include the marker from the consequence in your narration")
+                        else:
+                            expired_lines.append(f"     → This is a NARRATIVE clock - you MUST use a scenario marker ([PIVOT_SCENARIO]/[ADVANCE_STORY]/[NEW_CLOCK]) to change the story!")
+                    else:
+                        expired_lines.append(f"     → This clock filled without a consequence. You MUST use [PIVOT_SCENARIO] or [ADVANCE_STORY] to advance the narrative!")
                 elif exp_type == "escalate":
-                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - SITUATION ESCALATES")
-                    expired_lines.append(f"     Stalemate breaks. Narrate how the situation suddenly intensifies or resolves one way or another.")
+                    expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - SITUATION ESCALATES{semantic_context}")
+                    expired_lines.append(f"     Stalemate breaks. Consider [PIVOT_SCENARIO: new theme] or [NEW_CLOCK: new pressure] to intensify/resolve.")
 
             expired_clocks_text = "\n\n⏰ **CLOCKS EXPIRED (Auto-removed):**\n" + "\n".join(expired_lines)
-            expired_clocks_text += "\n\nYou MUST narrate what happens as these clocks expire in your synthesis!"
+            expired_clocks_text += "\n\n⚠️  You MUST narrate what happens as these clocks expire AND use scenario markers for narrative clocks!"
 
         # Get current clock state and check for filled clocks
         clock_state_text = ""
@@ -1307,14 +1361,21 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         urgency = "🚨 EXTREME URGENCY 🚨"
                     else:
                         urgency = "⚠️  URGENT"
-                    filled_clocks_text = f"\n\n{urgency} **CLOCKS FILLED/ADVANCING:** {', '.join(filled_names)}\n"
-                    filled_clocks_text += "You MUST describe what catastrophic/dramatic consequences occur!\n"
-                    filled_clocks_text += "Consider using DM control markers:\n"
-                    filled_clocks_text += "- [NEW_CLOCK: Name | Max | Description] to spawn new pressure\n"
-                    filled_clocks_text += "- [PIVOT_SCENARIO: Theme] if situation fundamentally changes (same location)\n"
-                    filled_clocks_text += "- [ADVANCE_STORY: Location | Situation] if objective completed, advance to new scene\n"
-                    filled_clocks_text += "  Example: [ADVANCE_STORY: Transit Hub | Escaped! A wounded courier offers you intel]\n"
-                    filled_clocks_text += "- [SESSION_END: VICTORY/DEFEAT/DRAW] if mission fully complete or total failure"
+                    filled_clocks_text = f"\n\n{urgency} **CLOCKS FILLED (Auto-removing):** {', '.join(filled_names)}\n"
+                    filled_clocks_text += "⚠️  **MANDATORY**: Filled clocks MUST trigger scenario changes!\n\n"
+                    filled_clocks_text += "**For clocks with mechanical markers** (e.g., [SPAWN_ENEMY: ...]):\n"
+                    filled_clocks_text += "- Include the exact marker text from filled_consequence in your narration\n"
+                    filled_clocks_text += "- The marker will trigger automatically\n\n"
+                    filled_clocks_text += "**For narrative clocks** (no mechanical markers):\n"
+                    filled_clocks_text += "- You MUST use a DM control marker to change the scenario:\n"
+                    filled_clocks_text += "  • [PIVOT_SCENARIO: Theme] - situation fundamentally changes (same location)\n"
+                    filled_clocks_text += "    Example: Investigation clock fills → [PIVOT_SCENARIO: Confrontation with the saboteur]\n"
+                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - objective completed, advance to new scene\n"
+                    filled_clocks_text += "    Example: Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
+                    filled_clocks_text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
+                    filled_clocks_text += "    Example: Corruption clock fills → [NEW_CLOCK: Void Manifestation | 4 | Entity taking form]\n"
+                    filled_clocks_text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
+                    filled_clocks_text += "⚠️  Narrative clocks that fill WITHOUT a scenario marker will stall the story!"
 
         # Build enemy spawn instructions (always available if enabled)
         enemy_spawn_prompt = ""
@@ -1377,6 +1438,13 @@ Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
 Be vivid and cinematic. Show how these actions interacted and created a dynamic scene. Describe the final state of the situation after all actions resolved.
 
 If the team is failing their objectives (clocks not advancing or bad clocks filling), your narration should reflect the growing desperation, consequences, and danger.
+
+**⚠️  CLOCK INTERPRETATION - READ CAREFULLY:**
+Each clock has semantic meaning shown as "Advance = X" and "Regress = Y".
+- If "Advance = threat escalates", then HIGH values are BAD for players
+- If "Advance = progress made", then HIGH values are GOOD for players
+- Use the semantic labels to interpret whether clock changes help or hurt the party
+- When a clock REGRESSES, check if that's good (threat reduced) or bad (progress lost)
 
 **CRITICAL**: If any clocks just filled, you MUST describe the dramatic consequences. This could include:
 - Character injury or void corruption (specify who and how much void: "+2 void")
@@ -1545,6 +1613,70 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                             logger.info(f"Player dealt {damage_dealt} damage to {target_enemy.name} ({old_health} → {target_enemy.health} HP, +{wounds_dealt} wounds)")
 
+                            # Track damage for round summary
+                            if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                                self.shared_state.session.track_player_damage_dealt(damage_dealt)
+
+                            # Log player combat action for ML training
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                # Build attack roll data from resolution
+                                attack_roll_data = {
+                                    "attr": resolution.attribute if resolution else "Unknown",
+                                    "attr_val": resolution.attribute_value if resolution else 0,
+                                    "skill": resolution.skill if resolution else None,
+                                    "skill_val": resolution.skill_value if resolution else 0,
+                                    "weapon_bonus": 0,  # Not tracked for player attacks currently
+                                    "d20": resolution.roll if resolution else 0,
+                                    "total": resolution.total if resolution else 0,
+                                    "dc": resolution.difficulty if resolution else 0,
+                                    "hit": resolution.success if resolution else True,
+                                    "margin": resolution.margin if resolution else 0
+                                }
+
+                                # Build damage roll data from combat_data or effect
+                                damage_roll_data = {
+                                    "base_damage": combat_data.get('damage', damage_dealt) if combat_data else damage_dealt,
+                                    "soak": combat_data.get('soak', 0) if combat_data else 0,
+                                    "dealt": damage_dealt
+                                }
+
+                                # Get defender state after damage
+                                defender_state = {
+                                    "health": target_enemy.health,
+                                    "max_health": target_enemy.max_health,
+                                    "wounds": target_enemy.wounds,
+                                    "alive": target_enemy.health > 0,
+                                    "status": "active" if target_enemy.health > 0 else "defeated"
+                                }
+
+                                # Get weapon from action intent or default
+                                weapon_name = "Unknown Weapon"
+                                if action.get('intent'):
+                                    intent_lower = action['intent'].lower()
+                                    if 'rifle' in intent_lower or 'gun' in intent_lower:
+                                        weapon_name = "Firearm"
+                                    elif 'pistol' in intent_lower:
+                                        weapon_name = "Pistol"
+                                    elif 'melee' in intent_lower or 'sword' in intent_lower or 'blade' in intent_lower:
+                                        weapon_name = "Melee Weapon"
+                                    elif 'punch' in intent_lower or 'kick' in intent_lower or 'brawl' in intent_lower:
+                                        weapon_name = "Unarmed"
+                                    elif action.get('skill'):
+                                        weapon_name = f"{action['skill']} Attack"
+
+                                mechanics.jsonl_logger.log_combat_action(
+                                    round_num=mechanics.current_round,
+                                    attacker_id=action.get('agent_id', 'unknown_player'),
+                                    attacker_name=action.get('character', 'Unknown Player'),
+                                    defender_id=target_enemy.agent_id,
+                                    defender_name=target_enemy.name,
+                                    weapon=weapon_name,
+                                    attack_roll=attack_roll_data,
+                                    damage_roll=damage_roll_data,
+                                    wounds_dealt=wounds_dealt,
+                                    defender_state_after=defender_state
+                                )
+
                             # Add effect notification
                             source_label = "(fallback)" if effect.get('source') == 'fallback' else ""
                             narration += f"\n\n⚔️  **{target_enemy.name} takes {damage_dealt} damage!** {source_label}"
@@ -1689,6 +1821,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
+                # Track void change for round summary
+                if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                    self.shared_state.session.track_void_change(state_changes['void_change'])
+
                 void_state = mechanics.get_void_state(player_id)
                 old_void = void_state.score
 
@@ -1943,6 +2079,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
+                # Track void change for round summary
+                if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                    self.shared_state.session.track_void_change(state_changes['void_change'])
+
                 void_state = mechanics.get_void_state(player_id)
                 old_void = void_state.score
 
@@ -2452,9 +2592,18 @@ When adjudicating:
 
         # Build prompt based on whether this is PC-to-PC dialogue
         if is_dialogue_with_pc and target_character:
+            # Build party context to clarify these are different characters
+            party_context = ""
+            if self.shared_state:
+                registered_players = self.shared_state.registered_players
+                party_members = [f"{p.get('name')} ({p.get('faction', 'Unknown')})" for p in registered_players]
+                party_context = f"\n**Party Members (ALL DIFFERENT CHARACTERS):**\n" + "\n".join([f"  - {member}" for member in party_members])
+                party_context += f"\n\n**IMPORTANT**: {character_name if action else 'The character'} and {target_character} are TWO SEPARATE people in the same party."
+
             prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
+{party_context}
 {enemy_spawn_instructions}
 {character_context}
 {resolution_context}
@@ -2464,7 +2613,11 @@ Action Type: {action_type} (DIALOGUE with {target_character})
 {void_impact}
 {tactical_combat_context}
 
-This is a conversation between {character_name if action else 'the character'} and {target_character}.
+This is a conversation between two DIFFERENT party members:
+- **{character_name if action else 'The character'}** (the one initiating the conversation)
+- **{target_character}** (the one being spoken to)
+
+These are two separate people working together in the same party.
 
 Generate ACTUAL DIALOGUE using quoted speech. Include:
 1. What {character_name if action else 'the character'} says (in quotes)
