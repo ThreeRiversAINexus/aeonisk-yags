@@ -588,7 +588,10 @@ class EnemyCombatManager:
             strength = enemy.attributes.get('Strength', 3)
             group_bonus = enemy.get_group_damage_bonus()
             damage_roll = random.randint(1, 20)
-            total_damage = strength + weapon.damage + damage_roll + group_bonus
+            base_damage = strength + weapon.damage + damage_roll + group_bonus
+
+            # Combat balance: Reduce enemy damage by 30% to prevent one-shots
+            total_damage = int(base_damage * 0.70)
 
             result['damage'] = total_damage
             result['narration'] += f" - HIT! {total_damage} damage"
