@@ -521,6 +521,102 @@ Minimal - logging is fast (< 1ms per event). JSONL writes are append-only and bu
 
 ---
 
+## Narrative Reconstruction
+
+### ✅ YES - Full Story Capture!
+
+The logging system captures **complete narrative** for story reconstruction:
+
+**Narrative Elements Logged:**
+1. **Scenario Setup** (`scenario` event) ✅
+   - Theme, location, void level
+   - Complete situation description with factions and objectives
+
+2. **Action Narration** (`action_resolution` event) ✅
+   - Full DM narration for every action (900-1400 chars each)
+   - Includes: roll results, damage, clocks, soulcredit, void changes
+   - Contextual storytelling with world-building details
+
+3. **Round Synthesis** (`round_synthesis` event) ⚠️ **Method exists but not currently called**
+   - DM summary of entire round's events
+   - Would provide round-level narrative cohesion
+   - **Status:** Logging method implemented (mechanics.py:log_round_synthesis) but not integrated into session flow
+
+4. **Mission Debriefs** (`mission_debrief` event) ✅
+   - Character reflections after mission completion
+   - In-character dialogue and thoughts (~500 chars each)
+
+5. **Round Markers** (`round_start` event) ✅
+   - Clear round boundaries for chronological organization
+
+### Narrative Reconstruction Tool
+
+**Usage:**
+```bash
+# Reconstruct complete story from session log
+python reconstruct_narrative.py session_abc123.jsonl
+
+# Export to markdown file
+python reconstruct_narrative.py session_abc123.jsonl > story.md
+```
+
+**Example Output:**
+```
+# Campaign Session Narrative
+
+## Scenario: Ideological Battle
+**Location:** Ley Node Nexus (Aeonisk Prime)
+
+Tempest Industries forces are attempting to install unauthorized void-tech...
+
+---
+# Round 1
+
+### Enforcer Kael Dren
+**Action:** Advance and shoot Tempest Operatives
+
+As you advance methodically through the ley node's crystalline corridors,
+your controlled bursts catch one of the Tempest operatives in the shoulder...
+
+[Full DM narration with damage, clocks, soulcredit, void changes]
+
+---
+# Round 2
+...
+
+### Character Debriefs
+
+Enforcer Kael Dren:
+"The firefight was messy, but we managed to prevent Tempest from corrupting
+the ley node..."
+```
+
+**Statistics:**
+- Total rounds: 3
+- Total actions: 7
+- Scenario setups: 1
+- Mission debriefs: 2
+- Total narrative elements: 14
+
+### Use Cases
+
+**Story Replay:**
+- Reconstruct complete campaign sessions for players
+- Create session recaps and summaries
+- Archive campaign history
+
+**ML Training:**
+- Train narrative generation models
+- Learn storytelling patterns from DM narration
+- Understand action → narrative mapping
+
+**Quality Assurance:**
+- Verify DM is providing rich storytelling
+- Check narrative coherence across rounds
+- Identify low-quality/formulaic narration
+
+---
+
 ## Bugs Fixed During Implementation
 
 ### Bug #1: AttributeError - enemy_id
