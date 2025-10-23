@@ -1,29 +1,30 @@
 {
-  "session_name": "combat_scenario_test",
-  "max_turns": 3,
+  "session_name": "impossible_combat_test",
+  "max_turns": 5,
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
   "force_combat": true,
-  "vendor_spawn_frequency": 2,
+  "vendor_spawn_frequency": 0,
 
-  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 - IMPOSSIBLE MODE ===",
+  "_comment_scenario": "Overwhelming odds - players surrounded by hostile forces. Tests combat/movement/defeat mechanics.",
+  "combat_scenario_index": 0,
+  "_comment_combat_index": "Forces 'Overwhelming Ambush' template (index 0) - all enemies target players, no faction infighting",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
 
   "enemy_agent_config": {
     "allow_groups": true,
-    "max_enemies_per_combat": 20,
+    "max_enemies_per_combat": 30,
     "shared_intel_enabled": true,
     "auto_execute_reactions": true,
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
 
-  "_comment_spawn_examples": "DM can spawn enemies with: [SPAWN_ENEMY: name | template | count | position | tactics]",
-  "_example_basic": "[SPAWN_ENEMY: Thugs | grunt | 3 | Near-Enemy | aggressive_melee]",
-  "_example_sniper": "[SPAWN_ENEMY: Rooftop Sniper | sniper | 1 | Extreme-Enemy | extreme_range]",
-  "_example_boss": "[SPAWN_ENEMY: Gang Leader | boss | 1 | Near-Enemy | adaptive]",
+  "_comment_spawn_strategy": "Multiple enemy groups at close range, explicitly targeting players",
+  "_spawn_guidance": "DM should spawn: [SPAWN_ENEMY: Assault Squad | elite | 3 | Engaged | aggressive_melee] [SPAWN_ENEMY: Sniper Team | sniper | 2 | Far-Enemy | extreme_range] [SPAWN_ENEMY: Heavy Support | grunt | 4 | Near-Enemy | tactical_ranged]",
 
   "agents": {
     "dm": {
@@ -31,7 +32,8 @@
         "provider": "anthropic",
         "model": "claude-3-5-sonnet-20241022",
         "temperature": 0.7
-      }
+      },
+      "_dm_instructions": "Create an overwhelming ambush scenario where players are immediately surrounded and must fight or flee. Spawn enemies that explicitly target the player characters, not each other. Make survival require tactical movement and desperate action."
     },
     "players": [
     {
@@ -50,9 +52,9 @@
         "ritualConservatism": 9
       },
       "goals": [
-        "Investigate void-related crimes and neutralize threats",
-        "Track down illegal dissolution advocacy",
-        "Maintain order through force when necessary"
+        "Survive the ambush and protect Sable",
+        "Fight through overwhelming odds",
+        "Use tactical positioning to gain advantage"
       ],
       "attributes": {
         "Strength": 3,
@@ -96,9 +98,9 @@
         "ritualConservatism": 3
       },
       "goals": [
-        "Stay off the Nexus grid and avoid ledger tracking",
-        "Survive by any means necessary",
-        "Keep independence from corporate entanglements"
+        "Survive by any means - fight or flee",
+        "Use stealth and mobility to escape the killzone",
+        "Don't let Kael's heroics get you killed"
       ],
       "attributes": {
         "Strength": 3,
@@ -127,5 +129,5 @@
     }
     ]
   },
-  "notes": "Combat scenario test - ambush, firefight, battle, or hostile encounter"
+  "notes": "IMPOSSIBLE MODE - Players surrounded by overwhelming hostile forces. Should force combat, movement, damage, and defeat mechanics testing. Enemies explicitly target players to test Size/Soak fixes and death save system."
 }

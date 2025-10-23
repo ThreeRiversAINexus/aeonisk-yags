@@ -252,7 +252,107 @@ async def _run_initiative_round(self):
 
 ---
 
-### 6. Cleanup Phase
+### 6. CRITICAL: Using ResolutionState for Declare/Resolve Cycle
+
+**⚠️ IMPORTANT:** The declare/resolve cycle requires proper action invalidation handling. Declarations are **intentions**, but resolution phase determines **reality**. Earlier actors (higher initiative) can invalidate later actors' declared actions.
+
+**File:** `scripts/aeonisk/multiagent/session.py`
+
+**Location:** In resolution phase loop
+
+**Import Required:**
+```python
+from .tactical_resolution import ResolutionState
+```
+
+**Implementation:**
+```python
+    # PHASE 2: RESOLUTION (fastest → slowest)
+    print("\n=== Resolution Phase ===")
+
+    # **CRITICAL: Create resolution state tracker**
+    from .tactical_resolution import ResolutionState
+    resolution_state = ResolutionState()
+
+    # Execute actions in initiative order (descending)
+    for initiative_score, agent_type, agent in initiative_order:
+        if agent_type == 'player':
+            # PC action execution
+            if agent.agent_id in self._declared_actions:
+                buffered_action = self._declared_actions[agent.agent_id]
+
+                # **VALIDATE PC ACTION PREREQUISITES**
+                # Example: Check if target still alive, token still available
+                # (Implementation depends on existing PC action system)
+
+                # Execute PC action via DM adjudication
+                # ... existing logic ...
+
+                # **UPDATE RESOLUTION STATE**
+                # If PC claims a token:
+                #   resolution_state.claim_token(token_name, agent.agent_id)
+                # If PC defeats an enemy:
+                #   resolution_state.mark_defeated(enemy_id)
+                # If PC moves:
+                #   resolution_state.record_position_change(agent.agent_id, new_pos)
+
+        elif agent_type == 'enemy':
+            # **ENEMY ACTION EXECUTION WITH RESOLUTION STATE**
+            if self.enemy_combat.enabled:
+                result = self.enemy_combat.execute_enemy_action(
+                    enemy_id=agent.agent_id,
+                    player_agents=player_agents,
+                    mechanics_engine=mechanics,
+                    resolution_state=resolution_state  # ← Pass state tracker
+                )
+
+                if result:
+                    # Check if action was invalidated
+                    if result.get('result') == 'invalidated':
+                        print(f"\n⚠️  {result['narration']}")
+                    else:
+                        print(f"\n[{result['character_name']}] {result['narration']}")
+
+                    # Log result
+                    if mechanics and mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_action_resolution(
+                            player_id=result['enemy_id'],
+                            character_name=result['character_name'],
+                            action_result=result,
+                            round_num=mechanics.current_round
+                        )
+```
+
+**Why This Matters:**
+
+The user's scenario example:
+> "Player A declares defense token 1, enemy A chooses to shoot player A, enemy B goes for defense token 1. The resolution phase will matter for who ends up with token 1"
+
+**Declaration Phase (ascending initiative: 12, 18, 22):**
+1. Player A (init 12): "Claim Cover token"
+2. Enemy A (init 18): "Attack Player A"
+3. Enemy B (init 22): "Claim Cover token"
+
+**Resolution Phase (descending initiative: 22, 18, 12):**
+1. Enemy B (22): Claims Cover token → **SUCCESS**, `resolution_state.claim_token("Cover", "enemy_b_001")`
+2. Enemy A (18): Attacks Player A → executes normally, might kill Player A
+3. Player A (12): Tries to claim Cover → **FAILS** - "❌ Player A cannot claim Cover - enemy_b_001 claimed it first"
+
+**Key Features:**
+- `ResolutionState` tracks claimed tokens, defeated combatants, position changes
+- `ActionValidator` checks prerequisites before executing actions
+- `generate_invalidation_message()` provides narrative feedback
+- Earlier actors' state changes invalidate later actors' declared actions
+
+**Action Invalidation Examples:**
+- ❌ Target was killed by earlier actor → attack fails
+- ❌ Token was claimed by earlier actor → claim fails
+- ❌ Actor was killed before their turn → all actions fail
+- ❌ Target moved out of range → attack might fail (if implemented)
+
+---
+
+### 7. Cleanup Phase
 
 **File:** `scripts/aeonisk/multiagent/session.py`
 
@@ -457,8 +557,13 @@ DM: "Armed enforcers emerge from the cargo containers!"
 **Current Simplifications:**
 - Enemies use simplified attack resolution (vs passive defence 15)
 - Reactions are not fully implemented
-- Tactical tokens are not fully integrated
-- Grenade AoE damage is not fully calculated
+- Grenade AoE damage is not fully calculated (targets identified, but damage/saves not rolled)
+
+**Declare/Resolve Cycle Features (NEW):**
+- ✓ Action prerequisite validation (target alive, actor alive, token available)
+- ✓ Tactical token claiming with initiative-based resolution
+- ✓ Action invalidation messages
+- ✓ ResolutionState tracking for all state changes during resolution
 
 ---
 
@@ -489,12 +594,17 @@ DM: "Armed enforcers emerge from the cargo containers!"
 │  │  3. Resolution Phase (descending initiative)            │  │
 │  │     - Players: existing DM adjudication                 │  │
 │  │     - Enemies: enemy_combat.execute_enemy_action()      │  │
+│  │                 (with ResolutionState tracking)         │  │
 │  │                 ↓                                        │  │
 │  │          _execute_attack()                              │  │
+│  │          _execute_claim_token() ← NEW                   │  │
 │  │          _execute_movement()                            │  │
 │  │          _execute_charge()                              │  │
 │  │          _execute_retreat()                             │  │
 │  │          _execute_grenade()                             │  │
+│  │                 ↓                                        │  │
+│  │          ActionValidator checks prerequisites           │  │
+│  │          ResolutionState tracks state changes           │  │
 │  │                                                          │  │
 │  │  4. Cleanup Phase                                       │  │
 │  │     - enemy_combat.cleanup_round()                      │  │
