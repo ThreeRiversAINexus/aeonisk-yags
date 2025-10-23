@@ -424,13 +424,28 @@ ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
 DESCRIPTION: [1-2 sentence narrative]
 ```
 
-**For Rituals**, also specify:
+**⚠️ WHEN TO USE RITUALS:**
+- When manipulating void energy, anomalies, or spiritual phenomena
+- When channeling or harmonizing with astral forces
+- When attempting to stabilize, contain, or seal void corruption
+- When using Astral Arts skill for active void manipulation (NOT just sensing/analyzing)
+- Analysis/study can often use Intelligence × Magick Theory instead (no offerings needed)
+
+**For Rituals** (Astral Arts), you MUST specify offerings:
 ```
 RITUAL: yes
-PRIMARY_TOOL: [yes/no - do you have the required focus?]
-OFFERING: [yes/no - are you making an offering?]
-COMPONENTS: [what materials are you using?]
+PRIMARY_TOOL: [yes/no - do you have crystal_focus or tech_kit?]
+OFFERING: [yes/no - do you have blood_offering or incense?]
+COMPONENTS: [what materials: "blood offering" or "incense stick"]
 ```
+
+**⚠️ RITUAL REQUIREMENTS - CHECK YOUR INVENTORY:**
+- **Primary Tool**: crystal_focus OR tech_kit OR access to ritual altar
+- **Offering**: blood_offering OR incense (consumed on use!)
+- Without offerings, rituals have -10 penalty and +2 void risk
+
+- If you're LOW on offerings, consider purchasing more from vendors!
+- Blood offerings and incense are commonly sold by ritual merchants
 
 **For Coordination Dialogue** (FREE ACTION that grants +2 bonus):
 ```
@@ -489,14 +504,17 @@ Note: This is a FREE action - you can transfer AND take another action in the sa
 {'- Use void-manipulation tech if available' if personality.get('voidCuriosity', 5) > 6 else '- Use traditional, non-void methods'}
 
 **Skill Variety - Use Different Approaches:**
-- **Ritual Analysis?** → Intelligence × Magick Theory (study glyphs, ritual theory, sacred mechanics)
-- **Physical Ritual?** → Willpower × Astral Arts (perform rituals, channel energy)
+- **ANALYZE void/rituals?** → Intelligence × Magick Theory (study, research, understand) - NO offerings needed
+- **MANIPULATE void?** → Willpower × Astral Arts (channel, harmonize, seal) - REQUIRES offerings!
 - **Investigation?** → Perception × Awareness or Intelligence × Investigation
 - **Technical Work?** → Intelligence × Systems or relevant technical skill
 - **Social Interaction?** → Empathy × Charm/Counsel, or Charisma × Corporate Influence
 - **Combat Analysis?** → Perception × Combat skill or Intelligence × Tactics
 
-Don't default to Willpower × Astral Arts for everything - consider if Intelligence × Magick Theory would work better for analysis/study tasks!
+**CRITICAL**: Don't waste offerings on analysis! Use:
+- Intelligence × Magick Theory → to understand/study void phenomena (no cost)
+- Willpower × Astral Arts → to actively manipulate/channel void (requires offerings)
+- Perception × Attunement → to sense/detect void currents (no cost)
 
 **Bond Preference: {personality.get('bondPreference', 'neutral')}**
 {'- Seek to form and protect formal Bonds (spiritual/economic commitments)' if personality.get('bondPreference') == 'seeks' else ''}

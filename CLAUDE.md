@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code when working with the Aeonisk YAGS project.
 
+**Additional Documentation:** For deeper architecture details and current work context, see the `.claude/` directory:
+- `.claude/README.md` - AI assistant orientation
+- `.claude/ARCHITECTURE.md` - System architecture deep-dive
+- `.claude/current-work/` - Active development notes
+
 ## Project Overview
 
 **Aeonisk YAGS** is a science-fantasy tabletop RPG system with AI-powered gameplay. The project consists of:
@@ -327,6 +332,10 @@ aeonisk-yags/
 ├── datasets/                    # Training data
 ├── multiagent_output/          # JSONL session logs
 ├── game.log                    # Multi-agent debug logs
+├── .claude/                    # AI assistant documentation
+│   ├── README.md               # Orientation guide
+│   ├── ARCHITECTURE.md         # System architecture
+│   └── current-work/           # Active development notes
 └── CLAUDE.md                   # This file (auto-loaded)
 ```
 
@@ -373,4 +382,14 @@ git commit -m "message"
 ---
 
 **For Future AI Assistants:**
-If working on the multi-agent system, read `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` for detailed context. The mechanics access pattern and dual combat schemas are critical to understand.
+
+**Start here when joining the project:**
+1. This file (CLAUDE.md) - Critical patterns and quick start
+2. `.claude/README.md` - AI assistant orientation and best practices
+3. `.claude/ARCHITECTURE.md` - System architecture deep-dive
+4. `.claude/current-work/` - Active development context for current branch
+
+**When working on the multi-agent system:**
+- Read `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` for ML logging details
+- The mechanics access pattern and dual combat schemas are critical to understand
+- Always activate venv: `cd scripts/aeonisk && source .venv/bin/activate`

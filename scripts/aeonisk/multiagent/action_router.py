@@ -142,6 +142,13 @@ class ActionRouter:
         if is_explicit_ritual or action_type == 'ritual':
             return ('Willpower', 'Astral Arts', 'Ritual action')
 
+        # 4.5. ASTRAL ARTS USED FOR VOID WORK (also triggers ritual mechanics)
+        # If character has Astral Arts and is doing void-related work, route to ritual
+        if 'Astral Arts' in character_skills:
+            void_work_keywords = ['void', 'anomaly', 'corruption', 'spiritual', 'astral']
+            if any(kw in intent_lower for kw in void_work_keywords):
+                return ('Willpower', 'Astral Arts', 'Void manipulation (ritual mechanics apply)')
+
         # 3. SENSING / ATTUNEMENT
         if any(kw in intent_lower for kw in self.SENSING_KEYWORDS):
             if 'Attunement' in character_skills:
@@ -209,6 +216,26 @@ class ActionRouter:
             return ('Perception', None, 'Generic observation')
 
     def is_explicit_ritual(self, intent: str) -> bool:
-        """Check if intent explicitly declares a ritual."""
+        """
+        Check if intent explicitly declares a ritual.
+
+        Now includes implicit ritual triggers for void/spiritual manipulation.
+        These actions should consume offerings and use Astral Arts mechanics.
+        """
         intent_lower = intent.lower()
-        return any(phrase in intent_lower for phrase in self.RITUAL_KEYWORDS)
+
+        # Explicit ritual declarations
+        if any(phrase in intent_lower for phrase in self.RITUAL_KEYWORDS):
+            return True
+
+        # Implicit ritual triggers - void/spiritual manipulation
+        # These actions manipulate spiritual/void energies and should require offerings
+        void_ritual_keywords = [
+            'void energy', 'void anomaly', 'void corruption', 'void patterns',
+            'astral', 'spiritual resonance', 'spiritual patterns',
+            'channel energy', 'channel void', 'harmonize', 'harmonize energy',
+            'attune to void', 'resonate with', 'purify void', 'cleanse void',
+            'stabilize anomaly', 'contain void', 'seal void', 'barrier against void'
+        ]
+
+        return any(kw in intent_lower for kw in void_ritual_keywords)
