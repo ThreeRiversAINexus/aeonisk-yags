@@ -1076,8 +1076,10 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     economy_changes = {
                         'void_delta': state_changes.get('void_change', 0),
                         'void_triggers': state_changes.get('void_reasons', []),
+                        'void_source': state_changes.get('void_source', ''),
                         'soulcredit_delta': state_changes.get('soulcredit_change', 0),
-                        'soulcredit_reasons': state_changes.get('soulcredit_reasons', [])
+                        'soulcredit_reasons': state_changes.get('soulcredit_reasons', []),
+                        'soulcredit_source': state_changes.get('soulcredit_source', '')
                     }
 
                     # Build clock states from current clock positions
@@ -1093,6 +1095,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
                     # Build context with ritual and combat info
                     is_ritual_action = action.get('is_ritual', False) or action.get('action_type') == 'ritual'
+
+                    # Extract clock sources from clock_triggers
+                    clock_sources = {}
+                    for clock_name, ticks, reason, source in state_changes.get('clock_triggers', []):
+                        clock_sources[clock_name] = source
+
                     context = {
                         "action_type": action.get('action_type', 'unknown'),
                         "is_ritual": is_ritual_action,
@@ -1101,7 +1109,8 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         "narration": resolution.get('narration', ''),
                         "is_free_action": action.get('is_free_action', False),
                         "initiative": initiative,
-                        "clock_deltas": clock_deltas  # Include clock before/after/reason
+                        "clock_deltas": clock_deltas,  # Include clock before/after/reason
+                        "clock_sources": clock_sources  # Include source for each clock change
                     }
 
                     # Add ritual context if this was a ritual
@@ -1814,10 +1823,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     logger.warning(f"Could not find ally '{target_ally_name}' to apply buff")
 
             # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
-            for clock_name, ticks, reason in state_changes['clock_triggers']:
+            for clock_name, ticks, reason, source in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
                     mechanics.queue_clock_update(clock_name, ticks, reason)
-                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason})")
+                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -2063,10 +2072,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 state_changes['soulcredit_reasons'].extend(sc_reasons)
 
             # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
-            for clock_name, ticks, reason in state_changes['clock_triggers']:
+            for clock_name, ticks, reason, source in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
                     mechanics.queue_clock_update(clock_name, ticks, reason)
-                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason})")
+                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
             # Extract and record party discoveries from successful actions
             if resolution.success and resolution.margin >= 5:
@@ -2551,10 +2560,16 @@ When adjudicating:
                     clock_lines.append(f"  - {name}: {status}")
                 if clock_lines:
                     clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
-                    clock_context += "\n\nAt the end of your narration, if this action should affect any clocks, add a line:\n📊 [Clock Name]: +X or -X (reason)"
+                    clock_context += "\n\n**EXPLICIT STATE MARKERS** - Mark state changes at the end of your narration:\n"
+                    clock_context += "\n📊 [Clock Name]: +X or -X (reason) - Advance/regress a scene clock"
+                    clock_context += "\n⚫ Void: +X (reason) - Character gains void corruption"
+                    clock_context += "\n⚖️ Soulcredit: +X or -X (reason) - Character's spiritual trust/morality changes"
+                    clock_context += "\n\nExamples:"
+                    clock_context += "\n  📊 Evidence Collection: +2 (found hidden documents)"
+                    clock_context += "\n  ⚫ Void: +1 (ritual backfire)"
+                    clock_context += "\n  ⚖️ Soulcredit: -2 (deceived officials)"
                     clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
                     clock_context += "\n**DEFAULT: +0 for 80-90% of actions. Only exceptional moral/immoral acts affect SC.**"
-                    clock_context += "\n\nIf this action affects the character's Soulcredit (social trust/reputation), add a marker:\n⚖️ Soulcredit: +X (reason) or -X (reason)"
                     clock_context += "\n\nSC Scoring Rules:"
                     clock_context += "\n  • MOST actions: +0 (no marker) - negotiations, purchases, investigations, etc."
                     clock_context += "\n  • Deception/lying/fraud: ALWAYS negative, even if successful"
