@@ -1866,13 +1866,13 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             if state_changes.get('soulcredit_change', 0) != 0:
                 sc_state = mechanics.get_soulcredit_state(player_id)
-                old_sc = sc_state.balance
+                old_sc = sc_state.score
                 reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
                 sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
                 # Show SC change to the affected player only (private knowledge)
                 # Other players do NOT see each other's soulcredit (asymmetric information)
-                if sc_state.balance != old_sc:
-                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.balance} ({reasons_text})"
+                if sc_state.score != old_sc:
+                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.score} ({reasons_text})"
 
             # Apply conditions
             from .mechanics import Condition
@@ -2127,13 +2127,13 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             if state_changes.get('soulcredit_change', 0) != 0:
                 sc_state = mechanics.get_soulcredit_state(player_id)
-                old_sc = sc_state.balance
+                old_sc = sc_state.score
                 reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
                 sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
                 # Show SC change to the affected player only (private knowledge)
                 # Other players do NOT see each other's soulcredit (asymmetric information)
-                if sc_state.balance != old_sc:
-                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.balance} ({reasons_text})"
+                if sc_state.score != old_sc:
+                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.score} ({reasons_text})"
 
             # Apply conditions
             from .mechanics import Condition
