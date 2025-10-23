@@ -1255,20 +1255,17 @@ Now that you have this information, declare your action using the required forma
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
                 elif 'target_position' in key:
-                    # Extract position if specified
+                    # Extract position if specified - STORE but don't apply yet
                     value_lower = value.lower()
                     if value_lower != 'none' and value_lower in VALID_POSITIONS:
                         target_position = value
-                        logger.info(f"{self.character_state.name} declared position change: {self.position} → {target_position}")
+                        data['target_position'] = target_position
+                        logger.info(f"{self.character_state.name} declared intent to move: {self.position} → {target_position}")
                 elif 'description' in key:
                     data['description'] = value
 
-        # Update player position if they declared a move
-        if target_position:
-            old_position = self.position
-            self.position = target_position
-            print(f"[{self.character_state.name}] Position: {old_position} → {self.position}")
-            logger.info(f"{self.character_state.name} moved from {old_position} to {self.position}")
+        # Store target position for later application during execution
+        # (Position changes happen in execution phase, not declaration phase)
 
         try:
             return ActionDeclaration(**data)
