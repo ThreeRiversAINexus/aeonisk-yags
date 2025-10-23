@@ -204,14 +204,16 @@ class AIPlayerAgent(Agent):
         size = self.character_state.attributes.get('Size', 5)
         endurance = self.character_state.attributes.get('Endurance', 3)
         self.size = size
-        # HP = (Size × 2) + Endurance + 3 combat balance bonus
-        # e.g., Size 5 + Endurance 4 + 3 = 17 HP (was 14 HP)
-        self.max_health = (size * 2) + endurance + 3
+        # HP = (Size × 2) + Endurance + 13 combat balance bonus
+        # Increased from +3 to +13 to support sustained tactical combat (3-4 rounds)
+        # e.g., Size 5 + Endurance 3 + 13 = 26 HP (was 16 HP)
+        self.max_health = (size * 2) + endurance + 13
         self.health = self.max_health
         self.wounds = 0  # Wound count (tactical module)
         # Soak = YAGS standard base soak for adult humans (character.md:598-600) + combat balance
-        # Increased from 12 to 14 to improve survivability against enemy attacks
-        self.soak = 14
+        # Set to 10 to balance with increased HP pool - allows 5-13 damage through per hit
+        # (was 14, too high - blocked most damage causing stalemate)
+        self.soak = 10
 
         logger.info(f"Player {self.agent_id} ({self.character_state.name}) started")
 

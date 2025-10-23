@@ -619,6 +619,10 @@ class MechanicsEngine:
         self.jsonl_logger: Optional[JSONLLogger] = jsonl_logger  # Machine-readable event log
         self.current_round: int = 0  # Track current round for logging
 
+        # Clock update queue - prevents cascade fills during resolution
+        # Queued updates are applied batch during synthesis phase
+        self.clock_update_queue: List[Tuple[str, int, str]] = []  # (clock_name, ticks, reason)
+
     def calculate_dc(
         self,
         intent: str,
@@ -1202,6 +1206,84 @@ class MechanicsEngine:
         filled = getattr(self, '_filled_clocks_this_round', [])
         self._filled_clocks_this_round = []
         return filled
+
+    def queue_clock_update(self, clock_name: str, ticks: int, reason: str):
+        """
+        Queue a clock update to be applied during synthesis phase.
+
+        This prevents cascade fills during action resolution.
+        All queued updates are applied at once via apply_queued_clock_updates().
+
+        Args:
+            clock_name: Name of the clock to update
+            ticks: Number of ticks to advance (positive) or regress (negative)
+            reason: Reason for the update
+        """
+        self.clock_update_queue.append((clock_name, ticks, reason))
+        logger.debug(f"Queued clock update: {clock_name} {ticks:+d} ({reason})")
+
+    def apply_queued_clock_updates(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Apply all queued clock updates at once during synthesis phase.
+
+        This prevents cascade fills - all updates happen simultaneously,
+        then we check for fills ONCE at the end.
+
+        Returns:
+            Dict of clock_name -> {'before': int, 'after': int, 'maximum': int, 'reason': str, 'direction': str}
+        """
+        if not self.clock_update_queue:
+            return {}
+
+        clock_final_states = {}
+
+        # Group updates by clock name to aggregate them
+        aggregated_updates = {}
+        for clock_name, ticks, reason in self.clock_update_queue:
+            if clock_name not in aggregated_updates:
+                aggregated_updates[clock_name] = {'ticks': 0, 'reasons': []}
+            aggregated_updates[clock_name]['ticks'] += ticks
+            aggregated_updates[clock_name]['reasons'].append(reason)
+
+        # Apply all aggregated updates
+        for clock_name, update_data in aggregated_updates.items():
+            if clock_name in self.scene_clocks:
+                clock = self.scene_clocks[clock_name]
+                before = clock.current
+                maximum = clock.maximum
+                total_ticks = update_data['ticks']
+                reasons = update_data['reasons']
+
+                if total_ticks < 0:
+                    # Negative ticks = regress (improve)
+                    clock.regress(abs(total_ticks))
+                    direction = "↓"
+                elif total_ticks > 0:
+                    # Positive ticks = advance
+                    clock.advance(total_ticks)
+                    direction = "↑"
+                else:
+                    # No net change
+                    direction = "→"
+
+                after = clock.current
+
+                clock_final_states[clock_name] = {
+                    'before': before,
+                    'after': after,
+                    'maximum': maximum,
+                    'reasons': reasons,
+                    'direction': direction,
+                    'filled': after >= maximum
+                }
+
+                # Log clock advancement
+                logger.info(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} (aggregated: {', '.join(reasons)})")
+
+        # Clear the queue
+        self.clock_update_queue = []
+
+        return clock_final_states
 
     def update_clocks_from_action(self, resolution: ActionResolution, context: Dict[str, Any]):
         """Update scene clocks based on action resolution."""
