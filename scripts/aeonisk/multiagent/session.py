@@ -21,7 +21,8 @@ from .energy_economy import SeedType
 from .outcome_parser import (
     parse_session_end_marker,
     parse_new_clock_marker,
-    parse_pivot_scenario_marker
+    parse_pivot_scenario_marker,
+    parse_advance_story_marker
 )
 from .enemy_combat import EnemyCombatManager
 from .tactical_resolution import ResolutionState
@@ -1384,6 +1385,48 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
             if dm_agents:
                 dm_agents[0].pending_scenario_pivot = pivot_result['new_theme']
+
+        # Check for story advancement marker
+        advance_result = parse_advance_story_marker(narration)
+        if advance_result['should_advance']:
+            logger.info(f"DM requested story advancement: {advance_result['location']} - {advance_result['situation']}")
+
+            # Clear ALL clocks when story advances (fresh start)
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics and mechanics.scene_clocks:
+                archived_clocks = list(mechanics.scene_clocks.keys())
+                mechanics.scene_clocks.clear()
+                logger.info(f"🗑️  Cleared all clocks for story advancement: {', '.join(archived_clocks)}")
+
+                print(f"\n✨ STORY ADVANCES ✨")
+                print(f"   New Location: {advance_result['location']}")
+                print(f"   Situation: {advance_result['situation']}")
+                if archived_clocks:
+                    print(f"   Previous clocks cleared: {', '.join(archived_clocks)}")
+
+            # Notify all players of the story advancement
+            advance_narration = f"Story advances to: {advance_result['location']}\n{advance_result['situation']}"
+            advance_message = Message(
+                id=f"advance_{datetime.now().isoformat()}",
+                type=MessageType.SCENARIO_UPDATE,
+                sender='coordinator',
+                recipient=None,  # Broadcast to all
+                payload={
+                    'new_location': advance_result['location'],
+                    'new_situation': advance_result['situation'],
+                    'advance_narration': advance_narration,
+                    'story_advanced': True
+                },
+                timestamp=datetime.now()
+            )
+            import asyncio
+            asyncio.create_task(self.coordinator.message_bus._route_message(advance_message))
+
+            # Store advancement for DM to use in generating next scenario
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agents[0].current_location = advance_result['location']
+                dm_agents[0].pending_scenario_pivot = advance_result['situation']
 
 
 # Configuration example

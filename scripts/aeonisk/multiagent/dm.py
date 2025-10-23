@@ -1266,8 +1266,10 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     filled_clocks_text += "You MUST describe what catastrophic/dramatic consequences occur!\n"
                     filled_clocks_text += "Consider using DM control markers:\n"
                     filled_clocks_text += "- [NEW_CLOCK: Name | Max | Description] to spawn new pressure\n"
-                    filled_clocks_text += "- [PIVOT_SCENARIO: Theme] if situation fundamentally changes\n"
-                    filled_clocks_text += "- [SESSION_END: VICTORY/DEFEAT/DRAW] if objectives achieved/failed"
+                    filled_clocks_text += "- [PIVOT_SCENARIO: Theme] if situation fundamentally changes (same location)\n"
+                    filled_clocks_text += "- [ADVANCE_STORY: Location | Situation] if objective completed, advance to new scene\n"
+                    filled_clocks_text += "  Example: [ADVANCE_STORY: Transit Hub | Escaped! A wounded courier offers you intel]\n"
+                    filled_clocks_text += "- [SESSION_END: VICTORY/DEFEAT/DRAW] if mission fully complete or total failure"
 
         # Build enemy spawn instructions (always available if enabled)
         enemy_spawn_prompt = ""
