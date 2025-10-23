@@ -145,10 +145,53 @@ The system uses a priority-based character creation:
 ### Database Schema
 Core tables: users, characters, game_sessions, session_characters, npcs, actions, void_history. Uses Drizzle ORM for type-safe database operations.
 
+## Multi-Agent Python System (scripts/aeonisk/multiagent/)
+
+### Critical Pattern - Accessing Mechanics
+```python
+# ✅ CORRECT - The ONLY way to access mechanics in session.py
+mechanics = self.shared_state.get_mechanics_engine()
+
+# ❌ WRONG - These don't exist
+mechanics = self.coordinator.mechanics  # GameCoordinator has no .mechanics
+mechanics = self.mechanics              # Session has no .mechanics attribute
+```
+
+### ML Logging System (JSONL Event Logs)
+**Status:** ✅ Complete (2025-10-23)
+**Documentation:** `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md`
+
+**What's logged:** Scenario, player intentions, action resolutions, combat (bidirectional), round synthesis, round statistics, character states, enemy lifecycle, mission debriefs
+
+**Tools:**
+- `validate_logging.py` - Schema validation
+- `reconstruct_narrative.py` - Rebuild complete story from logs
+
+**Testing workflow:**
+```bash
+cd scripts/aeonisk && source .venv/bin/activate  # CRITICAL!
+python3 ../run_multiagent_session.py ../session_config_combat.json
+python3 multiagent/validate_logging.py ../../multiagent_output/session_*.jsonl
+python3 multiagent/reconstruct_narrative.py ../../multiagent_output/session_*.jsonl
+```
+
+### Key Files
+- `session.py` - Orchestrates game loop, logging integration
+- `dm.py` - DM agent, generates narration
+- `enemy_combat.py` - Enemy agents, tactical AI
+- `mechanics.py` - Core mechanics + JSONLLogger class
+
+### Common Pitfalls
+1. **Always activate venv** before running multiagent scripts (ChromaDB/transformers requirement)
+2. **Mechanics access** only via `shared_state.get_mechanics_engine()`
+3. **Check game.log** for suppressed errors in message handlers
+4. **Dual combat schemas** - enemy attacks (full breakdown) vs player attacks (simplified)
+
 ## Important Notes
 
 - Always run `task typecheck` and `task lint` before committing
-- Use `task stack` for full development environment  
+- Use `task stack` for full development environment
+- **Multiagent system requires venv:** `cd scripts/aeonisk && source .venv/bin/activate`
 - Character void scores have mechanical significance at 5+ levels
 - The ritual system requires careful balance between power and consequences
 - All game content is stored as Markdown in `/content` directory
