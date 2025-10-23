@@ -2567,11 +2567,12 @@ When adjudicating:
                     clock_context += "\n\nExamples:"
                     clock_context += "\n  📊 Evidence Collection: +2 (found hidden documents)"
                     clock_context += "\n  ⚫ Void: +1 (ritual backfire)"
+                    clock_context += "\n  ⚖️ Soulcredit: +0 (neutral combat action)"
                     clock_context += "\n  ⚖️ Soulcredit: -2 (deceived officials)"
                     clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
-                    clock_context += "\n**DEFAULT: +0 for 80-90% of actions. Only exceptional moral/immoral acts affect SC.**"
+                    clock_context += "\n**ALWAYS mark soulcredit for every action, even when +0 (neutral).**"
                     clock_context += "\n\nSC Scoring Rules:"
-                    clock_context += "\n  • MOST actions: +0 (no marker) - negotiations, purchases, investigations, etc."
+                    clock_context += "\n  • MOST actions: ⚖️ Soulcredit: +0 (neutral action) - combat, exploration, investigation"
                     clock_context += "\n  • Deception/lying/fraud: ALWAYS negative, even if successful"
                     clock_context += "\n  • Using Guile skill: Usually -1 or -2 (misrepresentation/deception)"
                     clock_context += "\n  • Success ≠ positive SC, Failure ≠ negative SC"
@@ -2586,7 +2587,7 @@ When adjudicating:
                     clock_context += "\n  • Betraying faction tenets: ⚖️ Soulcredit: -3 (violated faction code)"
                     clock_context += "\n  • Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)"
                     clock_context += "\n  • Accepting bribes: ⚖️ Soulcredit: -1 (corrupt dealing)"
-                    clock_context += "\n  • Normal negotiation/purchase/exploration: +0 (no marker)"
+                    clock_context += "\n  • Normal negotiation/purchase/exploration: ⚖️ Soulcredit: +0 (neutral action)"
 
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False
