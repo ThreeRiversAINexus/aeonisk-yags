@@ -106,7 +106,7 @@ class MessageBus:
         self.server_socket.setblocking(False)
         
         self.running = True
-        logger.info(f"Message bus started on {self.socket_path}")
+        logger.debug(f"Message bus started on {self.socket_path}")
         
         # Start accepting connections
         asyncio.create_task(self._accept_connections())
@@ -152,7 +152,7 @@ class MessageBus:
                         if client_id is None:
                             client_id = message.sender
                             self.clients[client_id] = client_socket
-                            logger.info(f"Client {client_id} connected")
+                            logger.debug(f"Client {client_id} connected")
 
                         # Route message
                         await self._route_message(message)
@@ -167,7 +167,7 @@ class MessageBus:
         finally:
             if client_id and client_id in self.clients:
                 del self.clients[client_id]
-                logger.info(f"Client {client_id} disconnected")
+                logger.debug(f"Client {client_id} disconnected")
             client_socket.close()
             
     async def _route_message(self, message: Message):
@@ -225,7 +225,7 @@ class MessageBus:
         if self.socket_path.exists():
             self.socket_path.unlink()
             
-        logger.info("Message bus shutdown")
+        logger.debug("Message bus shutdown")
 
 
 class Agent(ABC):
@@ -265,7 +265,7 @@ class Agent(ABC):
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         await asyncio.get_event_loop().sock_connect(self.socket, self.socket_path)
         self.socket.setblocking(False)
-        logger.info(f"Agent {self.agent_id} connected to message bus")
+        logger.debug(f"Agent {self.agent_id} connected to message bus")
         
     async def _register(self):
         """Register with the message bus."""
@@ -348,7 +348,7 @@ class Agent(ABC):
         
     async def _handle_shutdown(self, message: Message):
         """Handle shutdown message."""
-        logger.info(f"Agent {self.agent_id} shutting down")
+        logger.debug(f"Agent {self.agent_id} shutting down")
         await self.on_shutdown()
         self.running = False
         
@@ -402,13 +402,13 @@ class GameCoordinator:
         """Start the game coordinator."""
         await self.message_bus.start_server()
         self.running = True
-        logger.info("Game coordinator started")
+        logger.debug("Game coordinator started")
         
     def _handle_coordinator_message(self, message: Message):
         """Handle messages relevant to coordination."""
         if message.type == MessageType.AGENT_REGISTER:
             self.agents[message.sender] = message.payload.get('agent_type', 'Unknown')
-            logger.info(f"Registered agent {message.sender} ({self.agents[message.sender]})")
+            logger.debug(f"Registered agent {message.sender} ({self.agents[message.sender]})")
 
         elif message.type == MessageType.ACTION_DECLARED:
             # Record action for data collection

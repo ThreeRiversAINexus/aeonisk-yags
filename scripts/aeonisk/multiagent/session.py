@@ -113,7 +113,7 @@ class SelfPlayingSession:
                 
     async def start_session(self):
         """Start the complete self-playing session."""
-        logger.info("Starting self-playing session")
+        logger.debug("Starting self-playing session")
 
         # Start game coordinator
         socket_path = self.config.get('socket_path')
@@ -205,10 +205,10 @@ class SelfPlayingSession:
         # Randomly select players from the pool
         if len(players_config) > party_size:
             selected_players = random.sample(players_config, party_size)
-            logger.info(f"Selected {party_size} players: {[p['name'] for p in selected_players]}")
+            logger.debug(f"Selected {party_size} players: {[p['name'] for p in selected_players]}")
         else:
             selected_players = players_config
-            logger.info(f"Using all {len(selected_players)} players from pool")
+            logger.debug(f"Using all {len(selected_players)} players from pool")
 
         # Update config to only include selected players (so DM sees correct party)
         self.config['agents']['players'] = selected_players
@@ -241,7 +241,7 @@ class SelfPlayingSession:
                 # Initialize soulcredit state with character's starting value
                 initial_sc = getattr(player.character_state, 'soulcredit', 0)
                 mechanics.get_soulcredit_state(player.agent_id, initial_score=initial_sc)
-                logger.info(f"Initialized {player.character_state.name} soulcredit: {initial_sc}")
+                logger.debug(f"Initialized {player.character_state.name} soulcredit: {initial_sc}")
 
                 # Degrade Raw Seeds (1 cycle per session)
                 if hasattr(player.character_state, 'energy_inventory') and player.character_state.energy_inventory:
@@ -249,15 +249,15 @@ class SelfPlayingSession:
                     raw_count = player.character_state.energy_inventory.count_seeds(SeedType.RAW)
                     hollow_count = player.character_state.energy_inventory.count_seeds(SeedType.HOLLOW)
                     if hollow_count > 0:
-                        logger.info(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
+                        logger.debug(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
 
-        logger.info(f"Created {len(self.agents)} agents")
+        logger.debug(f"Created {len(self.agents)} agents")
         
     async def _wait_for_agents_ready(self):
         """Wait for all agents to signal readiness."""
         # Simple wait - you could enhance with proper synchronization
         await asyncio.sleep(2)
-        logger.info("All agents ready")
+        logger.debug("All agents ready")
         
     async def _run_gameplay_loop(self):
         """Run the main gameplay loop."""
@@ -1377,7 +1377,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if self.human_interface:
             self.human_interface.shutdown()
 
-        logger.info("All agents shutdown")
+        logger.debug("All agents shutdown")
 
     def _recent_history(self) -> List[str]:
         """Return a small slice of recent turn history for prompt context."""
@@ -1388,8 +1388,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if message.type != MessageType.SCENARIO_SETUP:
             return
 
-        # Process enemy spawn markers from opening narration
+        # Display scenario once (instead of each player printing it)
+        scenario = message.payload.get('scenario', {})
         opening_narration = message.payload.get('opening_narration', '')
+
+        print(f"\n=== New Scenario ===")
+        print(f"Theme: {scenario.get('theme', 'Unknown')}")
+        print(f"Location: {scenario.get('location', 'Unknown')}")
+        print(f"\nDM: {opening_narration}")
+
+        # Process enemy spawn markers from opening narration
         if opening_narration and self.enemy_combat.enabled:
             spawn_notifications = self.enemy_combat.process_dm_narration(opening_narration)
             for notification in spawn_notifications:
@@ -1489,7 +1497,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
             round_num = message.payload.get('round', mechanics.current_round if mechanics else 0)
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_round_synthesis(
+                mechanics.jsonl_logger.log_synthesis(
                     round_num=round_num,
                     synthesis=narration
                 )

@@ -299,10 +299,10 @@ def despawn_enemy(
         if agent.agent_id == agent_id:
             # Safety check: skip if already inactive or defeated
             if not agent.is_active:
-                logger.info(f"Agent {agent.name} already inactive, skipping despawn")
+                logger.debug(f"Agent {agent.name} already inactive, skipping despawn")
                 return None
             if agent.health <= 0:
-                logger.info(f"Agent {agent.name} already defeated (HP ≤ 0), skipping despawn")
+                logger.debug(f"Agent {agent.name} already defeated (HP ≤ 0), skipping despawn")
                 return None
 
             agent.is_active = False
@@ -320,10 +320,10 @@ def despawn_enemy(
         if agent.name == agent_id:
             # Safety check: skip if already inactive or defeated
             if not agent.is_active:
-                logger.info(f"Agent {agent.name} already inactive, skipping despawn")
+                logger.debug(f"Agent {agent.name} already inactive, skipping despawn")
                 return None
             if agent.health <= 0:
-                logger.info(f"Agent {agent.name} already defeated (HP ≤ 0), skipping despawn")
+                logger.debug(f"Agent {agent.name} already defeated (HP ≤ 0), skipping despawn")
                 return None
 
             agent.is_active = False

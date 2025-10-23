@@ -161,7 +161,7 @@ class EnergyInventory:
             self.grain += amount
         elif currency_type == "spark":
             self.spark += amount
-        logger.info(f"Added {amount} {currency_type} to inventory")
+        logger.debug(f"Added {amount} {currency_type} to inventory")
 
     def spend_currency(self, currency_type: str, amount: int) -> bool:
         """
@@ -171,22 +171,22 @@ class EnergyInventory:
         if currency_type == "breath":
             if self.breath >= amount:
                 self.breath -= amount
-                logger.info(f"Spent {amount} breath")
+                logger.debug(f"Spent {amount} breath")
                 return True
         elif currency_type == "drip":
             if self.drip >= amount:
                 self.drip -= amount
-                logger.info(f"Spent {amount} drip")
+                logger.debug(f"Spent {amount} drip")
                 return True
         elif currency_type == "grain":
             if self.grain >= amount:
                 self.grain -= amount
-                logger.info(f"Spent {amount} grain")
+                logger.debug(f"Spent {amount} grain")
                 return True
         elif currency_type == "spark":
             if self.spark >= amount:
                 self.spark -= amount
-                logger.info(f"Spent {amount} spark")
+                logger.debug(f"Spent {amount} spark")
                 return True
 
         logger.warning(f"Insufficient {currency_type} (needed {amount})")
@@ -199,7 +199,7 @@ class EnergyInventory:
         """
         if self.spend_currency(currency_type, amount):
             other_inventory.add_currency(currency_type, amount)
-            logger.info(f"Transferred {amount} {currency_type} to another character")
+            logger.debug(f"Transferred {amount} {currency_type} to another character")
             return True
         return False
 
@@ -276,7 +276,7 @@ class EnergyInventory:
     def add_seed(self, seed: Seed):
         """Add a Seed to inventory."""
         self.seeds.append(seed)
-        logger.info(f"Added {seed.seed_type.value} seed to inventory")
+        logger.debug(f"Added {seed.seed_type.value} seed to inventory")
 
     def consume_seed(self, seed_type: SeedType, element: Optional[Element] = None) -> Optional[Seed]:
         """

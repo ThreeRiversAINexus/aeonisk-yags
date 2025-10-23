@@ -705,7 +705,7 @@ class VoidState:
 
         # Cap per round: max +2 total
         if self._round_void_gain >= 2 and not is_high_risk_ritual:
-            logger.info(f"Round void cap reached (already +{self._round_void_gain}/2)")
+            logger.debug(f"Round void cap reached (already +{self._round_void_gain}/2)")
             return self.score
 
         # Cap per scene: max +3 automatic (unless opted into high-risk)
@@ -741,7 +741,7 @@ class VoidState:
         if action_id:
             self._processed_actions.add(action_id)
 
-        logger.info(f"Void added: +{actual_add} (requested {amount}, round {self._round_void_gain}/2, scene {self._scene_void_gain}/{3 if not is_high_risk_ritual else '∞'})")
+        logger.debug(f"Void added: +{actual_add} (requested {amount}, round {self._round_void_gain}/2, scene {self._scene_void_gain}/{3 if not is_high_risk_ritual else '∞'})")
         return self.score
 
     def reset_round_void(self):
@@ -753,7 +753,7 @@ class VoidState:
         """Reset scene void counter. Call at start of new scene."""
         self._scene_void_gain = 0
         self._scene_opted_in_high_risk = False
-        logger.info(f"Reset scene void counter")
+        logger.debug(f"Reset scene void counter")
 
     def reduce_void(self, amount: int, reason: str) -> int:
         """Reduce void corruption, return new score."""
@@ -1390,7 +1390,7 @@ class MechanicsEngine:
                 timeout_rounds = 7  # Larger clocks get more time (7 rounds)
             else:
                 timeout_rounds = 8  # Very large clocks get longest time (8 rounds)
-            logger.info(f"Clock {name} auto-assigned timeout: {timeout_rounds} rounds (based on max={maximum})")
+            logger.debug(f"Clock {name} auto-assigned timeout: {timeout_rounds} rounds (based on max={maximum})")
 
         clock = SceneClock(
             name=name,
@@ -1538,7 +1538,7 @@ class MechanicsEngine:
                 }
 
                 # Log clock advancement
-                logger.info(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} (aggregated: {', '.join(reasons)})")
+                logger.debug(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} (aggregated: {', '.join(reasons)})")
 
         # Clear the queue
         self.clock_update_queue = []
@@ -1558,7 +1558,7 @@ class MechanicsEngine:
             return
 
         self._last_clock_increment_round = self.current_round
-        logger.info(f"Incrementing all clock rounds (game round {self.current_round})")
+        logger.debug(f"Incrementing all clock rounds (game round {self.current_round})")
 
         for clock_name, clock in self.scene_clocks.items():
             clock.increment_round()
