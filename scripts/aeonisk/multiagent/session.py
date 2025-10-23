@@ -1486,7 +1486,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             logger.debug("Round synthesis received, signaling completion")
 
             # Log round synthesis for narrative reconstruction
-            mechanics = self.coordinator.mechanics if self.coordinator else None
+            mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
             round_num = message.payload.get('round', mechanics.current_round if mechanics else 0)
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_round_synthesis(
