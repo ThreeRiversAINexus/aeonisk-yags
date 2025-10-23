@@ -991,15 +991,26 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 ⚔️  **ACTIVE COMBAT - ENEMIES ARE ATTACKING YOU NOW!** ⚔️
 
 🚨 **YOU ARE IN A FIREFIGHT!** These enemies are actively trying to KILL you right now.
-You MUST take combat actions (attack, move to better position, take cover, etc.)
-Investigation and intel-gathering must wait - if you don't fight, you will DIE.
 
-Your options:
-• ATTACK an enemy (specify which one and how)
-• MOVE to tactical advantage (use position tags below)
-• TAKE COVER / DEFENSIVE ACTION
-• CHARGE into melee (risky but effective)
-• RETREAT if overwhelmed
+**DEFAULT ACTION: ATTACK!**
+Unless you have a SPECIFIC tactical reason (wrong range for weapon, need cover from heavy fire,
+need to charge into melee, etc.), your action should be ATTACKING an enemy.
+
+🎯 **Enemy Targets:**
+  {enemy_positions_text}
+
+**Combat Priority:**
+1. **ATTACK** - Shoot/stab/punch an enemy (specify which enemy and how)
+   - Ranged attacks: Use Agility × Combat skill
+   - Melee attacks: Use Agility × Combat skill (or Strength × Combat for heavy weapons)
+2. **REPOSITION WHILE ATTACKING** - Move + shoot (if needed for range/cover)
+3. **Only reposition without attacking if:**
+   - You're at completely wrong range for your weapon
+   - You need to charge into melee distance
+   - You're being overwhelmed and need to retreat
+
+⚠️  DO NOT endlessly reposition without attacking - you're in a fight, ACT like it!
+⚠️  Your Combat skill is {self.character_state.skills.get('Combat', 0)} - USE IT!
 
 🎯 **CRITICAL REQUIREMENT - POSITION TAGS**
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1087,12 +1098,55 @@ ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
 TARGET_POSITION: [if moving: Engaged/Near-PC/Far-PC/Extreme-PC/Near-Enemy/Far-Enemy/Extreme-Enemy, otherwise: None]
 DESCRIPTION: [narrative description]
 
-**IMPORTANT:** If ACTION_TYPE is combat and you're moving, you MUST specify TARGET_POSITION!
-Examples:
-- Charging into melee: TARGET_POSITION: Engaged
-- Falling back: TARGET_POSITION: Far-PC
-- Flanking movement: TARGET_POSITION: Near-Enemy
-- Not moving: TARGET_POSITION: None"""
+**COMBAT EXAMPLES:**
+
+ATTACKING (most common - do this!):
+```
+INTENT: Shoot Void Spawn with rifle
+ATTRIBUTE: Agility
+SKILL: Combat
+DIFFICULTY: 20
+JUSTIFICATION: standard combat difficulty
+ACTION_TYPE: combat
+TARGET_POSITION: None
+DESCRIPTION: I aim carefully and fire controlled bursts at the Void Spawn
+```
+
+ATTACKING WHILE MOVING:
+```
+INTENT: Advance and shoot Assault Team
+ATTRIBUTE: Agility
+SKILL: Combat
+DIFFICULTY: 22
+JUSTIFICATION: moving while shooting is slightly harder
+ACTION_TYPE: combat
+TARGET_POSITION: Near-Enemy
+DESCRIPTION: I move to better range while firing at the Assault Team
+```
+
+CHARGING INTO MELEE:
+```
+INTENT: Charge and attack with knife
+ATTRIBUTE: Agility
+SKILL: Combat
+DIFFICULTY: 18
+JUSTIFICATION: charging gives bonus to hit
+ACTION_TYPE: combat
+TARGET_POSITION: Engaged
+DESCRIPTION: I sprint forward and engage in close combat
+```
+
+REPOSITIONING ONLY (use sparingly - only when needed):
+```
+INTENT: Fall back to cover
+ATTRIBUTE: Agility
+SKILL: Athletics
+DIFFICULTY: 18
+JUSTIFICATION: tactical movement under fire
+ACTION_TYPE: combat
+TARGET_POSITION: Far-PC
+DESCRIPTION: I retreat to better defensive position
+```"""
 
         try:
             provider = self.llm_config.get('provider', 'anthropic')
