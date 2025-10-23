@@ -4,7 +4,7 @@ Automatically advance clocks and void based on DM narration.
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -331,6 +331,124 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
     return (void_change, reasons)
 
 
+def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
+    """
+    Parse position changes from narration.
+
+    Looks for patterns like:
+    - "moves from X to Y" → returns Y
+    - "shifts to Y" → returns Y
+    - "[POSITION: Y]" → returns Y (explicit marker from DM)
+    - "[TARGET_POSITION: Y]" → returns Y (player tactical declaration)
+
+    Args:
+        narration: DM's narrative text
+        action_intent: Player's action intent
+
+    Returns:
+        New position string (e.g., "Near-PC", "Engaged-Enemy") or None if no change
+    """
+    narration_lower = narration.lower()
+
+    # Look for explicit position marker first (highest priority)
+    explicit_pattern = r'\[POSITION:\s*([^\]]+)\]'
+    explicit_match = re.search(explicit_pattern, narration, re.IGNORECASE)
+    if explicit_match:
+        new_position = explicit_match.group(1).strip()
+        logger.info(f"Parsed explicit position marker: {new_position}")
+        return new_position
+
+    # Look for target position marker in player action (basic tactical movement)
+    target_pattern = r'\[TARGET_POSITION:\s*([^\]]+)\]'
+    target_match = re.search(target_pattern, action_intent, re.IGNORECASE)
+    if target_match:
+        new_position = target_match.group(1).strip()
+        logger.info(f"Parsed target position from player declaration: {new_position}")
+        return new_position
+
+    # Look for "moves from X to Y" pattern
+    moves_pattern = r'moves?\s+from\s+([A-Za-z\-]+)\s+to\s+([A-Za-z\-]+)'
+    moves_match = re.search(moves_pattern, narration_lower)
+    if moves_match:
+        new_position = moves_match.group(2)
+        # Capitalize properly (e.g., "near-pc" → "Near-PC")
+        new_position = '-'.join([word.capitalize() for word in new_position.split('-')])
+        logger.info(f"Parsed position change: {new_position}")
+        return new_position
+
+    # Look for "shifts to Y" or "moves to Y" pattern
+    shifts_pattern = r'(?:shifts?|moves?)\s+to\s+([A-Za-z\-]+(?:\s+[A-Za-z\-]+)?)'
+    shifts_match = re.search(shifts_pattern, narration_lower)
+    if shifts_match:
+        new_position = shifts_match.group(1).strip()
+        # Capitalize properly
+        new_position = '-'.join([word.capitalize() for word in new_position.split('-')])
+        logger.info(f"Parsed position change: {new_position}")
+        return new_position
+
+    return None
+
+
+def parse_condition_markers(narration: str) -> List[Dict[str, Any]]:
+    """
+    Parse condition markers from DM narration.
+
+    Format: 🎭 Condition: Unseen (description)
+            🏔️ Token Claimed: High Ground (+2 ranged)
+
+    Returns:
+        List of condition dicts with name, type, description, penalty/bonus
+    """
+    conditions = []
+
+    # Parse condition markers (🎭 Condition: Name (description))
+    condition_pattern = r'🎭\s*Condition:\s*([^\(]+)\s*\(([^\)]+)\)'
+    for match in re.finditer(condition_pattern, narration):
+        name = match.group(1).strip()
+        description = match.group(2).strip()
+
+        # Determine penalty/bonus from description
+        penalty = 0
+        if "can't be targeted" in description.lower() or "unseen" in name.lower():
+            # Unseen is special - no numeric penalty, but prevents targeting
+            conditions.append({
+                'type': 'Unseen',
+                'name': name,
+                'description': description,
+                'penalty': 0,
+                'special': 'prevents_targeting'
+            })
+        else:
+            conditions.append({
+                'type': name.replace(' ', '_'),
+                'name': name,
+                'description': description,
+                'penalty': penalty
+            })
+
+    # Parse token markers (🏔️ Token Claimed: Name (+bonus))
+    token_pattern = r'🏔️\s*Token Claimed:\s*([^\(]+)\s*\(([^\)]+)\)'
+    for match in re.finditer(token_pattern, narration):
+        token_name = match.group(1).strip()
+        description = match.group(2).strip()
+
+        # Extract bonus (e.g., "+2 ranged")
+        bonus_match = re.search(r'([+\-]\d+)', description)
+        bonus = int(bonus_match.group(1)) if bonus_match else 0
+
+        conditions.append({
+            'type': f'Token_{token_name.replace(" ", "_")}',
+            'name': f'{token_name} Token',
+            'description': description,
+            'penalty': -bonus  # Negative penalty = bonus
+        })
+
+    if conditions:
+        logger.info(f"Parsed {len(conditions)} condition/token markers")
+
+    return conditions
+
+
 def parse_state_changes(
     narration: str,
     action: Dict,
@@ -347,14 +465,15 @@ def parse_state_changes(
         active_clocks: Dict of active clock names to Clock objects (optional)
 
     Returns:
-        Dict with state changes: clocks, void, conditions, etc.
+        Dict with state changes: clocks, void, conditions, position_change, etc.
     """
     state_changes = {
         'clock_triggers': [],
         'void_change': 0,
         'void_reasons': [],
         'conditions': [],
-        'notes': []
+        'notes': [],
+        'position_change': None
     }
 
     outcome_tier_raw = resolution.get('outcome_tier', 'moderate')
@@ -417,6 +536,16 @@ def parse_state_changes(
     sc_delta, sc_reason = parse_soulcredit_markers(narration)
     state_changes['soulcredit_change'] = sc_delta
     state_changes['soulcredit_reasons'] = [sc_reason] if sc_reason else []
+
+    # Parse position changes (for tactical movement)
+    position_change = parse_position_change(narration, intent)
+    if position_change:
+        state_changes['position_change'] = position_change
+
+    # Parse condition/token markers (for skill-based movement benefits)
+    condition_markers = parse_condition_markers(narration)
+    for cond in condition_markers:
+        state_changes['conditions'].append(cond)
 
     return state_changes
 
@@ -497,6 +626,35 @@ def parse_pivot_scenario_marker(narration: str) -> Dict[str, str]:
         return {'should_pivot': True, 'new_theme': new_theme}
 
     return {'should_pivot': False, 'new_theme': None}
+
+
+def parse_advance_story_marker(narration: str) -> Dict[str, any]:
+    """
+    Parse story advancement markers from DM narration.
+
+    Format: [ADVANCE_STORY: location | situation]
+    Example: [ADVANCE_STORY: Abandoned Transit Hub | Having escaped, you find a wounded courier with urgent intel]
+
+    Args:
+        narration: DM's narrative text
+
+    Returns:
+        Dict with 'should_advance' (bool), 'location' (str), and 'situation' (str)
+    """
+    pattern = r'\[ADVANCE_STORY:\s*([^|]+)\|\s*([^\]]+)\]'
+    match = re.search(pattern, narration)
+
+    if match:
+        location = match.group(1).strip()
+        situation = match.group(2).strip()
+        logger.info(f"Parsed story advancement: {location} - {situation}")
+        return {
+            'should_advance': True,
+            'location': location,
+            'situation': situation
+        }
+
+    return {'should_advance': False, 'location': None, 'situation': None}
 
 
 def parse_combat_triplet(narration: str) -> Dict[str, any]:
