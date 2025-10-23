@@ -651,6 +651,7 @@ class MechanicsEngine:
         self.scene_void_level: int = 0  # 0-10 scene void pressure
         self.jsonl_logger: Optional[JSONLLogger] = jsonl_logger  # Machine-readable event log
         self.current_round: int = 0  # Track current round for logging
+        self._last_clock_increment_round: int = -1  # Track last round we incremented clocks
 
         # Clock update queue - prevents cascade fills during resolution
         # Queued updates are applied batch during synthesis phase
@@ -1325,7 +1326,17 @@ class MechanicsEngine:
         """
         Increment rounds_alive for all scene clocks.
         Call this at the start of each round.
+
+        Note: Only increments once per round (tracked via current_round).
         """
+        # Only increment once per round
+        if self._last_clock_increment_round == self.current_round:
+            logger.debug(f"Clock rounds already incremented for round {self.current_round}, skipping")
+            return
+
+        self._last_clock_increment_round = self.current_round
+        logger.info(f"Incrementing all clock rounds (game round {self.current_round})")
+
         for clock_name, clock in self.scene_clocks.items():
             clock.increment_round()
             logger.debug(f"Clock {clock_name}: round {clock._rounds_alive}/{clock.timeout_rounds}")
