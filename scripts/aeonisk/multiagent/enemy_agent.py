@@ -383,6 +383,7 @@ class EnemyAgent:
     # STATE TRACKING
     # =========================================================================
     status_effects: List[str] = field(default_factory=list)  # ["stunned", "prone", "suppressed"]
+    debuffs: List[Dict[str, Any]] = field(default_factory=list)  # Active debuffs with duration
     is_active: bool = True  # False if defeated/retreated
     spawned_round: int = 0  # When they entered combat
     despawned_round: Optional[int] = None  # When they left combat
@@ -569,6 +570,97 @@ class EnemyAgent:
             return True
 
         return False
+
+    def add_debuff(self, effect: str, penalty: int, duration: int, source: str = "unknown"):
+        """
+        Add a debuff to the enemy.
+
+        Args:
+            effect: Description of the debuff
+            penalty: Numeric penalty (negative value)
+            duration: Number of rounds the debuff lasts
+            source: Where the debuff came from (for tracking)
+        """
+        debuff = {
+            'effect': effect,
+            'penalty': penalty,
+            'duration': duration,
+            'source': source,
+            'rounds_remaining': duration
+        }
+        self.debuffs.append(debuff)
+        logger.info(f"{self.name} debuffed: {effect} ({penalty}) for {duration} rounds (source: {source})")
+
+    def add_status_effect(self, effect: str, duration: int = 1):
+        """
+        Add a status effect to the enemy.
+
+        Args:
+            effect: Status effect name (e.g., "shocked", "prone", "stunned")
+            duration: Number of rounds (default 1)
+        """
+        status_entry = f"{effect}:{duration}"
+        if status_entry not in self.status_effects:
+            self.status_effects.append(status_entry)
+            logger.info(f"{self.name} status: {effect} ({duration} rounds)")
+
+    def add_revealed_weakness(self, weakness: str, bonus: int = 2):
+        """
+        Add revealed weakness (provides bonus to allies attacking this enemy).
+
+        Args:
+            weakness: Description of the weakness
+            bonus: Bonus for allies (default +2)
+        """
+        self.shared_intel[f"weakness_{weakness}"] = {
+            'description': weakness,
+            'bonus': bonus,
+            'revealed_round': 0  # Should be set by combat manager
+        }
+        logger.info(f"{self.name} weakness revealed: {weakness} (+{bonus} for allies)")
+
+    def get_total_penalty(self) -> int:
+        """
+        Calculate total penalty from all active debuffs.
+
+        Returns:
+            Total penalty (negative value)
+        """
+        return sum(debuff.get('penalty', 0) for debuff in self.debuffs)
+
+    def tick_debuffs(self):
+        """
+        Reduce debuff/status durations by 1 round. Remove expired effects.
+        Call this at the END of each round during cleanup phase.
+        """
+        # Tick debuffs
+        expired_debuffs = []
+        for debuff in self.debuffs:
+            debuff['rounds_remaining'] = debuff.get('rounds_remaining', 1) - 1
+            if debuff['rounds_remaining'] <= 0:
+                expired_debuffs.append(debuff)
+                logger.info(f"{self.name}: Debuff expired: {debuff.get('effect', 'unknown')}")
+
+        for debuff in expired_debuffs:
+            self.debuffs.remove(debuff)
+
+        # Tick status effects
+        expired_statuses = []
+        remaining_statuses = []
+        for status_entry in self.status_effects:
+            if ':' in status_entry:
+                status_name, duration_str = status_entry.split(':')
+                duration = int(duration_str) - 1
+                if duration > 0:
+                    remaining_statuses.append(f"{status_name}:{duration}")
+                else:
+                    expired_statuses.append(status_name)
+                    logger.info(f"{self.name}: Status expired: {status_name}")
+            else:
+                # No duration specified, keep indefinitely
+                remaining_statuses.append(status_entry)
+
+        self.status_effects = remaining_statuses
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary for state persistence."""

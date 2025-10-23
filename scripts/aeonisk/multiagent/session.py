@@ -220,6 +220,8 @@ class SelfPlayingSession:
         mechanics = self.shared_state.get_mechanics_engine()
         if mechanics:
             player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+            # Populate player_agents in shared_state for ally buff targeting
+            self.shared_state.player_agents = player_agents
             for player in player_agents:
                 # Initialize soulcredit state with character's starting value
                 initial_sc = getattr(player.character_state, 'soulcredit', 0)
@@ -493,9 +495,14 @@ class SelfPlayingSession:
                         target_position = buffered_action['action'].get('target_position')
                         if target_position:
                             old_position = agent.position
-                            agent.position = target_position
-                            print(f"[{agent.character_state.name}] Position: {old_position} → {agent.position}")
-                            logger.info(f"{agent.character_state.name} moved from {old_position} to {agent.position}")
+                            # Validate: don't move to same position (bug fix)
+                            if old_position == target_position:
+                                logger.warning(f"{agent.character_state.name} tried to move to same position: {old_position}. Skipping movement.")
+                                print(f"[{agent.character_state.name}] Position unchanged: {old_position} (invalid move)")
+                            else:
+                                agent.position = target_position
+                                print(f"[{agent.character_state.name}] Position: {old_position} → {agent.position}")
+                                logger.info(f"{agent.character_state.name} moved from {old_position} to {agent.position}")
 
                         # Build single action for DM adjudication
                         action_for_adjudication = {
@@ -605,6 +612,12 @@ class SelfPlayingSession:
                         data=event,
                         round_num=mechanics.current_round
                     )
+
+            # Tick player buffs (reduce durations, remove expired)
+            player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+            for player in player_agents:
+                if hasattr(player, 'tick_buffs'):
+                    player.tick_buffs()
 
         # Clear the action buffer for next round
         self._declared_actions.clear()

@@ -1049,6 +1049,11 @@ class EnemyCombatManager:
                         'narration': f"{enemy.name}: {old_count - enemy.unit_count} units lost, {enemy.unit_count} remain"
                     })
 
+        # Tick down debuff/status durations
+        for enemy in get_active_enemies(self.enemy_agents):
+            if hasattr(enemy, 'tick_debuffs'):
+                enemy.tick_debuffs()
+
         # Auto-despawn defeated
         defeated = auto_despawn_defeated(self.enemy_agents, self.current_round)
         for enemy in defeated:

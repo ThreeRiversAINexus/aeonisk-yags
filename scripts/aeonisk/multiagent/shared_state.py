@@ -40,6 +40,9 @@ class SharedState:
     knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
     enemy_combat: Optional['EnemyCombatManager'] = None
 
+    # Player agents (for ally buff targeting)
+    player_agents: List[Any] = field(default_factory=list)
+
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys
     party_discoveries: List[Dict[str, str]] = field(default_factory=list)
