@@ -93,7 +93,8 @@ class AIDMAgent(Agent):
     async def _handle_session_start(self, message: Message):
         """Handle session start - generate initial scenario."""
         config = message.payload.get('config', {})
-        
+        self.config = config  # Store for later use
+
         if self.human_controlled:
             await self._request_human_scenario(config)
         else:
@@ -164,7 +165,7 @@ class AIDMAgent(Agent):
             scenario_data = self._create_vendor_gated_scenario()
         elif force_combat:
             logger.info("Force combat enabled - using combat scenario template")
-            scenario_data = self._create_combat_scenario()
+            scenario_data = self._create_combat_scenario(config)
         else:
             # Use LLM to generate dynamic scenario
             try:
@@ -617,138 +618,159 @@ IMPORTANT:
             'required_vendor_type': template['required_vendor_type']
         }
 
-    def _create_combat_scenario(self) -> Dict[str, Any]:
+    def _create_combat_scenario(self, config: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Create a combat-focused scenario (ambush, firefight, battle, etc.).
 
+        Args:
+            config: Optional session config (can specify combat_scenario_index to force specific template)
+
         Returns scenario_data dict for immediate combat situations.
         """
+        config = config or {}
         templates = [
+            {
+                'theme': 'Overwhelming Ambush',
+                'location': 'Kill Zone - Abandoned Transit Hub (Arcadia)',
+                'situation': 'You\'ve been lured into a trap. Hostile operatives surround you from multiple positions - assault teams at close range, snipers on the catwalks, support units cutting off escape routes. They\'re all focused on taking you down. No escape, only survival. [SPAWN_ENEMY: Assault Team | elite | 3 | Engaged | aggressive_melee] [SPAWN_ENEMY: Sniper Nest | sniper | 2 | Far-Enemy | extreme_range] [SPAWN_ENEMY: Suppression Squad | grunt | 3 | Near-Enemy | tactical_ranged]',
+                'void_level': 4,
+                'clocks': [
+                    ('Tactical Withdrawal', 6, 'Finding a way to escape the kill zone', 'ADVANCE=Spotting escape routes', 'REGRESS=Enemies cutting off exits', 'FILLED=You find an escape route!'),
+                    ('Enemy Reinforcements', 2, 'More hostiles arriving FAST', 'ADVANCE=Backup called in', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | 4 | Far-Enemy | tactical_ranged]'),
+                    ('Critical Wounds', 4, 'Party members taking severe injuries')
+                ]
+            },
             {
                 'theme': 'Gang Ambush',
                 'location': 'Undercity Maintenance Tunnels (Arcadia)',
-                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions.',
+                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions. [SPAWN_ENEMY: Gang Ambushers | grunt | 3 | Near-Enemy | aggressive_melee]',
                 'void_level': 3,
                 'clocks': [
-                    ('Reinforcements Arriving', 5, 'More gang members responding to gunfire'),
-                    ('Escape Route', 6, 'Tunnel collapse blocking exit'),
-                    ('Civilian Panic', 5, 'Nearby residents calling Pantheon Security')
+                    ('Reinforcements Arriving', 4, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | 3 | Far-Enemy | defensive_ranged]'),
+                    ('Escape Route', 4, 'Tunnel collapse blocking exit'),
+                    ('Civilian Panic', 4, 'Nearby residents calling Pantheon Security')
                 ]
             },
             {
                 'theme': 'Hostile Extraction',
                 'location': 'Pantheon Detention Facility (Aeonisk Prime)',
-                'situation': 'Security forces have been alerted to your presence. Riot carapace troops are advancing down the corridor, shock batons crackling. You need to fight your way out.',
+                'situation': 'Security forces have been alerted to your presence. Riot carapace troops are advancing down the corridor, shock batons crackling. You need to fight your way out. [SPAWN_ENEMY: Riot Troops | grunt | 2 | Near-Enemy | defensive_ranged]',
                 'void_level': 2,
                 'clocks': [
-                    ('Lockdown Protocol', 6, 'Facility sealing all exits'),
-                    ('Security Response', 5, 'Tactical teams deploying'),
-                    ('Asset Extraction', 6, 'Getting your contact out before they\'re moved')
+                    ('Lockdown Protocol', 4, 'Facility sealing all exits'),
+                    ('Security Reinforcements', 3, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | elite | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Asset Extraction', 4, 'Getting your contact out before they\'re moved')
                 ]
             },
             {
                 'theme': 'Void Creature Attack',
                 'location': 'Collapsed Ley Nexus (Nimbus)',
-                'situation': 'Void-touched creatures emerge from a breach in reality - warped humanoid forms with too many limbs, their bodies flickering between states. They\'re hostile and closing fast.',
+                'situation': 'Void-touched creatures emerge from a breach in reality - warped humanoid forms with too many limbs, their bodies flickering between states. They\'re hostile and closing fast. [SPAWN_ENEMY: Void Spawn | grunt | 2 | Near-Enemy | aggressive_melee]',
                 'void_level': 7,
                 'clocks': [
-                    ('Breach Expansion', 6, 'Reality tear growing larger'),
-                    ('Creature Swarm', 5, 'More entities emerging from void'),
-                    ('Void Exposure', 5, 'Environmental corruption affecting party')
+                    ('Breach Expansion', 4, 'Reality tear growing larger'),
+                    ('Creature Swarm', 3, 'More entities emerging from void', 'ADVANCE=Breach widening, more creatures', 'REGRESS=Sealing the breach', 'FILLED=Void swarm pours through! [SPAWN_ENEMY: Void Horrors | grunt | 4 | Engaged | aggressive_melee]'),
+                    ('Void Exposure', 4, 'Environmental corruption affecting party')
                 ]
             },
             {
                 'theme': 'Faction Firefight',
                 'location': 'Contested Transit Hub (Floating Exchange)',
-                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy while Pantheon Security responds. You\'re caught in the three-way firefight - the pirates want to liberate "debt slaves", ACG wants their assets back, and Pantheon wants everyone in custody.',
+                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy while Pantheon Security responds. You\'re caught in the three-way firefight - the pirates want to liberate "debt slaves", ACG wants their assets back, and Pantheon wants everyone in custody. [SPAWN_ENEMY: Freeborn Pirates | grunt | 2 | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: ACG Enforcers | grunt | 2 | Near-Enemy | defensive_ranged]',
                 'void_level': 3,
                 'clocks': [
-                    ('Freeborn Escape', 6, 'Pirates fighting their way to ships'),
-                    ('ACG Asset Seizure', 6, 'ACG trying to secure cargo'),
-                    ('Pantheon Lockdown', 7, 'Security sealing all exits')
+                    ('Freeborn Escape', 4, 'Pirates fighting their way to ships'),
+                    ('ACG Asset Seizure', 4, 'ACG trying to secure cargo'),
+                    ('Pantheon Response', 3, 'Security arriving', 'ADVANCE=Pantheon forces mobilizing', 'REGRESS=Delaying security', 'FILLED=Pantheon tactical team arrives! [SPAWN_ENEMY: Pantheon Squad | elite | 2 | Extreme-Enemy | tactical_ranged]')
                 ]
             },
             {
                 'theme': 'Defense Stand',
                 'location': 'Resonance Commune Sanctuary (Nimbus)',
-                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls.',
+                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls. [SPAWN_ENEMY: Initial Raiders | grunt | 3 | Near-Enemy | aggressive_melee]',
                 'void_level': 5,
                 'clocks': [
-                    ('Perimeter Breach', 7, 'Raiders breaking through defenses'),
-                    ('Civilian Evacuation', 8, 'Getting non-combatants to safety'),
-                    ('Void Corruption', 6, 'Raiders spreading corruption')
+                    ('Raider Reinforcements', 4, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | 4 | Near-Enemy | aggressive_melee]'),
+                    ('Civilian Evacuation', 5, 'Getting non-combatants to safety'),
+                    ('Void Corruption', 4, 'Raiders spreading corruption')
                 ]
             },
             {
                 'theme': 'Assassination Attempt',
                 'location': 'ACG Executive Tower (Aeonisk Prime)',
-                'situation': 'Hostile operatives have breached the building - they\'re here to kill someone you\'re protecting. Professional killers with military-grade weapons, moving through the floors toward your position.',
+                'situation': 'Hostile operatives have breached the building - they\'re here to kill someone you\'re protecting. Professional killers with military-grade weapons, moving through the floors toward your position. [SPAWN_ENEMY: Advance Scouts | grunt | 2 | Far-Enemy | tactical_ranged]',
                 'void_level': 2,
                 'clocks': [
-                    ('Assassin Approach', 6, 'Killers closing in on target'),
-                    ('Building Lockdown', 5, 'Security systems being hacked'),
-                    ('Extraction Window', 6, 'Opportunity to escape closing')
+                    ('Assassin Reinforcements', 3, 'More killers deploying', 'ADVANCE=Backup team getting closer', 'REGRESS=Delaying reinforcements', 'FILLED=Elite hit team arrives! [SPAWN_ENEMY: Professional Hit Team | elite | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Building Lockdown', 4, 'Security systems being hacked'),
+                    ('Extraction Window', 4, 'Opportunity to escape closing')
                 ]
             },
             {
                 'theme': 'Siege Breakout',
                 'location': 'Surrounded Safe House (Arcadia)',
-                'situation': 'You\'re pinned down in a safe house. Pantheon Security has the building surrounded with riot teams, drones, and heavy weapons. They\'re demanding surrender, but you know too much to be taken alive.',
+                'situation': 'You\'re pinned down in a safe house. Pantheon Security has the building surrounded with riot teams, drones, and heavy weapons. They\'re demanding surrender, but you know too much to be taken alive. [SPAWN_ENEMY: Siege Perimeter | grunt | 3 | Far-Enemy | defensive_ranged]',
                 'void_level': 3,
                 'clocks': [
-                    ('Breach Attempt', 7, 'Security forces preparing assault'),
-                    ('Supply Depletion', 6, 'Running out of ammo and medical supplies'),
-                    ('Negotiation Window', 5, 'Opportunity for peaceful resolution fading')
+                    ('Breach Attempt', 3, 'Security forces preparing assault', 'ADVANCE=Preparing to storm the building', 'REGRESS=Fortifying defenses', 'FILLED=Breach team storms in! [SPAWN_ENEMY: Breach Squad | elite | 2 | Near-Enemy | aggressive_melee]'),
+                    ('Supply Depletion', 4, 'Running out of ammo and medical supplies'),
+                    ('Negotiation Window', 4, 'Opportunity for peaceful resolution fading')
                 ]
             },
             {
                 'theme': 'Combat Rescue',
                 'location': 'Crashed Transport Ship (Nimbus Wastes)',
-                'situation': 'A transport went down in hostile territory. Survivors are pinned in the wreckage by scavenger gangs and void-touched wildlife. You need to extract them under fire.',
+                'situation': 'A transport went down in hostile territory. Survivors are pinned in the wreckage by scavenger gangs and void-touched wildlife. You need to extract them under fire. [SPAWN_ENEMY: Scavenger Scouts | grunt | 3 | Far-Enemy | defensive_ranged]',
                 'void_level': 6,
                 'clocks': [
-                    ('Scavenger Assault', 6, 'Gangs moving to overwhelm survivors'),
-                    ('Void Creatures', 5, 'Corrupted wildlife drawn to the crash'),
-                    ('Survivor Casualties', 7, 'Wounded dying without immediate help')
+                    ('Scavenger Reinforcements', 3, 'Main gang arriving', 'ADVANCE=More scavengers coming', 'REGRESS=Driving scavengers away', 'FILLED=Full gang attacks! [SPAWN_ENEMY: Scavenger Gang | grunt | 4 | Near-Enemy | aggressive_melee]'),
+                    ('Void Creatures', 4, 'Corrupted wildlife drawn to the crash'),
+                    ('Survivor Casualties', 5, 'Wounded dying without immediate help')
                 ]
             },
             {
                 'theme': 'Turf War',
                 'location': 'Black Market District (Floating Exchange)',
-                'situation': 'Two rival gangs are going to war over Hollow Seed territory, and you\'re in the kill zone. Automatic weapons fire tears through the market stalls as both sides fight for control.',
+                'situation': 'Two rival gangs are going to war over Hollow Seed territory, and you\'re in the kill zone. Automatic weapons fire tears through the market stalls as both sides fight for control. [SPAWN_ENEMY: Red Coil Gang | grunt | 2 | Near-Enemy | aggressive_melee] [SPAWN_ENEMY: Void Saints | grunt | 2 | Far-Enemy | tactical_ranged]',
                 'void_level': 4,
                 'clocks': [
-                    ('Gang A Dominance', 6, 'Red Coil gang taking control'),
-                    ('Gang B Counterattack', 6, 'Void Saints fighting back'),
-                    ('Pantheon Response', 5, 'Security forces mobilizing')
+                    ('Gang Escalation', 3, 'Both sides calling reinforcements', 'ADVANCE=More gang members arriving', 'REGRESS=Dispersing the gangs', 'FILLED=Full gang war erupts! [SPAWN_ENEMY: Gang Reinforcements | grunt | 4 | Engaged | aggressive_melee]'),
+                    ('Civilian Casualties', 4, 'Bystanders caught in crossfire'),
+                    ('Pantheon Response', 4, 'Security forces mobilizing')
                 ]
             },
             {
                 'theme': 'Facility Assault',
                 'location': 'Tempest Research Station (Orbital)',
-                'situation': 'You\'re leading an assault on a Tempest black site. Automated defenses are active - combat drones, turrets, and security systems. Eye of Breach may be controlling the facility.',
+                'situation': 'You\'re leading an assault on a Tempest black site. Automated defenses are active - combat drones, turrets, and security systems. Eye of Breach may be controlling the facility. [SPAWN_ENEMY: Security Drones | grunt | 3 | Far-Enemy | extreme_range]',
                 'void_level': 8,
                 'clocks': [
-                    ('Defense Systems', 7, 'Automated weapons engaging'),
-                    ('Eye of Breach Activation', 6, 'Rogue AI taking direct control'),
-                    ('Mission Objective', 8, 'Reaching critical data before destruction')
+                    ('Defense Systems', 4, 'Automated weapons engaging'),
+                    ('Eye of Breach Activation', 3, 'Rogue AI taking direct control', 'ADVANCE=AI systems coming online', 'REGRESS=Disrupting AI control', 'FILLED=Eye of Breach fully awakens! [SPAWN_ENEMY: AI Combat Units | elite | 2 | Extreme-Enemy | tactical_ranged]'),
+                    ('Mission Objective', 5, 'Reaching critical data before destruction')
                 ]
             },
             {
                 'theme': 'Ideological Battle',
                 'location': 'Ley Node Nexus (Aeonisk Prime)',
-                'situation': 'Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order.',
+                'situation': 'Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order. [SPAWN_ENEMY: Tempest Operatives | grunt | 2 | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: Nexus Enforcers | grunt | 2 | Near-Enemy | defensive_ranged]',
                 'void_level': 5,
                 'clocks': [
-                    ('Tempest Installation', 6, 'Void-tech being deployed'),
-                    ('Nexus Purge', 6, 'Cleansing the site by force'),
-                    ('Civilian Casualties', 5, 'Bystanders caught in ideological war')
+                    ('Tempest Installation', 4, 'Void-tech being deployed', 'ADVANCE=Void-tech systems activating', 'REGRESS=Disrupting installation', 'FILLED=Void-tech goes live! [SPAWN_ENEMY: Void-Enhanced Troops | elite | 2 | Near-Enemy | adaptive]'),
+                    ('Nexus Purge', 4, 'Cleansing the site by force'),
+                    ('Civilian Casualties', 4, 'Bystanders caught in ideological war')
                 ]
             }
         ]
 
-        # Select random combat template
-        template = random.choice(templates)
+        # Select combat template (use specified index if provided, otherwise random)
+        scenario_index = config.get('combat_scenario_index')
+        if scenario_index is not None and 0 <= scenario_index < len(templates):
+            template = templates[scenario_index]
+            logger.info(f"Using specified combat scenario index {scenario_index}: {template['theme']}")
+        else:
+            template = random.choice(templates)
+            logger.info(f"Using random combat scenario: {template['theme']}")
 
         return {
             'theme': template['theme'],
@@ -908,6 +930,16 @@ The air carries a distinct tension, and you sense the void's influence at level 
             await self._handle_adjudication(payload)
             return
 
+        elif phase == 'resolution_only':
+            # Resolve mechanically but don't synthesize (synthesis comes later)
+            await self._handle_resolution_only(payload)
+            return
+
+        elif phase == 'synthesis':
+            # Generate synthesis from all collected resolutions
+            await self._handle_synthesis(payload)
+            return
+
         elif phase == 'resolution':
             # Old resolution phase (kept for compatibility)
             action = payload.get('action', payload)
@@ -922,6 +954,37 @@ The air carries a distinct tension, and you sense the void's influence at level 
             print(f"[DM {self.agent_id}] Noted: {player_id} declared action")
             return
             
+    async def _handle_resolution_only(self, payload: Dict[str, Any]):
+        """Resolve action mechanically without synthesis."""
+        # Use adjudication but skip synthesis
+        payload['skip_synthesis'] = True
+        await self._handle_adjudication(payload)
+
+    async def _handle_synthesis(self, payload: Dict[str, Any]):
+        """Generate synthesis from all collected resolutions."""
+        resolutions = payload.get('resolutions', [])
+        round_num = payload.get('round', 0)
+
+        if not resolutions:
+            return
+
+        # Generate synthesis
+        synthesis = await self._synthesize_round_outcome(resolutions, round_num)
+        print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
+        print(synthesis)
+        print("=" * 40)
+
+        # Broadcast the round synthesis to all players
+        self.send_message_sync(
+            MessageType.DM_NARRATION,
+            None,  # Broadcast
+            {
+                'narration': synthesis,
+                'is_round_synthesis': True,
+                'round': round_num
+            }
+        )
+
     async def _handle_adjudication(self, payload: Dict[str, Any]):
         """
         Adjudicate all declared actions together.
@@ -929,6 +992,8 @@ The air carries a distinct tension, and you sense the void's influence at level 
         """
         actions = payload.get('actions', [])
         round_num = payload.get('round', 0)
+        action_index = payload.get('action_index', 0)  # Track which action this is for multi-action turns
+        skip_synthesis = payload.get('skip_synthesis', False)  # Skip synthesis if set
 
         if not actions:
             # No actions to adjudicate - signal completion
@@ -1039,65 +1104,78 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 'resolution': resolution
             })
 
-        # Generate synthesis of what happened
-        synthesis = await self._synthesize_round_outcome(resolutions, round_num)
-        print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
-        print(synthesis)
-        print("=" * 40)
-
-        # Parse synthesis for consequences (void gains, character deaths)
-        # Note: Clock spawning and pivot handling is done in session.py when synthesis is distributed
-        if self.shared_state and self.shared_state.mechanics_engine:
-            mechanics = self.shared_state.mechanics_engine
-
-            # Check for void corruption mentioned in synthesis
-            from .outcome_parser import parse_void_triggers
-            void_change, void_reasons = parse_void_triggers(synthesis, "", "moderate")
-
-            if void_change > 0:
-                # Apply void to ALL characters (consequence of filled clock)
-                print(f"\n⚠️  Synthesis indicates +{void_change} void corruption to all characters!")
-                for agent_id in mechanics.void_states.keys():
-                    mechanics.void_states[agent_id].add_void(
-                        void_change,
-                        f"Clock consequence: {', '.join(void_reasons)}",
-                        action_id=f"synthesis_{round_num}"
-                    )
-                    new_void = mechanics.void_states[agent_id].score
-                    print(f"  {agent_id}: Now at {new_void}/10 void")
-
-                    # Check for dissolution
-                    if new_void >= 10:
-                        print(f"\n💀 {agent_id} HAS REACHED VOID 10 - DISSOLUTION")
-                        # Character is lost
-
-            # Log synthesis
-            if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_synthesis(round_num, synthesis)
-
         # Send individual resolutions to each player
         for res in resolutions:
+            # Prepare serializable resolution data (exclude non-serializable ActionResolution object)
+            serializable_res = {
+                'player_id': res['player_id'],
+                'character_name': res['character_name'],
+                'initiative': res['initiative'],
+                'action': res['action'],
+                'resolution': res['resolution']['outcome']  # Use serialized outcome instead of raw resolution
+            }
+
             self.send_message_sync(
                 MessageType.ACTION_RESOLVED,
                 None,  # Broadcast
                 {
                     'agent_id': res['player_id'],
+                    'action_index': action_index,  # Include action index for multi-action turns
                     'original_action': res['action'],
                     'outcome': res['resolution']['outcome'],
-                    'narration': res['resolution']['narration']
+                    'narration': res['resolution']['narration'],
+                    'resolution_data': serializable_res  # Include serializable resolution for later synthesis
                 }
             )
 
-        # Broadcast the round synthesis to all players
-        self.send_message_sync(
-            MessageType.DM_NARRATION,
-            None,  # Broadcast
-            {
-                'narration': synthesis,
-                'is_round_synthesis': True,
-                'round': round_num
-            }
-        )
+        # Only do synthesis if not skipping (for sequential resolution, synthesis comes later)
+        if not skip_synthesis:
+            # Generate synthesis of what happened
+            synthesis = await self._synthesize_round_outcome(resolutions, round_num)
+            print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
+            print(synthesis)
+            print("=" * 40)
+
+            # Parse synthesis for consequences (void gains, character deaths)
+            # Note: Clock spawning and pivot handling is done in session.py when synthesis is distributed
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+
+                # Check for void corruption mentioned in synthesis
+                from .outcome_parser import parse_void_triggers
+                void_change, void_reasons = parse_void_triggers(synthesis, "", "moderate")
+
+                if void_change > 0:
+                    # Apply void to ALL characters (consequence of filled clock)
+                    print(f"\n⚠️  Synthesis indicates +{void_change} void corruption to all characters!")
+                    for agent_id in mechanics.void_states.keys():
+                        mechanics.void_states[agent_id].add_void(
+                            void_change,
+                            f"Clock consequence: {', '.join(void_reasons)}",
+                            action_id=f"synthesis_{round_num}"
+                        )
+                        new_void = mechanics.void_states[agent_id].score
+                        print(f"  {agent_id}: Now at {new_void}/10 void")
+
+                        # Check for dissolution
+                        if new_void >= 10:
+                            print(f"\n💀 {agent_id} HAS REACHED VOID 10 - DISSOLUTION")
+                            # Character is lost
+
+                # Log synthesis
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_synthesis(round_num, synthesis)
+
+            # Broadcast the round synthesis to all players
+            self.send_message_sync(
+                MessageType.DM_NARRATION,
+                None,  # Broadcast
+                {
+                    'narration': synthesis,
+                    'is_round_synthesis': True,
+                    'round': round_num
+                }
+            )
 
         # Signal that adjudication is complete
         self.send_message_sync(
@@ -1120,7 +1198,18 @@ The air carries a distinct tension, and you sense the void's influence at level 
         outcomes_summary = []
         for res in resolutions:
             char_name = res['character_name']
-            success = res['resolution']['resolution'].success if res['resolution'].get('resolution') else True
+            # Handle both old format (full dict) and new format (serializable dict)
+            if 'resolution' in res and isinstance(res['resolution'], dict):
+                if 'resolution' in res['resolution']:
+                    # New serializable format: res['resolution'] is outcome dict
+                    resolution_data = res['resolution']['resolution']
+                    success = resolution_data.get('success', True) if isinstance(resolution_data, dict) else resolution_data.success
+                else:
+                    # Old format: res['resolution'] has direct 'outcome' field
+                    success = res['resolution'].get('success', True)
+            else:
+                success = True
+
             intent = res['action'].get('intent', res['action'].get('description', 'unknown action'))
 
             status = "succeeded" if success else "failed"
@@ -1180,6 +1269,31 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     filled_clocks_text += "- [PIVOT_SCENARIO: Theme] if situation fundamentally changes\n"
                     filled_clocks_text += "- [SESSION_END: VICTORY/DEFEAT/DRAW] if objectives achieved/failed"
 
+        # Build enemy spawn instructions ONLY when clocks fill (tied to consequences)
+        enemy_spawn_prompt = ""
+        has_filled_clocks = False
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.scene_clocks:
+                filled_clocks = mechanics.get_and_clear_filled_clocks()
+                has_filled_clocks = bool(filled_clocks)
+
+        if self.config.get('enemy_agents_enabled', False) and has_filled_clocks:
+            enemy_spawn_prompt = """
+
+**SPAWN ENEMIES AS CLOCK CONSEQUENCE (ONE-TIME):**
+Since a threat clock just filled, you can spawn autonomous enemies as a consequence:
+
+Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
+Example: [SPAWN_ENEMY: Reinforcements | grunt | 4 | Far-Enemy | tactical_ranged]
+
+Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
+Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
+Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
+
+Only spawn if it makes sense as a consequence of THIS SPECIFIC CLOCK filling. Not every clock needs enemies!
+Match threat level: 3-5 grunts for squads, 1-2 elites for professionals, 1 boss for commanders."""
+
         # Use LLM to generate synthesis if available
         if self.llm_config:
             prompt = f"""You are the DM for a dark sci-fi TTRPG. Multiple characters just acted simultaneously.
@@ -1208,7 +1322,9 @@ If the team is failing their objectives (clocks not advancing or bad clocks fill
 - Environmental changes or new threats
 - Success and rewards if it's a positive clock
 
-Generate appropriate consequences based on what makes sense for that specific clock in this scenario."""
+Generate appropriate consequences based on what makes sense for that specific clock in this scenario.
+
+{enemy_spawn_prompt}"""
 
             try:
                 import anthropic
@@ -1312,7 +1428,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
             combat_data = parse_combat_triplet(llm_narration if self.llm_config else resolution.narrative)
 
             # Apply clock advancements
-            clock_updates = []
+            clock_final_states = {}  # Track final state of each clock for display
             clock_deltas = []  # Track before/after for logging
             for clock_name, ticks, reason in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
@@ -1324,7 +1440,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         # Negative ticks = regress (improve)
                         clock.regress(abs(ticks))
                         after = clock.current
-                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ↓")
+                        # Store final state (will be overwritten if multiple triggers for same clock)
+                        clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ↓"
                         clock_deltas.append({
                             'name': clock_name,
                             'before': before,
@@ -1339,11 +1456,12 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         after = clock.current
                         overflow = after - maximum
                         if overflow > 0:
-                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)")
+                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)"
                         else:
-                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum}"
                         if filled and overflow == 0:
-                            clock_updates.append(f"🚨 {clock_name} FILLED!")
+                            # Add FILLED marker separately (always show even if clock updated multiple times)
+                            clock_final_states[f"{clock_name}_FILLED"] = f"🚨 {clock_name} FILLED!"
                         clock_deltas.append({
                             'name': clock_name,
                             'before': before,
@@ -1354,6 +1472,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             'reason': reason
                         })
 
+            # Build deduplicated clock updates (only final state of each clock)
+            clock_updates = list(clock_final_states.values()) if clock_final_states else []
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
 
@@ -1411,6 +1531,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Show condition application
                 narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
+
+            # Apply position changes (for tactical movement)
+            if state_changes.get('position_change'):
+                # Get player agent and update position
+                player_agents = [a for a in getattr(self.shared_state, 'agents', []) if hasattr(a, 'agent_id') and a.agent_id == player_id]
+                if player_agents:
+                    player_agent = player_agents[0]
+                    old_position = str(getattr(player_agent, 'position', 'Near-PC'))
+
+                    # Parse and apply new position
+                    from .enemy_agent import Position
+                    try:
+                        new_position_str = state_changes['position_change']
+                        new_position = Position.from_string(new_position_str)
+                        player_agent.position = new_position
+                        logger.info(f"Updated {player_id} position: {old_position} → {new_position}")
+                        # Position change is already in narration from DM, no need to add here
+                    except Exception as e:
+                        logger.error(f"Failed to update player position: {e}")
 
         return {
             'resolution': resolution,
@@ -1580,26 +1719,30 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 state_changes['soulcredit_reasons'].extend(sc_reasons)
 
             # Apply clock advancements (positive=advance, negative=regress)
-            clock_updates = []
+            clock_final_states = {}  # Track final state of each clock for display (deduplicated)
             for clock_name, ticks, reason in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
                     if ticks < 0:
                         # Negative ticks = regress (improve)
                         mechanics.scene_clocks[clock_name].regress(abs(ticks))
                         clock = mechanics.scene_clocks[clock_name]
-                        clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ↓")
+                        # Store final state (will be overwritten if multiple triggers for same clock)
+                        clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ↓"
                     else:
                         # Positive ticks = advance (degrade)
                         filled = mechanics.advance_clock(clock_name, ticks, reason)
                         clock = mechanics.scene_clocks[clock_name]
                         overflow = clock.current - clock.maximum
                         if overflow > 0:
-                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)")
+                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)"
                         else:
-                            clock_updates.append(f"{clock_name}: {clock.current}/{clock.maximum}")
+                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum}"
                         if filled and overflow == 0:
-                            clock_updates.append(f"🚨 {clock_name} FILLED!")
+                            # Add FILLED marker separately (always show even if clock updated multiple times)
+                            clock_final_states[f"{clock_name}_FILLED"] = f"🚨 {clock_name} FILLED!"
 
+            # Build deduplicated clock updates (only final state of each clock)
+            clock_updates = list(clock_final_states.values()) if clock_final_states else []
             if clock_updates:
                 narration += "\n\n📊 " + " | ".join(clock_updates)
 
@@ -1666,6 +1809,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Show condition application
                 narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
+
+            # Apply position changes (for tactical movement during rituals)
+            if state_changes.get('position_change'):
+                # Get player agent and update position
+                player_agents = [a for a in getattr(self.shared_state, 'agents', []) if hasattr(a, 'agent_id') and a.agent_id == player_id]
+                if player_agents:
+                    player_agent = player_agents[0]
+                    old_position = str(getattr(player_agent, 'position', 'Near-PC'))
+
+                    # Parse and apply new position
+                    from .enemy_agent import Position
+                    try:
+                        new_position_str = state_changes['position_change']
+                        new_position = Position.from_string(new_position_str)
+                        player_agent.position = new_position
+                        logger.info(f"Updated {player_id} position: {old_position} → {new_position}")
+                        # Position change is already in narration from DM, no need to add here
+                    except Exception as e:
+                        logger.error(f"Failed to update player position: {e}")
 
             # Display notes from outcome parser (e.g., recovery move explanations)
             if state_changes.get('notes'):
@@ -1862,6 +2024,10 @@ Situation: {self.current_scenario.situation}
 Void Level: {self.current_scenario.void_level}/10
 """
 
+        # NOTE: Enemy spawn markers should ONLY be in round synthesis, not individual action resolutions
+        # This prevents duplicate spawning across multiple PC action resolutions
+        enemy_spawn_instructions = ""
+
         # Add character context including faction
         character_context = ""
         if action:
@@ -1899,6 +2065,115 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
             void_impact = "\n**MODERATE VOID (4-5)**: Subtle reality warping, minor tech interference, uneasy feelings - add atmospheric complications."
         elif void_level >= 2:
             void_impact = "\n**MILD VOID (2-3)**: Faint corruption traces, occasional static - minimal but noticeable environmental effects."
+
+        # Add tactical combat context (only when enemies are active)
+        tactical_combat_context = ""
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+            enemy_combat = self.shared_state.enemy_combat
+            if enemy_combat and enemy_combat.enabled and len(enemy_combat.enemy_agents) > 0:
+                # Get active enemies
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                if active_enemies:
+                    # Get player's current position
+                    player_position = "Unknown"
+                    if action:
+                        # Try to get position from player agent
+                        player_agents = [a for a in getattr(self.shared_state, 'agents', []) if hasattr(a, 'agent_id') and a.agent_id == player_id]
+                        if player_agents:
+                            player_position = getattr(player_agents[0], 'position', 'Near-PC')
+
+                    # Build enemy positions summary
+                    enemy_positions = []
+                    for enemy in active_enemies:
+                        enemy_positions.append(f"{enemy.name} at {enemy.position}")
+                    enemy_positions_text = ", ".join(enemy_positions)
+
+                    tactical_combat_context = f"""
+
+**⚔️  TACTICAL COMBAT ACTIVE (Tactical Module v1.2.3):**
+
+🎯 **CRITICAL REQUIREMENT - POSITION TAGS**
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  When narrating player movement, you MUST include [POSITION: ...] tag!
+
+Format: [POSITION: PositionName]
+
+✅ GOOD Examples (USE THESE):
+  Player: "I charge forward [TARGET_POSITION: Engaged]"
+  → You: "You sprint into melee range. [POSITION: Engaged]"
+
+  Player: "I fall back [TARGET_POSITION: Far-PC]"
+  → You: "You retreat behind cover. [POSITION: Far-PC]"
+
+  Player: "I circle to flank [TARGET_POSITION: Near-Enemy]"
+  → You: "You ghost around their flank. [POSITION: Near-Enemy]"
+
+❌ BAD Examples (DON'T do this - position won't update):
+  → "You sprint forward" ← Missing [POSITION: ...] tag!
+  → "You move to better position" ← Missing tag!
+
+Current Positions:
+- Player at {player_position}
+- Enemies: {enemy_positions_text}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Range Bands:
+- Engaged: Center melee zone
+- Near-PC / Near-Enemy: First ring (different hemispheres)
+- Far-PC / Far-Enemy: Second ring
+- Extreme-PC / Extreme-Enemy: Outermost ring
+
+Range Penalty Rules (same ring/same side = Melee, 0 penalty):
+- Melee (0): Same ring AND same hemisphere (e.g., both at Near-PC)
+- Near (-2): Adjacent ring OR different hemisphere in Near
+- Far (-4): 2+ rings away OR different hemisphere in Far
+- Extreme (-6): Maximum distance
+
+Available Actions:
+- **Shift (Minor)**: Move 1 ring toward or away from center (stays on same side)
+- **Shift 2 bands (Major)**: Skip a ring (e.g., Far-PC → Engaged)
+- **Push Through (Major)**: Cross center line to opposite hemisphere (must pass through Engaged)
+- **Charge (Major)**: Shift to Engaged + melee attack (+2 damage, -2 defense until next turn)
+- **Attack**: Roll attack with range penalty based on distance to target
+- **Claim Cover/High Ground (Minor)**: Attempt to claim tactical token
+- **Disengage (Minor)**: Athletics DC 20 to shift without provoking Breakaway
+
+**MOVEMENT SYSTEM** - Two types of movement:
+
+1) **Basic Tactical Movement** (automatic, no roll):
+   - Player declares [TARGET_POSITION: X] in their action
+   - Movement ALWAYS succeeds (it's an automatic action, like enemies)
+   - Simply narrate the movement and include: [POSITION: X]
+   - Example: Player says "I move forward [TARGET_POSITION: Engaged]"
+     → You narrate: "You advance to melee range. [POSITION: Engaged]"
+   - NO ROLL NEEDED - just describe movement happening
+
+2) **Skill-Based Movement** (roll for persistent benefit):
+   - Player describes skill check + movement intent (e.g., "use Stealth to circle behind unseen")
+   - Movement HAPPENS REGARDLESS of roll (they move to intended position)
+   - Roll determines if they get PERSISTENT BENEFIT:
+     * Exceptional/Good: Grant lasting condition/advantage
+     * Marginal/Failure: Movement succeeds but no special benefit (or penalty)
+
+   **Available Persistent Benefits:**
+   - **Unseen** (Stealth): Enemies can't target you until you attack or fail Stealth
+     Format: 🎭 Condition: Unseen (can't be targeted until you attack)
+   - **High Ground** (Athletics): Token grants +2 ranged attacks while held
+     Format: 🏔️ Token Claimed: High Ground (+2 ranged attacks)
+   - **No Breakaway** (Athletics for disengaging): Avoid opportunity attack when leaving melee
+   - **First Strike** (Stealth ambush): +2 damage on your next attack
+
+   **Example Narrations:**
+   - Stealth Success: "You ghost through shadows, positioning behind them completely undetected. [POSITION: Near-Enemy] 🎭 Condition: Unseen"
+   - Athletics Success: "You sprint up debris to elevated ground. [POSITION: Far-PC] 🏔️ Token Claimed: High Ground (+2 ranged)"
+   - Stealth Failure: "You circle behind them but a loose board creaks - they spin toward you! [POSITION: Near-Enemy]"
+
+When adjudicating:
+- Basic tactical movement → Just happens, narrate + [POSITION: X]
+- Skill-based movement → Roll skill, grant benefit on success, position changes either way with [POSITION: X]
+- Apply range modifiers to attacks based on positions"""
 
         # Add clock context
         clock_context = ""
@@ -1955,12 +2230,14 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
             prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
+{enemy_spawn_instructions}
 {character_context}
 {resolution_context}
 
 Player Action: {description}
 Action Type: {action_type} (DIALOGUE with {target_character})
 {void_impact}
+{tactical_combat_context}
 
 This is a conversation between {character_name if action else 'the character'} and {target_character}.
 
@@ -1982,12 +2259,14 @@ Keep it to 2-4 lines of dialogue. Be concise and natural. Include actual quoted 
             prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
 
 {scenario_context}
+{enemy_spawn_instructions}
 {character_context}
 {resolution_context}
 
 Player Action: {description}
 Action Type: {action_type}
 {void_impact}
+{tactical_combat_context}
 {clock_context}
 
 As the DM, describe what happens narratively as a result of this action. Be vivid and thematic. Include:
