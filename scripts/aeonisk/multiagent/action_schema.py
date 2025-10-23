@@ -34,6 +34,9 @@ class ActionDeclaration:
     # Action type categorization
     action_type: str  # explore, investigate, ritual, social, combat, technical
 
+    # Tactical positioning (for combat)
+    target_position: Optional[str] = None  # Engaged/Near-PC/Far-PC/etc. - applied during execution
+
     # Optional ritual-specific fields
     is_ritual: bool = False
     has_primary_tool: bool = False

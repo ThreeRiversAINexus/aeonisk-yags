@@ -488,6 +488,14 @@ class SelfPlayingSession:
                         action_label = "FREE ACTION" if buffered_action['action'].get('is_free_action') else f"ACTION {idx+1}"
                         logger.debug(f"Processing {action_label} for {agent.character_state.name}")
 
+                        # Apply position change NOW (execution phase) if declared
+                        target_position = buffered_action['action'].get('target_position')
+                        if target_position:
+                            old_position = agent.position
+                            agent.position = target_position
+                            print(f"[{agent.character_state.name}] Position: {old_position} → {agent.position}")
+                            logger.info(f"{agent.character_state.name} moved from {old_position} to {agent.position}")
+
                         # Build single action for DM adjudication
                         action_for_adjudication = {
                             'player_id': agent.agent_id,
