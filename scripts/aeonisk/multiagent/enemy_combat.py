@@ -454,6 +454,8 @@ class EnemyCombatManager:
 
         if 'attack' in major_action:
             return self._execute_attack(enemy, declaration, player_agents, mechanics_engine, resolution_state)
+        elif 'suppress' in major_action:
+            return self._execute_suppress(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         elif 'claim' in major_action or 'token' in major_action:
             return self._execute_claim_token(enemy, declaration, resolution_state)
         elif 'shift' in major_action or 'push' in major_action:
@@ -590,8 +592,8 @@ class EnemyCombatManager:
             damage_roll = random.randint(1, 20)
             base_damage = strength + weapon.damage + damage_roll + group_bonus
 
-            # Combat balance: Reduce enemy damage by 30% to prevent one-shots
-            total_damage = int(base_damage * 0.70)
+            # Combat balance: Reduce enemy damage by 15% to prevent one-shots while avoiding stalemate
+            total_damage = int(base_damage * 0.85)
 
             result['damage'] = total_damage
             result['narration'] += f" - HIT! {total_damage} damage"
@@ -639,6 +641,149 @@ class EnemyCombatManager:
                         resolution_state.mark_defeated(target_id)
                         result['target_defeated'] = True
                         logger.info(f"{enemy.name} defeated {target.name if hasattr(target, 'name') else target_id}")
+        else:
+            result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
+
+        return result
+
+    def _execute_suppress(
+        self,
+        enemy: EnemyAgent,
+        declaration: EnemyDeclaration,
+        player_agents: List[Any],
+        mechanics_engine: Any,
+        resolution_state: ResolutionState
+    ) -> Dict[str, Any]:
+        """
+        Execute enemy Suppress action.
+
+        Suppress (Tactical Module v1.2.3):
+        - Requires weapon with RoF ≥ 3
+        - On successful hit: target must choose:
+          * Dive: immediately shift 1 band + lose Cover token if held
+          * Hunker Down: suffer -4 to all attack and defense rolls until next turn
+        """
+        target_id = declaration.target
+        weapon_name = declaration.weapon
+
+        # Find target PC
+        target = next((p for p in player_agents if p.agent_id == target_id), None)
+        if not target:
+            return {
+                'enemy_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'action': 'suppress',
+                'result': 'target not found',
+                'narration': f"{enemy.name} tries to suppress but target has moved"
+            }
+
+        # Validate suppress prerequisites
+        can_proceed, failure_reason = ActionValidator.can_attack(
+            enemy.agent_id,
+            target_id,
+            resolution_state
+        )
+
+        if not can_proceed:
+            target_name = target.name if hasattr(target, 'name') else str(target_id)
+            invalidation_msg = generate_invalidation_message(
+                enemy.name,
+                'suppress',
+                failure_reason,
+                target_name
+            )
+            logger.info(f"Suppress invalidated: {enemy.name} -> {target_name} ({failure_reason})")
+            return {
+                'enemy_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'action': 'suppress',
+                'result': 'invalidated',
+                'failure_reason': failure_reason,
+                'narration': invalidation_msg
+            }
+
+        # Find weapon
+        weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        if not weapon:
+            weapon = enemy.weapons[0] if enemy.weapons else None
+
+        if not weapon:
+            return {
+                'enemy_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'action': 'suppress',
+                'result': 'no weapon',
+                'narration': f"{enemy.name} has no weapon to suppress with"
+            }
+
+        # Check if weapon has sufficient RoF (Rate of Fire ≥ 3)
+        weapon_rof = getattr(weapon, 'rate_of_fire', 0)
+        if weapon_rof < 3:
+            return {
+                'enemy_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'action': 'suppress',
+                'result': 'insufficient_rof',
+                'narration': f"{enemy.name}'s {weapon.name} lacks sufficient rate of fire for suppression (RoF {weapon_rof} < 3)"
+            }
+
+        # Roll suppression attack (same as attack roll)
+        if weapon.skill == "Guns":
+            attribute = enemy.attributes.get('Perception', 3)
+        elif weapon.skill == "Melee":
+            attribute = enemy.attributes.get('Dexterity', 3)
+        else:  # Brawl
+            attribute = enemy.attributes.get('Agility', 3)
+
+        skill = enemy.skills.get(weapon.skill, 2)
+        attack_roll = random.randint(1, 20)
+
+        # Calculate range penalty
+        try:
+            target_position = Position.from_string(str(target.position if hasattr(target, 'position') else "Near-PC"))
+            range_name, range_penalty = enemy.position.calculate_range(target_position)
+        except:
+            range_name, range_penalty = "Unknown", 0
+
+        attack_total = (attribute * skill) + weapon.attack + attack_roll + range_penalty
+
+        # Check defence token
+        target_defence_token = getattr(target, 'defence_token', None)
+        if target_defence_token == enemy.agent_id:
+            attack_total -= 2  # Target watching this enemy
+            defence_note = "(target watching -2)"
+        else:
+            attack_total += 2  # Flanking bonus
+            defence_note = "(flanking +2)"
+
+        # Check hit (simplified)
+        target_defence = 15
+        hit = attack_total >= target_defence
+
+        result = {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'suppress',
+            'target': target.name if hasattr(target, 'name') else str(target_id),
+            'weapon': weapon.name,
+            'range': range_name,
+            'hit': hit,
+            'attack_roll': attack_total,
+            'narration': f"{enemy.name} lays down suppressive fire on {target.name if hasattr(target, 'name') else 'target'} with {weapon.name}"
+        }
+
+        if hit:
+            # Target must choose: Dive or Hunker Down
+            # For now, we'll apply Hunker Down effect (player can override via narration)
+            # Apply -4 penalty to target for next round
+
+            # Store debuff effect (requires debuff tracking system)
+            target_name = target.name if hasattr(target, 'name') else str(target_id)
+            logger.info(f"{target_name} suppressed by {enemy.name} - target must Dive or Hunker Down")
+
+            result['narration'] += f" - SUPPRESSED! {target_name} must choose: Dive (shift 1 band + lose Cover) OR Hunker Down (-4 to attacks/defense until next turn)"
+            result['effect'] = 'suppressed'
+            result['choices'] = ['Dive', 'Hunker Down']
         else:
             result['narration'] += f" - MISS ({attack_total} vs defence {target_defence})"
 

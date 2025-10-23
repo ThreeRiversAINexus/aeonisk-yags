@@ -636,7 +636,7 @@ IMPORTANT:
                 'void_level': 4,
                 'clocks': [
                     ('Tactical Withdrawal', 6, 'Finding a way to escape the kill zone', 'ADVANCE=Spotting escape routes', 'REGRESS=Enemies cutting off exits', 'FILLED=You find an escape route!'),
-                    ('Enemy Reinforcements', 8, 'Backup being called in', 'ADVANCE=Enemies calling for backup', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Enemy Reinforcements', 10, 'Backup being called in', 'ADVANCE=Enemies calling for backup', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | 2 | Far-Enemy | tactical_ranged]'),
                     ('Critical Wounds', 4, 'Party members taking severe injuries')
                 ]
             },
@@ -646,7 +646,7 @@ IMPORTANT:
                 'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions. [SPAWN_ENEMY: Gang Ambushers | grunt | 2 | Near-Enemy | aggressive_melee]',
                 'void_level': 3,
                 'clocks': [
-                    ('Reinforcements Arriving', 8, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Far-Enemy | defensive_ranged]'),
+                    ('Reinforcements Arriving', 10, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Far-Enemy | defensive_ranged]'),
                     ('Escape Route', 4, 'Tunnel collapse blocking exit'),
                     ('Civilian Panic', 4, 'Nearby residents calling Pantheon Security')
                 ]
@@ -658,7 +658,7 @@ IMPORTANT:
                 'void_level': 2,
                 'clocks': [
                     ('Lockdown Protocol', 4, 'Facility sealing all exits'),
-                    ('Security Reinforcements', 8, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | grunt | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Security Reinforcements', 10, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | grunt | 2 | Far-Enemy | tactical_ranged]'),
                     ('Asset Extraction', 4, 'Getting your contact out before they\'re moved')
                 ]
             },
@@ -690,7 +690,7 @@ IMPORTANT:
                 'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls. [SPAWN_ENEMY: Initial Raiders | grunt | 2 | Near-Enemy | aggressive_melee]',
                 'void_level': 5,
                 'clocks': [
-                    ('Raider Reinforcements', 8, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | 2 | Near-Enemy | aggressive_melee]'),
+                    ('Raider Reinforcements', 10, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | 2 | Near-Enemy | aggressive_melee]'),
                     ('Civilian Evacuation', 5, 'Getting non-combatants to safety'),
                     ('Void Corruption', 4, 'Raiders spreading corruption')
                 ]
@@ -701,7 +701,7 @@ IMPORTANT:
                 'situation': 'Hostile operatives have breached the building - they\'re here to kill someone you\'re protecting. Professional killers with military-grade weapons, moving through the floors toward your position. [SPAWN_ENEMY: Advance Scouts | grunt | 2 | Far-Enemy | tactical_ranged]',
                 'void_level': 2,
                 'clocks': [
-                    ('Assassin Reinforcements', 8, 'More killers deploying', 'ADVANCE=Backup team getting closer', 'REGRESS=Delaying reinforcements', 'FILLED=Elite hit team arrives! [SPAWN_ENEMY: Professional Hit Team | elite | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Assassin Reinforcements', 10, 'More killers deploying', 'ADVANCE=Backup team getting closer', 'REGRESS=Delaying reinforcements', 'FILLED=Elite hit team arrives! [SPAWN_ENEMY: Professional Hit Team | elite | 2 | Far-Enemy | tactical_ranged]'),
                     ('Building Lockdown', 4, 'Security systems being hacked'),
                     ('Extraction Window', 4, 'Opportunity to escape closing')
                 ]
@@ -723,7 +723,7 @@ IMPORTANT:
                 'situation': 'A transport went down in hostile territory. Survivors are pinned in the wreckage by scavenger gangs and void-touched wildlife. You need to extract them under fire. [SPAWN_ENEMY: Scavenger Scouts | grunt | 3 | Far-Enemy | defensive_ranged]',
                 'void_level': 6,
                 'clocks': [
-                    ('Scavenger Reinforcements', 8, 'Main gang arriving', 'ADVANCE=More scavengers coming', 'REGRESS=Driving scavengers away', 'FILLED=Full gang attacks! [SPAWN_ENEMY: Scavenger Gang | grunt | 2 | Near-Enemy | aggressive_melee]'),
+                    ('Scavenger Reinforcements', 10, 'Main gang arriving', 'ADVANCE=More scavengers coming', 'REGRESS=Driving scavengers away', 'FILLED=Full gang attacks! [SPAWN_ENEMY: Scavenger Gang | grunt | 2 | Near-Enemy | aggressive_melee]'),
                     ('Void Creatures', 4, 'Corrupted wildlife drawn to the crash'),
                     ('Survivor Casualties', 5, 'Wounded dying without immediate help')
                 ]
@@ -734,7 +734,7 @@ IMPORTANT:
                 'situation': 'Two rival gangs are going to war over Hollow Seed territory, and you\'re in the kill zone. Automatic weapons fire tears through the market stalls as both sides fight for control. [SPAWN_ENEMY: Red Coil Gang | grunt | 2 | Near-Enemy | aggressive_melee] [SPAWN_ENEMY: Void Saints | grunt | 2 | Far-Enemy | tactical_ranged]',
                 'void_level': 4,
                 'clocks': [
-                    ('Gang Escalation', 8, 'Both sides calling reinforcements', 'ADVANCE=More gang members arriving', 'REGRESS=Dispersing the gangs', 'FILLED=Full gang war erupts! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Engaged | aggressive_melee]'),
+                    ('Gang Escalation', 10, 'Both sides calling reinforcements', 'ADVANCE=More gang members arriving', 'REGRESS=Dispersing the gangs', 'FILLED=Full gang war erupts! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Engaged | aggressive_melee]'),
                     ('Civilian Casualties', 4, 'Bystanders caught in crossfire'),
                     ('Pantheon Response', 4, 'Security forces mobilizing')
                 ]
@@ -2346,6 +2346,31 @@ If player ACTION includes TARGET_ENEMY field and succeeds at Combat check:
 3. Include damage triplet in your narration: `Damage: X → Soak: 12 → Final: Y`
    - Example: "Your shot hits center mass. Damage: 18 → Soak: 12 → Final: 6"
    - On miss or failure: Don't include triplet, just narrate the miss
+
+**CREATIVE TACTICS CAN DEAL DAMAGE** - Not just combat actions!
+Players using social manipulation, hacking, or environmental tactics can deal damage with high-margin successes:
+
+1. **Social Manipulation** (Corporate Influence, Charm, Intimidation against enemies):
+   - Margin 15+: 10 damage (void corruption backlash from confusion)
+   - Margin 10-14: 7 damage (void corruption backlash)
+   - Margin 5-9: 5 damage (mild void corruption backlash)
+   - Example: "Your corporate authority overwhelms the Void Parasite's corrupted mind. Damage: 10 → Soak: 12 → Final: 0 (but confused for 1 round)"
+
+2. **Hacking** (Systems, Engineering to override/disable tech enemies):
+   - Turn against others (Margin 15+): 12 damage (enemy attacks ally)
+   - Turn against others (Margin 10-14): 8 damage (brief friendly fire)
+   - Overload/disable (Margin 15+): 10 damage (catastrophic system failure)
+   - Overload/disable (Margin 10-14): 7 damage (internal damage)
+   - Overload/disable (Margin 5-9): 5 damage (forced shutdown)
+   - Example: "You hack the Corrupted Scanner, forcing it to target the Void Tendrils. Damage: 8 → Soak: 12 → Final: 0 (but disrupted)"
+
+3. **Environmental** (Awareness, Systems to trigger hazards):
+   - Margin 15+: 15 damage AoE (catastrophic hazard)
+   - Margin 10-14: 12 damage AoE (significant hazard)
+   - Margin 5-9: 10 damage AoE (moderate hazard)
+   - Example: "You overload the power conduits. All enemies in Near-Enemy take: Damage: 12 → Soak: 12 → Final: 0"
+
+**WHY**: Players want creative tactics to feel impactful, not just debuffs. High-margin successes should reward creativity.
 
 **MOVEMENT SYSTEM** - Two types of movement:
 
