@@ -296,6 +296,17 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_event(self, event_type: str, data: Dict[str, Any], round_num: int):
+        """Log generic game event (cleanup, enemy events, etc)."""
+        event = {
+            "event_type": event_type,
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "data": data
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:

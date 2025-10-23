@@ -146,6 +146,9 @@ class AIPlayerAgent(Agent):
         # Free action tracking (one per round)
         self.free_action_used = False
 
+        # Buff tracking (positive effects from allies)
+        self.buffs = []  # List of active buffs from ally support
+
         # Set up player-specific message handlers
         self.message_handlers[MessageType.SCENARIO_SETUP] = self._handle_scenario_setup
         self.message_handlers[MessageType.SCENARIO_UPDATE] = self._handle_scenario_update
@@ -197,10 +200,13 @@ class AIPlayerAgent(Agent):
         )
 
         # Initialize combat attributes (for enemy attacks to work)
-        # Health = Size × 2 (YAGS rules)
+        # Health = Size × 2 + Endurance (YAGS-compliant toughness bonus)
         size = self.character_state.attributes.get('Size', 5)
-        self.max_health = size * 2
+        endurance = self.character_state.attributes.get('Endurance', 3)
+        self.size = size
+        self.max_health = (size * 2) + endurance  # e.g., Size 5 + End 4 = 14 HP
         self.health = self.max_health
+        self.wounds = 0  # Wound count (tactical module)
         # Soak = YAGS standard base soak for adult humans (character.md:598-600)
         self.soak = 12
 
@@ -312,6 +318,38 @@ class AIPlayerAgent(Agent):
         else:
             logger.warning(f"{self.character_state.name} FAILED death save - KILLED!")
             return False, "dead"
+
+    def add_buff(self, effect: str, bonus: int, duration: int, source: str = "unknown"):
+        """
+        Add a positive buff to this player from an ally action.
+
+        Args:
+            effect: Description of the buff (e.g., "aim bonus", "morale boost")
+            bonus: Positive modifier to apply
+            duration: How many rounds the buff lasts
+            source: Who provided the buff
+        """
+        buff = {
+            'effect': effect,
+            'bonus': bonus,
+            'duration': duration,
+            'source': source,
+            'rounds_remaining': duration
+        }
+        self.buffs.append(buff)
+        logger.info(f"{self.character_state.name} gained buff: {effect} (+{bonus}) from {source} for {duration} rounds")
+
+    def tick_buffs(self):
+        """Reduce buff durations and remove expired buffs."""
+        expired_buffs = []
+        for buff in self.buffs:
+            buff['rounds_remaining'] = buff.get('rounds_remaining', 1) - 1
+            if buff['rounds_remaining'] <= 0:
+                expired_buffs.append(buff)
+
+        for buff in expired_buffs:
+            logger.info(f"{self.character_state.name} buff expired: {buff['effect']}")
+            self.buffs.remove(buff)
 
     async def _handle_scenario_setup(self, message: Message):
         """Handle scenario setup from DM."""

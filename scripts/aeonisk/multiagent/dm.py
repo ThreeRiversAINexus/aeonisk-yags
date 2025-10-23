@@ -632,21 +632,21 @@ IMPORTANT:
             {
                 'theme': 'Overwhelming Ambush',
                 'location': 'Kill Zone - Abandoned Transit Hub (Arcadia)',
-                'situation': 'You\'ve been lured into a trap. Hostile operatives surround you from multiple positions - assault teams at close range, snipers on the catwalks, support units cutting off escape routes. They\'re all focused on taking you down. No escape, only survival. [SPAWN_ENEMY: Assault Team | elite | 3 | Engaged | aggressive_melee] [SPAWN_ENEMY: Sniper Nest | sniper | 2 | Far-Enemy | extreme_range] [SPAWN_ENEMY: Suppression Squad | grunt | 3 | Near-Enemy | tactical_ranged]',
+                'situation': 'You\'ve been lured into a trap. A hostile assault team rushes you from close range while covering fire comes from above. You need to break through or take them down fast. [SPAWN_ENEMY: Assault Team | grunt | 2 | Near-Enemy | aggressive_melee]',
                 'void_level': 4,
                 'clocks': [
                     ('Tactical Withdrawal', 6, 'Finding a way to escape the kill zone', 'ADVANCE=Spotting escape routes', 'REGRESS=Enemies cutting off exits', 'FILLED=You find an escape route!'),
-                    ('Enemy Reinforcements', 2, 'More hostiles arriving FAST', 'ADVANCE=Backup called in', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | 4 | Far-Enemy | tactical_ranged]'),
+                    ('Enemy Reinforcements', 5, 'Backup being called in', 'ADVANCE=Enemies calling for backup', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | 2 | Far-Enemy | tactical_ranged]'),
                     ('Critical Wounds', 4, 'Party members taking severe injuries')
                 ]
             },
             {
                 'theme': 'Gang Ambush',
                 'location': 'Undercity Maintenance Tunnels (Arcadia)',
-                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions. [SPAWN_ENEMY: Gang Ambushers | grunt | 3 | Near-Enemy | aggressive_melee]',
+                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions. [SPAWN_ENEMY: Gang Ambushers | grunt | 2 | Near-Enemy | aggressive_melee]',
                 'void_level': 3,
                 'clocks': [
-                    ('Reinforcements Arriving', 4, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | 3 | Far-Enemy | defensive_ranged]'),
+                    ('Reinforcements Arriving', 5, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Far-Enemy | defensive_ranged]'),
                     ('Escape Route', 4, 'Tunnel collapse blocking exit'),
                     ('Civilian Panic', 4, 'Nearby residents calling Pantheon Security')
                 ]
@@ -658,7 +658,7 @@ IMPORTANT:
                 'void_level': 2,
                 'clocks': [
                     ('Lockdown Protocol', 4, 'Facility sealing all exits'),
-                    ('Security Reinforcements', 3, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | elite | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Security Reinforcements', 5, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | grunt | 2 | Far-Enemy | tactical_ranged]'),
                     ('Asset Extraction', 4, 'Getting your contact out before they\'re moved')
                 ]
             },
@@ -669,28 +669,28 @@ IMPORTANT:
                 'void_level': 7,
                 'clocks': [
                     ('Breach Expansion', 4, 'Reality tear growing larger'),
-                    ('Creature Swarm', 3, 'More entities emerging from void', 'ADVANCE=Breach widening, more creatures', 'REGRESS=Sealing the breach', 'FILLED=Void swarm pours through! [SPAWN_ENEMY: Void Horrors | grunt | 4 | Engaged | aggressive_melee]'),
+                    ('Creature Swarm', 5, 'More entities emerging from void', 'ADVANCE=Breach widening, more creatures', 'REGRESS=Sealing the breach', 'FILLED=Void swarm pours through! [SPAWN_ENEMY: Void Horrors | grunt | 2 | Engaged | aggressive_melee]'),
                     ('Void Exposure', 4, 'Environmental corruption affecting party')
                 ]
             },
             {
                 'theme': 'Faction Firefight',
                 'location': 'Contested Transit Hub (Floating Exchange)',
-                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy while Pantheon Security responds. You\'re caught in the three-way firefight - the pirates want to liberate "debt slaves", ACG wants their assets back, and Pantheon wants everyone in custody. [SPAWN_ENEMY: Freeborn Pirates | grunt | 2 | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: ACG Enforcers | grunt | 2 | Near-Enemy | defensive_ranged]',
+                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy. You\'re caught in the crossfire - the pirates open fire thinking you\'re ACG backup. [SPAWN_ENEMY: Freeborn Pirates | grunt | 2 | Near-Enemy | tactical_ranged]',
                 'void_level': 3,
                 'clocks': [
                     ('Freeborn Escape', 4, 'Pirates fighting their way to ships'),
                     ('ACG Asset Seizure', 4, 'ACG trying to secure cargo'),
-                    ('Pantheon Response', 3, 'Security arriving', 'ADVANCE=Pantheon forces mobilizing', 'REGRESS=Delaying security', 'FILLED=Pantheon tactical team arrives! [SPAWN_ENEMY: Pantheon Squad | elite | 2 | Extreme-Enemy | tactical_ranged]')
+                    ('Pantheon Response', 5, 'Security arriving', 'ADVANCE=Pantheon forces mobilizing', 'REGRESS=Delaying security', 'FILLED=Pantheon tactical team arrives! [SPAWN_ENEMY: Pantheon Squad | grunt | 2 | Extreme-Enemy | tactical_ranged]')
                 ]
             },
             {
                 'theme': 'Defense Stand',
                 'location': 'Resonance Commune Sanctuary (Nimbus)',
-                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls. [SPAWN_ENEMY: Initial Raiders | grunt | 3 | Near-Enemy | aggressive_melee]',
+                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls. [SPAWN_ENEMY: Initial Raiders | grunt | 2 | Near-Enemy | aggressive_melee]',
                 'void_level': 5,
                 'clocks': [
-                    ('Raider Reinforcements', 4, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | 4 | Near-Enemy | aggressive_melee]'),
+                    ('Raider Reinforcements', 5, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | 2 | Near-Enemy | aggressive_melee]'),
                     ('Civilian Evacuation', 5, 'Getting non-combatants to safety'),
                     ('Void Corruption', 4, 'Raiders spreading corruption')
                 ]
@@ -1425,37 +1425,64 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 narration = f"{mechanical_text}\n\n{resolution.narrative}"
 
             # Parse narration for clock triggers and state changes
-            from .outcome_parser import parse_state_changes, parse_combat_triplet
+            from .outcome_parser import (
+                parse_state_changes,
+                parse_combat_triplet,
+                parse_mechanical_effect,
+                generate_fallback_effect,
+                generate_fallback_buff
+            )
 
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
             state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
 
-            # Parse combat details if present
+            # Parse combat triplet (for backwards compatibility)
             combat_data = parse_combat_triplet(llm_narration if self.llm_config else resolution.narrative)
 
-            # Apply damage to enemy if this was a successful attack
-            if combat_data and action.get('target_enemy') and combat_data.get('post_soak_damage', 0) > 0:
-                target_enemy_name = action.get('target_enemy')
-                damage_dealt = combat_data['post_soak_damage']
+            # Parse mechanical effects if action targets enemy
+            effect = None
+            if action.get('target_enemy'):
+                # Try to parse explicit mechanical effect block
+                effect = parse_mechanical_effect(llm_narration if self.llm_config else resolution.narrative)
 
-                # Find the enemy agent
-                if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
-                    enemy_combat = self.shared_state.enemy_combat
-                    if enemy_combat:
-                        from .enemy_spawner import get_active_enemies
-                        active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+                # If no effect found, use legacy combat triplet
+                if not effect and combat_data and combat_data.get('post_soak_damage', 0) > 0:
+                    effect = {
+                        'type': 'damage',
+                        'target': action.get('target_enemy'),
+                        'final': combat_data['post_soak_damage'],
+                        'source': 'combat_triplet'
+                    }
 
-                        # Match by name (fuzzy match)
-                        target_enemy = None
-                        for enemy in active_enemies:
-                            if target_enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in target_enemy_name.lower():
-                                target_enemy = enemy
-                                break
+                # If still no effect, generate fallback
+                if not effect and resolution and resolution.success:
+                    effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
+                    if effect:
+                        logger.info(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
 
-                        if target_enemy:
+            # Apply effect to enemy if we have one
+            if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+                enemy_combat = self.shared_state.enemy_combat
+                if enemy_combat:
+                    from .enemy_spawner import get_active_enemies
+                    active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                    # Find target enemy (fuzzy match)
+                    target_enemy_name = effect.get('target', action.get('target_enemy'))
+                    target_enemy = None
+                    for enemy in active_enemies:
+                        if target_enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in target_enemy_name.lower():
+                            target_enemy = enemy
+                            break
+
+                    if target_enemy:
+                        effect_type = effect.get('type', 'unknown')
+
+                        if effect_type == 'damage':
                             # Apply damage
+                            damage_dealt = effect.get('final', 0)
                             old_health = target_enemy.health
                             wounds_dealt = damage_dealt // 5  # YAGS: every 5 damage = 1 wound
                             target_enemy.wounds += wounds_dealt
@@ -1463,25 +1490,141 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                             logger.info(f"Player dealt {damage_dealt} damage to {target_enemy.name} ({old_health} → {target_enemy.health} HP, +{wounds_dealt} wounds)")
 
+                            # Add effect notification
+                            source_label = "(fallback)" if effect.get('source') == 'fallback' else ""
+                            narration += f"\n\n⚔️  **{target_enemy.name} takes {damage_dealt} damage!** {source_label}"
+
                             # Check if enemy died
                             if target_enemy.health <= 0:
                                 if hasattr(target_enemy, 'check_death_save'):
                                     alive, status = target_enemy.check_death_save()
                                     if not alive:
                                         logger.info(f"{target_enemy.name} KILLED by player attack!")
-                                        narration += f"\n\n💀 **{target_enemy.name} is KILLED!**"
+                                        narration += f"\n💀 **{target_enemy.name} is KILLED!**"
                                     elif status == "unconscious":
                                         logger.info(f"{target_enemy.name} knocked unconscious!")
-                                        narration += f"\n\n😵 **{target_enemy.name} is knocked unconscious!**"
+                                        narration += f"\n😵 **{target_enemy.name} is knocked unconscious!**"
                                     else:
                                         logger.info(f"{target_enemy.name} critically wounded but conscious!")
-                                        narration += f"\n\n⚠️  **{target_enemy.name} is critically wounded!**"
+                                        narration += f"\n⚠️  **{target_enemy.name} is critically wounded!**"
                                 else:
-                                    # No death save - just mark as defeated
                                     logger.info(f"{target_enemy.name} defeated!")
-                                    narration += f"\n\n💀 **{target_enemy.name} is defeated!**"
+                                    narration += f"\n💀 **{target_enemy.name} is defeated!**"
+
+                        elif effect_type == 'debuff':
+                            # Apply debuff
+                            penalty = effect.get('penalty', -2)
+                            duration = effect.get('duration', 3)
+                            effect_desc = effect.get('effect', f"{penalty} to rolls")
+                            source = effect.get('source', 'player')
+
+                            target_enemy.add_debuff(effect_desc, penalty, duration, source)
+
+                            source_label = "(fallback)" if source == 'fallback' else ""
+                            narration += f"\n\n🔻 **{target_enemy.name} debuffed: {effect_desc}** (lasts {duration} rounds) {source_label}"
+
+                        elif effect_type == 'status':
+                            # Apply status effect
+                            status_effect = effect.get('effect', 'affected')
+                            duration = effect.get('duration', 1)
+
+                            target_enemy.add_status_effect(status_effect, duration)
+
+                            source_label = "(fallback)" if effect.get('source') == 'fallback' else ""
+                            narration += f"\n\n💫 **{target_enemy.name} status: {status_effect}** {source_label}"
+
+                        elif effect_type == 'movement':
+                            # Apply forced movement
+                            movement_desc = effect.get('effect', 'forced to move')
+                            new_position = effect.get('new_position')
+
+                            if new_position and hasattr(target_enemy, 'position'):
+                                from .enemy_agent import Position
+                                try:
+                                    target_enemy.position = Position.from_string(new_position)
+                                    narration += f"\n\n🚶 **{target_enemy.name} forced to {new_position}!**"
+                                except:
+                                    narration += f"\n\n🚶 **{target_enemy.name} disrupted: {movement_desc}!**"
+                            else:
+                                narration += f"\n\n🚶 **{target_enemy.name} disrupted: {movement_desc}!**"
+
+                        elif effect_type == 'reveal':
+                            # Add revealed weakness
+                            weakness_desc = effect.get('effect', 'weakness revealed')
+                            bonus = effect.get('bonus', 2)
+
+                            target_enemy.add_revealed_weakness(weakness_desc, bonus)
+
+                            narration += f"\n\n🔍 **{target_enemy.name} weakness revealed: {weakness_desc}** (+{bonus} for allies)"
+
                         else:
-                            logger.warning(f"Could not find enemy '{target_enemy_name}' to apply damage")
+                            logger.warning(f"Unknown effect type: {effect_type}")
+
+                    else:
+                        logger.warning(f"Could not find enemy '{target_enemy_name}' to apply effect")
+
+            # Parse and apply ally buffs if action targets ally
+            buff = None
+            if action.get('target_ally'):
+                # Try to parse explicit buff effect block (similar to enemy effects)
+                # For now, we'll use fallback generation since DM doesn't explicitly write buff blocks yet
+
+                # Generate fallback buff if successful action
+                if resolution and resolution.success:
+                    buff = generate_fallback_buff(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
+                    if buff:
+                        logger.info(f"Generated fallback buff: {buff.get('type')} for {buff.get('target')}")
+
+            # Apply buff to ally if we have one
+            if buff and self.shared_state:
+                # Find target ally player agent (fuzzy match by character name)
+                target_ally_name = buff.get('target', action.get('target_ally'))
+                target_ally_agent = None
+
+                # Get all player agents from shared_state
+                player_agents = self.shared_state.player_agents
+
+                for agent in player_agents:
+                    if hasattr(agent, 'character_state') and agent.character_state:
+                        agent_name = agent.character_state.name
+                        # Fuzzy match: check if names contain each other
+                        if target_ally_name.lower() in agent_name.lower() or agent_name.lower() in target_ally_name.lower():
+                            target_ally_agent = agent
+                            break
+
+                if target_ally_agent:
+                    buff_type = buff.get('type', 'unknown')
+
+                    if buff_type == 'heal':
+                        # Apply healing
+                        healing_amount = buff.get('amount', 0)
+                        old_health = target_ally_agent.health
+                        target_ally_agent.health = min(target_ally_agent.max_health, target_ally_agent.health + healing_amount)
+                        actual_healing = target_ally_agent.health - old_health
+
+                        logger.info(f"Player healed {target_ally_agent.character_state.name} for {actual_healing} HP ({old_health} → {target_ally_agent.health})")
+
+                        # Add buff notification
+                        source_label = "(fallback)" if buff.get('source') == 'fallback' else ""
+                        narration += f"\n\n💚 **{target_ally_agent.character_state.name} healed for {actual_healing} HP!** {source_label}"
+
+                    elif buff_type == 'buff':
+                        # Apply positive buff
+                        bonus = buff.get('bonus', 1)
+                        duration = buff.get('duration', 2)
+                        effect_desc = buff.get('effect', f"+{bonus} to rolls")
+                        source = action.get('character', 'ally')
+
+                        target_ally_agent.add_buff(effect_desc, bonus, duration, source)
+
+                        source_label = "(fallback)" if buff.get('source') == 'fallback' else ""
+                        narration += f"\n\n🔺 **{target_ally_agent.character_state.name} buffed: {effect_desc}** (lasts {duration} rounds) {source_label}"
+
+                    else:
+                        logger.warning(f"Unknown buff type: {buff_type}")
+
+                else:
+                    logger.warning(f"Could not find ally '{target_ally_name}' to apply buff")
 
             # Apply clock advancements
             clock_final_states = {}  # Track final state of each clock for display
