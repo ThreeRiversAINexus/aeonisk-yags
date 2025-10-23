@@ -215,7 +215,7 @@ class AIPlayerAgent(Agent):
         # (was 14, too high - blocked most damage causing stalemate)
         self.soak = 10
 
-        logger.info(f"Player {self.agent_id} ({self.character_state.name}) started")
+        logger.debug(f"Player {self.agent_id} ({self.character_state.name}) started")
 
         # Register with shared state for party awareness
         if self.shared_state:
@@ -244,7 +244,7 @@ class AIPlayerAgent(Agent):
         
     async def on_shutdown(self):
         """Cleanup on shutdown."""
-        logger.info(f"Player {self.agent_id} shutting down")
+        logger.debug(f"Player {self.agent_id} shutting down")
 
     # === YAGS Combat Lifecycle Properties ===
 
@@ -361,12 +361,13 @@ class AIPlayerAgent(Agent):
         self.current_scenario = message.payload.get('scenario', {})
         opening = message.payload.get('opening_narration', '')
 
-        print(f"\n[{self.character_state.name}] === New Scenario ===")
-        print(f"Theme: {self.current_scenario.get('theme', 'Unknown')}")
-        print(f"Location: {self.current_scenario.get('location', 'Unknown')}")
-        print(f"\nDM: {opening}")
-        
+        # Scenario is now printed once by session.py, not per-player
+        # Only print if human controlled (to notify the human player)
         if self.human_controlled:
+            print(f"\n[{self.character_state.name}] === New Scenario ===")
+            print(f"Theme: {self.current_scenario.get('theme', 'Unknown')}")
+            print(f"Location: {self.current_scenario.get('location', 'Unknown')}")
+            print(f"\nDM: {opening}")
             print(f"\n[HUMAN - {self.character_state.name}] Waiting for your input...")
 
     async def _handle_scenario_update(self, message: Message):
@@ -386,9 +387,12 @@ class AIPlayerAgent(Agent):
                 'situation': new_situation
             }
 
-        print(f"\n[{self.character_state.name}] 🔄 SCENARIO PIVOT: {new_theme}")
-        if pivot_narration:
-            print(f"    {pivot_narration}")
+        # Scenario pivot is now printed once by session.py, not per-player
+        # Only print if human controlled
+        if self.human_controlled:
+            print(f"\n[{self.character_state.name}] 🔄 SCENARIO PIVOT: {new_theme}")
+            if pivot_narration:
+                print(f"    {pivot_narration}")
 
     async def _handle_action_declared(self, message: Message):
         """Handle action declarations from other players - show character voice."""
@@ -1020,7 +1024,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
             if enemy_combat and enemy_combat.enabled:
                 from .enemy_spawner import get_active_enemies
                 active_enemies = get_active_enemies(enemy_combat.enemy_agents)
-                logger.info(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
+                logger.debug(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
 
                 if active_enemies:
                     # Build enemy positions summary
@@ -1247,7 +1251,7 @@ DESCRIPTION: I retreat to better defensive position
 
             # Check if agent requested a rules/lore lookup
             if 'LOOKUP:' in llm_text:
-                logger.info(f"🔍 Agent {self.character_state.name} requested a lookup")
+                logger.debug(f"🔍 Agent {self.character_state.name} requested a lookup")
                 lookup_result = await self._handle_lookup_request(llm_text, prompt, provider, model, temperature)
                 if lookup_result:
                     llm_text = lookup_result  # Use the response after lookup
@@ -1281,7 +1285,7 @@ DESCRIPTION: I retreat to better defensive position
             logger.warning(f"  LOOKUP query too short or empty after cleaning: '{lookup_query}'")
             return None
 
-        logger.info(f"  Query: '{lookup_query}'")
+        logger.debug(f"  Query: '{lookup_query}'")
 
         # Query ChromaDB
         knowledge_context = ""

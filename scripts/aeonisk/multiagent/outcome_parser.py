@@ -30,7 +30,7 @@ def parse_soulcredit_markers(narration: str) -> Tuple[int, str]:
     if match:
         delta = int(match.group(1))
         reason = match.group(2).strip() if match.group(2) else "Soulcredit change"
-        logger.info(f"Parsed soulcredit marker: {delta:+d} ({reason})")
+        logger.debug(f"Parsed soulcredit marker: {delta:+d} ({reason})")
         return (delta, reason)
 
     return (0, "")
@@ -387,7 +387,7 @@ def parse_creative_tactics_damage(
 
             if damage > 0:
                 damage_type = "social_manipulation"
-                logger.info(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
+                logger.debug(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
 
     # HACKING: Turn enemies against each other or disable them
     hacking_keywords = [
@@ -428,7 +428,7 @@ def parse_creative_tactics_damage(
 
             if damage > 0:
                 damage_type = "hacking"
-                logger.info(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
+                logger.debug(f"Creative tactic damage: {damage_type} → {damage} damage (margin {margin})")
 
     # ENVIRONMENTAL: Trigger hazards, overload systems, use environment
     environmental_keywords = [
@@ -452,7 +452,7 @@ def parse_creative_tactics_damage(
 
         if damage > 0:
             damage_type = "environmental"
-            logger.info(f"Creative tactic damage: {damage_type} → {damage} damage AoE (margin {margin})")
+            logger.debug(f"Creative tactic damage: {damage_type} → {damage} damage AoE (margin {margin})")
 
     return (damage, damage_type, reason)
 
@@ -481,7 +481,7 @@ def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
     explicit_match = re.search(explicit_pattern, narration, re.IGNORECASE)
     if explicit_match:
         new_position = explicit_match.group(1).strip()
-        logger.info(f"Parsed explicit position marker: {new_position}")
+        logger.debug(f"Parsed explicit position marker: {new_position}")
         return new_position
 
     # Look for target position marker in player action (basic tactical movement)
@@ -489,7 +489,7 @@ def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
     target_match = re.search(target_pattern, action_intent, re.IGNORECASE)
     if target_match:
         new_position = target_match.group(1).strip()
-        logger.info(f"Parsed target position from player declaration: {new_position}")
+        logger.debug(f"Parsed target position from player declaration: {new_position}")
         return new_position
 
     # Look for "moves from X to Y" pattern
@@ -499,7 +499,7 @@ def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
         new_position = moves_match.group(2)
         # Capitalize properly (e.g., "near-pc" → "Near-PC")
         new_position = '-'.join([word.capitalize() for word in new_position.split('-')])
-        logger.info(f"Parsed position change: {new_position}")
+        logger.debug(f"Parsed position change: {new_position}")
         return new_position
 
     # Look for "shifts to Y" or "moves to Y" pattern
@@ -509,7 +509,7 @@ def parse_position_change(narration: str, action_intent: str) -> Optional[str]:
         new_position = shifts_match.group(1).strip()
         # Capitalize properly
         new_position = '-'.join([word.capitalize() for word in new_position.split('-')])
-        logger.info(f"Parsed position change: {new_position}")
+        logger.debug(f"Parsed position change: {new_position}")
         return new_position
 
     return None
@@ -570,7 +570,7 @@ def parse_condition_markers(narration: str) -> List[Dict[str, Any]]:
         })
 
     if conditions:
-        logger.info(f"Parsed {len(conditions)} condition/token markers")
+        logger.debug(f"Parsed {len(conditions)} condition/token markers")
 
     return conditions
 
@@ -694,7 +694,7 @@ def parse_session_end_marker(narration: str) -> Dict[str, str]:
     if match:
         status = match.group(1).lower()
         reason = match.group(2).strip() if match.group(2) else None
-        logger.info(f"Parsed session end marker: {status}" + (f" - {reason}" if reason else ""))
+        logger.debug(f"Parsed session end marker: {status}" + (f" - {reason}" if reason else ""))
         return {'status': status, 'reason': reason}
 
     return {'status': 'none', 'reason': None}
@@ -726,7 +726,7 @@ def parse_new_clock_marker(narration: str) -> List[Dict[str, any]]:
             'max': max_ticks,
             'description': description
         })
-        logger.info(f"Parsed new clock: {name} ({max_ticks} ticks) - {description}")
+        logger.debug(f"Parsed new clock: {name} ({max_ticks} ticks) - {description}")
 
     return new_clocks
 
@@ -748,7 +748,7 @@ def parse_pivot_scenario_marker(narration: str) -> Dict[str, str]:
 
     if match:
         new_theme = match.group(1).strip()
-        logger.info(f"Parsed scenario pivot: {new_theme}")
+        logger.debug(f"Parsed scenario pivot: {new_theme}")
         return {'should_pivot': True, 'new_theme': new_theme}
 
     return {'should_pivot': False, 'new_theme': None}
@@ -773,7 +773,7 @@ def parse_advance_story_marker(narration: str) -> Dict[str, any]:
     if match:
         location = match.group(1).strip()
         situation = match.group(2).strip()
-        logger.info(f"Parsed story advancement: {location} - {situation}")
+        logger.debug(f"Parsed story advancement: {location} - {situation}")
         return {
             'should_advance': True,
             'location': location,
@@ -815,7 +815,7 @@ def parse_combat_triplet(narration: str) -> Dict[str, any]:
         combat_data['damage'] = int(triplet_match.group(1))
         combat_data['soak'] = int(triplet_match.group(2))
         combat_data['post_soak_damage'] = int(triplet_match.group(3))
-        logger.info(f"Parsed combat triplet: {combat_data['damage']} damage, {combat_data['soak']} soaked, {combat_data['post_soak_damage']} final")
+        logger.debug(f"Parsed combat triplet: {combat_data['damage']} damage, {combat_data['soak']} soaked, {combat_data['post_soak_damage']} final")
     else:
         # Alternative: look for "takes X damage"
         damage_pattern = r'(?:takes|suffers)\s+(\d+)\s+damage'
@@ -873,7 +873,7 @@ def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
             effect['damage'] = int(damage_match.group(1))
             effect['soak'] = int(damage_match.group(2))
             effect['final'] = int(damage_match.group(3))
-            logger.info(f"Parsed damage effect: {effect['final']} final damage to {effect.get('target', 'unknown')}")
+            logger.debug(f"Parsed damage effect: {effect['final']} final damage to {effect.get('target', 'unknown')}")
         else:
             # Try just final damage
             final_match = re.search(r'(?:Final|Damage):\s*(\d+)', effect_block)
@@ -897,7 +897,7 @@ def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
         if penalty_match:
             effect['penalty'] = int(penalty_match.group(1))
 
-        logger.info(f"Parsed debuff effect: {effect.get('effect', 'unknown')} for {effect.get('duration', 3)} rounds")
+        logger.debug(f"Parsed debuff effect: {effect.get('effect', 'unknown')} for {effect.get('duration', 3)} rounds")
 
     elif effect.get('type') == 'status':
         # Parse status effect
@@ -911,7 +911,7 @@ def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
         else:
             effect['duration'] = 3  # Default 3 rounds
 
-        logger.info(f"Parsed status effect: {effect.get('effect', 'unknown')}")
+        logger.debug(f"Parsed status effect: {effect.get('effect', 'unknown')}")
 
     elif effect.get('type') == 'movement':
         # Parse movement effect
@@ -924,7 +924,7 @@ def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
         if pos_match:
             effect['new_position'] = pos_match.group(1)
 
-        logger.info(f"Parsed movement effect: {effect.get('effect', 'unknown')}")
+        logger.debug(f"Parsed movement effect: {effect.get('effect', 'unknown')}")
 
     elif effect.get('type') == 'reveal':
         # Parse reveal/intel effect
@@ -937,7 +937,7 @@ def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
         if bonus_match:
             effect['bonus'] = int(bonus_match.group(1))
 
-        logger.info(f"Parsed reveal effect: {effect.get('effect', 'unknown')}")
+        logger.debug(f"Parsed reveal effect: {effect.get('effect', 'unknown')}")
 
     return effect if effect else None
 
@@ -981,7 +981,7 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
     # Tech/utility skills default to debuffs
     utility_skills = ['systems', 'engineering', 'investigation', 'perception']
 
-    logger.info(f"Generating fallback effect: skill={skill}, margin={margin}, has_damage_intent={has_damage_intent}")
+    logger.debug(f"Generating fallback effect: skill={skill}, margin={margin}, has_damage_intent={has_damage_intent}")
 
     # Determine effect type and magnitude
     if skill in combat_skills or (skill in hybrid_skills and has_damage_intent):
@@ -1106,7 +1106,7 @@ def generate_fallback_buff(action: Dict[str, any], resolution: Dict[str, any]) -
     has_shield_intent = any(kw in description or kw in intent for kw in shield_keywords)
     has_enhance_intent = any(kw in description or kw in intent for kw in enhance_keywords)
 
-    logger.info(f"Generating fallback buff: skill={skill}, margin={margin}, target={target_ally}")
+    logger.debug(f"Generating fallback buff: skill={skill}, margin={margin}, target={target_ally}")
 
     # Determine buff type and magnitude based on skill and intent
     if has_heal_intent or skill in ['medicine', 'first aid']:
