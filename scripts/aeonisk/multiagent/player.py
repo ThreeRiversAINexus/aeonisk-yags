@@ -962,11 +962,22 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 
         # Add tactical combat context (only when enemies are active)
         tactical_combat_context = ""
+        logger.debug(f"Checking tactical combat context for {self.character_state.name}")
+        logger.debug(f"  has shared_state: {self.shared_state is not None}")
+        if self.shared_state:
+            logger.debug(f"  has enemy_combat attr: {hasattr(self.shared_state, 'enemy_combat')}")
+
         if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
             enemy_combat = self.shared_state.enemy_combat
+            logger.debug(f"  enemy_combat exists: {enemy_combat is not None}")
+            if enemy_combat:
+                logger.debug(f"  enemy_combat.enabled: {enemy_combat.enabled}")
+                logger.debug(f"  enemy_agents count: {len(enemy_combat.enemy_agents)}")
+
             if enemy_combat and enemy_combat.enabled and len(enemy_combat.enemy_agents) > 0:
                 from .enemy_agent import get_active_enemies
                 active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+                logger.debug(f"  active_enemies count: {len(active_enemies)}")
 
                 if active_enemies:
                     # Build enemy positions summary
