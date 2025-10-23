@@ -65,6 +65,8 @@ class SelfPlayingSession:
         # Initialize enemy combat manager
         self.enemy_combat = EnemyCombatManager()
         self.enemy_combat.initialize(self.config)
+        # Add to shared state so players can access it for tactical prompts
+        self.shared_state.enemy_combat = self.enemy_combat
         if self.enemy_combat.enabled:
             print("✓ Enemy combat manager ENABLED")
         else:
