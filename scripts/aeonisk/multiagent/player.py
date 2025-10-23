@@ -1073,7 +1073,15 @@ SKILL: [which skill or None]
 DIFFICULTY: [estimate]
 JUSTIFICATION: [why that difficulty]
 ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
-DESCRIPTION: [narrative description]"""
+TARGET_POSITION: [if moving: Engaged/Near-PC/Far-PC/Extreme-PC/Near-Enemy/Far-Enemy/Extreme-Enemy, otherwise: None]
+DESCRIPTION: [narrative description]
+
+**IMPORTANT:** If ACTION_TYPE is combat and you're moving, you MUST specify TARGET_POSITION!
+Examples:
+- Charging into melee: TARGET_POSITION: Engaged
+- Falling back: TARGET_POSITION: Far-PC
+- Flanking movement: TARGET_POSITION: Near-Enemy
+- Not moving: TARGET_POSITION: None"""
 
         try:
             provider = self.llm_config.get('provider', 'anthropic')
@@ -1200,6 +1208,15 @@ Now that you have this information, declare your action using the required forma
             'charisma': 'Charisma'
         }
 
+        # Valid tactical positions
+        VALID_POSITIONS = {
+            'engaged', 'near-pc', 'far-pc', 'extreme-pc',
+            'near-enemy', 'far-enemy', 'extreme-enemy'
+        }
+
+        # Track if player specified a position change
+        target_position = None
+
         # Parse fields from LLM output
         for line in lines:
             if ':' in line:
@@ -1226,8 +1243,21 @@ Now that you have this information, declare your action using the required forma
                     data['difficulty_justification'] = value
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
+                elif 'target_position' in key:
+                    # Extract position if specified
+                    value_lower = value.lower()
+                    if value_lower != 'none' and value_lower in VALID_POSITIONS:
+                        target_position = value
+                        logger.info(f"{self.character_state.name} declared position change: {self.position} → {target_position}")
                 elif 'description' in key:
                     data['description'] = value
+
+        # Update player position if they declared a move
+        if target_position:
+            old_position = self.position
+            self.position = target_position
+            print(f"[{self.character_state.name}] Position: {old_position} → {self.position}")
+            logger.info(f"{self.character_state.name} moved from {old_position} to {self.position}")
 
         try:
             return ActionDeclaration(**data)
