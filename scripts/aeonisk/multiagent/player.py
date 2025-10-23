@@ -975,7 +975,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                 logger.debug(f"  enemy_agents count: {len(enemy_combat.enemy_agents)}")
 
             if enemy_combat and enemy_combat.enabled and len(enemy_combat.enemy_agents) > 0:
-                from .enemy_agent import get_active_enemies
+                from .enemy_spawner import get_active_enemies
                 active_enemies = get_active_enemies(enemy_combat.enemy_agents)
                 logger.debug(f"  active_enemies count: {len(active_enemies)}")
 
