@@ -1217,6 +1217,15 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         outcomes_text = "\n".join(outcomes_summary)
 
+        # Apply all queued clock updates (batch application prevents cascade fills)
+        clock_updates_applied = {}
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                clock_updates_applied = mechanics.apply_queued_clock_updates()
+                if clock_updates_applied:
+                    logger.info(f"Applied {len(clock_updates_applied)} queued clock updates during synthesis")
+
         # Get current clock state and check for filled clocks
         clock_state_text = ""
         filled_clocks_text = ""
@@ -1283,24 +1292,23 @@ The air carries a distinct tension, and you sense the void's influence at level 
         if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
-**SPAWN ENEMIES (OPTIONAL):**
-You can spawn autonomous enemies whenever the narrative warrants it:
+**SPAWN ENEMIES - CLOCK FILLS ONLY:**
+⚠️  **CRITICAL RESTRICTION**: You may ONLY spawn enemies when a clock with [SPAWN_ENEMY: ...] in its filled_consequence actually fills!
+
+❌ **FORBIDDEN**: Do NOT spawn enemies in general narration
+❌ **FORBIDDEN**: Do NOT add [SPAWN_ENEMY: ...] to dramatic descriptions
+❌ **FORBIDDEN**: Do NOT spawn "because it feels dramatic"
+
+✅ **ALLOWED**: ONLY when you see "🎯 When filled: [SPAWN_ENEMY: ...]" in the clock list above
 
 Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
-Example: [SPAWN_ENEMY: Void Gremlins | grunt | 3 | Near-Enemy | aggressive_melee]
+Example from filled clock: [SPAWN_ENEMY: Security Team | grunt | 2 | Far-Enemy | tactical_ranged]
 
 Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
 Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
 Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
 
-Good times to spawn:
-- Void corruption spreads → void creatures/entities emerge from reality tears
-- Security systems activate → automated defenses, combat drones, turrets
-- Reinforcements arrive → guards respond to alarms, gangs send backup
-- Environmental hazards become threats → corrupted wildlife, possessed NPCs
-- When combat would make the scene more dynamic and dangerous
-
-Match threat level to situation: 2-4 grunts for patrols, 1-2 elites for specialists, 1 boss for commanders."""
+**WHY THIS RESTRICTION**: Mid-round spawns bypass clock-based pacing and overwhelm players. Spawns must be predictable and tied to clock advancement."""
 
         # Use LLM to generate synthesis if available
         if self.llm_config:
@@ -1626,55 +1634,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 else:
                     logger.warning(f"Could not find ally '{target_ally_name}' to apply buff")
 
-            # Apply clock advancements
-            clock_final_states = {}  # Track final state of each clock for display
-            clock_deltas = []  # Track before/after for logging
+            # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
             for clock_name, ticks, reason in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
-                    clock = mechanics.scene_clocks[clock_name]
-                    before = clock.current
-                    maximum = clock.maximum
-
-                    if ticks < 0:
-                        # Negative ticks = regress (improve)
-                        clock.regress(abs(ticks))
-                        after = clock.current
-                        # Store final state (will be overwritten if multiple triggers for same clock)
-                        clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ↓"
-                        clock_deltas.append({
-                            'name': clock_name,
-                            'before': before,
-                            'after': after,
-                            'max': maximum,
-                            'delta': ticks,
-                            'reason': reason
-                        })
-                    else:
-                        # Positive ticks = advance (degrade)
-                        filled = mechanics.advance_clock(clock_name, ticks, reason)
-                        after = clock.current
-                        overflow = after - maximum
-                        if overflow > 0:
-                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)"
-                        else:
-                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum}"
-                        if filled and overflow == 0:
-                            # Add FILLED marker separately (always show even if clock updated multiple times)
-                            clock_final_states[f"{clock_name}_FILLED"] = f"🚨 {clock_name} FILLED!"
-                        clock_deltas.append({
-                            'name': clock_name,
-                            'before': before,
-                            'after': after,
-                            'max': maximum,
-                            'delta': ticks,
-                            'filled': filled,
-                            'reason': reason
-                        })
-
-            # Build deduplicated clock updates (only final state of each clock)
-            clock_updates = list(clock_final_states.values()) if clock_final_states else []
-            if clock_updates:
-                narration += "\n\n📊 " + " | ".join(clock_updates)
+                    mechanics.queue_clock_update(clock_name, ticks, reason)
+                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason})")
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -1917,33 +1881,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 sc_reasons = [c for c in ritual_effects.get('consequences', []) if 'SC)' in c]
                 state_changes['soulcredit_reasons'].extend(sc_reasons)
 
-            # Apply clock advancements (positive=advance, negative=regress)
-            clock_final_states = {}  # Track final state of each clock for display (deduplicated)
+            # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
             for clock_name, ticks, reason in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
-                    if ticks < 0:
-                        # Negative ticks = regress (improve)
-                        mechanics.scene_clocks[clock_name].regress(abs(ticks))
-                        clock = mechanics.scene_clocks[clock_name]
-                        # Store final state (will be overwritten if multiple triggers for same clock)
-                        clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ↓"
-                    else:
-                        # Positive ticks = advance (degrade)
-                        filled = mechanics.advance_clock(clock_name, ticks, reason)
-                        clock = mechanics.scene_clocks[clock_name]
-                        overflow = clock.current - clock.maximum
-                        if overflow > 0:
-                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum} ⚠️  (+{overflow} OVERFLOW)"
-                        else:
-                            clock_final_states[clock_name] = f"{clock_name}: {clock.current}/{clock.maximum}"
-                        if filled and overflow == 0:
-                            # Add FILLED marker separately (always show even if clock updated multiple times)
-                            clock_final_states[f"{clock_name}_FILLED"] = f"🚨 {clock_name} FILLED!"
-
-            # Build deduplicated clock updates (only final state of each clock)
-            clock_updates = list(clock_final_states.values()) if clock_final_states else []
-            if clock_updates:
-                narration += "\n\n📊 " + " | ".join(clock_updates)
+                    mechanics.queue_clock_update(clock_name, ticks, reason)
+                    logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason})")
 
             # Extract and record party discoveries from successful actions
             if resolution.success and resolution.margin >= 5:
@@ -2338,6 +2280,7 @@ Available Actions:
 - **Attack**: Roll attack with range penalty based on distance to target
 - **Claim Cover/High Ground (Minor)**: Attempt to claim tactical token
 - **Disengage (Minor)**: Athletics DC 20 to shift without provoking Breakaway
+- **Escape (Major)**: Move beyond Extreme-PC to flee combat entirely (Athletics DC 20, only from Extreme-PC or Far-PC)
 
 **DAMAGE SYSTEM** - When players attack enemies:
 If player ACTION includes TARGET_ENEMY field and succeeds at Combat check:
@@ -2405,7 +2348,12 @@ Players using social manipulation, hacking, or environmental tactics can deal da
 When adjudicating:
 - Basic tactical movement → Just happens, narrate + [POSITION: X]
 - Skill-based movement → Roll skill, grant benefit on success, position changes either way with [POSITION: X]
-- Apply range modifiers to attacks based on positions"""
+- Apply range modifiers to attacks based on positions
+- **Escape attempts**: Athletics DC 20 (or harder in pursuit scenarios)
+  * Success: Player flees combat → [POSITION: ESCAPED] → Remove from combat tracking
+  * Failure: Player remains at current position, turn wasted
+  * Critical success (margin 10+): Clean getaway, no pursuit possible
+  * Must be at Far-PC or Extreme-PC to attempt (can't escape from melee)"""
 
         # Add clock context
         clock_context = ""
