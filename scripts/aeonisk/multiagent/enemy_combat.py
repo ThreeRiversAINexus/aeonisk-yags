@@ -166,9 +166,9 @@ class EnemyCombatManager:
 
         if self.enabled:
             self.config = session_config.get('enemy_agent_config', {})
-            logger.info("Enemy combat manager initialized (ENABLED)")
+            logger.debug("Enemy combat manager initialized (ENABLED)")
         else:
-            logger.info("Enemy combat manager initialized (DISABLED)")
+            logger.debug("Enemy combat manager initialized (DISABLED)")
 
     def process_dm_narration(self, narration: str) -> List[str]:
         """

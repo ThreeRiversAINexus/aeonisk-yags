@@ -56,7 +56,7 @@ class KnowledgeRetrieval:
             persist_dir = Path.home() / ".aeonisk" / "chromadb"
             persist_dir.mkdir(parents=True, exist_ok=True)
 
-            logger.info(f"🔧 Initializing ChromaDB at {persist_dir}")
+            logger.debug(f"🔧 Initializing ChromaDB at {persist_dir}")
 
             self.client = chromadb.Client(Settings(
                 persist_directory=str(persist_dir),
@@ -71,12 +71,12 @@ class KnowledgeRetrieval:
 
             # Index content if collection is empty
             if self.collection.count() == 0:
-                logger.info("📚 Collection is empty, indexing content files...")
+                logger.debug("📚 Collection is empty, indexing content files...")
                 self._index_content()
             else:
-                logger.info(f"✅ ChromaDB ready with {self.collection.count()} documents")
+                logger.debug(f"✅ ChromaDB ready with {self.collection.count()} documents")
 
-            logger.info(f"✅ ChromaDB ACTIVE - Using semantic search for knowledge retrieval")
+            logger.debug(f"✅ ChromaDB ACTIVE - Using semantic search for knowledge retrieval")
 
         except Exception as e:
             logger.error(f"❌ Failed to initialize ChromaDB: {e}")
@@ -111,11 +111,11 @@ class KnowledgeRetrieval:
         if not self.collection:
             return
 
-        logger.info("Indexing content files...")
+        logger.debug("Indexing content files...")
 
         # Find all markdown files from content directory (including subdirectories like supplemental/)
         md_files = list(self.content_dir.rglob("*.md"))
-        logger.info(f"Found {len(md_files)} markdown files in content directory")
+        logger.debug(f"Found {len(md_files)} markdown files in content directory")
 
         # Also include YAGS core files
         project_root = self.content_dir.parent
@@ -128,7 +128,7 @@ class KnowledgeRetrieval:
                 if yags_file.exists():
                     md_files.append(yags_file)
                     yags_count += 1
-            logger.info(f"Added {yags_count} YAGS core files")
+            logger.debug(f"Added {yags_count} YAGS core files")
 
         documents = []
         metadatas = []
@@ -163,7 +163,7 @@ class KnowledgeRetrieval:
                 metadatas=metadatas,
                 ids=ids
             )
-            logger.info(f"Indexed {len(documents)} sections from {len(md_files)} files")
+            logger.debug(f"Indexed {len(documents)} sections from {len(md_files)} files")
 
     def _split_into_sections(self, content: str, source: str) -> List[Dict[str, Any]]:
         """Split markdown content into logical sections."""
@@ -349,7 +349,7 @@ class KnowledgeRetrieval:
         Returns:
             Formatted string ready for prompt inclusion
         """
-        logger.info(f"📖 Knowledge Query for Prompt: '{query}'")
+        logger.debug(f"📖 Knowledge Query for Prompt: '{query}'")
 
         results = self.query(query, n_results=2)
 
@@ -367,10 +367,10 @@ class KnowledgeRetrieval:
 
             # Log what's being included in the prompt
             preview = content[:100].replace('\n', ' ')
-            logger.info(f"  Including chunk {idx+1}: [{source}] § {heading}")
+            logger.debug(f"  Including chunk {idx+1}: [{source}] § {heading}")
             logger.debug(f"    Preview: {preview}...")
 
         final_output = formatted[:max_length]
-        logger.info(f"✅ Knowledge context added to prompt ({len(final_output)} chars)")
+        logger.debug(f"✅ Knowledge context added to prompt ({len(final_output)} chars)")
 
         return final_output

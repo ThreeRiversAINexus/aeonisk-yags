@@ -73,7 +73,7 @@ class AIDMAgent(Agent):
         
     async def on_start(self):
         """Initialize DM agent."""
-        logger.info(f"AI DM {self.agent_id} started")
+        logger.debug(f"AI DM {self.agent_id} started")
         
         # Announce readiness
         self.send_message_sync(
@@ -88,7 +88,7 @@ class AIDMAgent(Agent):
         
     async def on_shutdown(self):
         """Cleanup on shutdown."""
-        logger.info(f"AI DM {self.agent_id} shutting down")
+        logger.debug(f"AI DM {self.agent_id} shutting down")
         
     async def _handle_session_start(self, message: Message):
         """Handle session start - generate initial scenario."""
@@ -161,10 +161,10 @@ class AIDMAgent(Agent):
 
         # Use vendor-gated or combat scenario if requested
         if force_vendor_gate:
-            logger.info("Force vendor gate enabled - using vendor-gated scenario template")
+            logger.debug("Force vendor gate enabled - using vendor-gated scenario template")
             scenario_data = self._create_vendor_gated_scenario()
         elif force_combat:
-            logger.info("Force combat enabled - using combat scenario template")
+            logger.debug("Force combat enabled - using combat scenario template")
             scenario_data = self._create_combat_scenario(config)
         else:
             # Use LLM to generate dynamic scenario
@@ -317,7 +317,7 @@ IMPORTANT:
             eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == required_type]
             if eligible_vendors:
                 active_vendor = random.choice(eligible_vendors)
-                logger.info(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
+                logger.debug(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
                 print(f"[DM {self.agent_id}] 🔒 VENDOR REQUIRED: {active_vendor.name}")
             else:
                 logger.error(f"No vendor of type {required_type} available!")
@@ -793,10 +793,10 @@ IMPORTANT:
         scenario_index = config.get('combat_scenario_index')
         if scenario_index is not None and 0 <= scenario_index < len(templates):
             template = templates[scenario_index]
-            logger.info(f"Using specified combat scenario index {scenario_index}: {template['theme']}")
+            logger.debug(f"Using specified combat scenario index {scenario_index}: {template['theme']}")
         else:
             template = random.choice(templates)
-            logger.info(f"Using random combat scenario: {template['theme']}")
+            logger.debug(f"Using random combat scenario: {template['theme']}")
 
         return {
             'theme': template['theme'],
@@ -1264,7 +1264,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
             if mechanics:
                 clock_updates_applied = mechanics.apply_queued_clock_updates()
                 if clock_updates_applied:
-                    logger.info(f"Applied {len(clock_updates_applied)} queued clock updates during synthesis")
+                    logger.debug(f"Applied {len(clock_updates_applied)} queued clock updates during synthesis")
 
                 # Check for expired clocks after applying updates
                 expired_clocks = mechanics.check_and_expire_clocks()
@@ -1583,7 +1583,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if not effect and resolution and resolution.success:
                     effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
                     if effect:
-                        logger.info(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
+                        logger.debug(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -1760,7 +1760,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if resolution and resolution.success:
                     buff = generate_fallback_buff(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
                     if buff:
-                        logger.info(f"Generated fallback buff: {buff.get('type')} for {buff.get('target')}")
+                        logger.debug(f"Generated fallback buff: {buff.get('type')} for {buff.get('target')}")
 
             # Apply buff to ally if we have one
             if buff and self.shared_state:
@@ -1892,7 +1892,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         new_position_str = state_changes['position_change']
                         new_position = Position.from_string(new_position_str)
                         player_agent.position = new_position
-                        logger.info(f"Updated {player_id} position: {old_position} → {new_position}")
+                        logger.debug(f"Updated {player_id} position: {old_position} → {new_position}")
                         # Position change is already in narration from DM, no need to add here
                     except Exception as e:
                         logger.error(f"Failed to update player position: {e}")
@@ -2150,7 +2150,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         new_position_str = state_changes['position_change']
                         new_position = Position.from_string(new_position_str)
                         player_agent.position = new_position
-                        logger.info(f"Updated {player_id} position: {old_position} → {new_position}")
+                        logger.debug(f"Updated {player_id} position: {old_position} → {new_position}")
                         # Position change is already in narration from DM, no need to add here
                     except Exception as e:
                         logger.error(f"Failed to update player position: {e}")
