@@ -1,0 +1,93 @@
+{
+  "session_name": "test4_mixed_damage_split",
+  "max_turns": 2,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_test": "=== TEST 4: MIXED DAMAGE SPLIT ===",
+  "_comment_goal": "Verify mixed damage weapons split damage correctly (odd→stun, even→wound)",
+  "_comment_enemy": "1 test_punching_bag (50 HP, Willpower 6, fight_to_death) - durable for extended testing",
+  "_comment_expected": "Combat knife hits: 15 total damage → 8 stuns (odd), 7 wounds (even)",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": false,
+    "max_enemies_per_combat": 1,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+
+  "force_scenario": "[SPAWN_ENEMY: Training Dummy | test_punching_bag | 1 | Near-Enemy | aggressive_melee | personality:fight_to_death]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 4,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "melee_specialist"
+      },
+      "goals": [
+        "Test mixed damage weapon (combat_knife) against training dummy",
+        "Verify damage splits correctly: odd points → stuns, even points → wounds",
+        "Example: 15 damage → 8 stuns + 7 wounds (round up for stuns)"
+      ],
+      "attributes": {
+        "Strength": 5,
+        "Agility": 4,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 3,
+        "Willpower": 4,
+        "Charisma": 4,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Brawl": 5,
+        "Melee": 5,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 5,
+        "Persuasion": 3
+      },
+      "equipped_weapons": {
+        "primary": "combat_knife",
+        "sidearm": "combat_knife"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "combat_knife": 2
+      }
+    }
+    ]
+  },
+  "notes": "TEST 4: Mixed damage split. Spawn 1 test_punching_bag (50 HP, no soak). Kael attacks with combat_knife (mixed damage). Verify: apply_mixed_damage() splits correctly - odd damage points become stuns, even become wounds. Example: 15 damage = 8 stuns (rounds up) + 7 wounds. Check JSONL combat_action events show both stun_level and wounds increasing."
+}

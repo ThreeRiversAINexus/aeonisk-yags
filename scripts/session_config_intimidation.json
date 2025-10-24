@@ -1,0 +1,154 @@
+{
+  "session_name": "intimidation_social_pressure_test",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_scenario": "=== TEST SCENARIO 2: INTIMIDATION & SOCIAL PRESSURE ===",
+  "_comment_goal": "Test morale triggers, social intimidation, surrender mechanics, prisoner interrogation",
+  "_comment_enemies": "3 grunts + 1 elite leader in dead-end alley - scared but armed",
+  "_comment_expected": "Leader fights longer, grunts surrender/flee when leader falls or after intimidation success",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_spawn_grunts": "DM: [SPAWN_ENEMY: Smuggler Crew | grunt | 3 | Near-Enemy | aggressive_melee | personality:flee_when_broken]",
+  "_comment_spawn_leader": "DM: [SPAWN_ENEMY: Smuggler Captain | elite | 1 | Near-Enemy | tactical_ranged | personality:surrender_if_cornered]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 6,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "tactical_intimidator"
+      },
+      "goals": [
+        "Use intimidation to force surrender before bloodshed",
+        "Capture leader for interrogation (intel on smuggling network)",
+        "Demonstrate tactical superiority to demoralize criminals"
+      ],
+      "attributes": {
+        "Strength": 4,
+        "Agility": 3,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 2,
+        "Willpower": 4,
+        "Charisma": 5,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Guns": 5,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 6,
+        "Persuasion": 3
+      },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "shock_baton"
+      },
+      "carried_weapons": ["stun_gun", "combat_knife"],
+      "inventory": {
+        "pistol": 1,
+        "shock_baton": 1,
+        "stun_gun": 1,
+        "combat_knife": 1,
+        "riot_carapace": 1,
+        "restraint_cuffs": 4,
+        "med_kit": 1
+      }
+    },
+    {
+      "name": "Drifter Sable",
+      "pronouns": "they/them",
+      "faction": "Freeborn Loner",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 7,
+        "voidCuriosity": 5,
+        "bondPreference": "avoids",
+        "ritualConservatism": 3,
+        "combat_style": "pragmatic_survivor"
+      },
+      "goals": [
+        "Avoid unnecessary killing (keeps profile low)",
+        "Use fear and reputation to end fights quickly",
+        "Get intel on smuggling routes (might be useful later)"
+      ],
+      "attributes": {
+        "Strength": 3,
+        "Agility": 5,
+        "Endurance": 4,
+        "Perception": 5,
+        "Intelligence": 4,
+        "Empathy": 3,
+        "Willpower": 4,
+        "Charisma": 3,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Stealth": 6,
+        "Guns": 5,
+        "Awareness": 6,
+        "Athletics": 5,
+        "Intimidation": 4,
+        "Persuasion": 4
+      },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
+      "carried_weapons": ["stun_gun"],
+      "inventory": {
+        "pistol": 1,
+        "combat_knife": 1,
+        "stun_gun": 1,
+        "void_cloak": 1,
+        "restraint_cuffs": 2,
+        "med_kit": 1
+      }
+    }
+    ]
+  },
+  "notes": "INTIMIDATION TEST: Cornered smugglers in dead-end alley. Test morale system, social intimidation mechanics, surrender vs flee behavior. Setup: 3 scared grunts + 1 experienced leader. Players should attempt intimidation first (numbers advantage 2v4, but enemies cornered). Expected outcomes: (1) Grunts flee when demoralized, OR (2) Leader surrenders if isolated, OR (3) Some mix of flee/surrender/fight. Test social skill checks (Intimidation vs Willpower) to force morale checks early."
+}

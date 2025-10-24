@@ -1,0 +1,147 @@
+{
+  "session_name": "test5_personality_types",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_test": "=== TEST 5: PERSONALITY TYPES ===",
+  "_comment_goal": "Verify all 3 personality types behave correctly when morale breaks",
+  "_comment_enemies": "3 enemies with different personalities, all brought to morale threshold",
+  "_comment_expected": "fight_to_death stays, flee_when_broken flees, surrender_if_cornered surrenders",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": false,
+    "max_enemies_per_combat": 3,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+
+  "force_scenario": "[SPAWN_ENEMY: Fanatic | test_fanatic | 1 | Near-Enemy | aggressive_melee | personality:fight_to_death] [SPAWN_ENEMY: Coward | test_coward | 1 | Near-Enemy | tactical_ranged | personality:flee_when_broken]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 4,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "tactical_tester"
+      },
+      "goals": [
+        "Damage all three enemies to <25% HP to trigger morale checks",
+        "Observe different behaviors: one fights on, one flees, one surrenders",
+        "Verify personality types work as designed"
+      ],
+      "attributes": {
+        "Strength": 5,
+        "Agility": 4,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 3,
+        "Willpower": 5,
+        "Charisma": 5,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Brawl": 5,
+        "Guns": 5,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 5,
+        "Persuasion": 4
+      },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "pistol": 1,
+        "combat_knife": 1,
+        "restraint_cuffs": 4
+      }
+    },
+    {
+      "name": "Medic Aria Vex",
+      "pronouns": "she/her",
+      "faction": "Sovereign Union Medical Corps",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 3,
+        "voidCuriosity": 2,
+        "bondPreference": "seeks",
+        "ritualConservatism": 7,
+        "combat_style": "support_tactical"
+      },
+      "goals": [
+        "Assist Kael in testing enemy personalities",
+        "Track which enemies flee, fight, or surrender",
+        "Provide covering fire and tactical support"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 4,
+        "Endurance": 3,
+        "Perception": 4,
+        "Intelligence": 4,
+        "Empathy": 5,
+        "Willpower": 4,
+        "Charisma": 4,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 3,
+        "Guns": 4,
+        "Medicine": 5,
+        "Awareness": 4,
+        "Athletics": 3,
+        "Persuasion": 5,
+        "Empathy": 5
+      },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "stun_gun"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "pistol": 1,
+        "stun_gun": 1,
+        "med_kit": 3
+      }
+    }
+    ]
+  },
+  "notes": "TEST 5: Personality types. DM should spawn 3 enemies:\n1. [SPAWN_ENEMY: Fanatic | test_fanatic | 1 | Near-Enemy | aggressive_melee | personality:fight_to_death]\n2. [SPAWN_ENEMY: Coward | test_coward | 1 | Near-Enemy | tactical_ranged | personality:flee_when_broken] (note: spawns may be capped at 2, might need multiple spawn waves)\n3. [SPAWN_ENEMY: Desperate | test_coward | 1 | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]\n\nDamage all to <25% HP. Verify morale checks: fight_to_death keeps fighting, flee_when_broken flees, surrender_if_cornered surrenders."
+}

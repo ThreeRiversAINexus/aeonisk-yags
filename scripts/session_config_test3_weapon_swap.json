@@ -1,0 +1,97 @@
+{
+  "session_name": "test3_weapon_swapping",
+  "max_turns": 3,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_test": "=== TEST 3: WEAPON SWAPPING ===",
+  "_comment_goal": "Verify players can swap weapons mid-combat, damage type changes correctly",
+  "_comment_enemy": "1 test_fanatic (25 HP, Willpower 5, fight_to_death) - resists intimidation, forces lethal switch",
+  "_comment_expected": "Try non-lethal → fail to intimidate → swap to pistol → wound damage applied",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": false,
+    "max_enemies_per_combat": 1,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+
+  "force_scenario": "[SPAWN_ENEMY: Void Fanatic | test_fanatic | 1 | Near-Enemy | aggressive_melee | personality:fight_to_death]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 5,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "adaptive_tactical"
+      },
+      "goals": [
+        "Start with shock baton (non-lethal approach)",
+        "Attempt intimidation against fanatic (will likely fail - Willpower 5)",
+        "When non-lethal fails, swap to pistol and use lethal force",
+        "Verify weapon swap action works and damage type changes stun→wound"
+      ],
+      "attributes": {
+        "Strength": 5,
+        "Agility": 4,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 2,
+        "Willpower": 5,
+        "Charisma": 4,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Brawl": 5,
+        "Guns": 5,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 5,
+        "Persuasion": 2
+      },
+      "equipped_weapons": {
+        "primary": "shock_baton",
+        "sidearm": "pistol"
+      },
+      "carried_weapons": ["rifle"],
+      "inventory": {
+        "shock_baton": 1,
+        "pistol": 1,
+        "rifle": 1,
+        "restraint_cuffs": 2
+      }
+    }
+    ]
+  },
+  "notes": "TEST 3: Weapon swapping. Spawn 1 test_fanatic (25 HP, Willpower 5, fight_to_death). Round 1: Shock baton (stun damage). Round 2: Intimidate (likely fails - high Willpower). Round 3: Swap to pistol, shoot (wound damage). Expected: Stun damage logged first, then wound damage after swap. Verify combat_action events show correct weapon and damage_type."
+}

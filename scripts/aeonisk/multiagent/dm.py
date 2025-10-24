@@ -47,6 +47,7 @@ class AIDMAgent(Agent):
         shared_state: Optional[SharedState] = None,
         prompt_enricher: Optional[Callable[..., str]] = None,
         history_supplier: Optional[Callable[[], Iterable[str]]] = None,
+        force_scenario: Optional[str] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -57,6 +58,7 @@ class AIDMAgent(Agent):
         self.shared_state = shared_state
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
+        self.force_scenario = force_scenario  # For automated testing
 
         # Vendor pool for random encounters
         self.vendor_pool = create_standard_vendors()
@@ -102,6 +104,12 @@ class AIDMAgent(Agent):
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI with lore grounding."""
+        # Check for forced scenario (automated testing)
+        if self.force_scenario:
+            logger.info(f"Using forced scenario for testing: {self.force_scenario}")
+            await self._use_forced_scenario(self.force_scenario, config)
+            return
+
         # Check if vendor-gated or combat scenario is requested
         force_vendor_gate = config.get('force_vendor_gate', False)
         force_combat = config.get('force_combat', False)
@@ -420,7 +428,50 @@ IMPORTANT:
             from pathlib import Path
             dm_notes_path = Path('./multiagent_output') / 'dm_notes.json'
             self.shared_state.save_dm_notes(str(dm_notes_path))
-        
+
+    async def _use_forced_scenario(self, spawn_marker: str, config: Dict[str, Any]):
+        """Use a forced scenario for automated testing (bypasses AI generation)."""
+        # Create minimal scenario object
+        scenario = Scenario(
+            theme="Test Scenario",
+            location="Test Location",
+            situation=spawn_marker,
+            active_npcs=[],
+            environmental_factors=[],
+            void_level=0,
+            active_vendor=None
+        )
+        self.current_scenario = scenario
+
+        # Prepare scenario data
+        scenario_data = {
+            'theme': scenario.theme,
+            'location': scenario.location,
+            'situation': scenario.situation,
+            'void_level': scenario.void_level,
+            'vendor': None
+        }
+
+        # Log scenario
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_scenario(scenario_data)
+
+        # Broadcast scenario setup
+        self.send_message_sync(
+            MessageType.SCENARIO_SETUP,
+            None,  # broadcast
+            {
+                'scenario': scenario_data,
+                'opening_narration': f"Test scenario initialized. {spawn_marker}",
+                'faction_conflicts': []
+            }
+        )
+
+        print(f"\n[DM {self.agent_id}] Using forced test scenario")
+        print(f"Spawn marker: {spawn_marker}")
+
     async def _request_human_scenario(self, config: Dict[str, Any]):
         """Request scenario from human DM."""
         print(f"\n[HUMAN DM {self.agent_id}] Please describe the opening scenario:")
@@ -1822,6 +1873,129 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 else:
                     logger.warning(f"Could not find ally '{target_ally_name}' to apply buff")
 
+            # Parse social de-escalation markers ([ENEMY_SURRENDER:], [ENEMY_FLEE:])
+            import re
+            surrender_pattern = r'\[ENEMY_SURRENDER:\s*([^\]]+)\]'
+            flee_pattern = r'\[ENEMY_FLEE:\s*([^\]]+)\]'
+
+            surrender_matches = re.findall(surrender_pattern, narration)
+            flee_matches = re.findall(flee_pattern, narration)
+
+            if surrender_matches or flee_matches:
+                if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+                    enemy_combat = self.shared_state.enemy_combat
+                    if enemy_combat:
+                        from .enemy_spawner import get_active_enemies
+
+                        # Process surrenders
+                        for enemy_name_raw in surrender_matches:
+                            enemy_name = enemy_name_raw.strip()
+                            active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                            # Find matching enemy (fuzzy match)
+                            target_enemy = None
+                            for enemy in active_enemies:
+                                if enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in enemy_name.lower():
+                                    target_enemy = enemy
+                                    break
+
+                            if target_enemy:
+                                # Mark enemy as surrendered (prisoner)
+                                target_enemy.is_active = False
+                                target_enemy.status_effects.append("prisoner")
+                                logger.info(f"Social action: {target_enemy.name} surrendered (prisoner)")
+
+                                # Track prisoner in session
+                                if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                                    session = self.shared_state.session
+                                    if not hasattr(session, 'prisoners'):
+                                        session.prisoners = []
+                                    session.prisoners.append({
+                                        'name': target_enemy.name,
+                                        'round': mechanics.current_round if mechanics else 0,
+                                        'method': 'intimidation/persuasion'
+                                    })
+
+                                # Log social de-escalation event
+                                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                    # Detect action type from action intent/description
+                                    action_type = "intimidation"  # Default
+                                    intent_lower = (action.get('intent', '') + action.get('description', '')).lower()
+                                    if 'persuade' in intent_lower or 'convince' in intent_lower or 'negotiate' in intent_lower:
+                                        action_type = "persuasion"
+
+                                    skill = action.get('skill', 'Intimidation' if action_type == 'intimidation' else 'Persuasion')
+
+                                    mechanics.jsonl_logger.log_social_deescalation(
+                                        round_num=mechanics.current_round,
+                                        player_id=player_id,
+                                        player_name=action.get('character', 'Unknown'),
+                                        enemy_id=target_enemy.agent_id,
+                                        enemy_name=target_enemy.name,
+                                        action_type=action_type,
+                                        skill=skill,
+                                        roll_total=resolution.total if resolution else 0,
+                                        dc=resolution.difficulty if resolution else 20,
+                                        success=resolution.success if resolution else True,
+                                        margin=resolution.margin if resolution else 10,
+                                        outcome="surrender",
+                                        narration=narration[:500]  # Truncate to 500 chars
+                                    )
+                            else:
+                                logger.warning(f"Could not find enemy '{enemy_name}' to mark as surrendered")
+
+                        # Process fleeing
+                        for enemy_name_raw in flee_matches:
+                            enemy_name = enemy_name_raw.strip()
+                            active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                            # Find matching enemy (fuzzy match)
+                            target_enemy = None
+                            for enemy in active_enemies:
+                                if enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in enemy_name.lower():
+                                    target_enemy = enemy
+                                    break
+
+                            if target_enemy:
+                                # Trigger morale flee (uses existing flee logic)
+                                target_enemy.is_active = False
+                                logger.info(f"Social action: {target_enemy.name} fled (intimidated)")
+
+                                # Advance escape clock if it exists
+                                if mechanics and mechanics.scene_clocks:
+                                    for clock_name in mechanics.scene_clocks:
+                                        if 'escape' in clock_name.lower() or 'retreat' in clock_name.lower():
+                                            mechanics.queue_clock_update(clock_name, 2, f"{target_enemy.name} fled from intimidation")
+                                            break
+
+                                # Log social de-escalation event
+                                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                    # Detect action type from action intent/description
+                                    action_type = "intimidation"  # Default for flee is intimidation
+                                    intent_lower = (action.get('intent', '') + action.get('description', '')).lower()
+                                    if 'persuade' in intent_lower or 'convince' in intent_lower or 'negotiate' in intent_lower:
+                                        action_type = "persuasion"
+
+                                    skill = action.get('skill', 'Intimidation' if action_type == 'intimidation' else 'Persuasion')
+
+                                    mechanics.jsonl_logger.log_social_deescalation(
+                                        round_num=mechanics.current_round,
+                                        player_id=player_id,
+                                        player_name=action.get('character', 'Unknown'),
+                                        enemy_id=target_enemy.agent_id,
+                                        enemy_name=target_enemy.name,
+                                        action_type=action_type,
+                                        skill=skill,
+                                        roll_total=resolution.total if resolution else 0,
+                                        dc=resolution.difficulty if resolution else 20,
+                                        success=resolution.success if resolution else True,
+                                        margin=resolution.margin if resolution else 10,
+                                        outcome="flee",
+                                        narration=narration[:500]  # Truncate to 500 chars
+                                    )
+                            else:
+                                logger.warning(f"Could not find enemy '{enemy_name}' to mark as fled")
+
             # Queue clock advancements (will be applied batch during synthesis to prevent cascades)
             for clock_name, ticks, reason, source in state_changes['clock_triggers']:
                 if clock_name in mechanics.scene_clocks:
@@ -2498,6 +2672,43 @@ Players using social manipulation, hacking, or environmental tactics can deal da
    - Margin 10-14: 7 damage (void corruption backlash)
    - Margin 5-9: 5 damage (mild void corruption backlash)
    - Example: "Your corporate authority overwhelms the Void Parasite's corrupted mind. Damage: 10 → Soak: 12 → Final: 0 (but confused for 1 round)"
+
+**💬 SOCIAL DE-ESCALATION (INTIMIDATION/PERSUASION):**
+When player attempts to intimidate or persuade enemies mid-combat:
+- **Check player's tactical advantage**: Numbers advantage? Enemy wounded? Allies down?
+- **Check enemy personality**: Grunts surrender more easily, elites/leaders resist, void-possessed/fanatics immune
+- **Roll Intimidation (Charisma) or Persuasion (Empathy) vs DC 15-25**
+  - DC 15: Enemy severely wounded (<25% HP), morale already broken
+  - DC 20: Enemy at disadvantage (outnumbered, cornered, allies down)
+  - DC 25: Enemy still confident, not desperate
+
+**On Success:**
+- **Exceptional/Critical (Margin 10+)**: Enemy immediately surrenders or flees
+  - Narrate: Enemy drops weapon, raises hands, begs for mercy OR enemy panics and runs
+  - Mark with: 🏳️ [ENEMY_SURRENDER: EnemyName] or 🏃 [ENEMY_FLEE: EnemyName]
+  - Example: "The smuggler's rifle clatters to the floor, hands raised high. 'I yield! Don't shoot!' 🏳️ [ENEMY_SURRENDER: Smuggler-2]"
+
+- **Good/Marginal (Margin 0-9)**: Enemy hesitates, forced morale check
+  - Narrate: Enemy wavers, looks at exits, checks fallen allies
+  - Apply morale penalty: -5 to enemy's next morale check
+  - Example: "The debt collector's hands shake, eyes darting to his unconscious partner. He backs toward the door but doesn't drop his weapon yet."
+
+**On Failure:**
+- Enemy rallies, may become emboldened (+5 morale bonus)
+- Narrate: Enemy laughs off threat, taunts player, attacks with renewed vigor
+- Example: "The cultist just grins, void energy crackling around him. 'Your threats mean NOTHING!' He charges forward with fanatical fury."
+
+**Enemy Types & Resistance:**
+- Grunts/Thugs: Easily intimidated (standard DC)
+- Elites/Leaders: Resistant (+5 DC)
+- Void-Possessed/Fanatics: IMMUNE (automatically fail, may trigger attack)
+- Coerced/Desperate: Very susceptible (-5 DC)
+
+**Context Modifiers:**
+- Player wielding lethal weapon at close range: -2 DC (more threatening)
+- Multiple enemies already down: -5 DC (morale broken)
+- Enemy cornered/no escape: -3 DC (desperate)
+- Enemy is last survivor: -5 DC (isolated)
 
 2. **Hacking** (Systems, Engineering to override/disable tech enemies):
    - Turn against others (Margin 15+): 12 damage (enemy attacks ally)

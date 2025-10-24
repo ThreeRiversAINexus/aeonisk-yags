@@ -191,49 +191,8 @@ class Position:
 # WEAPONS & ARMOR (YAGS-compatible)
 # =============================================================================
 
-@dataclass
-class Weapon:
-    """
-    YAGS weapon statistics.
-
-    YAGS Core Weapon Stats:
-    - attack: Bonus to attack rolls
-    - defence: Bonus to defense rolls
-    - damage: Bonus to damage rolls
-    - reach: Weapon length (affects close combat)
-    - load: Weight/bulkiness
-    """
-    name: str
-    skill: str  # "Brawl", "Melee", "Guns", "Throw"
-    attack: int  # Attack bonus
-    defence: int  # Defence bonus (for melee)
-    damage: int  # Damage bonus
-    damage_type: str  # "stun", "mixed", "wound"
-    reach: int = 0  # Weapon reach
-    load: int = 0  # Weight
-
-    # Ranged weapon stats
-    is_ranged: bool = False
-    short_range: int = 0  # meters
-    medium_range: int = 0
-    long_range: int = 0
-    increment: int = 0  # Accuracy measure
-    rof: int = 1  # Rate of fire
-    recoil: int = 0
-    capacity: int = 0  # Magazine size
-
-    # Special properties
-    special: List[str] = field(default_factory=list)  # ["suppress", "armor_piercing", etc.]
-
-
-@dataclass
-class Armor:
-    """YAGS armor statistics."""
-    name: str
-    soak_bonus: int  # Added to base soak
-    armor_type: str  # "light", "heavy", "bulletproof"
-    load: int  # Weight penalty
-    coverage: str = "full"  # "full", "partial", "head", etc.
+# NOTE: Weapon and Armor classes are now imported from weapons.py (shared module)
+from .weapons import Weapon, Armor
 
 
 # =============================================================================
@@ -364,6 +323,7 @@ class EnemyAgent:
     tactics: str = "aggressive_melee"  # Combat doctrine
     threat_priority: str = "closest_threat"  # Target selection strategy
     retreat_threshold: float = 0.3  # Morale % (0.0-1.0)
+    personality: str = "flee_when_broken"  # Morale behavior: flee_when_broken | surrender_if_cornered | fight_to_death
 
     # =========================================================================
     # AEONISK-SPECIFIC
@@ -385,6 +345,7 @@ class EnemyAgent:
     status_effects: List[str] = field(default_factory=list)  # ["stunned", "prone", "suppressed"]
     debuffs: List[Dict[str, Any]] = field(default_factory=list)  # Active debuffs with duration
     is_active: bool = True  # False if defeated/retreated
+    is_prisoner: bool = False  # True if surrendered/captured (can be interrogated)
     spawned_round: int = 0  # When they entered combat
     despawned_round: Optional[int] = None  # When they left combat
 
@@ -438,6 +399,56 @@ class EnemyAgent:
         """Check if health is below retreat threshold."""
         health_pct = self.get_health_percentage() / 100.0
         return health_pct <= self.retreat_threshold
+
+    def check_morale(self, trigger: str = "hp_below_25", dc: int = 15) -> Dict[str, Any]:
+        """
+        Check morale per YAGS rules. Enemy may surrender or flee.
+
+        Triggers:
+        - hp_below_25: Health < 25%
+        - last_survivor: All allies defeated/retreated
+        - critical_stuns: 5+ stuns (Critical threshold)
+
+        Check: Willpower + d20 vs DC 15 (lowered from 20 for better combat flow)
+        - DC 15: Standard morale check (Willpower 2-3 enemies have ~40-50% chance to break)
+        - Success: Continue fighting
+        - Failure: Surrender or flee (based on personality)
+
+        Returns:
+            Dict with success, roll info, and action (continue/surrender/flee)
+        """
+        import random
+
+        willpower = self.attributes.get('Willpower', 3)
+        d20 = random.randint(1, 20)
+        total = willpower + d20
+        success = total >= dc
+
+        # Determine action based on personality
+        action = "continue"
+        if not success:
+            # Morale broken - what do they do?
+            personality = getattr(self, 'personality', 'flee_when_broken')
+            if personality == 'fight_to_death':
+                action = "continue"  # Never give up (but morale still failed)
+            elif personality == 'surrender_if_cornered':
+                action = "surrender"
+            else:  # flee_when_broken (default)
+                action = "flee"
+
+        result = {
+            "success": success,
+            "trigger": trigger,
+            "willpower": willpower,
+            "d20": d20,
+            "total": total,
+            "dc": dc,
+            "margin": total - dc,
+            "action": action
+        }
+
+        logger.info(f"{self.name} morale check: {total} vs DC {dc} - {'SUCCESS' if success else 'FAILED'} → {action}")
+        return result
 
     def apply_damage(self, damage: int, damage_type: str = "wound") -> int:
         """
