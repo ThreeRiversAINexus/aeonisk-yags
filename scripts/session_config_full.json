@@ -46,14 +46,20 @@
           "Astral Arts": 5,
           "Attunement": 4,
           "Systems": 3,
-          "Awareness": 4
+          "Awareness": 4,
+          "Guns": 3
         },
         "void_score": 2,
         "soulcredit": 0,
         "goals": [
           "Explore void manipulation",
           "Advance Tempest interests"
-        ]
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": []
       },
       {
         "name": "Echo Resonance",
@@ -91,7 +97,11 @@
         "goals": [
           "Form meaningful bonds",
           "Support community harmony"
-        ]
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": []
       },
       {
         "name": "Vesper Karsel",
@@ -123,7 +133,8 @@
           "Charm": 4,
           "Awareness": 4,
           "Systems": 3,
-          "Debt Law": 4
+          "Debt Law": 4,
+          "Guns": 3
         },
         "void_score": 0,
         "soulcredit": 4,
@@ -132,8 +143,12 @@
           "Maintain high soulcredit standing",
           "Secure valuable bond contracts"
         ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
         "inventory": {
-          "debtbreaker_sidearm": 1,
+          "pistol": 1,
           "soulcredit_scanner": 1,
           "bond_contract_templates": 3,
           "spark_talisman": 3,
@@ -170,7 +185,10 @@
           "Athletics": 4,
           "Awareness": 4,
           "Intimidation": 3,
-          "Investigation": 3
+          "Investigation": 3,
+          "Guns": 5,
+          "Melee": 4,
+          "Brawl": 4
         },
         "void_score": 0,
         "soulcredit": 2,
@@ -179,10 +197,16 @@
           "Keep void score at 0 through cleansing rituals",
           "Uphold Pantheon protocols and law"
         ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife"],
         "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
           "urban_riot_carapace": 1,
-          "union_issue_pistol": 1,
-          "breach_hammer": 1,
           "purification_incense": 4,
           "pantheon_badge": 1,
           "blood_offering": 2
@@ -217,7 +241,8 @@
           "Attunement": 5,
           "Charm": 3,
           "Awareness": 3,
-          "Stealth": 3
+          "Stealth": 3,
+          "Melee": 3
         },
         "void_score": 3,
         "soulcredit": -4,
@@ -226,11 +251,15 @@
           "Regain standing with Resonance Communes",
           "Avoid further void corruption while doing risky work"
         ],
+        "equipped_weapons": {
+          "primary": "combat_knife"
+        },
+        "carried_weapons": [],
         "inventory": {
+          "combat_knife": 1,
           "crystal_focus": 1,
           "incense": 2,
           "drip_talisman": 2,
-          "conventional_blade": 1,
           "memory_crystal": 1
         },
         "pronouns": "they/them"
@@ -264,7 +293,8 @@
           "Systems": 5,
           "Stealth": 4,
           "Awareness": 4,
-          "Drone Operation": 4
+          "Drone Operation": 4,
+          "Guns": 3
         },
         "void_score": 4,
         "soulcredit": -1,
@@ -273,7 +303,12 @@
           "Prove void mastery is possible without total corruption",
           "Avoid tribunal and memory-wipe by staying useful"
         ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
         "inventory": {
+          "pistol": 1,
           "void_scanner": 1,
           "drone_controller": 1,
           "null_ritual_dampener": 1,
@@ -321,6 +356,10 @@
           "Maintain impeccable soulcredit record",
           "Document violations for tribunal proceedings"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "codex_dataslate": 1,
           "nexus_seal": 1,
@@ -367,6 +406,10 @@
           "Facilitate sanctioned bond formations",
           "Prevent unauthorized void exposure in gestation chambers"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "gestator_robes": 1,
           "bond_ritual_kit": 1,
@@ -405,7 +448,10 @@
           "Investigation": 5,
           "Awareness": 5,
           "Systems": 3,
-          "Intimidation": 4
+          "Intimidation": 4,
+          "Guns": 5,
+          "Brawl": 4,
+          "Melee": 3
         },
         "void_score": 0,
         "soulcredit": 3,
@@ -414,10 +460,17 @@
           "Track down illegal dissolution advocacy",
           "Build cases for Nexus tribunals"
         ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife"],
         "inventory": {
           "enforcer_badge": 1,
           "void_scanner": 1,
-          "union_issue_pistol": 1,
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
           "data_recorder": 1,
           "restraint_cuffs": 2,
           "purification_incense": 2
@@ -453,7 +506,8 @@
           "Corporate Influence": 5,
           "Charm": 4,
           "Investigation": 3,
-          "Awareness": 3
+          "Awareness": 3,
+          "Guns": 3
         },
         "void_score": 0,
         "soulcredit": 5,
@@ -462,11 +516,15 @@
           "Leverage soulcredit records for negotiation",
           "Maximize ACG profit margins on bond contracts"
         ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
         "inventory": {
           "ledger_access_chip": 1,
           "soulcredit_scanner": 1,
           "contract_enforcement_writ": 3,
-          "debtbreaker_sidearm": 1,
+          "pistol": 1,
           "incense": 2,
           "spark_talisman": 2
         },
@@ -509,6 +567,10 @@
           "Study spiritual genetics and pod optimization",
           "Advance ArcGen's biocreche protocols"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "gene_sequencer": 1,
           "biocreche_access_chip": 1,
@@ -556,6 +618,10 @@
           "Monitor genetic expression in developing souls",
           "Prevent unauthorized modifications to biocreche protocols"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "pod_maintenance_kit": 1,
           "diagnostic_scanner": 1,
@@ -593,7 +659,8 @@
           "Charm": 6,
           "Corporate Influence": 5,
           "Awareness": 4,
-          "Systems": 3
+          "Systems": 3,
+          "Guns": 2
         },
         "void_score": 0,
         "soulcredit": 4,
@@ -602,7 +669,12 @@
           "Gather compromising information for leverage",
           "Advance House of Vox media dominance"
         ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
         "inventory": {
+          "pistol": 1,
           "broadcast_access_chip": 1,
           "recording_drone": 1,
           "data_slate": 1,
@@ -649,6 +721,10 @@
           "Use intimacy rituals to influence targets",
           "Suppress anti-Nexus information"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "vox_credentials": 1,
           "memory_editor_module": 1,
@@ -686,7 +762,8 @@
           "Astral Arts": 6,
           "Attunement": 5,
           "Systems": 4,
-          "Investigation": 4
+          "Investigation": 4,
+          "Melee": 2
         },
         "void_score": 5,
         "soulcredit": -3,
@@ -695,7 +772,12 @@
           "Document void phenomena for Tempest archives",
           "Resist Nexus cleansing mandates"
         ],
+        "equipped_weapons": {
+          "primary": "combat_knife"
+        },
+        "carried_weapons": [],
         "inventory": {
+          "combat_knife": 1,
           "void_resonance_amplifier": 1,
           "hollow_seed": 3,
           "void_scanner": 1,
@@ -741,6 +823,10 @@
           "Map recursive soul structures",
           "Maintain independence from Nexus doctrine"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "fractal_lens": 1,
           "pattern_recorder": 1,
@@ -787,6 +873,10 @@
           "Prove consciousness is fractal in nature",
           "Avoid Nexus surveillance of philosophical research"
         ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
         "inventory": {
           "recursion_mirror": 1,
           "data_slate": 1,
@@ -825,7 +915,9 @@
           "Stealth": 5,
           "Awareness": 5,
           "Athletics": 4,
-          "Pilot": 3
+          "Pilot": 3,
+          "Guns": 4,
+          "Melee": 4
         },
         "void_score": 2,
         "soulcredit": -2,
@@ -834,10 +926,15 @@
           "Take only jobs that maintain autonomy",
           "Survive without bonds or corporate entanglements"
         ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
         "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
           "void_cloak": 1,
-          "conventional_blade": 1,
-          "smuggler_pistol": 1,
           "counterfeit_credentials": 2,
           "med_kit": 1,
           "drip_talisman": 2
@@ -873,7 +970,8 @@
           "Systems": 4,
           "Combat": 3,
           "Awareness": 4,
-          "Stealth": 3
+          "Stealth": 3,
+          "Guns": 3
         },
         "void_score": 1,
         "soulcredit": 0,
@@ -882,12 +980,16 @@
           "Avoid ACG debt entrapment",
           "Maintain ship and personal freedom"
         ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
         "inventory": {
           "pilot_credentials": 1,
           "ship_access_chip": 1,
           "repair_kit": 1,
           "comm_unit": 1,
-          "conventional_pistol": 1,
+          "pistol": 1,
           "spark_talisman": 2
         },
         "pronouns": "he/him"
@@ -927,8 +1029,13 @@
           "Corporate Influence": 5,
           "Investigation": 4,
           "Charm": 3,
-          "Guile": 3
-        }
+          "Guile": 3,
+          "Guns": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": []
       },
       {
         "name": "Freeborn Trader Mira Seln",
@@ -965,8 +1072,13 @@
           "Guile": 4,
           "Awareness": 4,
           "Investigation": 3,
-          "Pilot": 3
-        }
+          "Pilot": 3,
+          "Guns": 2
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": []
       }
     ]
   },

@@ -642,7 +642,6 @@ class EnemyCombatManager:
             # Apply damage to target (if target has health tracking)
             if hasattr(target, 'health') and hasattr(target, 'soak'):
                 damage_dealt = max(0, total_damage - target.soak)
-                target.health -= damage_dealt
                 result['damage_dealt'] = damage_dealt
                 result['narration'] += f" ({damage_dealt} after soak)"
 
@@ -650,14 +649,31 @@ class EnemyCombatManager:
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_player_damage_taken(damage_dealt)
 
-                # Calculate wounds (YAGS: every 5 points of damage = 1 wound)
-                if hasattr(target, 'wounds') and damage_dealt > 0:
-                    wounds_dealt = damage_dealt // 5
-                    target.wounds += wounds_dealt
-                    logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {wounds_dealt} wounds (total: {target.wounds})")
+                # Apply damage based on weapon type (YAGS damage types)
+                from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
+                damage_type = weapon.damage_type
+                damage_result = None
 
-                # Mark target as defeated if killed
-                if target.health <= 0:
+                if damage_dealt > 0:
+                    if damage_type == "stun":
+                        damage_result = apply_stun_damage(target, damage_dealt)
+                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns ({damage_result['old_stuns']} → {damage_result['new_stuns']}) - {damage_result['effect']['name']}")
+                        result['damage_type'] = 'stun'
+                        result['stuns_dealt'] = damage_result['stuns_dealt']
+                    elif damage_type == "wound":
+                        damage_result = apply_wound_damage(target, damage_dealt)
+                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
+                        result['damage_type'] = 'wound'
+                        result['wounds_dealt'] = damage_result['wounds_dealt']
+                    elif damage_type == "mixed":
+                        damage_result = apply_mixed_damage(target, damage_dealt)
+                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds (mixed)")
+                        result['damage_type'] = 'mixed'
+                        result['stuns_dealt'] = damage_result['stuns_dealt']
+                        result['wounds_dealt'] = damage_result['wounds_dealt']
+
+                # Mark target as defeated if killed or unconscious
+                if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
                     # Check for death/unconsciousness (YAGS death saves)
                     if hasattr(target, 'check_death_save'):
                         alive, status = target.check_death_save()
@@ -709,6 +725,7 @@ class EnemyCombatManager:
             # Build damage roll dict (if hit)
             damage_roll_data = None
             wounds_dealt_count = 0
+            stuns_dealt_count = 0
             if hit and hasattr(target, 'soak'):
                 damage_roll_data = {
                     "strength": strength,
@@ -719,9 +736,12 @@ class EnemyCombatManager:
                     "combat_balance_modifier": 0.85,
                     "total": total_damage,
                     "soak": target.soak,
-                    "dealt": damage_dealt
+                    "dealt": damage_dealt,
+                    "damage_type": weapon.damage_type
                 }
-                wounds_dealt_count = wounds_dealt if hasattr(target, 'wounds') and damage_dealt > 0 else 0
+                # Get actual damage dealt from result
+                wounds_dealt_count = result.get('wounds_dealt', 0)
+                stuns_dealt_count = result.get('stuns_dealt', 0)
 
             # Build defender state dict
             defender_state = None
@@ -730,6 +750,7 @@ class EnemyCombatManager:
                     "health": target.health,
                     "max_health": getattr(target, 'max_health', None),
                     "wounds": getattr(target, 'wounds', 0),
+                    "stuns": getattr(target, 'stuns', 0),
                     "alive": target.health > 0,
                     "status": status if hit and target.health <= 0 and hasattr(target, 'check_death_save') else "active"
                 }
@@ -1203,6 +1224,14 @@ class EnemyCombatManager:
         if declaration.shared_intel:
             self.shared_intel.add_intel(enemy.name, declaration.shared_intel, self.current_round)
 
+        # Auto-advance Escape Route clock (voluntary retreat = more efficient)
+        if self.shared_state and hasattr(self.shared_state, 'scene_clocks'):
+            escape_clock = self.shared_state.scene_clocks.get('Escape Route')
+            if escape_clock:
+                advance = 3  # Voluntary retreat = efficient escape
+                escape_clock.advance(advance)
+                logger.info(f"{enemy.name} retreating (voluntary), advancing Escape Route: +{advance}")
+
         return {
             'enemy_id': enemy.agent_id,
             'character_name': enemy.name,
@@ -1299,6 +1328,79 @@ class EnemyCombatManager:
                         'new_count': enemy.unit_count,
                         'narration': f"{enemy.name}: {old_count - enemy.unit_count} units lost, {enemy.unit_count} remain"
                     })
+
+        # Check morale for active enemies
+        active_enemies = list(get_active_enemies(self.enemy_agents))
+        for enemy in active_enemies:
+            morale_trigger = None
+
+            # Check HP below 25%
+            if enemy.get_health_percentage() < 25:
+                morale_trigger = "hp_below_25"
+            # Check if last survivor
+            elif len(active_enemies) == 1 and enemy.original_unit_count > 1:
+                morale_trigger = "last_survivor"
+            # Check critical stuns
+            elif getattr(enemy, 'stuns', 0) >= 5:
+                morale_trigger = "critical_stuns"
+
+            if morale_trigger:
+                morale_result = enemy.check_morale(trigger=morale_trigger)
+
+                # Log morale check to JSONL
+                if self.shared_state:
+                    mechanics = self.shared_state.get_mechanics_engine()
+                    if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event(
+                            'morale_check',
+                            {
+                                'character': enemy.name,
+                                'trigger': morale_trigger,
+                                'roll': {
+                                    'willpower': morale_result['willpower'],
+                                    'd20': morale_result['d20'],
+                                    'total': morale_result['total'],
+                                    'dc': morale_result['dc']
+                                },
+                                'result': 'success' if morale_result['success'] else 'failure',
+                                'action': morale_result['action']
+                            },
+                            self.current_round
+                        )
+
+                # Handle morale failure
+                if not morale_result['success']:
+                    action = morale_result['action']
+                    if action == "surrender":
+                        enemy.is_active = False
+                        enemy.is_prisoner = True
+                        enemy.despawned_round = self.current_round
+                        events.append({
+                            'type': 'surrender',
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'narration': f"{enemy.name} surrenders! Morale broken ({morale_trigger})"
+                        })
+                        logger.info(f"{enemy.name} surrendered (morale broken)")
+                    elif action == "flee":
+                        enemy.is_active = False
+                        enemy.despawned_round = self.current_round
+
+                        # Auto-advance Escape Route clock
+                        if self.shared_state and hasattr(self.shared_state, 'scene_clocks'):
+                            escape_clock = self.shared_state.scene_clocks.get('Escape Route')
+                            if escape_clock:
+                                advance = 2  # Panic flee = less efficient than voluntary retreat
+                                escape_clock.advance(advance)
+                                logger.info(f"{enemy.name} fleeing, advancing Escape Route: +{advance}")
+
+                        events.append({
+                            'type': 'flee',
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'narration': f"{enemy.name} flees in panic! Morale broken ({morale_trigger})"
+                        })
+                        logger.info(f"{enemy.name} fled (morale broken)")
 
         # Tick down debuff/status durations
         for enemy in get_active_enemies(self.enemy_agents):

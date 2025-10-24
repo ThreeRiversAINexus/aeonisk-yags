@@ -510,6 +510,62 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_social_deescalation(
+        self,
+        round_num: int,
+        player_id: str,
+        player_name: str,
+        enemy_id: str,
+        enemy_name: str,
+        action_type: str,  # "intimidation" or "persuasion"
+        skill: str,  # "Intimidation" or "Persuasion"
+        roll_total: int,
+        dc: int,
+        success: bool,
+        margin: int,
+        outcome: str,  # "surrender", "flee", "resist", "backfire"
+        narration: str
+    ):
+        """
+        Log social de-escalation attempt (intimidation/persuasion).
+
+        Args:
+            round_num: Current round
+            player_id: Player agent ID
+            player_name: Player character name
+            enemy_id: Target enemy agent ID
+            enemy_name: Target enemy name
+            action_type: Type of social action ("intimidation", "persuasion")
+            skill: Skill used (Intimidation, Persuasion)
+            roll_total: Total roll result
+            dc: Difficulty class
+            success: Whether roll succeeded
+            margin: Success margin (positive or negative)
+            outcome: Result ("surrender", "flee", "resist", "backfire")
+            narration: DM's narrative description
+        """
+        event = {
+            "event_type": "social_deescalation",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "player_id": player_id,
+            "player_name": player_name,
+            "enemy_id": enemy_id,
+            "enemy_name": enemy_name,
+            "action_type": action_type,
+            "skill": skill,
+            "roll": {
+                "total": roll_total,
+                "dc": dc,
+                "success": success,
+                "margin": margin
+            },
+            "outcome": outcome,
+            "narration": narration
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:
@@ -2068,3 +2124,179 @@ Margin: {margin:+d}
             })
 
         return result
+
+
+# =============================================================================
+# DAMAGE CALCULATION HELPERS (YAGS Combat)
+# =============================================================================
+
+def get_stun_effect(stuns: int) -> Dict[str, Any]:
+    """
+    Get stun threshold effects per YAGS combat.md:437-456.
+
+    Args:
+        stuns: Current stun level
+
+    Returns:
+        Dict with name, penalty, and special flags
+    """
+    STUN_THRESHOLDS = {
+        0: {"name": "OK", "penalty": 0, "unconscious_check": False},
+        1: {"name": "Light", "penalty": 0, "unconscious_check": False},
+        2: {"name": "Light", "penalty": -5, "unconscious_check": False},
+        3: {"name": "Moderate", "penalty": -10, "unconscious_check": False},
+        4: {"name": "Moderate", "penalty": -10, "unconscious_check": False},
+        5: {"name": "Critical", "penalty": -25, "unconscious_check": False},
+    }
+
+    # 6+ is Beaten
+    if stuns >= 6:
+        return {"name": "Beaten", "penalty": -40, "unconscious_check": True}
+
+    return STUN_THRESHOLDS.get(stuns, STUN_THRESHOLDS[0])
+
+
+def get_wound_effect(wounds: int) -> Dict[str, Any]:
+    """
+    Get wound threshold effects per YAGS combat.md:390-422.
+
+    Args:
+        wounds: Current wound level
+
+    Returns:
+        Dict with name, penalty, and special flags
+    """
+    WOUND_THRESHOLDS = {
+        0: {"name": "OK", "penalty": 0, "death_check": False},
+        1: {"name": "Scratched", "penalty": 0, "death_check": False},
+        2: {"name": "Light", "penalty": -5, "death_check": False},
+        3: {"name": "Moderate", "penalty": -10, "death_check": False},
+        4: {"name": "Heavy", "penalty": -15, "death_check": False},
+        5: {"name": "Critical", "penalty": -25, "death_check": False},
+    }
+
+    # 6+ is Fatal
+    if wounds >= 6:
+        return {"name": "Fatal", "penalty": -40, "death_check": True}
+
+    return WOUND_THRESHOLDS.get(wounds, WOUND_THRESHOLDS[0])
+
+
+def apply_stun_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
+    """
+    Apply stun damage per YAGS non-cumulative rules (combat.md:430-471).
+
+    Stuns are non-cumulative: If new stuns > current, replace.
+    Else if new stuns >= half current, +1 stun.
+
+    Args:
+        target: Character object with .stuns attribute
+        damage_dealt: Damage after soak
+
+    Returns:
+        Dict with stuns_dealt, new_total, and effect info
+    """
+    old_stuns = getattr(target, 'stuns', 0)
+
+    # Non-cumulative logic
+    if damage_dealt > old_stuns:
+        new_stuns = damage_dealt
+        stuns_dealt = new_stuns - old_stuns
+    elif damage_dealt >= (old_stuns // 2):
+        new_stuns = old_stuns + 1
+        stuns_dealt = 1
+    else:
+        new_stuns = old_stuns
+        stuns_dealt = 0
+
+    target.stuns = new_stuns
+    effect = get_stun_effect(new_stuns)
+
+    return {
+        "stuns_dealt": stuns_dealt,
+        "old_stuns": old_stuns,
+        "new_stuns": new_stuns,
+        "effect": effect,
+        "unconscious_check_needed": effect["unconscious_check"]
+    }
+
+
+def apply_wound_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
+    """
+    Apply wound damage per YAGS rules (combat.md:390-422).
+
+    Wounds are cumulative: Every 5 points = 1 wound.
+
+    Args:
+        target: Character object with .wounds and .health attributes
+        damage_dealt: Damage after soak
+
+    Returns:
+        Dict with wounds_dealt, new_total, and effect info
+    """
+    old_wounds = getattr(target, 'wounds', 0)
+    wounds_dealt = damage_dealt // 5  # Every 5 points = 1 wound
+    new_wounds = old_wounds + wounds_dealt
+
+    target.wounds = new_wounds
+    if hasattr(target, 'health'):
+        target.health -= damage_dealt
+
+    effect = get_wound_effect(new_wounds)
+
+    return {
+        "wounds_dealt": wounds_dealt,
+        "old_wounds": old_wounds,
+        "new_wounds": new_wounds,
+        "hp_lost": damage_dealt,
+        "effect": effect,
+        "death_check_needed": effect["death_check"]
+    }
+
+
+def apply_mixed_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
+    """
+    Apply mixed damage per YAGS rules (combat.md:477-482).
+
+    Split damage: First to stuns (cumulative for mixed), then wounds.
+    Odd damage goes to stuns.
+
+    Args:
+        target: Character object with .stuns, .wounds, .health attributes
+        damage_dealt: Damage after soak
+
+    Returns:
+        Dict with both stun and wound info
+    """
+    # Split damage: odd goes to stuns
+    stun_damage = (damage_dealt + 1) // 2
+    wound_damage = damage_dealt // 2
+
+    # Mixed damage stuns are CUMULATIVE (different from pure stun)
+    old_stuns = getattr(target, 'stuns', 0)
+    new_stuns = old_stuns + stun_damage
+    target.stuns = new_stuns
+    stun_effect = get_stun_effect(new_stuns)
+
+    # Wound portion (every 5 points = 1 wound)
+    old_wounds = getattr(target, 'wounds', 0)
+    wounds_dealt = wound_damage // 5
+    new_wounds = old_wounds + wounds_dealt
+    target.wounds = new_wounds
+    if hasattr(target, 'health'):
+        target.health -= wound_damage
+    wound_effect = get_wound_effect(new_wounds)
+
+    return {
+        "stuns_dealt": stun_damage,
+        "old_stuns": old_stuns,
+        "new_stuns": new_stuns,
+        "stun_effect": stun_effect,
+        "wounds_dealt": wounds_dealt,
+        "old_wounds": old_wounds,
+        "new_wounds": new_wounds,
+        "hp_lost": wound_damage,
+        "wound_effect": wound_effect,
+        "unconscious_check_needed": stun_effect["unconscious_check"],
+        "death_check_needed": wound_effect["death_check"]
+    }

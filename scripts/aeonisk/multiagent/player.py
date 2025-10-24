@@ -143,6 +143,14 @@ class AIPlayerAgent(Agent):
         self.wounds = 0  # Wound count (Tactical Module wound ladder)
         self.stuns = 0  # Stun damage (YAGS)
 
+        # Weapon inventory (initialized in on_start)
+        from .weapons import Weapon
+        self.equipped_weapons = {
+            "primary": None,  # Currently equipped primary weapon (Weapon object)
+            "sidearm": None,  # Currently equipped sidearm (Weapon object)
+        }
+        self.weapon_inventory = []  # List of additional Weapon objects in inventory
+
         # Free action tracking (one per round)
         self.free_action_used = False
 
@@ -214,6 +222,45 @@ class AIPlayerAgent(Agent):
         # Set to 10 to balance with increased HP pool - allows 5-13 damage through per hit
         # (was 14, too high - blocked most damage causing stalemate)
         self.soak = 10
+
+        # Initialize weapons from config or use defaults
+        from .weapons import get_weapon
+
+        # Support both old structure (weapons: {equipped: {}, carried: []})
+        # and new structure (equipped_weapons: {}, carried_weapons: [])
+        if 'equipped_weapons' in self.character_config or 'carried_weapons' in self.character_config:
+            # New structure (direct top-level keys)
+            equipped_config = self.character_config.get('equipped_weapons', {})
+            carried_config = self.character_config.get('carried_weapons', [])
+        else:
+            # Old structure (nested under 'weapons' key)
+            weapons_config = self.character_config.get('weapons', {})
+            equipped_config = weapons_config.get('equipped', {})
+            carried_config = weapons_config.get('carried', [])
+
+        # Apply defaults if nothing specified
+        if not equipped_config:
+            equipped_config = {
+                "primary": "pistol",  # Default lethal sidearm
+                "sidearm": "combat_knife"  # Default melee weapon
+            }
+
+        # Load equipped weapons
+        try:
+            if equipped_config.get("primary"):
+                self.equipped_weapons["primary"] = get_weapon(equipped_config["primary"])
+            if equipped_config.get("sidearm"):
+                self.equipped_weapons["sidearm"] = get_weapon(equipped_config["sidearm"])
+
+            # Load carried weapons
+            for weapon_id in carried_config:
+                self.weapon_inventory.append(get_weapon(weapon_id))
+
+            logger.debug(f"Player {self.character_state.name} equipped: {self.equipped_weapons}, carried: {[w.name for w in self.weapon_inventory]}")
+        except KeyError as e:
+            logger.error(f"Failed to load weapon for {self.character_state.name}: {e}")
+            # Fall back to fists if weapon loading fails
+            self.equipped_weapons["primary"] = get_weapon("fists")
 
         logger.debug(f"Player {self.agent_id} ({self.character_state.name}) started")
 
@@ -519,8 +566,10 @@ class AIPlayerAgent(Agent):
                 # Don't log - this is just alias normalization
 
         # Validate action (checks for duplicates)
+        # Allow duplicates in test scenarios for stun accumulation testing
+        allow_duplicates = self.character_config.get('disable_duplicate_check', False)
         if validator:
-            is_valid, issues = validator.validate_action(action_declaration, allow_duplicates=False)
+            is_valid, issues = validator.validate_action(action_declaration, allow_duplicates=allow_duplicates)
             if not is_valid:
                 print(f"[{self.character_state.name}] Action rejected: {issues[0]}")
                 # Try again with simpler action
@@ -1033,6 +1082,33 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                         enemy_positions.append(f"{enemy.name} at {enemy.position} ({enemy.health}/{enemy.max_health} HP)")
                     enemy_positions_text = "\n  - ".join(enemy_positions)
 
+                    # Build weapon inventory summary (for lethal/non-lethal choices)
+                    weapon_inventory_text = ""
+                    if hasattr(self, 'equipped_weapons') and hasattr(self, 'weapon_inventory'):
+                        equipped_list = []
+                        if self.equipped_weapons.get('primary'):
+                            wpn = self.equipped_weapons['primary']
+                            equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
+                        if self.equipped_weapons.get('sidearm'):
+                            wpn = self.equipped_weapons['sidearm']
+                            equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
+
+                        carried_list = []
+                        for wpn in self.weapon_inventory:
+                            carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
+
+                        if equipped_list or carried_list:
+                            weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
+                            if equipped_list:
+                                weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
+                            if carried_list:
+                                weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
+                            weapon_inventory_text += "\n**Damage Types:**\n"
+                            weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
+                            weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
+                            weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
+                            weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons if needed.\n"
+
                     tactical_combat_context = f"""
 
 ⚔️  **ACTIVE COMBAT - ENEMIES ARE ATTACKING YOU NOW!** ⚔️
@@ -1045,13 +1121,44 @@ need to charge into melee, etc.), your action should be ATTACKING an enemy.
 
 🎯 **Enemy Targets:**
   {enemy_positions_text}
+{weapon_inventory_text}
+💬 **SOCIAL DE-ESCALATION OPTIONS** 💬
+Combat doesn't always require killing! Consider non-violent neutralization:
+
+**Intimidation** (Charisma × Intimidation skill):
+- Threat display to force surrender/retreat
+- Best when: You have numbers advantage, enemy is wounded, allies are down
+- **IMPORTANT**: Use `attribute: "Charisma", skill: "Intimidation"` in your action
+- Example intent: "Intimidate the wounded smuggler into surrendering"
+- Example description: "I aim my weapon at the wounded smuggler: 'Drop it NOW or join your friends!'"
+- On success: Enemy may surrender or flee (forced morale check)
+- Your Intimidation skill: {self.character_state.skills.get('Intimidation', 0)}
+
+**Persuasion** (Empathy × Persuasion skill):
+- Offer terms, appeal to self-preservation
+- Best when: Enemy is cornered, no escape route, not fanatic
+- **IMPORTANT**: Use `attribute: "Empathy", skill: "Persuasion"` in your action
+- Example intent: "Persuade the cornered smuggler to stand down"
+- Example description: "I lower my weapon slightly: 'You're not getting paid enough to die here. Walk away.'"
+- On success: Enemy may surrender or negotiate
+- Your Persuasion skill: {self.character_state.skills.get('Persuasion', 0)}
+
+**When to use social actions:**
+- Enemy health < 50% (desperate, more likely to surrender)
+- Multiple enemies down (morale shaken)
+- You've surrounded them (tactical hopelessness)
+- They're NOT fanatics/void-possessed (check enemy type)
+
+⚠️  Social actions are RISKY in active combat - enemy may attack during negotiation!
+⚠️  Some enemies (cultists, void-possessed) may be immune to intimidation
 
 **Combat Priority:**
 1. **ATTACK** - Shoot/stab/punch an enemy (specify which enemy and how)
    - Ranged attacks: Use Agility × Combat skill
    - Melee attacks: Use Agility × Combat skill (or Strength × Combat for heavy weapons)
-2. **REPOSITION WHILE ATTACKING** - Move + shoot (if needed for range/cover)
-3. **Only reposition without attacking if:**
+2. **INTIMIDATE/PERSUADE** - Force surrender without killing (if tactical advantage exists)
+3. **REPOSITION WHILE ATTACKING** - Move + shoot (if needed for range/cover)
+4. **Only reposition without attacking if:**
    - You're at completely wrong range for your weapon
    - You need to charge into melee distance
    - You're being overwhelmed and need to retreat
