@@ -185,6 +185,10 @@ class SelfPlayingSession:
         # Create DM agent
         dm_config = agents_config.get('dm', {})
         dm_voice = self.voice_library.get_profile('ritual_scholar')
+
+        # Pass force_scenario if present (for automated testing)
+        force_scenario = self.config.get('force_scenario', None)
+
         dm_agent = AIDMAgent(
             agent_id='dm_01',
             socket_path=str(self.coordinator.message_bus.socket_path),
@@ -193,6 +197,7 @@ class SelfPlayingSession:
             shared_state=self.shared_state,
             prompt_enricher=self.voice_library.enrich_prompt,
             history_supplier=self._recent_history,
+            force_scenario=force_scenario,
         )
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -983,6 +988,27 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 void_str = f"Void {void_score}/10"
 
                 print(f"    [{init:2d}] {agent.character_state.name:20s} | {health_str:12s} | {position_str:15s} | {void_str}")
+
+                # Display equipped weapons (always show)
+                if hasattr(agent, 'equipped_weapons'):
+                    weapon_items = []
+                    if agent.equipped_weapons.get('primary'):
+                        wpn = agent.equipped_weapons['primary']
+                        weapon_items.append(f"{wpn.name} [{wpn.damage_type.upper()}]")
+                    if agent.equipped_weapons.get('sidearm'):
+                        wpn = agent.equipped_weapons['sidearm']
+                        weapon_items.append(f"{wpn.name} [{wpn.damage_type.upper()}]")
+
+                    if weapon_items:
+                        weapon_str = " | ".join(weapon_items)
+                        print(f"         └─ Equipped: {weapon_str}")
+
+                    # Show carried weapons if any
+                    if hasattr(agent, 'weapon_inventory') and agent.weapon_inventory:
+                        carried_items = [f"{w.name} [{w.damage_type.upper()}]" for w in agent.weapon_inventory[:2]]  # Show first 2
+                        if carried_items:
+                            carried_str = " | ".join(carried_items)
+                            print(f"         └─ Carried: {carried_str}")
 
                 # Display key inventory items (offerings, seeds, currency)
                 inventory_items = []
