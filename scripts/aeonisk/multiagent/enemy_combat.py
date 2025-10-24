@@ -642,7 +642,6 @@ class EnemyCombatManager:
             # Apply damage to target (if target has health tracking)
             if hasattr(target, 'health') and hasattr(target, 'soak'):
                 damage_dealt = max(0, total_damage - target.soak)
-                target.health -= damage_dealt
                 result['damage_dealt'] = damage_dealt
                 result['narration'] += f" ({damage_dealt} after soak)"
 
@@ -650,14 +649,31 @@ class EnemyCombatManager:
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_player_damage_taken(damage_dealt)
 
-                # Calculate wounds (YAGS: every 5 points of damage = 1 wound)
-                if hasattr(target, 'wounds') and damage_dealt > 0:
-                    wounds_dealt = damage_dealt // 5
-                    target.wounds += wounds_dealt
-                    logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {wounds_dealt} wounds (total: {target.wounds})")
+                # Apply damage based on weapon type (YAGS damage types)
+                from .mechanics import apply_stun_damage, apply_wound_damage, apply_mixed_damage
+                damage_type = weapon.damage_type
+                damage_result = None
 
-                # Mark target as defeated if killed
-                if target.health <= 0:
+                if damage_dealt > 0:
+                    if damage_type == "stun":
+                        damage_result = apply_stun_damage(target, damage_dealt)
+                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns ({damage_result['old_stuns']} → {damage_result['new_stuns']}) - {damage_result['effect']['name']}")
+                        result['damage_type'] = 'stun'
+                        result['stuns_dealt'] = damage_result['stuns_dealt']
+                    elif damage_type == "wound":
+                        damage_result = apply_wound_damage(target, damage_dealt)
+                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
+                        result['damage_type'] = 'wound'
+                        result['wounds_dealt'] = damage_result['wounds_dealt']
+                    elif damage_type == "mixed":
+                        damage_result = apply_mixed_damage(target, damage_dealt)
+                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds (mixed)")
+                        result['damage_type'] = 'mixed'
+                        result['stuns_dealt'] = damage_result['stuns_dealt']
+                        result['wounds_dealt'] = damage_result['wounds_dealt']
+
+                # Mark target as defeated if killed or unconscious
+                if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
                     # Check for death/unconsciousness (YAGS death saves)
                     if hasattr(target, 'check_death_save'):
                         alive, status = target.check_death_save()
@@ -709,6 +725,7 @@ class EnemyCombatManager:
             # Build damage roll dict (if hit)
             damage_roll_data = None
             wounds_dealt_count = 0
+            stuns_dealt_count = 0
             if hit and hasattr(target, 'soak'):
                 damage_roll_data = {
                     "strength": strength,
@@ -719,9 +736,12 @@ class EnemyCombatManager:
                     "combat_balance_modifier": 0.85,
                     "total": total_damage,
                     "soak": target.soak,
-                    "dealt": damage_dealt
+                    "dealt": damage_dealt,
+                    "damage_type": weapon.damage_type
                 }
-                wounds_dealt_count = wounds_dealt if hasattr(target, 'wounds') and damage_dealt > 0 else 0
+                # Get actual damage dealt from result
+                wounds_dealt_count = result.get('wounds_dealt', 0)
+                stuns_dealt_count = result.get('stuns_dealt', 0)
 
             # Build defender state dict
             defender_state = None
@@ -730,6 +750,7 @@ class EnemyCombatManager:
                     "health": target.health,
                     "max_health": getattr(target, 'max_health', None),
                     "wounds": getattr(target, 'wounds', 0),
+                    "stuns": getattr(target, 'stuns', 0),
                     "alive": target.health > 0,
                     "status": status if hit and target.health <= 0 and hasattr(target, 'check_death_save') else "active"
                 }
