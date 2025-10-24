@@ -1224,6 +1224,14 @@ class EnemyCombatManager:
         if declaration.shared_intel:
             self.shared_intel.add_intel(enemy.name, declaration.shared_intel, self.current_round)
 
+        # Auto-advance Escape Route clock (voluntary retreat = more efficient)
+        if self.shared_state and hasattr(self.shared_state, 'scene_clocks'):
+            escape_clock = self.shared_state.scene_clocks.get('Escape Route')
+            if escape_clock:
+                advance = 3  # Voluntary retreat = efficient escape
+                escape_clock.advance(advance)
+                logger.info(f"{enemy.name} retreating (voluntary), advancing Escape Route: +{advance}")
+
         return {
             'enemy_id': enemy.agent_id,
             'character_name': enemy.name,
@@ -1320,6 +1328,77 @@ class EnemyCombatManager:
                         'new_count': enemy.unit_count,
                         'narration': f"{enemy.name}: {old_count - enemy.unit_count} units lost, {enemy.unit_count} remain"
                     })
+
+        # Check morale for active enemies
+        active_enemies = list(get_active_enemies(self.enemy_agents))
+        for enemy in active_enemies:
+            morale_trigger = None
+
+            # Check HP below 25%
+            if enemy.get_health_percentage() < 25:
+                morale_trigger = "hp_below_25"
+            # Check if last survivor
+            elif len(active_enemies) == 1 and enemy.original_unit_count > 1:
+                morale_trigger = "last_survivor"
+            # Check critical stuns
+            elif getattr(enemy, 'stuns', 0) >= 5:
+                morale_trigger = "critical_stuns"
+
+            if morale_trigger:
+                morale_result = enemy.check_morale(trigger=morale_trigger)
+
+                # Log morale check to JSONL
+                if self.shared_state:
+                    mechanics = self.shared_state.get_mechanics_engine()
+                    if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event({
+                            'event_type': 'morale_check',
+                            'round': self.current_round,
+                            'character': enemy.name,
+                            'trigger': morale_trigger,
+                            'roll': {
+                                'willpower': morale_result['willpower'],
+                                'd20': morale_result['d20'],
+                                'total': morale_result['total'],
+                                'dc': morale_result['dc']
+                            },
+                            'result': 'success' if morale_result['success'] else 'failure',
+                            'action': morale_result['action']
+                        })
+
+                # Handle morale failure
+                if not morale_result['success']:
+                    action = morale_result['action']
+                    if action == "surrender":
+                        enemy.is_active = False
+                        enemy.is_prisoner = True
+                        enemy.despawned_round = self.current_round
+                        events.append({
+                            'type': 'surrender',
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'narration': f"{enemy.name} surrenders! Morale broken ({morale_trigger})"
+                        })
+                        logger.info(f"{enemy.name} surrendered (morale broken)")
+                    elif action == "flee":
+                        enemy.is_active = False
+                        enemy.despawned_round = self.current_round
+
+                        # Auto-advance Escape Route clock
+                        if self.shared_state and hasattr(self.shared_state, 'scene_clocks'):
+                            escape_clock = self.shared_state.scene_clocks.get('Escape Route')
+                            if escape_clock:
+                                advance = 2  # Panic flee = less efficient than voluntary retreat
+                                escape_clock.advance(advance)
+                                logger.info(f"{enemy.name} fleeing, advancing Escape Route: +{advance}")
+
+                        events.append({
+                            'type': 'flee',
+                            'enemy_id': enemy.agent_id,
+                            'character_name': enemy.name,
+                            'narration': f"{enemy.name} flees in panic! Morale broken ({morale_trigger})"
+                        })
+                        logger.info(f"{enemy.name} fled (morale broken)")
 
         # Tick down debuff/status durations
         for enemy in get_active_enemies(self.enemy_agents):
