@@ -143,6 +143,14 @@ class AIPlayerAgent(Agent):
         self.wounds = 0  # Wound count (Tactical Module wound ladder)
         self.stuns = 0  # Stun damage (YAGS)
 
+        # Weapon inventory (initialized in on_start)
+        from .weapons import Weapon
+        self.equipped_weapons = {
+            "primary": None,  # Currently equipped primary weapon (Weapon object)
+            "sidearm": None,  # Currently equipped sidearm (Weapon object)
+        }
+        self.weapon_inventory = []  # List of additional Weapon objects in inventory
+
         # Free action tracking (one per round)
         self.free_action_used = False
 
@@ -214,6 +222,36 @@ class AIPlayerAgent(Agent):
         # Set to 10 to balance with increased HP pool - allows 5-13 damage through per hit
         # (was 14, too high - blocked most damage causing stalemate)
         self.soak = 10
+
+        # Initialize weapons from config or use defaults
+        from .weapons import get_weapon
+        weapons_config = self.character_config.get('weapons', {})
+        default_weapons = {
+            "equipped": {
+                "primary": "pistol",  # Default lethal sidearm
+                "sidearm": "combat_knife"  # Default melee weapon
+            },
+            "carried": []  # Additional weapons in inventory
+        }
+        # Merge config with defaults
+        weapons = {**default_weapons, **weapons_config}
+
+        # Load equipped weapons
+        try:
+            if weapons["equipped"].get("primary"):
+                self.equipped_weapons["primary"] = get_weapon(weapons["equipped"]["primary"])
+            if weapons["equipped"].get("sidearm"):
+                self.equipped_weapons["sidearm"] = get_weapon(weapons["equipped"]["sidearm"])
+
+            # Load carried weapons
+            for weapon_id in weapons.get("carried", []):
+                self.weapon_inventory.append(get_weapon(weapon_id))
+
+            logger.debug(f"Player {self.character_state.name} equipped: {self.equipped_weapons}")
+        except KeyError as e:
+            logger.error(f"Failed to load weapon for {self.character_state.name}: {e}")
+            # Fall back to fists if weapon loading fails
+            self.equipped_weapons["primary"] = get_weapon("fists")
 
         logger.debug(f"Player {self.agent_id} ({self.character_state.name}) started")
 
