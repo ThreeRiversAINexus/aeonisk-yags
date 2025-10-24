@@ -70,12 +70,21 @@
         "Investigation": 4,
         "Awareness": 5,
         "Athletics": 4,
-        "Intimidation": 4
+        "Intimidation": 4,
+        "Guns": 5,
+        "Brawl": 4,
+        "Melee": 4
       },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "shock_baton"
+      },
+      "carried_weapons": ["combat_knife"],
       "inventory": {
-        "union_issue_pistol": 1,
+        "pistol": 1,
+        "shock_baton": 1,
+        "combat_knife": 1,
         "riot_carapace": 1,
-        "breach_hammer": 1,
         "restraint_cuffs": 2,
         "med_kit": 1
       }
@@ -116,11 +125,18 @@
         "Stealth": 5,
         "Awareness": 5,
         "Athletics": 4,
-        "Pilot": 3
+        "Pilot": 3,
+        "Guns": 5,
+        "Melee": 4
       },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
+      "carried_weapons": [],
       "inventory": {
-        "smuggler_pistol": 1,
-        "conventional_blade": 1,
+        "pistol": 1,
+        "combat_knife": 1,
         "void_cloak": 1,
         "med_kit": 1
       }
