@@ -142,13 +142,6 @@ class ActionRouter:
         if is_explicit_ritual or action_type == 'ritual':
             return ('Willpower', 'Astral Arts', 'Ritual action')
 
-        # 4.5. ASTRAL ARTS USED FOR VOID WORK (also triggers ritual mechanics)
-        # If character has Astral Arts and is doing void-related work, route to ritual
-        if 'Astral Arts' in character_skills:
-            void_work_keywords = ['void', 'anomaly', 'corruption', 'spiritual', 'astral']
-            if any(kw in intent_lower for kw in void_work_keywords):
-                return ('Willpower', 'Astral Arts', 'Void manipulation (ritual mechanics apply)')
-
         # 3. SENSING / ATTUNEMENT
         if any(kw in intent_lower for kw in self.SENSING_KEYWORDS):
             if 'Attunement' in character_skills:
