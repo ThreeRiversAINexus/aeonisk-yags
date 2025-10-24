@@ -1351,20 +1351,22 @@ class EnemyCombatManager:
                 if self.shared_state:
                     mechanics = self.shared_state.get_mechanics_engine()
                     if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                        mechanics.jsonl_logger.log_event({
-                            'event_type': 'morale_check',
-                            'round': self.current_round,
-                            'character': enemy.name,
-                            'trigger': morale_trigger,
-                            'roll': {
-                                'willpower': morale_result['willpower'],
-                                'd20': morale_result['d20'],
-                                'total': morale_result['total'],
-                                'dc': morale_result['dc']
+                        mechanics.jsonl_logger.log_event(
+                            'morale_check',
+                            {
+                                'character': enemy.name,
+                                'trigger': morale_trigger,
+                                'roll': {
+                                    'willpower': morale_result['willpower'],
+                                    'd20': morale_result['d20'],
+                                    'total': morale_result['total'],
+                                    'dc': morale_result['dc']
+                                },
+                                'result': 'success' if morale_result['success'] else 'failure',
+                                'action': morale_result['action']
                             },
-                            'result': 'success' if morale_result['success'] else 'failure',
-                            'action': morale_result['action']
-                        })
+                            self.current_round
+                        )
 
                 # Handle morale failure
                 if not morale_result['success']:

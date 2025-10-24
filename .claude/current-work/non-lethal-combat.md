@@ -60,6 +60,11 @@ Implementing weapon-driven damage types (stun/wound/mixed) and social de-escalat
   - Morale flee: +2 to Escape Route clock
   - Semantics: Clock fills = escaped, partial = scattered
 - ✅ Log morale_check events to JSONL
+- ✅ Fixed JSONLLogger.log_event() signature bug (enemy_combat.py:1354)
+- ✅ **TESTED**: Session 186bbfba (2025-10-23) - Morale system working correctly
+  - Freeborn Pirates triggered morale check (last_survivor)
+  - Roll: Willpower 2 + d20(3) = 5 vs DC 20 → FAILURE → flee
+  - Successfully logged to JSONL with correct signature
 
 ### Phase 5: Social De-Escalation (Deferred)
 **Status:** Not critical for initial testing, can add later
@@ -203,10 +208,23 @@ Surrendered enemies become prisoners:
 
 ## Testing Plan
 
-1. **Stun-only combat:** Player with shock baton vs gang members
-2. **Mixed loadout:** Pistol vs rifle, swap to stun gun for capture
-3. **Morale break:** Reduce gang to 1 survivor, check morale triggers
-4. **Social de-escalation:** Intimidate check mid-combat
+### Completed Tests ✅
+
+**Test 1: Morale System & Retreat Mechanics** (Session 186bbfba-9914-4c1f-9164-6103a424ccb2)
+- ✅ Freeborn Pirates spawned as grunts (2 units, tactical_ranged)
+- ✅ One unit defeated in Round 1 combat
+- ✅ Last survivor triggered morale check (last_survivor trigger)
+- ✅ Morale check: Willpower 2 + d20(3) = 5 vs DC 20 → FAILURE
+- ✅ Result: Enemy fled (personality: flee_when_broken)
+- ✅ Escape Route clock advanced, enemy successfully escaped
+- ✅ JSONL logging verified: morale_check and flee events logged correctly
+- **Status**: Morale and retreat system working as designed
+
+### Pending Tests
+1. **Stun-only combat:** Player with shock baton vs gang members (test non-lethal weapons)
+2. **Mixed loadout:** Pistol vs rifle, swap to stun gun for capture (test weapon swapping)
+3. **Surrender scenario:** Enemy with surrender_if_cornered personality
+4. **Social de-escalation:** Intimidate check mid-combat (Phase 5 feature)
 5. **Ritual damage:** Astral Arts attack, verify wound damage application
 6. **Soulcredit tracking:** Lethal vs non-lethal outcomes
 
