@@ -191,49 +191,8 @@ class Position:
 # WEAPONS & ARMOR (YAGS-compatible)
 # =============================================================================
 
-@dataclass
-class Weapon:
-    """
-    YAGS weapon statistics.
-
-    YAGS Core Weapon Stats:
-    - attack: Bonus to attack rolls
-    - defence: Bonus to defense rolls
-    - damage: Bonus to damage rolls
-    - reach: Weapon length (affects close combat)
-    - load: Weight/bulkiness
-    """
-    name: str
-    skill: str  # "Brawl", "Melee", "Guns", "Throw"
-    attack: int  # Attack bonus
-    defence: int  # Defence bonus (for melee)
-    damage: int  # Damage bonus
-    damage_type: str  # "stun", "mixed", "wound"
-    reach: int = 0  # Weapon reach
-    load: int = 0  # Weight
-
-    # Ranged weapon stats
-    is_ranged: bool = False
-    short_range: int = 0  # meters
-    medium_range: int = 0
-    long_range: int = 0
-    increment: int = 0  # Accuracy measure
-    rof: int = 1  # Rate of fire
-    recoil: int = 0
-    capacity: int = 0  # Magazine size
-
-    # Special properties
-    special: List[str] = field(default_factory=list)  # ["suppress", "armor_piercing", etc.]
-
-
-@dataclass
-class Armor:
-    """YAGS armor statistics."""
-    name: str
-    soak_bonus: int  # Added to base soak
-    armor_type: str  # "light", "heavy", "bulletproof"
-    load: int  # Weight penalty
-    coverage: str = "full"  # "full", "partial", "head", etc.
+# NOTE: Weapon and Armor classes are now imported from weapons.py (shared module)
+from .weapons import Weapon, Armor
 
 
 # =============================================================================
