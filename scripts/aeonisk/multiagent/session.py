@@ -69,6 +69,9 @@ class SelfPlayingSession:
             'clocks_filled': 0
         }
 
+        # Track if scenario had clocks (for detecting when all clocks expire/complete)
+        self._had_active_clocks = False
+
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
         self.shared_state.initialize_mechanics()
@@ -706,6 +709,9 @@ class SelfPlayingSession:
                     'clocks_filled': 0
                 }
 
+            # Check if all clocks are complete and trigger story advancement
+            await self._check_and_trigger_story_advancement()
+
         # Clear the action buffer for next round
         self._declared_actions.clear()
 
@@ -1103,6 +1109,41 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Log the new clock
             if mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_clock_spawn(name, max_ticks, description)
+
+    async def _check_and_trigger_story_advancement(self):
+        """Check if all clocks are complete and trigger DM to advance the story."""
+        if not self.shared_state:
+            return
+
+        mechanics = self.shared_state.get_mechanics_engine()
+        if not mechanics:
+            return
+
+        # Track if we currently have clocks
+        if mechanics.scene_clocks and len(mechanics.scene_clocks) > 0:
+            self._had_active_clocks = True
+
+        # Count active (non-filled) clocks
+        active_clocks = [clock for clock in mechanics.scene_clocks.values() if not clock.filled] if mechanics.scene_clocks else []
+
+        # Trigger story advancement if:
+        # 1. We previously had clocks AND
+        # 2. Now all clocks are gone (expired/filled/archived) OR all remaining clocks are filled
+        should_advance = self._had_active_clocks and len(active_clocks) == 0
+
+        if should_advance:
+            logger.info("All clocks complete/expired - triggering story advancement")
+            print("\n⏰ All scenario objectives complete - Story will advance to new location/situation")
+
+            # Set flag on DM agent to trigger story advancement
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agent = dm_agents[0]
+                dm_agent.needs_story_advancement = True
+                logger.info(f"Set needs_story_advancement=True on DM {dm_agent.agent_id}")
+
+            # Reset flag so we don't trigger again until new clocks appear
+            self._had_active_clocks = False
 
     async def _check_end_conditions(self) -> bool:
         """Check if session should end."""
@@ -1541,7 +1582,50 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             logger.info(f"DM declared session end: {end_result['status']}" +
                        (f" - {end_result['reason']}" if end_result['reason'] else ""))
 
-        # Check for new clock markers
+        # Check for story advancement marker FIRST
+        # (so we can clear old clocks before spawning new ones)
+        advance_result = parse_advance_story_marker(narration)
+        if advance_result['should_advance']:
+            logger.info(f"DM requested story advancement: {advance_result['location']} - {advance_result['situation']}")
+
+            # Clear ALL old clocks when story advances (fresh start)
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics and mechanics.scene_clocks:
+                archived_clocks = list(mechanics.scene_clocks.keys())
+                mechanics.scene_clocks.clear()
+                logger.info(f"🗑️  Cleared all old clocks for story advancement: {', '.join(archived_clocks)}")
+
+                print(f"\n✨ STORY ADVANCES ✨")
+                print(f"   New Location: {advance_result['location']}")
+                print(f"   Situation: {advance_result['situation']}")
+                if archived_clocks:
+                    print(f"   Previous clocks cleared: {', '.join(archived_clocks)}")
+
+            # Notify all players of the story advancement
+            advance_narration = f"Story advances to: {advance_result['location']}\n{advance_result['situation']}"
+            advance_message = Message(
+                id=f"advance_{datetime.now().isoformat()}",
+                type=MessageType.SCENARIO_UPDATE,
+                sender='coordinator',
+                recipient=None,  # Broadcast to all
+                payload={
+                    'new_location': advance_result['location'],
+                    'new_situation': advance_result['situation'],
+                    'advance_narration': advance_narration,
+                    'story_advanced': True
+                },
+                timestamp=datetime.now()
+            )
+            import asyncio
+            asyncio.create_task(self.coordinator.message_bus._route_message(advance_message))
+
+            # Store advancement for DM to use in generating next scenario
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agents[0].current_location = advance_result['location']
+                dm_agents[0].pending_scenario_pivot = advance_result['situation']
+
+        # Check for new clock markers (spawned AFTER clearing for story advancement)
         new_clocks = parse_new_clock_marker(narration)
         if new_clocks:
             self._spawn_new_clocks(new_clocks)
@@ -1590,48 +1674,6 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
             if dm_agents:
                 dm_agents[0].pending_scenario_pivot = pivot_result['new_theme']
-
-        # Check for story advancement marker
-        advance_result = parse_advance_story_marker(narration)
-        if advance_result['should_advance']:
-            logger.info(f"DM requested story advancement: {advance_result['location']} - {advance_result['situation']}")
-
-            # Clear ALL clocks when story advances (fresh start)
-            mechanics = self.shared_state.mechanics_engine
-            if mechanics and mechanics.scene_clocks:
-                archived_clocks = list(mechanics.scene_clocks.keys())
-                mechanics.scene_clocks.clear()
-                logger.info(f"🗑️  Cleared all clocks for story advancement: {', '.join(archived_clocks)}")
-
-                print(f"\n✨ STORY ADVANCES ✨")
-                print(f"   New Location: {advance_result['location']}")
-                print(f"   Situation: {advance_result['situation']}")
-                if archived_clocks:
-                    print(f"   Previous clocks cleared: {', '.join(archived_clocks)}")
-
-            # Notify all players of the story advancement
-            advance_narration = f"Story advances to: {advance_result['location']}\n{advance_result['situation']}"
-            advance_message = Message(
-                id=f"advance_{datetime.now().isoformat()}",
-                type=MessageType.SCENARIO_UPDATE,
-                sender='coordinator',
-                recipient=None,  # Broadcast to all
-                payload={
-                    'new_location': advance_result['location'],
-                    'new_situation': advance_result['situation'],
-                    'advance_narration': advance_narration,
-                    'story_advanced': True
-                },
-                timestamp=datetime.now()
-            )
-            import asyncio
-            asyncio.create_task(self.coordinator.message_bus._route_message(advance_message))
-
-            # Store advancement for DM to use in generating next scenario
-            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
-            if dm_agents:
-                dm_agents[0].current_location = advance_result['location']
-                dm_agents[0].pending_scenario_pivot = advance_result['situation']
 
 
 # Configuration example
