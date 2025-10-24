@@ -323,6 +323,7 @@ class EnemyAgent:
     tactics: str = "aggressive_melee"  # Combat doctrine
     threat_priority: str = "closest_threat"  # Target selection strategy
     retreat_threshold: float = 0.3  # Morale % (0.0-1.0)
+    personality: str = "flee_when_broken"  # Morale behavior: flee_when_broken | surrender_if_cornered | fight_to_death
 
     # =========================================================================
     # AEONISK-SPECIFIC
@@ -344,6 +345,7 @@ class EnemyAgent:
     status_effects: List[str] = field(default_factory=list)  # ["stunned", "prone", "suppressed"]
     debuffs: List[Dict[str, Any]] = field(default_factory=list)  # Active debuffs with duration
     is_active: bool = True  # False if defeated/retreated
+    is_prisoner: bool = False  # True if surrendered/captured (can be interrogated)
     spawned_round: int = 0  # When they entered combat
     despawned_round: Optional[int] = None  # When they left combat
 
@@ -397,6 +399,55 @@ class EnemyAgent:
         """Check if health is below retreat threshold."""
         health_pct = self.get_health_percentage() / 100.0
         return health_pct <= self.retreat_threshold
+
+    def check_morale(self, trigger: str = "hp_below_25", dc: int = 20) -> Dict[str, Any]:
+        """
+        Check morale per YAGS rules. Enemy may surrender or flee.
+
+        Triggers:
+        - hp_below_25: Health < 25%
+        - last_survivor: All allies defeated/retreated
+        - critical_stuns: 5+ stuns (Critical threshold)
+
+        Check: Willpower × d20 vs DC 20
+        - Success: Continue fighting
+        - Failure: Surrender or flee (based on personality)
+
+        Returns:
+            Dict with success, roll info, and action (continue/surrender/flee)
+        """
+        import random
+
+        willpower = self.attributes.get('Willpower', 3)
+        d20 = random.randint(1, 20)
+        total = willpower + d20
+        success = total >= dc
+
+        # Determine action based on personality
+        action = "continue"
+        if not success:
+            # Morale broken - what do they do?
+            personality = getattr(self, 'personality', 'flee_when_broken')
+            if personality == 'fight_to_death':
+                action = "continue"  # Never give up (but morale still failed)
+            elif personality == 'surrender_if_cornered':
+                action = "surrender"
+            else:  # flee_when_broken (default)
+                action = "flee"
+
+        result = {
+            "success": success,
+            "trigger": trigger,
+            "willpower": willpower,
+            "d20": d20,
+            "total": total,
+            "dc": dc,
+            "margin": total - dc,
+            "action": action
+        }
+
+        logger.info(f"{self.name} morale check: {total} vs DC {dc} - {'SUCCESS' if success else 'FAILED'} → {action}")
+        return result
 
     def apply_damage(self, damage: int, damage_type: str = "wound") -> int:
         """
