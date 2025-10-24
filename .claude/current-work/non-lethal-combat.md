@@ -32,35 +32,46 @@ Implementing weapon-driven damage types (stun/wound/mixed) and social de-escalat
 
 ## Implementation Progress
 
-### Phase 1: Weapon System ✓ (Complete)
+### Phase 1: Weapon System ✅ (Complete - Commit c7bcaca)
 - ✅ Created `weapons.py` - shared Weapon/Armor dataclasses
 - ✅ Added non-lethal weapons: shock_baton, tranq_gun, stun_gun, stun_grenade
 - ✅ Helper functions: get_weapon(), list_weapons_by_type()
+- ✅ Player weapon inventory with equipped/carried slots
+- ✅ Initialize from character config with defaults (pistol + combat_knife)
 
-### Phase 2: Player Inventory (In Progress)
-**Next steps:**
-1. Update `player.py` - add equipped_weapons, weapon_inventory
-2. Initialize player weapons from character config
-3. Add weapon swapping action (minor action? free once per round?)
+### Phase 2-3: Damage Resolution & Stun Tracking ✅ (Complete - Commit 845587f)
+- ✅ Added damage calculation functions to mechanics.py:
+  - get_stun_effect(), get_wound_effect()
+  - apply_stun_damage() - Non-cumulative YAGS rules
+  - apply_wound_damage() - Cumulative (every 5 points = 1 wound)
+  - apply_mixed_damage() - Split (odd → stuns, even → wounds)
+- ✅ Updated enemy_combat.py to use weapon.damage_type
+- ✅ Stun/wound thresholds with penalties and checks
+- ✅ Unconscious check at 6+ stuns (Beaten)
+- ✅ Death check at 6+ wounds (Fatal)
 
-### Phase 3: Damage Resolution (Pending)
-- Modify `enemy_combat.py` damage application
-- Implement YAGS stun rules (non-cumulative for stun-only, cumulative for mixed)
-- Track wounds separately from stuns
+### Phase 4: Morale & Retreat/Escape ✅ (Complete - Commit 9e70c40)
+- ✅ Added check_morale() to EnemyAgent (Willpower × d20 vs DC 20)
+- ✅ Morale triggers: HP < 25%, last survivor, critical stuns (5+)
+- ✅ Personality types: flee_when_broken, surrender_if_cornered, fight_to_death
+- ✅ Prisoner status for surrendered enemies
+- ✅ Fixed retreat/escape clock interaction:
+  - Voluntary retreat: +3 to Escape Route clock
+  - Morale flee: +2 to Escape Route clock
+  - Semantics: Clock fills = escaped, partial = scattered
+- ✅ Log morale_check events to JSONL
 
-### Phase 4: Morale & Surrender (Pending)
-- Morale checks (HP < 25%, last survivor, etc.)
-- Surrender/flee mechanics
-- Fix retreat/escape clock interaction
+### Phase 5: Social De-Escalation (Deferred)
+**Status:** Not critical for initial testing, can add later
+- ⏸️ Intimidate/Persuade player actions
+- ⏸️ DM adjudication for social actions
+- ⏸️ Mid-combat negotiation mechanics
 
-### Phase 5: Social De-Escalation (Pending)
-- Intimidate/Persuade actions
-- Enemy morality tags (innocent/desperate/hostile/evil)
-- Mid-combat negotiation
-
-### Phase 6: Soulcredit Integration (Pending)
-- Context-dependent rewards (killing desperate gang members vs void cultists)
-- Void penalties for excessive brutality
+### Phase 6: Enemy Morality & Soulcredit (Deferred)
+**Status:** System works without this, can refine later
+- ⏸️ Enemy morality tags (innocent/desperate/hostile/evil)
+- ⏸️ Context-dependent soulcredit rewards
+- ⏸️ Void penalties for excessive brutality
 
 ## Key Files Modified
 
