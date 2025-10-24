@@ -1,0 +1,161 @@
+{
+  "session_name": "judgment_call_mixed_lethality_test",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_scenario": "=== TEST SCENARIO 3: JUDGMENT CALL - MIXED LETHALITY ===",
+  "_comment_goal": "Test moral judgment, selective lethal/non-lethal force, void-corruption mechanics",
+  "_comment_enemies": "2 void-possessed cultists (fight_to_death, dangerous) + 3 coerced victims (surrender_if_cornered, not evil)",
+  "_comment_expected": "Cultists require lethal force, victims surrender when separated. Tests player judgment and weapon swapping.",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_spawn_cultists": "DM: [SPAWN_ENEMY: Void Cultists | elite | 2 | Near-Enemy | aggressive_melee | personality:fight_to_death | void_score:7]",
+  "_comment_spawn_victims": "DM: [SPAWN_ENEMY: Coerced Victims | grunt | 3 | Far-Enemy | defensive | personality:surrender_if_cornered | void_score:1]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 6,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "tactical_judgment"
+      },
+      "goals": [
+        "Neutralize void-corrupted cultists (lethal force authorized)",
+        "Save coerced victims if possible (innocent civilians)",
+        "Demonstrate moral judgment under fire (Pantheon reputation)"
+      ],
+      "attributes": {
+        "Strength": 4,
+        "Agility": 4,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 4,
+        "Empathy": 3,
+        "Willpower": 4,
+        "Charisma": 4,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Guns": 5,
+        "Brawl": 4,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 5,
+        "Persuasion": 4
+      },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
+      "carried_weapons": ["shock_baton", "stun_gun"],
+      "inventory": {
+        "pistol": 1,
+        "combat_knife": 1,
+        "shock_baton": 1,
+        "stun_gun": 1,
+        "stun_grenade": 1,
+        "riot_carapace": 1,
+        "restraint_cuffs": 4,
+        "med_kit": 2,
+        "void_scanner": 1
+      }
+    },
+    {
+      "name": "Tempest Operative Vex",
+      "pronouns": "she/her",
+      "faction": "Tempest Coalition",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 7,
+        "voidCuriosity": 3,
+        "bondPreference": "neutral",
+        "ritualConservatism": 5,
+        "combat_style": "void_hunter"
+      },
+      "goals": [
+        "Eliminate void corruption at source (cultists must die)",
+        "Protect innocents from void influence (rescue victims)",
+        "Prevent void spread to civilians (containment priority)"
+      ],
+      "attributes": {
+        "Strength": 3,
+        "Agility": 5,
+        "Endurance": 4,
+        "Perception": 5,
+        "Intelligence": 4,
+        "Empathy": 3,
+        "Willpower": 5,
+        "Charisma": 3,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Guns": 5,
+        "Stealth": 5,
+        "Awareness": 6,
+        "Athletics": 5,
+        "Investigation": 4,
+        "Intimidation": 4,
+        "Ritual Knowledge": 4
+      },
+      "equipped_weapons": {
+        "primary": "rifle",
+        "sidearm": "pistol"
+      },
+      "carried_weapons": ["shock_baton", "void_blade"],
+      "inventory": {
+        "rifle": 1,
+        "pistol": 1,
+        "shock_baton": 1,
+        "void_blade": 1,
+        "medium_armor": 1,
+        "restraint_cuffs": 2,
+        "med_kit": 1,
+        "void_scanner": 1,
+        "ritual_focus": 1
+      }
+    }
+    ]
+  },
+  "notes": "JUDGMENT CALL TEST: Raid on void ritual cult. 2 void-possessed cultists (fight_to_death, dangerous, void score 7+) + 3 coerced victims (innocent, forced participation, void score 1, will surrender). Tests player moral judgment: use lethal force on cultists (justified), switch to non-lethal for victims (mercy). Expected outcome: 2 cultist deaths (necessary), 3 victim captures (rescued). Tests weapon swapping mid-combat (lethal → non-lethal), void tracking, and soulcredit rewards for selective use of force. Narrative should emphasize victims' fear and relief at rescue vs cultists' fanatical resistance."
+}

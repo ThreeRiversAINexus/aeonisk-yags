@@ -1,0 +1,155 @@
+{
+  "session_name": "mercy_run_non_lethal_test",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_scenario": "=== TEST SCENARIO 1: MERCY RUN ===",
+  "_comment_goal": "Test full non-lethal combat: shock batons, stun guns, stun grenades, weapon swapping, prisoner capture",
+  "_comment_enemies": "4 desperate debt collectors (surrender_if_cornered) with batons - NOT evil, just desperate",
+  "_comment_expected": "Enemies surrender after 1-2 stunned to Critical (5+), all prisoners captured alive",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_spawn": "DM should spawn: [SPAWN_ENEMY: Debt Collectors | grunt | 4 | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 4,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "non_lethal_enforcer"
+      },
+      "goals": [
+        "Capture suspects alive for interrogation",
+        "Use minimum necessary force (Pantheon policy)",
+        "Build reputation as merciful but effective enforcer"
+      ],
+      "attributes": {
+        "Strength": 4,
+        "Agility": 3,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 3,
+        "Willpower": 4,
+        "Charisma": 4,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Brawl": 5,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 5,
+        "Persuasion": 3
+      },
+      "equipped_weapons": {
+        "primary": "shock_baton",
+        "sidearm": "stun_gun"
+      },
+      "carried_weapons": ["pistol"],
+      "inventory": {
+        "shock_baton": 1,
+        "stun_gun": 1,
+        "pistol": 1,
+        "stun_grenade": 2,
+        "riot_carapace": 1,
+        "restraint_cuffs": 4,
+        "med_kit": 1
+      }
+    },
+    {
+      "name": "Medic Aria Vex",
+      "pronouns": "she/her",
+      "faction": "Sovereign Union Medical Corps",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 3,
+        "voidCuriosity": 2,
+        "bondPreference": "seeks",
+        "ritualConservatism": 7,
+        "combat_style": "support_non_lethal"
+      },
+      "goals": [
+        "Incapacitate threats without killing (Hippocratic principles)",
+        "Provide medical aid to wounded (even enemies)",
+        "Prove non-lethal tactics are viable in dangerous situations"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 4,
+        "Endurance": 3,
+        "Perception": 4,
+        "Intelligence": 4,
+        "Empathy": 5,
+        "Willpower": 4,
+        "Charisma": 4,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 3,
+        "Guns": 4,
+        "Medicine": 5,
+        "Awareness": 4,
+        "Athletics": 3,
+        "Persuasion": 5,
+        "Empathy": 5
+      },
+      "equipped_weapons": {
+        "primary": "tranq_gun",
+        "sidearm": "stun_gun"
+      },
+      "carried_weapons": ["pistol"],
+      "inventory": {
+        "tranq_gun": 1,
+        "stun_gun": 1,
+        "pistol": 1,
+        "stun_grenade": 1,
+        "light_armor": 1,
+        "restraint_cuffs": 2,
+        "med_kit": 3,
+        "sedatives": 4
+      }
+    }
+    ]
+  },
+  "notes": "MERCY RUN: Bar brawl with desperate debt collectors. Test non-lethal weapons, morale surrender mechanics, prisoner capture. Enemies should surrender when overwhelmed (2+ downed, morale check fails). Players equipped with full non-lethal loadout: shock batons, stun guns, tranq guns, stun grenades. Expected outcome: 4 prisoners, 0 deaths, soulcredit reward for mercy."
+}

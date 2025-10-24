@@ -1,0 +1,95 @@
+{
+  "session_name": "test2_intimidation_mechanics",
+  "max_turns": 2,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": true,
+  "vendor_spawn_frequency": 0,
+
+  "_comment_test": "=== TEST 2: INTIMIDATION MECHANICS ===",
+  "_comment_goal": "Verify intimidation forces surrender, [ENEMY_SURRENDER:] marker, prisoner tracking",
+  "_comment_enemy": "2 test_coward (15 HP, Willpower 1, surrender_if_cornered) - easily intimidated",
+  "_comment_expected": "Damage cowards to 50% HP, intimidate → both surrender, prisoner tracking works",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 2,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+
+  "force_scenario": "[SPAWN_ENEMY: Cornered Thugs | test_coward | 2 | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Enforcer Kael Dren",
+      "pronouns": "he/him",
+      "faction": "Pantheon Security",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 4,
+        "voidCuriosity": 1,
+        "bondPreference": "neutral",
+        "ritualConservatism": 9,
+        "combat_style": "intimidating_enforcer"
+      },
+      "goals": [
+        "Wound thugs to 50% HP to make them desperate",
+        "Use Intimidation (Charisma × Intimidation skill) to force surrender",
+        "Verify [ENEMY_SURRENDER:] marker triggers and prisoners are tracked"
+      ],
+      "attributes": {
+        "Strength": 5,
+        "Agility": 3,
+        "Endurance": 4,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 2,
+        "Willpower": 5,
+        "Charisma": 5,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 5,
+        "Brawl": 4,
+        "Guns": 4,
+        "Investigation": 4,
+        "Awareness": 5,
+        "Athletics": 4,
+        "Intimidation": 6,
+        "Persuasion": 2
+      },
+      "equipped_weapons": {
+        "primary": "shock_baton",
+        "sidearm": "pistol"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "shock_baton": 1,
+        "pistol": 1,
+        "restraint_cuffs": 4
+      }
+    }
+    ]
+  },
+  "notes": "TEST 2: Intimidation mechanics. Spawn 2 test_coward (15 HP, Willpower 1, surrender_if_cornered). Round 1: Damage to 7-8 HP (50%). Round 2: Intimidate (Charisma 5 × Intimidation 6 + d20 vs DC 15). Expected: [ENEMY_SURRENDER: Cornered Thugs], prisoners array populated, social_deescalation JSONL event."
+}
