@@ -293,14 +293,17 @@ class EnemyCombatManager:
         # Override: Panicked enemies always declare FLEE
         if enemy.is_panicked:
             logger.info(f"{enemy.name} is panicked - auto-declaring FLEE action")
-            from .enemy_agent import EnemyDeclaration
 
             parsed = EnemyDeclaration(
+                agent_id=enemy.agent_id,
+                character_name=enemy.name,
+                initiative=enemy.initiative,
                 major_action="FLEE",
                 target="None",
                 weapon="None",
                 defence_token=None,
-                tactical_token=None,
+                minor_action=None,
+                token_target=None,
                 shared_intel="Attempting to escape - morale broken",
                 reasoning=f"Panicked due to {enemy.panic_trigger} - attempting to flee combat"
             )
