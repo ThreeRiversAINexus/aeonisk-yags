@@ -131,6 +131,7 @@
         "skills": {
           "Social": 5,
           "Charm": 4,
+          "Counsel": 3,
           "Awareness": 4,
           "Systems": 3,
           "Debt Law": 4,
@@ -346,6 +347,7 @@
           "Debt Law": 5,
           "Corporate Influence": 4,
           "Investigation": 4,
+          "Magick Theory": 3,
           "Charm": 3,
           "Awareness": 3
         },
@@ -505,6 +507,7 @@
           "Debt Law": 6,
           "Corporate Influence": 5,
           "Charm": 4,
+          "Counsel": 3,
           "Investigation": 3,
           "Awareness": 3,
           "Guns": 3
@@ -558,6 +561,7 @@
           "Systems": 6,
           "Astral Arts": 4,
           "Investigation": 4,
+          "Magick Theory": 3,
           "Awareness": 3
         },
         "void_score": 1,
@@ -657,6 +661,7 @@
         },
         "skills": {
           "Charm": 6,
+          "Counsel": 4,
           "Corporate Influence": 5,
           "Awareness": 4,
           "Systems": 3,
@@ -710,6 +715,7 @@
         },
         "skills": {
           "Charm": 5,
+          "Counsel": 3,
           "Corporate Influence": 4,
           "Astral Arts": 4,
           "Intimacy Ritual": 3
@@ -761,6 +767,7 @@
         "skills": {
           "Astral Arts": 6,
           "Attunement": 5,
+          "Magick Theory": 5,
           "Systems": 4,
           "Investigation": 4,
           "Melee": 2
@@ -814,6 +821,7 @@
           "Astral Arts": 5,
           "Attunement": 6,
           "Investigation": 4,
+          "Magick Theory": 4,
           "Awareness": 4
         },
         "void_score": 2,
@@ -863,6 +871,7 @@
         "skills": {
           "Astral Arts": 6,
           "Attunement": 5,
+          "Magick Theory": 4,
           "Systems": 4,
           "Awareness": 3
         },
@@ -1028,6 +1037,7 @@
           "Debt Law": 5,
           "Corporate Influence": 5,
           "Investigation": 4,
+          "Counsel": 3,
           "Charm": 3,
           "Guile": 3,
           "Guns": 3
