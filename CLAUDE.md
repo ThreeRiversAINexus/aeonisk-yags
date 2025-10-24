@@ -364,9 +364,57 @@ git commit -m "message"
 - **CLAUDE.md is auto-loaded** - This file is read every session
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
-## Recent Major Work (2025-10-23)
+## Recent Major Work
 
-**ML Logging System - Phases 1-4 Complete:**
+### 2025-10-24: Morale System Overhaul + Story Advancement Fixes
+
+**Morale System Changes:**
+- **Removed "last_survivor" trigger** - being outnumbered doesn't cause panic
+- **Morale break now sets `is_panicked` status** instead of instant despawn
+- Panicked enemies automatically declare "FLEE" on next turn
+- **Escape requires Athletics check:** Agility × Athletics + d20 vs DC 15
+  - Success: Enemy escapes (despawns)
+  - Failure: Pinned down, cleared panic, fights normally
+- PCs can now intercept/suppress fleeing enemies (tactical counterplay)
+- Morale triggers: HP < 25%, Critical Stuns (5+) only
+- Files: enemy_agent.py:349-350, enemy_combat.py:1332-1398, 1245-1305, 293-319
+
+**Automatic Story Advancement:**
+- DM now automatically progresses story when all clocks are complete/filled
+- Session detects when no active clocks remain (session.py:1113-1146)
+- Uses `_had_active_clocks` flag to track clock lifecycle
+- Sets `needs_story_advancement` flag on DM agent
+- DM synthesis prompt enhanced with [ADVANCE_STORY: ...] + [NEW_CLOCK: ...] instructions (dm.py:1507-1523)
+- **Fixed:** DM now required to use [NEW_CLOCK:...] markers (not prose)
+- **Fixed:** Parse order bug - now clears old clocks BEFORE spawning new ones (session.py:1585-1631)
+  - Old order: spawn new → clear all (deleted new clocks!)
+  - New order: clear old → spawn new (keeps new clocks!)
+- Prevents scenario stalling after objectives complete
+- Automatically generates new location/situation with fresh clocks
+
+**Duplicate Logging Fix:**
+- **Root cause:** Each player echoed other players' action broadcasts via `_handle_action_declared`
+- With 3 players, each action printed 3 times (1 per receiving player)
+- Fixed by moving all declaration prints to `logger.debug()`:
+  - Player's own declarations (player.py:513, 658-659, 722-723)
+  - Other players' broadcast echoes (player.py:458, 460)
+  - DM acknowledgments (dm.py:1031)
+- Actions now only print once during DM adjudication phase (dm.py:1108)
+- Cleaner console output during gameplay
+
+**Auto-Progression Behavior:**
+- Triggers when **ALL** clocks are gone (expired, filled, or archived)
+- Uses `_had_active_clocks` flag to detect when clocks disappear
+- **Bug fixed:** Original logic failed when all clocks expired (dict became empty)
+- Now correctly detects: had clocks → now no active clocks → trigger advancement
+- DM can still manually use [PIVOT_SCENARIO:...] or [ADVANCE_STORY:...] anytime
+- Clocks can expire via: filling (8/8), timing out (0/6 for N rounds), or manual removal
+
+**Files Modified:** session.py, dm.py, player.py
+
+### 2025-10-23: ML Logging System - Phases 1-4 Complete
+
+**ML Logging System:**
 - Bidirectional combat logging (player ↔ enemy)
 - Round summary aggregation (actions, success rate, damage, void)
 - Round synthesis logging (DM summaries)

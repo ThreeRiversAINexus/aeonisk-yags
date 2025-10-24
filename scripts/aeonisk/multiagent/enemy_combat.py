@@ -290,6 +290,37 @@ class EnemyCombatManager:
         if not self.enabled or not enemy.is_active:
             return None
 
+        # Override: Panicked enemies always declare FLEE
+        if enemy.is_panicked:
+            logger.info(f"{enemy.name} is panicked - auto-declaring FLEE action")
+
+            parsed = EnemyDeclaration(
+                agent_id=enemy.agent_id,
+                character_name=enemy.name,
+                initiative=enemy.initiative,
+                major_action="FLEE",
+                target="None",
+                weapon="None",
+                defence_token=None,
+                minor_action=None,
+                token_target=None,
+                shared_intel="Attempting to escape - morale broken",
+                reasoning=f"Panicked due to {enemy.panic_trigger} - attempting to flee combat"
+            )
+
+            self.enemy_declarations[enemy.agent_id] = parsed
+
+            logger.info(f"{enemy.name} declared: FLEE (panicked: {enemy.panic_trigger})")
+
+            return {
+                'agent_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'initiative': enemy.initiative,
+                'major_action': parsed.major_action,
+                'target': parsed.target,
+                'reasoning': parsed.reasoning
+            }
+
         active_enemies = get_active_enemies(self.enemy_agents)
 
         logger.debug(f"Generating declaration for {enemy.name} (ID: {enemy.agent_id})")
@@ -493,7 +524,9 @@ class EnemyCombatManager:
                 'narration': f"{enemy.name} holds position at {enemy.position}"
             }
 
-        if 'attack' in major_action:
+        if 'flee' in major_action or 'escape' in major_action:
+            return self._execute_flee(enemy, declaration, mechanics_engine)
+        elif 'attack' in major_action:
             return self._execute_attack(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         elif 'suppress' in major_action:
             return self._execute_suppress(enemy, declaration, player_agents, mechanics_engine, resolution_state)
@@ -1240,6 +1273,68 @@ class EnemyCombatManager:
             'narration': f"{enemy.name} retreats from combat: {declaration.reasoning}"
         }
 
+    def _execute_flee(self, enemy: EnemyAgent, declaration: EnemyDeclaration, mechanics_engine: Any) -> Dict[str, Any]:
+        """
+        Execute panicked enemy flee attempt with Athletics check.
+
+        Panicked enemies attempt to escape combat by making an Athletics check:
+        - Roll: Agility × Athletics + d20 vs DC 15
+        - Success: Enemy escapes (despawns)
+        - Failure: Enemy pinned down, remains in combat
+        """
+        import random
+
+        # Get enemy's Agility and Athletics skill
+        agility = enemy.attributes.get('Agility', 3)
+        athletics_skill = enemy.skills.get('Athletics', 0)
+
+        # Make escape check: Agility × Athletics + d20 vs DC 15
+        d20 = random.randint(1, 20)
+        total = (agility * athletics_skill) + d20
+        dc = 15
+        success = total >= dc
+        margin = total - dc
+
+        logger.info(f"{enemy.name} flee check: {agility}×{athletics_skill}+{d20} = {total} vs DC {dc} - {'SUCCESS' if success else 'FAILED'}")
+
+        if success:
+            # Escape successful - despawn
+            enemy.is_active = False
+            enemy.despawned_round = self.current_round
+
+            # Advance Escape Route clock if it exists
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics and mechanics.scene_clocks:
+                    escape_clock = mechanics.scene_clocks.get('Escape Route')
+                    if escape_clock:
+                        advance = 2  # Panic flee = less efficient than voluntary retreat
+                        escape_clock.advance(advance)
+                        logger.info(f"{enemy.name} escaped, advancing Escape Route: +{advance}")
+
+            return {
+                'enemy_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'action': 'flee',
+                'result': 'success',
+                'roll': {'agility': agility, 'athletics': athletics_skill, 'd20': d20, 'total': total, 'dc': dc, 'margin': margin},
+                'narration': f"{enemy.name} (panicked) breaks away and flees! (Athletics check: {total} vs DC {dc})"
+            }
+        else:
+            # Escape failed - enemy pinned down, still in combat
+            # Clear panic so they can fight normally next turn
+            enemy.is_panicked = False
+            enemy.panic_trigger = None
+
+            return {
+                'enemy_id': enemy.agent_id,
+                'character_name': enemy.name,
+                'action': 'flee',
+                'result': 'failure',
+                'roll': {'agility': agility, 'athletics': athletics_skill, 'd20': d20, 'total': total, 'dc': dc, 'margin': margin},
+                'narration': f"{enemy.name} (panicked) attempts to flee but is cut off! (Athletics check: {total} vs DC {dc}, failed by {abs(margin)})"
+            }
+
     def _execute_grenade(
         self,
         enemy: EnemyAgent,
@@ -1329,20 +1424,22 @@ class EnemyCombatManager:
                         'narration': f"{enemy.name}: {old_count - enemy.unit_count} units lost, {enemy.unit_count} remain"
                     })
 
-        # Check morale for active enemies
+        # Check morale for active enemies (skip if already panicked)
         active_enemies = list(get_active_enemies(self.enemy_agents))
         for enemy in active_enemies:
+            # Skip morale check if already panicked
+            if enemy.is_panicked:
+                continue
+
             morale_trigger = None
 
             # Check HP below 25%
             if enemy.get_health_percentage() < 25:
                 morale_trigger = "hp_below_25"
-            # Check if last survivor
-            elif len(active_enemies) == 1 and enemy.original_unit_count > 1:
-                morale_trigger = "last_survivor"
-            # Check critical stuns
+            # Check critical stuns (5+ stuns)
             elif getattr(enemy, 'stuns', 0) >= 5:
                 morale_trigger = "critical_stuns"
+            # NOTE: Removed "last_survivor" trigger - being outnumbered doesn't auto-panic
 
             if morale_trigger:
                 morale_result = enemy.check_morale(trigger=morale_trigger)
@@ -1368,10 +1465,11 @@ class EnemyCombatManager:
                             self.current_round
                         )
 
-                # Handle morale failure
+                # Handle morale failure - set panicked status instead of instant despawn
                 if not morale_result['success']:
                     action = morale_result['action']
                     if action == "surrender":
+                        # Surrender = instant (no escape check needed)
                         enemy.is_active = False
                         enemy.is_prisoner = True
                         enemy.despawned_round = self.current_round
@@ -1383,24 +1481,16 @@ class EnemyCombatManager:
                         })
                         logger.info(f"{enemy.name} surrendered (morale broken)")
                     elif action == "flee":
-                        enemy.is_active = False
-                        enemy.despawned_round = self.current_round
-
-                        # Auto-advance Escape Route clock
-                        if self.shared_state and hasattr(self.shared_state, 'scene_clocks'):
-                            escape_clock = self.shared_state.scene_clocks.get('Escape Route')
-                            if escape_clock:
-                                advance = 2  # Panic flee = less efficient than voluntary retreat
-                                escape_clock.advance(advance)
-                                logger.info(f"{enemy.name} fleeing, advancing Escape Route: +{advance}")
-
+                        # Flee = set panicked status, will attempt escape on next turn
+                        enemy.is_panicked = True
+                        enemy.panic_trigger = morale_trigger
                         events.append({
-                            'type': 'flee',
+                            'type': 'panicked',
                             'enemy_id': enemy.agent_id,
                             'character_name': enemy.name,
-                            'narration': f"{enemy.name} flees in panic! Morale broken ({morale_trigger})"
+                            'narration': f"{enemy.name} morale breaks! They're panicked and will attempt to flee ({morale_trigger})"
                         })
-                        logger.info(f"{enemy.name} fled (morale broken)")
+                        logger.info(f"{enemy.name} is now panicked (morale broken: {morale_trigger})")
 
         # Tick down debuff/status durations
         for enemy in get_active_enemies(self.enemy_agents):

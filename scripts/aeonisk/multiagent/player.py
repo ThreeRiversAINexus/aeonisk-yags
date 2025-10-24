@@ -453,11 +453,11 @@ class AIPlayerAgent(Agent):
         description = action.get('description', '')
         intent = action.get('intent', '')
 
-        # Show the character voice description
+        # Show the character voice description (debug only - DM will display during adjudication)
         if description:
-            print(f"\n[{character_name}] {description}")
+            logger.debug(f"[{character_name}] {description}")
         else:
-            print(f"\n[{character_name}] {intent}")
+            logger.debug(f"[{character_name}] {intent}")
 
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
@@ -509,8 +509,8 @@ class AIPlayerAgent(Agent):
             None,  # broadcast so DM and others can see
             action
         )
-        
-        print(f"[{self.character_state.name}] Declared: {description}")
+
+        logger.debug(f"[{self.character_state.name}] Declared: {description}")
         
     async def _ai_player_turn(self):
         """Handle AI player turn using personality-driven decision making with mechanics."""
@@ -654,9 +654,9 @@ class AIPlayerAgent(Agent):
             action
         )
 
-        # Display with character voice
-        print(f"\n[{self.character_state.name}] {action_declaration.description}")
-        print(f"   └─ {action_declaration.get_summary()}")
+        # Display with character voice (debug only - DM will display during adjudication)
+        logger.debug(f"[{self.character_state.name}] {action_declaration.description}")
+        logger.debug(f"   └─ {action_declaration.get_summary()}")
 
         # If this was a free action (inter-party dialogue), generate a second action
         if is_free_action and not self.free_action_used:
@@ -718,9 +718,9 @@ class AIPlayerAgent(Agent):
                 main_action_dict
             )
 
-            # Display with character voice
-            print(f"\n[{self.character_state.name}] **MAIN ACTION:** {main_action.description}")
-            print(f"   └─ {main_action.get_summary()}")
+            # Display with character voice (debug only - DM will display during adjudication)
+            logger.debug(f"[{self.character_state.name}] **MAIN ACTION:** {main_action.description}")
+            logger.debug(f"   └─ {main_action.get_summary()}")
             logger.info(f"{self.character_state.name} completed 2-action turn (free + main)")
         
     async def _handle_action_resolved(self, message: Message):
