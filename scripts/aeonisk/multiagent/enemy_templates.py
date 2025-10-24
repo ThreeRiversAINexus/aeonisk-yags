@@ -352,6 +352,119 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
 
         "special_abilities": ["backstab"]
     },
+
+    # =========================================================================
+    # TEST TEMPLATES - For isolated feature testing
+    # =========================================================================
+
+    "test_punching_bag": {
+        "description": "High-HP test dummy for damage type testing (won't flee)",
+
+        "attributes": {
+            "Agility": 2,
+            "Strength": 4,
+            "Perception": 2,
+            "Intelligence": 1,
+            "Empathy": 1,
+            "Willpower": 6,  # High Willpower - won't fail morale
+            "Health": 5
+        },
+
+        "skills": {
+            "Brawl": 2,
+            "Guns": 2,
+            "Awareness": 2,
+            "Athletics": 2
+        },
+
+        "health": 50,  # Very high HP for extended testing
+        "soak": 0,  # No soak for predictable damage
+        "void_score": 0,
+        "size": 5,
+        "move": 8,
+
+        "weapons": ["fists"],  # Unarmed only
+        "armor": "none",
+
+        "default_tactics": "aggressive_melee",
+        "threat_priority": "closest_threat",
+        "retreat_threshold": 0.0,  # Never retreats
+
+        "special_abilities": []
+    },
+
+    "test_coward": {
+        "description": "Low-HP test dummy for social de-escalation testing",
+
+        "attributes": {
+            "Agility": 3,
+            "Strength": 2,
+            "Perception": 3,
+            "Intelligence": 3,
+            "Empathy": 3,
+            "Willpower": 1,  # Very low Willpower - easily intimidated
+            "Health": 3
+        },
+
+        "skills": {
+            "Brawl": 2,
+            "Guns": 3,
+            "Awareness": 3,
+            "Athletics": 3
+        },
+
+        "health": 15,  # Low HP - reaches morale threshold quickly
+        "soak": 0,
+        "void_score": 0,
+        "size": 5,
+        "move": 10,
+
+        "weapons": ["pistol", "combat_knife"],
+        "armor": "light_armor",
+
+        "default_tactics": "tactical_ranged",
+        "threat_priority": "closest_threat",
+        "retreat_threshold": 0.5,  # Retreats at 50% HP
+
+        "special_abilities": []
+    },
+
+    "test_fanatic": {
+        "description": "Medium-HP test dummy for testing failed social actions",
+
+        "attributes": {
+            "Agility": 4,
+            "Strength": 4,
+            "Perception": 4,
+            "Intelligence": 3,
+            "Empathy": 2,
+            "Willpower": 5,  # High Willpower - resists intimidation
+            "Health": 4
+        },
+
+        "skills": {
+            "Brawl": 4,
+            "Melee": 4,
+            "Guns": 4,
+            "Awareness": 4,
+            "Athletics": 4
+        },
+
+        "health": 25,  # Medium HP
+        "soak": 0,
+        "void_score": 3,  # Void-corrupted
+        "size": 5,
+        "move": 12,
+
+        "weapons": ["rifle", "combat_knife"],
+        "armor": "medium_armor",
+
+        "default_tactics": "aggressive_melee",
+        "threat_priority": "high_value_target",
+        "retreat_threshold": 0.0,  # Never retreats
+
+        "special_abilities": []
+    },
 }
 
 

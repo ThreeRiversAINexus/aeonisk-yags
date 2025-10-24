@@ -400,7 +400,7 @@ class EnemyAgent:
         health_pct = self.get_health_percentage() / 100.0
         return health_pct <= self.retreat_threshold
 
-    def check_morale(self, trigger: str = "hp_below_25", dc: int = 20) -> Dict[str, Any]:
+    def check_morale(self, trigger: str = "hp_below_25", dc: int = 15) -> Dict[str, Any]:
         """
         Check morale per YAGS rules. Enemy may surrender or flee.
 
@@ -409,7 +409,8 @@ class EnemyAgent:
         - last_survivor: All allies defeated/retreated
         - critical_stuns: 5+ stuns (Critical threshold)
 
-        Check: Willpower × d20 vs DC 20
+        Check: Willpower + d20 vs DC 15 (lowered from 20 for better combat flow)
+        - DC 15: Standard morale check (Willpower 2-3 enemies have ~40-50% chance to break)
         - Success: Continue fighting
         - Failure: Surrender or flee (based on personality)
 

@@ -510,6 +510,62 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_social_deescalation(
+        self,
+        round_num: int,
+        player_id: str,
+        player_name: str,
+        enemy_id: str,
+        enemy_name: str,
+        action_type: str,  # "intimidation" or "persuasion"
+        skill: str,  # "Intimidation" or "Persuasion"
+        roll_total: int,
+        dc: int,
+        success: bool,
+        margin: int,
+        outcome: str,  # "surrender", "flee", "resist", "backfire"
+        narration: str
+    ):
+        """
+        Log social de-escalation attempt (intimidation/persuasion).
+
+        Args:
+            round_num: Current round
+            player_id: Player agent ID
+            player_name: Player character name
+            enemy_id: Target enemy agent ID
+            enemy_name: Target enemy name
+            action_type: Type of social action ("intimidation", "persuasion")
+            skill: Skill used (Intimidation, Persuasion)
+            roll_total: Total roll result
+            dc: Difficulty class
+            success: Whether roll succeeded
+            margin: Success margin (positive or negative)
+            outcome: Result ("surrender", "flee", "resist", "backfire")
+            narration: DM's narrative description
+        """
+        event = {
+            "event_type": "social_deescalation",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "player_id": player_id,
+            "player_name": player_name,
+            "enemy_id": enemy_id,
+            "enemy_name": enemy_name,
+            "action_type": action_type,
+            "skill": skill,
+            "roll": {
+                "total": roll_total,
+                "dc": dc,
+                "success": success,
+                "margin": margin
+            },
+            "outcome": outcome,
+            "narration": narration
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:

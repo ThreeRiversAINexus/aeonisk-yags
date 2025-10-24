@@ -36,9 +36,10 @@ logger = logging.getLogger(__name__)
 # SPAWN MARKER REGEX
 # =============================================================================
 
-# Pattern: [SPAWN_ENEMY: name | template | count | position | tactics (optional)]
+# Pattern: [SPAWN_ENEMY: name | template | count | position | tactics (optional) | personality:TYPE (optional)]
+# Example: [SPAWN_ENEMY: Debt Collectors | grunt | 4 | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]
 SPAWN_PATTERN = re.compile(
-    r'\[SPAWN_ENEMY:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*([^|\]]+)(?:\s*\|\s*([^|\]]+))?\]',
+    r'\[SPAWN_ENEMY:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*([^|\]]+)(?:\s*\|\s*([^|\]]+))?(?:\s*\|\s*([^|\]]+))?\]',
     re.IGNORECASE
 )
 
@@ -53,7 +54,7 @@ DESPAWN_PATTERN = re.compile(
 # SPAWN PROCESSING
 # =============================================================================
 
-def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[str]]]:
+def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[str], Optional[str]]]:
     """
     Parse all spawn markers from DM narration.
 
@@ -61,7 +62,8 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
         text: DM narration text
 
     Returns:
-        List of (name, template, count, position, tactics) tuples
+        List of (name, template, count, position, tactics, personality) tuples
+        - personality will be extracted from "personality:TYPE" format in 6th field
     """
     matches = SPAWN_PATTERN.findall(text)
 
@@ -73,13 +75,21 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
         position = match[3].strip()
         tactics = match[4].strip() if match[4] else None
 
+        # Parse personality from 6th field if present (format: "personality:TYPE")
+        personality = None
+        if len(match) > 5 and match[5]:
+            sixth_field = match[5].strip()
+            if sixth_field.startswith('personality:'):
+                personality = sixth_field.split(':', 1)[1].strip()
+                logger.info(f"Found personality override: {personality}")
+
         # Hard cap spawns at 2 units max (combat balance)
         if count > 2:
             logger.warning(f"Spawn count {count} exceeds max (2) - capping to 2 units for {name}")
             count = 2
 
-        parsed.append((name, template, count, position, tactics))
-        logger.info(f"Found spawn marker: {name} ({template} × {count}) at {position}")
+        parsed.append((name, template, count, position, tactics, personality))
+        logger.info(f"Found spawn marker: {name} ({template} × {count}) at {position}, personality={personality}")
 
     return parsed
 
@@ -113,6 +123,7 @@ def spawn_enemy(
     count: int,
     position_str: str,
     tactics_override: Optional[str] = None,
+    personality_override: Optional[str] = None,
     current_round: int = 0
 ) -> EnemyAgent:
     """
@@ -124,6 +135,7 @@ def spawn_enemy(
         count: Number of enemies (>1 creates group)
         position_str: Initial position (e.g., "Near-Enemy")
         tactics_override: Override template's default tactics
+        personality_override: Override default personality (flee_when_broken | surrender_if_cornered | fight_to_death)
         current_round: Current combat round
 
     Returns:
@@ -192,6 +204,9 @@ def spawn_enemy(
         if weapon.is_ranged and weapon.capacity > 0:
             ammo[weapon.name] = weapon.capacity
 
+    # Determine personality (use override if provided, else default)
+    personality = personality_override if personality_override else "flee_when_broken"
+
     # Create agent
     agent = EnemyAgent(
         agent_id=agent_id,
@@ -212,6 +227,7 @@ def spawn_enemy(
         tactics=tactics,
         threat_priority=template["threat_priority"],
         retreat_threshold=template["retreat_threshold"],
+        personality=personality,
         void_score=template.get("void_score", 0),
         weapons=weapons,
         armor=armor,
@@ -254,7 +270,7 @@ def spawn_from_marker(
     markers = parse_spawn_markers(marker_text)
 
     agents = []
-    for name, template, count, position, tactics in markers:
+    for name, template, count, position, tactics, personality in markers:
         try:
             agent = spawn_enemy(
                 name=name,
@@ -262,6 +278,7 @@ def spawn_from_marker(
                 count=count,
                 position_str=position,
                 tactics_override=tactics,
+                personality_override=personality,
                 current_round=current_round
             )
             agents.append(agent)
