@@ -346,6 +346,8 @@ class EnemyAgent:
     debuffs: List[Dict[str, Any]] = field(default_factory=list)  # Active debuffs with duration
     is_active: bool = True  # False if defeated/retreated
     is_prisoner: bool = False  # True if surrendered/captured (can be interrogated)
+    is_panicked: bool = False  # True if morale broken - will attempt to flee next turn
+    panic_trigger: Optional[str] = None  # What broke morale: "hp_below_25", "critical_stuns"
     spawned_round: int = 0  # When they entered combat
     despawned_round: Optional[int] = None  # When they left combat
 

@@ -63,6 +63,9 @@ class AIDMAgent(Agent):
         # Vendor pool for random encounters
         self.vendor_pool = create_standard_vendors()
 
+        # Story progression flags
+        self.needs_story_advancement = False  # Set by session when all clocks complete
+
         # Set up DM-specific message handlers
         self.message_handlers[MessageType.SESSION_START] = self._handle_session_start
         self.message_handlers[MessageType.ACTION_DECLARED] = self._handle_action_declared
@@ -1027,8 +1030,8 @@ The air carries a distinct tension, and you sense the void's influence at level 
             return
 
         else:
-            # Declaration phase - acknowledge but don't resolve
-            print(f"[DM {self.agent_id}] Noted: {player_id} declared action")
+            # Declaration phase - acknowledge but don't resolve (logged in debug only)
+            logger.debug(f"[DM {self.agent_id}] Noted: {player_id} declared action")
             return
             
     async def _handle_resolution_only(self, payload: Dict[str, Any]):
@@ -1477,6 +1480,49 @@ Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
 
 **IMPORTANT**: You still narrate the escape/withdrawal, but the [DESPAWN_ENEMY: ...] marker is already in the clock's filled_consequence. Just copy the consequence text including the marker when you describe what happens."""
 
+        # Check if story advancement is needed (all clocks complete)
+        story_advancement_prompt = ""
+        if self.needs_story_advancement:
+            logger.info("Story advancement triggered - adding prompt context")
+            story_advancement_prompt = """
+
+🎬 **STORY ADVANCEMENT REQUIRED - ALL CLOCKS COMPLETE**
+
+⚠️  **CRITICAL**: All scenario clocks have been resolved! The current situation has concluded.
+
+**YOU MUST** use the [ADVANCE_STORY: location | situation] marker to move the narrative forward:
+
+**Format:** [ADVANCE_STORY: New Location | New Situation Description]
+
+**Examples:**
+- [ADVANCE_STORY: Rebel Safe House | You've escaped the ambush. Time to regroup and plan your next move]
+- [ADVANCE_STORY: The Void Nexus | The corruption has spread. You must investigate the source]
+- [ADVANCE_STORY: Corporate Trading Hub | With intel gathered, you head to sell information and resupply]
+
+**What happens when you use [ADVANCE_STORY: ...]:**
+1. All remaining clocks are cleared
+2. Players are notified of the new location and situation
+3. A fresh scenario with new clocks will be generated for the next round
+
+**After the [ADVANCE_STORY: ...] marker, you MUST create 2-3 new clocks using [NEW_CLOCK: ...] markers:**
+
+**Format:** [NEW_CLOCK: Clock Name | Max Ticks | Description]
+
+**Examples:**
+- [NEW_CLOCK: Security Override | 6 | Bypass the archive's automated defenses]
+- [NEW_CLOCK: Void Spread | 6 | The archive's corruption grows stronger]
+- [NEW_CLOCK: Data Decay | 4 | Critical information is being lost]
+
+**CRITICAL:** You must include BOTH markers:
+1. [ADVANCE_STORY: location | situation] - Moves to new location
+2. [NEW_CLOCK: name | max | desc] - Creates new objectives (2-3 clocks)
+
+Without [NEW_CLOCK:...] markers, the new scenario will have NO objectives and the session will stall!
+
+⚠️  **DO NOT** write clock names in prose - use the [NEW_CLOCK:...] marker format!
+⚠️  **DO NOT** continue in the current location with no clocks - the story will stall!
+"""
+
         # Use LLM to generate synthesis if available
         if self.llm_config:
             prompt = f"""You are the DM for a dark sci-fi TTRPG. Multiple characters just acted simultaneously.
@@ -1486,6 +1532,7 @@ Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
 {clock_state_text}
 {filled_clocks_text}
 {expired_clocks_text}
+{story_advancement_prompt}
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:
 - Timing: Actions resolved fastest → slowest based on initiative
@@ -1528,11 +1575,24 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     temperature=0.8,
                     messages=[{"role": "user", "content": prompt}]
                 )
-                return response.content[0].text.strip()
+                synthesis_text = response.content[0].text.strip()
+
+                # Clear story advancement flag after synthesis generation
+                if self.needs_story_advancement:
+                    logger.info("Story advancement synthesis generated - clearing flag")
+                    self.needs_story_advancement = False
+
+                return synthesis_text
             except Exception as e:
                 logger.error(f"Synthesis generation failed: {e}")
+                # Clear flag even on error
+                if self.needs_story_advancement:
+                    self.needs_story_advancement = False
                 return f"Round {round_num} completes with mixed results:\n{outcomes_text}"
         else:
+            # Clear flag even if no LLM
+            if self.needs_story_advancement:
+                self.needs_story_advancement = False
             return f"Round {round_num} completes:\n{outcomes_text}"
 
     async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any]) -> Dict[str, Any]:
