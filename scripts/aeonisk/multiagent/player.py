@@ -119,6 +119,7 @@ class AIPlayerAgent(Agent):
         prompt_enricher: Optional[Callable[..., str]] = None,
         history_supplier: Optional[Callable[[], Iterable[str]]] = None,
         llm_logger: Optional[Any] = None,
+        llm_client: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.character_config = character_config
@@ -132,6 +133,15 @@ class AIPlayerAgent(Agent):
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+
+        # LLM client - can be injected for replay (MockLLMClient) or created normally
+        if llm_client:
+            self.llm_client = llm_client
+        else:
+            # Create Anthropic client if not provided
+            import anthropic
+            import os
+            self.llm_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
@@ -1343,11 +1353,8 @@ DESCRIPTION: I retreat to better defensive position
             temperature = self.llm_config.get('temperature', 0.8)
 
             if provider == 'anthropic':
-                import anthropic
-                import os
-                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
                 response = await asyncio.to_thread(
-                    client.messages.create,
+                    self.llm_client.messages.create,
                     model=model,
                     max_tokens=300,
                     temperature=temperature,
@@ -1430,11 +1437,8 @@ Now that you have this information, declare your action using the required forma
 
         try:
             if provider == 'anthropic':
-                import anthropic
-                import os
-                client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
                 response = await asyncio.to_thread(
-                    client.messages.create,
+                    self.llm_client.messages.create,
                     model=model,
                     max_tokens=300,
                     temperature=temperature,

@@ -38,8 +38,17 @@ class SelfPlayingSession:
     and optional human intervention.
     """
     
-    def __init__(self, config_path: str, random_seed: Optional[int] = None):
-        self.config = self._load_config(config_path)
+    def __init__(self, config_path: str = None, random_seed: Optional[int] = None,
+                 replay_mode: bool = False, replay_config: Optional[Dict] = None,
+                 llm_cache: Optional[Dict] = None):
+        # In replay mode, config comes from replay_config instead of file
+        if replay_mode and replay_config:
+            self.config = replay_config
+        elif config_path:
+            self.config = self._load_config(config_path)
+        else:
+            raise ValueError("Must provide either config_path or replay_mode=True with replay_config")
+
         self.coordinator: Optional[GameCoordinator] = None
         self.agents: List[Any] = []
         self.human_interface: Optional[HumanInterface] = None
@@ -58,13 +67,20 @@ class SelfPlayingSession:
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
 
+        # Replay mode
+        self.replay_mode = replay_mode
+        self.llm_cache = llm_cache or {}
+
         # Initialize random seed for deterministic replay
         if random_seed is None:
             # Generate seed from current time if not provided
             random_seed = int(time.time() * 1000) % (2**31)
         self.random_seed = random_seed
         random.seed(random_seed)
-        print(f"Random seed: {random_seed}")
+        if replay_mode:
+            print(f"🔁 Replay mode - Random seed: {random_seed}")
+        else:
+            print(f"Random seed: {random_seed}")
 
         # Round statistics for ML training / balance analysis
         self._round_stats = {
@@ -207,7 +223,14 @@ class SelfPlayingSession:
     async def _create_agents(self):
         """Create and start all AI agents."""
         agents_config = self.config.get('agents', {})
-        
+
+        # Create MockLLMClient instances if in replay mode
+        dm_llm_client = None
+        if self.replay_mode:
+            from .llm_logger import MockLLMClient
+            dm_llm_client = MockLLMClient(self.llm_cache, agent_id='dm_01')
+            print("✓ Created MockLLMClient for DM (replay mode)")
+
         # Create DM agent
         dm_config = agents_config.get('dm', {})
         dm_voice = self.voice_library.get_profile('ritual_scholar')
@@ -224,6 +247,7 @@ class SelfPlayingSession:
             prompt_enricher=self.voice_library.enrich_prompt,
             history_supplier=self._recent_history,
             force_scenario=force_scenario,
+            llm_client=dm_llm_client,
         )
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -249,6 +273,14 @@ class SelfPlayingSession:
         )
         for i, player_config in enumerate(selected_players):
             agent_id = f'player_{i+1:02d}'
+
+            # Create MockLLMClient for this player if in replay mode
+            player_llm_client = None
+            if self.replay_mode:
+                from .llm_logger import MockLLMClient
+                player_llm_client = MockLLMClient(self.llm_cache, agent_id=agent_id)
+                print(f"✓ Created MockLLMClient for {agent_id} (replay mode)")
+
             player_agent = AIPlayerAgent(
                 agent_id=agent_id,
                 socket_path=str(self.coordinator.message_bus.socket_path),
@@ -258,6 +290,7 @@ class SelfPlayingSession:
                 shared_state=self.shared_state,
                 prompt_enricher=self.voice_library.enrich_prompt,
                 history_supplier=self._recent_history,
+                llm_client=player_llm_client,
             )
             self.agents.append(player_agent)
             await player_agent.start()

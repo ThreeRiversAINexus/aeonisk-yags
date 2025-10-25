@@ -154,7 +154,7 @@ class ReplaySession:
         from .llm_logger import MockLLMClient
         return MockLLMClient(self.llm_cache)
 
-    def replay(self):
+    async def replay(self):
         """
         Execute the replay.
 
@@ -168,43 +168,57 @@ class ReplaySession:
         if not self.config:
             raise ValueError("Must call load_log() before replay()")
 
-        print(f"\n=== Starting Replay ===")
+        print(f"\n=== Starting Replay Execution ===")
         print(f"Replaying up to round: {self.replay_to_round}")
+        print(f"Random seed: {self.random_seed}")
+        print(f"LLM calls cached: {len(self.llm_cache)}")
+        print()
 
-        # Set random seed for deterministic dice rolls
-        if self.random_seed:
-            random.seed(self.random_seed)
-            print(f"Random seed set: {self.random_seed}")
+        # Create session in replay mode
+        from .session import SelfPlayingSession
 
-        # TODO: Create session with MockLLMClient
-        # This requires refactoring session creation to accept a custom LLM client
-        # For now, we'll document what needs to happen:
+        try:
+            session = SelfPlayingSession(
+                replay_mode=True,
+                replay_config=self.config,
+                random_seed=self.random_seed,
+                llm_cache=self.llm_cache
+            )
 
-        print("\n⚠ Replay engine incomplete:")
-        print("  1. Need to refactor session to accept custom LLM client")
-        print("  2. Need to instrument all agent LLM calls with llm_logger")
-        print("  3. Current implementation logs random seed and LLM infrastructure is ready")
-        print("\nNext steps:")
-        print("  - Instrument DM agent LLM calls (6 locations in dm.py)")
-        print("  - Instrument Player agent LLM calls")
-        print("  - Instrument Enemy agent LLM calls")
-        print("  - Add MockLLMClient injection to session creation")
+            # Modify config to limit rounds if specified
+            if self.replay_to_round < 999:
+                session.config['max_turns'] = self.replay_to_round
+                print(f"✓ Limited replay to {self.replay_to_round} rounds")
 
-        return {
-            'status': 'infrastructure_ready',
-            'random_seed_set': self.random_seed is not None,
-            'llm_calls_available': len(self.llm_cache),
-            'config_loaded': self.config is not None
-        }
+            # Run the session
+            await session.start_session()
+
+            print("\n✅ Replay completed successfully!")
+            return {
+                'status': 'success',
+                'random_seed': self.random_seed,
+                'llm_calls_used': len(self.llm_cache),
+                'rounds_replayed': self.replay_to_round
+            }
+
+        except Exception as e:
+            print(f"\n❌ Replay failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'status': 'failed',
+                'error': str(e)
+            }
 
 
-def replay_from_log(log_path: str, replay_to_round: int = 999):
+async def replay_from_log(log_path: str, replay_to_round: int = 999, execute: bool = True):
     """
     Convenience function to replay a session from a log file.
 
     Args:
         log_path: Path to JSONL log file
         replay_to_round: Stop after this round
+        execute: If True, actually execute the replay. If False, just validate.
 
     Returns:
         ReplayResult
@@ -237,8 +251,11 @@ def replay_from_log(log_path: str, replay_to_round: int = 999):
         print("\n❌ Cannot replay - missing required data")
         return None
 
-    # Execute replay
-    return replay.replay()
+    # Execute replay if requested
+    if execute:
+        return await replay.replay()
+    else:
+        return validation
 
 
 # Example usage
