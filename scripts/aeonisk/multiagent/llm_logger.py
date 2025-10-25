@@ -243,3 +243,83 @@ class MockLLMClient:
 
         # Create messages interface (mimics client.messages.create())
         self.messages = MockMessages(self.cache, self.call_index, self.agent_id)
+
+
+class HybridMessages:
+    """Messages interface that routes to mock or real client based on round."""
+
+    def __init__(self, mock_messages: MockMessages, real_client: Any, continue_from_round: int):
+        self.mock_messages = mock_messages
+        self.real_client = real_client
+        self.continue_from_round = continue_from_round
+        self.current_round = 0  # Track which round we're in
+
+    def set_round(self, round_num: int):
+        """Update current round (called by session before each round)."""
+        self.current_round = round_num
+        logger.debug(f"HybridMessages: Round updated to {round_num} (switch at {self.continue_from_round})")
+
+    def create(self, model: str, messages: List[Dict[str, str]],
+               temperature: float = 0.7, max_tokens: int = 4000, **kwargs):
+        """
+        Route to mock or real client based on current round.
+
+        If current_round <= continue_from_round: use cached mock responses
+        If current_round > continue_from_round: make real LLM API calls
+        """
+        if self.current_round <= self.continue_from_round:
+            # Use cached response
+            logger.debug(f"HybridMessages: Round {self.current_round} <= {self.continue_from_round}, using MOCK")
+            return self.mock_messages.create(model, messages, temperature, max_tokens, **kwargs)
+        else:
+            # Make real API call
+            logger.info(f"HybridMessages: Round {self.current_round} > {self.continue_from_round}, using REAL LLM")
+            return self.real_client.messages.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs
+            )
+
+
+class HybridLLMClient:
+    """
+    Hybrid LLM client that switches from cached to live responses.
+
+    Used for "continue-from-round" replay mode:
+    - Rounds 1-N: Use cached responses (deterministic replay)
+    - Rounds N+1+: Make real LLM API calls (continue live)
+
+    This enables warm-start testing and debugging specific rounds.
+    """
+
+    def __init__(self, cache: Dict[tuple, Dict], agent_id: str, continue_from_round: int):
+        """
+        Initialize hybrid client.
+
+        Args:
+            cache: Dict mapping (agent_id, call_sequence) -> response dict
+            agent_id: ID of the agent using this client
+            continue_from_round: Switch to live calls after this round
+        """
+        import anthropic
+        import os
+
+        self.cache = cache
+        self.agent_id = agent_id
+        self.continue_from_round = continue_from_round
+        self.call_index: Dict[str, int] = {}
+
+        # Create mock messages interface
+        mock_messages = MockMessages(self.cache, self.call_index, self.agent_id)
+
+        # Create real Anthropic client
+        self.real_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+
+        # Create hybrid messages interface that routes between them
+        self.messages = HybridMessages(mock_messages, self.real_client, continue_from_round)
+
+    def set_round(self, round_num: int):
+        """Update current round (called by session)."""
+        self.messages.set_round(round_num)
