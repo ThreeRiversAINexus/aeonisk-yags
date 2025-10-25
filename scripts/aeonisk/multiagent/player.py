@@ -1373,6 +1373,7 @@ DESCRIPTION: I retreat to better defensive position
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
             else:
                 # Fallback to simple action
                 return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
@@ -1457,6 +1458,7 @@ Now that you have this information, declare your action using the required forma
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
 
                 return followup_text
         except Exception as e:

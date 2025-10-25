@@ -295,6 +295,7 @@ IMPORTANT:
                         current_round=None,  # Scenario generation happens before round 1
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
 
                 # Parse LLM response
                 scenario_data = self._parse_scenario_from_llm(llm_text)
@@ -335,6 +336,7 @@ IMPORTANT:
                                     current_round=None,
                                     call_sequence=self.llm_logger.call_count
                                 )
+                                self.llm_logger.call_count += 1
 
                             scenario_data = self._parse_scenario_from_llm(llm_text)
                             break  # Only check first match and retry once
@@ -1619,6 +1621,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         current_round=round_num,
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
 
                 # Clear story advancement flag after synthesis generation
                 if self.needs_story_advancement:
@@ -3033,6 +3036,7 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
 
                 return narration
 
@@ -3118,6 +3122,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
 
                 return consequence
         except Exception as e:
@@ -3192,6 +3197,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
+                    self.llm_logger.call_count += 1
 
                 logger.info(f"Eye of Breach appeared at void levels: char={character_void}, env={env_void}")
                 return f"👁️ **Eye of Breach Detected** {event_text}"
