@@ -150,6 +150,12 @@ def main():
         help='Stop replay after this round (default: replay entire session)'
     )
 
+    parser.add_argument(
+        '--continue-from-round',
+        type=int,
+        help='Replay rounds 1-N with cached responses, then continue LIVE from round N+1 onwards (hybrid mode)'
+    )
+
     args = parser.parse_args()
     
     # Set up logging
@@ -165,9 +171,17 @@ def main():
         from .replay import replay_from_log
         print("=== Aeonisk Session Replay ===")
         print(f"Log file: {args.replay}")
-        print(f"Replay to round: {args.replay_to_round}")
+        if args.continue_from_round:
+            print(f"Continue from round: {args.continue_from_round} (hybrid mode)")
+        else:
+            print(f"Replay to round: {args.replay_to_round}")
         print()
-        result = asyncio.run(replay_from_log(args.replay, args.replay_to_round, execute=True))
+        result = asyncio.run(replay_from_log(
+            args.replay,
+            args.replay_to_round,
+            continue_from_round=args.continue_from_round,
+            execute=True
+        ))
         if result:
             print(f"\nReplay completed: {result.get('status', 'unknown')}")
         return

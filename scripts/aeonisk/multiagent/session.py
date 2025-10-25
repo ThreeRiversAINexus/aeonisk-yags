@@ -40,7 +40,7 @@ class SelfPlayingSession:
     
     def __init__(self, config_path: str = None, random_seed: Optional[int] = None,
                  replay_mode: bool = False, replay_config: Optional[Dict] = None,
-                 llm_cache: Optional[Dict] = None):
+                 llm_cache: Optional[Dict] = None, continue_from_round: Optional[int] = None):
         # In replay mode, config comes from replay_config instead of file
         if replay_mode and replay_config:
             self.config = replay_config
@@ -70,6 +70,8 @@ class SelfPlayingSession:
         # Replay mode
         self.replay_mode = replay_mode
         self.llm_cache = llm_cache or {}
+        self.continue_from_round = continue_from_round  # Switch to live LLM after this round
+        self.hybrid_clients: List[Any] = []  # Track hybrid clients for round updates
 
         # Initialize random seed for deterministic replay
         if random_seed is None:
@@ -224,12 +226,20 @@ class SelfPlayingSession:
         """Create and start all AI agents."""
         agents_config = self.config.get('agents', {})
 
-        # Create MockLLMClient instances if in replay mode
+        # Create MockLLMClient or HybridLLMClient instances if in replay mode
         dm_llm_client = None
         if self.replay_mode:
-            from .llm_logger import MockLLMClient
-            dm_llm_client = MockLLMClient(self.llm_cache, agent_id='dm_01')
-            print("✓ Created MockLLMClient for DM (replay mode)")
+            if self.continue_from_round is not None:
+                # Hybrid mode: cached up to round N, then live
+                from .llm_logger import HybridLLMClient
+                dm_llm_client = HybridLLMClient(self.llm_cache, agent_id='dm_01', continue_from_round=self.continue_from_round)
+                self.hybrid_clients.append(dm_llm_client)
+                print(f"✓ Created HybridLLMClient for DM (replay rounds 1-{self.continue_from_round}, then LIVE)")
+            else:
+                # Full replay mode: all cached
+                from .llm_logger import MockLLMClient
+                dm_llm_client = MockLLMClient(self.llm_cache, agent_id='dm_01')
+                print("✓ Created MockLLMClient for DM (replay mode)")
 
         # Create DM agent
         dm_config = agents_config.get('dm', {})
@@ -274,12 +284,20 @@ class SelfPlayingSession:
         for i, player_config in enumerate(selected_players):
             agent_id = f'player_{i+1:02d}'
 
-            # Create MockLLMClient for this player if in replay mode
+            # Create MockLLMClient or HybridLLMClient for this player if in replay mode
             player_llm_client = None
             if self.replay_mode:
-                from .llm_logger import MockLLMClient
-                player_llm_client = MockLLMClient(self.llm_cache, agent_id=agent_id)
-                print(f"✓ Created MockLLMClient for {agent_id} (replay mode)")
+                if self.continue_from_round is not None:
+                    # Hybrid mode: cached up to round N, then live
+                    from .llm_logger import HybridLLMClient
+                    player_llm_client = HybridLLMClient(self.llm_cache, agent_id=agent_id, continue_from_round=self.continue_from_round)
+                    self.hybrid_clients.append(player_llm_client)
+                    print(f"✓ Created HybridLLMClient for {agent_id} (replay rounds 1-{self.continue_from_round}, then LIVE)")
+                else:
+                    # Full replay mode: all cached
+                    from .llm_logger import MockLLMClient
+                    player_llm_client = MockLLMClient(self.llm_cache, agent_id=agent_id)
+                    print(f"✓ Created MockLLMClient for {agent_id} (replay mode)")
 
             player_agent = AIPlayerAgent(
                 agent_id=agent_id,
@@ -350,6 +368,12 @@ class SelfPlayingSession:
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
                 mechanics.current_round = round_count  # Update round counter for logging
+
+                # Update hybrid clients with new round (for continue-from-round mode)
+                if self.hybrid_clients:
+                    for client in self.hybrid_clients:
+                        client.set_round(round_count)
+                        logger.debug(f"Updated hybrid client round to {round_count}")
 
                 # Log round start event
                 if mechanics.jsonl_logger:

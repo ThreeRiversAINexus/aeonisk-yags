@@ -31,16 +31,18 @@ class ReplaySession:
     - The original session config to recreate the same setup
     """
 
-    def __init__(self, log_path: str, replay_to_round: int = 999):
+    def __init__(self, log_path: str, replay_to_round: int = 999, continue_from_round: int = None):
         """
         Initialize replay session.
 
         Args:
             log_path: Path to the JSONL log file to replay
             replay_to_round: Stop replay after this round (default: replay entire session)
+            continue_from_round: Switch to live LLM calls after this round (default: None = full replay)
         """
         self.log_path = Path(log_path)
         self.replay_to_round = replay_to_round
+        self.continue_from_round = continue_from_round
 
         # Loaded from log
         self.session_id: Optional[str] = None
@@ -169,7 +171,10 @@ class ReplaySession:
             raise ValueError("Must call load_log() before replay()")
 
         print(f"\n=== Starting Replay Execution ===")
-        print(f"Replaying up to round: {self.replay_to_round}")
+        if self.continue_from_round is not None:
+            print(f"🔄 HYBRID MODE: Cached rounds 1-{self.continue_from_round}, then LIVE from round {self.continue_from_round + 1}")
+        else:
+            print(f"Replaying up to round: {self.replay_to_round}")
         print(f"Random seed: {self.random_seed}")
         print(f"LLM calls cached: {len(self.llm_cache)}")
         print()
@@ -182,7 +187,8 @@ class ReplaySession:
                 replay_mode=True,
                 replay_config=self.config,
                 random_seed=self.random_seed,
-                llm_cache=self.llm_cache
+                llm_cache=self.llm_cache,
+                continue_from_round=self.continue_from_round
             )
 
             # Modify config to limit rounds if specified
@@ -211,19 +217,20 @@ class ReplaySession:
             }
 
 
-async def replay_from_log(log_path: str, replay_to_round: int = 999, execute: bool = True):
+async def replay_from_log(log_path: str, replay_to_round: int = 999, continue_from_round: int = None, execute: bool = True):
     """
     Convenience function to replay a session from a log file.
 
     Args:
         log_path: Path to JSONL log file
         replay_to_round: Stop after this round
+        continue_from_round: Switch to live LLM calls after this round (hybrid mode)
         execute: If True, actually execute the replay. If False, just validate.
 
     Returns:
         ReplayResult
     """
-    replay = ReplaySession(log_path, replay_to_round)
+    replay = ReplaySession(log_path, replay_to_round, continue_from_round)
     replay.load_log()
 
     # Validate
