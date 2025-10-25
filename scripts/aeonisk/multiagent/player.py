@@ -13,6 +13,7 @@ from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import EnergyInventory, Seed, SeedType, Element, create_raw_seed
+from .prompt_loader import load_agent_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +134,7 @@ class AIPlayerAgent(Agent):
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+        self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
         if llm_client:
@@ -983,9 +985,146 @@ class AIPlayerAgent(Agent):
             print("Available commands: explore, interact, ritual, combat, status, release_control")
             print("Or type any freeform action description")
 
+    def _build_player_system_prompt_new(self, recent_intents: List[str], other_players: List[str]) -> str:
+        """Build player system prompt using new prompt_loader system."""
+        from .enhanced_prompts import _format_tiered_skills
+
+        # Format attributes
+        attributes_text = "\n".join([
+            f"- {attr}: {val}"
+            for attr, val in self.character_state.attributes.items()
+        ])
+
+        # Format skills using tiered display
+        skills_text = _format_tiered_skills(self.character_state.skills)
+
+        # Format currency display
+        energy_inv = self.character_state.energy_inventory
+        if energy_inv:
+            currency_display = f"""- Breath: {energy_inv.breath} (smallest denomination)
+- Drip: {energy_inv.drip}
+- Grain: {energy_inv.grain}
+- Spark: {energy_inv.spark} (largest standard unit)"""
+
+            raw_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.RAW)
+            attuned_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.ATTUNED)
+            hollow_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.HOLLOW)
+            seeds_display = f"""- Raw Seeds: {raw_count} (degrade over time, need attunement)
+- Attuned Seeds: {attuned_count} (stable, ritual fuel)
+- Hollow Seeds: {hollow_count} (illicit, black market commodity)"""
+        else:
+            currency_display = "- No currency data available"
+            seeds_display = "- No seed data available"
+
+        # Build void warning if needed
+        void_warning = ""
+        if self.character_state.void_score >= 5:
+            void_warning = f"⚠️ **WARNING**: Your Void score is {self.character_state.void_score}/10 - you are significantly corrupted.\nFurther void exposure may have severe consequences."
+
+        # Build recent intents warning if needed
+        recent_intents_section = ""
+        if recent_intents:
+            intents_list = "\n".join([f"- {intent}" for intent in recent_intents])
+            recent_intents_section = f"**Your Recent Actions (DO NOT REPEAT):**\n{intents_list}\n\nYou MUST try a different approach, tool, location, or angle. Repeating the same action is not allowed."
+
+        # Build dialogue goal text based on character goals
+        dialogue_goal_text = ""
+        if other_players:
+            party_members_str = ", ".join(other_players)
+            goals = self.character_state.goals
+
+            if any('bond' in goal.lower() or 'harmony' in goal.lower() or 'community' in goal.lower() for goal in goals):
+                dialogue_goal_text = f"""**🎯 HOW TO ACHIEVE YOUR GOALS:**
+Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS!
+- Coordinate with {party_members_str} about the situation
+- Share what you've learned to build trust and cooperation
+- Ask them about their findings to work together more effectively
+- Teamwork advances your goals more than working alone
+- Note: Casual coordination ≠ forming a formal Bond (capital B)
+
+**IMPORTANT**:
+- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!"""
+            elif any('tempest' in goal.lower() or 'corporate' in goal.lower() or 'advance' in goal.lower() for goal in goals):
+                dialogue_goal_text = f"""**🎯 HOW TO ACHIEVE YOUR GOALS:**
+Advancing corporate interests requires COORDINATION and INFORMATION.
+- Share tactical intelligence with {party_members_str}
+- Coordinate strategy to maximize mission efficiency
+- Learn what they've discovered to complete objectives faster
+- Two operatives working together > working separately
+- Note: Tactical coordination ≠ forming a formal Bond (you can avoid Bonds while still coordinating)
+
+**IMPORTANT**:
+- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!"""
+            else:
+                dialogue_goal_text = f"""**🎯 COORDINATION STRATEGY:**
+- Talk to {party_members_str} about what you've learned
+- Coordinate your next moves to avoid duplication of effort
+- Share discoveries to piece together the full picture
+- Working together ≠ formal Bonds (you can coordinate without commitment)
+
+**IMPORTANT**:
+- Party dialogue is a FREE ACTION - you can talk to a companion AND take another action in the same turn!
+- **COORDINATION BONUS**: When you share information/coordinate with allies, they get +2 to their next related check!"""
+
+        # Build risk/void curiosity guidance
+        risk_tolerance = self.personality.get('riskTolerance', 5)
+        void_curiosity = self.personality.get('voidCuriosity', 5)
+
+        risk_guidance = "- Take bold, proactive actions\n- Not afraid of difficult checks" if risk_tolerance > 6 else "- Be cautious and methodical\n- Prefer safer, more certain approaches"
+        void_curiosity_guidance = "- Actively investigate void phenomena\n- Use void-manipulation tech if available" if void_curiosity > 6 else "- Avoid void-related risks\n- Use traditional, non-void methods"
+
+        # Build bond guidance
+        bond_preference = self.personality.get('bondPreference', 'neutral')
+        if bond_preference == 'seeks':
+            bond_guidance = "- Seek to form and protect formal Bonds (spiritual/economic commitments)"
+        elif bond_preference == 'avoids':
+            bond_guidance = "- Avoid formal Bond commitments (but casual teamwork/coordination is fine)"
+        else:
+            bond_guidance = "- Pragmatic about formal Bonds"
+
+        # Build goals text
+        goals_text = "\n".join([f"- {goal}" for goal in self.character_state.goals])
+
+        # Build variables dict for prompt template
+        variables = {
+            "character_name": self.character_state.name,
+            "pronouns": self.character_state.pronouns,
+            "attributes_text": attributes_text,
+            "skills_text": skills_text,
+            "void_score": str(self.character_state.void_score),
+            "soulcredit": str(self.character_state.soulcredit),
+            "void_warning": void_warning,
+            "currency_display": currency_display,
+            "seeds_display": seeds_display,
+            "risk_tolerance": str(risk_tolerance),
+            "void_curiosity": str(void_curiosity),
+            "bond_preference": bond_preference,
+            "ritual_conservatism": str(self.personality.get('ritualConservatism', 5)),
+            "goals_text": goals_text,
+            "dialogue_goal_text": dialogue_goal_text,
+            "recent_intents_section": recent_intents_section,
+            "risk_guidance": risk_guidance,
+            "void_curiosity_guidance": void_curiosity_guidance,
+            "bond_guidance": bond_guidance
+        }
+
+        # Load prompt from JSON with variable substitution
+        loaded_prompt = load_agent_prompt(
+            agent_type="player",
+            provider="claude",
+            language="en",  # TODO: Make this configurable
+            variables=variables
+        )
+
+        # Store prompt metadata for logging
+        self._last_prompt_metadata = loaded_prompt.metadata
+
+        return loaded_prompt.content
+
     async def _generate_llm_action_structured(self, recent_intents: List[str], exclude_dialogue: bool = False):
         """Generate structured action using LLM with enhanced prompts."""
-        from .enhanced_prompts import get_player_system_prompt
         from .action_schema import ActionDeclaration
 
         # Get other party members for dialogue prompts
@@ -993,22 +1132,10 @@ class AIPlayerAgent(Agent):
         if self.shared_state:
             other_players = self.shared_state.get_other_players(self.agent_id)
 
-        # Build system prompt with mechanical scaffolding
-        # Note: Knowledge context is empty by default - agents can research when needed
-        system_prompt = get_player_system_prompt(
-            character_name=self.character_state.name,
-            character_stats={
-                'attributes': self.character_state.attributes,
-                'skills': self.character_state.skills,
-                'soulcredit': self.character_state.soulcredit
-            },
-            personality=self.personality,
-            goals=self.character_state.goals,
+        # Build system prompt using new prompt_loader system
+        system_prompt = self._build_player_system_prompt_new(
             recent_intents=recent_intents,
-            void_score=self.character_state.void_score,
-            other_party_members=other_players,
-            energy_inventory=self.character_state.energy_inventory.as_dict() if self.character_state.energy_inventory else None,
-            knowledge_context=""  # Empty - they can research if they want
+            other_players=other_players
         )
 
         scenario_context = ""
