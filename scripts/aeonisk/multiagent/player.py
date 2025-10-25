@@ -118,6 +118,7 @@ class AIPlayerAgent(Agent):
         shared_state: Optional[SharedState] = None,
         prompt_enricher: Optional[Callable[..., str]] = None,
         history_supplier: Optional[Callable[[], Iterable[str]]] = None,
+        llm_logger: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.character_config = character_config
@@ -130,6 +131,7 @@ class AIPlayerAgent(Agent):
         self.shared_state = shared_state
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
+        self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
 
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
@@ -1352,6 +1354,18 @@ DESCRIPTION: I retreat to better defensive position
                     messages=[{"role": "user", "content": prompt}]
                 )
                 llm_text = response.content[0].text.strip()
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=llm_text,
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
             else:
                 # Fallback to simple action
                 return self._generate_simple_action(recent_intents, self.personality.get('riskTolerance', 5), self.personality.get('voidCuriosity', 3))
@@ -1426,7 +1440,21 @@ Now that you have this information, declare your action using the required forma
                     temperature=temperature,
                     messages=[{"role": "user", "content": followup_prompt}]
                 )
-                return response.content[0].text.strip()
+                followup_text = response.content[0].text.strip()
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": followup_prompt}],
+                        response=followup_text,
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
+
+                return followup_text
         except Exception as e:
             logger.error(f"Error in lookup followup: {e}")
             return None

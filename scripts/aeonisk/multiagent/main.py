@@ -137,6 +137,19 @@ def main():
         help='Random seed for deterministic sessions (for testing and replay)'
     )
 
+    parser.add_argument(
+        '--replay',
+        metavar='LOGFILE',
+        help='Replay a session from JSONL log file'
+    )
+
+    parser.add_argument(
+        '--replay-to-round',
+        type=int,
+        default=999,
+        help='Stop replay after this round (default: replay entire session)'
+    )
+
     args = parser.parse_args()
     
     # Set up logging
@@ -146,7 +159,19 @@ def main():
     if args.create_config:
         create_example_config(args.create_config)
         return
-    
+
+    # Replay mode
+    if args.replay:
+        from .replay import replay_from_log
+        print("=== Aeonisk Session Replay ===")
+        print(f"Log file: {args.replay}")
+        print(f"Replay to round: {args.replay_to_round}")
+        print()
+        result = replay_from_log(args.replay, args.replay_to_round)
+        if result:
+            print(f"\nReplay completed: {result.get('status', 'unknown')}")
+        return
+
     # Run session
     print("=== Aeonisk Multi-Agent Self-Playing System ===")
     print(f"Configuration: {args.config}")
