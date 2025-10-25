@@ -6,6 +6,8 @@ import asyncio
 import json
 import logging
 import os
+import random
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -36,7 +38,7 @@ class SelfPlayingSession:
     and optional human intervention.
     """
     
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, random_seed: Optional[int] = None):
         self.config = self._load_config(config_path)
         self.coordinator: Optional[GameCoordinator] = None
         self.agents: List[Any] = []
@@ -55,6 +57,14 @@ class SelfPlayingSession:
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
+
+        # Initialize random seed for deterministic replay
+        if random_seed is None:
+            # Generate seed from current time if not provided
+            random_seed = int(time.time() * 1000) % (2**31)
+        self.random_seed = random_seed
+        random.seed(random_seed)
+        print(f"Random seed: {random_seed}")
 
         # Round statistics for ML training / balance analysis
         self._round_stats = {
@@ -158,12 +168,25 @@ class SelfPlayingSession:
         # Initialize JSONL logger for machine-readable events
         from .mechanics import JSONLLogger
         output_dir = self.config.get('output_dir', './output')
-        jsonl_logger = JSONLLogger(self.session_id, output_dir, config=self.config)
+        jsonl_logger = JSONLLogger(self.session_id, output_dir, config=self.config, random_seed=self.random_seed)
 
         # Attach logger to mechanics engine
         if self.shared_state and self.shared_state.mechanics_engine:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
+
+        # Create and attach LLMCallLogger instances to all agents for replay functionality
+        from .llm_logger import LLMCallLogger
+        for agent in self.agents:
+            agent_type = 'dm' if agent.agent_id.startswith('dm') else ('enemy' if agent.agent_id.startswith('enemy') else 'player')
+            llm_logger_instance = LLMCallLogger(
+                agent_id=agent.agent_id,
+                agent_type=agent_type,
+                jsonl_logger=jsonl_logger,
+                session_id=self.session_id
+            )
+            agent.llm_logger = llm_logger_instance
+        print(f"✓ LLM call logging enabled for {len(self.agents)} agents")
 
         # Wait for DM to generate initial scenario before starting gameplay
         # SESSION_START triggers scenario generation, wait for SCENARIO_SETUP message

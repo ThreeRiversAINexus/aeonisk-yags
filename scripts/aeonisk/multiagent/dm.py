@@ -48,6 +48,7 @@ class AIDMAgent(Agent):
         prompt_enricher: Optional[Callable[..., str]] = None,
         history_supplier: Optional[Callable[[], Iterable[str]]] = None,
         force_scenario: Optional[str] = None,
+        llm_logger: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -59,6 +60,7 @@ class AIDMAgent(Agent):
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
         self.force_scenario = force_scenario  # For automated testing
+        self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
 
         # Vendor pool for random encounters
         self.vendor_pool = create_standard_vendors()
