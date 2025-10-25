@@ -88,15 +88,15 @@ def create_example_config(output_path: str):
         sys.exit(1)
 
 
-async def run_session(config_path: str):
+async def run_session(config_path: str, random_seed: int = None):
     """Run a self-playing session."""
     if not Path(config_path).exists():
         print(f"Configuration file not found: {config_path}")
         print("Use --create-config to generate an example configuration.")
         return
-        
+
     try:
-        session = SelfPlayingSession(config_path)
+        session = SelfPlayingSession(config_path, random_seed=random_seed)
         await session.start_session()
     except KeyboardInterrupt:
         print("\nSession interrupted by user")
@@ -130,7 +130,13 @@ def main():
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         help='Set logging level (use DEBUG for detailed ChromaDB visibility)'
     )
-    
+
+    parser.add_argument(
+        '--random-seed',
+        type=int,
+        help='Random seed for deterministic sessions (for testing and replay)'
+    )
+
     args = parser.parse_args()
     
     # Set up logging
@@ -144,10 +150,12 @@ def main():
     # Run session
     print("=== Aeonisk Multi-Agent Self-Playing System ===")
     print(f"Configuration: {args.config}")
+    if args.random_seed:
+        print(f"Using random seed: {args.random_seed}")
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
-    
-    asyncio.run(run_session(args.config))
+
+    asyncio.run(run_session(args.config, random_seed=args.random_seed))
 
 
 if __name__ == "__main__":

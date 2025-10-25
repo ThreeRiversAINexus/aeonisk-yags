@@ -60,7 +60,7 @@ class JSONLLogger:
     Each line is a complete JSON object representing one game event.
     """
 
-    def __init__(self, session_id: str, output_dir: str = "./output", config: Dict[str, Any] = None):
+    def __init__(self, session_id: str, output_dir: str = "./output", config: Dict[str, Any] = None, random_seed: Optional[int] = None):
         self.session_id = session_id
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
@@ -72,6 +72,7 @@ class JSONLLogger:
             "ts": datetime.now().isoformat(),
             "session": session_id,
             "config": config or {},
+            "random_seed": random_seed,  # For deterministic replay
             "version": "1.0.0"
         })
 
@@ -79,6 +80,10 @@ class JSONLLogger:
         """Write a single event as a JSON line."""
         with open(self.log_file, 'a') as f:
             f.write(json.dumps(event, default=str) + '\n')
+
+    def write_event(self, event: Dict[str, Any]):
+        """Public method for writing custom events (used by LLMCallLogger)."""
+        self._write_event(event)
 
     def log_action_resolution(
         self,
