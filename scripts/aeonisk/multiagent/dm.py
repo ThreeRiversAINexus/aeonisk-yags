@@ -13,6 +13,7 @@ from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import Vendor, VendorType, create_standard_vendors
+from .prompt_loader import load_agent_prompt, compose_sections
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,7 @@ class AIDMAgent(Agent):
         self._history_supplier = history_supplier
         self.force_scenario = force_scenario  # For automated testing
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+        self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
         if llm_client:
@@ -1214,6 +1216,10 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     # Add combat triplet if present
                     if combat_data:
                         context['combat'] = combat_data
+
+                    # Add prompt metadata if available
+                    if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
+                        context['prompt_metadata'] = self._last_prompt_metadata.to_dict()
 
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
@@ -2483,6 +2489,19 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 effects = state_changes.get('notes', []) + state_changes.get('consequences', [])
 
                 # Log the action resolution with enriched data
+                log_context = {
+                    "action_type": action_type,
+                    "is_ritual": action.get('is_ritual', False),
+                    "faction": action.get('faction', 'Unknown'),
+                    "description": action.get('description', ''),
+                    "narration": llm_narration,
+                    "is_free_action": action.get('is_free_action', False)
+                }
+
+                # Add prompt metadata if available
+                if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
+                    log_context["prompt_metadata"] = self._last_prompt_metadata.to_dict()
+
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
                     phase="resolve",
@@ -2492,14 +2511,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     economy_changes=economy_changes,
                     clock_states=clock_states,
                     effects=effects,
-                    context={
-                        "action_type": action_type,
-                        "is_ritual": action.get('is_ritual', False),
-                        "faction": action.get('faction', 'Unknown'),
-                        "description": action.get('description', ''),
-                        "narration": llm_narration,
-                        "is_free_action": action.get('is_free_action', False)
-                    }
+                    context=log_context
                 )
 
         else:
@@ -2629,6 +2641,120 @@ Generate appropriate consequences based on what makes sense for that specific cl
     async def _handle_dm_narration(self, message: Message):
         """Handle DM narration messages (no-op - DM sends these, doesn't receive them)."""
         pass
+
+    def _build_dm_narration_prompt(
+        self,
+        is_dialogue: bool,
+        scenario_context: str,
+        character_context: str,
+        resolution_context: str,
+        tactical_combat_context: str,
+        clock_context: str,
+        void_level: int,
+        void_impact: str,
+        outcome_guidance: str,
+        description: str,
+        action_type: str,
+        enemy_spawn_instructions: str = "",
+        party_context: str = "",
+        character_name: str = "",
+        target_character: str = ""
+    ) -> str:
+        """
+        Build DM narration prompt using prompt_loader system.
+
+        Handles both PC-to-PC dialogue and standard action narration.
+        Stores prompt metadata in self._last_prompt_metadata for logging.
+        """
+        if is_dialogue:
+            # PC-to-PC dialogue path
+            prompt_parts = []
+            prompt_parts.append("You are the Dungeon Master for an Aeonisk YAGS game session.")
+            prompt_parts.append("")
+
+            if scenario_context:
+                prompt_parts.append(scenario_context)
+            if party_context:
+                prompt_parts.append(party_context)
+            if enemy_spawn_instructions:
+                prompt_parts.append(enemy_spawn_instructions)
+            if character_context:
+                prompt_parts.append(character_context)
+            if resolution_context:
+                prompt_parts.append(resolution_context)
+
+            prompt_parts.append(f"\nPlayer Action: {description}")
+            prompt_parts.append(f"Action Type: {action_type} (DIALOGUE with {target_character})")
+
+            if void_impact:
+                prompt_parts.append(void_impact)
+            if tactical_combat_context:
+                prompt_parts.append(tactical_combat_context)
+
+            # Add dialogue task template
+            variables = {
+                "initiating_character": character_name,
+                "target_character": target_character
+            }
+
+            loaded_prompt = load_agent_prompt(
+                agent_type="dm",
+                provider="claude",
+                language="en",
+                section="dialogue_task",
+                variables=variables
+            )
+
+            prompt_parts.append("")
+            prompt_parts.append(loaded_prompt.content)
+
+            self._last_prompt_metadata = loaded_prompt.metadata
+            return "\n".join(prompt_parts)
+
+        else:
+            # Standard narration path - compose multiple sections
+            prompt_parts = []
+            prompt_parts.append("You are the Dungeon Master for an Aeonisk YAGS game session.")
+            prompt_parts.append("")
+
+            if scenario_context:
+                prompt_parts.append(scenario_context)
+            if enemy_spawn_instructions:
+                prompt_parts.append(enemy_spawn_instructions)
+            if character_context:
+                prompt_parts.append(character_context)
+            if resolution_context:
+                prompt_parts.append(resolution_context)
+
+            prompt_parts.append(f"\nPlayer Action: {description}")
+            prompt_parts.append(f"Action Type: {action_type}")
+
+            if void_impact:
+                prompt_parts.append(void_impact)
+            if tactical_combat_context:
+                prompt_parts.append(tactical_combat_context)
+            if clock_context:
+                prompt_parts.append(clock_context)
+
+            # Add narration task template with outcome guidance
+            variables = {
+                "void_level": str(void_level),
+                "outcome_guidance": outcome_guidance
+            }
+
+            loaded_prompt = load_agent_prompt(
+                agent_type="dm",
+                provider="claude",
+                language="en",
+                section="narration_task",
+                variables=variables
+            )
+
+            prompt_parts.append("")
+            prompt_parts.append(loaded_prompt.content)
+
+            self._last_prompt_metadata = loaded_prompt.metadata
+            return "\n".join(prompt_parts)
 
     async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None, action=None) -> str:
         """Generate DM response using LLM."""
@@ -2936,71 +3062,33 @@ When adjudicating:
                         target_character = reg_player.get('name')
                         break
 
-        # Build prompt based on whether this is PC-to-PC dialogue
+        # Build party context for dialogue scenarios
+        party_context = ""
         if is_dialogue_with_pc and target_character:
-            # Build party context to clarify these are different characters
-            party_context = ""
             if self.shared_state:
                 registered_players = self.shared_state.registered_players
                 party_members = [f"{p.get('name')} ({p.get('faction', 'Unknown')})" for p in registered_players]
                 party_context = f"\n**Party Members (ALL DIFFERENT CHARACTERS):**\n" + "\n".join([f"  - {member}" for member in party_members])
                 party_context += f"\n\n**IMPORTANT**: {character_name if action else 'The character'} and {target_character} are TWO SEPARATE people in the same party."
 
-            prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
-
-{scenario_context}
-{party_context}
-{enemy_spawn_instructions}
-{character_context}
-{resolution_context}
-
-Player Action: {description}
-Action Type: {action_type} (DIALOGUE with {target_character})
-{void_impact}
-{tactical_combat_context}
-
-This is a conversation between two DIFFERENT party members:
-- **{character_name if action else 'The character'}** (the one initiating the conversation)
-- **{target_character}** (the one being spoken to)
-
-These are two separate people working together in the same party.
-
-Generate ACTUAL DIALOGUE using quoted speech. Include:
-1. What {character_name if action else 'the character'} says (in quotes)
-2. How {target_character} responds (in quotes)
-3. Any body language or environmental details
-
-Example format:
-"{character_name if action else 'The character'} leans forward, voice lowered. "What did you find in the archives?"
-
-{target_character} hesitates, glancing at the security cameras. "The memory fragments... they're not what we thought. Someone's been editing them."
-
-{void_impact if void_level >= 4 else ""}
-
-Keep it to 2-4 lines of dialogue. Be concise and natural. Include actual quoted speech."""
-
-        else:
-            prompt = f"""You are the Dungeon Master for an Aeonisk YAGS game session.
-
-{scenario_context}
-{enemy_spawn_instructions}
-{character_context}
-{resolution_context}
-
-Player Action: {description}
-Action Type: {action_type}
-{void_impact}
-{tactical_combat_context}
-{clock_context}
-
-As the DM, describe what happens narratively as a result of this action. Be vivid and thematic. Include:
-1. What the player discovers or experiences (or fails to discover if they failed)
-2. Any immediate consequences or complications
-3. How the environmental void corruption (level {void_level}/10) affects the situation - this should be NOTICEABLE
-4. Consider how the character's faction affiliation might be relevant (recognition, suspicion, access, etc.)
-{outcome_guidance}
-
-Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atmosphere."""
+        # Build prompt using prompt_loader system
+        prompt = self._build_dm_narration_prompt(
+            is_dialogue=is_dialogue_with_pc and target_character is not None,
+            scenario_context=scenario_context,
+            character_context=character_context,
+            resolution_context=resolution_context,
+            tactical_combat_context=tactical_combat_context,
+            clock_context=clock_context,
+            void_level=void_level,
+            void_impact=void_impact,
+            outcome_guidance=outcome_guidance,
+            description=description,
+            action_type=action_type,
+            enemy_spawn_instructions=enemy_spawn_instructions,
+            party_context=party_context,
+            character_name=character_name if action else "The character",
+            target_character=target_character if target_character else ""
+        )
 
         try:
             if provider == 'openai':
