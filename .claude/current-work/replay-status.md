@@ -2,16 +2,20 @@
 
 **Branch:** `feature/session-replay`
 **Date:** 2025-10-24
-**Commit:** 254a2f1
+**Latest Commit:** 8a77e1d - "feat: Instrument LLM calls for replay + add replay CLI args"
+**Previous Commits:**
+- 254a2f1 - "feat: Add session replay infrastructure (Phase 1 - Foundation)"
+- 9ffbe6d - "docs: Add replay implementation status and next steps"
 
 ## Summary
 
-The **infrastructure for session replay is now complete**. The system can:
+The **LLM logging system is now fully implemented and ready to test!** The system can:
 - ✅ Track and log random seeds for deterministic dice rolls
-- ✅ Provide framework for logging LLM calls (prompts + responses)
+- ✅ Log ALL LLM calls (prompts + responses) from DM and Player agents
 - ✅ Load and parse replay logs with validation
 - ✅ Cache LLM responses for replay
-- ⚠️ **Missing:** Actual instrumentation of LLM calls in agent code
+- ✅ CLI tools for both normal sessions and replay validation
+- ⚠️ **Optional:** Full execution replay (needs MockLLMClient injection)
 
 ## What Works Now
 
@@ -89,77 +93,58 @@ cd scripts/aeonisk/multiagent
 python3 replay.py ../../../multiagent_output/session_xyz.jsonl 3
 ```
 
-## What's Missing (Critical Path)
+## ✅ What's Been Completed (As of 2025-10-24)
 
-### 1. Instrument LLM Calls in Agents ⚠️
-Currently, agents make LLM calls but don't log them. Need to add logging after each `client.messages.create()` call.
+### 1. LLM Call Instrumentation ✅
+**All agents now log LLM calls!** Every LLM API call now writes to JSONL with full context.
 
-**DM Agent (dm.py)** - 6 locations:
-```python
-# Line ~270: Scenario generation
-response = await asyncio.to_thread(
-    client.messages.create,
-    model=model,
-    max_tokens=500,
-    temperature=0.9,
-    messages=[{"role": "user", "content": scenario_prompt}]
-)
-llm_text = response.content[0].text.strip()
+**DM Agent (dm.py)** - 6 locations instrumented:
+- ✅ Line 271: Scenario generation (initial)
+- ✅ Line 311: Scenario retry (location conflict)
+- ✅ Line 1598: Round synthesis
+- ✅ Line 3015: Action adjudication
+- ✅ Line 3103: Clock consequence generation
+- ✅ Line 3180: Eye of Breach appearance
 
-# ADD THIS BLOCK:
-if self.llm_logger:
-    self.llm_logger._log_llm_call(
-        messages=[{"role": "user", "content": scenario_prompt}],
-        response=llm_text,
-        model=model,
-        temperature=0.9,
-        tokens={'input': response.usage.input_tokens,
-                'output': response.usage.output_tokens},
-        current_round=None,
-        call_sequence=self.llm_logger.call_count
-    )
-```
+**Player Agent (player.py)** - 2 locations instrumented:
+- ✅ Line 1349: Action declaration
+- ✅ Line 1436: Knowledge lookup followup
 
-**Locations to instrument:**
-- `dm.py`: Lines ~270, 298, 1572, 2977, 3051, 3114
-- `player.py`: TBD (search for `messages.create`)
-- `enemy_agent.py`: TBD (search for `messages.create`)
+**Enemy Agents** - No instrumentation needed:
+- ✅ Confirmed enemies use rule-based tactical AI only
+- ✅ No LLM calls to instrument
 
-**Helper script to find locations:**
+### 2. Replay CLI Arguments ✅
+Fully implemented in `main.py`:
 ```bash
-grep -n "messages\.create" scripts/aeonisk/multiagent/*.py
+# Replay entire session
+python3 run_multiagent_session.py --replay session_xyz.jsonl
+
+# Replay first N rounds
+python3 run_multiagent_session.py --replay session_xyz.jsonl --replay-to-round 5
 ```
 
-### 2. Add Replay CLI Arguments
-Add to `main.py`:
-```python
-parser.add_argument(
-    '--replay',
-    metavar='LOGFILE',
-    help='Replay a session from JSONL log'
-)
+Wired to `replay.replay_from_log()` - works out of the box!
 
-parser.add_argument(
-    '--replay-to-round',
-    type=int,
-    default=999,
-    help='Replay up to this round'
-)
-```
+### 3. What's Left (Optional Enhancements)
 
-Wire to replay engine in `main()`:
-```python
-if args.replay:
-    from .multiagent.replay import replay_from_log
-    result = replay_from_log(args.replay, args.replay_to_round)
-    return
-```
+**⚠️ Full Execution Replay (Not Yet Implemented)**
+To actually RE-RUN the session (not just validate), need to:
+1. Allow passing custom LLM client to agent `__init__`
+2. During replay, inject `MockLLMClient(llm_cache)` instead of Anthropic client
+3. MockLLMClient returns cached responses from log
 
-### 3. Inject MockLLMClient During Replay
-Currently agents create their own Anthropic clients. For replay, we need to:
-1. Allow passing a custom LLM client to agent `__init__`
-2. During replay, pass `MockLLMClient(llm_cache)` instead
-3. MockLLMClient returns cached responses instead of calling API
+**Current replay tool does:**
+- ✅ Load and parse JSONL log
+- ✅ Extract random seed
+- ✅ Build LLM response cache
+- ✅ Validate replay-ability
+- ✅ Show what data is available
+
+**To enable full execution, need:**
+- Refactor agent LLM client injection (~1-2 hours)
+- Wire MockLLMClient into session creation
+- Test end-to-end deterministic replay
 
 ## Testing Plan
 
