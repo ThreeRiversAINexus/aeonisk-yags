@@ -277,6 +277,18 @@ IMPORTANT:
                 )
                 llm_text = response.content[0].text.strip()
 
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": scenario_prompt}],
+                        response=llm_text,
+                        model=model,
+                        temperature=0.9,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=None,  # Scenario generation happens before round 1
+                        call_sequence=self.llm_logger.call_count
+                    )
+
                 # Parse LLM response
                 scenario_data = self._parse_scenario_from_llm(llm_text)
 
@@ -304,6 +316,19 @@ IMPORTANT:
                                 messages=[{"role": "user", "content": retry_prompt}]
                             )
                             llm_text = response.content[0].text.strip()
+
+                            # Log LLM call for replay
+                            if self.llm_logger:
+                                self.llm_logger._log_llm_call(
+                                    messages=[{"role": "user", "content": retry_prompt}],
+                                    response=llm_text,
+                                    model=model,
+                                    temperature=1.0,
+                                    tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                                    current_round=None,
+                                    call_sequence=self.llm_logger.call_count
+                                )
+
                             scenario_data = self._parse_scenario_from_llm(llm_text)
                             break  # Only check first match and retry once
 
@@ -1578,6 +1603,18 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     messages=[{"role": "user", "content": prompt}]
                 )
                 synthesis_text = response.content[0].text.strip()
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=synthesis_text,
+                        model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                        temperature=0.8,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=round_num,
+                        call_sequence=self.llm_logger.call_count
+                    )
 
                 # Clear story advancement flag after synthesis generation
                 if self.needs_story_advancement:
@@ -2982,7 +3019,21 @@ Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atm
                     temperature=temperature,
                     messages=[{"role": "user", "content": prompt}]
                 )
-                return response.content[0].text.strip()
+                narration = response.content[0].text.strip()
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=narration,
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
+
+                return narration
 
         except Exception as e:
             logger.error(f"LLM API error: {e}")
@@ -3056,7 +3107,21 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     temperature=0.8,
                     messages=[{"role": "user", "content": prompt}]
                 )
-                return response.content[0].text.strip()
+                consequence = response.content[0].text.strip()
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=consequence,
+                        model=model,
+                        temperature=0.8,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
+
+                return consequence
         except Exception as e:
             logger.error(f"Clock consequence generation failed: {e}")
             # Fallback to template
@@ -3120,6 +3185,19 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     messages=[{"role": "user", "content": prompt}]
                 )
                 event_text = response.content[0].text.strip()
+
+                # Log LLM call for replay
+                if self.llm_logger:
+                    self.llm_logger._log_llm_call(
+                        messages=[{"role": "user", "content": prompt}],
+                        response=event_text,
+                        model=model,
+                        temperature=0.85,
+                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        current_round=getattr(self, 'current_round', None),
+                        call_sequence=self.llm_logger.call_count
+                    )
+
                 logger.info(f"Eye of Breach appeared at void levels: char={character_void}, env={env_void}")
                 return f"👁️ **Eye of Breach Detected** {event_text}"
             except Exception as e:
