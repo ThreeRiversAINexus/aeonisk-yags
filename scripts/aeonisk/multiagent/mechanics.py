@@ -60,11 +60,14 @@ class JSONLLogger:
     Each line is a complete JSON object representing one game event.
     """
 
-    def __init__(self, session_id: str, output_dir: str = "./output", config: Dict[str, Any] = None):
+    def __init__(self, session_id: str, output_dir: str = "./output", config: Dict[str, Any] = None, random_seed: Optional[int] = None):
         self.session_id = session_id
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.log_file = self.output_dir / f"session_{session_id}.jsonl"
+
+        # Get git commit hash for reproducibility tracking
+        git_commit = self._get_git_commit()
 
         # Initialize log file with session start event
         self._write_event({
@@ -72,13 +75,37 @@ class JSONLLogger:
             "ts": datetime.now().isoformat(),
             "session": session_id,
             "config": config or {},
+            "random_seed": random_seed,  # For deterministic replay
+            "git_commit": git_commit,  # Track codebase version
             "version": "1.0.0"
         })
+
+    def _get_git_commit(self) -> Optional[str]:
+        """Get current git commit hash for version tracking."""
+        import subprocess
+        try:
+            # Get short commit hash (first 7 chars)
+            result = subprocess.run(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                capture_output=True,
+                text=True,
+                timeout=1,
+                cwd=Path(__file__).parent.parent.parent.parent  # Go up to repo root
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return None
 
     def _write_event(self, event: Dict[str, Any]):
         """Write a single event as a JSON line."""
         with open(self.log_file, 'a') as f:
             f.write(json.dumps(event, default=str) + '\n')
+
+    def write_event(self, event: Dict[str, Any]):
+        """Public method for writing custom events (used by LLMCallLogger)."""
+        self._write_event(event)
 
     def log_action_resolution(
         self,

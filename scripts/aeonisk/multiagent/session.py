@@ -6,6 +6,8 @@ import asyncio
 import json
 import logging
 import os
+import random
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -36,8 +38,17 @@ class SelfPlayingSession:
     and optional human intervention.
     """
     
-    def __init__(self, config_path: str):
-        self.config = self._load_config(config_path)
+    def __init__(self, config_path: str = None, random_seed: Optional[int] = None,
+                 replay_mode: bool = False, replay_config: Optional[Dict] = None,
+                 llm_cache: Optional[Dict] = None, continue_from_round: Optional[int] = None):
+        # In replay mode, config comes from replay_config instead of file
+        if replay_mode and replay_config:
+            self.config = replay_config
+        elif config_path:
+            self.config = self._load_config(config_path)
+        else:
+            raise ValueError("Must provide either config_path or replay_mode=True with replay_config")
+
         self.coordinator: Optional[GameCoordinator] = None
         self.agents: List[Any] = []
         self.human_interface: Optional[HumanInterface] = None
@@ -55,6 +66,23 @@ class SelfPlayingSession:
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
+
+        # Replay mode
+        self.replay_mode = replay_mode
+        self.llm_cache = llm_cache or {}
+        self.continue_from_round = continue_from_round  # Switch to live LLM after this round
+        self.hybrid_clients: List[Any] = []  # Track hybrid clients for round updates
+
+        # Initialize random seed for deterministic replay
+        if random_seed is None:
+            # Generate seed from current time if not provided
+            random_seed = int(time.time() * 1000) % (2**31)
+        self.random_seed = random_seed
+        random.seed(random_seed)
+        if replay_mode:
+            print(f"🔁 Replay mode - Random seed: {random_seed}")
+        else:
+            print(f"Random seed: {random_seed}")
 
         # Round statistics for ML training / balance analysis
         self._round_stats = {
@@ -158,12 +186,25 @@ class SelfPlayingSession:
         # Initialize JSONL logger for machine-readable events
         from .mechanics import JSONLLogger
         output_dir = self.config.get('output_dir', './output')
-        jsonl_logger = JSONLLogger(self.session_id, output_dir, config=self.config)
+        jsonl_logger = JSONLLogger(self.session_id, output_dir, config=self.config, random_seed=self.random_seed)
 
         # Attach logger to mechanics engine
         if self.shared_state and self.shared_state.mechanics_engine:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
+
+        # Create and attach LLMCallLogger instances to all agents for replay functionality
+        from .llm_logger import LLMCallLogger
+        for agent in self.agents:
+            agent_type = 'dm' if agent.agent_id.startswith('dm') else ('enemy' if agent.agent_id.startswith('enemy') else 'player')
+            llm_logger_instance = LLMCallLogger(
+                agent_id=agent.agent_id,
+                agent_type=agent_type,
+                jsonl_logger=jsonl_logger,
+                session_id=self.session_id
+            )
+            agent.llm_logger = llm_logger_instance
+        print(f"✓ LLM call logging enabled for {len(self.agents)} agents")
 
         # Wait for DM to generate initial scenario before starting gameplay
         # SESSION_START triggers scenario generation, wait for SCENARIO_SETUP message
@@ -184,7 +225,22 @@ class SelfPlayingSession:
     async def _create_agents(self):
         """Create and start all AI agents."""
         agents_config = self.config.get('agents', {})
-        
+
+        # Create MockLLMClient or HybridLLMClient instances if in replay mode
+        dm_llm_client = None
+        if self.replay_mode:
+            if self.continue_from_round is not None:
+                # Hybrid mode: cached up to round N, then live
+                from .llm_logger import HybridLLMClient
+                dm_llm_client = HybridLLMClient(self.llm_cache, agent_id='dm_01', continue_from_round=self.continue_from_round)
+                self.hybrid_clients.append(dm_llm_client)
+                print(f"✓ Created HybridLLMClient for DM (replay rounds 1-{self.continue_from_round}, then LIVE)")
+            else:
+                # Full replay mode: all cached
+                from .llm_logger import MockLLMClient
+                dm_llm_client = MockLLMClient(self.llm_cache, agent_id='dm_01')
+                print("✓ Created MockLLMClient for DM (replay mode)")
+
         # Create DM agent
         dm_config = agents_config.get('dm', {})
         dm_voice = self.voice_library.get_profile('ritual_scholar')
@@ -201,6 +257,7 @@ class SelfPlayingSession:
             prompt_enricher=self.voice_library.enrich_prompt,
             history_supplier=self._recent_history,
             force_scenario=force_scenario,
+            llm_client=dm_llm_client,
         )
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -226,6 +283,22 @@ class SelfPlayingSession:
         )
         for i, player_config in enumerate(selected_players):
             agent_id = f'player_{i+1:02d}'
+
+            # Create MockLLMClient or HybridLLMClient for this player if in replay mode
+            player_llm_client = None
+            if self.replay_mode:
+                if self.continue_from_round is not None:
+                    # Hybrid mode: cached up to round N, then live
+                    from .llm_logger import HybridLLMClient
+                    player_llm_client = HybridLLMClient(self.llm_cache, agent_id=agent_id, continue_from_round=self.continue_from_round)
+                    self.hybrid_clients.append(player_llm_client)
+                    print(f"✓ Created HybridLLMClient for {agent_id} (replay rounds 1-{self.continue_from_round}, then LIVE)")
+                else:
+                    # Full replay mode: all cached
+                    from .llm_logger import MockLLMClient
+                    player_llm_client = MockLLMClient(self.llm_cache, agent_id=agent_id)
+                    print(f"✓ Created MockLLMClient for {agent_id} (replay mode)")
+
             player_agent = AIPlayerAgent(
                 agent_id=agent_id,
                 socket_path=str(self.coordinator.message_bus.socket_path),
@@ -235,6 +308,7 @@ class SelfPlayingSession:
                 shared_state=self.shared_state,
                 prompt_enricher=self.voice_library.enrich_prompt,
                 history_supplier=self._recent_history,
+                llm_client=player_llm_client,
             )
             self.agents.append(player_agent)
             await player_agent.start()
@@ -274,6 +348,26 @@ class SelfPlayingSession:
         max_rounds = self.config.get('max_turns', 50)
 
         print(f"\n=== Starting Session {self.session_id} ===")
+
+        # Display git commit for version tracking
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.jsonl_logger:
+                # Extract git commit from the session_start event we just logged
+                import subprocess
+                try:
+                    result = subprocess.run(
+                        ['git', 'rev-parse', '--short', 'HEAD'],
+                        capture_output=True,
+                        text=True,
+                        timeout=1
+                    )
+                    if result.returncode == 0:
+                        git_commit = result.stdout.strip()
+                        print(f"Git commit: {git_commit}")
+                except Exception:
+                    pass
+
         print(f"Max rounds: {max_rounds}")
         print(f"Human interface: {'Enabled' if self.human_interface else 'Disabled'}")
 
@@ -294,6 +388,12 @@ class SelfPlayingSession:
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
                 mechanics.current_round = round_count  # Update round counter for logging
+
+                # Update hybrid clients with new round (for continue-from-round mode)
+                if self.hybrid_clients:
+                    for client in self.hybrid_clients:
+                        client.set_round(round_count)
+                        logger.debug(f"Updated hybrid client round to {round_count}")
 
                 # Log round start event
                 if mechanics.jsonl_logger:
