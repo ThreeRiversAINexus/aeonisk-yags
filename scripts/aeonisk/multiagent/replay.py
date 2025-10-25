@@ -82,8 +82,11 @@ class ReplaySession:
                     self.session_id = event['session']
                     self.config = event.get('config', {})
                     self.random_seed = event.get('random_seed')
+                    git_commit = event.get('git_commit')
                     print(f"  Session ID: {self.session_id}")
                     print(f"  Random seed: {self.random_seed}")
+                    if git_commit:
+                        print(f"  Git commit: {git_commit}")
 
                 # Build LLM response cache
                 elif event['event_type'] == 'llm_call':
