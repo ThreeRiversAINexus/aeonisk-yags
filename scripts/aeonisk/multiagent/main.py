@@ -88,15 +88,15 @@ def create_example_config(output_path: str):
         sys.exit(1)
 
 
-async def run_session(config_path: str):
+async def run_session(config_path: str, random_seed: int = None):
     """Run a self-playing session."""
     if not Path(config_path).exists():
         print(f"Configuration file not found: {config_path}")
         print("Use --create-config to generate an example configuration.")
         return
-        
+
     try:
-        session = SelfPlayingSession(config_path)
+        session = SelfPlayingSession(config_path, random_seed=random_seed)
         await session.start_session()
     except KeyboardInterrupt:
         print("\nSession interrupted by user")
@@ -130,7 +130,32 @@ def main():
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
         help='Set logging level (use DEBUG for detailed ChromaDB visibility)'
     )
-    
+
+    parser.add_argument(
+        '--random-seed',
+        type=int,
+        help='Random seed for deterministic sessions (for testing and replay)'
+    )
+
+    parser.add_argument(
+        '--replay',
+        metavar='LOGFILE',
+        help='Replay a session from JSONL log file'
+    )
+
+    parser.add_argument(
+        '--replay-to-round',
+        type=int,
+        default=999,
+        help='Stop replay after this round (default: replay entire session)'
+    )
+
+    parser.add_argument(
+        '--continue-from-round',
+        type=int,
+        help='Replay rounds 1-N with cached responses, then continue LIVE from round N+1 onwards (hybrid mode)'
+    )
+
     args = parser.parse_args()
     
     # Set up logging
@@ -140,14 +165,36 @@ def main():
     if args.create_config:
         create_example_config(args.create_config)
         return
-    
+
+    # Replay mode
+    if args.replay:
+        from .replay import replay_from_log
+        print("=== Aeonisk Session Replay ===")
+        print(f"Log file: {args.replay}")
+        if args.continue_from_round:
+            print(f"Continue from round: {args.continue_from_round} (hybrid mode)")
+        else:
+            print(f"Replay to round: {args.replay_to_round}")
+        print()
+        result = asyncio.run(replay_from_log(
+            args.replay,
+            args.replay_to_round,
+            continue_from_round=args.continue_from_round,
+            execute=True
+        ))
+        if result:
+            print(f"\nReplay completed: {result.get('status', 'unknown')}")
+        return
+
     # Run session
     print("=== Aeonisk Multi-Agent Self-Playing System ===")
     print(f"Configuration: {args.config}")
+    if args.random_seed:
+        print(f"Using random seed: {args.random_seed}")
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
-    
-    asyncio.run(run_session(args.config))
+
+    asyncio.run(run_session(args.config, random_seed=args.random_seed))
 
 
 if __name__ == "__main__":
