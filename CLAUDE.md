@@ -60,6 +60,26 @@ python3 reconstruct_narrative.py ../../multiagent_output/session_*.jsonl > story
 - `enemy_combat.py` (1400+ lines) - Enemy agents with tactical AI
 - `mechanics.py` (600+ lines) - Core game mechanics + JSONLLogger class
 - `base.py` - Message bus, async agent framework, GameCoordinator
+- `prompt_loader.py` - Externalized prompt system with i18n support
+- `prompts/claude/en/*.json` - DM, Player, Enemy prompts (externalized from code)
+
+**Prompt System (v2.0):**
+```
+prompts/
+├── claude/en/           # English prompts
+│   ├── dm.json         # DM narration templates
+│   ├── player.json     # Player action templates
+│   └── enemy.json      # Enemy tactical templates
+├── shared/
+│   └── markers.json    # Command marker registry
+└── [future: es/, zh/ for multi-language]
+```
+
+All agent prompts are now externalized to JSON files with:
+- ✅ Version tracking (logged in JSONL for ML analysis)
+- ✅ Multi-language support (ready for Spanish/Chinese)
+- ✅ Provider abstraction (ready for GPT-4, local models)
+- ⏳ Enemy prompts using legacy system (marked for future refactor)
 
 **Architecture Pattern:**
 ```
@@ -365,6 +385,39 @@ git commit -m "message"
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-25: Prompt System Externalization (v2.0)
+
+**Externalized Prompt Architecture:**
+- Created `prompt_loader.py` - Multi-language prompt loading with versioning
+- Created `llm_provider.py` - Abstract provider interface for future multi-LLM support
+- Externalized all DM/Player prompts to JSON files (`prompts/claude/en/*.json`)
+- Added prompt metadata tracking to JSONL logs for ML correlation analysis
+
+**DM Integration:**
+- Created `_build_dm_narration_prompt()` helper method
+- Replaced ~400 lines of inline prompt construction with prompt_loader calls
+- Supports both PC-to-PC dialogue and standard narration paths
+- Stores prompt version/provider/language metadata for every LLM call
+
+**Player Integration:**
+- Created `_build_player_system_prompt_new()` method
+- Full variable substitution (attributes, skills, currency, void warnings)
+- Stricter format enforcement to reduce skill_mapping dependency
+- Tested and working in live sessions
+
+**Enemy Integration:**
+- Documented as using legacy system (enemy_prompts.py)
+- Marked with TODO for future refactor to prompt_loader
+- Current system proven and battle-tested, refactor deferred
+
+**Benefits Unlocked:**
+- ✅ Version tracking: Can correlate prompt changes with LLM behavior in logs
+- ✅ Multi-language ready: Directory structure supports es/, zh/ translations
+- ✅ Provider abstraction: Can add GPT-4, local models without touching agent code
+- ✅ Maintainability: Non-programmers can edit prompts without Python knowledge
+
+**Files Modified:** dm.py (+149 lines), player.py (+150 lines), prompt_loader.py (new, 14KB), prompts/*.json (new, 42KB total)
 
 ### 2025-10-24: Morale System Overhaul + Story Advancement Fixes
 
