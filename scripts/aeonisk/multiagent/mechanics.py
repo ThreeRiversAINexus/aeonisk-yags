@@ -66,6 +66,9 @@ class JSONLLogger:
         self.output_dir.mkdir(exist_ok=True)
         self.log_file = self.output_dir / f"session_{session_id}.jsonl"
 
+        # Get git commit hash for reproducibility tracking
+        git_commit = self._get_git_commit()
+
         # Initialize log file with session start event
         self._write_event({
             "event_type": "session_start",
@@ -73,8 +76,27 @@ class JSONLLogger:
             "session": session_id,
             "config": config or {},
             "random_seed": random_seed,  # For deterministic replay
+            "git_commit": git_commit,  # Track codebase version
             "version": "1.0.0"
         })
+
+    def _get_git_commit(self) -> Optional[str]:
+        """Get current git commit hash for version tracking."""
+        import subprocess
+        try:
+            # Get short commit hash (first 7 chars)
+            result = subprocess.run(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                capture_output=True,
+                text=True,
+                timeout=1,
+                cwd=Path(__file__).parent.parent.parent.parent  # Go up to repo root
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return None
 
     def _write_event(self, event: Dict[str, Any]):
         """Write a single event as a JSON line."""

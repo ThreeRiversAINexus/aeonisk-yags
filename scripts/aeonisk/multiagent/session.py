@@ -348,6 +348,26 @@ class SelfPlayingSession:
         max_rounds = self.config.get('max_turns', 50)
 
         print(f"\n=== Starting Session {self.session_id} ===")
+
+        # Display git commit for version tracking
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.jsonl_logger:
+                # Extract git commit from the session_start event we just logged
+                import subprocess
+                try:
+                    result = subprocess.run(
+                        ['git', 'rev-parse', '--short', 'HEAD'],
+                        capture_output=True,
+                        text=True,
+                        timeout=1
+                    )
+                    if result.returncode == 0:
+                        git_commit = result.stdout.strip()
+                        print(f"Git commit: {git_commit}")
+                except Exception:
+                    pass
+
         print(f"Max rounds: {max_rounds}")
         print(f"Human interface: {'Enabled' if self.human_interface else 'Disabled'}")
 
