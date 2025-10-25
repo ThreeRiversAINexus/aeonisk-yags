@@ -39,7 +39,10 @@ def generate_tactical_prompt(
     current_round: int
 ) -> str:
     """
-    Generate complete tactical prompt for enemy agent.
+    Generate complete tactical prompt for enemy agent using prompt_loader system.
+
+    NOTE: Currently uses legacy formatter functions to build content, but routes
+    through prompt_loader for metadata tracking and future i18n support.
 
     Args:
         enemy: The enemy agent making decisions
@@ -88,6 +91,8 @@ def generate_tactical_prompt(
     # Footer
     sections.append(_format_footer())
 
+    # Legacy: Join sections manually
+    # TODO: Refactor to use enemy.json templates with variable substitution
     return "\n\n".join(sections)
 
 

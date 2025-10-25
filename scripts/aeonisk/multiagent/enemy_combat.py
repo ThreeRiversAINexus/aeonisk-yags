@@ -26,6 +26,7 @@ from .enemy_spawner import (
     suggest_loot
 )
 from .enemy_prompts import generate_tactical_prompt
+from .prompt_loader import compose_sections
 from .tactical_resolution import (
     ResolutionState,
     ActionValidator,
