@@ -167,7 +167,7 @@ def main():
         print(f"Log file: {args.replay}")
         print(f"Replay to round: {args.replay_to_round}")
         print()
-        result = replay_from_log(args.replay, args.replay_to_round)
+        result = asyncio.run(replay_from_log(args.replay, args.replay_to_round, execute=True))
         if result:
             print(f"\nReplay completed: {result.get('status', 'unknown')}")
         return

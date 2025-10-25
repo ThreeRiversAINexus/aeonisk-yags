@@ -154,62 +154,92 @@ class LLMCallLogger:
             logger.error(f"Failed to log LLM call: {e}")
 
 
+class MockLLMResponse:
+    """Mock response object that mimics Anthropic API response structure."""
+
+    def __init__(self, text: str, input_tokens: int = 0, output_tokens: int = 0):
+        self.content = [MockContent(text)]
+        self.usage = MockUsage(input_tokens, output_tokens)
+
+
+class MockContent:
+    """Mock content object for response.content[0]."""
+
+    def __init__(self, text: str):
+        self.text = text
+
+
+class MockUsage:
+    """Mock usage object for token counts."""
+
+    def __init__(self, input_tokens: int, output_tokens: int):
+        self.input_tokens = input_tokens
+        self.output_tokens = output_tokens
+
+
+class MockMessages:
+    """Mock messages interface that provides the .create() method."""
+
+    def __init__(self, cache: Dict[tuple, Dict], call_index: Dict[str, int], agent_id: str):
+        self.cache = cache
+        self.call_index = call_index
+        self.agent_id = agent_id
+
+    def create(self, model: str, messages: List[Dict[str, str]],
+               temperature: float = 0.7, max_tokens: int = 4000, **kwargs):
+        """
+        Return cached response instead of calling LLM API.
+
+        This mimics the Anthropic client.messages.create() interface.
+        """
+        # Get current call sequence for this agent
+        call_seq = self.call_index.get(self.agent_id, 0)
+
+        # Look up cached response
+        cache_key = (self.agent_id, call_seq)
+        if cache_key not in self.cache:
+            raise KeyError(
+                f"No cached response for {self.agent_id} call #{call_seq}. "
+                f"Replay has diverged from original session."
+            )
+
+        cached = self.cache[cache_key]
+        response_text = cached['response']
+        tokens = cached.get('tokens', {'input': 0, 'output': 0})
+
+        # Increment call counter
+        self.call_index[self.agent_id] = call_seq + 1
+
+        logger.debug(f"Replay: Returning cached response for {self.agent_id} call #{call_seq}")
+
+        # Return response in Anthropic API format
+        return MockLLMResponse(response_text, tokens['input'], tokens['output'])
+
+
 class MockLLMClient:
     """
-    Mock LLM client that returns cached responses for replay.
+    Mock LLM client that mimics Anthropic API for replay.
 
     Instead of making API calls, this returns pre-recorded responses
     from the original session log.
+
+    Usage:
+        client = MockLLMClient(cache, agent_id='dm_01')
+        response = client.messages.create(model='...', messages=[...])
+        text = response.content[0].text
     """
 
-    def __init__(self, cache: Dict[tuple, str]):
+    def __init__(self, cache: Dict[tuple, Dict], agent_id: str):
         """
         Initialize mock client with cached responses.
 
         Args:
-            cache: Dict mapping (agent_id, call_sequence) -> response text
+            cache: Dict mapping (agent_id, call_sequence) -> response dict
+            agent_id: ID of the agent using this client
         """
         self.cache = cache
         self.call_index: Dict[str, int] = {}  # Track current call for each agent
+        self.agent_id = agent_id
 
-    async def send_message(self,
-                          agent_id: str,
-                          messages: List[Dict[str, str]],
-                          model: str,
-                          temperature: float,
-                          max_tokens: int = 4000,
-                          **kwargs) -> str:
-        """
-        Return cached response instead of calling LLM API.
-
-        Args:
-            agent_id: Agent making the call
-            messages: Message history (ignored in replay)
-            model: Model name (ignored in replay)
-            temperature: Temperature (ignored in replay)
-            max_tokens: Max tokens (ignored in replay)
-
-        Returns:
-            Cached response from original session
-
-        Raises:
-            KeyError: If cached response not found (indicates replay divergence)
-        """
-        # Get current call sequence for this agent
-        call_seq = self.call_index.get(agent_id, 0)
-
-        # Look up cached response
-        cache_key = (agent_id, call_seq)
-        if cache_key not in self.cache:
-            raise KeyError(
-                f"No cached response for {agent_id} call #{call_seq}. "
-                f"Replay has diverged from original session."
-            )
-
-        response = self.cache[cache_key]
-
-        # Increment call counter
-        self.call_index[agent_id] = call_seq + 1
-
-        logger.debug(f"Replay: Returning cached response for {agent_id} call #{call_seq}")
-        return response
+        # Create messages interface (mimics client.messages.create())
+        self.messages = MockMessages(self.cache, self.call_index, self.agent_id)
