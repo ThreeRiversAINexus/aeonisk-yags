@@ -5,7 +5,10 @@
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
   "force_combat": true,
-  "vendor_spawn_frequency": 2,
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds)",
+  "vendor_spawn_frequency": -1,
 
   "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
   "tactical_module_enabled": true,

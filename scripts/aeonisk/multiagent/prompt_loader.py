@@ -1,7 +1,7 @@
 """
 Prompt Loading System for Aeonisk YAGS Multi-Agent System
 
-Loads prompts from external JSON files with support for:
+Loads prompts from external YAML files with support for:
 - Multi-language (i18n)
 - Multiple LLM providers (Claude, GPT-4, etc.)
 - Version tracking
@@ -10,7 +10,7 @@ Loads prompts from external JSON files with support for:
 - Caching for performance
 """
 
-import json
+import yaml
 import logging
 import re
 from pathlib import Path
@@ -53,18 +53,18 @@ class LoadedPrompt:
 
 class PromptLoader:
     """
-    Loads and manages prompts from JSON files.
+    Loads and manages prompts from YAML files.
 
     Directory structure:
         prompts/
         ├── {provider}/
         │   ├── {language}/
-        │   │   ├── dm.json
-        │   │   ├── player.json
-        │   │   └── enemy.json
+        │   │   ├── dm.yaml
+        │   │   ├── player.yaml
+        │   │   └── enemy.yaml
         ├── shared/
-        │   ├── markers.json
-        │   └── rules.json
+        │   ├── markers.yaml
+        │   └── rules.yaml
     """
 
     def __init__(self, prompts_dir: Optional[Path] = None):
@@ -95,8 +95,8 @@ class PromptLoader:
         Returns:
             Dict containing all command marker definitions
         """
-        markers_path = self.prompts_dir / "shared" / "markers.json"
-        return self._load_json_file(markers_path)
+        markers_path = self.prompts_dir / "shared" / "markers.yaml"
+        return self._load_yaml_file(markers_path)
 
     def load_agent_prompt(
         self,
@@ -124,8 +124,8 @@ class PromptLoader:
             ValueError: If section doesn't exist
         """
         # Load the prompt file
-        prompt_file = self.prompts_dir / provider / language / f"{agent_type}.json"
-        prompt_data = self._load_json_file(prompt_file)
+        prompt_file = self.prompts_dir / provider / language / f"{agent_type}.yaml"
+        prompt_data = self._load_yaml_file(prompt_file)
 
         # Extract metadata
         version = prompt_data.get("version", "unknown")
@@ -196,8 +196,8 @@ class PromptLoader:
             LoadedPrompt with composed content and metadata
         """
         # Load the prompt file
-        prompt_file = self.prompts_dir / provider / language / f"{agent_type}.json"
-        prompt_data = self._load_json_file(prompt_file)
+        prompt_file = self.prompts_dir / provider / language / f"{agent_type}.yaml"
+        prompt_data = self._load_yaml_file(prompt_file)
 
         version = prompt_data.get("version", "unknown")
         sections = prompt_data.get("sections", {})
@@ -233,15 +233,15 @@ class PromptLoader:
 
         return LoadedPrompt(content=content, metadata=metadata)
 
-    def _load_json_file(self, file_path: Path) -> Dict[str, Any]:
+    def _load_yaml_file(self, file_path: Path) -> Dict[str, Any]:
         """
-        Load and cache a JSON file.
+        Load and cache a YAML file.
 
         Args:
-            file_path: Path to JSON file
+            file_path: Path to YAML file
 
         Returns:
-            Parsed JSON data
+            Parsed YAML data
         """
         file_key = str(file_path)
 
@@ -255,9 +255,9 @@ class PromptLoader:
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {file_path}: {e}")
+                data = yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise ValueError(f"Invalid YAML in {file_path}: {e}")
 
         # Cache and return
         self._file_cache[file_key] = data
@@ -370,7 +370,7 @@ class PromptLoader:
         Returns:
             True if prompt file exists
         """
-        prompt_file = self.prompts_dir / provider / language / f"{agent_type}.json"
+        prompt_file = self.prompts_dir / provider / language / f"{agent_type}.yaml"
         return prompt_file.exists()
 
     def clear_cache(self):

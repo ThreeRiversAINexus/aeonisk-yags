@@ -204,8 +204,7 @@ Create a scenario with:
 1. Theme (2-3 words): The type of situation
 2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
 3. Situation (1-2 sentences): What's happening
-4. Void level (0-10): Environmental void corruption. Most scenarios should be 2-4 (mild corruption). Only use 6+ for void outbreak/crisis scenarios.
-5. Three clocks/timers with CLEAR SEMANTICS:
+4. Three clocks/timers with CLEAR SEMANTICS:
    - A threat/danger that could escalate
    - Something the players are trying to accomplish
    - A complication or secondary concern
@@ -216,14 +215,13 @@ Create a scenario with:
      → Use MECHANICAL clock: FILLED should include [SPAWN_ENEMY: ...]
    - If advancing = progress on objective (evidence gathering, defenses built)
      → Name it clearly: "Evidence Collection", "Defenses Established", "Evacuation Progress"
-     → Use NARRATIVE clock: FILLED should include [PIVOT_SCENARIO: ...] or [ADVANCE_STORY: ...]
+     → Use NARRATIVE clock: FILLED should include [ADVANCE_STORY: Location | Situation] or [NEW_CLOCK: ...]
    - ALWAYS specify what happens when filled (mechanical OR narrative marker required)
 
 Format:
 THEME: [theme]
 LOCATION: [location from canonical lore]
 SITUATION: [situation]
-VOID_LEVEL: [number]
 CLOCK1: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK2: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK3: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
@@ -233,13 +231,13 @@ CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get 
 CLOCK2: Containment Failure | 4 | Void breach imminent | ADVANCE=Breach worsens | REGRESS=Containment reinforced | FILLED=Void creature emerges [SPAWN_ENEMY: Void Manifestation | boss | 1 | Near-Enemy | aggressive_melee]
 
 Example clocks (NARRATIVE - with scenario markers):
-CLOCK3: Evidence Collection | 8 | Gathering proof of corruption | ADVANCE=More evidence found | REGRESS=Evidence destroyed | FILLED=Case ready, evidence complete [PIVOT_SCENARIO: Confrontation with the corrupt magistrate]
+CLOCK3: Evidence Collection | 8 | Gathering proof of corruption | ADVANCE=More evidence found | REGRESS=Evidence destroyed | FILLED=Case ready, evidence complete [ADVANCE_STORY: Magistrate's Office | Confrontation with the corrupt magistrate]
 CLOCK4: Escape Route | 6 | Finding way out of the facility | ADVANCE=Exit path revealed | REGRESS=Path blocked | FILLED=Exit found! [ADVANCE_STORY: Maintenance Tunnels | You emerge into the tunnels. Allies are regrouping ahead]
 CLOCK5: Void Resonance | 4 | Growing instability | ADVANCE=Resonance intensifies | REGRESS=Stabilization efforts succeed | FILLED=New void rift opening [NEW_CLOCK: Rift Manifestation | 6 | Entities crossing over]
 
 **IMPORTANT**: ALL clocks MUST have consequences in their FILLED field. Use:
 - **Mechanical markers** for spawns/despawns: [SPAWN_ENEMY: ...], [DESPAWN_ENEMY: ...]
-- **Scenario markers** for narrative progression: [PIVOT_SCENARIO: ...], [ADVANCE_STORY: ...], [NEW_CLOCK: ...]
+- **Scenario markers** for narrative progression: [ADVANCE_STORY: Location | Situation], [NEW_CLOCK: ...]
 
 **ENEMY SPAWNING**: For combat/danger clocks, add enemy spawn markers to FILLED consequences:
 - Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
@@ -1408,15 +1406,15 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     if filled_consequence:
                         expired_lines.append(f"     Consequence: {filled_consequence}")
                         # Check if this is a mechanical clock (has markers) or narrative clock
-                        if any(marker in filled_consequence for marker in ['[SPAWN_ENEMY:', '[DESPAWN_ENEMY:', '[NEW_CLOCK:', '[PIVOT_SCENARIO:', '[ADVANCE_STORY:']):
+                        if any(marker in filled_consequence for marker in ['[SPAWN_ENEMY:', '[DESPAWN_ENEMY:', '[NEW_CLOCK:', '[ADVANCE_STORY:']):
                             expired_lines.append(f"     → Include the marker from the consequence in your narration")
                         else:
-                            expired_lines.append(f"     → This is a NARRATIVE clock - you MUST use a scenario marker ([PIVOT_SCENARIO]/[ADVANCE_STORY]/[NEW_CLOCK]) to change the story!")
+                            expired_lines.append(f"     → This is a NARRATIVE clock - you MUST use a scenario marker ([ADVANCE_STORY: Location | Situation] or [NEW_CLOCK: ...]) to change the story!")
                     else:
-                        expired_lines.append(f"     → This clock filled without a consequence. You MUST use [PIVOT_SCENARIO] or [ADVANCE_STORY] to advance the narrative!")
+                        expired_lines.append(f"     → This clock filled without a consequence. You MUST use [ADVANCE_STORY: Location | Situation] to advance the narrative!")
                 elif exp_type == "escalate":
                     expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - SITUATION ESCALATES{semantic_context}")
-                    expired_lines.append(f"     Stalemate breaks. Consider [PIVOT_SCENARIO: new theme] or [NEW_CLOCK: new pressure] to intensify/resolve.")
+                    expired_lines.append(f"     Stalemate breaks. Consider [ADVANCE_STORY: Location | new situation] or [NEW_CLOCK: new pressure] to intensify/resolve.")
 
             expired_clocks_text = "\n\n⏰ **CLOCKS EXPIRED (Auto-removed):**\n" + "\n".join(expired_lines)
             expired_clocks_text += "\n\n⚠️  You MUST narrate what happens as these clocks expire AND use scenario markers for narrative clocks!"
@@ -1473,10 +1471,11 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     filled_clocks_text += "- The marker will trigger automatically\n\n"
                     filled_clocks_text += "**For narrative clocks** (no mechanical markers):\n"
                     filled_clocks_text += "- You MUST use a DM control marker to change the scenario:\n"
-                    filled_clocks_text += "  • [PIVOT_SCENARIO: Theme] - situation fundamentally changes (same location)\n"
-                    filled_clocks_text += "    Example: Investigation clock fills → [PIVOT_SCENARIO: Confrontation with the saboteur]\n"
-                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - objective completed, advance to new scene\n"
-                    filled_clocks_text += "    Example: Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
+                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - progress to new location or change situation in same location\n"
+                    filled_clocks_text += "    Examples:\n"
+                    filled_clocks_text += "      - Investigation clock fills → [ADVANCE_STORY: Magistrate's Office | Confrontation with the saboteur]\n"
+                    filled_clocks_text += "      - Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
+                    filled_clocks_text += "      - Same location → [ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]\n"
                     filled_clocks_text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
                     filled_clocks_text += "    Example: Corruption clock fills → [NEW_CLOCK: Void Manifestation | 4 | Entity taking form]\n"
                     filled_clocks_text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
