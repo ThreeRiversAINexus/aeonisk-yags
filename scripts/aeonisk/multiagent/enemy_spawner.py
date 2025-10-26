@@ -28,6 +28,7 @@ from .enemy_templates import (
     load_weapons,
     get_available_templates
 )
+from .energy_economy import Seed, SeedType, Element, create_raw_seed
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,22 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
         List of (name, template, count, position, tactics, personality) tuples
         - personality will be extracted from "personality:TYPE" format in 6th field
     """
+    # Check for incomplete spawn markers and provide helpful error messages
+    incomplete_pattern = re.compile(r'\[SPAWN_ENEMY:\s*([^\]]+)\]', re.IGNORECASE)
+    incomplete_matches = incomplete_pattern.findall(text)
+
+    if incomplete_matches:
+        for incomplete in incomplete_matches:
+            # Count how many pipe characters are present
+            pipe_count = incomplete.count('|')
+            if pipe_count < 3:  # Need at least 4 fields (name|template|count|position)
+                logger.error(
+                    f"❌ INVALID SPAWN_ENEMY MARKER: '[SPAWN_ENEMY: {incomplete}]'\n"
+                    f"   Missing required fields! Found {pipe_count + 1} fields, need at least 4.\n"
+                    f"   Correct format: [SPAWN_ENEMY: name | template | count | position | tactics]\n"
+                    f"   Example: [SPAWN_ENEMY: Corporate Soldiers | grunt | 2 | Far-Enemy | aggressive_ranged]"
+                )
+
     matches = SPAWN_PATTERN.findall(text)
 
     parsed = []
@@ -438,7 +455,10 @@ def auto_despawn_defeated(
 
 def suggest_loot(agent: EnemyAgent) -> str:
     """
-    Generate loot suggestion for defeated enemy.
+    Generate faction-aware loot suggestion for defeated enemy.
+
+    Drops thematically appropriate Talismanic Energy currency (Breath/Drip/Grain/Spark)
+    and Seeds based on enemy faction and template.
 
     DM can override or expand.
 
@@ -478,23 +498,129 @@ def suggest_loot(agent: EnemyAgent) -> str:
 
         loot_items.append(f"{agent.armor.name} ({condition})")
 
-    # Credits (scaled by template type and unit count)
-    credit_base = {
-        "grunt": 20,
-        "elite": 50,
-        "sniper": 40,
-        "boss": 200,
-        "void_cultist": 30,
-        "enforcer": 60,
-        "support": 40,
-        "ambusher": 35
+    # =========================================================================
+    # FACTION-AWARE CURRENCY DROPS (Breath, Drip, Grain, Spark)
+    # =========================================================================
+
+    # Template-based currency amounts (base values)
+    template_currency = {
+        # Format: (breath_min, breath_max, drip_min, drip_max, grain_min, grain_max, spark_min, spark_max)
+        "grunt":       (10, 30,  3,  8,  0, 2,  0, 0),  # Low-value street thugs
+        "elite":       ( 0,  5,  5, 15,  2, 6,  0, 2),  # Professional combatants
+        "sniper":      ( 0,  5,  8, 20,  1, 4,  0, 1),  # Specialists
+        "boss":        ( 0,  0,  3, 10,  3, 8,  2, 5),  # High-value targets
+        "void_cultist":(15, 40,  2, 10,  0, 3,  0, 1),  # Void-aligned (more Breath)
+        "enforcer":    ( 0,  5,  5, 15,  2, 5,  0, 2),  # Security forces
+        "support":     ( 5, 20,  8, 20,  1, 4,  0, 1),  # Support units
+        "ambusher":    (10, 25,  5, 12,  0, 3,  0, 1),  # Stealth units
     }
 
-    base = credit_base.get(agent.template, 25)
-    credits = random.randint(base // 2, base * 2) * agent.unit_count
-    loot_items.append(f"{credits} credits")
+    # Get base currency for this template
+    base_currency = template_currency.get(agent.template, (5, 15, 2, 8, 0, 2, 0, 0))
 
-    # Special items (10% chance per unit)
+    # Unpack base values
+    breath_min, breath_max, drip_min, drip_max, grain_min, grain_max, spark_min, spark_max = base_currency
+
+    # Faction-specific currency theme modifiers
+    faction_lower = agent.faction.lower()
+
+    # Initialize currency counts
+    breath = random.randint(breath_min, breath_max) if breath_max > 0 else 0
+    drip = random.randint(drip_min, drip_max) if drip_max > 0 else 0
+    grain = random.randint(grain_min, grain_max) if grain_max > 0 else 0
+    spark = random.randint(spark_min, spark_max) if spark_max > 0 else 0
+
+    # Faction theme adjustments
+    if "tempest" in faction_lower or "tempest industries" in faction_lower:
+        # Tempest: Tech/energy focus → boost Spark
+        spark += random.randint(0, 2)
+
+    elif "acg" in faction_lower or "commerce" in faction_lower or "sovereign nexus" in faction_lower:
+        # ACG/Nexus: Commerce/structure → boost Spark + Grain
+        spark += random.randint(0, 1)
+        grain += random.randint(0, 2)
+
+    elif "pantheon" in faction_lower or "security" in faction_lower:
+        # Pantheon Security: Order/law → boost Grain + Breath
+        grain += random.randint(0, 2)
+        breath += random.randint(0, 5)
+
+    elif "freeborn" in faction_lower or "street" in faction_lower or "gang" in faction_lower:
+        # Freeborn/Street: Basic economy → boost Breath + Drip
+        breath += random.randint(5, 15)
+        drip += random.randint(0, 5)
+
+    elif "resonance" in faction_lower or "commune" in faction_lower:
+        # Resonance Communes: Ritual/communication → boost Breath + Drip
+        breath += random.randint(5, 10)
+        drip += random.randint(0, 3)
+
+    elif "void" in faction_lower or "cult" in faction_lower:
+        # Void cultists: Secrecy/corruption → boost Drip + Breath
+        drip += random.randint(0, 5)
+        breath += random.randint(10, 20)
+
+    # Scale by unit count
+    breath *= agent.unit_count
+    drip *= agent.unit_count
+    grain *= agent.unit_count
+    spark *= agent.unit_count
+
+    # Build currency loot string
+    currency_parts = []
+    if breath > 0:
+        currency_parts.append(f"{breath} Breath")
+    if drip > 0:
+        currency_parts.append(f"{drip} Drip")
+    if grain > 0:
+        currency_parts.append(f"{grain} Grain")
+    if spark > 0:
+        currency_parts.append(f"{spark} Spark")
+
+    if currency_parts:
+        loot_items.append(", ".join(currency_parts))
+
+    # =========================================================================
+    # SEED DROPS (Raw/Attuned/Hollow based on faction and void score)
+    # =========================================================================
+
+    seed_dropped = False
+
+    # Void-aligned enemies (void_score >= 3): Hollow Seeds (illicit black market)
+    if agent.void_score >= 3:
+        # 25% for Tempest (they traffic Hollows), 20% for others
+        hollow_chance = 0.25 if "tempest" in faction_lower else 0.20
+        if random.random() < hollow_chance:
+            loot_items.append("1 Hollow Seed (illicit void energy)")
+            seed_dropped = True
+
+    # Ritual factions: Attuned or Raw Seeds
+    if not seed_dropped and ("resonance" in faction_lower or "nexus" in faction_lower or "commune" in faction_lower):
+        if random.random() < 0.15:  # 15% chance
+            # 50/50 between Attuned (ritually prepared) or Raw (unstable)
+            if random.random() < 0.5:
+                elements = ["Fire", "Water", "Air", "Earth"]
+                element = random.choice(elements)
+                loot_items.append(f"1 Attuned Seed ({element})")
+            else:
+                loot_items.append("1 Raw Seed (unstable, 7-cycle decay)")
+            seed_dropped = True
+
+    # Boss enemies: Higher chance of Seeds
+    if not seed_dropped and agent.template == "boss":
+        if random.random() < 0.30:  # 30% chance for bosses
+            if agent.void_score >= 2:
+                loot_items.append("1 Hollow Seed (illicit void energy)")
+            else:
+                elements = ["Fire", "Water", "Air", "Earth", "Spirit"]
+                element = random.choice(elements)
+                loot_items.append(f"1 Attuned Seed ({element})")
+            seed_dropped = True
+
+    # =========================================================================
+    # SPECIAL ITEMS (10% chance per unit)
+    # =========================================================================
+
     special_chance = 0.1 * agent.unit_count
     if random.random() < special_chance:
         special_items = [

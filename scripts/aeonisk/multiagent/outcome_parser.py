@@ -212,14 +212,12 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
             for clock_name in corruption_clocks:
                 triggers.append((clock_name, 1, "Void corruption spreading", "inferred_by_parser"))
 
-        # Failed void manipulation increases corruption
-        if outcome_tier in ['failure', 'critical_failure']:
-            if any(phrase in narration_lower for phrase in [
-                'void', 'ritual', 'astral', 'channel', 'corruption', 'taint'
-            ]):
-                ticks = 2 if outcome_tier == 'critical_failure' else 1
-                for clock_name in corruption_clocks:
-                    triggers.append((clock_name, ticks, "Failed void manipulation", "inferred_by_parser"))
+        # Void changes are now controlled exclusively by DM through ⚫ Void: markers
+        # Automatic keyword tracking removed - DM should explicitly apply void for:
+        #   - Failed rituals (especially without offerings)
+        #   - Void contamination events
+        #   - Ritual backlash
+        # This gives DM full mechanical control over when void corruption occurs
 
     # TIME triggers (advances time-pressure clocks automatically or on delays)
     if time_clocks:
@@ -770,29 +768,6 @@ def parse_new_clock_marker(narration: str) -> List[Dict[str, any]]:
         logger.debug(f"Parsed new clock: {name} ({max_ticks} ticks) - {description}")
 
     return new_clocks
-
-
-def parse_pivot_scenario_marker(narration: str) -> Dict[str, str]:
-    """
-    Parse scenario pivot markers from DM narration.
-
-    Format: [PIVOT_SCENARIO: New scenario theme and description]
-
-    Args:
-        narration: DM's narrative text
-
-    Returns:
-        Dict with 'should_pivot' (bool) and 'new_theme' (str or None)
-    """
-    pattern = r'\[PIVOT_SCENARIO:\s*([^\]]+)\]'
-    match = re.search(pattern, narration)
-
-    if match:
-        new_theme = match.group(1).strip()
-        logger.debug(f"Parsed scenario pivot: {new_theme}")
-        return {'should_pivot': True, 'new_theme': new_theme}
-
-    return {'should_pivot': False, 'new_theme': None}
 
 
 def parse_advance_story_marker(narration: str) -> Dict[str, any]:

@@ -762,18 +762,16 @@ class VoidState:
 
     def add_void(self, amount: int, reason: str, action_id: Optional[str] = None, is_high_risk_ritual: bool = False) -> int:
         """
-        Add void corruption with multi-level caps, return new score.
+        Add void corruption, return new score.
 
-        Caps (Codex Nexum canonical):
-        - Max +1 void per action
-        - Max +2 void per round per character
-        - Max +3 void per scene (automatic) - unless player opts into high-risk rituals
+        Void is applied directly as specified by the DM through ⚫ Void: markers.
+        No automatic caps - DM has full control over void corruption mechanics.
 
         Args:
-            amount: Void to add (will be capped)
+            amount: Void to add (applied directly, only capped at max void score of 10)
             reason: Why void is being added
             action_id: Unique action identifier to prevent duplicates
-            is_high_risk_ritual: Whether this is an opt-in high-risk ritual (bypasses scene cap)
+            is_high_risk_ritual: Whether this is a high-risk ritual (kept for compatibility)
 
         Returns:
             New void score
@@ -783,35 +781,17 @@ class VoidState:
             logger.debug(f"Skipping duplicate void add for action {action_id}")
             return self.score
 
-        # Cap per action: max +1
-        capped_amount = min(amount, 1)
+        # Apply void directly as specified by DM (no caps except max void of 10)
+        old_score = self.score
+        self.score = min(self.score + amount, 10)
+        actual_add = self.score - old_score
 
-        # Cap per round: max +2 total
-        if self._round_void_gain >= 2 and not is_high_risk_ritual:
-            logger.debug(f"Round void cap reached (already +{self._round_void_gain}/2)")
-            return self.score
-
-        # Cap per scene: max +3 automatic (unless opted into high-risk)
-        if self._scene_void_gain >= 3 and not is_high_risk_ritual:
-            logger.warning(f"Scene void cap reached (already +{self._scene_void_gain}/3 automatic). Use high-risk ritual to opt-in for more.")
-            return self.score
-
-        # Apply remaining room in caps
-        remaining_round = 2 - self._round_void_gain
-        remaining_scene = 3 - self._scene_void_gain if not is_high_risk_ritual else 10
-        actual_add = min(capped_amount, remaining_round, remaining_scene)
-
-        if actual_add <= 0:
-            return self.score
-
+        # Track for history and logging
         self._round_void_gain += actual_add
         self._scene_void_gain += actual_add
 
         if is_high_risk_ritual:
             self._scene_opted_in_high_risk = True
-
-        old_score = self.score
-        self.score = min(self.score + actual_add, 10)
 
         self.history.append({
             'change': actual_add,
@@ -824,7 +804,7 @@ class VoidState:
         if action_id:
             self._processed_actions.add(action_id)
 
-        logger.debug(f"Void added: +{actual_add} (requested {amount}, round {self._round_void_gain}/2, scene {self._scene_void_gain}/{3 if not is_high_risk_ritual else '∞'})")
+        logger.debug(f"Void added: +{actual_add} (reason: {reason}, new total: {self.score}/10)")
         return self.score
 
     def reset_round_void(self):
@@ -950,6 +930,9 @@ class MechanicsEngine:
         # Clock update queue - prevents cascade fills during resolution
         # Queued updates are applied batch during synthesis phase
         self.clock_update_queue: List[Tuple[str, int, str]] = []  # (clock_name, ticks, reason)
+
+        # Clock history - chronological timeline of all clock events
+        self.clock_history: List[Dict[str, Any]] = []
 
     def calculate_dc(
         self,
@@ -1691,6 +1674,16 @@ class MechanicsEngine:
 
                 clocks_to_remove.append(clock_name)
 
+                # Track clock filled event
+                self.clock_history.append({
+                    'round': self.current_round,
+                    'event_type': 'filled',
+                    'clock_name': clock_name,
+                    'description': clock.description,
+                    'final_value': f"{clock.current}/{clock.maximum}",
+                    'consequence': clock.filled_consequence
+                })
+
                 logger.warning(f"🔔 Clock {clock_name} FILLED: {clock.current}/{clock.maximum} - triggering consequences and removing")
 
             elif clock.is_expired:
@@ -1710,6 +1703,16 @@ class MechanicsEngine:
                 })
 
                 clocks_to_remove.append(clock_name)
+
+                # Track clock expired event
+                self.clock_history.append({
+                    'round': self.current_round,
+                    'event_type': 'expired',
+                    'clock_name': clock_name,
+                    'description': clock.description,
+                    'final_value': f"{clock.current}/{clock.maximum}",
+                    'expiration_type': exp_type
+                })
 
                 logger.warning(f"⏰ Clock {clock_name} TIMEOUT after {clock._rounds_alive} rounds (type: {exp_type})")
 

@@ -61,21 +61,21 @@ python3 reconstruct_narrative.py ../../multiagent_output/session_*.jsonl > story
 - `mechanics.py` (600+ lines) - Core game mechanics + JSONLLogger class
 - `base.py` - Message bus, async agent framework, GameCoordinator
 - `prompt_loader.py` - Externalized prompt system with i18n support
-- `prompts/claude/en/*.json` - DM, Player, Enemy prompts (externalized from code)
+- `prompts/claude/en/*.yaml` - DM, Player, Enemy prompts (externalized from code)
 
-**Prompt System (v2.0):**
+**Prompt System (v2.1):**
 ```
 prompts/
 ├── claude/en/           # English prompts
-│   ├── dm.json         # DM narration templates
-│   ├── player.json     # Player action templates
-│   └── enemy.json      # Enemy tactical templates
+│   ├── dm.yaml         # DM narration templates
+│   ├── player.yaml     # Player action templates
+│   └── enemy.yaml      # Enemy tactical templates
 ├── shared/
-│   └── markers.json    # Command marker registry
+│   └── markers.yaml    # Command marker registry
 └── [future: es/, zh/ for multi-language]
 ```
 
-All agent prompts are now externalized to JSON files with:
+All agent prompts are now externalized to YAML files with:
 - ✅ Version tracking (logged in JSONL for ML analysis)
 - ✅ Multi-language support (ready for Spanish/Chinese)
 - ✅ Provider abstraction (ready for GPT-4, local models)
@@ -244,6 +244,88 @@ python3 multiagent/reconstruct_narrative.py ../../multiagent_output/session_*.js
 3. **Synthesis Phase** - DM summarizes round
 4. **Cleanup Phase** - Enemy actions, character state logging, round summary
 
+## Economy & Vendor System
+
+### Talismanic Energy Currency
+
+**Currency Types** (smallest → largest):
+- **Breath** (Air) - Thought, communication, change
+- **Drip** (Water) - Emotion, secrecy, flow, healing
+- **Grain** (Earth) - Stability, structure, grounding
+- **Spark** (Fire) - Action, force, urgency, will
+
+**Conversion:** 10 Breath = 1 Drip = 0.1 Grain = 0.01 Spark (market rates vary)
+
+### Seeds
+
+**Three Types:**
+- **Raw Seeds**: Unstable, untradeable, degrade in 7 cycles into Hollows
+- **Attuned Seeds**: Ritually aligned to element (Fire/Water/Air/Earth/Spirit), stable and usable
+- **Hollow Seeds**: Degraded/emptied, **illegal** in Nexus jurisdictions, +1 Void per shard
+
+### Vendor Configuration
+
+**Config Options:**
+```json
+{
+  "vendor_spawn_frequency": 5,      // Spawn every N rounds (-1 = disabled)
+  "force_vendor_gate": false,       // Require vendor in scenario
+  "enemy_agent_config": {
+    "loot_suggestions_enabled": true  // Faction-themed currency drops
+  }
+}
+```
+
+**Vendor Types:**
+- `HUMAN_TRADER` - Full service, negotiation (safe zones)
+- `VENDING_MACHINE` - Automated, fixed prices (action zones)
+- `SUPPLY_DRONE` - Mobile field resupply (combat zones)
+- `EMERGENCY_CACHE` - Free crisis supplies (one-time)
+
+**11 pre-configured vendors** available (see `energy_economy.py`)
+
+### Enemy Loot System
+
+**Faction-Themed Currency Drops:**
+- **Tempest Industries**: Spark (tech/energy), Hollow Seeds (void research)
+- **ACG/Sovereign Nexus**: Spark + Grain (commerce/structure)
+- **Pantheon Security**: Grain + Breath (order/law)
+- **Freeborn/Street**: Breath + Drip (basic economy)
+- **Void cultists**: Drip + Breath, Hollow Seeds (illicit)
+- **Resonance Communes**: Breath, Attuned Seeds (ritual)
+
+**Template-Based Amounts:**
+- **Grunt**: 10-30 Breath, 3-8 Drip
+- **Elite**: 5-15 Drip, 2-6 Grain, 0-2 Spark
+- **Boss**: 3-10 Drip, 3-8 Grain, 2-5 Spark, 30% Seed drop
+
+**Seed Drop Logic:**
+- Void-aligned (void_score ≥3): 20-25% Hollow Seeds
+- Ritual factions: 15% Attuned/Raw Seeds
+- Bosses: 30% Seeds (Hollow if void ≥2, else Attuned)
+
+**Implementation:** `enemy_spawner.py` (line 456+)
+
+### Quick Reference
+
+**Enable vendors:**
+```json
+"vendor_spawn_frequency": 5  // Every 5 rounds
+```
+
+**Disable vendors (combat-focused):**
+```json
+"vendor_spawn_frequency": -1
+```
+
+**Vendor-required scenario:**
+```json
+"force_vendor_gate": true,
+"vendor_spawn_frequency": -1  // Scenario provides vendor
+```
+
+**Full documentation:** `scripts/session_config_README.md`
+
 ## Common Pitfalls - AVOID THESE
 
 ### 1. Forgetting Virtual Environment
@@ -386,12 +468,20 @@ git commit -m "message"
 
 ## Recent Major Work
 
+### 2025-10-26: Prompt System Migration to YAML (v2.1)
+
+**YAML Migration:**
+- Updated `prompt_loader.py` to use YAML instead of JSON
+- Created `convert_prompts_to_yaml.py` for automatic JSON→YAML conversion
+- All prompts now in YAML format (`prompts/claude/en/*.yaml`)
+- Benefits: Multi-line strings without escaping, comments support, more readable
+
 ### 2025-10-25: Prompt System Externalization (v2.0)
 
 **Externalized Prompt Architecture:**
 - Created `prompt_loader.py` - Multi-language prompt loading with versioning
 - Created `llm_provider.py` - Abstract provider interface for future multi-LLM support
-- Externalized all DM/Player prompts to JSON files (`prompts/claude/en/*.json`)
+- Externalized all DM/Player prompts to YAML files (`prompts/claude/en/*.yaml`)
 - Added prompt metadata tracking to JSONL logs for ML correlation analysis
 
 **DM Integration:**

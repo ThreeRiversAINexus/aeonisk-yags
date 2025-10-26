@@ -184,29 +184,8 @@ class AIPlayerAgent(Agent):
     async def on_start(self):
         """Initialize player agent."""
         # Create character from config
-        # Load inventory from config or use defaults
-        inventory_config = self.character_config.get('inventory', {})
-        default_inventory = {
-            # Ritual Consumables
-            'blood_offering': 2,
-            'incense': 2,
-            'neural_stimulant': 1,
-            'memory_crystal': 3,
-
-            # Tools & Focuses
-            'crystal_focus': 1,
-            'tech_kit': 1,
-            'neural_interface_module': 1,
-            'void_scanner': 1,
-            'resonance_tuner': 1,
-
-            # Medical/Utility
-            'med_kit': 2,
-            'data_slate': 1,
-            'comm_unit': 1,
-        }
-        # Merge config with defaults
-        inventory = {**default_inventory, **inventory_config}
+        # Load inventory ONLY from config (no defaults - everything comes from session config)
+        inventory = self.character_config.get('inventory', {})
 
         self.character_state = CharacterState(
             name=self.character_config.get('name', f'Player_{self.agent_id}'),
@@ -579,11 +558,9 @@ class AIPlayerAgent(Agent):
                 action_declaration.skill = normalized_skill
                 # Don't log - this is just alias normalization
 
-        # Validate action (checks for duplicates)
-        # Allow duplicates in test scenarios for stun accumulation testing
-        allow_duplicates = self.character_config.get('disable_duplicate_check', False)
+        # Validate action (structural validation only - duplicates are allowed by default for combat)
         if validator:
-            is_valid, issues = validator.validate_action(action_declaration, allow_duplicates=allow_duplicates)
+            is_valid, issues = validator.validate_action(action_declaration)
             if not is_valid:
                 print(f"[{self.character_state.name}] Action rejected: {issues[0]}")
                 # Try again with simpler action
