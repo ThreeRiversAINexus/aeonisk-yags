@@ -1,0 +1,519 @@
+<?xml version="1.0"?>
+
+<!--
+    Melee techniques.
+
+    Techniques for (mostly low-tech) melee weapons.
+ -->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.1 $</version>
+            <date>$Date: 2007-11-04 22:12:19 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2019</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+    <advantage name="Weapon and shield" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+        <short>The art of fighting with a shield.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When using a one handed weapon and a shield, you gain a free
+                defence again one attacker. This means that you can defend
+                against two attackers in the same round without penalty,
+                and further attackers at reduced penalty.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Shield wall" type="technique">
+        <cost points="6"/>
+        <skill name="Melee"/>
+        <short>Form a solid defensive wall of shields.</short>
+
+        <prerequisite>Weapon and shield</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When fighting alongside your companions then you grant
+                a defence bonus equal to half your <e>Melee</e> skill
+                as long as you are all fighting with a shield. Any one
+                person will only gain the best bonus from their
+                companion, and you may only grant it to at most two
+                people. You do not gain or grant this bonus if you are
+                fighting <e>aggressively</e> that round.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Reliable defence" type="technique">
+        <cost points="8"/>
+        <skill name="Melee"/>
+        <prerequisite>Shield wall</prerequisite>
+
+        <short>Re-roll defence and reduced wound penalties.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When defending with a shield you may re-roll a single
+                defence each round. Further any penalties you suffer
+                from wounds, stuns and fatigues are halved when making
+                any defence checks with a shield.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Single weapon" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+
+        <short>Retreat in defence.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When defending against an attack with your <e>Brawl</e>
+                skill and using a single weapon, you have learnt to
+                retreat from blows lessening the impact of the strike.
+                You gain a bonus to your soak equal to your <t>Agility</t>
+                (modified by encumbrance and armour), but must retreat one
+                metre back.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Fast riposte" type="technique">
+        <cost points="6"/>
+        <skill name="Melee"/>
+
+        <prerequisite>Single weapon</prerequisite>
+
+        <short>Strike back fast.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                If you succeed in a defence roll against an opponent,
+                then the following round you may add your <e>Melee</e>
+                score to your <e>Initiative</e> score as long as you
+                make an <e>aggressive</e> attack against that opponent.
+                The bonus remains as long as you continue fighting that
+                opponent, and may stack with itself in subsequent
+                rounds.
+            </para>
+        </description>
+    </advantage>
+
+
+
+    <advantage name="Spear fighting" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+
+        <short>Gain a +5 bonus against short weapons</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are trained to take advantage of the extra reach that
+                a longshaft weapon gives you. If you have a greater reach
+                than your opponent, then you gain a +5 to attack and don't
+                suffer any penalty to attack if fighting defensively.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Spear wall" type="technique">
+        <cost points="6"/>
+        <skill name="Melee"/>
+        <prerequisite>Spear fighting</prerequisite>
+
+        <short>Gain a bonus against mounted opponents.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                If you are on foot and fighting against a mounted foe,
+                then you gain a +5 bonus to attack and damage rolls
+                against your opponent. Your opponent does not gain
+                any attack bonuses for being mounted. You must be
+                using a longshaft weapon to use this.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Defensive reach" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+        <prerequisite>Spear fighting</prerequisite>
+        <short>Ignore attack penalty if defensive.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                If you have the advantage of reach against all those
+                attacking you this round, then penalties caused by
+                making multiple defences can be ignored for your
+                attacks. You still suffer them for defence. You must
+                be using a longshaft weapon.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Chain fighting" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+        <short>Better use of chain weapons.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You may reduce the fumble chance of chain weapons
+                by your <e>Melee</e> score, to a minimum of one.
+                When using the aggressive or defensive stances
+                the bonus is +10 instead of +5.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Great weapons" type="technique">
+        <cost points="2"/>
+        <skill name="Melee"/>
+
+        <short>Practised with great weapons.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When fighting with a <e>Great weapon</e>, your gain a +3 bonus
+                to your size for purposes of damaging large opponents. Further,
+                the level of success required for the melee manoeuvres
+                <e>Improved damage</e>, <e>Knockdown</e> and <e>Massive damage</e>
+                is reduced by one.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Great blow" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+
+        <prerequisite>Great weapons</prerequisite>
+
+        <short>Get bonus to damage when aggressive.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Whenever you use an aggressive stance with a great
+                weapon, you gain a bonus to damage equal to your
+                <e>Melee</e> skill.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Finishing blow" type="technique">
+        <cost points="6"/>
+        <skill name="Melee"/>
+
+        <prerequisite>Great blow</prerequisite>
+
+        <short>Increased chance of killing opponent.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                If you critically or fatally wound your foe when you
+                strike with a great weapon, they must make a health
+                check as if they were fatally wounded. Further, all
+                such checks suffer a penalty equal to your <e>Melee</e>
+                skill.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Two weapon fighting" type="technique">
+        <cost points="2"/>
+        <skill name="Melee"/>
+
+        <short>Re-roll an attack or defence .</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When fighting with two weapons (including shields) you may
+                add half (round up) the attack, defence and damage of
+                the secondary weapon.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Combined attack" type="technique">
+        <cost points="4"/>
+        <skill name="Melee"/>
+
+        <prerequisite>Two weapon fighting</prerequisite>
+
+        <short>Re-roll damage rolls.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When fighting with two single weapons, you may once per round
+                re-roll an attack, defence or damage roll. You must keep the
+                second roll even if it is worse.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Two blades" type="technique">
+        <cost points="6"/>
+        <skill name="Two weapons"/>
+
+        <prerequisite>Combined attack</prerequisite>
+
+        <short>Get to damage twice.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                By declaring this technique with the aggressive stance,
+                and losing one defence, you make a single attack which if
+                it hits allows you to roll damage twice. The target suffers
+                both damage rolls.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Greater range" type="technique">
+        <cost points="2"/>
+        <skill name="Throw"/>
+
+        <short>Increase the range of thrown weapons.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Your skill enables you to throw weapons more effectively,
+                increasing their range. When throwing a weapon, increase
+                your <t>Strength</t> by +1 for purposes of the maximum
+                range of the attack. If your have a skill of 6 or more,
+                then the bonus is +2. Automatic.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Fire into melee" type="technique">
+        <cost points="4"/>
+        <skill name="Missile"/>
+
+        <short>Reduced fumble chance when firing into melee.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Your have practised difficult shots at moving and obscured
+                targets, increasing your effectiveness when firing into the
+                middle of a melee. If your fumble chance is increased due
+                to such a shot, this increase is halved (round down).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Deadly shot" type="technique">
+        <cost points="8"/>
+        <skill name="Missile"/>
+
+        <prerequisite>Fire into melee</prerequisite>
+
+        <short>Kill a target with a single shot.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                If you decide to use this technique when declaring your
+                attack, then it enables you to shoot a person in their
+                vitals, possibly killing them immediately. You must use
+                the <e>focused stance</e>, and all range penalties are
+                doubled. If you hit and do wounding damage, then the
+                target must make a <t>Size</t> x <t>health</t> check
+                against a difficulty of 10 + 5 x wounds caused, or
+                immediately be fatally wounded.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Crossbow reloading" type="technique">
+        <cost points="2"/>
+        <skill name="Bow"/>
+        <short>Load and fire a crossbow quickly.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can load a crossbow quickly, reducing it's reload
+                time by one. If this reduces the time to zero, then you
+                can load and fire in a single round, though your attack
+                will be slow, and considered a snapshot. If the time is
+                reduced to less than zero, then you can load and fire
+                as a normal action.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Crossbow accuracy" type="technique">
+        <cost points="4"/>
+        <skill name="Bow"/>
+        <default>Crossbow reloading</default>
+        <short>Fire a crossbow with greater accuracy.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You may halve the effective range when firing a crossbow.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Fast arrow" type="technique">
+        <cost points="4"/>
+        <skill name="Bow"/>
+
+        <short>Load and fire a standard bow quickly</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are have sufficient practise with loading and firing
+                a bow that you can do it quicker than normal. The usual
+                load time of a bow is reduced by one. If this takes it
+                below zero, then the bow can be loaded and fired as a
+                normal action.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Rain of arrows" type="technique">
+        <cost points="8"/>
+        <skill name="Bow"/>
+        <prerequisite>Fast arrow</prerequisite>
+
+        <short>Fire multiple times with a bow.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can load and fire multiple arrows a round with a
+                standard bow (not a crossbow). For every four full
+                points of skill that you have, you can fire a single
+                arrow as a snapshot (e.g., at skill 8, you can fire
+                two arrows, at 12 you can fire three).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Improved pull" type="technique">
+        <cost points="4"/>
+        <skill name="Bow"/>
+
+        <short>Extra damage with a standard bow</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Due to extensive training with firing a bow, you gain a
+                +1 to your strength for purposes of using a standard bow
+                (not a crossbow) for every four points of <e>Bow</e> skill.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Improved aim" type="technique">
+        <cost points="4"/>
+        <skill name="Bow"/>
+
+        <short>Reduced range penalties</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are exceptionally skilled at firing a standard bow
+                (not a crossbow). If you are not firing a snapshot, then
+                the effective range to the target is halved.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Spear catching" type="technique">
+        <cost points="2"/>
+        <skill name="Throw"/>
+
+        <short>Catch a spear thrown at you</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                If the character makes a good brawl defence roll to dodge
+                a spear or javelin, and they have an empty hand, then they
+                may catch the weapon with a dexterity x throw check of 20+.
+                The catch attempt must be declared before the defence is
+                made.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Improved spear catching" type="technique">
+        <cost points="4"/>
+        <skill name="Throw"/>
+        <prerequisite>Spear catching</prerequisite>
+
+        <short>And throw it back again</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                As for spear catching, plus the character can throw the
+                spear the same round instead of their normal attack action,
+                assuming they still have an attack left that round.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Mounted combat" type="technique">
+        <cost points="2"/>
+        <skill name="Ride"/>
+
+        <short>Bonuses when fighting from horseback</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A character with <e>mounted combat</e> does not have to make
+                a <e>ride</e> check whenever they attack from horseback.
+                Further, they get a bonus equal to their <e>ride</e> skill
+                which applies to melee attack, defence and damage rolls
+                made when mounted.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Mounted archery" type="technique">
+        <cost points="4"/>
+        <skill name="Ride"/>
+        <prerequisite>Mounted combat</prerequisite>
+
+        <short>Archery from horseback</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A character with <e>mounted archery</e> does not suffer the
+                doubling of effective range when using missile weapons from
+                the back of a moving mount. Further, they do not have to
+                make a <e>ride</e> roll in order to make a missile attack.
+            </para>
+        </description>
+    </advantage>
+
+</advantages>
+
+

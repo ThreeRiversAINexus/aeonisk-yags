@@ -1,0 +1,900 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="https://yags-rpg.net/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+<!--
+    Full list of skills available.
+    Crosslinked with talent techniques.
+
+    Copyright (c) 2007, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.10 $
+    Date:    $Date: 2008-07-20 22:22:19 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+    <groups>
+        <group>Talents</group>
+        <group>Combat</group>
+        <group parent="Combat">Melee</group>
+        <group parent="Combat">Missile</group>
+        <group parent="Combat">Armed melee</group>
+        <group>Investigation</group>
+        <group>Social</group>
+        <group>Artistic</group>
+        <group>Craft</group>
+        <group>Business</group>
+        <group>Rural</group>
+        <group>Vehicle</group>
+        <group>Technical</group>
+        <group>Military</group>
+        <group>Academic</group>
+        <group>Outdoor</group>
+        <group>Occult</group>
+        <group>Criminal</group>
+    </groups>
+
+    <techniques>options/techniques.yags</techniques>
+
+
+    <!-- Athletics -->
+    <skill name="Athletics" type="talent">
+        <group>Talents</group>
+
+        <short>Jumping, climbing and running.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is a broad skill covering all forms of athletics,
+                gymnastics and acrobatics. It is split into the following
+                tasks.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Running">
+            <para>
+                Running represents a light jog which you can keep up for
+                many minutes without too much difficulty. When running,
+                you move a number of metres each round equal to your
+                <t>move</t> score. A point of fatigue is gained every
+                <y:health>athletics</y:health> minutes you are running.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Sprinting">
+            <para>
+                Sprinting represents an all out sprint, moving as quickly
+                as you can. You cannot do anything else whilst sprinting,
+                and most people can only sprint for a few rounds before
+                becoming exhausted.
+            </para>
+
+            <para>
+                When sprinting, you may move a distance in metres equal to
+                <t>move</t> x 2 + <e>athletics</e> each round, and gain a
+                point of fatigue each round.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Jumping">
+            <para>
+                Jumping represents both long jumps and high jumps.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Climbing">
+            <para>
+                Climbing things.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Jumping onto a table</example>
+            <example target="20">Jumping over a table</example>
+        </examples>
+    </skill>
+
+    <!-- Awareness -->
+    <skill name="Awareness" type="talent">
+        <group>Talents</group>
+
+        <short>General ability to notice things.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This skill is used by the character when there is a chance
+                of noticing something which isn't obvious, such as someone
+                trying to sneak around, people moving at a distance, or
+                looking for a secret door. If the character is asleep,
+                then any awareness rolls are quartered. If the character
+                is only dozing (or day dreaming), then rolls are halved.
+            </para>
+        </description>
+
+        <examples>
+            <example target="perception x stealth">
+                See a hidden person
+            </example>
+            <example target="agility x stealth">
+                Hear a sneaking person
+            </example>
+            <example target="10">Hear people talking through a door</example>
+            <example target="20">Hear people talking through a wall</example>
+            <example target="10">Hear someone walking on gravel</example>
+            <example target="15">Hear someone walking on leaves</example>
+            <example target="20">Hear someone walking on grass</example>
+            <example target="1/10m">See someone with casual glance</example>
+            <example target="1/25m">See someone with careful look</example>
+            <example target="x2 range">Vision during dusk</example>
+            <example target="x4 range">Vision under moonlight</example>
+            <example target="x10 range">Vision under starlight</example>
+        </examples>
+    </skill>
+
+    <!-- Brawl -->
+    <skill name="Brawl" type="talent">
+        <group>Talents</group>
+        <group>Combat</group>
+        <group>Melee</group>
+
+        <short>Punching, kicking, wrestling and dodging.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A general purpose combat skill covering dodging, punching
+                and wrestling. This is covered in more detail in the combat
+                section. It allows the use of small weapons such as knives
+                and daggers, as well as improvised weapons such as stones,
+                bottles, sticks and chairs.
+            </para>
+
+            <para>
+                A character may always use the <e>brawl</e> skill to dodge
+                even if they are using a weapon, but they don't get any
+                bonuses from the weapon if they do so.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Charm -->
+    <skill name="Charm" type="talent">
+        <group>Talents</group>
+        <group>Social</group>
+
+        <short>Being nice to people.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                <e>Charm</e> is all about appearing friendly and sociable,
+                and can be used to make people like you and act favourably
+                towards you. It is nearly always based on <t>Empathy</t>,
+                since you need to be able to react to how the other person
+                is perceiving you.
+            </para>
+
+            <para>
+                At its simplest, a simple <y:empathy>Charm</y:empathy>
+                check determines what another thinks of you. As long as
+                you get a <e>Very easy</e> success, then you'll get a
+                <e>Neutral</e> reaction, assuming they have no other
+                reason to dislike you. A <e>Moderate</e> success will
+                give a <e>Good</e> reaction, and a <e>Difficult</e>
+                success will give an <e>Excellent</e> reaction.
+            </para>
+
+            <para>
+                <e>Charm</e> can also be used to improve a second social
+                skill test (such as <e>Guile</e>, <e>Trade</e> or
+                <e>Perform</e>). Make a <y:empathy>Charm</y:empathy> check
+                against the <y:will/> of the target to gain a +3 bonus for
+                each level of success.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Carousing">
+            <para>
+                Used at parties and similar social gatherings. Can be used
+                to find out information, flirt or try and talk to someone
+                who might be otherwise difficult to talk to (such as a duke
+                surrounded by hangers-on and aids who won't let anyone else
+                near him, or just an attractive and popular girl similarly
+                protected). Generally not resisted.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Chatter">
+            <para>
+                Mindless chatter to try and draw information out of
+                someone, or to simply distract them. Generally not
+                resisted, unless the target is being deliberately close
+                mouthed about a subject.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Seduction">
+            <para>
+                Can try to seduce a person. Add appearance to <t>empathy</t>
+                for purposes of seduction attempts, and resisted with
+                the target's <t>will</t>.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Persuade">
+            <para>
+                If trying to change someone's mind by emotional arguments,
+                resisted with the target's <t>will</t>.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Not make a fool of yourself.</example>
+            <example target="20">Give a good impression.</example>
+            <example target="30">Be very likeable and understanding.</example>
+            <example target="40">Win friends and influence people easily.</example>
+        </examples>
+
+        <examples task="Carousing">
+            <example target="10">
+                Survive a party without acting like an idiot or a boor..
+            </example>
+            <example target="20">
+                Make a good impression. Get to talk to someone important.
+            </example>
+            <example target="30">
+                Make a very good impression. People will remember you
+                favourably. Get to talk to someone really important,
+                or someone important who is avoiding you.
+            </example>
+            <example target="40">
+                Most popular person at the party. Get to talk to someone
+                really important who is actively avoiding you.
+            </example>
+        </examples>
+
+        <examples task="Seduction">
+            <example target="-10">
+                Bad circumstances. Target of attempt is busy doing other
+                things, such as working or is tired.
+            </example>
+            <example target="-20">
+                Inappropriate circumstances. Target is on guard, or
+                doing something else important.
+            </example>
+            <example target="-30">
+                Highly inappropriate circumstances.
+            </example>
+        </examples>
+    </skill>
+
+    <!-- Guile -->
+    <skill name="Guile" type="talent">
+        <group>Talents</group>
+        <group>Social</group>
+
+        <short>Using and recognising deceit.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                <e>Guile</e> allows a character to use and understand
+                social methods of deception, through lying, body language
+                and actions. A character can lie by making an opposed
+                <y:will>guile</y:will> against the target's
+                <y:empathy>guile</y:empathy>. Success means that the target
+                is fooled, though the attempt may be modified by
+                circumstances based on how probably the lie is.
+            </para>
+
+            <para>
+                Will is generally used when trying to hide a character's
+                own emotions, <t>empathy</t> to understand another's and
+                <t>intelligence</t> to think quickly when inventing a
+                believable story.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Disguise">
+            <para>
+                The character can disguise either themselves or another
+                person by using <e>guile</e>. Make an
+                <skeq><attr>intelligence</attr><sk>guile</sk></skeq>
+                check.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Fast talk">
+            <para>
+                When trying to invent a plausible story quickly, then an
+                <y:intelligence>guile</y:intelligence>
+                check can often be called for, against the same for the
+                target. If the target finds the story plausible, then
+                opposed <t>empathy</t> and will checks may still be
+                necessary in order to hide the lie.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml" task="Taunt">
+            <para>
+                Make someone mad. Opposed with <t>will</t>.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Sleight -->
+    <skill name="Sleight" type="talent">
+        <group>Talents</group>
+        <group>Criminal</group>
+
+        <short>Sleight of hand.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Sleight of hand, from filching items on a market stall,
+                to picking someone's pockets. Can also be used for anything
+                which requires a great deal of fine dexterity.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Stealth -->
+    <skill name="Stealth" type="talent">
+        <group>Talents</group>
+        <group>Criminal</group>
+
+        <short>Hiding and moving quietly.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Moving quietly, hiding, and generally not being seen
+                or heard. Based on agility for moving quietly, or perception
+                for finding somewhere to hide.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Throw -->
+    <skill name="Throw" type="talent">
+        <group>Talents</group>
+        <group>Combat</group>
+        <group>Missile</group>
+
+        <short>Using thrown weapons, and catching things.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is the ranged attack equivalent of the brawl skill,
+                and is used for throwing rocks, spears, knives, axes
+                etc at distance targets. The talent is perception based.
+                For hurled improvised weapons, short range is considered
+                to be four times strength, medium twice this, and long
+                range twice medium.
+            </para>
+
+            <para>
+                This skill can also be used to catch items. When trying
+                to catch an item, throw is dexterity based.
+            </para>
+        </description>
+    </skill>
+
+
+    <!--
+        SOCIAL SKILLS
+    -->
+
+
+    <skill name="Intrigue" type="skill">
+        <group>Social</group>
+        <default>Guile</default>
+        <short>Social intrigue and politics.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The skill of dealing with the intrigues of a political
+                arena. With it, it is possible to find out relationships
+                within the arena, and to obtain information from people, or
+                even to spread information without it being obvious that
+                the plotter is trying to spread information.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Military affairs" type="knowledge">
+        <group>Military</group>
+        <short>Knowledge of military matters.</short>
+        <default>Administration</default>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With this skill you have knowledge of how a military
+                operates, how to recognise the various ranks, and the
+                correct etiquette to use when dealing with those ranks.
+                When dealing with military bureaucracy, it may be used
+                instead of <e>Administration</e>.
+            </para>
+
+            <para>
+                Generally, most enlisted personnel will have 1 or 2
+                levels in this, any more is unnecessary unless you are
+                wanting to game the system, or try and second guess
+                how military operations are planned.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Gambling" type="skill">
+        <group>Social</group>
+        <group>Criminal</group>
+        <default>Guile</default>
+        <short>Skill at playing card and dice games.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is the skill of playing games of chance, such as
+                card games or dice games. This is a generic skill,
+                based around being able to spot patterns, work out
+                probabilities, bluff, cheat and basic gaming tactics.
+            </para>
+
+            <para>
+                A high skill represents a good, broad, knowledge of
+                all such games, and so a greater chance of knowing how
+                to play any given game, or at least knowing enough about
+                a similar game in order to be able to play well.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Game" type="skill">
+        <group>Social</group>
+        <short>Skill at a board game.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of, and skill at playing a game such as Chess
+                or Hnefatafl. As a start, this gives a broad knowledge
+                of tactics and strategy which can be applied to any
+                board game. Actual knowledge of a specific board game
+                is covered with a technique specialisation, at a cost
+                of 2.
+            </para>
+
+            <para>
+                The simplest way to find the winner for a game, is for
+                both opponents to roll their skill, and the highest roll
+                wins. If it is desired to play out the game in more
+                detail, then proceed as follows.
+            </para>
+
+            <para>
+                Each opponent makes a skill check each turn of the game.
+                If one exceeds the other by five or more, then they gain
+                an advantage. Each advantage gained gives +3 to the skill
+                check next turn. On gaining the fourth advantage, the
+                player is considered the winner. If the player with the
+                advantage looses a turn, then they loose a level of
+                advantage.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Lip reading" type="skill">
+        <group>Social</group>
+        <short>Understanding speech by reading lips.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The skill of reading lips. Each 10 rolled gives an
+                equivalent point of language skill. There may be penalties
+                for distance, or partial visibility.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Perform" type="skill">
+        <group>Social</group>
+        <group>Artistic</group>
+        <default>Charm</default>
+
+        <short>Oratory, singing and poetry.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A skill which covers many forms of social skills,
+                including oratory, poetry and singing. It may be used to
+                rouse a crowd, invent some poetry on the spot, or remember
+                a poem or song well enough to recite or sing it.
+            </para>
+
+            <para>
+                The mood of the audience can be affected with either song,
+                poetry or oratory. The performer matches their skill roll
+                against the will of the audience. If the audience can be
+                treated as a <e>crowd</e>, take the average will and roll
+                once for the whole audience (a vocal few will tend to
+                lead the silent majority). Success by the performer will
+                mean the crowd listens to what the performer says, and
+                will think about it, though their opinion isn't shifted
+                greatly. For each full 10 the performer beats the will
+                of the crowd, the crowd's mood is shifted one category.
+            </para>
+
+            <para>
+                When singing or reciting poetry, the mood of the audience
+                can be shifted, sometimes considerably. This can be done
+                subtly, though it takes an evening of performance to carry
+                it out.
+            </para>
+
+            <para>
+                A more direct way to sway an audience is through oratory.
+                This is quicker and more direct then by choice of song,
+                but is also pretty blatant.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Sing without inflicting pain on listeners. Less than this
+                may get the character forcibly removed from the stage.
+            </example>
+
+            <example target="20">
+                Sing well enough to impress the audience, though not in a
+                way that will be particularly remembered.
+            </example>
+
+            <example target="30">
+                Sing very well. The singer will be well received, and
+                probably kept around for more of the same. The mood of
+                the audience can be shifted subtly.
+            </example>
+
+            <example target="40">
+                The singer will be spoken of for months to come, and people
+                will be most eager to please. The mood of the audience can
+                be shifted noticeably.
+            </example>
+
+            <example target="50">
+                All others will be compared (probably unfavourably) to the
+                singer, who will be heralded as a master of their art. The
+                singer pretty much has control over the mood of the audience.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Musician" type="skill">
+        <group>Artistic</group>
+        <techRange min="1" max="20"/>
+        <short>Playing musical instruments.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The skill of playing musical instruments, whether they are
+                a drum, a flute or a harp.
+            </para>
+        </description>
+        <examples>
+            <example target="15">Play without sending people running for cover</example>
+            <example target="20">Play in tune with others</example>
+            <example target="30">Play very well</example>
+        </examples>
+    </skill>
+
+    <skill name="Dance" type="skill">
+        <group>Artistic</group>
+        <default>Athletics</default>
+        <familiarity>Dancing</familiarity>
+        <short>Dancing with skill and grace.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With <e>Dance</e> you are able to impress people with your
+                graceful dances. It allows you to know the common types of
+                dances, as well as the ability to actually dance. With
+                sufficient skill, you will be able to improvise new dances,
+                and work with a partner to complement their improvisations.
+            </para>
+
+            <para>
+                The skill covers all forms of dancing, though you need to
+                purchase a <e>familiarity</e> in order to know how to properly
+                perform a particular style of dance.
+            </para>
+
+            <para>
+                When attempting to dance, choose how much you are trying to
+                impress people (target difficulty). If you fail, then you've
+                overstretched yourself, and you make mistakes.
+            </para>
+        </description>
+
+        <examples>
+            <example target="0">
+                You are clumsy and obviously unskilled. You will give a
+                poor impression to anyone who is watching.
+            </example>
+
+            <example target="10">
+                Nothing special, just a few simple repetitive moves.
+                Nobody will pay to watch you dance.
+            </example>
+
+            <example target="20">
+                You dance with competence and some degree of grace. Your
+                dancing will please most people.
+            </example>
+
+            <example target="30">
+                Very good dancing, which will impress most people. You
+                get a +1 bonus to the reaction level of people who saw you
+                dance.
+            </example>
+
+            <example target="40">
+                An excellent performance which will impress pretty much
+                everyone. You can a +2 bonus to the reaction level of
+                those around you. Probably a level of skill better than
+                most people have seen.
+            </example>
+
+            <example target="50">
+                An outstanding performance of skill and grace. You gain
+                a +2 reaction bonus, or +3 if asking someone to share a
+                dance with you.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Artist" type="skill">
+        <group>Artistic</group>
+        <default>Intelligence</default>
+        <default>Dexterity</default>
+        <short>Painting and drawing.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The ability to draw or paint competently. Used with
+                dexterity, or with intelligence to try and accurately draw
+                some scene from memory.  You should take a <e>Mastery</e> in 
+                specialisations of this, such as <e>painting</e>,
+                <e>sculpture</e>, <e>calligraphy</e>, <e>photography</e> etc.
+            </para>
+            <para>
+                A mastery represents being especially skilled in that form
+                of art. Without levels of mastery, your work is practical but
+                lacks emotional impact. Each level of mastery allows you to
+                produce notable work up to a skill level ten times your mastery.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+               Your work is crude, but it gets across the basic idea of what
+               you are trying to convey even if it lacks artistic merit.
+            </example>
+
+            <example target="20">
+                Your work is reasonable, and demonstrates a basic level of skill
+                in the art form. Requires a mastery of at least 2.
+            </example>
+
+            <example target="30">
+                Your work is of good quality, and capable of instilling an emotion
+                in the viewer. Requires a mastery of at least 3.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="First aid" type="skill">
+        <group>Academic</group>
+
+        <short>Healing injuries and other ailments.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Provides care and treatment of wounds to stop bleeding and
+                prevent infection. Once a wound has been successfully
+                first aided, it may begin healing naturally. First aid
+                checks are generally made with intelligence. First aid can
+                also be used to treat stuns.
+            </para>
+
+            <para>
+                To treat a character's wounds, the base difficulty is 10.
+                This is modified upwards by the total of the character's
+                stun and wound penalties (a fatally wounded character (-15)
+                would be difficulty 25 to treat). Success means that the
+                wounds will begin healing naturally. If the roll was made
+                by 10 or more, then one level of wound is also healed.
+            </para>
+
+            <para>
+                Stuns are a base difficulty of zero to first aid, again
+                modified by total stun and wound penalties. Success heals
+                one stun, and each 10 over that heals another level of
+                stuns. Stuns do not need to be treated before they begin
+                healing.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Language (*)" type="language">
+        <group>Language</group>
+
+        <short>The ability to speak a language.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The ability to speak a language. Every character starts
+                with a score of 4 in speaking their own language. This
+                skill is rarely rolled, but instead gives an indication
+                of the character's grasp of a language.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Teach" type="skill">
+        <group>Social</group>
+        <group>Academic</group>
+
+        <short>The ability to teach people.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The ability to teach another person, and train them in
+                the use of a skill. See the Campaign section for details
+                on training.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Trade" type="skill">
+        <group>Social</group>
+        <group>Business</group>
+        <default>Guile</default>
+
+        <short>Bartering and other merchant skills.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Covers a multitude of skills involved with trading,
+                including bartering, and having some clue as to the
+                value of goods.
+            </para>
+        </description>
+    </skill>
+
+
+
+    <skill name="Ride" type="skill">
+        <group>Rural</group>
+
+        <short>Riding horses.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The ability to ride, normally a horse. A different skill
+                is needed for different types of animals (horses and ponies
+                would be the same skill, a Griffin another skill). As well
+                as enabling you to remain mounted, it grants a bonus to
+                combat skills when mounted if the relevant techniques
+                are known.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Scrounging" type="skill">
+        <group>Craft</group>
+
+        <short>Finding and fixing scrap.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Being able to turn useless scrap into something useful. Used
+                with intelligence. Covers finding, planning and building,
+                though skills such as <e>carpentry</e> or <e>blacksmith</e>
+                may be needed as well.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Strategy" type="skill">
+        <group>Military</group>
+
+        <short>Military strategy and logistics.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Unlike <e>Tactics</e>, which is concerned with small scale
+                skirmishes, military strategy provides knowledge and
+                experience of running a war, including making most
+                effective use of troops, logistics and knowledge of
+                large scale tactics.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Demolitions" type="skill">
+        <group>Military</group>
+        <group>Criminal</group>
+
+        <techRange min="4" max="20"/>
+        <short>Blowing things up efficiently.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Blowing things up is easy, but doing it with the minimum
+                of explosives, at minimal risk to yourself, and in a way
+                that causes maximum damage is somewhat harder. This skill
+                provides everything you need to know about destroying
+                things with explosives. You also know about the different
+                types of explosives, how best to store, move and deploy
+                them, and how to disarm other people's bombs.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Combat engineering" type="skill">
+        <group>Military</group>
+
+        <techRange min="5" max="20"/>
+        <short>Building things quickly.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Most infantry has experience with digging trenches,
+                building bridges and putting up sandbags. A combat
+                engineer has a lot of experience doing this. This
+                skill covers getting the job done in the minimum
+                time, often so that's its good enough to do what it
+                needs to do. It covers a wide range of tasks, from
+                bridge building to tunnelling, and is more practical
+                than theoretical.
+            </para>
+
+            <para>
+                Unlike 'real' engineering skills, this one assumes
+                that the needed materials aren't readily to hand and
+                that the people doing most of the heavy lifting are
+                mostly unskilled infantry, so the result will
+                often be simple and ugly. But it'll work.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Meditation" type="skill">
+        <group>Occult</group>
+
+        <short>Exercises for the mind.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                <e>Meditation</e> is the ability to put your mind at rest,
+                being able to relax and clear your mind of random thoughts.
+                It normally doesn't serve much purpose, though may be
+                useful to deal with fear or pain. You can spend a minute
+                to try and overcome some fear. Every 5 points rolled on
+                <y:skeq><y:attr>Will</y:attr><y:sk>Meditation</y:sk></y:skeq>
+                gives you a +1 bonus
+                to your next fear check.
+            </para>
+
+            <para>
+                <e>Meditation</e> may also help resist mental attacks
+                in a fantasy/horror setting.
+            </para>
+        </description>
+    </skill>
+</skill-list>
+
+
+

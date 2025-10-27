@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Unarmed Combat</title>
+        <tagline>YAGS</tagline>
+
+        <summary>
+            Expanded rules which deal with unarmed combat.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.8 $</version>
+            <date>$Date: 2007-01-13 16:42:30 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2010</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+        <sect1 id="unarmed">
+            <title>Unarmed Combat</title>
+
+            <para>
+                Unarmed combat is treated as standard melee combat, except
+                no weapon is used.
+            </para>
+
+            <sect2>
+                <title>Skills</title>
+
+                <para>
+                    The majority of unarmed combat will use the
+                    <e>Brawl</e> skill - indeed this skill is the basis
+                    of pretty much all melee combat (both armed and
+                    unarmed), and can act as the default for most other
+                    melee skills. <e>Brawl</e> should not be thought of
+                    as unskilled brawling, and at high skill levels it
+                    can be deadly.
+                </para>
+
+                <para>
+                    Certain schools teach particular styles of unarmed
+                    combat - notably <e>Karate</e> or <e>Juijutsu</e>.
+                    These do have their own skills, and sets of
+                    techniques, but are not necessarily better than a
+                    good <e>brawl</e> skill. Instead they tend to be
+                    more focused, being better in a particular situation,
+                    but worse in others.
+                </para>
+            </sect2>
+
+        </sect1>
+
+        <sect1>
+            <title>Brawling Manouevres</title>
+
+            <para>
+                A brawl attack is performed like any other attack, except
+                that you normally receive no bonuses to attack, defence or
+                damage rolls for use of a weapon. Certain techniques can
+                modify this of course.
+            </para>
+
+            <para>
+                The standard result of a brawl attack is a blow which
+                does <e>stun</e> damage. Whether the blow is a punch,
+                kick, bite or headbutt is irrelevent in this respect.
+                Because <e>stun</e> damage isn't cumulative like
+                <e>wounds</e> are, simply punching and kicking a person
+                can result in a very long fight. In order to get
+                around this, a skilled attacker has a few options
+                available to them.
+            </para>
+
+            <para>
+                A manouevre can be performed by anybody without
+                training (i.e. they are not techniques), and can be used
+                with the <e>brawl</e> skill or any skill related to it
+                (basically, has <e>brawl</e> as either a default or a
+                pre-requisite).
+            </para>
+
+            <para>
+                There are three types of manouevres - attack, defensive
+                (which counter attacks) and followup (which are used to
+                improve a previous attack).
+            </para>
+
+            <sect2>
+                <title>Attack Manouevres</title>
+
+                <para>
+                    All the following must be declared when the attack is
+                    declared at the start of the round. They cause a
+                    <e>free strike</e> (which happens first).
+                </para>
+            </sect2>
+
+
+        </sect1>
+    </body>
+</article>
+
+

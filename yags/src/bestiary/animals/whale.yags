@@ -1,0 +1,106 @@
+<?xml version = '1.0' ?>
+<?xml-stylesheet href="/usr/share/web/xsl/yagsbook/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<!--
+    $Revision: 1.3 $
+    $Date: 2005-04-07 22:04:02 $
+
+    Bestiary containing information on whales.
+-->
+
+
+<bestiary xmlns="https://yags-rpg.net/xml">
+
+    <!-- Blue Whale -->
+    <beast name="Whale">
+        <information>
+            <type>Animal</type>
+            <demeanor>Herd</demeanor>
+
+            <habitat climate="Any" terrain="Water" frequency="Uncommon"/>
+
+            <organisation group="Pack" number="3-24"/>
+
+            <origin>Common</origin>
+            <genre>Real</genre>
+        </information>
+
+        <description>
+            <short>
+                Aquatic mammals.
+            </short>
+
+            <physical>
+                <para>
+                    Whales are aquatic mammals. The largest is the blue
+                    whale.
+                </para>
+            </physical>
+
+            <social>
+                <para>
+                </para>
+            </social>
+
+            <tactics>
+                <para>
+                </para>
+            </tactics>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="21" soak="20">
+                <attribute name="strength" score="20"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="1"/>
+                <attribute name="dexterity" score="1"/>
+                <attribute name="perception" score="3"/>
+                <attribute name="intelligence" score="2"/>
+                <attribute name="empathy" score="3"/>
+                <attribute name="will" score="2"/>
+            </attributes>
+
+            <traits>
+                <trait name="Bravery" score="4"/>
+                <trait name="Orneriness" score="5"/>
+                <trait name="Patience" score="4"/>
+            </traits>
+
+            <skills>
+                <group name="Talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="5"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="1"/>
+                    <skill name="Guile" score="1"/>
+                    <skill name="Sleight" score="0"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="0"/>
+                </group>
+
+                <group name="Misc">
+                    <skill name="Survival" score="4"/>
+                    <skill name="Swim" score="7"/>
+                </group>
+            </skills>
+
+            <combat>
+                <combatstyle style="Bash" skill="Brawl">
+                    <initiative attribute="agility" bonus="+25"/>
+                    <attack attribute="agility" bonus="+18"/>
+                    <defence attribute="agility" bonus="+12"/>
+                    <damage type="stun" bonus="+8"/>
+                </combatstyle>
+
+                <armourstyle style="Base"/>
+            </combat>
+
+
+            <advantages>
+                <advantage name="Animal"/>
+                <advantage name="Acute sense of hearing" score="+1"/>
+            </advantages>
+        </statistics>
+    </beast>
+</bestiary>

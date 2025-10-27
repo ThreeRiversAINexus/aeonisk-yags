@@ -1,0 +1,254 @@
+<?xml version="1.0"?>
+
+
+<character-templates>
+
+    <character name="Farmer">
+        <description>
+            <race>Human</race>
+            <gender>Male</gender>
+            <age>16</age>
+            <short>Young farmer.</short>
+        </description>
+
+        <attributes size="5" soak="12">
+            <attribute name="strength" score="3"/>
+            <attribute name="stamina" score="3"/>
+            <attribute name="agility" score="3"/>
+            <attribute name="dexterity" score="3"/>
+            <attribute name="perception" score="3"/>
+            <attribute name="intelligence" score="3"/>
+            <attribute name="empathy" score="3"/>
+            <attribute name="will" score="3"/>
+        </attributes>
+
+        <skills>
+            <group name="Talents" type="talents">
+                <skill name="Athletics" score="2"/>
+                <skill name="Awareness" score="2"/>
+                <skill name="Brawl" score="2"/>
+                <skill name="Charm" score="2"/>
+                <skill name="Guile" score="2"/>
+                <skill name="Sleight" score="2"/>
+                <skill name="Stealth" score="2"/>
+                <skill name="Throw" score="2"/>
+            </group>
+
+            <group name="Knowledges" type="knowledges">
+                <skill name="Speak Rornic" score="4"/>
+                <skill name="Area lore" score="4"/>
+            </group>
+
+            <group name="Profession" type="skills">
+                <skill name="Farming" score="4"/>
+                <skill name="Carpentry" score="1"/>
+                <skill name="Trade" score="1"/>
+            </group>
+
+            <group name="Other" type="skills">
+                <skill name="Gambling" score="2"/>
+                <skill name="Game (Hnefatafl)" score="2"/>
+                <skill name="Longshaft weapons" score="3"/>
+            </group>
+        </skills>
+    </character>
+
+    <character name="Woodsman">
+        <description>
+            <race>Human</race>
+            <gender>Male</gender>
+            <age>16</age>
+            <short>Woodsman.</short>
+        </description>
+
+        <attributes size="5" soak="12">
+            <attribute name="strength" score="3"/>
+            <attribute name="stamina" score="3"/>
+            <attribute name="agility" score="3"/>
+            <attribute name="dexterity" score="3"/>
+            <attribute name="perception" score="3"/>
+            <attribute name="intelligence" score="3"/>
+            <attribute name="empathy" score="3"/>
+            <attribute name="will" score="3"/>
+        </attributes>
+
+        <skills>
+            <group name="Talents" type="talents">
+                <skill name="Athletics" score="2"/>
+                <skill name="Awareness" score="2"/>
+                <skill name="Brawl" score="2"/>
+                <skill name="Charm" score="2"/>
+                <skill name="Guile" score="2"/>
+                <skill name="Sleight" score="2"/>
+                <skill name="Stealth" score="3"/>
+                <skill name="Throw" score="2"/>
+            </group>
+
+            <group name="Knowledges" type="knowledges">
+                <skill name="Speak Rornic" score="4"/>
+                <skill name="Area lore" score="4"/>
+            </group>
+
+            <group name="Profession" type="skills">
+                <skill name="Copicing" score="4"/>
+                <skill name="Farming" score="1"/>
+                <skill name="Carpentry" score="2"/>
+            </group>
+
+            <group name="Other" type="skills">
+                <skill name="Bow" score="3"/>
+                <skill name="Single weapon" score="2"/>
+                <skill name="Survival" score="2"/>
+                <skill name="Hunting" score="1"/>
+            </group>
+        </skills>
+    </character>
+
+    <character name="Man-at-arms">
+        <description>
+            <race>Human</race>
+            <gender>Male</gender>
+            <age>16</age>
+            <short>A free woman.</short>
+        </description>
+
+        <attributes size="5" soak="12">
+            <attribute name="strength" score="3"/>
+            <attribute name="stamina" score="3"/>
+            <attribute name="agility" score="3"/>
+            <attribute name="dexterity" score="3"/>
+            <attribute name="perception" score="3"/>
+            <attribute name="intelligence" score="3"/>
+            <attribute name="empathy" score="3"/>
+            <attribute name="will" score="3"/>
+        </attributes>
+
+        <skills>
+            <group name="Talents" type="talents">
+                <skill name="Athletics" score="2"/>
+                <skill name="Awareness" score="2"/>
+                <skill name="Brawl" score="3"/>
+                <skill name="Charm" score="2"/>
+                <skill name="Guile" score="2"/>
+                <skill name="Sleight" score="2"/>
+                <skill name="Stealth" score="2"/>
+                <skill name="Throw" score="3"/>
+            </group>
+
+            <group name="Knowledges" type="knowledges">
+                <skill name="Speak Rornic" score="4"/>
+                <skill name="Area lore" score="4"/>
+            </group>
+
+            <group name="Profession" type="skills">
+                <skill name="Farming" score="2"/>
+            </group>
+
+            <group name="Other" type="skills">
+                <skill name="Bow" score="2"/>
+                <skill name="Weapon and shield" score="4"/>
+                <skill name="Survival" score="2"/>
+            </group>
+        </skills>
+
+        <advantages>
+            <advantage name="Shield wall" cost="2"/>
+        </advantages>
+    </character>
+
+    <character name="Crafts woman">
+        <description>
+            <race>Human</race>
+            <gender>Female</gender>
+            <age>16</age>
+            <short>Woodsman.</short>
+        </description>
+
+        <attributes size="5" soak="12">
+            <attribute name="strength" score="3"/>
+            <attribute name="stamina" score="3"/>
+            <attribute name="agility" score="3"/>
+            <attribute name="dexterity" score="3"/>
+            <attribute name="perception" score="3"/>
+            <attribute name="intelligence" score="3"/>
+            <attribute name="empathy" score="3"/>
+            <attribute name="will" score="3"/>
+        </attributes>
+
+        <skills>
+            <group name="Talents" type="talents">
+                <skill name="Athletics" score="2"/>
+                <skill name="Awareness" score="3"/>
+                <skill name="Brawl" score="2"/>
+                <skill name="Charm" score="3"/>
+                <skill name="Guile" score="2"/>
+                <skill name="Sleight" score="2"/>
+                <skill name="Stealth" score="2"/>
+                <skill name="Throw" score="3"/>
+            </group>
+
+            <group name="Knowledges" type="knowledges">
+                <skill name="Speak Rornic" score="4"/>
+                <skill name="Area lore" score="4"/>
+                <skill name="Herb lore" score="2"/>
+                <skill name="First aid" score="2"/>
+            </group>
+
+            <group name="Profession" type="skills">
+                <skill name="Handicraft" score="4"/>
+                <skill name="Cooking" score="2"/>
+            </group>
+        </skills>
+    </character>
+
+    <character name="Merchant">
+        <description>
+            <race>Human</race>
+            <gender>Male</gender>
+            <age>16</age>
+            <short>Merchant or trader.</short>
+        </description>
+
+        <attributes size="5" soak="12">
+            <attribute name="strength" score="3"/>
+            <attribute name="stamina" score="3"/>
+            <attribute name="agility" score="3"/>
+            <attribute name="dexterity" score="3"/>
+            <attribute name="perception" score="3"/>
+            <attribute name="intelligence" score="3"/>
+            <attribute name="empathy" score="3"/>
+            <attribute name="will" score="3"/>
+        </attributes>
+
+        <skills>
+            <group name="Talents" type="talents">
+                <skill name="Athletics" score="2"/>
+                <skill name="Awareness" score="2"/>
+                <skill name="Brawl" score="2"/>
+                <skill name="Charm" score="3"/>
+                <skill name="Guile" score="3"/>
+                <skill name="Sleight" score="2"/>
+                <skill name="Stealth" score="2"/>
+                <skill name="Throw" score="3"/>
+            </group>
+
+            <group name="Knowledges" type="knowledges">
+                <skill name="Speak Rornic" score="4"/>
+                <skill name="Area lore" score="4"/>
+            </group>
+
+            <group name="Profession" type="skills">
+                <skill name="Trade" score="4"/>
+                <skill name="Teamster" score="2"/>
+            </group>
+
+            <group name="Other" type="skills">
+                <skill name="Ride" score="2"/>
+                <skill name="Single weapon" score="2"/>
+            </group>
+        </skills>
+    </character>
+
+</character-templates>
+
+

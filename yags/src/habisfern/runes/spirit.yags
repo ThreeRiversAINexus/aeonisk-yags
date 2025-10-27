@@ -1,0 +1,387 @@
+<?xml version="1.0"?>
+
+<!--
+    Spirit Runes.
+    Version: $Revision: 1.13 $
+    Date:    $Date: 2006-05-14 14:18:24 $
+-->
+<grimoire xmlns="http://yagsbook.sourceforge.net/xml/yags/habisfern"
+          xmlns:y="http://yagsbook.sourceforge.net/xml/yags"
+          name="Spirit">
+
+    <description xmlns="http://yagsbook.sourceforge.net/xml">
+        <para>
+            Runes of <e>Spirit</e> enable the wizard to probe deeper
+            into a person's mind, shape their thoughts and have control
+            over their dreams. To a limited extent they also allow
+            illusions, though unlike the illusions of <e>Air</e>, they
+            work by making people think they see something, rather
+            than creating an image which is actually seen.
+        </para>
+
+        <para>
+            Spirit magic is considered to be either passive or active.
+            Passive magic is difficult for a target to detect. Unless
+            they have some supernatural ability such as Second Sight or
+            can use magic themselves, then they will never notice if
+            they are the target of passive scrying. Others may get a
+            perception check at difficulty 30 less the level of the
+            rune.
+        </para>
+    </description>
+
+
+    <spell name="Impress" level="1" type="spirit">
+        <range>Communication</range>
+        <duration>Natural</duration>
+        <target>Few</target>
+        <time>Speech</time>
+
+        <short>Instil an emotion in a person.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                By weaving your magic into your words, you can improve
+                their ability to impress a simple emotion into the minds
+                of the targets. When the rune is invoked, you force an
+                immediate virtue check on the targets at +5 difficulty.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The difficulty of the virtue check is at +10.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Thought" level="3" type="spirit">
+        <range>Short</range>
+        <duration>Natural</duration>
+        <target>Individual</target>
+        <resist>Will</resist>
+
+        <prerequisite>Impress</prerequisite>
+
+        <short>Implant a single thought in a person.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You can telepathically send a thought to a target, causing
+                them to briefly act upon it. The thought must be simple
+                enough to be expressed in a single word, though that word
+                does not need to be spoken. For example, 'sit', 'stand'
+                or 'drink' would make the target think about, and probably
+                do, those things. A thought such as 'window' could cause
+                them to look at the window.
+            </para>
+
+            <para>
+                The target will get a bonus to resist if the action is
+                stupid or dangerous. They will continue the action until
+                they have a reason not to.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Memory" level="5" type="spirit">
+        <range>Short</range>
+        <duration>Natural</duration>
+        <target>Individual</target>
+        <resist>Will</resist>
+
+        <prerequisite>Thought</prerequisite>
+
+        <short>Implant a memory in a person.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With this rune, you can create a fake memory in the mind
+                of the target. They will remember that memory as if it were
+                their own. Memories of important events are harder to
+                implant than a small memory of something vaguely remembered.
+                The memory is of a single event, and doesn't change the
+                rest of the target's mind to match. You could implant a
+                memory of the target once being abused by their father as
+                a child, but it wouldn't affect their other memories of
+                their father, or what their feelings towards their father.
+                However, it probably would confuse them as to why they've
+                only just remembered this.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                Either a detailed memory of an event, or a memory of an
+                important event.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                Memory of an event that is both detailed and important.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Dream" level="5" type="spirit">
+        <range>Relationship</range>
+        <duration>Concentration</duration>
+        <target>Individual</target>
+        <resist>Will</resist>
+        <prerequisite>Thought</prerequisite>
+
+        <short>Send a message as a dream.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Send a dream to someone known. You may make the dream as
+                detailed as you wish, however more detailed
+                dreams are harder to send, and have a greater risk of
+                corruption. Specifying a simple dream is more likely
+                to get through unbroken.
+            </para>
+            <para>
+                Send a vision of a place, person or thing. The
+                target will have a dream which features the subject
+                prominently, though the nature of the dream itself
+                will be invented by the target's subconscious.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                Send a vision of a particular scene, such as
+                travelling to a mountain, fighting with a person
+                or finding treasure in a tomb.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                Send a message, which will be spoken by someone
+                in the target's dream.
+            </para>
+        </description>
+    </spell>
+
+
+
+    <spell name="Obscure" level="7" type="spirit">
+        <range>Short</range>
+        <duration>Concentration</duration>
+        <target>Few</target>
+        <resist>Will</resist>
+        <prerequisite>Memory</prerequisite>
+
+        <short>Hide or obscure the wizard's appearance.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With <e>Obscure</e> you can affect the minds of those
+                around you in order to alter their perception of you.
+                Ultimately it is possible to make them believe that you
+                are not there, though it is easier to make them think
+                you to be someone else of no importance, such as a
+                servant, beggar or guard.
+            </para>
+
+            <para>
+                A successful result will cause people to ignore you,
+                or at least not question you. A guard may stand aside
+                for you, and may even unlock a door, as long as you
+                behave in an expected way. You may extend the protection
+                of this rune to cover companions, in which case they
+                must be included as an extra target.
+            </para>
+
+            <targetlist>
+                <item target="Moderate+" value="Hiding.">
+                    You can try to simply hide, in which case each level
+                    of success gives you a +1 to your attribute when
+                    attempting a stealth check.
+                </item>
+
+                <item target="Moderate" value="Nothing special.">
+                    The target will ignore you unless they have a reason
+                    not to. A guard randomly checking people will not
+                    choose you, but a guard checking everyone will.
+                </item>
+
+                <item target="Good" value="Suspicious.">
+                    If the target has a reason to notice the wizard, then
+                    a good success is required. Walking past guards into
+                    the noble's quarter when she doesn't look like a noble,
+                    or carrying a weapon where weapons aren't allowed.
+                </item>
+
+                <item target="Excellent" value="Unusual.">
+                    If the target has a specific reason to notice the
+                    wizard, then an excellent success is required. Such
+                    reasons might include a merchant stopping her from
+                    shoplifting, or a guard only allowing known people
+                    through the gates. Trying to pass as normal when
+                    the wizard is anything but would also count as
+                    unusual.
+                </item>
+
+                <item target="Superb" value="Extravagant.">
+                    Trying to get into an invitation only noble's party
+                    dressed in bloody furs and carrying a big weapon.
+                </item>
+            </targetlist>
+        </description>
+    </spell>
+
+
+    <spell name="Terror" level="9" type="spirit">
+        <range>Short</range>
+        <duration>Concentration</duration>
+        <resist>Will</resist>
+        <target>Dozen</target>
+        <prerequisite>Obscure</prerequisite>
+
+        <short>Create a terrifying illusion.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                An illusion of terror is created in the minds of the
+                targets. The illusion cannot be seen by anyone else
+                save for those affected by the rune. The illusion is
+                of something dark, nameless and terrible which the
+                targets will find awful. They can see, hear and smell
+                the illusion, though if one of them manages to approach it,
+                then it will be banished for all of them.
+            </para>
+
+            <para>
+                If you get a moderate success, then the targets of the
+                magic will be afraid and unable to approach. On a
+                <e>good</e> success they will be fearful enough to
+                retreat, and on an <e>excellent</e> success they
+                will cower in terror and be unable to act.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Confuse" level="1" type="spirit">
+        <range>Short</range>
+        <duration>Momentary</duration>
+        <resist>Will</resist>
+        <target>Individual</target>
+
+        <short>Briefly confuse the target.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With this rune, the mind of the target is temporarily
+                confused. If they fail the resistence, then they loose
+                any remaining attacks that round if in combat, or are
+                prevented from carrying out some other action if not.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Pain" level="3" type="spirit">
+        <range>Short</range>
+        <duration>Momentary</duration>
+        <resist>Health</resist>
+        <target>Individual</target>
+        <prerequisite>Confuse</prerequisite>
+
+        <short>Inflict pain on a person.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When this rune is invoked, unless the target succeeds
+                at the resistence check, then they are wracked by a short,
+                sharp spasm of intense pain. They gain a <e>stun</e>, and
+                are at a -10 penalty to all actions for the rest of the
+                round. You may target a particular body location, which
+                requires an extra level of success. If a hand is targeted,
+                then they will drop whatever they are holding.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Sleep" level="5" type="spirit">
+        <range>Short</range>
+        <duration>Natural</duration>
+        <target>Few</target>
+        <resist>Health</resist>
+        <prerequisite>Pain</prerequisite>
+
+        <short>Put the targets under a magical sleep.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                If the targets fail to resist then they will become
+                extremely tired, gaining one fatigue for each level
+                of success. If already resting, then they will fall
+                into a non-magical sleep. If any target is totally
+                exhausted (-40 penalty), then they will fall asleep
+                even if in the middle of combat.
+            </para>
+        </description>
+    </spell>
+
+
+
+
+
+
+    <spell name="Hear" level="1" type="spirit">
+        <range>Short</range>
+        <duration>Natural</duration>
+        <target>Range</target>
+
+        <short>Listen for the minds of others.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With this rune you may listen for the minds of others.
+                You may not hear their thoughts, but you know that they
+                are there, and whether they are active, resting or asleep.
+                You do not need to be able to see your targets - anyone
+                within range will be detected.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Find" level="3" type="spirit">
+        <range>Relationship</range>
+        <duration>Concentration</duration>
+        <resist>Will</resist>
+        <target>Individual</target>
+        <prerequisite>Hear</prerequisite>
+
+        <short>Find a known person.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With this rune the wizard may know the location of a
+                single person that they have met before. The target of
+                the rune gets to resist, unless they are actively
+                thinking about the wizard. On a moderate success, the
+                wizard will know the direction (within 30 degrees) and
+                distance (within +/- 50%) to the target. Each extra
+                level of success halves both of these errors.
+            </para>
+
+            <para>
+                The above assumes that the target is well known to the
+                wizard. Someone who isn't that well known (possibly
+                met often, but she doesn't really know that much about
+                them) adds +10 to the difficulty, and someone who has
+                simply been seen adds +20.
+            </para>
+        </description>
+    </spell>
+
+
+
+</grimoire>
+
+

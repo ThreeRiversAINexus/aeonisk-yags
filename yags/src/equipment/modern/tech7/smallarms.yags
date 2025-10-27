@@ -1,0 +1,394 @@
+<?xml version="1.0"?>
+
+<!--
+    Small arms weapons from the real world, approximately 1945 - 1980.
+
+    Copyright 2007 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted as long as the above copyright
+    notice is retained.
+
+    Version: $Revision: 1.2 $
+    Date:    $Date: 2007-10-13 12:55:40 $
+
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices are in US dollars.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="M16 A1">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>3</legality>
+        <weight>4000</weight>
+        <cost units="usd">350</cost>
+
+        <short>Fully automatic assualt rifle.</short>
+        <description>
+            <para>
+                The Colt M16 has been the standard weapon of the US
+                military since the 1960s. Using a 5.56 x 45mm NATO
+                round. It is more accurate than some of its
+                contempories, however tends to be more fragile. The
+                light round makes carrying large amounts of ammo
+                easy, though doesn't have the stopping power of
+                7.62 caliber.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+9</attack><damage>16</damage>
+                <range>
+                    <increment>30</increment>
+                    <short>550</short><medium>800</medium><long>2400</long>
+                </range>
+            </combat>
+            <strength>5</strength><load>4</load><reach>2</reach>
+            <capacity>30</capacity><rof>30</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><tripleauto/><automatic/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="AK-47">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>3</legality>
+        <weight>4300</weight>
+        <cost units="usd">350</cost>
+
+        <short>Soviet assualt rifle.</short>
+        <description>
+            <para>
+                The AK-47 is one of the most widely used assualt rifles.
+                It is gas-operated, uses a 7.62 x 39mm round and has a
+                reputation of being incredibly robust. It isn't very
+                accurate at long ranges, but is designed to be good at
+                the short ranges that most fire fights occur at.
+            </para>
+
+            <para>
+                It is possible to attach a 75 round drum magazine instead
+                of the 30 round box magazine. Increase load by 1.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+7</attack><damage>18</damage>
+                <range>
+                    <increment>25</increment>
+                    <short>300</short><medium>800</medium><long>2400</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>2</reach>
+            <capacity>30</capacity><rof>50</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><automatic/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="FN FAL 7.62">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>2</legality>
+        <weight>5000</weight>
+        <cost units="usd">1300</cost>
+
+        <short>Light automatic rifle.</short>
+        <description>
+            <para>
+                A Belgium made light automatic rifle was first made in
+                1953, and has been a popular weapon since then. It is
+                classed as a <e>battle rifle</e>, making it more suited
+                to longer range situations than <e>assault rifles</e>
+                such as the M16 or AK47.
+                A larger capacity magazine of 30 rounds do exist.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+10</attack><damage>22</damage>
+                <range>
+                    <increment>40</increment>
+                    <short>750</short><medium>1500</medium><long>3500</long>
+                </range>
+            </combat>
+            <strength>5</strength><load>5</load><reach>3</reach>
+            <capacity>20</capacity><rof>50</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><automatic/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="SPAS 12">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>1</legality>
+        <weight>5000</weight>
+        <cost units="usd">1300</cost>
+
+        <short>Automatic shotgun.</short>
+        <description>
+            <para>
+                A common semi-automatic combat shotgun used by the military and
+                SWAT teams. It was manufactured by the Italian firearms company
+                Franchi S.p.A.. Import of the weapon into the United States is
+                banned.
+            </para>
+
+            <para>
+                It has the option of firing as a pump-action shotgun, which
+                allows it to use low velocity rounds (such as tear gas
+                cannisters and bean bag rounds). Rate of fire drops to 2
+                when used this way.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Shotguns</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+12</attack><damage>17</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>10</short><medium>40</medium><long>80</long>
+                </range>
+            </combat>
+            <strength>4</strength><load>5</load><reach>3</reach>
+            <capacity>7</capacity><rof>5</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><light/><shotgun/>
+                <reload score="6"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Colt Python">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>2</legality>
+        <weight>5000</weight>
+        <cost units="usd">1300</cost>
+
+        <short>Colt .357 Magnum revolver.</short>
+        <description>
+            <para>
+                A heavy revolver.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+5</attack><damage>12</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>75</short><medium>150</medium><long>750</long>
+                </range>
+            </combat>
+            <strength>4</strength><load>1</load><reach>0</reach>
+            <capacity>6</capacity><rof>3</rof><recoil>-4</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Beretta Model 92">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>2</legality>
+        <weight>950</weight>
+        <cost units="usd">1300</cost>
+
+        <short>Semi automatic pistol.</short>
+        <description>
+            <para>
+                Available from 1975, the Beretta was a reliable
+                semi-automatic pistol in common use across the
+                world.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+5</attack><damage>10</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>50</short><medium>100</medium><long>400</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>1</load><reach>0</reach>
+            <capacity>15</capacity><rof>10</rof><recoil>-2</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="RPK">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>2</legality>
+        <weight>5000</weight>
+        <cost units="usd">350</cost>
+
+        <short>Soviet SAW.</short>
+        <description>
+            <para>
+                Designed for the Soviet infantry as a Squad Automatic
+                Weapon, the RPK is a light machine gun that uses the
+                same ammunition as the AK-47, and can use the same
+                magazines as that weapon as well. It is normally fitted
+                with a bipod.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+            <combat>
+                <attack>+8</attack><damage>19</damage>
+                <range>
+                    <increment>30</increment>
+                    <short>400</short><medium>1000</medium><long>3000</long>
+                </range>
+            </combat>
+            <strength>6</strength><load>5</load><reach>4</reach>
+            <capacity>100</capacity><rof>50</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><automatic/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+  <item name="KBP AGS-17">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>3</legality>
+        <weight>31000</weight>
+        <cost units="usd">35000</cost>
+
+        <short>Automatic grenade launcher.</short>
+        <description>
+            <para>
+                Russian infantry support weapon designed for use from a mount.
+                It fires 30mm grenades on fully automatic, by default high
+                explosive fragmentation grenades for use against soft targets.
+                It was commonly used in Afganistan by Russian forces, often
+                mounted on vehicles, including helicopters. Mass production
+                began in 1971.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+            <combat>
+                <attack>+5</attack><damage>30</damage>
+                <range>
+                    <increment>25</increment>
+                    <short>50</short><medium>500</medium><long>2000</long>
+                </range>
+            </combat>
+            <strength>6</strength><load>35</load><reach>4</reach>
+            <capacity>30</capacity><rof>30</rof><recoil>-10</recoil>
+            <properties>
+                <missile/><firearm/><automatic/><explosive score="20"/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Dragunov SVD">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>2</legality>
+        <weight>4300</weight>
+        <cost units="usd">3500</cost>
+
+        <short>Semi automatic sniper rifle.</short>
+        <description>
+            <para>
+                This is a Russian gas operated rifle with a 10 round magazine.
+                The SVD was very common in Russian forces, it being used by
+                a designated marksman per platoon, rather than being reserved
+                for specialist sniper units. It is lighter than many other
+                sniper rifles, making it easier to use.
+            </para>
+
+            <para>
+                It uses a 7.62x54mm round.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+9</attack><damage>29</damage>
+                <range>
+                    <increment>40</increment>
+                    <short>700</short><medium>1400</medium><long>2800</long>
+                </range>
+            </combat>
+            <strength>4</strength><load>4</load><reach>4</reach>
+            <capacity>10</capacity><rof>5</rof><recoil>-10</recoil>
+            <properties>
+                <missile/><firearm/><semiautomatic/><heavy/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+</equipment>
+
+

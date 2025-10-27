@@ -1,0 +1,169 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="https://yags-rpg.net/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+<!--
+    Criminal and Detective skills.
+
+    Copyright (c) 2007, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.2 $
+    Date:    $Date: 2007-09-09 09:59:02 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+    <skill name="Criminology" type="knowledge">
+        <group>Investigation</group>
+        <group>Academic</group>
+        <techRange min="6" max="20"/>
+        <short>The study of crime.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have studied criminals and the crimes they commit,
+                in an attempt to better catch them. This is normally
+                the domain of law enforcement.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Forensics" type="knowledge">
+        <group>Investigation</group>
+
+        <techRange min="6" max="20"/>
+        <short>Finding clues at a crime scene.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience in searching crime scenes for
+                clues as to what happened, and who did it.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Forgery" type="skill">
+        <group>Criminal</group>
+
+        <short>Forging credentials.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The skill of forging identity cards and the like. You know
+                how to obtain the materials necessary for creating forgeries,
+                can detect a forged document or card, and can create them
+                yourself as long as you have the necessary information.
+                Some forms of forgery will require modifying database
+                records, which will require <e>Computer operation</e> and
+                similar skills which <e>Forgery</e> does not provide,
+                however it will let you know what databases need to be
+                changed.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Burglary" type="skill">
+        <group>Criminal</group>
+
+        <short>Breaking and entering.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience in the various tasks involved in breaking
+                into buildings. Opening basic locks, forcing doors
+                and windows, and knowledge about how buildings are generally
+                designed come under this skill.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Very simple and basic lock.</example>
+            <example target="20">Typical key based lock.</example>
+            <example target="30">Good key based lock, typical combination safe.</example>
+            <example target="40">Excellent key based lock, good combination safe.</example>
+            <example target="50">Excellent combination safe.</example>
+            <example target="10">Most low tech unsecured doors and windows.</example>
+            <example target="20">Good quality mid-tech doors and windows.</example>
+        </examples>
+    </skill>
+
+    <skill name="Torture" type="skill">
+        <group>Criminal</group>
+        <group>Investigation</group>
+        <group>Military</group>
+
+        <short>Making people talk.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is the art of applying pain to someone in order to get
+                them to cooperate.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Streetwise" type="skill">
+        <group>Criminal</group>
+        <group>Investigation</group>
+        <default>Guile</default>
+        <short>Dealing with the criminal underworld.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                <e>Streetwise</e> is similar to <e>Politics</e>, though is
+                more suited to life amongst the criminal classes. With it,
+                comes knowledge of how to survive on the street, how to
+                gain the trust of those who live on the wrong side of the
+                law, as well as how to find them in the first place.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Leadership" type="skill">
+        <group>Social</group>
+        <group>Military</group>
+        <default>Charm</default>
+
+        <short>Organise people into working together.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With this skill the character can organise people into
+                working together effectively as a team. If two or more
+                people are working on the same task, then as long as
+                it's sensible for them to be able to work together,
+                a <e>leader</e> can give them a bonus.
+            </para>
+
+            <para>
+                On a success, everyone gets a bonus equal to the most
+                skilled person's skill score.
+            </para>
+
+            <para>
+                <e>Leadership</e> can also be used to take command in
+                a situation, either to bluff or to raise morale.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Base difficulty for a leader and team who are used to
+                working with each other.
+            </example>
+            <example target="+10">The team don't know each other.</example>
+            <example target="+10">The leader doesn't know the team.</example>
+        </examples>
+    </skill>
+
+</skill-list>
+
+
+

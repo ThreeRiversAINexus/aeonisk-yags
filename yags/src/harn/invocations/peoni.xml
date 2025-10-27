@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<invocations>
+
+<invocation religion="Peoni" rank="1">
+<name>Belsirasin's Tears I</name>
+<time>1 round</time>
+<range>Near</range>
+<difficulty>10</difficulty>
+<cost>None/1</cost>
+<duration>Conversation</duration>
+<resist>Will</resist>
+<description>
+Causes subject to shed a tear for every lie told. Lasts for a
+conversation.
+</description>
+</invocation>
+
+<invocation religion="Peoni" rank="1">
+<name>Mirytha's Shade I</name>
+<time>1 minute</time>
+<range>Near</range>
+<difficulty>10</difficulty>
+<description>
+Offers insight into the reason a ghost haunts a locale or is
+cuasing trouble. The priest is then compelled to help the ghost
+find its way to the next plane of existence.
+</description>
+</invocation>
+
+<invocation religion="Peoni" rank="I">
+<name>Peace of Valon I</name>
+<time>1 minute</time>
+<range>Near</range>
+<difficulty>10</difficulty>
+<cost>Low</cost>
+<description>
+Creates a spherical zone around the priest within which all
+sapients are disinclined to fight. Lasts until sleep.
+</description>
+</invocation>
+
+<invocation religion="Peoni" rank="1">
+<name>Maermal's Strength I</name>
+<time>1 minute</time>
+<range>Touch</range>
+<difficulty>20</difficulty>
+<cost>None/2</cost>
+<duration>Sleep</duration>
+<resist>Will</resist>
+<description>
+Increases the subject's strength by one point for every
+twenty rolled on the invocation. It lasts until sleep.
+If the subject harms someone, the bonus becomes a penalty
+after the harm has been done.
+</description>
+</invocation>
+
+<invocation religion="Peoni" rank="1">
+<name>Tirrala's Cure I</name>
+<time>1 round</time>
+<range>Touch</range>
+<difficulty>10</difficulty>
+<cost>Low</cost>
+<description>
+Gives subject touched an immediate healing roll, at a
+bonus of one fifth the invocation roll.
+</description>
+</invocation>
+
+<invocation religion="Peoni" rank="2">
+<name>Bounty of Maermal II</name>
+</invocation>
+
+
+<invocation religion="Peoni" rank="2">
+<name>Habraen's Well II</name>
+</invocation>
+
+<invocation religion="Peoni" rank="2">
+<name>Healing of Gorlan II</name>
+</invocation>
+
+<invocation religion="Peoni" rank="2">
+<name>Peoni's Aid II</name>
+</invocation>
+
+<invocation religion="Peoni" rank="2">
+<name>Peoni's Mercy II</name>
+</invocation>
+
+<invocation religion="Peoni" rank="2">
+<name>Sustenance of Maermal II</name>
+</invocation>
+
+<invocation religion="Peoni" rank="2">
+<name>Yselde's Sense II</name>
+</invocation>
+
+<invocation religion="Peoni" rank="3">
+<name>Tirrala's Renewal III</name>
+</invocation>
+
+<invocation religion="Peoni" rank="3">
+<name>Descent from Valon III</name>
+</invocation>
+</invocations>

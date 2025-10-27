@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+
+<!--
+    Computer techniques.
+
+    Techniques to do with the field of information technology.
+ -->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.5 $</version>
+            <date>$Date: 2007-10-03 19:19:08 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2012</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+    <advantage name="Stunt driver" type="technique">
+        <cost points="4"/>
+        <skill name="Drive"/>
+
+        <short>Skilled piloting.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Add +1 to the effective <t>Agility</t> of your vehicle
+                when you are driving it. Only applies if you are familiar
+                with the vehicle.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="High speed driving" type="technique">
+        <cost points="4"/>
+        <skill name="Drive"/>
+
+        <short>Driving fast and safe.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained in driving fast in dangerous
+                situations, such as along winding roads and whilst
+                avoiding obstacles. Reduce the difficulty increase
+                for each level of speed by 5 points.
+            </para>
+
+            <para>
+                Can only be used if you are <e>familiar</e> with the
+                type of vehicle.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Ice driving" type="technique">
+        <cost points="4"/>
+        <skill name="Drive"/>
+
+        <short>Driving on ice.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have extensive experience with driving on ice.
+                Halve all extra difficulties for driving on ice
+                (only +5 normally, plus each speed step adds an
+                extra +5 when on ice).
+            </para>
+
+            <para>
+                Can only be used if you are <e>familiar</e> with the
+                type of vehicle.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Off-road driving" type="technique">
+        <cost points="4"/>
+        <skill name="Drive"/>
+
+        <short>Driving in off-road conditions.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are experienced with driving in off-road conditions.
+                You can reduce the penalty for driving in <e>difficult</e>
+                or <e>unsuitable</e> terrain by one level.
+            </para>
+
+            <para>
+                Can only be used if you are <e>familiar</e> with the
+                type of vehicle.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Driving familiarity" type="technique">
+        <cost points="2"/>
+        <skill name="Drive"/>
+
+        <short>Familiarity with a type of vehicle.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This technique needs to be taken to be familiar with
+                a class of vehicles for the purposes of driving them.
+            </para>
+
+            <itemlist order="strict" style="italic">
+                <item name="Car">
+                    You are familiar with driving a typical modern small
+                    passenger car.
+                </item>
+
+                <item name="Truck">
+                    Large 4-wheeled vehicle light commercial vehicles
+                    such as vans and trucks or military vehicles such
+                    as the HMMWV.
+                </item>
+
+                <item name="HGV">
+                    You are familiar with driving large lorries, and
+                    do not suffer a penalty when doing so.
+                </item>
+
+                <item name="Tracked">
+                    You are familiar with driving tanks, half trucks and other
+                    vehicles which use tracks. You do not suffer the familiarity
+                    penalty when driving such vehicles.
+                </item>
+
+                <item name="Motorbike">
+                    You are familiar with riding motorbikes and similar
+                    small unbalanced powered personal vehicles.
+                </item>
+
+                <item name="Buggy">
+                    You have experience with driving small powered
+                    vehicles such as go-carts, dune buggies or trikes.
+                    Anything which is little more than an engine with
+                    a seat and basic controls is covered by this.
+                </item>
+            </itemlist>
+
+            <para>
+                If you lack familiarity, then the fumble chance is raised
+                by +1 per 10 difficulty and you can never get better than
+                a moderate success. You can only use other techniques when
+                driving a vehicle you are familiar with.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Aircraft familiarity" type="technique">
+        <cost points="2"/>
+        <skill name="Pilot"/>
+
+        <short>Familiarity with aircraft.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This technique needs to be taken to be familiar with
+                a class of aircraft. You may take one of these for free
+                when first buying the <e>Pilot</e> skill, but all
+                others must be purchased.
+            </para>
+
+            <itemlist order="strict" style="italic">
+                <item name="Glider">
+                    You are familiar with gliders and similar unpowered
+                    aircraft.
+                </item>
+
+                <item name="Light aircraft">
+                    You are familiar with light propeller aircraft such
+                    as a Cessna or Piper.
+                </item>
+
+                <item name="Large aircraft">
+                    You have experience with flying large aircraft such as
+                    cargo planes or jumbo jets.
+                </item>
+
+                <item name="Passenger jet">
+                    You have experience with flying small passenger jets,
+                    such as a Learjet.
+                </item>
+
+                <item name="VTOL">
+                    You are familiar with VTOL aircraft. You need to be
+                    familiar with VTOL aircraft in order to avoid penalties
+                    when trying to make use of their VTOL capability.
+                </item>
+
+                <item name="Supersonic">
+                    You have experience with flying aircraft at
+                    supersonic speeds.
+                </item>
+
+                <item name="Aerospace">
+                    You have experience with flying aircraft at very high
+                    altitudes where the atmosphere is incredibly thin.
+                    You require this familiarity to properly control
+                    aircraft in such conditions.
+                </item>
+
+                <item name="Fighter Jet">
+                    You are familiar with flying fighter jets in combat
+                    situations.
+                </item>
+
+                <item name="Helicopter">
+                    You are familiar with piloting helicopters.
+                </item>
+            </itemlist>
+
+            <para>
+                If you lack familiarity, then the fumble chance is raised
+                by +1 per 10 difficulty and you can never get better than
+                a moderate success. You can only use other techniques when
+                driving a vehicle you are familiar with.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Hotshot pilot" type="technique">
+        <cost points="4"/>
+        <skill name="Pilot"/>
+
+        <short>Skilled piloting.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Add +1 to the effective <t>Agility</t> of your aircraft
+                when you are flying it. Only applies if you are familiar
+                with the aircraft you are flying.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Top gun" type="technique">
+        <cost points="6"/>
+        <skill name="Pilot"/>
+        <prerequisite>Hostshot pilot</prerequisite>
+
+        <short>Combat piloting.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are skilled at dogfighting in aircraft. When trying
+                to manoeuvre for a clear shot, you can fire at half
+                skill with a single success, and full skill with two
+                or more successes.
+            </para>
+        </description>
+    </advantage>
+
+</advantages>
+
+

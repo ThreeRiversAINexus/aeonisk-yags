@@ -1,0 +1,216 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<equipment xmlns="https://yags-rpg.net/xml"
+          xmlns:y="https://yags-rpg.net/xml/yags">
+
+
+    <item name="Motorbike">
+        <category>Vehicle</category>
+        <genre>Modern</genre>
+        <legality>4</legality>
+        <cost>5000</cost>
+        <weight>250000</weight>
+        <techLevel>8</techLevel>
+        <availability>3</availability>
+        <importance>3</importance>
+
+        <short>Typical average motorbike.</short>
+
+        <performance realm="Ground">
+            <speed>160</speed>
+            <acceleration>20</acceleration>
+            <range>360</range>
+        </performance>
+
+        <description>
+            <para>
+                An typical good performance motorcycle from the late 20th
+                century.
+            </para>
+        </description>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="4" soak="8" move="220" acceleration="30">
+                <attribute name="strength" score="6"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="5"/>
+            </attributes>
+        </vehicle>
+    </item>
+
+    <item name="Family Car">
+        <category>Vehicle</category>
+        <genre>Modern</genre>
+        <legality>4</legality>
+        <cost>15000</cost>
+        <weight>750000</weight>
+        <techLevel>8</techLevel>
+        <availability>3</availability>
+        <importance>3</importance>
+
+        <short>5 door hatch back.</short>
+
+        <performance realm="Ground">
+            <speed>180</speed>
+            <acceleration>10</acceleration>
+            <range>600</range>
+        </performance>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="9" soak="9" move="165" acceleration="20">
+                <attribute name="strength" score="14"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="3"/>
+            </attributes>
+        </vehicle>
+    </item>
+
+    <item name="SUV">
+        <category>Vehicle</category>
+        <genre>Modern</genre>
+        <legality>4</legality>
+        <cost>35000</cost>
+        <weight>1250000</weight>
+        <techLevel>8</techLevel>
+        <availability>3</availability>
+        <importance>3</importance>
+
+        <short>Sports Utility Vehicle</short>
+
+        <performance realm="Ground">
+            <speed>220</speed>
+            <acceleration>15</acceleration>
+            <range>500</range>
+        </performance>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="11" soak="11" move="300" acceleration="25">
+                <attribute name="strength" score="18"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="3"/>
+            </attributes>
+        </vehicle>
+    </item>
+
+    <item name="Executive sports car">
+        <category>Vehicle</category>
+        <genre>Modern</genre>
+        <legality>4</legality>
+        <cost>50000</cost>
+        <weight>1500000</weight>
+        <techLevel>8</techLevel>
+        <availability>3</availability>
+        <importance>3</importance>
+
+        <short>BMW E46 M3</short>
+
+        <description>
+            <para>
+                A typical early 21st century luxury car, of which the
+                BMW M3 is just one example.
+            </para>
+        </description>
+
+        <performance realm="Ground">
+            <speed>303</speed>
+            <acceleration>20</acceleration>
+            <range>800</range>
+        </performance>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="9" soak="9" move="300" acceleration="25">
+                <attribute name="strength" score="18"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="5"/>
+            </attributes>
+        </vehicle>
+    </item>
+
+    <item name="Snatch Land Rover">
+        <category>Vehicle</category>
+        <genre>Modern</genre>
+        <legality>4</legality>
+        <cost>75000</cost>
+        <weight>4000000</weight>
+        <techLevel>8</techLevel>
+        <availability>3</availability>
+        <importance>3</importance>
+
+        <short>Protected patrol vehicle.</short>
+
+        <description>
+            <para>
+                Designed as a general patrol vehicle in low threat areas, the
+                Snatch Land Rover is used by the British military. It is
+                lightly armoured and not really designed to protect against
+                a serious attack. However, it is cheaper and more agile than
+                heavier vehicles which serve similar roles.
+            </para>
+        </description>
+
+        <performance realm="Ground">
+            <speed>97</speed>
+            <acceleration>15</acceleration>
+            <range>510</range>
+        </performance>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="11" soak="16" move="134" acceleration="25">
+                <attribute name="strength" score="25"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="4"/>
+            </attributes>
+
+            <combat>
+                <armour location="Front" score="8"/>
+                <armour location="Top/Rear" score="4"/>
+            </combat>
+        </vehicle>
+    </item>
+
+
+    <item name="Cougar">
+        <category>Vehicle</category>
+        <genre>Modern</genre>
+        <legality>2</legality>
+        <cost>475000</cost>
+        <weight>14500000</weight>
+        <techLevel>8</techLevel>
+        <availability>2</availability>
+        <importance>3</importance>
+
+        <short>Armoured fighting vehicle.</short>
+
+        <description>
+            <para>
+                A US armoured fighting vehicle designed for deployment in
+                high risk areas, and to be resistant to anti-vehicle mines
+                and IEDs. Comes with air conditioning as standard.
+            </para>
+        </description>
+
+        <performance realm="Ground">
+            <speed>105</speed>
+            <acceleration>15</acceleration>
+            <range>966</range>
+        </performance>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="13" soak="26" move="134" acceleration="25">
+                <attribute name="strength" score="39"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="3"/>
+            </attributes>
+
+            <combat>
+                <armour location="All" score="12"/>
+                <armour location="Bottom" score="20"/>
+            </combat>
+        </vehicle>
+    </item>
+</equipment>
+
+

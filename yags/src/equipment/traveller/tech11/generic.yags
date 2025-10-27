@@ -1,0 +1,318 @@
+<?xml version="1.0"?>
+
+<!--
+
+    Generic equipment lists for Tech Level 10 Traveller.
+
+    Copyright 2007 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted provided that the above
+    copyright notice is retained.
+
+    Version: $Revision: 1.4 $
+    Date:    $Date: 2007-10-13 12:55:40 $
+
+    All units are in cgs.
+
+    Prices are in credits.
+
+    Tech Level
+     4 1450-1700
+     5 1700-1900
+     6 1900-1950
+     7 1950-1980
+     8 1980-2020
+     9 2020+ (Interplanetary)
+    10 Interstellar (early jump)
+    11 Interstellar (Jump)
+    12 Interstellar (Imperium)
+ -->
+
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="Spray cloth">
+        <category>Clothing</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>11</techLevel>
+        <legality>4</legality>
+
+        <cost units="credits">400</cost>
+        <weight>200</weight>
+
+        <short>Spray on clothing for any occassion.</short>
+        <description>
+            <para>
+                Available normally in a can, onced sprayed on naked skin it
+                toughens into a flexible, skin-tight gel that can keep you
+                warm and covered. Available in anything from swimwear to
+                cold weather clothing forms, it can be used either for
+                emergencies or as a fashion statement. May be transparent
+                or coloured. Some varieties provide a small amount of
+                armour. Method of removal depends on brand, but can be
+                anything from plain water to special chemicals or just
+                ripping it off.
+            </para>
+
+            <para>
+                Also available in 'pill' form, just add water to make the
+                gel. Normally hardens within a minute of contact with skin.
+                Ten times cost for electronic version which can display
+                moving video. Ten times <e>that</e> for chameleon coating.
+            </para>
+        </description>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Computer hacking" score="50">
+                To control what is displayed on video models.
+            </skill>
+        </task>
+    </item>
+
+    <item name="Fashion skin">
+        <category>Clothing</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>11</techLevel>
+        <legality>4</legality>
+
+        <cost units="credits">1000</cost>
+        <weight>200</weight>
+
+        <short>Spray on fake textured skin.</short>
+        <description>
+            <para>
+                For when the latest fashion requires a certain look, changeling
+                skin provides a quick and easy way to change your appearance.
+                Sprayed onto your skin, it forms into a gell that grafts onto
+                your skin providing a colouring and texture of your desires.
+                Once set (takes about 15 minutes), it lasts from a few hours
+                to a couple of days depending on how active you are.
+            </para>
+
+            <para>
+                It can increase your build, give you breasts, make you look
+                older or younger, lighter or darker. In most locations it is
+                illegal to copy another person without their permission.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <uses>1</uses>
+            <skill name="Disguise" bonus="+25"/>
+        </tool>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Medicine" score="20">
+                Detect the fake skin on an examination.
+            </skill>
+        </task>
+    </item>
+
+    <item name="Clothing belt">
+        <category>Clothing</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>11</techLevel>
+        <legality>5</legality>
+
+        <cost units="credits">800</cost>
+        <weight>200</weight>
+
+        <short>Holographic clothing belt.</short>
+        <description>
+            <para>
+                This belt consists of holographic projectors capable of
+                displaying the illusion of clothing around a person. The
+                holograms are unable to provide any actual warmth or
+                texture, but can cover up nudity, or add to existing
+                simple clothing. When used as a fashion item, it is
+                common to wear underwear beneath the hologram, and have
+                programmable clothing ontop of that. Clothing style can
+                be changed either automatically or manually.
+            </para>
+
+            <para>
+                The holographic clothing will move with you, and can be
+                programmed to simulate wind or gravitational effects as
+                desired. A clothing belt isn't good as a disguise, except
+                in certain edge cases (possibly combat, or modifying
+                something already worn). It's actually best in brightly
+                lit conditions, since the hologram radiates light and
+                looks obviously like a hologram in darkness.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Charm" bonus="+10"/>
+        </tool>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Computer hacking" score="50">
+                Override the appearance.
+            </skill>
+        </task>
+    </item>
+
+    <item name="Shutdown">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>11</techLevel>
+        <legality>3</legality>
+
+        <cost units="credits">5000</cost>
+
+        <short>Shuts down and preserves the brain.</short>
+
+        <description>
+            <para>
+                This is a nano/drug combination which is designed to keep
+                you alive if your body goes into shock. Nanomachines are
+                injected into the bloodstream which attach themselves to
+                blood vessels in the brain. If they detect conditions
+                (normally sharp drop in oxygen levels) that suggest the
+                body is dying, they release a large dose of preservatives
+                which drop the brain into a state of suspended animation.
+                If you fail a <t>Health</t> check and die, this drug can
+                keep you alive for another 24 hours.
+            </para>
+
+            <para>
+                Revival can only be performed at a medical facility, and
+                is a tricky process (medicine check of 40+ assuming the
+                correct equipment is available). The nanites last a day
+                before disintigrating and releasing the chemicals in a
+                neutral form which are flushed out of the body.
+            </para>
+
+            <para>
+                TL12 versions of this last a week, and can preserve you
+                for 72 hours. Revival at a facility is only difficulty
+                20+, but revival in the field is possible at a check of
+                40+, if suitable drugs are carried.
+            </para>
+        </description>
+    </item>
+
+    <item name="Scout swarm">
+        <category>Surveillance</category>
+        <importance>1</importance>
+        <availability>1</availability>
+        <techLevel>11</techLevel>
+        <legality>2</legality>
+        <cost units="credits">1500</cost>
+        <weight>500</weight>
+
+        <short>Searches out sensors, mines and other electronics.</short>
+
+        <description>
+            <para>
+                A swarm of microbots which when released cover an area up to
+                100m^2. They are able to locate most forms of electronic
+                devices, including sensors, mines, power cables and
+                transmitters. They take about a minute to cover the area,
+                and due to their small size (a few millimetres long) rarely
+                trigger what they are looking for.
+            </para>
+
+            <para>
+                They can rely results back using either short burst comms,
+                lights or returning to base. They have enough power for
+                about 30 minutes use. At TL12, they can operate for 2 hours
+                and add +10 to their skill.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <uses>30</uses>
+            <skill name="Security systems" level="40"/>
+        </tool>
+    </item>
+
+    <item name="Alarm swarm">
+        <category>Surveillance</category>
+        <importance>1</importance>
+        <availability>1</availability>
+        <techLevel>11</techLevel>
+        <legality>2</legality>
+        <cost units="credits">2500</cost>
+        <weight>750</weight>
+
+        <short>Microbot alarm system.</short>
+
+        <description>
+            <para>
+                Designed to cover an area up to 1000m^2, a swarm of
+                alarm microbots is able to act as an effective
+                alarm system without requiring much time setting up.
+                When deployed, they automatically spread out to cover
+                their programmed area. If they detect movement, sound
+                or light (programmable) they can respond with either
+                a short communication burst, or in 'siren' mode by
+                the swarm lighting up around the disturbance and
+                producing a wailing siren.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <uses>12 hours</uses>
+            <skill name="Awareness" level="40"/>
+        </tool>
+    </item>
+
+    <item name="Bomblet swarm">
+        <category>Surveillance</category>
+        <importance>1</importance>
+        <availability>1</availability>
+        <techLevel>11</techLevel>
+        <legality>1</legality>
+        <cost units="credits">700</cost>
+        <weight>1000</weight>
+
+        <short>Microbot minefield.</short>
+
+        <description>
+            <para>
+                When released, these microbots automatically spread out to
+                cover the programmed area. When triggered, they explode
+                simultaneously causing damage to all within the area.
+                They cause up to +75 (Vehicle) damage, -1 for each 4m^2
+                of area that is covered.
+            </para>
+
+            <para>
+                They are triggered remotely, on a timer or via input from
+                some other sensor.
+            </para>
+        </description>
+    </item>
+
+    <item name="Surveillance bot">
+        <category>Media</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>11</techLevel>
+        <legality>2</legality>
+
+        <cost units="credits">25000</cost>
+        <weight>2000</weight>
+
+        <short>Contra-grav microbots.</short>
+
+        <description>
+            <para>
+                This is a small microbot (about 1cm across).
+            </para>
+
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>2</load>
+            <skill name="RPV Operation" bonus="+15"/>
+        </tool>
+    </item>
+
+
+</equipment>

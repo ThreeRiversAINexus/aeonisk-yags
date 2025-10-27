@@ -1,0 +1,103 @@
+<?xml version = '1.0' ?>
+<?xml-stylesheet href="/usr/share/web/xsl/yagsbook/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<!--
+    $Revision: 1.2 $
+    $Date: 2005-04-07 22:04:02 $
+
+    Bestiary containing information on lions
+-->
+
+<bestiary xmlns="https://yags-rpg.net/xml">
+    <beast name="Lion">
+        <information>
+            <type>Animal</type>
+            <demeanor>Predator</demeanor>
+            <origin>Common</origin>
+            <genre>Real</genre>
+        </information>
+
+        <description>
+            <short>
+                Lions are a species of great cat which are common to Africa.
+            </short>
+            <image src="animals/graphics/lion_1.jpg"/>
+
+            <physical>
+                <para>
+                    Lions are big hunting cats common to Africa and also some parts
+                    of Asia. Males can weigh more than 250kg, females are somewhat
+                    smaller (-1 Size, -1 Strength). They hunt their prey using
+                    stealth, trying to take it down immediately without having to
+                    resort to a long chase.
+                </para>
+                <para>
+                    They do not normally attack humans, but may do so if hungry or
+                    feeling threatened. Like most animals, unless attacking out of
+                    fear they will break off an attack if they are injured - they'd
+                    rather miss a meal than suffer an injury that is likely to kill
+                    them, or prevent them hunting again.
+                </para>
+            </physical>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="7" soak="14">
+                <attribute name="strength" score="6"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="5"/>
+                <attribute name="dexterity" score="1"/>
+                <attribute name="perception" score="5"/>
+                <attribute name="intelligence" score="2"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="2"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="6"/>
+                    <skill name="Awareness" score="6"/>
+                    <skill name="Brawl" score="4"/>
+                    <skill name="Charm" score="1"/>
+                    <skill name="Guile" score="1"/>
+                    <skill name="Sleight" score="1"/>
+                    <skill name="Stealth" score="6"/>
+                    <skill name="Throw" score="0"/>
+                </group>
+
+                <group name="Skills" type="skills">
+                    <skill name="Survival" score="4"/>
+                    <skill name="Swim" score="1"/>
+                </group>
+            </skills>
+
+            <combat>
+                <combatstyle style="Bite and claw" skill="Brawl">
+                    <attack attribute="agility" bonus="3"/>
+                    <defence attribute="agility" bonus="1"/>
+                    <damage type="mixed" bonus="4"/>
+                </combatstyle>
+
+                <armourstyle style="Base" bonus="1"/>
+            </combat>
+
+            <traits>
+                <trait name="Bravery" score="3"/>
+                <trait name="Orneriness" score="5"/>
+                <trait name="Patience" score="4"/>
+            </traits>
+
+            <advantages>
+                <advantage name="Animal"/>
+                <advantage name="Night vision" score="+1"/>
+                <advantage name="Good sense of smell" score="+2"/>
+                <advantage name="Good hearing" score="+1"/>
+
+                <advantage name="Ambush" skill="Brawl" cost="2"/>
+                <advantage name="Pounce" skill="Brawl" cost="4"/>
+            </advantages>
+        </statistics>
+    </beast>
+
+</bestiary>

@@ -1,0 +1,251 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Drugs and Medicine</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            Rules for using and abusing drugs, including medicines and
+            poisons, as well as more obscure drugs. It aims to cover
+            everything from medieval herbs to modern and futuristic
+            medicines.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.7 $</version>
+            <date>$Date: 2008-07-20 22:22:03 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2007</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="core"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Drugs and Medicine</title>
+
+            <para>
+                The term drugs is used in Yags to describe any chemical
+                substance which is designed to have an affect on a person -
+                either detrimental or otherwise. It includes poisons,
+                recreational drugs, medicines etc.
+            </para>
+
+            <sect2>
+                <title>Types of Drugs</title>
+
+                <para>
+                    Drugs, poisons and medicines are grouped into the
+                    following categories. <e>Generics</e> are the
+                    base type of drug - all others are specialist versions
+                    of this.
+                </para>
+
+                <sect3>
+                    <title>Generics</title>
+
+                    <para>
+                        <e>Generic drugs</e> can have a wide range of
+                        effects, and cover all the drugs not covered by
+                        the more specific types. A <e>generic</e> will
+                        often have several effects which may or may not
+                        be resisted by the subject. Poisons are generally
+                        generics.
+                    </para>
+
+                    <sect4>
+                        <title>Attributes</title>
+
+                        <para>
+                            Common attributes for generic drugs.
+                        </para>
+
+                        <sect5>
+                            <title>Strength</title>
+
+                            <para>
+                                The strength of a drug determines how much of it
+                                is required to have the listed effect. This is
+                                given on a scale from 1 (not very potent) to 6
+                                (incredibly potent).
+                            </para>
+
+                            <para>
+                                The following chart shows the different toxicity
+                                levels, and how much of a substance is required in
+                                order to affect a creature. Dosages per kg of host
+                                are given.
+                            </para>
+
+                            <targetlist targetFirst="true" bold="true">
+                                <targetLabel>Strength</targetLabel>
+                                <valueLabel>Effective dose</valueLabel>
+
+                                <item target="1" value="Almost nontoxic.">
+                                    More than 1kg of substance may be needed to
+                                    affect an adult (15g/kg +).
+                                </item>
+
+                                <item target="2" value="Slightly toxic.">
+                                    About half a litre  to a litre (10g/kg).
+                                </item>
+
+                                <item target="3" value="Moderately toxic.">
+                                    About 100ml or more (2g/kg).
+                                </item>
+
+                                <item target="4" value="Very toxic.">
+                                    Anything from a teaspoon to 30ml (250mg/kg).
+                                </item>
+
+                                <item target="5" value="Extremely toxic.">
+                                    Less than a teaspoon of substance, only a few
+                                    millilitres (25mg/kg).
+                                </item>
+
+                                <item target="6" value="Supertoxic.">
+                                    Just a taste of such a substance is enough,
+                                    a few drops (less than 5mg/kg).
+                                </item>
+                            </targetlist>
+                        </sect5>
+
+                        <sect5>
+                            <title>Potency</title>
+
+                            <para>
+                                Generic drugs can be resisted using the
+                                subject's <t>Size</t> x <t>Health</t>. The
+                                <e>potency</e> of the drug is the target
+                                number which must be resisted.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Time</title>
+
+                            <para>
+                                The period after which a resistance check
+                                must be made against the drug. After this
+                                check, subsequent checks are made each
+                                multiple of this time.
+                            </para>
+
+                            <para>
+                                A drug with a time of 1 minute, would require
+                                a check 1 minute after taking the drug, and
+                                each minute thereafter.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Reduction</title>
+
+                            <para>
+                                Each time a resistance check is made, the
+                                <e>potency</e> of the drug is reduced by
+                                this amount. If the potency is 40, with a
+                                reduction of 5, the first check is at 40,
+                                the second at 35, the next at 30 etc.
+                            </para>
+
+                            <para>
+                                When the potency drops to zero or less, no
+                                more checks need to be made.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Effects</title>
+
+                            <para>
+                                A drug has one or more effects associated
+                                with it.
+                            </para>
+                        </sect5>
+                    </sect4>
+
+                    <sect4>
+                        <title>Examples</title>
+
+                        <para>
+                            Some example drugs.
+                        </para>
+<!--
+                        <item name="Arsenic">
+                            <short>Classic poison.</short>
+
+                            <drug xmlns="https://yags-rpg.net/xml/yags">
+                                <strength>5</strength>
+
+                                <generic title="Fast Poison">
+                                    <potency>30</potency>
+                                    <time modifier="-1" units="minutes">30</time>
+                                    <effects>
+                                        <effect>Weakness</effect>
+                                        <effect>Nausea</effect>
+                                        <effect>Convulsions</effect>
+                                        <effect>Coma</effect>
+                                        <effect>Death</effect>
+                                    </effects>
+                                </generic>
+                            </drug>
+                        </item>
+                -->
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Addictive</title>
+                </sect3>
+
+                <sect3>
+                    <title>Offsetter</title>
+
+                    <para>
+                        Reduces the effect of some penalty.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Helper</title>
+
+                    <para>
+                        Gives a bonus to resist something.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Adder</title>
+
+                    <para>
+                        Adds to an attribute.
+                    </para>
+                </sect3>
+            </sect2>
+
+        </sect1>
+    </body>
+</article>
+
+

@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet href="/usr/share/web/xsl/yagsbook/html/yagsbook.xsl" type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml">
+
+    <header>
+        <title>Environment</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            How to survive in harsh environments, or 101 ways to die a
+			horrible and painful death. This article looks at extremes
+			of environment, and how they are modelled in YAGS.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.7 $</version>
+            <date>$Date: 2007-03-31 17:42:59 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2015</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="core"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>The Environment</title>
+
+            <quote signature="Sir Rannulph Fiennes">
+                There is no such thing as bad weather, only inappropriate clothing.
+            </quote>
+
+            <para>
+                For the most part, the environment in which characters encounter
+                challenges is flavour text that is just part of the background
+                rather than being a focus of the game itself. In such situations
+                no rules are needed, and a simple description to set the scene is
+                all that is required. There are times though when the environment
+                itself becomes the challenge, and so a simple framework of rules
+                to cover weather and other effects becomes useful.
+            </para>
+            <para>
+                In a fantasy world where magic is common, characters can also have
+                a direct effect on the environment, and so a consistent set of
+                rules can be used to define the level of magic possible.
+            </para>
+            <para>
+                To this end, <tm>YAGS</tm> defines many aspects of the environment
+                as a simple set of numbers.
+            </para>
+
+            <sect2>
+                <title>Clothing</title>
+
+                <para>
+                    Your choice of clothing is just as likely to kill you as the
+                    environment you are in. Clothing is rated based on how much
+                    insulation it provides, from 0 (totally naked) to 5 or more
+                    (modern Arctic clothing). Wearing clothing adds to the
+                    effective temperature level of the environment.
+                </para>
+
+                <targetlist bold="true" targetFirst="true" align="center" width="12">
+                    <targetLabel>Level</targetLabel>
+                    <valueLabel>Description</valueLabel>
+
+                    <item target="0" value="Naked.">
+                        You are naked, or near naked. Any clothing you have
+                        does nothing to provide insulation, and will not keep
+                        the heat off your skin. Complete nudity, a bikini
+                        or swimming trunks counts as being naked.
+                    </item>
+                    <item target="1" value="Minimal clothing.">
+                        You have maybe a thin t-shirt and shorts, nothing that
+                        really provides insulation but it does keep the wind
+                        off your torso. Anything which provides a thin
+                        covering over the torso, and bare arms and legs.
+                    </item>
+                    <item target="2" value="Light clothes.">
+                        You have light clothing, which covers your torso, arms
+                        and legs, providing minimal insulation and reducing
+                        wind chill.
+                    </item>
+                    <item target="3" value="Moderate clothes.">
+                        Jacket, plus shirt and trousers of reasonable
+                        thickness.
+                    </item>
+                    <item target="4" value="Heavy clothes.">
+                        Heavy jacket and/or a couple of layers of clothes
+                        underneath.
+                    </item>
+                    <item target="5" value="Winter clothing.">
+                        Winter gear. Heavy furs, thick coat and several
+                        layers of thick clothes.
+                    </item>
+                    <item target="6" value="Arctic clothing.">
+                        Modern Arctic clothing with internal heating system.
+                    </item>
+                    <item target="7" value="Space suit.">
+                        Highly advanced clothing, or a full environmental
+                        protection suit similar to a space suit.
+                    </item>
+                </targetlist>
+
+                <sect3>
+                    <title>Inappropriate Clothing</title>
+
+                    <para>
+                        If you are inappropriately garbed whilst in a hostile
+                        environment, then you will suffer <e>Exhaustion</e> until
+                        you die. How quickly you gain such <e>Exhaustion</e> will
+                        depend on the severity of the environment. Whether it is
+                        too hot, too cold, extreme gravity or just bad air, the
+                        effects are much the same.
+                    </para>
+
+                    <sect4>
+                        <title>Poor Conditions</title>
+                        <para>
+                            In <e>Poor</e> conditions, you will gain a level of
+                            <e>Exhaustion</e> every four hours. Once you are
+                            unconscious, you will gain a <e>Wound</e> every four
+                            hours instead until you die.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Bad Conditions</title>
+                        <para>
+                            In <e>Bad</e> conditions you will gain a level of
+                            <e>Exhaustion</e> every two hours, then gaining
+                            <e>Wounds</e> after falling unconscious.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Dangerous Conditions</title>
+                        <para>
+                            In <e>Dangerous</e> conditions you will gain a level of
+                            <e>Exhaustion</e> every hour, then gaining <e>Wounds</e>
+                            after falling unconscious.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Deadly Conditions</title>
+                        <para>
+                            In <e>Deadly</e> conditions you will gain a level of
+                            <e>Exhaustion</e> every 15 minutes, then gaining
+                            <e>Wounds</e> after falling unconscious.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Insane Conditions</title>
+                        <para>
+                            In <e>Insane</e> conditions you will gain a level of
+                            <e>Exhaustion</e> every minute, then gaining
+                            <e>Wounds</e> after falling unconscious.
+                        </para>
+                    </sect4>
+
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Temperature</title>
+
+                <para>
+                    The temperature of the environment is probably the single biggest
+                    factor that normally impacts survivability (minor quibbles such
+                    as lack of breathable air tend to be rarer). Room temperature is
+                    normally considered to be around 20°C - 24°C, though the exact
+                    numbers shouldn't be taken to be precise. If as GM you want to
+                    play it looser, then simply pick a suitable category that gives
+                    the effect you want.
+                </para>
+                <para>
+                    Wind will tend to lower the temperature, which is good in high
+                    temperatures but can be deadly in cold temperatures.
+                </para>
+                <para>
+                    If you are fully submersed in water, either hot or cold, then the
+                    effects are much more serious, and you gain Exhaustion every
+                    minute rather than every hour.
+                </para>
+
+                <sect3>
+                    <title>Effects of Temperature</title>
+
+                    <sect4>
+                        <title>Heat</title>
+
+                        <para>
+                            A breeze will drop the temperature one level, whilst a
+                            strong wind will drop it two levels.
+                        </para>
+                        <para>
+                            The chart below assumes little or no humidity. With
+                            moderate humidity (50%+), if the temperature is above
+                            25°C then increase the temperature by one level. With
+                            high humidity (75%+), increase it by two levels. In
+                            extreme humidity (90%+), increase by three levels.
+                        </para>
+
+                        <itemlist order="strict">
+                            <item name="20°C - 24°C">
+                                A comfortable temperature suitable for lounging
+                                around naked, or at least in light clothing. This
+                                is considered the 'room temperature' norm and has
+                                no special rules.
+                            </item>
+                            <item name="25°C - 29°C">
+                                Pleasantly warm, ideal for a day down the beach.
+                                There are no ill effects of this temperature as
+                                long as it is not too humid and you don't wear
+                                too much clothing.
+                            </item>
+                            <item name="30°C - 39°C">
+                                Hot, considered to be Poor conditions.
+                            </item>
+                            <item name="40°C - 49°C">
+                                Very hot, considered Poor conditions. Anything
+                                that gains you fatigue gains you double the amount.
+                            </item>
+                            <item name="50°C - 69°C">
+                                Very hot, Bad, gain double fatigue.
+                            </item>
+                            <item name="70°C - 89°C">
+                                Dangerous conditions. Gain double Fatigue.
+                            </item>
+                            <item name="90°C - 119°C">
+                                Dangerous conditions, Gain triple Fatigue.
+                            </item>
+                            <item name="120°C - 149°C">
+                                Deadly.
+                            </item>
+                            <item name="150°C +">
+                                Deadly
+                            </item>
+                        </itemlist>
+                    </sect4>
+                </sect3>
+
+                <targetlist bold="true" targetFirst="true" align="center" width="12">
+                    <targetLabel>Level</targetLabel>
+                    <valueLabel>Description</valueLabel>
+
+                    <item target="-1" value="Cool (20°C).">
+                        Slightly cooler than is comfortable, you will gain one
+                        level of exhaustion every four hours unless you are keeping
+                        active.
+                    </item>
+                    <item target="-2" value="Chilly (15°C).">
+                        Around 5°C. Character gains one fatigue every
+                        Health minutes. Once unconscious, then they gain wounds
+                        at the same rate.
+                    </item>
+                    <item target="-3" value="Cold (10°C).">
+                        Around -10°C.
+                    </item>
+                    <item target="-4" value="Severe cold.">
+                        Dangerously cold, around -30C. Gain a point of
+                        fatigue every 10 minutes.
+                    </item>
+                    <item target="-5" value="Extreme cold.">
+                        Arctic winter conditions, temperature around -50°C.
+                        Every minute a character gains a fatigue level.
+                        When they become unconscious, this becomes wounds.
+                    </item>
+                    <item target="-6" value="Extreme cold.">
+                        Around -70°C, equivalent to the coldest place on
+                        Earth (on the Antarctic Plateau). Without protection,
+                        you gain one stun and one fatigue every Health
+                        rounds.
+                    </item>
+                    <item target="-7" value="Extreme cold.">
+                        The coldest recorded naturally occurring temperature
+                        was -90°C, which this is equivalent to.
+                    </item>
+                </targetlist>
+
+                <para>
+                    Physical activity assumes relatively light work such as walking.
+                    In hot temperatures, more intense work will increase the rate at
+                    which <e>exhaustion</e> is gained. Heavy activity, such as
+                    digging, climbing or running will double the rate of exhaustion.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Humidity</title>
+                <para>
+                    The humidity of the environment is a measure of how much
+                    moisture there is in the air. High humidity will often
+                    cause rain, and this scale is combined measure of both
+                    humidity and rainfall.
+                </para>
+                <targetlist bold="true" targetFirst="true" align="center" width="12">
+                    <item target="-5" value="Parched.">
+                    </item>
+                    <item target="-2" value="Very dry...">
+                        It is very dry, and moisture will not form out of
+                        the air.
+                    </item>
+                    <item target="-1" value="Dry.">
+                        It is quite dry, and rain is not possible. At most,
+                        there may be some slight dew.
+                    </item>
+                    <item target="0" value="Standard.">
+                        Dry day, though there is reasonable moisture in the air.
+                        If it rains, it will be limited to the formation of dew.
+                    </item>
+                    <item target="1" value="Moist.">
+                        Soggy day, though there is a lot of moisture in the air.
+                        A mist or light drizzle is possible.
+                    </item>
+                    <item target="2" value="Light rain.">
+                        There is enough moisture to cause rainfall. It may be
+                        foggy, or there will be a light rain. Puddles will not
+                        form unless it goes on for a long time.
+                    </item>
+                    <item target="3" value="Moderate rain.">
+                        Moderate rainfall, which will soak you pretty quickly
+                        unless you have suitable clothing. Puddles will form
+                        quite quickly, and dirt will turn to mud.
+                    </item>
+                    <item target="4" value="Heavy rain.">
+                        A heavy downpour, which will soak you within seconds
+                        without proper clothing. Dirt and grass will quickly
+                        turn to mud
+                    </item>
+                </targetlist>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

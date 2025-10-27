@@ -1,0 +1,1892 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+                 type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+    <header>
+        <title>Habisfern Characters</title>
+        <tagline>YAGS Habisfern</tagline>
+
+        <summary>
+            Creating characters for the Habisfern campaign.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 0.7.9 $</version>
+            <date>$Date: 2007-09-09 09:58:44 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2014</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="character"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>The Habisfern Setting</title>
+
+            <quote signature="The Habisfern Scrolls">
+                In the 33rd year of his reign, Cerdic, brother of Oswulf,
+                son of Centwine and the King of Lanuch gave to the priest
+                Embryt of Haltan the charge of recording the doings of
+                the people of Lanuch, and to write them down such that
+                they become a true history for the grandsons of the
+                grandsons of the royal line.
+            </quote>
+
+            <para>
+                It has been five years since Queen Behrith received the
+                Kingdom of Weidany from her sister Godrun the Red. Both she
+                and her sister were put on the throne by the <e>Cult of Neya
+                the Oathkeeper</e>, just as all previous Queens before them
+                have been. It was the same cult that, 200 years ago,
+                foretold disaster for the Kingdom if ever a man sat on the
+                throne again. In that time, the royal line of the House of
+                Aethlfryth has remained strong, and the Kingdom has grown
+                in strength and size. The nobility of the other Houses may
+                plot and scheme to weaken the power of the Daughters of
+                Neya and their chosen Queens, but without a disaster to
+                break the popularity of the Queen, they can do little.
+            </para>
+
+            <para>
+                When they first came to this land, ten centuries ago, the
+                People of Rorn were fleeing the death of their god.
+                Betrayed by his own brother, the Moon God was slain and
+                his killer took his place as first amongst the gods.
+                The Five Kingdoms fell into ruin and despair, and the
+                Wizard King of Bealurwic marched his dark armies across
+                their ruins.
+            </para>
+
+            <para>
+                Fleeing destruction, the People of Rorn came to the land
+                named Weidany, where another people already dwelt under
+                the cruel grip of the Druids. So the People liberated,
+                conquered, raped, pillaged and finally built new Kingdoms
+                out of the ashes which they could call their own.
+                Barbarians came, which they fought off. Blood thirsty
+                cults of the Goddess of War arose, which were put down.
+                The Druids and their dark allies tried to reclaim what was
+                once theirs, but they were defeated. For now. All of this
+                is recorded in the history of the People, which is known
+                as the <e>Habisfern Scrolls</e>.
+            </para>
+
+            <para>
+                But through it all, there lurks one enemy that cannot be
+                defeated. The one that drove the people here to Euressa in
+                the first place. One foe whose breath is felt every Winter
+                from a time which pre-dates the Five Kingdoms and the Old World
+                before that. It is the Northern Enemy, the Ice, and what it
+                seeks is the extinction of all life.
+            </para>
+
+            <para>
+                This is the world in which the <e>Habisfern Campaign Setting</e>
+                is set.
+            </para>
+
+            <sect2>
+                <title>The Lands</title>
+
+                <para>
+                    The Kingdom of Weidany, also known as the Kingdom of
+                    the People of Rorn, is a large fertile region in the
+                    northwest of the Euressa peninsula. Euressa is almost
+                    600 leagues east to west, and at times has been thought
+                    to be an island since the land bridge that connects it
+                    to the Old World was for a long time blocked by ice
+                    sheets. Large tracts of it are unexplored, or at least
+                    have not been explored in living memory.
+                </para>
+
+                <image src="images/weidany.png" width="87mm"/>
+
+                <para>
+                    The Kingdom considers itself to be the most civilised
+                    nation, and views its neighbours as barbarians which
+                    need to be tamed. This viewpoint isn't completely
+                    wrong, but in reality is greatly overly simplified.
+                </para>
+
+                <sect3>
+                    <title>Bryteland</title>
+
+                    <quote signature="Habisfern Scrolls, 909">
+                        Seven ships land at  Wercester from Bryteland,
+                        bringing many fighting men. They burn their
+                        ships on the shore, and under the cover of fog,
+                        raid coastal settlements. Except for a few small
+                        battles, the invaders hide in the woods rather
+                        than fight.
+                    </quote>
+
+                    <para>
+                        Along the coast to the north are the barbarian kingdoms
+                        of <e>Bryteland</e>, who send raiding ships down the coast
+                        every autumn. They are a proud and warlike people,
+                        constantly threatened by the followers of inhuman gods on
+                        their own borders.
+                    </para>
+                    <para>
+                        Bryteland is not a single kingdom, but five, and
+                        there is constant friction between them. To them,
+                        kin is more important then King, a fact which has
+                        made the lands difficult to unify. To fight bravely
+                        in battle, to give generously of your goods and to
+                        fulfil your obligations to your kin are the
+                        important morals of Brytish society. Most other
+                        things are optional.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Cadwold</title>
+
+                    <quote signature="Habisfern Scrolls, 1217">
+                        There is war between Cadwold and the shire of Strathby.
+                        Many men of the Kingdom are killed, but the Cadwoldic
+                        tribes are driven back, and forts are built within their
+                        borders from where the Queen's forces can enforce the peace.
+                    </quote>
+
+                    <para>
+                        Until recently, Cadwold was controlled by the Druids,
+                        but an invasion by Weidany drove out the Druids and
+                        brought the land their under the control of the
+                        Kingdom. Since then, Cadwold has rebelled, and is
+                        now claiming independence. A war is still being
+                        fought over who has control over the country.
+                    </para>
+                    <para>
+                        Though Cadwold is mostly known for its Druids, and the
+                        influence of the Elder gods which they worship, it is also
+                        home to the Waezgerat, a secret order of wizards that
+                        fights against both the Druids and the Queen, and which is
+                        said to hold the secrets of Dragon magic, which can be
+                        used to shape (or unshape) the world.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Midlaen</title>
+
+                    <quote signature="Habisfern Scrolls, 1148">
+                        Ten ships sail south from Stowell under the command
+                        of Hilda Blackstone, and land at a place
+                        called Brenthold. The people here are not willing to
+                        accept the law of the Queen, and there is fighting
+                        until they are forced to accept her rule. The lands
+                        about are explored, and claimed as a new shire for
+                        the Kingdom.
+                    </quote>
+
+                    <para>
+                        Midlaen is a realm to the south of the Kingdom, and once
+                        bordered onto the Five Kingdoms. However, it was forgotten
+                        for many centuries until the Queen sent on expedition down
+                        to it in the 12th century, and began to claim it for her
+                        own. Midlaen was too far, too large and had too much of a
+                        thirst for independence however, and even before the 12th
+                        century was finished, Midlaen had once again claimed its
+                        independence.
+                    </para>
+                    <para>
+                        By now however it had far greater ties into the trade of
+                        the northern coasts, and settlers from both the Kingdom and
+                        Bryteland had swelled its population. It is now a far more
+                        formidable foe, and is unlikely to fall to the Kingdom
+                        once more.
+                    </para>
+                    <para>
+                        Much of Midlaen is barely explored wilderness, and the
+                        southern reaches of it borders onto lands filled with
+                        dangerous creatures and wild magics. Those places which
+                        are heavily settled are dens of pirates and thieves, the
+                        most famous of which is Blackbay in the north.
+                    </para>
+                 </sect3>
+
+                <sect3>
+                    <title>Nailand</title>
+
+                    <quote signature="Habisfern Scrolls, 748">
+                        Aidan sends men into Nailand during the autumn,
+                        to loot cattle and kill the short folk. They
+                        are driven back empty handed, suffering many
+                        losses. The short folk follow them back into
+                        their lands, burning villages and killing women
+                        and men alike.
+                    </quote>
+
+                    <para>
+                        Nailand is a vast grassland plateau inhabited by the
+                        barbarian culture known as the short folk. It
+                        stretches east and south of Weidany, and few have
+                        much experience of its reaches. Constant border
+                        wars are an attempt to tame the barbarians, and
+                        to claim more land for the Kingdom.
+                    </para>
+                    <para>
+                        Steep cliffs, several hundred metres in height, mark the
+                        western edge of Nailand, and there are only a few paths up
+                        or down them.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Campaigns</title>
+                <para>
+                    The <s>Habisfern</s> setting lends itself to a number of
+                    different campaign types, which define the sort of adventures
+                    that characters will have, and which also affects the type
+                    of characters that will have those adventures.
+                </para>
+                <sect3>
+                    <title>Mercenaries</title>
+                    <para>
+                        War and bloodshed can be common even within the Kingdom,
+                        where the various noble houses vie for control over land,
+                        resources and prestige. Most threats come from outside the
+                        Kingdom though. Raiders from Bryteland in the north can
+                        hit anywhere along the coast. The barbarian Short Folk,
+                        a different breed of human, make raids across the
+                        Kingdom's eastern borders. In the north, the Kingdom
+                        fights an ongoing war with the Druids of Cadwold.
+                    </para>
+                    <para>
+                        All these threats require men to take up arms and fight
+                        with sword and shield. Whilst the bulk of these men are
+                        taken from the <e>fyrd</e>, the standing army of freemen,
+                        there are also mercenaries who will fight for any lord
+                        who pays them. You are such mercenaries, selling your
+                        sword to whoever agrees to provide you with a hot meal
+                        and coin for your pocket. How careful you are in your
+                        choice of employer is always up to you.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Merchants</title>
+                    <para>
+                        There is wealth to be made in the trade that flows up and
+                        down the west coast. There is danger too, since there are
+                        plenty of those who see quicker profits in just taking
+                        what they want. You are merchants who ply your trade
+                        along the coast, where dangers can sometimes be more
+                        subtle than a simple boat full of vikings.
+                    </para>
+                    <para>
+                        The ports of Gilmutha and Blackbay in the south are great
+                        places to find adventure and excitement if you seek it,
+                        but the rewards for safely shipping cargo to the far
+                        north can be just as great.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Outlaws</title>
+                    <para>
+                        The term 'Outlaw' literally means someone who lives outside
+                        of the law. The label is often forced upon those who have
+                        been banished from society, normally due to inability or
+                        unwillingness to pay blood fines. Living on the fringes of
+                        society, outlaws are not bound by the law, but they are not
+                        protected by it either. Anyone is permitted to slay them
+                        without fear of retribution, indeed, seeking retribution for
+                        the death of an outlaw (even if they are a relative) is
+                        itself a crime.
+                    </para>
+                    <para>
+                        Though many outlaws turn to banditry or thievery to survive,
+                        some seek to peaceful lives away from civilisation, living
+                        off the land as farmers or hunters.
+                    </para>
+                    <para>
+                        You are a band of outlaws, most probably criminals who
+                        have been banished from the Kingdom for your (real or
+                        imagined) crimes. Maybe you wish to seek retribution against
+                        those who banished you, or you desire to clear your name
+                        and seek evidence of the real criminals. The shire of Aidan
+                        is a good place to start for such a campaign. Not only is
+                        it on the borders of civilisation, it is also ripe with
+                        corruption, so there are plenty of opportunities for a
+                        band of honest freemen to be framed for a crime they did
+                        not commit (or at least, were not entirely responsible for).
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Nobles</title>
+                    <para>
+                        Not all are born equal, and some are born with the blood of
+                        one of the noble houses within them. The most powerful
+                        people of the Kingdom are those who are members of the
+                        thirteen great noble houses.
+                    </para>
+                    <para>
+                        As a noble, you have a manorial estate which supplies you
+                        with food, labour and coin. The safety of this estate is
+                        also your responsibility, and you may be required to take
+                        up arms to defend it.
+                    </para>
+                    <para>
+                        There is also the threat of politics, for not everyone is
+                        happy with your position in the world. Nobles of other
+                        houses (or even those of your own house) may use intrigue
+                        to gain power over you. Often, such threats cannot be met
+                        with force of arms - at least, not in any way that will be
+                        apparent to others.
+                    </para>
+                </sect3>
+            </sect2>
+            <sect2>
+                <title>Religion</title>
+                <para>
+                    There are many religions throughout the land, with each
+                    religion having its own gods, cults and beliefs. Some of
+                    the gods are considered to be the same, but with different
+                    names or maybe a slightly different view of them. Others
+                    are unique to a particular pantheon.
+                </para>
+                <para>
+                    The gods of the Kingdom of Rorn are the Rornic pantheon,
+                    which was once ruled by the god Rorn the Wanderer. He was
+                    god of the Moon, and led his people west away from the
+                    Ice to the promised land of Tarvallah. After the fall of
+                    the Five Kingdoms, both he and his priesthood were slain,
+                    and his position taken by the god Haltan.
+                </para>
+
+                <sect3>
+                    <title>Primary Gods</title>
+                    <para>
+                        Though all the gods are venerated to some extent, and
+                        most people pay their respects to multiple gods, there
+                        are only a few which have large organised cults within
+                        the Kingdom.
+                    </para>
+                    <sect4>
+                        <title>Ashek</title>
+
+                        <quote signature="Habisfern Scrolls, 1057">
+                            It was in this year, in Solmonath, that
+                            priests of the god Ashek came to Stowell to
+                            speak to the Queen. For twelve days did
+                            they sit in council, and in that time no
+                            attacks were made on our people by the
+                            Merkians.
+                        </quote>
+
+                        <para>
+                            The god Ashek, often known as the Mad God, came from
+                            nowhere in the 11th century. Barbarians who at that
+                            time lived in the land between Weidany and Bryteland
+                            began an invasion of the Kingdom, led by priests of
+                            a new god. In time, an agreement is reached and the
+                            land of Merkia becames another part of the Kingdom.
+                        </para>
+                        <para>
+                            His priests claim that Ashek is all gods, and that the
+                            other gods are merely reflections of his fractured
+                            personality. The only way to understand the Mad God
+                            is through insanity.
+                        </para>
+                        <para>
+                            There are not many within the Kingdom that give worship
+                            to Ashek, for he does not offer much that is of interest
+                            to commoners. However, those of a magical nature sometimes
+                            give payment to him, for he is said to be the god of
+                            magic.
+                        </para>
+                    </sect4>
+                    <sect4>
+                        <title>Haltan</title>
+                        <para>
+                            Haltan was brother to Rorn, whom he killed (some would
+                            say murdered) in single combat. He is the god of Law
+                            and Order, strength of arms and honourable combat. He
+                            is now considered to be King of the gods. His wife is
+                            <e>Asabeth</e>, the goddess of bloodthirsty battle.
+                        </para>
+                        <para>
+                            Only men may be priests of this cult, though anyone
+                            can worship. Most towns will have at least a shrine to
+                            Haltan, along with a priest who can lead the townsfolk
+                            in prayers and festivals. There is a close alliance
+                            between the priesthood of Haltan and the nobility. The
+                            latter ensure that the priests are well funded, and the
+                            former lend divine authority to those that rule.
+                        </para>
+                        <para>
+                            You may wish to be a Knight of the <e>Cult of the Lawmaker</e>.
+                            These knights uphold the law of the Kingdom, both through
+                            strength of arms but also through their knowledge of the
+                            law. They can be welcomed by local nobles who cannot spare
+                            their own men to look into local trouble, but there are
+                            also sometimes viewed as trouble makers who can sometimes
+                            find in favour of the lower classes.
+                        </para>
+                    </sect4>
+                    <sect4>
+                        <title>Neya</title>
+                        <quote signature="Habisfern Scrolls, 977">
+                            Aethelwulf goes to Holbury to ask for the blessing of Neya
+                            for the Kingship of the three Kingdoms, but is refused. Neya
+                            proclaims that no son of Brihtric's line may take a throne
+                            because of his father's breaking of the oaths of Neya.
+                        </quote>
+                        <para>
+                            Neya is the goddess of peace, serenity and marriage.
+                            However, she is not a pacifist, for peace and serenity
+                            can only be gained through strong defence, and protection
+                            of your family can also require force of arms.
+                        </para>
+                        <para>
+                            She is also known as the Keeper of Oaths, and is the
+                            patron goddess of the Queen of Weidany. After the bloody
+                            battles of the 10th century which which preceded the
+                            formation of the Kingdom of Weidany, the priestesses of
+                            Neya proclaimed that only disaster would follow if a king
+                            took the throne, and so Aelfthryth became the first
+                            Queen of the Rornish People.
+                        </para>
+                        <para>
+                            Only women may be priests of her cults, though anyone
+                            can worship at her ceremonies. If you wish to dedicate your
+                            life to Neya, then there are two options open to you.
+                        </para>
+                        <para>
+                            The first is to become a <e>Daughter of Neya</e>, and
+                            take up the study of law and politics. The Daughters are
+                            the lawyers of Neya, and it is their duty to witness
+                            oaths and contracts between others, and to advise and
+                            enforce where necessary.
+                        </para>
+                        <para>
+                            The second option is to join the <e>Shields of Neya</e>.
+                            This cult of warrior women is greatly respected, both for
+                            their skill at arms and their devotion to their Queen.
+                            The <e>Shields</e> often work closely with the <e>Cult
+                            of the Lawmaker</e>, fighting alongside them in battle.
+                        </para>
+                    </sect4>
+                    <sect4>
+                        <title>Yagma</title>
+                        <para>
+                            Yagma is the goddess of creation, and is the most
+                            popular god amongst the common people. She is
+                            the Earth Mother, and also the Goddess of the
+                            Birth, Life and Death. She brings the seasons,
+                            and is crucial to the lives of those that live
+                            off the land.
+                        </para>
+                        <para>
+                            Priests of Yagma are highly respected, and it is
+                            considered both incredibly unlucky, and unlawful, to
+                            harm such a priest. Priests of Yagma will be put up
+                            by villagers in exchange for their blessings and
+                            advice.
+                        </para>
+                    </sect4>
+                    <sect4>
+                        <title>Other Gods</title>
+
+                        <para>
+                            There are many other gods known in Weidany, but not
+                            all have extensive cults dedicated to them. Some,
+                            like <e>Pel</e> or <e>Bis</e> have no priests, though
+                            these gods will be venerated by the common folk at
+                            suitable times. Some, like <e>Asabeth</e>, are far
+                            less popular now than they used to be.
+                        </para>
+
+                        <itemlist order="sort">
+                            <item name="Asabeth">
+                                Asabeth is the wife of Haltan. She is a violent
+                                goddess of battle, rape and vengeance. All of her
+                                cults have been female only, though few remain
+                                today.
+                            </item>
+                            <item name="Bis">
+                                God of the sun and summer, he is also the god of
+                                forges and fires and so is venerated by blacksmiths.
+                            </item>
+                            <item name="Meam">
+                                Meam is a son of Haltan, a bestial creature that has
+                                been shunned by his father and the rest of the gods.
+                                He dwells on the borders of civilisation, turning his
+                                hatred onto the world. Those who have been ostracised
+                                by society sometimes turn to him.
+                            </item>
+                            <item name="Pel">
+                                Pel is the god of physical and mental perfection.
+                                He can be venerated when one wishes to try
+                                crafting something of outstanding beauty, but
+                                has no priesthoods.
+                            </item>
+                            <item name="Rim">
+                                Rim is the god of the underworld, and it is he
+                                who guides souls to their final place after
+                                death. Cremation is nearly always performed on
+                                the dead, since this frees the spirit from the
+                                body and allows it to head to the underworld.
+                            </item>
+                            <item name="Thot">
+                                The raven god who acts as a messenger for Haltan.
+                                There is one organised cult of Thot known as the
+                                Black Ravens, who work for the Queen of Weidany.
+                            </item>
+                            <item name="Walgi">
+                                Walgi is the goddess of the wild. She is mother
+                                to animals, especially wolves. She does not have
+                                a great love for humanity except where they are
+                                willing to give up their civilised ways in order
+                                to live free as a wild animal.
+                            </item>
+                        </itemlist>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Building your Character</title>
+
+            <para>
+                Your choice of character role within the world of <e>Habisfern</e>
+                is a crucial part of determining the rest of character creation.
+                However, your role defines your past, not your future. The only
+                constraints on what you do next are those of politics and your
+                own will.
+            </para>
+
+            <sect2>
+                <title>Roles</title>
+                <para>
+                    You must chose a role which defines your place in society.
+                    In <e>Habisfern</e>, where people stand in the general
+                    order of things is of great importance, and defines how
+                    others will react to you. Pretending that you are someone
+                    who you are not is a great crime, often punishable by
+                    disfigurement.
+                </para>
+                <para>
+                    However, your social standing is not fixed. A poor farmer
+                    can become a lord over many men, though such a change in
+                    standing must be earned, and your new status is only
+                    bestowed upon you after gaining the respect of your
+                    superiors through actions and deeds.
+                </para>
+                <para>
+                    As well as your social status, your gender also determines
+                    how people view you. The land of <e>Habisfern</e> is not
+                    an egalitarian society. Women have their role, as do men.
+                    However, a Queen does sit on the throne of the Kingdom,
+                    and the most feared warrior cults are those that are open
+                    only to women.
+                </para>
+                <para>
+                    Each role will specify a list of free skills that you
+                    receive for taking that role. They are generally skills
+                    which you (as a player) wouldn't select because they aren't
+                    useful to a heroic adventurer, but which you should have
+                    because they fit that background.
+                </para>
+                <para>
+                    A role may also specify a <e>social status</e> and <e>blood</e>.
+                    If specified, then taking this role means that you are limited
+                    to these options when selecting your priorities later. They
+                    each range from A (highest) to E (lowest). Selecting a role
+                    which provides you with a high social standing, or great
+                    magical ability, will limit your other options later.
+                </para>
+
+                <sect3>
+                    <title>Bard</title>
+                    <para>
+                        You are a member of the elite lineage of lore masters,
+                        storytellers and guardians of law known as Bards. Though
+                        you can entertain with stories and song, you are not an
+                        entertainer. Instead, your purpose is to advise on
+                        matters of law, politics and history. As a bard, you are
+                        both outside of and above the law, which provides you
+                        with a great deal of protection.
+                    </para>
+                    <para>
+                        However, you are expected to remain neutral in the
+                        affairs of others, and provide aid and advice to all
+                        who require it.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Privileged (C)
+                    </para>
+                    <para>
+                        <s>Minimum age:</s> 30
+                    </para>
+                    <para>
+                        <s>Skills:</s> Law 4, History 4, Heraldry 4,
+                        Astrology 4, Area lore 4, Teach 2, Current affairs 2,
+                        Perform 2
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Brigand</title>
+                    <para>
+                        You are an outlaw living on the fringes of society. The
+                        quality of life of such a person can vary considerably,
+                        depending on how successful you have been. The social
+                        status that you select defines whether you are scrounging
+                        for a living (E), living reasonably well (D) or are at
+                        the top of a highly successful band (C).
+                    </para>
+                    <para>
+                        Being outside the law has definite disadvantages, and
+                        anyone can slay you without fear of retribution. But you
+                        also don't have to pay taxes, or do what anyone says -
+                        except of course there's often a bigger band of outlaws
+                        that insist that you pay them, or do what they say.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Privileged (C), Free (D), Unfree (E)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Survival 3, Scrounging 2
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Farmer</title>
+                    <para>
+                        You are a farmer, living by farming the land. You
+                        may live in a village owned by a thegn, or you may
+                        be a freeholder living alone on your own land.
+                        If you are a freeman (a <e>ceorl</e>), then you have
+                        enough land of your own to support yourself and your
+                        family.
+                    </para>
+                    <para>
+                        As an unfree, a <e>kotsetla</e>, you farm another's
+                        land in return for support to keep you and your family
+                        fed.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Free (D) or Unfree (E)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Farming 4
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Fyrdman</title>
+                    <para>
+                        The <e>Fyrd</e> is the mobilised army of freeman
+                        that is raised to defend home and shire during a
+                        time of war. Though all freemen are required to
+                        serve their lord in such times, some chose to neglect
+                        their duties and pay a fine of 30 shillings instead.
+                        Others, such as yourself, welcome the excitement and
+                        challenge presented by a war.
+                    </para>
+                    <para>
+                        Though you have not been a professional mercenary,
+                        you are well trained in the arts of warfare, and
+                        are always amongst the first chosen by your lord
+                        to be called to battle. You have your own arms and
+                        armour, and know how to use them.
+                    </para>
+                    <para>
+                        When you aren't fighting in the fyrd, you have your
+                        own land just as any ceorl does, though you may
+                        pay others to work it some of the time, using
+                        money gained from loot on the battlefield.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Freeman (D), or Privileged (C)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Farmer 2, Heraldry 2
+                    </para>
+                    <para>
+                        <s>Equipment:</s> Spear, Round shield, mail.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Lady</title>
+                    <para>
+                        You are the wife or daughter of either a nobleman or
+                        freeman. You may also be a widow, who has inherited
+                        her husband's lands. As a lady of the Kingdom, you are
+                        expected to know how to sew, spin and cook. However,
+                        you are also expected to be able to manage the affairs
+                        of the household, and be able to take over your husband's
+                        role when he is away.
+                    </para>
+                    <para>
+                        As a widow you would have the most authority and freedom,
+                        since the ownership and running of your husband's lands
+                        will have fallen to you until you re-marry. Of course, when
+                        (if ever) that is, is your decision since you are now the head
+                        of the family.
+                    </para>
+                    <para>
+                        As a daughter, you have fewer responsibilities but you are
+                        also expected to obey your father.
+                    </para>
+                    <para>
+                        Though women are not expected to fight, a woman who can
+                        defend herself and her household is also respected. You
+                        may have been taught to use a knife, or even a sword. You
+                        are never expected to go to war, but if the war comes to
+                        you, then a lady who is willing to stand at the gate with
+                        sword in hand is a fearsome, and respected, one indeed.
+                    </para>
+                    <para>
+                        <s>Social status:</s> B (Noble), C (Privileged)
+                    </para>
+                    <para>
+                        <s>Gender:</s> Female
+                    </para>
+                    <para>
+                        <s>Skills:</s> Handicraft 4, Steward 3, Cooking 2,
+                        Trade 2, Law 1
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Merchant</title>
+                    <para>
+                        You are a member of that class of people that is relatively
+                        new to the Kingdom - those who make wealth by the trade of
+                        goods, rather than by the sword or the careful management of
+                        their land.
+                    </para>
+                    <para>
+                        You may be well travelled, and may also know how to use a
+                        sword (not all your customers are willing to pay you). How
+                        successful you are depends on the social class that you take.
+                        You must however be a freeman, since an unfree man subservient
+                        to another will not have the freedom to roam as they please
+                        and purchase goods.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Free or better (D+)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Trade 4
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Monk</title>
+                    <para>
+                        You are a monk, a priest who has removed themselves from the
+                        affairs of the world and taken to the pure study of the Mad
+                        God. Unlike the priests of other gods, you do not work amongst
+                        the common people, though you may be commanded to leave your
+                        monastery from time to time, in order to carry out tasks for
+                        your order.
+                    </para>
+                    <para>
+                        Some monks are also sent out to 'walk in the wild', to take
+                        a chance to seek understanding of your god through observing
+                        the world that He has created. The chances are, that one of
+                        these monks is you.
+                    </para>
+                    <para>
+                        <s>Social status:</s> C (Privileged)
+                    </para>
+                    <para>
+                        <s>Gender:</s> Male
+                    </para>
+                    <para>
+                        <s>Skills:</s> Cult lore (Ashek) 4
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Priest</title>
+                    <para>
+                        You are a priest, a member of a cult of one of the
+                        many gods that are worshipped across the land. Priests
+                        are respected (or feared) members of society. Cults
+                        can be peaceful or warlike, and though the gods do
+                        not reward the dedication of their followers in open
+                        ways, they do help in more subtle ways, through the
+                        secret skills that cult members are taught.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Privileged (C)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Cult lore (Rornic) 4, Law 1
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Thegn</title>
+                    <para>
+                        You are the lord of a village, having been given charge
+                        over it by the authority of the Queen. You will keep
+                        your position until your death, at which point another
+                        will be chosen - it is not guaranteed to be one of
+                        your descendants.
+                    </para>
+                    <para>
+                        In return for this authority, you also have
+                        responsibility. You are responsibility for keeping the
+                        law in the lands around, and for carrying out the
+                        Queen's justice. This may require both your sword and
+                        your diplomacy. Most of those you govern are freemen,
+                        ceorls, not your servants.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Noble (B)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Steward 2, Law 2, Farming 1
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Vagabond</title>
+                    <para>
+                        You are an itinerant wanderer with no place to call
+                        home, or anyone to call family. Though you are beholden
+                        to no man, you are viewed with less respect than the
+                        poorest serf or slave since you have no place in
+                        society.
+                    </para>
+                    <para>
+                        <s>Social status:</s> Unfree (E)
+                    </para>
+                    <para>
+                        <s>Skills:</s> Streetwise 2, Scrounging 2
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Wise Man</title>
+                    <para>
+                        You are a wise man or woman, gifted from birth with
+                        the ability to see things others cannot, and to know
+                        a little of the <e>Words of Power</e>. You are not a
+                        full wizard though, and your skills at magic are
+                        limited. Instead, you rely on the fears of others to
+                        gain power over them, and your knowledge of the world
+                        to earn their respect.
+                    </para>
+                    <para>
+                        Because of your fey nature, you may take one fey
+                        disadvantage, which counts normally towards the total
+                        you are allowed to take.
+                    </para>
+                    <para>
+                        <s>Blood:</s> Half-fey (B)
+                    </para>
+                    <para>
+                        <s>Skills:</s> One Word of Power (choose between Earth,
+                        Water, Spirit, Air, Fire and Iron) at level 2. Also,
+                        you start with any two lore skills at level 2.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Wizard</title>
+                    <para>
+                        The blood of the unnatural runs strong within you,
+                        something which was clear from an early age. You
+                        can see things that others cannot, but you also know
+                        the <e>Words of Power</e>, and can command the world
+                        to shape itself as you please.
+                    </para>
+                    <para>
+                        You must take the <e>Air of suspicion</e> disadvantage,
+                        which does not count towards your normal number of
+                        disadvantages, and does not grant you any bonus
+                        advantages. You may take any other fey advantages or
+                        disadvantages as well.
+                    </para>
+                    <para>
+                        <s>Blood:</s> Fey (A)
+                    </para>
+                    <para>
+                        <s>Skills:</s> One Word of Power (choose between Earth,
+                        Water, Spirit, Air, Fire or Iron) at level 4, and the
+                        two neighbouring ones at level 2. You also start with
+                        <e>Faerie lore</e> at level 2.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Steps to Character Generation</title>
+
+                <sect3>
+                    <title>Choosing Priorities</title>
+
+                    <para>
+                        The first step in character generation is to choose
+                        how to prioritise your character's features. You have
+                        five things to decide upon - <e>Blood</e>, <e>Status</e>
+                        <e>Attributes</e>, <e>Experience</e> and <e>Advantages</e>.
+                        Each must be given a priority from A to E, with A being
+                        the highest (best) priority, and E being the lowest
+                        (worst) priority.
+                    </para>
+
+                    <table>
+                        <title>Priority</title>
+                        <colspec colwidth="20mm"/>
+                        <colspec colwidth="13mm"/>
+                        <colspec colwidth="13mm"/>
+                        <colspec colwidth="13mm"/>
+                        <colspec colwidth="13mm"/>
+                        <colspec colwidth="13mm"/>
+
+                        <thead>
+                            <row>
+                                <entry>Category</entry>
+                                <entry>A</entry>
+                                <entry>B</entry>
+                                <entry>C</entry>
+                                <entry>D</entry>
+                                <entry>E</entry>
+                            </row>
+                        </thead>
+
+                        <tbody>
+                            <row>
+                                <entry>Blood</entry>
+                                <entry>Fey</entry>
+                                <entry>Half</entry>
+                                <entry>Human</entry>
+                                <entry>Human</entry>
+                                <entry>Human</entry>
+                            </row>
+
+                            <row>
+                                <entry>Status</entry>
+                                <entry>High</entry>
+                                <entry>Noble</entry>
+                                <entry>Privileged</entry>
+                                <entry>Free</entry>
+                                <entry>Unfree</entry>
+                            </row>
+
+                            <row>
+                                <entry>Attributes</entry>
+                                <entry>+6/6</entry>
+                                <entry>+3/5</entry>
+                                <entry>+1/4</entry>
+                                <entry>0/4</entry>
+                                <entry>-1/3</entry>
+                            </row>
+
+                            <row>
+                                <entry>Experience</entry>
+                                <entry>60/6</entry>
+                                <entry>50/5</entry>
+                                <entry>40/4</entry>
+                                <entry>30/4</entry>
+                                <entry>20/4</entry>
+                            </row>
+
+                            <row>
+                                <entry>Advantages</entry>
+                                <entry>7</entry>
+                                <entry>5</entry>
+                                <entry>3</entry>
+                                <entry>1</entry>
+                                <entry>0</entry>
+                            </row>
+                        </tbody>
+                    </table>
+
+                    <para>
+                        Unless you are wanting a special social rank, or
+                        wanting magical ability, you should set <e>Blood</e>
+                        to be the lowest (E) and <e>Status</e> to be the second
+                        lowest (D), with the other three being arranged as
+                        desired.
+                    </para>
+
+                    <sect4>
+                        <title>Blood</title>
+
+                        <para>
+                            Most people in the campaign world are humans,
+                            born of mortal parents with very little that
+                            is strange about them. If you want to be human, then
+                            simply put <e>Blood</e> as priority E.
+                        </para>
+
+                        <para>
+                            If you wish to be non-human - a Fey, born of
+                            the realms of magic - then you must take
+                            <e>Blood</e> as priority A. This can provide
+                            certain benefits, but does mean that you can't
+                            choose the best options in other areas. You must
+                            take <e>Blood</e> at A if you want to be a wizard.
+                        </para>
+
+                        <para>
+                            If you take <e>Blood</e> as B, then you are
+                            half-fey - one of your parents was mortal.
+                            You have some of the abilities (and looks) of
+                            the Fey, but you are not a pure blood. You may
+                            take some faerie traits, and you also have
+                            the option of taking magical abilities.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Status</title>
+
+                        <para>
+                            <e>Social Status</e> is a measure of how others in
+                            society treat you. Indirectly, it is also a measure
+                            of wealth since only those of high status own land
+                            which is considered the most important indication of
+                            wealth. If you are of high status then you will be
+                            treated with respect by those in power, and will be
+                            able to get away with doing a lot of things that those
+                            of lower status won't. If those you travel with are of
+                            lower status, then you will tend to be the focus of
+                            attention.
+                        </para>
+                        <sect5>
+                            <title>High Ranking Noble (A)</title>
+                            <para>
+                                You are a member of one of the noble houses of
+                                Weidany, and should select one as part of your
+                                background.
+                            </para>
+                        </sect5>
+                        <para>
+                            It is assumed that you will begin the game as a
+                            free man, with a priority of D. If you wish to be
+                            a noble, then you need to take this as priority A or
+                            B.
+                        </para>
+                        <para>
+                            A <e>Privileged</e> status (C) is required by
+                            some backgrounds (such as bards and priests).
+                            If taken without such a background, it represents
+                            a moderately wealthy or highly respected freeman.
+                        </para>
+                        <para>
+                            If you begin as <e>Unfree</e> (E), then you have no
+                            wealth or possessions of note, and are subservient
+                            to another. Since this may affect what you are
+                            permitted to do, and where you are permitted to
+                            go, you should determine exactly what your
+                            obligations are before the game begins.
+                        </para>
+                        <para>
+                            The <e>Unfree</e> are not quite slaves.
+                            Slavery exists within the Kingdom, and in most of
+                            the lands around it. However, slaves are rarely
+                            the focus of interesting stories.
+                        </para>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Attributes</title>
+                    <para>
+                        Attributes define your primary, raw, abilities.
+                        Though attributes can be changed during the game,
+                        they change only slowly, generally over a period of
+                        years.
+                    </para>
+                    <para>
+                        There are eight primary attributes - <t>Strength</t>,
+                        <t>Health</t>, <t>Agility</t>, <t>Dexterity</t>,
+                        <t>Perception</t>, <t>Intelligence</t>, <t>Empathy</t>
+                        and <t>Will</t>.
+                    </para>
+                    <para>
+                        Each of them defaults to a score of three, though you
+                        have the option of modifying them between two and six.
+                    </para>
+                    <para>
+                        An attribute of 2 indicates that you are
+                        significantly worse than the average in that
+                        attribute. Conversely, an attribute of 4 represents
+                        noticeably above average ability, and 5 or more is
+                        exceptional ability.
+                    </para>
+                    <para>
+                        The cost of attributes is as the table below, using the
+                        <e>standard</e> column for most characters.
+                    </para>
+                    <table>
+                        <title>Attribute Costs</title>
+                        <colspec colwidth="15mm"/>
+                        <colspec colwidth="15mm"/>
+                        <colspec colwidth="15mm"/>
+                        <colspec colwidth="15mm"/>
+
+                        <thead>
+                            <row>
+                                <entry>Score</entry>
+                                <entry>Poor</entry>
+                                <entry>Standard</entry>
+                                <entry>Good</entry>
+                            </row>
+                        </thead>
+
+                        <tbody>
+                            <row>
+                                <entry>2</entry><entry>-2</entry><entry>-1</entry><entry>-1</entry>
+                            </row>
+                            <row>
+                                <entry>3</entry><entry>0</entry><entry>0</entry><entry>0</entry>
+                            </row>
+                            <row>
+                                <entry>4</entry><entry>+1</entry><entry>+1</entry><entry>+1</entry>
+                            </row>
+                            <row>
+                                <entry>5</entry><entry>+4</entry><entry>+3</entry><entry>+2</entry>
+                            </row>
+                            <row>
+                                <entry>6</entry><entry>+7</entry><entry>+5</entry><entry>+4</entry>
+                            </row>
+                        </tbody>
+                    </table>
+                    <para>
+                        The priority you gave to <e>Attributes</e> governs
+                        how many extra points you have to spend on raising
+                        attributes, and also the maximum score an attribute
+                        can be. If you want to have an attribute of six, you
+                        must give <e>Attributes</e> priority A.
+                    </para>
+
+                    <sect4>
+                        <title>Strength</title>
+
+                        <para>
+                            With a high strength you are able to carry more,
+                            move faster and hit harder than other people.
+                            Strength is useful for warriors.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Health</title>
+
+                        <para>
+                            With a high health you are able to continue
+                            going for longer, shrug off the effects of
+                            poison or fatigue, and stay alive after being
+                            badly wounded.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Agility</title>
+
+                        <para>
+                            A high agility allows you to react quicker and
+                            move faster than other people. You are also
+                            better at dodging, wrestling and brawling, as
+                            well as being a good climber and jumper.
+                            Agility is also used when sneaking.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Dexterity</title>
+
+                        <para>
+                            High dexterity provides you with natural ability
+                            at filching and lock picking, but also with the
+                            use of swords and other melee weapons. Dexterity
+                            is useful for both warriors and thieves.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Perception</title>
+
+                        <para>
+                            Perception is a measure of your ability to
+                            notice the world around you. A high perception
+                            means you are more likely to spot ambushes,
+                            notice a pick pocket or find a place to hide.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Intelligence</title>
+
+                        <para>
+                            A high intelligence provides you with wits,
+                            memory and reasoning ability. Since you have a
+                            better memory, you can make better use of
+                            knowledge you have read or been taught. You are
+                            quicker at learning, and less likely to be
+                            confused by people.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Empathy</title>
+
+                        <para>
+                            A high empathy allows you to understand the
+                            emotions and motivations of other people. If
+                            you so wish, you may use this to get on with
+                            them better. Fast talking, seduction and
+                            oratory all use empathy.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Will</title>
+
+                        <para>
+                            A high will enables you to keep control of your
+                            mind in times of stress. You are less likely to
+                            be tempted or fooled, and are able to keep cool
+                            in times of stress.
+                        </para>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Skills</title>
+
+                    <para>
+                        Skills represent training and experience. There are
+                        eight basic skills (called talents) which every
+                        character has, plus a multitude of other skills
+                        which characters will not have unless they are
+                        bought specifically.
+                    </para>
+
+                    <para>
+                        When a skill check is made, you roll your attribute
+                        multiplied by your skill + 1d20. This is compared
+                        against a target number, and if you equal or exceed
+                        the target, then you succeed. A moderate task is
+                        one which a professional would have a good chance
+                        of succeeding at, but still find challenging. Such
+                        a task has a target of 20.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Choose Advantages</title>
+
+                    <para>
+                        <e>Advantages</e> are an inherent part of you that
+                        sets you apart from other people. Many affect how
+                        well you can do things, or what you look like (such
+                        as being particularly large, or beautiful). Others
+                        affect things that have happened in your background,
+                        such as great wealth or powerful friends. You have
+                        a number of points to spend on buying advantages
+                        based on the priority you gave to them.
+                    </para>
+                    <para>
+                        Along with advantages are also disadvantages. These
+                        are bad things which have affected your character,
+                        either due to circumstances or luck. Buying
+                        disadvantages allows you to purchase more advantages.
+                        You can always buy one disadvantage, plus an extra
+                        one for every three full points you are to spend on
+                        advantages.
+                    </para>
+                    <para>
+                        You cannot buy advantages and disadvantages during
+                        the game - they are a one chance option to give you
+                        something special. For advantages which give you
+                        material things, such as wealth or friends, then
+                        such things can be obtained in the game through
+                        roleplaying, but you cannot just buy the advantage
+                        to get them.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Skills</title>
+
+                    <para>
+                        The priority you give to your skills determines both
+                        how many skills you may purchase, and the maximum
+                        level to which you can raise them. A professional
+                        level of skill is 4, so you probably want your best
+                        skill to be at least this (which costs 10 points).
+                    </para>
+
+                    <para>
+                        Your <e>minimum</e> starting age is also based on
+                        your skill choice, and is equal to 10 + 1 per 5
+                        points of skills that you start with. If you take
+                        skills at 'D' (30), your minimum age is 16, if you
+                        take it at 'A' (60), your minimum age is 22.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>The Finishing Touches</title>
+
+                    <para>
+                        The last part of character generation is to
+                        finish off your character's background and
+                        personality (most of this may have come out
+                        of previous selections), and finally to choose
+                        a name for your character.
+                    </para>
+
+                    <para>
+                        Examples of names are provided in the Habisfern
+                        Encyclopedia, though any Saxon (or Saxon sounding)
+                        name will do.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Advantages and Disadvantages</title>
+
+            <para>
+                Advantages and disadvantages help you flesh out your
+                abilities and backgrounds. They give you bonuses which
+                make you better than everyone else, or add limitations
+                which restrict you in some way.
+            </para>
+
+            <sect2>
+                <title>Virtues</title>
+
+                <para>
+                    The first thing that you can do with your points of
+                    advantages is to modify your <e>Virtues</e>.
+                    There are five virtues: Bravery, Chastity, Discipline,
+                    Sanity and Temperance. They all default to four, but
+                    you can buy one up by +2 with 1 point of advantage, or
+                    drop one by -2 for 1 point of disadvantage.
+                </para>
+                <para>
+                    Alternatively, you can raise one by +1 by dropping one
+                    by -1. In either case, no trait can start higher than
+                    six or lower than two.
+                </para>
+                <para>
+                    Virtues may come into play during times of stress, when
+                    the actions of your character may not be what you, the
+                    player, want them to be. If a huge troll charges out of
+                    a cave at you, you may wish to stand and fight but
+                    whether you do or not may depend on your <e>Bravery</e>
+                    virtue.
+                </para>
+                <para>
+                    A high virtue allows you to dictate your character's
+                    actions freely. A low virtue means that your character
+                    is more likely to give in to their base instincts and
+                    act as the GM decides.
+                    However, acting without passion is viewed negatively
+                    in Habisfern. The <e>Ice</e> seeks to destroy all
+                    human emotion, so those that always act through
+                    reason and logic may be viewed with suspicion.
+                </para>
+                <para>
+                    Virtues may go up and down during play, and do so by gaining
+                    or losing experience points. Losing experience on a virtue
+                    does not drop it a level as soon as excess experience drops
+                    below zero. Instead, a virtue can have negative experience
+                    against it. As soon as the negative experience <e>exceeds</e>
+                    half the current value of the virtue, it drops a level.
+                </para>
+                <para>
+                    For example, you start with a Bravery of 3. You gain one point
+                    of experience in Bravery due to your actions, giving a Bravery
+                    score of "3, +1 xp". You then perform some cowardly acts, losing
+                    2 experience in Bravery, so your virtue becomes "3, -1 xp". If
+                    you lose another point, then it becomes "3, -2 xp", but since
+                    2 is greater than half the current score (1.5), your trait
+                    drops to "2, +1 xp".
+                </para>
+
+                <sect3>
+                    <title>Bravery</title>
+                    <para>
+                        A measure of your bravery when facing things that could
+                        do you harm. A high bravery is required for warriors and
+                        those that put themselves in harms way. New experiences
+                        are more likely to cause fear than threats that you have
+                        encountered before, and the level of the threat is also
+                        relative - a brave peasant may run from a large man with
+                        a club, but a less brave warrior, who is highly skilled
+                        and has a sword, may well not consider the brute a threat.
+                    </para>
+                    <para>
+                        A high bravery is considered a good feature of a person
+                        within the Kingdom.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Chastity</title>
+                    <para>
+                        Sex is something that many people desire, but it is not
+                        always a good time to pursue it. Your chastity is a measure
+                        of your ability to resist temptations of the flesh, and not
+                        to be turned by a soft word, a gentle caress, or the sight
+                        of naked flesh.
+                    </para>
+                    <para>
+                        If you have a low chastity then you are more likely to be
+                        distracted when others flirt with you, but you will also be
+                        more comfortable when you wish to flirt with others.
+                        A high chastity will mean you are not easily tempted, but
+                        you will be more uncomfortable when you do wish to seek
+                        the pleasures of the flesh.
+                    </para>
+                    <para>
+                        Whilst a low chastity is frowned upon, so is a high chastity.
+                        Sex is an important part of life, and an interest in it is
+                        considered healthy and normal for both men and women. Lack
+                        of passion is a sign of the Ice, and may be viewed with
+                        suspicion.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Discipline</title>
+                    <para>
+                        Discipline measures your ability to keep your calm when more
+                        exciting things call for your attention. It prevents you from
+                        losing your temper when an enemy hurls an insult at you, or
+                        from killing a hated enemy who has offered his surrender.
+                    </para>
+                    <para>
+                        A high Discipline means that the bards and skalds of the enemy
+                        will not be able to draw you away from your shield wall. But it
+                        can also mean you are viewed as a coward if you do not respond
+                        to insults when they are given, or as a inhuman killer when you
+                        fight without passion.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Sanity</title>
+                    <para>
+                        There are things in the world that can tear your mind apart
+                        just by your looking at them. Sanity is a measure of how well
+                        you are grounded in this world, rather than the world of the
+                        Dreamlands. A sane person has a higher resistance to the
+                        effects of magic and the faerie folk. An insane person can
+                        learn magic faster, and has a greater ability to deal with
+                        the fey and similar creatures.
+                    </para>
+                    <para>
+                        A high sanity is always considered good, unless you want to
+                        use magic yourself. In that case, sacrificing your sanity is
+                        a fast way to gain power, though a low sanity can be
+                        dangerous to you and those around you.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Temperance</title>
+                    <para>
+                        As chastity is to the pleasures of sex, so Temperance is to
+                        the pleasures of food and drugs. There are times when not
+                        succumbing to drunkenness is definitely a good idea but, as
+                        with chastity, avoiding pleasure when there is no reason to
+                        is considered a bad characteristic for a person to have.
+                    </para>
+                    <para>
+                        If you have a high Temperance, then you will have a reputation
+                        of not showing respect to your host, for both the giving of
+                        food and drink and partaking of it, are considered an
+                        important part of society. However, a low Temperance is a sign
+                        of poor self control.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>List of Advantages</title>
+
+                <sect3>
+                    <title>Common Advantages</title>
+
+                    <y:import-advantages type="advantage">
+                        <y:adv>options/advantages.yags</y:adv>
+                        <y:adv>../core/options/advantages.yags</y:adv>
+                        <y:adv>../core/options/background.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Common Disadvantages</title>
+
+                    <y:import-advantages type="disadvantage">
+                        <y:adv>options/advantages.yags</y:adv>
+                        <y:adv>../core/options/advantages.yags</y:adv>
+                        <y:adv>../core/options/background.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Weidany</title>
+
+                    <y:import-advantages>
+                        <y:adv>options/weidany.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Cults</title>
+
+                    <para>
+                        If a character is a member of a cult, they may have
+                        access to some techniques. Techniques are purchased
+                        like advantages, however they are linked to a skill,
+                        and the skill must be at a given level before the
+                        technique can be learnt.
+                    </para>
+
+                    <para>
+                        Some techniques also have prerequisites in that other
+                        techniques must be learnt first.
+                    </para>
+
+                    <y:import-advantages
+                        source="/usr/share/xml/habisfern"
+                        topic="habisfern"
+                        role="technique"/>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Skills</title>
+
+            <sect2>
+                <title>Skills by Groups</title>
+
+                <para>
+                    The following lists all the skills according to
+                    various groups. Skills which belong to more than
+                    one group are listed multiple times. When
+                    designing a character that you want to be good at
+                    some type of thing, these grouping can give an
+                    idea about which skills to buy.
+                </para>
+
+                <y:list-skills maxTech="3">
+                    <y:skills>options/skills.yags</y:skills>
+                    <y:skills>../core/skills/standard-skills.yags</y:skills>
+                    <y:skills>../core/skills/combat-skills.yags</y:skills>
+                    <y:skills>../core/skills/investigation-skills.yags</y:skills>
+                    <y:skills>../core/skills/outdoor-skills.yags</y:skills>
+                    <y:skills>options/habisfern-skills.yags</y:skills>
+                </y:list-skills>
+            </sect2>
+
+            <sect2>
+                <title>Skill Descriptions</title>
+
+                <y:import-skills maxTech="3">
+                    <y:skills>options/skills.yags</y:skills>
+                    <y:skills>../core/skills/standard-skills.yags</y:skills>
+                    <y:skills>../core/skills/combat-skills.yags</y:skills>
+                    <y:skills>../core/skills/investigation-skills.yags</y:skills>
+                    <y:skills>../core/skills/outdoor-skills.yags</y:skills>
+                    <y:skills>options/habisfern-skills.yags</y:skills>
+
+                    <y:techniques>../core/techniques/combat.yags</y:techniques>
+                    <y:techniques>../core/techniques/physical.yags</y:techniques>
+                    <y:techniques>../core/techniques/social.yags</y:techniques>
+                </y:import-skills>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Luck</title>
+
+            <para>
+                <e>Habisfern</e> is a world where fate and destiny are
+                seen to be a very real part of everyday life. For some
+                people, Fate will guide them towards their goal, for
+                others, Fate may try to drag them down to their doom.
+                In Habisfern, whether Fate has an interest in a character
+                is represented by the <e>Luck</e> and <e>Cursed</e>
+                traits.
+            </para>
+
+            <para>
+                The GM may at certain points in an adventure call for a
+                Luck check. Some checks can be determined to see how
+                many guards are on duty, if a window has been left open
+                etc. If the character succeeds, then things work out in
+                the character's favour.
+            </para>
+
+            <targetlist targetFirst="true">
+                <targetLabel>Chance</targetLabel>
+                <valueLabel>Circumstance</valueLabel>
+
+                <item target="5" value="Likely.">
+                    Event is very likely to happen unless the
+                    character is particularly unlucky.
+                </item>
+
+                <item target="10" value="Evens.">
+                </item>
+
+                <item target="15" value="Unlikely.">
+                </item>
+
+                <item target="20" value="Improbable.">
+                </item>
+            </targetlist>
+
+            <sect2>
+                <title>Using Luck</title>
+
+                <para>
+                    Luck may also be used to cheat death. At any point,
+                    a character with at least one point of <e>Luck</e>
+                    may spend it, loosing it permanently, in order
+                    to remain alive after a death result.
+                </para>
+
+                <para>
+                    Instead of being dead, the character is left in a
+                    state of being stable but fatally wounded. It cannot
+                    be relied upon entirely - being only wounded after
+                    falling into a pit of lava still leaves you in a
+                    pit of lava.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Background</title>
+
+            <sect2>
+                <title>Noble Houses</title>
+
+                <para>
+                    There are thirteen <e>Noble Houses</e>. One of them, the
+                    Royal House of Aethlfryth, is the family of the Queen of
+                    Weidany, and is not available for selection.
+                </para>
+                <para>
+                    Nobles of a House can select a single inheritance for free. This
+                    may be an advantage, or it may be a skill. The choice of
+                    inheritances is set by each House. If you are have taken a
+                    status of <s>B</s> then you can select a <s>B</s> inheritance.
+                    If you have a status of <s>A</s> then you can select either an
+                    <s>A</s> or <s>B</s> inheritance.
+                </para>
+
+                <sect3>
+                    <title>House of Aeddan (Minor)</title>
+                    <para>
+                        Politically, Aeddan is one of the weakest Houses.
+                        However, their bloodline is ancient has a history
+                        steeped in myth and magic.
+                    </para>
+                    <para>
+                        <s>Inheritances (A):</s> Dreaming, Shadow.
+                    </para>
+                    <para>
+                        <s>Inheritances (B):</s> Elf Friend, Skill: Lore (Elders)
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>House of Caewlin (Major)</title>
+                    <para>
+                        Caewlin was the first of the Rornic kings of Weidany,
+                        and his line ruled the Kingdom of Lanuch. It has lost
+                        its place at the top since that time, but the House is
+                        still one of the most powerful of the Noble Houses.
+                    </para>
+                    <para>
+                        As a member of this House, you believe that you have been
+                        born to rule. Like others of your family, you are often
+                        brash, confident and aggressive. However, you have also
+                        been trained to be subtle when necessary, especially when
+                        dealing with those who currently have the upper hand.
+                    </para>
+                    <para>
+                        Your most powerful asset is that your House hordes secrets
+                        above all other things.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>House of Cenic (Minor)</title>
+                    <para>
+                        Formed recently in 1207, the House of Cenic is the youngest
+                        of the Noble Houses.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>House of Eanwulf (Major)</title>
+                    <para>
+                        Once one of the most powerful of the Noble Houses, Eanwulf
+                        has been gradually losing authority over the years. Though
+                        it is still considered to be a Major House, it is the weakest
+                        of them.
+                    </para>
+                    <para>
+                        As a member of that House, who like to reminisce about the
+                        good old days. You still have access to a great deal of
+                        wealth, but have a strong desire to prove your wealth and
+                        power by showing it off whenever you can.
+                    </para>
+                    <para>
+                        There are rumours of dark secrets amongst your family. The
+                        old blood cults still have a hold on your ancestry, and it
+                        may be that their call is too tempting for you.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Religious Cults</title>
+            </sect2>
+        </sect1>
+
+
+        <sect1>
+            <title>Experience Progression</title>
+
+            <para>
+                The principle way for a character to improve their skills
+                and attributes in Yags is through training and study. Since
+                how this is done is described in the <e>Campaign</e>
+                article, it is not discussed here. However,
+                <e>Habisfern</e> also allows characters to gain experience
+                from performing heroic deeds. Depending on how often
+                a character has an <e>adventure</e>, such experience may
+                be quicker or slower than training.
+            </para>
+
+            <para>
+                Normally, a character is assumed to gain about 2 points
+                of experience per average game session. This normally
+                assumes an evening of play. A particularly intensive
+                session would warrant 3 points, a light session only 1.
+            </para>
+
+            <para>
+                If individual characters or players stood out during
+                the session, then a bonus point may also be gained.
+            </para>
+
+            <para>
+                Experience may be spent in the following ways.
+            </para>
+
+            <itemlist order="1">
+                <item>
+                    Any skill which currently has a score of 3 or less may
+                    have one experience point placed on it.
+                </item>
+
+                <item>
+                    One skill of four or higher, or a single attribute,
+                    or a single trait may have one experience point placed
+                    on it. Only one of these options may be chosen for a
+                    single session.
+                </item>
+
+                <item>
+                    Any number of points may be placed into any number
+                    of techniques, as long as the prerequisites for the
+                    technique have been met.
+                </item>
+            </itemlist>
+
+            <para>
+                The GM may wish to enforce players only spending experience
+                on skills that have actually been used during the session.
+            </para>
+
+            <sect2>
+                <title>Improving Skills</title>
+
+                <para>
+                    Skills can be raised with experience, at a cost
+                    equal to the level the skill is being raised to.
+                    Knowledge skills always require some source of
+                    knowledge available if it is to be raised.
+                </para>
+
+                <para>
+                    A technique cannot be used until the full cost of
+                    the technique has been paid for.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Improving Attributes</title>
+
+                <para>
+                    Attributes can be raised with experience, at a cost
+                    equal to three times the level the character is
+                    raising the attribute to. So an attribute of three
+                    will cost 12 points to raise it to 4.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Advantages</title>
+
+                <para>
+                    It is not possible to buy new advantages after
+                    character generation. It may be possible to gain an
+                    advantage (or something similar to it) in play,
+                    but it does not need to be paid for.
+                </para>
+
+                <para>
+                    Similarly, disadvantages cannot, or do not need to be,
+                    paid off. If the character starts with an Enemy, and
+                    manages to remove the Enemy in game, then they are
+                    no longer have an enemy. There is no requirement that
+                    they pick up a new enemy (though they may if there is
+                    an in-game reason to do so), or have to take a new
+                    disadvantage to replace the old one.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Traits</title>
+
+                <para>
+                    Traits may be raised (or reduced) during the game, as
+                    long as the GM is happy that the character is being
+                    played in a way that corresponds to the direction the
+                    trait is going. A character with a trait of Valorous,
+                    who is being played as a coward, cannot have their
+                    Valorous trait increased. A character with Cowardice
+                    who was being played as a coward, but who showed signs
+                    that they were trying not to be a coward, could
+                    buy off their Cowardice trait however.
+                </para>
+
+                <para>
+                    It costs 10 experience points to change a Trait by one
+                    level.
+                </para>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

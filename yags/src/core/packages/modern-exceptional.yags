@@ -1,0 +1,185 @@
+<?xml version="1.0"?>
+
+<characters xmlns="https://yags-rpg.net/xml" showPoints="true">
+
+    <character name="Jacqueline Price">
+        <description>
+            <short>
+                An archaeologist working in Egypt in the 1920s.
+            </short>
+            <gender>Female</gender>
+            <age>27</age>
+
+            <image src="packages/jacqueline_price.jpg"/>
+
+            <background>
+                <para>
+                    Born in 1905, Jacqueline's father was killed during the
+                    Great War, and her mother died of flue shortly afterwards.
+                    She spent her family inheritance in moving to Egypt, where
+                    she was able to take up her passions of Egyptian history and
+                    exploration.
+                </para>
+
+                <para>
+                    Priorities were experience, attributes and advantages.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="5" soak="12">
+                <attribute name="strength" score="3"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="3"/>
+                <attribute name="dexterity" score="3"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="5"/>
+                <attribute name="empathy" score="4"/>
+                <attribute name="will" score="3"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="6"/>
+                    <skill name="Guile" score="4"/>
+                    <skill name="Sleight" score="3"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak English" score="4"/>
+                    <skill name="Speak Arabic" score="4" cost="0"/>
+                    <skill name="Speak French" score="4" cost="0"/>
+                    <skill name="Speak Hebrew" score="4" cost="0"/>
+                    <skill name="Speak German" score="4" cost="0"/>
+                    <skill name="Read Ancient Egyptian" score="4" cost="0"/>
+                    <skill name="Area lore (Middle East)" score="6" cost="11"/>
+                    <skill name="Area lore (Europe)" score="4" cost="0"/>
+                    <skill name="Area lore (England)" score="4"/>
+                </group>
+
+                <group name="Social" type="skills">
+                    <skill name="Intrigue" score="3"/>
+                    <skill name="History" score="5"/>
+                    <skill name="Archaeology" score="5"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Guns" score="4"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Educated" cost="0"/>
+                <advantage name="Lucky (+1)" cost="0"/>
+
+                <advantage name="Multi cultured" cost="2"/>
+
+                <advantage name="Enemy" cost="-1"/>
+
+                <advantage name="Carousing" skill="Social" cost="2"/>
+                <advantage name="Flirt" skill="Social" cost="4"/>
+
+                <advantage name="Historian (Egypt)" skill="History" cost="2"/>
+                <advantage name="Historian (Pharaohs)" skill="History" cost="2"/>
+                <advantage name="Historian (Rome)" skill="History" cost="2"/>
+            </advantages>
+        </statistics>
+    </character>
+
+    <character name="Alfred Goodman">
+        <description>
+            <short>Explorer and archaeologist.</short>
+            <age>58</age>
+            <gender>Male</gender>
+
+            <image src="packages/alfred_goodman.jpg"/>
+
+            <background>
+                <para>
+                    Lord Goodman counted himself as being one of the British
+                    Gentry. He inherited his family estates at the turn of
+                    the century, and fought in the War that soon followed.
+                    Though wounded, he survived, and decided that he wanted
+                    to see more of the world.
+                </para>
+
+                <para>
+                    Ten years ago he moved permanently to Egypt, where he has
+                    many friends and acquaintances amongst the British in
+                    the Middle East. He has taught himself history and
+                    Egyptology, and spends his time and money digging up
+                    random places and plundering their treasures.
+                </para>
+
+                <para>
+                    Priorities were advantages, experience, and attributes.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="5" soak="12">
+                <attribute name="strength" score="3"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="2"/>
+                <attribute name="dexterity" score="3"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="5"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="3"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="3"/>
+                    <skill name="Awareness" score="3"/>
+                    <skill name="Brawl" score="4"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="3"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak English" score="4"/>
+                    <skill name="Speak French" score="2"/>
+                    <skill name="Speak Arabic" score="2"/>
+                    <skill name="Area lore (Europe)" score="4"/>
+                    <skill name="Area lore (Egypt)" score="3"/>
+                    <skill name="History" score="4"/>
+                    <skill name="Archaeology" score="4"/>
+                </group>
+
+                <group name="Military" type="skills">
+                    <skill name="Guns" score="4"/>
+                    <skill name="Strategy" score="2"/>
+                    <skill name="Administration" score="2"/>
+                    <skill name="Riding" score="2"/>
+                    <skill name="Melee" score="1"/>
+                    <skill name="Heavy weapons" score="1"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Educated" cost="0"/>
+                <advantage name="Lucky (+1)" cost="0"/>
+
+                <advantage name="Rich" cost="+3"/>
+                <advantage name="Contacts" cost="+1"/>
+
+                <advantage name="Historian (Egypt)" skill="History" cost="2"/>
+                <advantage name="Etiquette" skill="Social" cost="4"/>
+            </advantages>
+        </statistics>
+    </character>
+
+</characters>
+
+

@@ -1,0 +1,120 @@
+<?xml version = '1.0' ?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl" type="text/xsl"?>
+
+<!--
+    $Revision: 1.6 $
+    $Date: 2006-09-11 11:15:52 $
+
+    Bestiary containing information on boars.
+
+    Copyright Samuel Penn, GPL v2.
+-->
+
+<bestiary xmlns="https://yags-rpg.net/xml">
+    <beast name="Boar">
+        <information>
+            <type>Animal</type>
+            <demeanor>Aggressive</demeanor>
+
+            <habistat climate="Temperate" terrain="Forest" frequency="Uncommon"/>
+
+            <organisation group="Solitary" number="1"/>
+            <organisation group="Family" number="2-5"/>
+
+            <origin>Common</origin>
+            <genre>Real</genre>
+        </information>
+
+        <description>
+            <short>
+                Wild pigs, with short brown fur.
+            </short>
+
+            <image src="animals/graphics/boar_1.jpg"/>
+            <scale length="1" width="1"/>
+
+            <physical>
+                <para>
+                    Boars are wild pigs, with viscious tusks. They are
+                    strong and very dangerous if provoked. They tend to
+                    be very heavy for their size, and can quite easily
+                    knock an adult over with a charge.
+                </para>
+            </physical>
+
+            <social>
+                <para>
+                    Boars can be extremely aggressive and territorial,
+                    and are renowned for having a viscious temper.
+                </para>
+            </social>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="3" soak="9">
+                <attribute name="strength" score="3"/>
+                <attribute name="health" score="5"/>
+                <attribute name="agility" score="3"/>
+                <attribute name="dexterity" score="1"/>
+                <attribute name="perception" score="3"/>
+                <attribute name="intelligence" score="2"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="2"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="3"/>
+                    <skill name="Awareness" score="5"/>
+                    <skill name="Brawl" score="5"/>
+                    <skill name="Charm" score="1"/>
+                    <skill name="Guile" score="1"/>
+                    <skill name="Sleight" score="1"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="1"/>
+                </group>
+                <group name="Misc" type="skills">
+                    <skill name="Survival" score="5"/>
+                    <skill name="Swim" score="2"/>
+                </group>
+            </skills>
+
+            <combat>
+                <combatstyle style="Gore" skill="Brawl">
+                    <attack attribute="agility" bonus="+3"/>
+                    <defence attribute="agility" bonus="+3"/>
+                    <damage type="mixed" bonus="+6"/>
+                    <reach bonus="0"/>
+                </combatstyle>
+
+                <combatstyle style="Trample" skill="Brawl">
+                    <attack attribute="agility" bonus="+10"/>
+                    <defence attribute="agility" bonus="-10"/>
+                    <damage type="stun" bonus="+10"/>
+                    <reach bonus="0"/>
+                </combatstyle>
+
+                <armourstyle style="Base"/>
+
+                <armourstyle style="Natural">
+                    <armour name="Toughness" protection="3"/>
+                    <armour name="Hide" protection="1"/>
+                </armourstyle>
+            </combat>
+
+            <traits>
+                <trait name="Bravery" score="5"/>
+                <trait name="Orneriness" score="6"/>
+                <trait name="Patience" score="2"/>
+            </traits>
+
+            <advantages>
+                <advantage name="Animal"/>
+                <advantage name="Acute sense of smell" score="+2"/>
+                <advantage name="Berserker" score="+2"/>
+
+                <advantage name="Gore" skill="Brawl" cost="2"/>
+            </advantages>
+        </statistics>
+    </beast>
+</bestiary>

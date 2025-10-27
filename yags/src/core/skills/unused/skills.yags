@@ -1,0 +1,1359 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="http://yagsbook.sourceforge.net/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+<!--
+    Not used!
+
+    Full list of skills available.
+    Crosslinked with talent techniques.
+
+    Copyright (c) 2005, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.12 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="http://yagsbook.sourceforge.net/xml/yags"
+            xmlns:y="http://yagsbook.sourceforge.net/xml/yags"
+            xmlns:yb="http://yagsbook.sourceforge.net/xml"
+            techniques="options/techniques.yags">
+    <groups>
+        <group>Talents</group>
+        <group>Combat</group>
+        <group parent="Combat">Melee</group>
+        <group parent="Combat">Missile</group>
+        <group parent="Combat">Armed melee</group>
+        <group>Criminal</group>
+        <group>Social</group>
+        <group>Artistic</group>
+        <group>Craft</group>
+        <group>Business</group>
+        <group>Rural</group>
+        <group>Vehicle</group>
+    </groups>
+
+    <techniques>options/techniques.yags</techniques>
+
+
+    <!-- Athletics -->
+    <skill name="Athletics" type="talent">
+        <group>Talents</group>
+
+        <short>Jumping, climbing and running.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is a broad skill covering all forms of athletics,
+                gymnastics and acrobatics. It does not, however, cover
+                swimming or flying. It is split into the following
+                tasks.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Running">
+            <para>
+                Running represents a light jog which you can keep up for
+                many minutes without too much difficulty. When running,
+                you move a number of metres each round equal to your
+                <t>move</t> score. A point of fatigue is gained every
+                <y:health>athletics</y:health> minutes you are running.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Sprinting">
+            <para>
+                Sprinting represents an all out sprint, moving as quickly
+                as you can. You cannot do anything else whilst sprinting,
+                and most people can only sprint for a few rounds before
+                becoming exhausted.
+            </para>
+
+            <para>
+                When sprinting, you may move a distance in metres equal to
+                <t>move</t> x 2 + <e>athletics</e> each round, and gain a
+                point of fatigue each round.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Jumping">
+            <para>
+                Jumping represents both long jumps and high jumps.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Climbing">
+            <para>
+                Climbing things.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Jumping onto a table</example>
+            <example target="20">Jumping over a table</example>
+        </examples>
+    </skill>
+
+    <!-- Awareness -->
+    <skill name="Awareness" type="talent">
+        <group>Talents</group>
+
+        <short>General ability to notice things.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This skill is used by the character when there is a chance
+                of noticing something which isn't obvious, such as someone
+                trying to sneak around, people moving at a distance, or
+                looking for a secret door. If the character is asleep,
+                then any awareness rolls are quartered. If the character
+                is only dozing (or day dreaming), then rolls are halved.
+            </para>
+        </description>
+
+        <examples>
+            <example target="perception x stealth">
+                See a hidden person
+            </example>
+            <example target="agility x stealth">
+                Hear a sneaking person
+            </example>
+            <example target="10">Hear people talking through a door</example>
+            <example target="20">Hear people talking through a wall</example>
+            <example target="10">Hear someone walking on gravel</example>
+            <example target="15">Hear someone walking on leaves</example>
+            <example target="20">Hear someone walking on grass</example>
+            <example target="1/10m">See someone with casual glance</example>
+            <example target="1/25m">See someone with careful look</example>
+            <example target="x2 range">Vision during dusk</example>
+            <example target="x4 range">Vision under moonlight</example>
+            <example target="x10 range">Vision under starlight</example>
+        </examples>
+    </skill>
+
+    <!-- Brawl -->
+    <skill name="Brawl" type="talent">
+        <group>Talents</group>
+        <group>Combat</group>
+        <group>Melee</group>
+
+        <short>Punching, kicking, wrestling and dodging.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A general purpose combat skill covering dodging, punching
+                and wrestling. This is covered in more detail in the combat
+                section. It allows the use of small weapons such as knives
+                and daggers, as well as improvised weapons such as stones,
+                bottles, sticks and chairs.
+            </para>
+
+            <para>
+                A character may always use the <e>brawl</e> skill to dodge
+                even if they are using a weapon, but they don't get any
+                bonuses from the weapon if they do so.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Charm -->
+    <skill name="Charm" type="talent">
+        <group>Talents</group>
+        <group>Social</group>
+
+        <short>Being nice to people.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A high <e>charm</e> allows you to appear friendly and
+                sociable. It is nearly always based on <t>empathy</t>,
+                and allows you to make a good impression and gain people's
+                interest and trust.
+            </para>
+
+            <para>
+                <e>Charm</e> can be used to improve a second social skill
+                test (such as <e>guile</e>, <e>trade</e> or
+                <e>perform</e>). Make a <empathy>charm</empathy> check
+                against the <will/> of the target to gain a +3 bonus for
+                each level of success.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Carousing">
+            <para>
+                Used at parties and similar social gatherings. Can be used
+                to find out information, flirt or try and talk to someone
+                who might be otherwise difficult to talk to (such as a duke
+                surround by hangers-on and aids who won't let anyone else
+                near him). Generally not resisted.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Chatter">
+            <para>
+                Mindless chatter to try and draw information out of
+                someone, or to simply distract them. Generally not
+                resisted, unless the target is being deliberately close
+                mouthed about a subject.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Seduction">
+            <para>
+                Can try to seduce a person. Add appearance to <t>empathy</t>
+                for purposes of seduction attempts, and resisted with
+                the target's <t>will</t>.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Persuade">
+            <para>
+                If trying to change someone's mind by emotional arguments,
+                resisted with the target's <t>will</t>.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Not make a fool of yourself.</example>
+            <example target="20">Give a good impression.</example>
+            <example target="30">Be very likeable and understanding.</example>
+            <example target="40">Win friends and influence people easily.</example>
+        </examples>
+
+        <examples task="Carousing">
+            <example target="10">Survive a party.</example>
+            <example target="20">
+                Make a good impression. Get to talk to someone important.
+            </example>
+            <example target="30">
+                Make a very good impression. People will remember the
+                character favourably. Get to talk to someone important
+                who doesn't want to talk to you.
+            </example>
+            <example target="40">
+                Most popular person at the party.
+            </example>
+        </examples>
+
+        <examples task="Seduction">
+            <example target="-10">
+                Bad circumstances. Target of attempt is busy doing other
+                things, such as working or is tired.
+            </example>
+            <example target="-20">
+                Inappropriate circumstances. Target is on guard, or
+                doing something else important.
+            </example>
+            <example target="-30">
+                Highly inappropriate circumstances.
+            </example>
+        </examples>
+    </skill>
+
+    <!-- Guile -->
+    <skill name="Guile" type="talent">
+        <group>Talents</group>
+        <group>Social</group>
+
+        <short>Using and recognising deceit.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Guile</e> allows a character to use and understand
+                social methods of deception, through lying, body language
+                and actions. A character can lie by making an opposed
+                <y:will>guile</y:will> against the target's
+                <y:empathy>guile</y:empathy>. Success means that the target
+                is fooled, though the attempt may be modified by
+                circumstances based on how probably the lie is.
+            </para>
+
+            <para>
+                Will is generally used when trying to hide a character's
+                own emotions, <t>empathy</t> to understand another's and
+                <t>intelligence</t> to think quickly when inventing a
+                believable story.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Disguise">
+            <para>
+                The character can disguise either themselves or another
+                person by using <e>guile</e>. Make an <y:empathy>Guile</y:empathy>
+                check, normally against a difficulty of 10, as long as
+                no-one is taking notice of you. If somebody is specifically
+                looking at you (guards will, if you approach them), then they
+                get the original difficulty as a bonus to their
+                <y:empathy>Guile</y:empathy> or
+                <y:perception>Awareness</y:perception> (whichever is higher).
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Fast talk">
+            <para>
+                When trying to invent a plausible story quickly, then an
+                <y:intelligence>guile</y:intelligence>
+                check can often be called for, against the same for the
+                target. If the target finds the story plausible, then
+                opposed <t>empathy</t> and will checks may still be
+                necessary in order to hide the lie.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Taunt">
+            <para>
+                Make someone mad. Opposed with <t>will</t>.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Disguising yourself to fit in with a random crowd of people.
+                A random crowd on a high street for example.
+            </example>
+
+            <example target="20">
+                Disguising yourself to fit in with a specific group of
+                people. A soldier on a military base.
+            </example>
+
+            <example target="30+">
+                Disguising yourself to fit in amongst a small group of
+                people, where they all know each other. A security guard
+                for a single building.
+            </example>
+        </examples>
+    </skill>
+
+    <!-- Sleight -->
+    <skill name="Sleight" type="talent">
+        <group>Talents</group>
+        <group>Criminal</group>
+
+        <short>Sleight of hand.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Sleight of hand, from filching items on a market stall,
+                to picking someone's pockets. Can also be used for anything
+                which requires a great deal of fine dexterity, including
+                juggling, card shuffling and magical tricks.
+            </para>
+
+            <para>
+                If you try to do something without being noticed, then
+                you roll against the <y:perception>Awareness</y:perception>
+                of the target.
+            </para>
+        </description>
+
+        <examples>
+            <example target="Easy">
+                Shuffle a deck of cards, juggle two balls, take something
+                from a busy market stall.
+            </example>
+            <example target="Moderate">
+                Expertly shuffle a deck of cards, perform a simple sleight
+                of hand trick, pick a person's pocket on a busy street.
+            </example>
+            <example target="Difficult">
+                Shuffle a deck of hards how you want to. Pick a person's
+                pocket in a quiet environment.
+            </example>
+        </examples>
+    </skill>
+
+    <!-- Stealth -->
+    <skill name="Stealth" type="talent">
+        <group>Talents</group>
+        <group>Criminal</group>
+
+        <short>Hiding and moving quietly.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Moving quietly, hiding, and generally not being seen
+                or heard. Based on agility for moving quietly, or perception
+                for finding somewhere to hide.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Throw -->
+    <skill name="Throw" type="talent">
+        <group>Talents</group>
+        <group>Combat</group>
+        <group>Missile</group>
+
+        <short>Using thrown weapons, and catching things.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the ranged attack equivalent of the brawl skill,
+                and is used for throwing rocks, spears, knives, axes
+                etc at distance targets. The talent is perception based.
+                For hurled improvised weapons, short range is considered
+                to be four times strength, medium twice this, and long
+                range twice medium.
+            </para>
+
+            <para>
+                This skill can also be used to catch items. When trying
+                to catch an item, throw is dexterity based.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Tactics" type="standard">
+        <group>Combat</group>
+        <group>Military</group>
+
+        <short>Knowledge of combat tactics.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Tactics, strategy and leadership when planning and fighting
+                a battle involving small groups. It can be used to
+                choose a suitable site for battle, to determine weaknesses
+                in the enemy's strategy and defences, and to plan the
+                logistics of travel and supply.
+            </para>
+        </description>
+    </skill>
+
+
+    <!--
+        SOCIAL SKILLS
+    -->
+
+    <skill name="Etiquette" type="standard">
+        <group>Social</group>
+
+        <default>Charm</default>
+
+        <short>How to behave in polite company.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Etiquette is a knowledge of good manners and social
+                behaviour. It is of much greater use amongst the higher
+                classes than amongst the peasantry, where no-one really
+                cares which fork they use to eat their meal with, as
+                long as a meal is there to be eaten.
+            </para>
+
+            <para>
+                It may be used to know how to address someone of rank,
+                how to flirt with a noble Lady without offending her,
+                or how to behave at a joust or banquet. It is normally
+                based on intelligence, but may use <t>empathy</t>
+                (especially for courtly flirting or flattery).
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Flirt">
+            <para>
+                <e>Flirt</e> with a lady or gentleman in a polite and
+                possibly discreet way.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Intimidation" type="standard">
+        <group>Social</group>
+        <group>Criminal</group>
+
+        <default>Guile</default>
+
+        <short>Scare someone into doing what you want.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Being able to scare people, either with threats of simple
+                physical violence, or by more subtle means. Can either be
+                based on <t>strength</t> or <t>empathy</t>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Streetwise" type="standard">
+        <group>Social</group>
+        <group>Criminal</group>
+
+        <default>Guile</default>
+
+        <short>Dealing with the criminal underworld.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Streetwise</e> is similar to <e>Politics</e>, though is
+                more suited to life amongst the criminal classes. With it,
+                comes knowledge of how to survive on the street, how to
+                gain the trust of those who live on the wrong side of the
+                law, as well as how to find them in the first place.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Gambling" type="standard">
+        <group>Social</group>
+        <group>Criminal</group>
+        <default>Guile</default>
+
+        <short>Skill at playing card and dice games.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the skill of playing games of chance, such as
+                card games or dice games. This is a generic skill,
+                based around being able to spot patterns, work out
+                probabilities, bluff, cheat and basic gaming tactics.
+            </para>
+
+            <para>
+                A high skill represents a good, broad, knowledge of
+                all such games, and so a greater chance of knowing how
+                to play any given game, or at least knowing enough about
+                a similar game in order to be able to play well.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Game" type="standard">
+        <group>Social</group>
+
+        <short>Skill at a board game.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of, and skill at playing a game such as chess
+                or Hnefatafl. A skill is required for each game played,
+                though similar games may allow half skill. This is based
+                on intelligence.
+            </para>
+
+            <para>
+                The simplist way to find the winner for a game, is for
+                both opponents to roll their skill, and the highest roll
+                wins. If it is desired to play out the game in more
+                detail, then proceed as follows.
+            </para>
+
+            <para>
+                Each opponent makes a skill check each turn of the game.
+                If one exceeds the other by five or more, then they gain
+                an advantage. Each advantage gained gives +3 to the skill
+                check next turn. On gaining the fourth advantage, the
+                player is considered the winner. If the player with the
+                advantage looses a turn, then they loose a level of
+                advantage.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Knowing the rules to a game</example>
+            <example target="20">Playing a game reasonably well</example>
+        </examples>
+    </skill>
+
+    <skill name="Sport" type="standard">
+        <group>Social</group>
+
+        <short>Skill at a particular sport.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of, and skill at, playing a particular sport such
+                as Cricket, Football or Squash.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">Knowing the rules to a game</example>
+            <example target="20">Playing a game reasonably well</example>
+        </examples>
+    </skill>
+
+    <skill name="Lip reading" type="standard">
+        <group>Social</group>
+
+        <short>Understanding people by reading their lips.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of reading lips. Each 10 rolled gives an
+                equivalent point of language skill. There may be penalties
+                for distance, or partial visibility.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Perform" type="standard">
+        <group>Social</group>
+        <group>Artistic</group>
+        <default>Charm</default>
+
+        <short>Oratory, singing and poetry.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A skill which covers many forms of social skills,
+                including oratory, poetry and singing. It may be used to
+                rouse a crowd, invent some poetry on the spot, or remember
+                a poem or song well enough to recite or sing it.
+            </para>
+
+            <para>
+                The mood of the audience can be affected with either song,
+                poetry or oratory. The performer matches their skill roll
+                against the will of the audience. If the audience can be
+                treated as a <e>crowd</e>, take the average will and roll
+                once for the whole audience (a vocal few will tend to
+                lead the silent majority). Success by the performer will
+                mean the crowd listens to what the performer says, and
+                will think about it, though their opinion isn't shifted
+                greatly. For each full 10 the performer beats the will
+                of the crowd, the crowd's mood is shifted one category.
+            </para>
+
+            <para>
+                When singing or reciting poetry, the mood of the audience
+                can be shifted, sometimes considerably. This can be done
+                subtly, though it takes an evening of performance to carry
+                it out.
+            </para>
+
+            <para>
+                A more direct way to sway an audience is through oratory.
+                This is quicker and more direct then by choice of song,
+                but is also pretty blatent.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Sing without inflicting pain on listeners. Less than this
+                may get the character forcibly removed from the stage.
+            </example>
+
+            <example target="20">
+                Sing well enough to impress the audience, though not in a
+                way that will be particularly remembered.
+            </example>
+
+            <example target="30">
+                Sing very well. The singer will be well received, and
+                probably kept around for more of the same. The mood of
+                the audience can be shifted subtly.
+            </example>
+
+            <example target="40">
+                The singer will be spoken of for months to come, and people
+                will be most eager to please. The mood of the audience can
+                be shifted noticeably.
+            </example>
+
+            <example target="50">
+                All others will be compared (probably unfavourably) to the
+                singer, who will be heralded as a master of their art. The
+                singer pretty much has control over the mood of the audience.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Musician" type="standard">
+        <group>Artistic</group>
+
+        <short>Playing musical instruments.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of playing musical instruments, whether they are
+                a drum, a flute or a harp.
+            </para>
+        </description>
+        <examples>
+            <example target="15">Play without sending people running for cover</example>
+            <example target="20">Play in tune with others</example>
+            <example target="30">Play very well</example>
+        </examples>
+    </skill>
+
+    <skill name="Dance" type="standard">
+        <group>Artistic</group>
+
+        <default>Athletics</default>
+
+        <short>Dancing with skill and grace.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With <e>Dance</e> you are able to impress people with your
+                graceful dances. It allows you to know the common types of
+                dances, as well as the ability to actually dance. With
+                sufficient skill, you will be able to improvise new dances,
+                and work with a partner to complement their improvisations.
+            </para>
+
+            <para>
+                The skill covers all forms of dancing, though you can buy
+                techniques which provide bonuses in specialisations.
+            </para>
+        </description>
+
+        <examples>
+            <example target="0">
+                You are clumsy and obviously unskilled. You will give a
+                poor impression to anyone who is watching.
+            </example>
+
+            <example target="10">
+                Nothing special, but you don't make any big mistakes
+                (though lots of little ones). People won't pay to watch
+                you dance.
+            </example>
+
+            <example target="20">
+                You dance with competence and some degree of grace. Your
+                dancing will please most people.
+            </example>
+
+            <example target="30">
+                Very good dancing, which will impress most people. You
+                get a +1 bonus to the reaction level of people who saw you
+                dance.
+            </example>
+
+            <example target="40">
+                An excellent performance which will impress pretty much
+                everyone. You can a +2 bonus to the reaction level of
+                those around you. Probably a level of skill better than
+                most people have seen.
+            </example>
+
+            <example target="50">
+                An outstanding performance of skill and grace. You gain
+                a +2 reaction bonus, or +3 if asking someone to share a
+                dance with you.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Artist" type="standard">
+        <group>Artistic</group>
+
+        <short>Painting and drawing.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The ability to draw or paint competently. Used with
+                dexterity, or with intelligence to try and accurately draw
+                some scene from memory.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Calligraphy" type="standard">
+        <group>Artistic</group>
+
+        <short>Writing beautifully.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of writing in a way that produces a work of
+                art, as well as a record of knowledge.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Area lore" type="knowledge">
+        <group>Academic</group>
+
+        <short>Knowledge about a given region.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of a given area, including geographical and
+                political knowledge. The <e>Area lore</e> skill is used
+                when checking to see if a character has heard of a person,
+                place or organisation. Area lore is nearly always based on
+                intelligence.
+            </para>
+
+            <para>
+                There is an area lore skill for each area, normally an area
+                the size of a country, with the same culture. An area lore
+                skill can give knowledge of surrounding areas, though such
+                knowledge will be prejudiced by the beliefs of the original
+                area the skill is for.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Knowledge that everyone knows, such as who the ruler is,
+                to names of major cities.
+            </example>
+        </examples>
+    </skill>
+
+
+    <skill name="First aid" type="knowledge">
+        <group>Academic</group>
+
+        <short>Healing injuries and other ailments.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Provides care and treatment of wounds to stop bleeding and
+                prevent infection. Once a wound has been successfully
+                first aided, it may begin healing naturally. First aid
+                checks are generally made with intelligence. First aid can
+                also be used to treat stuns.
+            </para>
+
+            <para>
+                To treat a character's wounds, the base difficulty is 10.
+                This is modified upwards by the total of the character's
+                stun and wound penalties (a fatally wounded character (-15)
+                would be difficulty 25 to treat). Success means that the
+                wounds will begin healing naturally. If the roll was made
+                by 10 or more, then one level of wound is also healed.
+            </para>
+
+            <para>
+                Stuns are a base difficulty of zero to first aid, again
+                modified by total stun and wound penalties. Success heals
+                one stun, and each 10 over that heals another level of
+                stuns. Stuns do not need to be treated before they begin
+                healing.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Animal husbandry" type="knowledge">
+        <group>Rural</group>
+        <default>First aid</default>
+
+        <short>Healing for animals.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Looking after animals, especially on a farm. May be used
+                to tend to sick or injured animals, in which case it may
+                default to <e>first aid</e>.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="History" type="knowledge">
+        <group>Academic</group>
+
+        <short>Knowledge about historical events.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of the past, especially the last few hundred
+                years. Based on intelligence.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Law" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <short>Knowledge about the law of the land.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge and understanding of the law, and how to apply
+                it in a given situation. Based on intelligence.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Religion" type="knowledge">
+        <group>Academic</group>
+
+        <short>Knowledge about gods and cults.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of the traditions, ceremonies, laws, gods,
+                priests and mythology of a given religion. More broad or
+                narrow the skill is depends very much on the culture
+                and the level of knowledge required. In a monotheistic
+                culture, especially where knowledge of other religions
+                is discouraged (e.g. Medieval Europe), each religion
+                will have its own skill, and this will give little
+                knowledge of the others.
+            </para>
+
+            <para>
+                In a pantheistic culture, one skill can give knowledge
+                of all the gods and cults, though only on a general
+                level. Single skills will exist for each individual cult,
+                which will also give knowledge of other cults, though
+                that knowledge may be coloured by prejudice.
+            </para>
+
+            <para>
+                Where a religion actually grants supernatural abilities
+                to its cult members or priests, these may be represented
+                as <e>techniques</e> based on the cult's specific skill.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Theology" type="knowledge">
+        <group>Academic</group>
+        <default>Religion</default>
+
+        <short>Theoretical knowledge about religion.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The theory of religion, used by people who want to
+                understand the why and how of religious beliefs. In many
+                cultures doing this too critically can lead to charges
+                of heresy, thought good use of this skill will enable the
+                character to argue effectively and <e>safely</e> with
+                others.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Speak language" type="language">
+        <group>Language</group>
+
+        <short>The ability to speak a language.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The ability to speak a language. Every character starts
+                with a score of 4 in speaking their own language. This
+                skill is rarely rolled, but instead gives an indication
+                of the character's grasp of a language.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Teach" type="standard">
+        <group>Social</group>
+        <group>Academic</group>
+
+        <short>The ability to teach people.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The ability to teach another person, and train them in
+                the use of a skill. See the Campaign section for details
+                on training.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Trade" type="standard">
+        <group>Social</group>
+        <group>Business</group>
+        <default>Guile</default>
+
+        <short>Bartering and other merchant skills.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Covers a multitude of skills involved with trading,
+                including bartering, and having some clue as to the
+                value of goods.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Cooking" type="standard">
+        <group>Craft</group>
+        <group>Rural</group>
+
+        <short>Preparing meals.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The preparing, preserving and cooking of food. Includes
+                some knowledge of herbs.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Handicraft" type="standard">
+        <group>Craft</group>
+        <group>Rural</group>
+
+        <short>Skill at various village crafts.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The making of baskets, embroidery and other similar village
+                hand crafts not covered by other professional skills. It is
+                generally seen as the province of women.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Ride" type="standard">
+        <group>Rural</group>
+
+        <short>Riding horses.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The ability to ride, normally a horse. A different skill
+                is needed for different types of animals (horses and ponies
+                would be the same skill, a Griffin another skill). As well
+                as enabling you to remain mounted, it grants a bonus to
+                combat skills when mounted if the relevant techniques
+                are known.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Survival" type="standard">
+        <group>Rural</group>
+
+        <short>Living in the wilderness.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                With this skill, you are capable of surviving on many
+                different types of terrain by foraging and hunting. There
+                is a single skill, which covers all terrain types, though
+                a number of techniques are needed to survive in harsh
+                environments without penalty. <e>Survival</e> also covers
+                tracking, finding shelter and travelling safely and
+                quickly.
+            </para>
+
+            <para>
+                On coastal lands (where it is possible to fish), plains,
+                woodlands and low mountain regions, the basic skill will
+                suffice. In desert, arctic or jungle environments, then
+                a technique is required. High mountains may count as
+                arctic, swamps may count as coastal or jungle, depending
+                on the exact environment.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Foraging">
+            <para>
+                When foraging for food, it takes four hours
+                for each roll. Each five over the difficulty allows enough
+                food to be found for another two people. If more food is
+                found than is needed, then the forager has the option of
+                stopping early as soon as enough food has been found. Assume
+                that food is found at a consistent rate through the time
+                period.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Hunting">
+            <para>
+                Similar to foraging, it takes four hours
+                for each attempt to hunt game. Success indicates that
+                suitable game has been found, and relevant combat skills
+                are required to actually kill the animal. In this case,
+                game is large game animals, such as deer.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Navigation">
+            <para>
+                Anyone with any survival skill can
+                navigate by use of the sun and stars. This is unaffected
+                by the terrain type and difficulty of surviving in that
+                terrain. When attempting to navigate, use the character's
+                highest survival skill.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml" task="Tracking">
+            <para>
+                Survival can be used to track others by
+                their footprints and other signs. It is possible to
+                estimate the type of animal, their number and how long it
+                has been since the tracks were made. Of course, it can be
+                used to track people as well.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Base difficulty for woodland, plains or coastal regions.
+            </example>
+
+            <example target="20">
+                Base difficulty for mountain, swamp or jungle.
+            </example>
+
+            <example target="30">
+                Base difficulty for desert or arctic regions.
+            </example>
+
+            <example target="+0">Find a suitable shelter</example>
+            <example target="+0">Forage for food for one person</example>
+            <example target="-10">Good conditions</example>
+            <example target="+10">Poor conditions</example>
+            <example target="+20">Very poor conditions (e.g. winter)</example>
+
+            <example target="15">
+                Accurately determine direction, time of day or night
+                according to the position of sun, moon or stars.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Scrounging" type="standard">
+        <group>Craft</group>
+
+        <short>Finding and fixing scrap.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Being able to turn useless scrap into something useful. Used
+                with intelligence. Covers finding, planning and building,
+                though skills such as <e>carpentry</e> or <e>blacksmith</e>
+                may be needed as well.
+            </para>
+        </description>
+    </skill>
+
+    <!--
+        VEHICLE SKILLS
+
+        Skills concerned with the use of vehicles such as cars, boats and aircraft.
+    -->
+    <skill name="Boating" type="standard">
+        <group>Vehicle</group>
+        <group>Rural</group>
+
+        <short>Handling small watercraft.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Being able to use a small oared boat. Based on intelligence
+                for judging travel conditions, strength for speed or
+                dexterity for fine navigation.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Row a boat in a straight line in calm conditions.
+            </example>
+            <example target="15">Row a boat in choppy conditions</example>
+            <example target="20">Row a boat in rough conditions (open sea)</example>
+            <example target="30">Very rough conditions</example>
+            <example target="40">Row in a storm</example>
+        </examples>
+    </skill>
+
+    <skill name="Drive" type="skill">
+        <group>Vehicle</group>
+
+        <short>Driving simple ground vehicles.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of driving a car or similar sized
+                vehicle. Larger vehicles (lorry, tank) use this skill,
+                though may require techniques for competence.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Motorbike" type="skill">
+        <group>Vehicle</group>
+        <default>Drive</default>
+        <short>Riding a motorbike.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of driving a motorcycle, or similar two wheeled
+                vehicles.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Pilot" type="skill">
+        <group>Vehicle</group>
+
+        <short>Piloting a powered aircraft.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of piloting a powered aircraft. By default it
+                assumes a small low performance aircraft.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Gliding" type="skill">
+        <group>Vehicle</group>
+        <group>Sport</group>
+
+        <short>Piloting an unpowered aircraft.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have experience in flying gliders. This skill provides
+                you with the ability to fly a glider, to know how to find
+                and use thermals and geographic features for lift and how
+                to look after and maintain a glider. You'll also have
+                some knowledge of aviation law and etiquette.
+            </para>
+        </description>
+    </skill>
+
+    <!-- Combat skills -->
+    <skill name="Melee weapon" type="standard">
+        <group>Combat</group>
+        <group>Armed melee</group>
+        <default>Brawl</default>
+        <short>Using a sword, club or spear.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of using a simple melee weapon, such as blades,
+                spears and clubs. This skill covers all such weapons, as
+                their use with a shield or a second parrying weapon.
+                Exotic weapons, such as chain weapons, aren't covered
+                since they are used in a completely different way. Small
+                weapons such as knives however are used with the <e>Brawl</e>
+                skill.
+            </para>
+
+            <para>
+                Melee weapon is used with <t>Dexterity</t>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Chain weapon" type="standard">
+        <group>Combat</group>
+        <group>Armed melee</group>
+        <default>Melee weapon</default>
+        <short>Using chains, nunchuk or similar weapons.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Using flexible chain melee weapons.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Bow" type="standard">
+        <group>Combat</group>
+        <group>Missile</group>
+        <short>Using a short bow or long bow.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of using a bow as a ranged weapon.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Crossbow" type="standard">
+        <group>Combat</group>
+        <group>Missile</group>
+        <short>Using a crossbow.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of using a crossbow as a ranged weapon.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Pistol">
+        <group>Combat</group>
+        <group>Firearms</group>
+        <default>Rifle</default>
+
+        <short>Firing pistols, revolvers and SMGs.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You are skilled in firing pistols and similar small hand
+                guns, including revolvers, automatic pistols and SMGs.
+                This skill is most effective at short ranges and when in
+                close combat with the target. It is always based on
+                <t>Dexterity</t>.
+            </para>
+
+            <para>
+                At short range, you may normally add the attack bonus of
+                the weapon to your attack roll unless you are making a
+                <e>snapshot</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Rifle">
+        <group>Combat</group>
+        <group>Firearms</group>
+        <default>Pistol</default>
+
+        <short>Firing rifles.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The use and handling of rifles, carbines, shotguns
+                and the like. It is not very effective at very close range,
+                but is designed for short to medium ranges. Can be used
+                with either <t>Dexterity</t> or <t>Perception</t>.
+                Add-ons to rifles such as an underslung grenade launcher
+                may also be used with this skill instead of the more
+                usual <e>Heavy Weapons</e> skill, but always use
+                <t>Perception</t>.
+            </para>
+
+            <para>
+                At short range, you may normally add the attack bonus of
+                the weapon to your attack roll unless you are making a
+                <e>snapshot</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Heavy weapons" type="skill">
+        <group>Combat</group>
+        <group>Firearms</group>
+        <group>Vehicle</group>
+        <default>Rifle</default>
+
+        <short>Using heavy machine guns.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This skill provides you with knowledge of how to use
+                heavy weapons such as vehicle mounted machine guns,
+                grenade launchers, anti-tank weapons and mortars.
+                Most non-man portable weapons fall into this
+                category. Always uses <t>Perception</t> when
+                firing weapons.
+            </para>
+        </description>
+    </skill>
+</skill-list>
+
+
+

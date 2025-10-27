@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+
+<!--
+    Small arms weapons from the real world, approximately 1945 - 1980.
+
+    Copyright 2007 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted as long as the above copyright
+    notice is retained.
+
+    Version: $Revision: 1.2 $
+    Date:    $Date: 2007-10-13 12:55:40 $
+
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices are in US dollars.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="X54 Hunter Pack">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>7</techLevel>
+        <legality>2</legality>
+        <weight>25000</weight>
+        <cost>35000</cost>
+
+        <short>Portable smart missile launcher.</short>
+        <description>
+            <para>
+                A portable backpack carrying 6 micro-missiles normally
+                equipped with HEX warheads. They link in with the soldier's
+                rifle or HUD to pinpoint the rough location of the enemy,
+                launch themselves on a high angle ballistic trajectory,
+                then use automated smart guidance to pinpoint the exact
+                locations and perform final flight corrections before
+                impacting with the targets.
+            </para>
+
+            <para>
+                They are designed to take out targets dug in behind walls
+                or inside buildings. A <e>Heavy Weapons</e> skill check
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+            <combat>
+                <attack>25</attack><damage>25</damage>
+                <range>
+                    <increment>500</increment>
+                    <short>2000</short><medium>4000</medium><long>5000</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>25</load><reach>0</reach>
+            <capacity>6</capacity><rof>1</rof><recoil>-20</recoil>
+            <properties>
+                <missile/><vehicle/><heavy/>
+                <guided type="clever" score="3"/>
+                <explosive score="2"/>
+                <reload score="4"/>
+            </properties>
+        </weapon>
+    </item>
+
+   <item name="GAU-25 Vindicator">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>9</techLevel>
+        <legality>3</legality>
+        <weight>220000</weight>
+        <cost>45000</cost>
+
+        <short>30mm Gatling cannon.</short>
+        <description>
+            <para>
+                Similar to its predecessors, the GAU-25 is a gauss based
+                rotary cannon that fires 25mm rounds at over 6000rpm, with a
+                muzzle velocity of well over 1km/s. It is normally vehicle
+                mounted, though is sometimes used on fixed emplacements as
+                anti-air defence.
+            </para>
+
+            <para>
+                Typically, the magazine is loaded with a mixture of armour
+                piercing and high explosive rounds for maximum effectiveness
+                against armoured targets.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+            <combat>
+                <attack>+12</attack><damage>27</damage>
+                <range>
+                    <increment>50</increment>
+                    <short>1200</short><medium>3600</medium><long>9000</long>
+                </range>
+            </combat>
+            <strength>8</strength><load>220</load><reach>5</reach>
+            <capacity>2000</capacity><rof>500</rof><recoil>-20</recoil>
+            <properties>
+                <missile/><firearm/><automatic score="50"/>
+                <vehicle/><heavy/><explosive score="2"/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+   <item name="XV-A2 Laser Point Defence">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>9</techLevel>
+        <legality>3</legality>
+        <weight>300000</weight>
+        <cost>150000</cost>
+
+        <short>Laser cannon.</short>
+        <description>
+            <para>
+                The XV-A2 enters operational service with the military in early
+                TL 9, and is one of the first practical uses for a laser based
+                weapon system. Designed principally as point defence, it's high
+                accuracy makes it ideal for use against missiles and aircraft.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+            <combat>
+                <attack>+17</attack><damage>22</damage>
+                <range>
+                    <increment>100</increment>
+                    <short>2000</short><medium>4000</medium><long>6000</long>
+                </range>
+            </combat>
+            <strength>8</strength><load>300</load><reach>5</reach>
+            <capacity>120</capacity><rof>10</rof><recoil>0</recoil>
+            <properties>
+                <missile/><firearm/><automatic score="10"/>
+                <vehicle/><heavy/><laser/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+</equipment>
+
+

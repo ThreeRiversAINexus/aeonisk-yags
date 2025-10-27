@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Iron Runes.
+-->
+<grimoire xmlns="https://yags-rpg.net/xml/yags"
+          name="Sídero">
+
+    <description xmlns="https://yags-rpg.net/xml">
+        <para>
+            Runes of <e>Sídero</e> represent unyielding iron. It focuses on making things
+            stronger, more stable and less likely to change. It can also provide you with
+            control over metal objects and materials.
+        </para>
+    </description>
+
+    <!--
+        Level 10 Runes.
+        May have a maximum of one boost.
+    -->
+    <spell name="Harden" level="10" type="iron">
+        <range>Touch</range>
+        <duration>Minutes</duration>
+        <target>Tiny</target>
+
+        <short>Make an inanimate item harder.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You lay an enchantment upon an inanimate object that increases
+                its resistance to damage, given it a +5 bonus to soak. The item
+                will become less flexible and more brittle in the process.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The soak bonus is increased to +10.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Dispassion" level="10" type="iron">
+        <range>Touch</range>
+        <duration>Minutes</duration>
+        <target>Individual</target>
+        <resist>Will 15</resist>
+
+        <short>Close a person's mind to emotion.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Those you enchant with this rune will have their emotions
+                reduced, providing a +1 bonus to all their <e>Virtues</e>.
+                They become less likely to indulge their vices. If someone
+                chooses to indulge a vice, then the magic is broken and
+                they lose their bonus.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The bonus is increased to +2.
+            </para>
+        </description>
+    </spell>
+    
+    <!--
+        Level 20 Runes.
+        May have a maximum of one boost.
+    -->
+
+
+    <spell name="Shield" level="20" type="iron">
+        <range>Self</range>
+        <duration>Rounds</duration>
+        <target>Self</target>
+        <prerequisite>Harden</prerequisite>
+
+        <short>Ward yourself against metal weapons.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You lay an enchantment upon yourself that protects you against
+                metal weapons. Any attack that uses a metal weapon (including
+                spears or arrows that have metal points) gives you a +5 defence
+                bonus. This affects any active defences that you make, as well
+                as your passive defence.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The defence bonus is increased to +10.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Toughen" level="20" type="iron">
+        <range>Touch</range>
+        <duration>Rounds</duration>
+        <target>Individual</target>
+        <prerequisite>Harden</prerequisite>
+
+        <short>Make a living creature tougher.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You lay an enchantment upon yourself or another creature, protecting
+                them from harm. They gain a +4 bonus to their soak score whilst under
+                the effects of the spell, but their <t>Agility</t> is reduced
+                by one.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The soak bonus is increased to +7, or the target's <t>Agility</t>
+                is unaffected.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Sharpen" level="20" type="iron">
+        <range>Touch</range>
+        <duration>Rounds</duration>
+        <target>Individual</target>
+        <prerequisite>Harden</prerequisite>
+
+        <short>Make a weapon sharper.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You lay an enchantment upon each weapon that you touch,
+                increasing its sharpness. This will affect only edged or
+                piercing weapons. The damage of the weapon is increased by +4.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The damage of the weapon is increased by +7.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Burst" level="20" type="iron">
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <radius>Tiny</radius>
+        <prerequisite>Harden</prerequisite>
+
+        <short>Makes the ground burst into shrapnel.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The ground at the specified  point bursts apart, hitting everyone within the
+                radius of the effect with sharp shards of rock, causing +7 wounding damage,
+                and +7 stun damage out to twice that radius.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The damage is +11.
+            </para>
+        </description>
+    </spell>
+
+    <!--
+        Level 30 Runes.
+        May have a maximum of two boosts.
+    -->
+
+
+    <spell name="Slow" level="30" type="iron">
+        <range>Medium</range>
+        <duration>Rounds</duration>
+        <target>Few</target>
+        <resist>Strength</resist>
+        <prerequisite>Toughen</prerequisite>
+
+        <short>Make the targets slower.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With this rune, you cause those affected to become slower, reducing
+                their <t>Dexterity</t> and <t>Agility</t> by one unless they make a
+                TN 25 <t>Strength</t> check. Each full 10 they fail by, their
+                attributes are reduced by another 1.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The resistence check becomes TN 30, and their current initiative
+                is halved regardless of whether they resist.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The resistence check becomes TN 35, and their current initiative is
+                reduced to zero, regardless of whether they resist.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Grasp" level="30" type="iron">
+        <range>Reach</range>
+        <duration>Momentary</duration>
+        <target>Tiny</target>
+        <prerequisite>Shield</prerequisite>
+
+        <short>Make a metal item fly to your hand.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Any single unliving item within range immediately flies to your hand.
+                The item can be no larger or heavier than what you can hold
+                in one hand. If the item is restrained, or being held by another,
+                then the casting fails.
+            </para>
+            <para>
+                If you wish, the item may fall at your feet rather than land in
+                your hand.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                If the item is being held by another, you make an opposed check
+                with your <t>Will</t> against their <t>Strength</t>. If you win,
+                they lose the item and it moves to your hand. Alternatively, you
+                can move the item to anywhere within range rather than having it
+                come to you.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You can take a held object and move it to anywhere within range
+                of the spell. If you wish, you can make a single attack with it
+                against a target, using your <e>Finesse</e> skill to attack, with
+                no attack bonuses, and your <t>Will</t> as the strength.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Strength" level="30" type="iron">
+        <range>Touch</range>
+        <duration>Minutes</duration>
+        <target>Individual</target>
+        <prerequisite>Toughen</prerequisite>
+
+        <short>Make a creature stronger.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You lay an enchantment upon a creature, providing them with a
+                +1 bonus to their <t>Strength</t>. For every five full points
+                that they naturally have, the bonus is increased by +1.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The bonus is increased to +2.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The bonus is increased to +3.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Shards" level="40" type="iron">
+        <range>Long</range>
+        <duration>Momentary</duration>
+        <target>One</target>
+        <prerequisite>Grasp</prerequisite>
+
+        <short>Create shards of metal that pierce the target.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You create shards of metal which fly at the target at high speed causing
+                +20 wounding damage. The count as <e>bolts</e>.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The damage is +25.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The damage is +30.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Dance" level="40" type="iron">
+        <range>Reach</range>
+        <duration>Rounds</duration>
+        <target>One</target>
+        <prerequisite>Grasp</prerequisite>
+
+        <short>Cause a metal weapon to fight by itself.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A single metal weapon (or similar object which could be held by
+                you and used as a weapon) can be made to fight by itself, attacking
+                one person within range.
+            </para>
+            <para>
+                The weapon's attack skill is equal to your <e>Finesse</e> skill, but
+                it uses your <t>Intelligence</t> as the attribute. It gets its normal
+                attack bonus, and does damage as normal using your <t>Will</t> instead
+                of <t>Strength</t>.
+            </para>
+            <para>
+                Whilst concentrating on this spell, you do not halve your skill
+                used for attacking with this weapon.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You gain a bonus to your attacks equal to your <e>Sídero</e> score.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                You gain a bonus to your attacks equal to twice your <e>Sídero</e> score.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Rust" level="40" type="iron">
+        <range>Touch</range>
+        <duration>Momentary</duration>
+        <target>Individual</target>
+        <prerequisite>Grasp</prerequisite>
+
+        <short>Cause a metal item to turn to rust.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A single metal object up to the size of a set of armour turns to
+                rust and falls apart within a round. The item must be a single
+                continuous piece of metal, such as a sword but not including mail
+                armour.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You can affect a complex item such as a suit of mail armour.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The item can be made to explode into many sharp pieces, doing +10
+                damage to all within 3m, or double damage to the wearer if the item
+                is a set of full metal armour.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Stuck" level="40" type="iron">
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <target>Few</target>
+        <resist>Strength 30</resist>
+        <prerequisite>Slow</prerequisite>
+
+        <short>Stuns the targets.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When cast upon creatures, it causes anyone in contact with the ground to
+                be suddenly, and temporarily, routed to the spot unless they resist it
+                with a <t>Strength</t> TN 30 check. If they fail, their <e>Initiative</e>
+                is dropped to 30. On success, they suffer -10 to <e>Initiative</e>.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The resistence check becomes TN 35. Those who fail lose any further actions
+                they have this round.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The resistence check becomes TN 40. Everyone loses any further actions
+                they have this round.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Heavy" level="50" type="iron">
+        <range>Long</range>
+        <duration>Minutes</duration>
+        <target>Large</target>
+        <resist>Health 35</resist>
+        <prerequisite>Stuck</prerequisite>
+
+        <short>Make the targets heavier.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When cast upon a living creature that is in contact with the ground, it's 
+                weight and that of any equipment it is carrying or wearing is doubled. They
+                immediately fall prone, unable to move,
+            </para>
+            <para>
+                Any weapons they are carrying, including shields, lose all attack and
+                defence bonuses because of the extra weight.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The resistence check becomes TN 30, and their current initiative
+                is halved regardless of whether they resist.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The resistence check becomes TN 35, and their current initiative is
+                reduced to zero, regardless of whether they resist.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Imprison" level="60" type="iron">
+        <range>Long</range>
+        <duration>Days</duration>
+        <target>Medium</target>
+        <resist>Health 40</resist>
+        <prerequisite>Heavy</prerequisite>
+
+        <short>Make the targets heavier.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When cast upon a living creature that is in contact with the ground, it
+                is immediately encased in stone, unable to move or act. They are preserved
+                in a state of suspended animation for as long as the spell lasts.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The resistence check becomes TN 45.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The resistence check becomes TN 50.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Superb)">
+            <para>
+                The resistence check becomes TN 55.
+            </para>
+        </description>
+    </spell>
+
+</grimoire>
+
+

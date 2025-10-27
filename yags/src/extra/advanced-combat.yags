@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/web/xsl/yagsbook/html/yagsbook.xsl" type="text/xsl"?>
+
+
+
+<article
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="yagsbook.xsd">
+
+
+    <header>
+        <title>Advanced Combat</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            Rules for advanced combat. Mostly beta rules which haven't made
+            it into the main rule set.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@bifrost.demon.co.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.17 $</version>
+            <date>$Date: 2004-01-07 16:16:19 $</date>
+        </cvsinfo>
+        
+        <license>
+            <year>2003</year>
+            <holder>Samuel Penn</holder>
+            <url>http://www.gnu.org/licenses/fdl.html</url>
+            <text>
+                Permission is granted to copy, distribute and/or
+                modify this document under the terms of the GNU
+                Free Documentation License, Version 1.1; with no
+                invariant sections, no Front-Cover Texts, and with
+                no Back-Cover Texts.
+            </text>
+        </license>
+
+        <style name="combat"/>
+
+        <publishing>
+            <doNotPublish value="true"/>
+        </publishing>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Advanced Combat</title>
+            
+            <para>
+                This article describes more detailed combat rules, which
+                have yet to make it into the main set of rules for combat.
+            </para>
+        </sect1>
+
+
+
+        <sect1>
+            <title>New Melee Rules</title>
+
+            <para>
+                These rules are either new, or replace the rules given in
+                the basic combat rules.
+            </para>
+
+
+
+            <sect2>
+                <title>Showing Off</title>
+
+                <para>
+                    Anyone with a melee combat skill of 1 or more can attempt
+                    to show off their prowess with a display of skill. In
+                    some cases, this can be used to discourage attackers,
+                    ending the fight before it even begins.
+                </para>
+
+                <para>
+                    The warrior chooses a difficulty - any multiple of 10.
+                    The higher the difficulty the more
+                    impressive the display, but obviously the harder it is
+                    to attempt. The skill check is unaffected by weapon
+                    modifiers - simply dexterity and skill.
+                </para>
+
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Effect</valueLabel>
+
+                    <entry target="10" value="Basic competence.">
+                        This demonstrates that the warrior knows which
+                        end of the weapon is which. It won't impress
+                        anyone, but it's a beginning.
+                    </entry>
+
+                    <entry target="20" value="Skilled.">
+                        A somewhat impressive display of skill, though
+                        nothing out of the ordinary. However, it may cause
+                        peasants to think twice before making a move against
+                        the warrior.
+                    </entry>
+
+                    <entry target="30" value="Expert.">
+                        A demonstration of skill that most warriors would
+                        be hard pressed to achieve.
+                    </entry>
+
+                    <entry target="40" value="Master.">
+                    </entry>
+
+                    <entry target="50" value="Grand master.">
+                    </entry>
+                </targetlist>
+
+                <para>
+                    Success in the skill check means that observers with a
+                    <skillequation>
+                        <attribute>dexterity</attribute>
+                        <skill>weapon skill</skill>
+                    </skillequation>
+                    of less than the demonstrator's, has to make a bravery
+                    check in order to engage in combat. The difficulty is
+                    15 + difference in skill. Failure means they will try to
+                    avoid combat, and be at -5 to skills if they do engage,
+                    due to fear. Failure by 10 or more means they will try
+                    to avoid combat at all costs.
+                </para>
+            </sect2>
+        </sect1>
+
+
+
+        <sect1>
+            <title>Damage to Arms and Armour</title>
+
+            <para>
+                In any fight, it is possible that both weapons and armour
+                will become damaged.
+            </para>
+        </sect1>
+    </body>
+</article>

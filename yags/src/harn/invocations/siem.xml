@@ -1,0 +1,224 @@
+<?xml version="1.0" ?>
+
+<invocations>
+
+<invocation religion="Siem" rank="1">
+<name>Counsel of Sweldre I</name>
+<time>1 minute</time>
+<range>Self</range>
+<difficulty>10</difficulty>
+<cost>Low/immediate</cost>
+<boost difficulty="20">May present a problem to Siem</boost>
+<boost difficulty="30">Reply may be visual in nature</boost>
+<description>
+Gives the priest insight into the proper course of action
+in a moral quandary. The priest may either ask a question,
+or outline a problem. In the former case, a one word answer
+of yes, no or maybe will be given. The latter answer is
+used when Siem feels that the solution is a personal one for
+the priest, and neither course is preferable to the god.
+If a problem is presented, then the god will give some
+insight, often by highlighting that issue which is of the
+most import to Siem. The latter type of question can only
+be presented by using the more difficult form of the
+invocation.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="1">
+<name>The Twilight Scribe's Question I</name>
+<time>1 round</time>
+<range>Touch</range>
+<difficulty>10</difficulty>
+<cost>Low/immediate/1</cost>
+<description>
+All plants, animals, and spirits have a unique true name and
+knowing it is very useful. Priest learns the true name of any
+entity touched.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="1">
+<name>Curse of Sloth I</name>
+<time>1 round</time>
+<range>Near</range>
+<difficulty>20</difficulty>
+<cost>Low/2</cost>
+<duration>Sleep</duration>
+<description>
+The priest can specify a number of people within range not
+exceeding their invocation skill. For each twenty points
+rolled on invocation, the target's agility is reduced by one.
+The reduction is automatic.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="1">
+<name>Ilsiri Dance I</name>
+<time>15 minutes</time>
+<range>Horizon</range>
+<difficulty>20</difficulty>
+<cost>Moderate/immediate</cost>
+<description>
+Calls an Ilsiri within range. The animal may resist with a will
+check, unless its true name is used in the invocation. Ilsiri
+are sometimes mischievious, sometimes helpful. Ilsiri are animal
+and nature spirits who are followers of Siem.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Nature's Aid II</name>
+<time>15 minutes</time>
+<range>Horizon</range>
+<difficulty>10</difficulty>
+<cost>Moderate/immediate/1</cost>
+<boost difficulty="30">Half a dozen animals may be called</boost>
+<boost difficulty="50">Two dozen animals</boost>
+<description>
+Calls a friendly animal within range. The animal may resist with
+a will check, unless their true name is used. The animal may be
+asked to help in some way, and it will do so, though long or
+difficult tasks may require payment in the form of food or
+comfort.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Sereniel's Stone II</name>
+<time>1 minute</time>
+<range>Touch</range>
+<difficulty>10</difficulty>
+<cost>Low/immediate</cost>
+<description>
+Priest learns the type of rock or mineral touched and its purity.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Siem's Blessing II</name>
+<time>15 minutes</time>
+<range>Touch</range>
+<difficulty>20</difficulty>
+<cost>Mod./immediate/1</cost>
+<description>
+Gives a bonus of +1 per 20 rolled on the invocation to either
+strength or perception until sleep. Multiple bonuses can be
+split between different attributes.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Water of the Azure Bowl II</name>
+<time>15 minutes</time>
+<range>Touch</range>
+<difficulty>10</difficulty>
+<cost>Low/immediate</cost>
+<description>
+Purifies up to 1 litre of water per point of invocation rolled.
+The water must be in a single container.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Yael's Calm II</name>
+<time>1 round</time>
+<range>Near</range>
+<difficulty>20</difficulty>
+<cost>Low</cost>
+<description>
+Ends fighting within range. Combatants must make a will roll to
+continue fighting.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Truthsight II</name>
+<time>1 minute</time>
+<range>Near</range>
+<difficulty>20</difficulty>
+<cost>Moderate/immediate</cost>
+<description>
+Allows the priest to see magically hidden objects, and to perceive
+the aura of a living being or ethereal within range.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="2">
+<name>Way from Taur-Im-Aina II</name>
+<time>1 hour</time>
+<range>1 km/10 rolled</range>
+<difficulty>30</difficulty>
+<cost>High/immediate</cost>
+<description>
+The priest can physically merge his body into that of a tree or
+large bush (larger than the priest), and emerge from another of
+the same species within range. The unique true names of both
+plants must be known. The priest may remain in one tree
+indefinitely, but is not immune to hunger or thirst.
+On a failure, the priest is stuck in the original tree.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="3">
+<name>Elmithri's Shower III</name>
+<time>15 minutes</time>
+<range>1km/5 rolled</range>
+<difficulty>10</difficulty>
+<cost>Moderate/immediate</cost>
+<description>
+Creates a gentle shower over an radius equal to one fifth the
+invocation roll. If the radius is halved, the shower can become
+snow, hail or heavy rain.
+</description>
+</invocation>
+
+<invocation religion="Siem" rank="3">
+<name>Sweldre's Cloak III</name>
+<time>15 minutes</time>
+<range>Touch</range>
+<difficulty>30</difficulty>
+<cost>High/immediate</cost>
+<description>
+The subject takes on the form of a chosen animal. They have
+the physical attributes of that animal, but the intelligence
+and will of the subject. It lasts until the subject or the
+priest wishes it to end.
+
+<table>
+    <colspec colwidth="1.5cm"/>
+    <colspec colwidth="6cm"/>
+    <thead>
+        <row>
+            <entry>Target</entry>
+            <entry>Effect</entry>
+        </row>
+    </thead>
+    <tbody>
+        <row>
+            <entry>30</entry>
+            <entry>Subject is changed into an animal. No clothes
+            or equipment survive the change. The animal must be
+            land based, and no more than 50% smaller, or 100%
+            larger than the subject.</entry>
+        </row>
+        <row>
+            <entry>40</entry>
+            <entry>Subject can become a fish. Target shape can be
+            as small as a cat.</entry>
+        </row>
+        <row>
+            <entry>50</entry>
+            <entry>Clothes and equipment change, as long as the
+            target form could physically carry them.</entry>
+        </row>
+        <row>
+            <entry>60</entry>
+            <entry>Clothes and equipment change, regardless of size.
+            </entry>
+        </row>
+    </tbody>
+</table>
+</description>
+</invocation>
+</invocations>

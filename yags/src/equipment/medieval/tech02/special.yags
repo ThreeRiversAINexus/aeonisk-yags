@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+
+<!--
+
+    General equipment lists.
+
+    Copyright 2005-2012, Samuel Penn, sam@glendale.org.uk
+
+    Redistribution and use with or without modification are permitted provided
+    that the following conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+        above copyright notice and this list of conditions.
+
+    2) Redistributions in binary/printed forms must include copyright
+        attribution.
+
+    The purpose of these equipment lists are to provide a generic and complete
+    list of equipment for RPG purposes, in a format that can be used in other
+    games by anyone, with minimum fuss and license worries. If you make changes
+    and/or additions, then it'd be great if they are passed back or made
+    freely available, but you don't have to.
+
+    Version: $Revision: 1.1 $
+    Date:    $Date: 2007-08-30 18:15:54 $
+
+    Categories
+
+    Adventuring     The sort of things only adventurers have.
+    Rogue           Thieves/assassins tools and the like.
+    Food            Food and drink.genre
+    Animals         An animal which isn't livestock - horses and dogs.
+    Livestock       Animals bred for food, such as pigs and cows.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices should be in farthings, but prices can't really be trusted yet.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="Slave (male)">
+        <category>People</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Slaver</source>
+
+        <short>A young man, useful for manual labor.</short>
+
+        <weight>70000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">800</cost>
+    </item>
+
+    <item name="Slave (female)">
+        <category>People</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Slaver</source>
+
+        <short>A young woman, useful for light work.</short>
+
+        <weight>60000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">520</cost>
+    </item>
+</equipment>
+
+

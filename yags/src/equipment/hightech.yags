@@ -1,0 +1,1587 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+                href="/home/sam/src/forge/yagsbook/xml/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+    <header>
+        <title>YAGS High Tech</title>
+        <tagline>YAGS 0.7.9</tagline>
+
+        <summary>
+            Guns and other things that go bang, through the ages.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <license type="Yags">
+            <year>2016</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="campaign"/>
+    </header>
+
+    <front href="images/hightech-front.svg"/>
+
+    <body>
+        <sect1>
+            <title>The Technological Revolution</title>
+
+            <quote signature="Agatha Christie">
+                I never thought that I would ever be wealthy enough
+                to own a car - nor so poor that I wouldn't have servants.
+            </quote>
+
+            <para>
+                Through a process that began in the 17th century, and began to
+                accelerate in the 19th, the 20th century saw a huge increase
+                in the rate of technological advancement that made massive
+                changes to the way people lived within a single generation.
+                The early 20th century saw the first air planes,
+                the mechanisation of warfare, the mass production of cars
+                and instantaneous long distance communication coming into the
+                hands of the masses.
+            </para>
+
+            <para>
+                <tm>YAGS High Tech</tm> covers the equipment available during
+                the period from the early 20th century (Technology Level 6)
+                through to the early 21st century (TL 8). Though it is barely
+                more than 100 years, there is a huge change in the type of
+                items available. However, they are all close enough to the
+                present to be considered <e>Modern</e>, and for most people to
+                have a vague understanding of what these periods in history
+                were like.
+            </para>
+
+            <para>
+                <tm>High Tech</tm> concerns itself mostly with those things
+                that require in-game statistics, such as weapons and vehicles.
+                Since vehicles become so predominant during these periods,
+                a detailed set of rules on the use of vehicles within
+                <tm>YAGS</tm> are also included.
+            </para>
+
+            <sect2>
+                <title>The Modern World (1900 - 2020)</title>
+
+                <para>
+                    The technology levels in <tm>YAGS</tm> are meant as a
+                    rough guide as to when an item, skill or knowledge becomes
+                    available for use within the game. The date ranges given
+                    are based on 'Western Civilisation', and there is always
+                    a certain fuzziness around the transition from one period
+                    to the next.
+                </para>
+
+                <para>
+                    Though Europe and North America are currently TL 8, there
+                    are still TL 0 (stone age) civilisations in the world, and
+                    many smaller countries might still be classed as TL 7, or
+                    even TL 6. In many games, it may well be that the adventures
+                    are happening in these less technologically advanced countries,
+                    so though PCs have access to high tech weapons and satellite
+                    phones, the culture around them has a combination of spears and
+                    AK-47s.
+                </para>
+
+                <para>
+                    The technology level defines the base level of technology
+                    that a culture can support itself, and may be radically
+                    different from the technology actually available. There
+                    are many African nations where mobile phones are a common
+                    means of communicating and where farmers regularly look
+                    up grain prices on the internet, but the TL of the culture
+                    itself may be 2 or 3. Just because they don't have the
+                    knowledge to build a steam engine, doesn't mean they can't
+                    make use of (or even know how to repair) high tech equipment
+                    purchased from others.
+                </para>
+
+                <para>
+                    Where prices are given, they are given for the TL when
+                    the item was introduced. Most items will reduce in price
+                    at later TLs, though if they become generally unavailable
+                    then prices may well increase.
+                </para>
+
+                <para>
+                    Prices are given in USD ($), again at time of introduction.
+                </para>
+
+                <sect3>
+                    <title>TL 6 - The Mechanical Age</title>
+
+                    <quote signature="Will Rogers">
+                        You can't say that civilization don't advance, however,
+                        for in every war they kill you in a new way.
+                    </quote>
+
+                    <para>
+                        Covering the period from 1900 to 1945, TL 6 sees the
+                        introduction of cars and planes on a scale which
+                        affects the lives of everyone.
+                    </para>
+
+                    <image src="images/adventurers.jpg" align="right" width="4cm"/>
+
+                    <para>
+                        From the point of view of being the setting for a
+                        campaign, TL 6 has a number of unique advantages.
+                        Firstly, it has just the right amount of technology
+                        to allow things to be possible, without it being
+                        quite prevalent enough to close down other options.
+                    </para>
+
+                    <image src="images/tl6-characters.jpg" align="right" width="4cm"/>
+
+                    <para>
+                        Communication around the world is possible, but
+                        possible to prevent on a regular basis without
+                        stretching disbelief. Fast air travel exists, but
+                        is limited. In America, you have the extremes of
+                        high society and abject poverty rubbing shoulders
+                        with each other. Two world wars provide plenty of
+                        plot hooks, and the '30s provide obvious villains
+                        in the form of the Nazis.
+                    </para>
+
+                    <sect4>
+                        <title>Supporting a TL 6 Culture</title>
+
+                        <para>
+                            In a science fiction setting, it is relatively
+                            easy for a culture to achieve TL 6 if they are
+                            pre-equipped with the right scientific knowledge.
+                            As long as skilled craftsman are available, the
+                            machines that were common in this period didn't
+                            require high levels of automation for production,
+                            and could be produced manually.
+                        </para>
+
+                        <para>
+                            There were no sensitive electronic components needing
+                            to be manufactured in expensive clean rooms, no
+                            high precision tools for crafting micro technology,
+                            and no required knowledge of advanced physics or
+                            medicine.
+                        </para>
+
+                        <para>
+                            As such, many off world colonies may well be able to
+                            support a TL 6 culture with a relatively low population.
+                            They would rely on trade with more populous worlds to
+                            obtain more advanced tools, medicine and machines.
+                        </para>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>TL 7 - The Nuclear Age</title>
+
+                    <quote signature="J. Robert Oppenheimer">
+                        Now, I am become Death, the destroyer of worlds.
+                    </quote>
+
+                    <para>
+                        The first atomic bomb was detonated in 1945, and
+                        signifies the start of TL 7. Atomic energy was not
+                        the only defining characteristic of TL 7 however.
+                        Space travel, computers and the wide adoption of
+                        television also changed culture considerably.
+                    </para>
+
+                    <image src="images/tl7-characters.jpg" align="right" width="4cm"/>
+
+                    <para>
+                        TL 7 provides a number of good possibilities for
+                        a campaign, the most obvious of which is the Cold
+                        War. There is plenty of opportunity for adventures
+                        set around espionage, covert operations and outright
+                        shooting wars. The end of the Cold War period
+                        actually made it a lot harder to come up with
+                        believable plots for action films.
+                    </para>
+
+                    <para>
+                        The huge expenditure of the Cold War, on both sides
+                        of the Iron Curtain, saw rapid advancement in the state
+                        of military equipment. Most of the major conflicts of
+                        the period though were between imbalanced armies and
+                        demonstrated that having the best hardware wasn't the
+                        only requirement to win a war quickly.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>TL 8 - The Information Age</title>
+
+                    <quote signature="Bill Gates">
+                        I'm a great believer that any tool that enhances communication
+                        has profound effects in terms of how people can learn from
+                        each other, and how they can achieve the kind of freedoms
+                        that they're interested in.
+                    </quote>
+
+                    <para>
+                        The Science Fiction of TL 7 saw computers as becoming
+                        bigger and more powerful, but mostly failed to
+                        predict them becoming smaller and cheaper. The early dreams
+                        of a telephone in every American town, or a computer in
+                        every home, ended up missing the mark by being too
+                        conservative.
+                    </para>
+
+                    <image src="images/tl8-characters.jpg" align="right" width="6cm"/>
+
+                    <para>
+                        With the end of the Cold War in the late 80s, it
+                        seemed that the West had run out of enemies to
+                        fight. It wasn't long before new enemies were found,
+                        and by the early 21st century there is again room for
+                        plenty of covert operations, though the nature of such
+                        things has changed drastically since TL 7.
+                    </para>
+
+                    <para>
+                        The big issue with TL 8 adventures is that communication
+                        and information is ubiquitous. Unless characters are
+                        adventuring in remote parts of Africa or South America,
+                        it's difficult to be out of range of a mobile signal,
+                        Google, Wikipedia and the answer to whatever problem
+                        is currently confusing you.
+                    </para>
+
+                    <sect4>
+                        <title>Supporting a TL 8 Culture</title>
+
+                        <para>
+                            The level of technology prevalent in TL 8 requires a
+                            supporting infrastructure not easily obtained without
+                            a large population, in the order of 100 million people.
+                            It requires raw materials, advanced factories, precision
+                            machines and the ability to produce sensitive electronic
+                            components on a huge scale.
+                        </para>
+
+                        <para>
+                            Also required is a good understanding of science, at a
+                            level beyond what most people are willing to be capable
+                            of. This requires a good education system, and the
+                            ability to support academia.
+                        </para>
+
+                        <para>
+                            Some technology however is easy to share with low tech
+                            neighbours. Mobile phones are ubiquitous almost throughout
+                            the entire world, even in cultures which are barely
+                            above TL 0. AK-47s are cheap and easy to use, and have
+                            become the staple of tribal warfare. As technology advances
+                            though, it becomes harder to support it without the
+                            full set of tools. A TL 7 car can be fixed and maintained
+                            by someone with a hammer and a bit of knowledge. Fixing the
+                            computer controlled electronics of a modern TL 8 car
+                            however is going to be much harder.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Ageing and Health</title>
+
+            <quote signature="Woody Allen">
+                I don't want to achieve immortality through my work; I want to
+                achieve immortality though not dying. I don't want to live on in
+                the hearts of my countrymen; I want to live on in my apartment.
+            </quote>
+
+            <para>
+                Sooner or later, everybody dies. As an 'adventuring hero' you will
+                probably die on your feet attempting to do something heroic. Most
+                people die in their beds of old age. On the off chance that you
+                survive to old age, <tm>YAGS</tm> has some rules on what happens
+                to you at this point.
+            </para>
+            <para>
+                Once you reach 30, you need to make an ageing roll each year.
+                This roll can be done on your birthday, or at the end of the
+                winter season. For long running campaigns which are built around
+                yearly events, it is generally easiest to assume that everyone
+                rolls at the same time of year. The results of the ageing will
+                happen sometime over the following year.
+            </para>
+            <sect2>
+                <title>Ageing Rolls</title>
+
+                <para>
+                    An ageing roll is equal to 1d20 + the number of full decades
+                    you have lived. On your 30th through 39th year, you will roll
+                    1d20 + 3. There are modifiers to this based on your current
+                    state of health and living conditions.
+                </para>
+                <targetlist targetFirst="false" bold="true">
+                    <valueLabel>Condition</valueLabel>
+                    <targetLabel>Modifier</targetLabel>
+                    <item target="+1" value="TL 0-3.">
+                    </item>
+                    <item target="-1" value="TL 7.">
+                    </item>
+                    <item target="-2" value="TL 8.">
+                    </item>
+                    <item target="-3" value="TL 9+.">
+                    </item>
+                    <item target="+1" value="Poor living conditions.">
+                    </item>
+                    <item target="-1" value="Good living conditions.">
+                    </item>
+                    <item target="+1" value="Hard life.">
+                    </item>
+                    <item target="-1" value="Good medical care.">
+                    </item>
+                </targetlist>
+                <para>
+                    Each year, at the end of the year, roll a d20 + number of
+                    full decades + modifiers + decrepitude. <e>Decrepitude</e>
+                    is a modifier you gain from ageing.
+                </para>
+                <targetlist targetFirst="true" bold="false">
+                    <targetLabel>Roll</targetLabel>
+                    <valueLabel>Effect</valueLabel>
+
+                    <item target="20" value="+1 Decrepitude">
+                    </item>
+                    <item target="25" value="Physical attribute.">
+                    </item>
+                    <item target="30" value="Physical and mental attribute.">
+                    </item>
+                </targetlist>
+            </sect2>
+            <sect2>
+                <title>Sickness</title>
+
+                <para>
+                    <e>Sickness</e> covers all forms of physical conditions that
+                    aren't simple damage. It can include disease, infections and
+                    <e>radiation sickness</e>. A sickness provides a penalty to
+                    actions similar to <e>wounds</e> or <e>fatigue</e>, but
+                    has its own track.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Hazards</title>
+
+            <quote signature="Marie Curie">
+                The various reasons which we have enumerated lead us to believe
+                that the new radioactive substance contains a new element which
+                we propose to give the name of radium.
+            </quote>
+
+            <para>
+                The world is a dangerous place, which is often trying to find new
+                ways of killing us, or at least making life more exciting. It is
+                during the <e>High Tech</e> era that we began to discover and
+                understand some of these new ways, from radiation sickness to
+                nerve poisons and biological warfare.
+            </para>
+
+            <sect2>
+                <title>Radiation</title>
+                <para>
+                    Radiation begins to be understood at the start of TL 6, though
+                    it is not until the end of TL 6, with the dropping of the first
+                    atomic bombs, that the full horrors of radiation become understood
+                    by the population at large. During the early years of the 20th
+                    century it was actually believed that radiation was good for you,
+                    and radioactive drinks were marketed as a health benefit.
+                </para>
+                <para>
+                    There are many ways to measure radiation, the most common being
+                    the <e>Gray</e> and the <e>Sievert</e>. These are not simply different
+                    units, but different ways of measuring radiation so there isn't a
+                    direct conversion factor between them. For simplicity, <tm>YAGS</tm>
+                    uses a <s>Radiation Dose</s> score for someone who has been exposed
+                    to radiation, which amalgamates all these different ways. This starts
+                    at zero, and fatality can occur around 100.
+                </para>
+                <para>
+                    There are two effects of a radiation dose - <e>acute</e> and <e>chronic</e>.
+                    Acute effects are suffered if the dosage is received in a short space
+                    of time - seconds or minutes. Generally only high levels of radiation
+                    exposure (e.g., an exposed reactor core) will cause acute effects.
+                    Chronic effects will show up months or years later.
+                </para>
+
+                <sect3>
+                    <title>Getting Irradiated</title>
+                    <para>
+                        If you are irradiated, then you will gain a <e>Radiation Dose</e>
+                        score which will build up each time you suffer further radiation
+                        exposure. Minor exposure may have little or no short term effect,
+                        but over time can lead to death from organ failure, cancers or
+                        other long term health symptoms.
+                    </para>
+                    <para>
+                        If you are exposed to a radiation source, then make a roll on
+                        the following chart to see how much <e>Radiation</e> you gain.
+                        The strength of the source will range from <e>mild</e> to
+                        <e>critical</e>.
+                    </para>
+
+                    <table>
+                        <title>Acute Radiation</title>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="14mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+
+                        <thead>
+                            <row>
+                                <entry>d20</entry>
+                                <entry>Mild</entry>
+                                <entry>Light</entry>
+                                <entry>Moderate</entry>
+                                <entry>Heavy</entry>
+                                <entry>Serious</entry>
+                                <entry>Critical</entry>
+                            </row>
+                        </thead>
+                        <tbody>
+                            <row>
+                                <entry>1-4</entry>
+                                <entry>-</entry><entry>-</entry><entry>2</entry>
+                                <entry>4</entry><entry>8</entry><entry>20</entry>
+                            </row>
+                            <row>
+                                <entry>5-8</entry>
+                                <entry>-</entry><entry>1</entry><entry>3</entry>
+                                <entry>6</entry><entry>12</entry><entry>30</entry>
+                            </row>
+                            <row>
+                                <entry>9-12</entry>
+                                <entry>1</entry><entry>2</entry><entry>5</entry>
+                                <entry>10</entry><entry>20</entry><entry>50</entry>
+                            </row>
+                            <row>
+                                <entry>13-16</entry>
+                                <entry>2</entry><entry>3</entry><entry>7</entry>
+                                <entry>15</entry><entry>30</entry><entry>75</entry>
+                            </row>
+                            <row>
+                                <entry>17-20</entry>
+                                <entry>3</entry><entry>5</entry><entry>10</entry>
+                                <entry>20</entry><entry>40</entry><entry>100</entry>
+                            </row>
+                        </tbody>
+                    </table>
+
+                    <para>
+                        How serious these dosages are depend on how quickly you
+                        receive them. Gained over a long period of time (such as by
+                        living in a radioactive wasteland) they are likely to cause
+                        cancer, killing you in decades. The same dose over a few
+                        minutes can lead to acute radiation syndrome, which can
+                        kill you in days.
+                    </para>
+
+                    <sect4>
+                        <title>Example Chronic Doses</title>
+
+                        <targetlist>
+                            <item target="Mild/Year">
+                                Living in radioactive wilderness, such as around
+                                Pripyat.
+                            </item>
+                            <item target="Mild/Month">
+                                Living in radioactive hot spots around Pripyat.
+                            </item>
+                            <item target="Light/Year">
+                                Living in radioactive wilderness, such as around
+                                Pripyat within a year of the Chenobyl accident.
+                            </item>
+                        </targetlist>
+                    </sect4>
+                    <sect4>
+                        <title>Example Acute Doses</title>
+
+                        <targetlist>
+                            <item target="Moderate/Minute">
+                                Chenobyl reactor core.
+                            </item>
+                            <item target="Moderate/Hour">
+                                Outside during fallout from nuclear explosion.
+                            </item>
+                        </targetlist>
+                    </sect4>
+
+                    <sect4>
+                        <title>Radiation Sickness</title>
+
+                        <para>
+                            <e>Radiation Sickness</e> is a form of <e>Sickness</e>
+                            (see previous chapter) that is contracted from exposure
+                            to radiation. Each level gives you a penalty to all
+                            actions (both physical and mental), and also makes it
+                            harder to heal.
+                        </para>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Acute Radiation Effects</title>
+                    <para>
+                        Very rarely, you may be submitted to highly intense doses
+                        of radiation in a very short period of time, over minutes
+                        or less. As well as causing the <e>Radiation Sickness</e>
+                        effects described later, it can have an effect over a
+                        period of <e>Rounds</e> or <e>Minutes</e>.
+                    </para>
+
+                    <sect4>
+                        <title>Radiation Burns</title>
+                        <para>
+                            If you receive a <e>Radiation Dose</e> of 100 or more in
+                            a single <e>round</e>, then you immediately take one level
+                            of <e>Mixed</e> damage from burns and tissue damage per full
+                            100 points of <e>Dose</e>.
+                        </para>
+                        <para>
+                            At this point you're pretty much dead anyway, it's just a
+                            question of how quickly and painfully you die.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Immediate Symptoms</title>
+                        <para>
+                            If you receive a <e>Radiation Dose</e> of 5 or more
+                            in a single hour then you need to make a <t>Health</t>
+                            check or suffer the effects listed below. Make a single
+                            <t>Health</t> check for all of the effects, and suffer
+                            any that apply.
+                        </para>
+                        <sect5>
+                            <title>Radiation Sickness (5+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> Twice Dose
+                            </para>
+                            <para>
+                                <e>Radiation Sickness</e> is a <e>sickness</e> that
+                                manifests as nausea, vomiting and diarrhoea <t>Health</t>
+                                hours after receiving the <e>Dose</e>.
+                            </para>
+                            <para flag="red">
+                                You receive one level of <e>Radiation Sickness</e>,
+                                plus an extra one for each full 10 points of <e>Dose</e>.
+                            </para>
+                            <para flag="red">
+                                The <e>sickness</e> normally starts in <t>Health</t>
+                                hours after receiving the dose. Halve the time if
+                                the dose was 20+. At 40+, in starts in minutes rather
+                                than hours. At 80+, it starts in rounds.
+                            </para>
+                            <para flag="green">
+                                Every day, make a <t>Health</t> check of 20+ to
+                                recover one level of <e>sickness</e>.
+                            </para>
+                        </sect5>
+                        <sect5>
+                            <title>Haemorrhaging (20+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> Dose
+                            </para>
+                            <para>
+                                Whilst you are suffering from the effects of
+                                <e>radiation sickness</e>, you are also haemorrhaging
+                                from the eyes and mouth.
+                            </para>
+                            <para flag="red">
+                                Add +1 fumble chance to any healing checks, or checks
+                                to stay alive, for each level of <e>sickness</e>.
+                            </para>
+                        </sect5>
+                        <sect5>
+                            <title>Weakness (40+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> Half Dose
+                            </para>
+                            <para>
+                                For the duration of the <e>sickness</e> you also feel
+                                weak and exhausted.
+                            </para>
+                            <para flag="red">
+                                Take a -1 penalty to <t>Strength</t>, <t>Agility</t>,
+                                and <t>Dexterity</t>.
+                            </para>
+                            <para flag="red">
+                                You also gain a level of <e>Exhaustion</e> and your
+                                movement rate is halved. The <e>Exhaustion</e> does
+                                not go away until the sickness is cured.
+                            </para>
+                            <para flag="red">
+                                At a dose of 80+, double the penalties and gain two
+                                levels of <e>Exhaustion</e>.
+                            </para>
+                        </sect5>
+                        <sect5>
+                            <title>Coma (100+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> Tenth Dose
+                            </para>
+                            <para>
+                                You fall into a coma within <t>Health</t> minutes
+                                from which you are unlikely to recover.
+                            </para>
+                            <para flag="red">
+                                Permanently lose one point of <t>Health</t> every 12
+                                hours. If the <e>dose</e> was 200+, reduce the time
+                                to every 8 hours. Every extra 100 points of dose reduce
+                                the time by 2 hours to a minimum of 2 hours.
+                            </para>
+                            <para flag="green">
+                                Every day make a <t>Health</t> check of 20+ to
+                                recover. This check is made after any <t>Health</t>
+                                loss.
+                            </para>
+                        </sect5>
+                    </sect4>
+
+                    <sect4>
+                        <title>Latent Effects</title>
+
+                        <para>
+                            Latent affects generally kick in days or even weeks
+                            after suffering a high dose of radiation. They are based
+                            on the total amount of radiation received in the last
+                            24 hours.
+                        </para>
+
+                        <sect5>
+                            <title>Immune Deficiency (10+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> None
+                            </para>
+                            <para>
+                                <t>Health</t> days after suffering a dose, take a
+                                level of <e>Immune Deficiency</e> sickness for every
+                                10 points of <e>dose</e>. This gives a penalty to
+                                healing checks and for resisting disease or other
+                                sicknesses. Each level also adds +1 fumble chance
+                                to <e>all</e> <t>Health</t> checks.
+                            </para>
+                            <para>
+                                Every week, make a <t>Health</t> check of 20+ to
+                                recover one level of this sickness. On a fumble,
+                                you gain one level instead. If you are already at
+                                maximum, then you lose one level of <t>Health</t>
+                                permanently.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Moderate Effects (40+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> Half dose
+                            </para>
+                            <para>
+                                You suffer hair loss and begin haemorrhaging.
+                                You gain a level of <e>Exhaustion</e> every
+                                day (which can be cured by rest) for as long as
+                                your <e>Immune Deficiency</e> sickness lasts.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Fatal Effects (100+)</title>
+                            <para>
+                                <e><t>Health</t> check to avoid:</e> None
+                            </para>
+                            <para>
+                                Beginning <t>Health</t> days after the dose, and
+                                every day thereafter, make a <t>Health</t> check
+                                of 20+ or permanently lose one point from each of
+                                your physical attributes.
+                            </para>
+                            <para>
+                                This stops if you roll a natural '20'. If the
+                                dose was 200 or more, it never stops.
+                            </para>
+                        </sect5>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Chronic Radiation Effects</title>
+                    <para>
+                        Radiation received over a longer period of time will tend to
+                        have more subtle effects on your body. If you are receiving
+                        less than 3 Radiation a day then you may be able to avoid the
+                        effects of <e>Radiation Sickness</e>.
+                    </para>
+                    <para>
+                        Every time you accumulate a dose of 10 or more in a 30 day
+                        period, make a <t>Health</t> check at a target of twice the
+                        dose received. If you fail, you start suffering from
+                        <e>Radiation Sickness</e>.
+                    </para>
+                    <para>
+                        Regardless of whether you suffered <e>Radiation Sickness</e>
+                        or not, if you have a current <e>Dose</e> of one or higher,
+                        then each year you must roll to check for any long term effects.
+                        Roll a d20 + 1 per 5 Dose.
+                    </para>
+                    <targetlist targetFirst="true">
+                        <targetLabel>Roll</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+
+                        <item target="20" value="+1 Decreptitude.">
+                        </item>
+                        <item target="24" value="-1 xp one physical attribute.">
+                        </item>
+                        <item target="27" value="-1 xp Health.">
+                        </item>
+                        <item target="30" value="-1 level Health.">
+                        </item>
+                        <item target="35" value="-1 level all physical attributes.">
+                        </item>
+                        <item target="40+" value="Die within the next 12 months.">
+                        </item>
+                    </targetlist>
+                    <para>
+                        Your <e>Radiation</e> score will drop by one point every year,
+                        so a small dose for a short period may deteriorate before you
+                        need to make a check. However, it won't drop below the 'background'
+                        level. If you gained 3 points in the previous year from radiation,
+                        then it won't drop below 3.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Armoury</title>
+
+            <quote signature="Anon.">
+                Those who live by the sword get shot by those that don't.
+            </quote>
+
+            <para>
+                The variety of ways in which people can kill each other
+                is quite staggering, and the arms industry seems to do
+                well regardless of the state of the economy. Whilst
+                <tm>YAGS</tm> tries to capture some of the flavour of
+                the various types of death dealing items of equipment,
+                it shouldn't be seen as a full list of everything that
+                has been available throughout the modern period.
+            </para>
+
+            <para>
+                What <tm>YAGS High Tech</tm> does try to do is capture
+                a sample of the different <e>kinds</e> of weapons, and
+                try to model them in a semi-realistic fashion. A top
+                down approach to realism is what is aimed for - as long
+                as the rules give the same sort of result as what may
+                be expected in real life, <tm>YAGS</tm> doesn't worry
+                too much about the exact way in which this is modelled.
+            </para>
+
+            <sect2>
+                <title>Explosives</title>
+
+                <quote signature="Charlie Croker, The Italian Job">
+                    You're only supposed to blow the bloody doors off!"
+                </quote>
+
+                <para>
+                    Though explosives start being used in the West during the
+                    medieval period, they really come into their own during the
+                    19th and 20th centuries where they are used to level entire
+                    cities. Explosives generally cause damage either through
+                    fragmentation or concussive effects. The difference in game
+                    terms is that fragmentation explosives have a much larger
+                    'kill radius'.
+                </para>
+                <para>
+                    Weapons which cause explosive damage are listed with the
+                    property of <s>Ex-X</s>, where <s>X</s> is the base radius
+                    of the explosion.
+                </para>
+
+                <sect3>
+                    <title>Anti-personnel Explosives</title>
+                    <para>
+                        Small scale explosives are designed to affect human
+                        targets, and are considered to be less than 500 grammes
+                        equivalent of TNT. This is generally more than enough
+                        to kill a human, so most anti-personnel devices are much
+                        smaller than this.
+                    </para>
+                    <para>
+                        A simple 10 gramme explosive charge of TNT does +20 damage
+                        and is considered a <e>Size 5</e> attack. Each doubling of
+                        the explosive amount does a further +5 damage. The base
+                        radius is equal to one twentieth of the damage.
+                    </para>
+                    <para flag="green">
+                        Out to the base radius, targets receive the full force
+                        of the explosion and suffer <e>Wounds</e> from the damage.
+                    </para>
+                    <para flag="green">
+                        Out to twice the radius, targets receive <e>Mixed</e> damage.
+                    </para>
+                    <para flag="green">
+                        Out to triple the radius, targets receive <e>Stuns</e>.
+                        Vehicles become immune to the damage at this point, though
+                        occupants may still be affected.
+                    </para>
+                    <para flag="green">
+                        Each multiple of the radius beyond this halves the number
+                        of stuns caused. The damage value itself is unaffected, so
+                        it still penetrates armour and soak.
+                    </para>
+                    <para>
+                        A 10g explosive charge does +20 damage with a radius of 1m.
+                        A 20g charge goes +25 damage, and a 40g charge does +30 damage.
+                    </para>
+                    <para>
+                        An explosive designed to have a fragmentation effect will
+                        have a larger radius. For a typical modern fragmentation
+                        grenade, multiply the blast radius by 10.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Anti-vehicle Explosives</title>
+                    <para>
+                        The smallest anti-vehicle explosive does <e>Vehicle</e>
+                        scale damage of +30, with a blast radius of 5m and is
+                        considered a <e>Size 10</e> attack. This is considered to
+                        be half a kilogramme of TNT.
+                    </para>
+                    <para flag="green">
+                        Out to the radius of the explosion, the damage type is
+                        <e>Major</e>.
+                    </para>
+                    <para flag="green">
+                        Out to twice the radius of the explosion, the damage type
+                        is considered <e>Minor</e>.
+                    </para>
+                    <para flag="green">
+                        Each doubling of the radius beyond this reduces the damage
+                        by 100.
+                    </para>
+                    <para>
+                        Each doubling of the TNT equivalent amount causes +10 damage;
+                        each ten fold increase doubles the radius; each thousand
+                        fold increase adds +10 to the <t>Size</t>.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Avoiding Explosives</title>
+                    <para>
+                        Getting into cover is the best defence against explosives.
+                        A successful dodge against an explosive attack allows you
+                        to move your combat move away from the point of impact,
+                        hopefully to a less deadly range band.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Weapons</title>
+
+                <para>
+                    The number of statistics for each weapon can be
+                    quite daunting, but they are all there for a reason.
+                    The least obvious are the codes listed in the
+                    weapon notes. They all have specific meanings which
+                    are consistent across genres and settings. The main
+                    purpose is to give a different feel for different
+                    weapons, and to make them useful in different
+                    circumstances.
+                </para>
+
+                <sect3>
+                    <title>Codes</title>
+
+                    <itemlist order="sort">
+                        <item name="Au">
+                            Fully automatic weapon, capable of firing multiple
+                            shots or burst fire. Unless specified, an automatic
+                            burst consist of 10 rounds. If a number is specified,
+                            then the burst has this many rounds.
+                        </item>
+
+                        <item name="Sg">
+                            The weapon fires small pellets or flechette rounds,
+                            much like a shotgun. This is poor against armour,
+                            but good against soft targets at close range.
+                        </item>
+
+                        <item name="Ex-X">
+                            Explosive damage. Does full damage to the target and
+                            those within X metres.
+                        </item>
+
+                        <item name="Fi">
+                            Firearm. Missile weapon firing a high velocity round.
+                            Halves all armour which isn't rated as bullet proof.
+                            Quarters most defence rolls (except full defence).
+                        </item>
+
+                        <item name="Hv">
+                            Heavy weapon. Halves non-heavy bulletproof armour,
+                            ignores all weaker types of armour.
+                        </item>
+
+                        <item name="Li">
+                            Light weapon. Double the value of heavy or
+                            bulletproof armour (overrides the effects of
+                            being a firearm).
+                        </item>
+
+                        <item name="Lo-X">
+                            Weapon must be reloaded. X is number of rounds to reload.
+                            If X is 0, then a slow attack may also be made that round.
+                        </item>
+
+                        <item name="Ls">
+                            Laser weapon, unaffected by wind, though may suffer
+                            in fog and thick atmospheres. Does not lose accuracy
+                            or suffer fumble increase at medium and long range.
+                            Counts as a firearm for defence rolls.
+                        </item>
+
+                        <item name="SA">
+                            Semi-automatic weapon, can fire multiple shots in a
+                            single round but is not capable of burst fire.
+                        </item>
+
+                        <item name="So">
+                            Sonic weapon, ignores all armour but very short
+                            ranged. It's base damage is halved at medium range
+                            and quartered at long range (instead of the normal
+                            damage modifiers).
+                        </item>
+
+                        <item name="TA">
+                            Automatic weapon that can fire automatic bursts of
+                            3 rounds as a single attack. Counts as a single
+                            attack, but any wounds caused are doubled.
+                        </item>
+
+                        <item name="Vc">
+                            Vehicle weapon. Against non-vehicle targets, completely
+                            ignores all soak unless full heavy armour is worn, in which
+                            case the soak roll is merely halved.
+                        </item>
+                    </itemlist>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Armour</title>
+
+                <para>
+                    As weapon technology has progressed, so has that for armour.
+                    For much of the high tech period however, armour has lagged
+                    behind since it has been difficult to make armour effective
+                    enough to stop high velocity bullets which is light enough
+                    to be wearable on a modern battlefield.
+                </para>
+
+                <para>
+                    The first attempts at bulletproof armour where made in the
+                    Great War, but weren't particularly successful. Things
+                    improved in World War II, but attempts were bulky and
+                    often impractical.
+                </para>
+
+                <para>
+                    With the advent of new materials, body armour has improved
+                    greatly since the 2nd half of the
+                    20th century though, and a number of different options
+                    become available in TL7 and TL8.
+                </para>
+
+                <sect3>
+                    <title>Codes</title>
+
+                    <para>
+                        The following codes are used in describing the different
+                        types of armour.
+                    </para>
+
+                    <itemlist order="sort">
+                        <item name="BP">
+                            Bulletproof armour is designed to resist firearm
+                            attacks, and isn't halved against weapons rated as
+                            'Fi'. BP armour also has a secondary effect, which
+                            is described below.
+                        </item>
+
+                        <item name="NBC">
+                            Armour rated 'NBC' gives protection against nuclear,
+                            biological and chemical attacks. This generally means
+                            that it is a sealed suit, with either a filtration
+                            system or its own air supply.
+                        </item>
+
+                        <item name="Va">
+                            Armour rated 'Va' is sealed against a vacuum, and the
+                            wearer can operate in space. It has all the benefits
+                            of an NBC suit, and always has its own oxygen supply.
+                        </item>
+
+                        <item name="Vc">
+                            Vehicle scale armour treats the wearer as being a
+                            vehicle for purposes of damage effects.
+                        </item>
+                    </itemlist>
+
+                    <para>
+                        All armour is considered to be either <e>Heavy</e> or
+                        <e>Light</e>. If vehicle armour is <e>Heavy</e>, then
+                        this is generally because it is designed to counter
+                        anti-tank (anti-armour) weapons. This can be very
+                        TL dependant, so any <e>Heavy</e> vehicle weapon treats
+                        all armour from a lower TL as being <e>light</e>.
+                    </para>
+
+                    <sect4>
+                        <title>Bulletproof Armour</title>
+
+                        <para>
+                            As well as reducing the damage done, bulletproof
+                            armour can have a secondary effect against firearms,
+                            reducing the effectiveness of the attack.
+                        </para>
+
+                        <para>
+                            Light BP armour will reduce the damage type by one
+                            level (e.g. <e>Wounds</e> to <e>Mixed</e>) for light
+                            and normal attacks, as long as the damage roll was
+                            less than twice the soak roll.
+                        </para>
+
+                        <para>
+                            Heavy BP armour will reduce light and normal attacks
+                            by two levels, and heavy attacks by one level, as
+                            long as the damage roll was less than twice the soak
+                            roll.
+                        </para>
+
+                        <para>
+                            Vehicle scale attacks completely ignore this secondary
+                            effect, even against vehicle scale armour. Any attack
+                            which is more than 5 Size points larger than the target
+                            also ignores this.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1 href="../articles/vehicles.yags"/>
+
+        <sect1>
+            <title>The Great Wars (TL6)</title>
+
+            <quote signature="H.G. Wells">
+                This is a war to end all wars.
+            </quote>
+
+            <quote signature="George Santayana, philosopher">
+                Only the dead have seen the end of war.
+            </quote>
+
+            <para>
+                The first half of the 20th century saw some of the most
+                destructive and far reaching wars humanity has yet been
+                subjected to. They propelled the USA to the centre stage
+                of world affairs, and began a cold war which was to
+                dominate the second half of the century.
+            </para>
+
+            <para>
+                Technology level 6 is considered to start in 1900, though
+                an equally valid argument could be made for any date in the
+                few decades immediately prior to that. If TL 5 saw the rise
+                of industrial machines, so TL 6 comes to be dominated by
+                consumer machines. Horses give way to cars. Steamboats to
+                planes. Telegrams to telephones. Newspapers to television.
+                Antibiotics, vaccines, radar and computers are invented in
+                TL 6. It is the beginning of the modern world.
+            </para>
+
+            <sect2>
+                <title>Pulp Adventures</title>
+
+                <para>
+                    In many respects, TL 6 provides the best of both worlds
+                    for GMs looking to set adventures here. Travel to almost
+                    anywhere in the world is relatively easy, and telegrams
+                    or even telephones can be used to ask for aid, or update
+                    colleagues back home on what has been going on.
+                </para>
+                <para>
+                    However, society isn't all pervasive. Even if you are out
+                    in the country in England, you'll need to find a house
+                    that has a telephone. Out in the woods, you're on your
+                    own. There are still plenty of places in the world which
+                    are relatively unexplored, and which require a lot of
+                    effort to get to.
+                </para>
+                <para>
+                    This is the time of <e>Indiana Jones</e> and similar
+                    combat archaeologists.
+                </para>
+
+                <sect3>
+                    <title>Tomb Raiders</title>
+                    <para>
+                        This period is great for adventures in exotic locations,
+                        finding ancient treasures and bringing them back to
+                        museums. As previously mentioned, getting to places is
+                        much easier than in previous eras, but it is still hard
+                        enough to make it dangerous (and therefore interesting
+                        from the point of view of a game).
+                    </para>
+                    <para>
+                        International law is still weak enough that adventurers
+                        from the First World can get away with a lot of things
+                        they wouldn't be able to in a more modern period, but again
+                        there are far fewer laws to protect you.
+                    </para>
+                    <para>
+                        The two Wars also provide an easy enemy for PCs to fight
+                        against - especially in the 30s and 40s where the Nazis
+                        provide an easily identifiable bad guy (at least from a
+                        modern perspective) for a black and white morality
+                        conflict. The Great War is more complex, and most players
+                        probably don't know as much about this period as they do
+                        World War II, which can either be a benefit or a problem
+                        for games set in the earlier period.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Horror</title>
+                    <para>
+                        This period is ideal for horror games, again because
+                        there is just enough technology to make it interesting.
+                        It is also the time of HP Lovecraft, and his brand of
+                        horror fits the period well.
+                    </para>
+                    <para>
+                        Horror is easy to fit into either of the Wars, and adding
+                        a supernatural theme to the atrocities of either can
+                        work well.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>A Post-Apocalypse Setting</title>
+                    <para>
+                        The science of this time is advanced, but not that
+                        advanced. It is possible for a small number of people
+                        to have a good understanding of all things that are
+                        required for such a culture. This means that knocking
+                        a culture back beyond TL 6 is going to be difficult,
+                        unless the surviving population base is really limited.
+                    </para>
+                    <para>
+                        The technology of the period is also mechanical, and
+                        therefore can be fiddled with and fixed by a mechanic
+                        with a spanner. Many post-apocalyptic settings are
+                        probably going to fall back to TL 6 after the
+                        infrastructure of their technological society is
+                        destroyed.
+                    </para>
+                    <para>
+                        Higher tech equipment will be available, but will
+                        gradually decay over time. Batteries will run out on
+                        the ground, and GPS and communication satellites will
+                        eventually stop working.
+                    </para>
+                    <para>
+                        Knowledge of how to build higher tech items may persist,
+                        but there may be lack of precision tools which prevent
+                        them from being made.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Space Colony Alpha</title>
+                    <para>
+                        A small colony on another world may be limited to a
+                        few hundred (or maybe a few thousand) people. Unlike
+                        a post-apocalyptic setting where who survived is going
+                        to be pretty random, colonists will have been chosen for
+                        having the right set of useful skills. So though the
+                        population base is smaller, the knowledge to keep things
+                        working is more likely to be there.
+                    </para>
+                    <para>
+                        Though higher tech goods may be in abundance, the ability
+                        to actually produce new things may be limited to TL 6.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>TL 6 Equipment</title>
+
+                <para>
+                    Here we provide a list of gear, weapons and vehicles available
+                    between 1900 and 1945. WWI saw the development
+                    of machine guns and trench warfare which invented far
+                    more effective ways of killing people, and WWII developed
+                    things about as far as you could go without the use of
+                    advanced computers and electronics.
+                </para>
+
+                <sect3>
+                    <title>Gear</title>
+
+                    <para>
+                        Electronics was just becoming available in this period,
+                        and was considerably limited compared to what came later.
+                    </para>
+
+                    <import-equipment style="full">
+                        <list>modern/tech6/gear.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Melee Weapons</title>
+
+                    <para>
+                        Though guns were the most common form of weapon in this
+                        period, people still used more primitive weapons. Whether
+                        it is a gangster bringing a knife to a gun fight, or a
+                        desperate fall back option once you've run out of bullets,
+                        knives and sharp sticks will still be encountered.
+                    </para>
+
+                    <para>
+                        A number of the weapons assume that they are made from
+                        modern steels using modern techniques, so may have a higher
+                        tech level listed than more primitive equivalents.
+                    </para>
+
+                    <import-equipment style="full">
+                        <list>modern/tech6/melee-weapons.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Personal Firearms</title>
+
+                    <para>
+                        Man portable or man-packed weapons, including machine
+                        guns, mortars and early anti-tank weapons covering the
+                        period from WWI to WWII.
+                    </para>
+
+                    <import-equipment style="full">
+                        <list>modern/tech6/smallarms.yags</list>
+                        <list>modern/tech6/heavy-weapons.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Vehicles of the Great War</title>
+
+                    <para>
+                        Despite the mechanisation of killing, the horse and
+                        cart was still a major contributor to transportation
+                        during World War I. Iron Clad battleships, early
+                        aircraft and the first tanks were most spectacular
+                        vehicles of the war.
+                    </para>
+
+                    <para>
+                        Civilian transportation also began to take off during
+                        this period, and the Ford Model T had been introduced
+                        only a few years prior to the start of the war.
+                    </para>
+
+                    <import-equipment style="full">
+                        <list>modern/tech6/ww1-vehicles.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Vehicles of World War 2</title>
+
+                    <para>
+                        This is the end of TL 6, and saw the development
+                        of many technologies that would become the basis
+                        for TL 7. The late war years are pretty much on
+                        the cusp of TL 6/TL 7, but are considered to be
+                        late TL 6 rather than early TL 7.
+                    </para>
+
+                    <import-equipment style="full">
+                        <list>modern/tech6/ww2-vehicles.yags</list>
+                    </import-equipment>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Cold War (TL7)</title>
+
+            <para>
+                World War II had spurred the development of new technologies
+                that became the defining achievements of TL7. Computers,
+                electronics, nuclear power and space flight all become
+                achievable and even in common everyday use, bringing about
+                some of the greatest changes in technology never before
+                witnessed.
+            </para>
+
+            <para>
+                With the advent of the Cold War, both Russia and America had
+                the opportunity to engage in an arms race and indirect conflict
+                which caused no end of suffering, but which provides plenty
+                of opportunity for gaming.
+            </para>
+
+            <sect2>
+                <title>Guns</title>
+
+                <para>
+                    The design of new ways of killing people accelerated,
+                    with many specialisations focussing on particular areas,
+                    from police forces and civilian defence to high tech
+                    battle field operations.
+                </para>
+
+                <import-equipment style="full">
+                    <list>modern/tech7/smallarms.yags</list>
+                    <list>modern/tech7/heavy-weapons.yags</list>
+                </import-equipment>
+            </sect2>
+
+            <sect2>
+                <title>Gear</title>
+
+                <import-equipment style="full">
+                    <list>modern/tech7/gear.yags</list>
+                </import-equipment>
+            </sect2>
+
+            <sect2>
+                <title>Vehicles</title>
+
+                <import-equipment style="full">
+                    <list>modern/tech7/military-vehicles.yags</list>
+                </import-equipment>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>A New Millennium (TL8)</title>
+
+            <para>
+                From 1980 to 2020, TL 8 covers the present day. Huge
+                advancements in computer technology become apparent to
+                the general population over this period, as communications
+                and information technology begin to reform society.
+            </para>
+
+            <para>
+                Computer assistance makes its way into vehicles and weapons,
+                and remotely operated drones make the battle field safer
+                (for those who have the drones). As the threat of full scale
+                nuclear war diminishes, so small scale tactical weapons
+                are favoured over massive destructive ability.
+            </para>
+
+            <sect2>
+                <title>Guns</title>
+
+                <para>
+                    The reliability and killing power of small arms doesn't
+                    change much in this period, and there is greater focus on
+                    making things lighter and improving personal protection.
+                </para>
+
+                <import-equipment style="full">
+                    <list>modern/tech8/smallarms.yags</list>
+                </import-equipment>
+            </sect2>
+
+            <sect2>
+                <title>Gear</title>
+
+                <import-equipment style="full">
+                    <list>modern/tech8/gear.yags</list>
+                </import-equipment>
+            </sect2>
+
+            <sect2>
+                <title>Civilian Vehicles</title>
+
+                <import-equipment style="full">
+                    <list>modern/tech8/civilian-vehicles.yags</list>
+                </import-equipment>
+            </sect2>
+
+            <sect2>
+                <title>Military Vehicles</title>
+
+                <import-equipment style="full">
+                    <list>modern/tech8/military-vehicles.yags</list>
+                </import-equipment>
+            </sect2>
+        </sect1>
+
+        <sect1 format="wide">
+            <title>Equipment Charts</title>
+
+            <para>
+                The following are combined tables containing statistics
+                for all the weapons previously listed in this article.
+            </para>
+
+            <sect2>
+                <title>TL6 - The Great Wars</title>
+
+                <sect3>
+                    <title>Small arms</title>
+
+                    <para>
+                        These are small weapons designed to be easily man
+                        portable. They range from pistols up to rifles.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Pistols</y:category>
+                        <y:category>Rifles</y:category>
+                        <y:category>Shotguns</y:category>
+
+                        <y:list>modern/tech6/smallarms.yags</y:list>
+                        <y:list>modern/tech6/heavy-weapons.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Heavy Weapons</title>
+
+                    <para>
+                        These weapons are either normally vehicle mounted,
+                        or considered to be squad support weapons. They are
+                        generally not issued to all soldiers, but to dedicated
+                        teams who have been trained in their use.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Heavy</y:category>
+
+                        <y:list>modern/tech6/smallarms.yags</y:list>
+                        <y:list>modern/tech6/heavy-weapons.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>TL7 - The Atomic Age</title>
+
+                <sect3>
+                    <title>Small arms</title>
+
+                    <para>
+                        These are small weapons designed to be easily man
+                        portable. They range from pistols up to rifles.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Pistols</y:category>
+                        <y:category>Rifles</y:category>
+                        <y:category>Shotguns</y:category>
+
+                        <y:list>modern/tech7/smallarms.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Heavy Weapons</title>
+
+                    <para>
+                        These weapons are either normally vehicle mounted,
+                        or considered to be squad support weapons. They are
+                        generally not issued to all soldiers, but to dedicated
+                        teams who have been trained in their use.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Heavy</y:category>
+
+                        <y:list>modern/tech7/smallarms.yags</y:list>
+                        <y:list>modern/tech7/heavy-weapons.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+            </sect2>
+
+            <sect2>
+                <title>TL8 - The New Millennium</title>
+
+                <sect3>
+                    <title>Small arms</title>
+
+                    <para>
+                        These are small weapons designed to be easily man
+                        portable. They range from pistols up to rifles.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Pistols</y:category>
+                        <y:category>Rifles</y:category>
+
+                        <y:list>modern/tech8/smallarms.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Heavy Weapons</title>
+
+                    <para>
+                        These weapons are either normally vehicle mounted,
+                        or considered to be squad support weapons. They are
+                        generally not issued to all soldiers, but to dedicated
+                        teams who have been trained in their use.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Heavy</y:category>
+
+                        <y:list>modern/tech8/smallarms.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+            </sect2>
+        </sect1>
+    </body>
+
+</article>
+
+

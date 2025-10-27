@@ -1,0 +1,701 @@
+<?xml version="1.0"?>
+
+<!--
+    Standard Habisfern character packages.
+
+    Version: $Revision: 1.13 $
+    Date:    $Date: 2006-07-10 21:19:20 $
+-->
+<characters xmlns="http://yagsbook.sourceforge.net/xml"
+            xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+
+
+    <character name="Bandit">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>
+                Outlaws, thieves and thugs who make a living stealing
+                from travellers.
+            </short>
+
+            <background>
+                <para>
+                    You are an outlaw, considered to live outside of the
+                    laws of society. You are not constrained by them, but
+                    neither are you protected by them. For the most part
+                    you survive off the land, hunting and foraging where
+                    possible. When the opportunity arises however, you are
+                    not above stealing or robbing food and goods from those
+                    weaker than yourself.
+                </para>
+
+                <para>
+                    You are not a warrior, a fact you are well aware of.
+                    Your best weapons are surprise and fear, attacking
+                    those who are either unable to defend themselves, or
+                    when you have a numerical advantage, in the hope that
+                    your victims surrender without a fight. You do not
+                    seek to fight for what you take, since fighting is
+                    risky, and generally not worth it.
+                </para>
+
+                <para>
+                    Your experiences have taught you a mixture of combat,
+                    stealth and wilderness skills, though you are well
+                    aware that you do not excel at any. Most people like
+                    you live in a band of a dozen or so, though sometimes
+                    you work alone. Either way, there is little loyalty
+                    between bandits, and groups split up and form into
+                    other ones on a regular basis.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="3"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="3"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Single weapon" score="2"/>
+                    <skill name="Tactics" score="2"/>
+                    <skill name="Bow" score="3"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Intimidation" score="3"/>
+                    <skill name="Survival" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Agility)"/>
+                <advantage name="Poor attribute (Will)"/>
+                <advantage name="Ambush" skill="Stealth" score="2"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="3d"/>
+            <item name="Standard clothes"/>
+            <item name="Spear"/>
+            <item name="Scramasax"/>
+            <item name="Short bow"/>
+        </equipment>
+    </character>
+
+
+    <character name="Ceorl">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>
+                Ceorls are freemen, often farmers or craftsmen.
+            </short>
+
+            <background>
+                <para>
+                    You were raised as a farmer in a free household. As a
+                    boy you trained with the local militia, in case you
+                    were ever called up to fight in the fyrd in defence of
+                    your home. However, your desire is to start a household
+                    of your own one day, not to find glory in battle.
+                </para>
+
+                <para>
+                    It is assumed that you are living with your parents, or
+                    possibly have just settled down with a wife to start a
+                    family. The latter means you have land of your own, but
+                    also have responsibilites. As the child of a freeman
+                    you could get yourself a better start by proving
+                    yourself in some way before you settle down. Maybe you
+                    will need to find glory after all.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Farming" score="4"/>
+                    <skill name="Trade" score="2"/>
+                    <skill name="Other rural" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Game (any)" score="2"/>
+                    <skill name="Longshaft weapon" score="3"/>
+                    <skill name="Weapon and shield" score="3"/>
+                    <skill name="Survival" score="1"/>
+                    <skill name="Ride" score="1"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Health)"/>
+                <advantage name="Poor attribute (Intelligence)"/>
+                <advantage name="Shield wall" cost="2"
+                           skill="Weapon and shield"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="10d"/>
+            <item name="Standard clothes"/>
+            <item name="Spear"/>
+            <item name="Scramasax"/>
+            <item name="Leather armour"/>
+        </equipment>
+    </character>
+
+    <character name="Free woman">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <gender>Female</gender>
+            <short>
+                A free woman, either single or married.
+            </short>
+
+            <background>
+                <para>
+                    You are a free woman who has been brought up with the
+                    expectation of being able to manage your, or your
+                    husband's, household. You are expected to be able to
+                    look after financies and administer the business side
+                    of things, whilst still having time to raise children.
+                </para>
+
+                <para>
+                    Though most women will manage things for their husband,
+                    some do set up on their own - at least for a while -
+                    even if only to put themselves in a better position
+                    when negotiating a marriage.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="3"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="4"/>
+                    <skill name="Guile" score="3"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Handicraft" score="3"/>
+                    <skill name="Farming" score="2"/>
+                    <skill name="Trade" score="3"/>
+                    <skill name="Administration" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Etiquette" score="1"/>
+                    <skill name="Herb lore" score="1"/>
+                    <skill name="First aid" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Intelligence)"/>
+                <advantage name="Poor attribute (Strength)"/>
+                <advantage name="Literate" cost="3"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="10d"/>
+            <item name="Standard clothes"/>
+        </equipment>
+    </character>
+
+    <character name="Man-at-arms">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>
+                The man-at-arms is a foot soldier in the employ of his lord.
+            </short>
+
+            <background>
+                <para>
+                    You are a freeman who has given up a life of farming
+                    to spend it instead fighting full time for your lord.
+                    You have been provided with basic weapons and armour,
+                    and are expected to be available for the defence of
+                    your lord's land at any time.
+                </para>
+
+                <para>
+                    When times are quiet, you may help out in the fields,
+                    or even sell your skill at arms to others, though you
+                    do not consider yourself a full time mercenary.
+                    Working as a caravan guard for local freemen, guard
+                    duty and patrol are the most excitement you normally
+                    see.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="3"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak Rornic" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Farming" score="2"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Weapon and shield" score="4"/>
+                    <skill name="Second melee skill" score="3"/>
+                    <skill name="Tactics" score="1"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Strength)"/>
+                <advantage name="Poor attribute (Empathy)"/>
+                <advantage name="Combat reflexes" cost="2"
+                           skill="Melee"/>
+                <advantage name="Shield wall" cost="2"
+                           skill="Weapon and shield"/>
+            </advantages>
+
+        </statistics>
+
+        <equipment>
+            <cash value="5d"/>
+            <item name="Standard clothes"/>
+            <item name="Mail shirt"/>
+            <item name="Broadsword"/>
+            <item name="Spear"/>
+            <item name="Soft leather armour"/>
+            <item name="Metal helm"/>
+        </equipment>
+    </character>
+
+    <character name="Merchant">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>
+                The merchant is a freeman who makes his living moving goods
+                from one place to another.
+            </short>
+
+            <background>
+                <para>
+                    You are a travelling merchant, making money by moving
+                    goods from where they are cheap to where they are
+                    expensive. You do not particularly care about the type
+                    of goods, only that they bring a profit.
+                </para>
+
+                <para>
+                    You have a wagon and horse, and though you have some
+                    training with a sword, you prefer to hire guards if you
+                    think there may be trouble. Your success relies on
+                    you having good contacts, and knowing the markets.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="3"/>
+                    <skill name="Guile" score="4"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak Own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Trade" score="4"/>
+                    <skill name="Teamster" score="3"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Ride" score="2"/>
+                    <skill name="Single weapon" score="2"/>
+                    <skill name="Etiquette" score="2"/>
+                    <skill name="Administration" score="1"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Intelligence)"/>
+                <advantage name="Poor attribute (Agility)"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="30d"/>
+            <item name="Good clothes"/>
+            <item name="Wagon"/>
+            <item name="Draft horse"/>
+            <item name="Short sword"/>
+        </equipment>
+    </character>
+
+
+    <character name="Rogue">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>
+                A conman and thief.
+            </short>
+
+            <background>
+                <para>
+                    You make your living by being smarter than everyone
+                    else. Wit and charm are the tools of your trade,
+                    cheating people out of their money so that you can
+                    live as you please. It's their fault for being stupid
+                    enough to believe your lies.
+                </para>
+
+                <para>
+                    If the opportunity presents itself, then you're not
+                    above a bit of burglarly or robbery either. Basically
+                    anything which enables you to make a profit and get
+                    away before anyone notices without you having to do
+                    too much work.
+                </para>
+
+                <para>
+                    You try to look and act respectable, either posing as
+                    a travelling merchant, priest or noble. When the time
+                    calls for it however, you can just as easily be a
+                    vagabound or simpleton, the sort other people will try
+                    to cheat, and in so doing, open themselves up to being
+                    cheated themselves.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="3"/>
+                    <skill name="Guile" score="4"/>
+                    <skill name="Sleight" score="3"/>
+                    <skill name="Stealth" score="3"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak Own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Rogue" type="skills">
+                    <skill name="Gambling" score="4"/>
+                    <skill name="Streetwise" score="3"/>
+                    <skill name="Etiquette" score="1"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Trade" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Intelligence)"/>
+                <advantage name="Poor attribute (Health)"/>
+                <advantage name="Disguise" skill="Guile" score="2"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="5d"/>
+            <item name="Good clothes"/>
+            <item name="Set of dice"/>
+            <item name="Knife"/>
+        </equipment>
+    </character>
+
+    <character name="Vagabond">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>
+                A traveller without a proper home.
+            </short>
+
+            <background>
+                <para>
+                    Once, either you or your family was considered to be a
+                    free farmer, with land and responsibilities. Things
+                    became hard however, and you lost everything. Rather
+                    than giving up your freedom, you left to wander the
+                    land, begging, stealing or even working for food.
+                </para>
+
+                <para>
+                    Whether you live by crime or not, many other vagabounds
+                    do, and so you will be mistrusted and disliked. However,
+                    where you can be used as cheap labor, you will be
+                    welcomed - at least until the time when you ask for
+                    payment.
+                </para>
+
+                <para>
+                    You are not quite an outlaw, though in practise your
+                    position in society is very similar. Few will care if
+                    you turn up dead, and nobody will avenge you. You will
+                    be treated worse than a slave, but at the end of the
+                    day you have your freedom.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="3"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="3"/>
+                    <skill name="Sleight" score="4"/>
+                    <skill name="Stealth" score="3"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak Own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Rogue" type="skills">
+                    <skill name="Gambling" score="3"/>
+                    <skill name="Streetwise" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Survival" score="3"/>
+                    <skill name="Longshaft weapon" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Perception)"/>
+                <advantage name="Poor attribute (Health)"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="1d"/>
+            <item name="Poor clothes"/>
+            <item name="Quarterstaff"/>
+        </equipment>
+    </character>
+
+
+    <character name="Woodsman">
+        <description>
+            <race>Human</race>
+            <age>16</age>
+            <short>A woodsman looks after their lord's hunting lands</short>
+
+            <background>
+                <para>
+                    You have been appointed to take care of your lord's
+                    hunting lands and orchards. It is your job to manage
+                    the production of timber, ensure people do not hunt
+                    game without permission, and keep a look out for
+                    outlaws and banditry.
+                </para>
+
+                <para>
+                    Many woodsmen will live in the woods, enjoying the
+                    solitude and freedom it brings. Because of your skills
+                    at woodcraft you may be called in to serve in the
+                    fyrd as a scout or skirmisher in times of battle.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="3"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak Own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Copicing" score="4"/>
+                    <skill name="Hunting" score="2"/>
+                    <skill name="Farming" score="1"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Bow" score="4"/>
+                    <skill name="Survival" score="3"/>
+                    <skill name="Single weapon" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Perception)"/>
+                <advantage name="Poor attribute (Empathy)"/>
+            </advantages>
+        </statistics>
+
+        <equipment>
+            <cash value="5d"/>
+            <item name="Standard outdoor clothes"/>
+            <item name="Short bow"/>
+            <item name="Spear"/>
+            <item name="Knife"/>
+            <item name="Trapping gear"/>
+        </equipment>
+    </character>
+
+
+    <character name="Cunning folk">
+        <description>
+            <short>
+                Cunning folk are repositories of knowledge
+                about the natural and supernatural world.
+            </short>
+
+            <background>
+                <para>
+                    You are a young woman who has been granted the gift
+                    of <e>sight</e>, able to see the strangeness of the
+                    Other World. Since many consider you to be unlucky,
+                    you have been given to the local witch for training
+                    in the arts of healing, magic and folk lore. You are
+                    supported by the donations of villagers who seek
+                    medicine and advice.
+                </para>
+
+                <para>
+                    The most important thing you have learnt is to always
+                    appear to know more than those who come seeking aid.
+                    Know what they will ask before they do, but never give
+                    more information than you need to.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="http://yagsbook.sourceforge.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="3"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="3"/>
+                    <skill name="Guile" score="4"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                    <skill name="Herb lore" score="4"/>
+                    <skill name="First aid" score="3"/>
+                    <skill name="Faerie lore" score="2"/>
+                    <skill name="Legend lore" score="2"/>
+                    <skill name="Astrology" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Intimidation" score="2"/>
+                    <skill name="Survival" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Good attribute (Intelligence)"/>
+                <advantage name="Poor attribute (Strength)"/>
+                <advantage name="Second sight" cost="5"/>
+            </advantages>
+        </statistics>
+    </character>
+
+</characters>
+
+

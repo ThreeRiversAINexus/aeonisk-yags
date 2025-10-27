@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+
+<!--
+    Water Spells.
+-->
+<grimoire xmlns="https://yags-rpg.net/xml/yags" name="Air">
+    <description xmlns="https://yags-rpg.net/xml">
+        <para>
+            The <s>Gi</s> domain governs the element of <e>earth</e>, as well
+            as life and growing things.
+        </para>
+    </description>
+
+    <spell name="Aid" level="10" type="water">
+        <time>Action</time>
+        <range>Touch</range>
+        <duration>Momentary</duration>
+        <radius>One</radius>
+        
+        <short>Diagnose what is wrong with a person.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With this spell you can determine the physical ailments
+                of a person or animal. This knowledges provides you with a
+                +5 bonus to any <e>first aid</e> check you may make when
+                trying to heal them.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You are aware of more detailed information about the physical
+                state of a person, and gain a +10 bonus to <e>first aid</e>
+                checks.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Purify" level="20" type="earth">
+        <range>Reach</range>
+        <duration>Natural</duration>
+        <target>One</target>
+        <prerequisite>Aid</prerequisite>
+
+        <short>Help cure a person of poison or disease.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                By casting this spell upon a person, you can help them
+                resist the effects of poison or disease. They get a +5
+                bonus to their next <t>Health</t> check to resist a poison
+                or disease they are currently suffering from.
+            </para>
+        </description>
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The bonus to their <t>Health</t> check is +10.
+            </para>
+        </description>
+    </spell>
+        <spell name="Heal" level="20" type="earth">
+        <time>Minute</time>
+        <range>Touch</range>
+        <duration>Momentary</duration>
+        <target>One</target>
+        <prerequisite>Purify</prerequisite>
+
+        <short>Heal stuns and wounds.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You may heal a creature of their injuries, removing one stun
+                from them. Attempting to invoke this more than once in any
+                given day on a creature has no further effect.
+            </para>
+        </description>
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You may heal up to three stuns, or alternatively a single wound
+                on a person. If healing a wound, this rune cannot be invoked
+                more than once a week on a single creature.
+            </para>
+        </description>
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                You may heal all of a creature's stuns. Alternatively, you may
+                heal up to three wounds on the creature.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Decay" level="30" type="earth">
+        <range>Short</range>
+        <duration>Momentary</duration>
+        <target>Few</target>
+        <prerequisite>Heal</prerequisite>
+
+        <short>Causes dead matter to decay.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The target of this spell will decay rapidly, turning to
+                dust within a few rounds. Each target can be a single
+                once-living being, such as a dead tree, dead person or
+                dead whale.
+            </para>
+        </description>
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You can destroy all flesh from a corpse, leaving just a skeleton.
+            </para>
+        </description>
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                You can destroy a corpse completely, turning even a skeleton
+                to dust.
+            </para>
+        </description>
+    </spell>
+    
+</grimoire>
+
+

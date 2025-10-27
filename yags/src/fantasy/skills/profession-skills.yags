@@ -1,0 +1,209 @@
+<?xml version="1.0"?>
+
+<!--
+    Professional skills for a fantasy setting.
+
+    Copyright (c) 2005, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.7 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+    <skill name="Administrator" type="standard">
+        <group>Profession</group>
+
+        <short>Administration and household skills.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The art of administration of a manor. Includes knowing how
+                much supplies to lay in for the winter, how to organise
+                taxation, and how best to receive guests of a given social
+                standing.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Barrister" type="standard">
+        <group>Profession</group>
+
+        <short>Legal speciliast.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained in law and the legal system. Not only do
+                you know how the legal system works, but you also know how to
+                take maximum advantage of it, both in terms of prosecution,
+                defence and finding ways around it.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Clerk" type="standard">
+        <group>Profession</group>
+
+        <short>Skills at accountancy and record keeping.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are skilled in the keeping of records, adding of numbers
+                and managing of accounts. Unlike an Administrator, your knowledge
+                is much lower level, and unlike a Scholar your experience is more
+                on the financial and legal side of records keeping.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Cook" type="skill">
+        <group>Profession</group>
+
+        <short>Skill at running a kitchen.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are skilled in the preparation of food, for both small
+                groups and also large banquets. You know how to run a kitchen,
+                what quantities and types of food are required, and how it is
+                stored and prepared.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Courtesan" type="skill">
+        <group>Profession</group>
+
+        <short>A sex worker or companion.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have skill and experience in selling your services for
+                companionship and pleasure. 
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Handicraft" type="skill">
+        <group>Profession</group>
+
+        <short>Skill at various village crafts.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The making of baskets, embroidery and other similar village
+                hand crafts not covered by other professional skills. It is
+                generally seen as the province of women.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Merchant" type="standard">
+        <group>Profession</group>
+
+        <short>Being a merchant.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience working as a merchant, either selling
+                goods from a store or stall, or on the road travelling from
+                village to village. You have a good knowledge of where
+                different types of goods come from, and the sorts of things
+                which will sell in different places.
+            </para>
+            <para>
+                You can also use this skill to pass yourself off as a
+                merchant, either because you actually are, or because you want
+                to disguise yourself as one.
+            </para>
+            <para>
+                This skill can be used with <y:attribute>Intelligence</y:attribute>
+                to bluff or disguise yourself as a merchant or trader. If people
+                aren't paying too much attention, it is normally TN 10.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Soldier" type="standard">
+        <group>Profession</group>
+
+        <short>Being a soldier.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience working as a soldier, either as part
+                of a standing army, as a town or city guard or as a mercenary
+                selling your sword to the highest bidder. You know how to
+                find your way around military camps, how different people are
+                expected to behave and how to fit in with a group of soldiers.
+            </para>
+        </description>
+    </skill>
+    
+    <skill name="Scholar" type="standard">
+        <group>Profession</group>
+
+        <short>Working in a library or as a scribe.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience working as a scholar. You may have been
+                a librarian in a large library, or worked as a scribe to a
+                noble or wizard. You know how to care for books, how to
+                organise and find them in a library, and what sort of
+                materials are needed to writing and book making.
+            </para>
+            <para>
+                You can use this skill to find information in a library, or
+                even to bluff your way around an academic institution.
+            </para>
+        </description>
+    </skill>
+    
+    <skill name="Servant" type="standard">
+        <group>Profession</group>
+
+        <short>Being a servant.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience with working as a servant in the
+                household of a noble or similar environment. You know how
+                to behave in order to avoid punishment or to not be
+                noticed. You also know what needs to be done to keep a
+                household running smoothly, and can do your bit to help.
+            </para>
+            <para>
+                You can also use this skill to pass yourself off as a
+                servent, having a good idea of the best way to insert
+                yourself amongst the staff without being questioned. The
+                larger the establishment, the easier this is.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Sailor" type="standard">
+        <group>Profession</group>
+
+        <short>Being a sailor.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience with working as on ships and boats
+                as a sailor. You know how to row, how to manage the sails
+                on larger vessels, and the sort of tasks and positions that
+                are likely to be found aboard a ship.
+            </para>
+        </description>
+    </skill>
+    
+</skill-list>
+
+
+

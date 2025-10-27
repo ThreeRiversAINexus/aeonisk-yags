@@ -1,0 +1,884 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Combat</title>
+        <tagline>YAGS</tagline>
+
+        <summary>
+            Basic core rules for the YAGS combat system, aiming for a
+            gritty-cinematic style of play. Includes rules for melee,
+            unarmed combat, missile combat and modern firearms. Rules
+            for getting wounded, and getting healed are also included.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@notasnark.net</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 0.8.0 $</version>
+            <date>$Date: 2007-07-29 20:34:33 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2021</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <front href="images/combat-front.svg"/>
+
+    <body>
+        <sect1>
+            <title>Basic Combat</title>
+
+            <quote signature="Hudson, Aliens">
+                We got tactical smart missiles, phase-plasma pulse rifles,
+                RPGs, we got sonic electronic ball breakers! We got nukes,
+                we got knives, sharp sticks...
+            </quote>
+
+            <para>
+                Combat in <s>YAGS</s> can be bloody and brutal, and can
+                often lead to the death of those who are ill-prepared or over
+                confident. You may be a hero, but a sharp stick or lucky
+                bullet can still take you down just as quickly as it can
+                an unskilled opponent.
+            </para>
+
+            <para>
+                However, combat in <s>YAGS</s> is also geared towards
+                <e>Cinematic Realism</e> - it may be gritty and lean towards
+                realism where possible, but it allows you to be heroic as
+                long as you're clever as well. The advantage goes to whoever
+                has surprise or a careful plan. Having both is even better.
+            </para>
+
+            <para>
+                As with the rest of the system, combat in <s>YAGS</s> is
+                reasonably detailed, but tries to be quick and consistent.
+                Complexity is added where it is believed that it adds to
+                the flavour of a game.
+            </para>
+
+            <sect2>
+                <title>Organisation of These Rules</title>
+
+                <para>
+                    These rules have been organised so as to keep the
+                    simple stuff first, then go into more detail later.
+                    The first few sections actually gives you everything
+                    you need to know to run combat using <s>YAGS</s>. If all
+                    you want is a simple and fast combat system, then
+                    you can stick with that.
+                </para>
+
+                <para>
+                    The later sections go into more detail however,
+                    providing a bit more colour to the rules, and covering
+                    situations more extensively. If you don't care about
+                    different armour types or ways of using a gun, then
+                    you can ignore them.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>General Terminology</title>
+
+                <para>
+                    The following terms are used frequently within
+                    these rules, so they are described up front. A
+                    full description of how they are used will be
+                    given later.
+                </para>
+
+                <itemlist order="sort">
+                    <item name="Round">
+                        A round is a unit of time, averaging about five
+                        seconds. Each round, you have chance to
+                        perform a single action - normally an attack or a
+                        move.
+                    </item>
+
+                    <item name="Body levels">
+                        Body levels represent your ability to absorb damage
+                        in the form of wounds and stuns. It is determined by
+                        your size, so most adult humans have the same number
+                        of body levels - five.
+                    </item>
+
+                    <item name="Soak">
+                        Soak is how good you are at resisting (soaking) damage.
+                        An adult human will usually have a soak of 12. Armour
+                        can add to this, reducing the chance that an attack
+                        damages you.
+                    </item>
+
+                    <item name="Wounds">
+                        Wounds are serious injuries which have a good chance
+                        of causing death. Martial weapons such as swords or
+                        spears, as well as guns and bows cause wounds.
+                    </item>
+
+                    <item name="Stuns">
+                        Stuns are non-serious injuries which rarely kill,
+                        being generally limited to cuts and bruises. Fists,
+                        sticks and chairs are likely to stun you.
+                    </item>
+
+                    <item name="Mixed damage">
+                        Knives, clubs and animal claws or teeth are more
+                        likely to kill you than a fist, but aren't as deadly
+                        as a sword or gun. They do mixed damage, which is
+                        split between stuns and wounds with odd damage doing
+                        on stuns.
+                    </item>
+
+                    <item name="Ineffective damage">
+                        Sometimes (if you're lucky), an attacker may find it
+                        very hard to hurt you. In this case their attack is
+                        considered ineffective. They do stun damage, but the
+                        number of stuns is halved (rounding down).
+                    </item>
+
+                    <item name="Fatigue">
+                        Fatigue is a measure of how tired you are, and how
+                        much fatigue you can take before falling over is based
+                        on your Health. Fatigue is recovered after a short rest.
+                    </item>
+
+                    <item name="Exhaustion">
+                        Exhaustion is similar to fatigue, but can only be
+                        recovered with sleep. It is gained from long term
+                        physical activity such as hiking or heavy labour.
+                    </item>
+
+                    <item name="Damage">
+                        Damage is what causes stuns or wounds. You roll the
+                        damage and subtract the target's soak. Every five
+                        points left causes one stun or wound.
+                    </item>
+
+                    <item name="Load">
+                        Load is used to measure the weight and bulkyness of weapons and armour.
+                        The higher the load, the higher Strength you need to have to be able
+                        to use the item without penalty.
+                    </item>
+
+                    <item name="Stance">
+                        Stance determines how a combatant is fighting, the
+                        most common being normal, aggressive and defensive.
+                        Prone and unsteady are two stances which a character
+                        can be forced into.
+                    </item>
+
+                    <item name="Free strike">
+                        An extra attack which may be taken immediately
+                        against a given opponent. The opponent gets a free
+                        defence roll, at the same penalty as other defence
+                        rolls that round if multiple defences have been
+                        declared.
+                    </item>
+
+                    <item name="Counter strike">
+                        An extra attack which make be taken immediately
+                        after the opponent's action which triggered it,
+                        but otherwise treated as a free strike.
+                    </item>
+
+                    <item name="Automatic strike">
+                        An extra attack which may be taken immediately
+                        against a given opponent. The opponent does not get
+                        a defence roll, so the attack is against the base
+                        difficulty to hit the target.
+                    </item>
+
+                    <item name="Combat bonuses">
+                        The three statistics which define the bonuses a
+                        weapon provides to skill and damage rolls in combat
+                        (attack, defence and damage).
+                    </item>
+
+                    <item name="Initiative">
+                        Initiative determines the order in which everybody
+                        acts, from highest initiative to lowest. Actions
+                        are split into fast, normal and slow. All fast
+                        actions happen first, then normal actions, then
+                        slow actions.
+                    </item>
+
+                    <item name="Martial weapon">
+                        Any melee weapon which does better than stun damage
+                        and has a reach greater than zero.
+                    </item>
+
+                    <item name="Distance">
+                        The distance to a target for missile weapons,
+                        measured in metres. This affects how hard it is
+                        to hit the target, and my be modified up or down
+                        depending on other factors (such as if you're
+                        running whilst trying to shoot).
+                    </item>
+
+                    <item name="Range band">
+                        The effective range of missile weapons, measured in
+                        metres. This is unaffected by modifiers to the
+                        Distance, and effects how much damage the weapon
+                        does.
+                    </item>
+
+                    <item name="Reach">
+                        The reach of a melee weapon is an indication of how
+                        long it is, and weapons with longer reach have an
+                        advantage against shorter reach weapons. In a
+                        confined space however, longer reach weapons have a
+                        disadvantage. Missile weapons also have a reach,
+                        which indicates how suitable they are in close combat.
+                    </item>
+
+                    <item name="Shock">
+                        Particularly painful types of damage can cause shock,
+                        which reduces your initiative.
+                    </item>
+
+                    <item name="Active defence">
+                        An active defence is normally a dodge or a parry. You
+                        must be aware of the attack to be able to make an
+                        active defence, and you have a limited number you can
+                        make in a round.
+                    </item>
+
+                    <item name="Passive defence">
+                        You passive defence is a fixed number, and is the
+                        difficulty for someone to hit you when you aren't
+                        performing an active defence. It is normally 15.
+                    </item>
+                </itemlist>
+
+                <sect3>
+                    <title>Combat skills</title>
+
+                    <quote signature="O-Ren Ishii, Kill Bill">
+                        Silly Caucasian girl likes to play with Samurai swords.
+                    </quote>
+
+                    <para>
+                        There are a huge variety of different weapons that can
+                        be used in combat, from knives to two handed swords, from
+                        pistols to sniper rifles and light machine guns. However,
+                        you don't need to learn a different skill for each one.
+                    </para>
+
+                    <itemlist order="sort">
+                        <item name="Brawl">
+                            All forms of unarmed combat, including punching,
+                            kicking, biting and wrestling. It also covers use
+                            of small (non-martial) weapons. All specialist
+                            martial arts (such as karate or marines close
+                            combat) are specialisations of brawl.
+                        </item>
+
+                        <item name="Melee">
+                            Using a melee weapon of any type, from knives to
+                            maces or long swords. Use of shields also comes
+                            under melee.
+                        </item>
+
+                        <item name="Throw">
+                            Throwing weapons of any type, including knives,
+                            spears, stones or bottles. Using a sling or atlatl
+                            also comes under throw.
+                        </item>
+
+                        <item name="Guns">
+                            Using personal guns, including pistols, SMGs,
+                            assault rifles, shotguns and sniper rifles.
+                        </item>
+
+                        <item name="Bow">
+                            All types of bows including short bows, longbows and
+                            crossbows.
+                        </item>
+
+                        <item name="Heavy weapons">
+                            Large, normally vehicle mounted, guns. Defaults to
+                            the Guns skills.
+                        </item>
+                    </itemlist>
+
+                    <para>
+                        <e>Techniques</e> provide the ability to specialise in
+                        particular types of weapons or styles of combat, and a
+                        true master will do this. You can use a sword and shield
+                        with the <e>Melee</e> skill, but knowing the
+                        <e>Weapon and shield</e> technique makes it easier to
+                        defend against multiple opponents, or to use the shield
+                        offensively at the same time for example.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Weapons</title>
+
+                    <para>
+                        Every melee weapon provides three combat bonuses -
+                        <e>attack</e>, <e>defence</e> and <e>damage</e> which
+                        add to the attack, defence an damage rolls of a
+                        character.
+                    </para>
+
+                    <para>
+                        Missile weapons have a short, medium and long range
+                        which determine their maximum effectiveness. They
+                        also have an <e>increment</e>, which is a measure of
+                        their accuracy and determines how hard it is to hit
+                        a target.
+                    </para>
+
+                    <para>
+                        There are plenty of other statistics for each weapon,
+                        but these three are the primary ones which are used
+                        in the basic combat system.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Armour</title>
+
+                    <para>
+                        Every creature has a basic soak score, which reduces the damage done to 
+                        them in an attack. Armour gives a protective bonus which adds to this 
+                        soak, though it can reduce your movement.
+                    </para>
+
+                    <para>
+                        Armour is either <e>light</e> or <e>heavy</e>. The former isn't as 
+                        effective against weapons designed to penetrate armour, but is often less 
+                        likely to restrict your movement. In modern settings, some armour is also
+                        rated as being <e>bulletproof</e>. If it isn't, then effectiveness against
+                        firearms is greatly reduced.
+                    </para>
+                    
+                    <para>
+                        Armour also has a <e>Load</e>, which can range from zero up to eight or
+                        more. As long as the total load of all your armour does not exceed your
+                        <t>Strength</t>, then you can wear it without penalty. You start suffering
+                        penalties to <t>Agility</t>, as well as an increased fumble chance, if
+                        your load exceeds your <t>Strength</t>. The latter means that your chance
+                        of gaining <e>Fatigue</e> is increased.
+                    </para>
+                    
+                    <para>
+                        There are <e>techniques</e> that experienced warriors can use to reduce
+                        this penalty.
+                    </para>
+                    
+                    <para>
+                        As for weapons, there are other attributes that armour can have. Different
+                        types of weapons are designed for use against different types of armour,
+                        so what you wear may be dictated by what you are going up against.
+                    </para>
+                </sect3>
+
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Combat Sequence</title>
+
+            <para>
+                Once characters enter into a combat, game time is
+                measured in <e>rounds</e> of approximately
+                five seconds. At the start of each combat everybody
+                determines their <e>initiative</e> which remains
+                fixed for the entire combat. Initiative is rolled
+                using:
+            </para>
+
+            <y:skeq>
+                <y:title>Determining Initiative</y:title>
+                <y:attr>intelligence</y:attr>
+                <y:const>4</y:const>
+                <y:die/>
+            </y:skeq>
+
+            <para>
+                If you <e>fumble</e> your initiative roll (with a natural 1), then your initiative
+                total is zero. Whilst you have an initiative of zero, all your skill rolls are
+                halved, and all your actions are <e>slow</e> (meaning that you always act last 
+                each round). As an action, you can opt to re-roll your initiative during the
+                combat, but doing so precludes any other activity that round (including movement
+                and defences). However, this is considered a skill check so is halved.
+            </para>
+
+            <para>
+                If you do have an initiative of zero, then you can always choose to gain a level 
+                of <e>fatigue</e> to act normally that round (albiet with an initiative of zero). 
+                This can be used when re-rolling initiative.
+            </para>
+            
+            <para>
+                It is possible for some attacks to reduce your initiative during a combat, down
+                to a minimum of zero. At this point, you suffer the same penalties as above.
+            </para>
+
+            <sect2>
+                <title>The Combat Round</title>
+
+                <para>
+                    Each round of combat follows a set series of steps.
+                    Once a round has been completed, combat either ends
+                    or everyone starts a new round. Initiative is very
+                    important in combat, since a high initiative gives
+                    you a big tactical advantage over everyone else.
+                </para>
+
+                <itemlist order="1">
+                    <item>
+                        Everybody declares their actions in increasing
+                        initiative order. Attacks, number of defences,
+                        movement and other actions are declared at this
+                        point.
+                    </item>
+                    <item>
+                        All fast actions are performed in decreasing
+                        initiative order.
+                    </item>
+                    <item>
+                        Perform all normal actions in decreasing
+                        order of initiative.
+                    </item>
+                    <item>
+                        Perform all slow actions in decreasing order
+                        of initiative.
+                    </item>
+                    <item>
+                        End of round book keeping, including making rolls to
+                        remain conscious and alive (if necessary) and any
+                        required morale checks.
+                    </item>
+                </itemlist>
+            </sect2>
+
+            <sect2>
+                <title>Declaring Actions</title>
+
+                <para>
+                    At the start of each round, all combatants declare
+                    their actions in order of increasing initiative. This
+                    gives characters with a high initiative a big tactical
+                    advantage over everybody else. Initiative should be
+                    thought of as an abstraction of both physical speed and
+                    tactical ability.
+                </para>
+
+                <para>
+                    All declared actions are public, even if someone
+                    is out of sight at the start of the round. If you
+                    are hidden and out of sight, and wish to declare
+                    that you are leaping out to attack someone, then
+                    anyone who has a higher initiative than you gets
+                    the opportunity to react to your action before
+                    you do it - effectively they get to act between
+                    you making yourself visible and actually performing
+                    the attack.
+                </para>
+
+                <sect3>
+                    <title>Declaring Attacks</title>
+
+                    <para>
+                        You may declare an attack against a
+                        target. Any movement required in order to make
+                        the attack is implied. The weapon and skill
+                        being used, plus any special actions, must be
+                        declared at this point.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Declaring Defences</title>
+
+                    <para>
+                        You must declare the number of defences though do
+                        not need to declare who they are against. Each
+                        declared defence will defend against any number of
+                        attacks from a single attacker. Defending against
+                        multiple attackers means you suffer a penalty to
+                        all attacks and defences that round.
+                    </para>
+
+                    <targetlist>
+                        <valueLabel>Defences</valueLabel>
+                        <targetLabel>Penalty</targetLabel>
+
+                        <item value="1" target="-0"/>
+                        <item value="2" target="-10"/>
+                        <item value="3" target="-20"/>
+                        <item value="4" target="-40"/>
+                        <item value="5" target="-60"/>
+                        <item value="6" target="-80"/>
+                    </targetlist>
+
+                    <para>
+                        There is a maximum number of defences that you
+                        may declare in a round. Normally this is equal to
+                        the average of your agility and perception
+                        (rounded up), which is 3 for typical characters.
+                    </para>
+
+                    <para>
+                        If you are making a melee attack but do not declare
+                        a defence against the target, then they get a
+                        <e>counter strike</e> against you after your attack
+                        has been resolved (assuming that they are still
+                        standing).
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Waiting</title>
+
+                    <para>
+                        If you have lost the initiative, you may declare
+                        a wait action. You must say what event you are
+                        waiting for, and what you will do if it occurs.
+                        If the event doesn't happen, then you don't do
+                        anything that round. You <e>cannot</e> state that
+                        you will do one thing if something happens, and
+                        another thing if it doesn't.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Movement</title>
+
+                    <para>
+                        You may declare a move as part of your action. You
+                        can normally move up to a number of metres equal to
+                        half your <e>Move</e> score without penalty.
+                    </para>
+
+                    <para>
+                        If you wish to move further, you can move your
+                        full <e>Move</e>, but can only perform a standard
+                        attack which is <e>slow</e>. Movement faster than
+                        this precludes making an attack action.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Performing Actions</title>
+
+                <para>
+                    Once everyone has declared their actions, then everyone
+                    gets to perform their actions in decreasing order of
+                    initiative. First, everyone who has a <e>fast</e>
+                    action will act (in initiative order), then all
+                    <e>normal</e> actions and finally all <e>slow</e>
+                    actions.
+                </para>
+
+                <sect3>
+                    <title>Making an attack</title>
+
+                    <para>
+                        When an attack is made, the defender must declare
+                        whether they are using a defence action before any
+                        rolls are made. If they do not do so, then the
+                        target difficulty of the attack is 15.
+                    </para>
+
+                    <para>
+                        To attack, make a melee attack roll using your
+                        relevant combat skill modified by the attack bonus
+                        of the weapon. <e>Brawl</e> attaks use <t>Agility</t>
+                        and <e>Melee</e> attacks use <t>Dexterity</t>.
+                    </para>
+
+                    <y:skeq>
+                        <y:title>Attack roll</y:title>
+                        <y:attr>attribute</y:attr>
+                        <y:sk>skill</y:sk>
+                        <y:bonus>weapon attack bonus</y:bonus>
+                        <y:die/>
+                    </y:skeq>
+
+                    <para>
+                        If the target is defending, then they get to make an
+                        active defence roll. If not, then the target difficulty
+                        of the attack is equal to their passive defence, which
+                        is normally 15.
+                    </para>
+
+                    <y:skeq>
+                        <y:title>Defence roll</y:title>
+                        <y:attr>attribute</y:attr>
+                        <y:sk>skill</y:sk>
+                        <y:bonus>weapon defence bonus</y:bonus>
+                        <y:die/>
+                    </y:skeq>
+
+                    <para>
+                        If the attack roll is equal to or greater than the
+                        defence, then the target has been hit, and
+                        damage should be determined.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Inflicting Damage</title>
+
+                    <para>
+                        If you have successfully hit your target, then you make
+                        a damage roll. A damage roll never fumbles.
+                    </para>
+
+                    <y:skeq>
+                        <y:title>Damage roll</y:title>
+                        <y:attr>strength</y:attr>
+                        <y:const>1</y:const>
+                        <y:bonus>weapon damage bonus</y:bonus>
+                        <y:die/>
+                    </y:skeq>
+
+                    <para>
+                        Your damage roll is compared to the target's soak, including
+                        any bonuses they have from armour. If the damage is greater
+                        than or equal to the target's soak, then damage has been
+                        caused, otherwise the blow was not of sufficient strength to
+                        cause any real harm.
+                    </para>
+                    <para>
+                        If damage is done, then one <e>wound</e> will be caused plus
+                        one for every five points the damage was above the soak. If
+                        the target is already wounded, then any new wounds add to
+                        the existing wounds. If they have two wounds (light, -5), and
+                        receive another two wounds, they will now have four wounds
+                        (heavy, -15).
+                    </para>
+
+                    <targetlist bold="true" targetFirst="true">
+                        <targetLabel>Wounds</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+
+                        <item target="0" value="Okay.">
+                            Completely uninjured.
+                        </item>
+
+                        <item target="1" value="Minor.">
+                            Scratched and bruised, but no penalty.
+                        </item>
+
+                        <item target="2" value="Light (-3).">
+                            Lightly wounded, with a small (-5) penalty
+                            to all actions.
+                        </item>
+
+                        <item target="3" value="Medium (-6).">
+                            Moderate wounds, significant pain.
+                        </item>
+
+                        <item target="4" value="Heavy (-10).">
+                            Heavily wounded, with a large penalty.
+                        </item>
+
+                        <item target="5" value="Critical (-15).">
+                            Critically wounded. Most people will stop
+                            fighting at this point. Heroes and professional
+                            warriors will probably continue however.
+                        </item>
+
+                        <item target="6+" value="Fatal (-25).">
+                            A fatally wounded person must make health
+                            rolls to remain conscious and alive every
+                            round. Without medical aid, they will die.
+                        </item>
+                    </targetlist>
+
+                    <para>
+                        As long as you are alive, you will never be in a
+                        state worse than <e>fatally wounded</e>.
+                    </para>
+
+                    <para>
+                        As soon as you receive damage that takes you to
+                        fatally wounded or beyond, you must make a health
+                        check at a target of 20 + 5 per extra wound. So,
+                        if you were heavily wounded (4 wounds), and took
+                        3 wounds of damage, you would be making a check
+                        against a target of 25 (fatal, +1 extra).
+                    </para>
+
+                    <para>
+                        If you fail this check, then you die, otherwise
+                        you fall unconscious. If you make a <e>good</e>
+                        success, then you can continue fighting, but
+                        must make another check at the end of each round
+                        at a target of 20. If you are unconscious or
+                        resting you only need to make a check once every
+                        minute.
+                    </para>
+
+                    <sect4>
+                        <title>Stun Damage</title>
+
+                        <para>
+                            Whilst wounds represent damage that is likely to
+                            kill you, stuns represent scratches and bruises
+                            that will heal naturally within a few days.
+                        </para>
+
+                        <para>
+                            Brawling and similar attacks will do stun
+                            damage. Stuns are inflicted in much the same
+                            way as wounds are, with an opposed damage and
+                            soak rolls. However, stuns are <e>not</e>
+                            cumulative. If you receive more stuns in a
+                            single blow than you currently have, then
+                            the new number of stuns replaces what you
+                            had previously. If you receive at least half
+                            your current stun level, you gain one stun.
+                        </para>
+
+                        <targetlist bold="true" targetFirst="true">
+                            <targetLabel>Stuns</targetLabel>
+                            <valueLabel>Effect</valueLabel>
+
+                            <item target="0" value="Okay.">
+                                Completely uninjured.
+                            </item>
+
+                            <item target="1" value="Minor.">
+                                Minor scratches, no penalty.
+                            </item>
+
+                            <item target="2" value="Light (-3).">
+                                Slightly bruised and in some pain, but
+                                likely to be recovered after the battle.
+                                Visible bruises and marks.
+                            </item>
+
+                            <item target="3" value="Medium (-6).">
+                                Moderate stuns, will look to be in quite
+                                bad shape.
+                            </item>
+
+                            <item target="4" value="Heavy (-10).">
+                                Heavily stunned, probably with most of
+                                body covered in bruises and cuts and in
+                                quite a bit of pain.
+                            </item>
+
+                            <item target="5" value="Critical (-15).">
+                                Critically stunned. Most people will stop
+                                fighting at this point, since they are
+                                quite close to falling over.
+                            </item>
+
+                            <item target="6+" value="Beaten (-25).">
+                                A beaten person must make a health check to
+                                remain conscious every round they wish to
+                                act.
+                            </item>
+                        </targetlist>
+
+                        <para>
+                            For example, you are currently uninjured, but
+                            are punched by someone who does you two stuns.
+                            You are now lightly stunned (at -5). You are
+                            punched again for two stuns. This gives you
+                            one extra stun, taking you to three stuns
+                            (moderate, -10). A third punch only does one
+                            stun, and since this is less than half your
+                            current total, it does no damage.
+                        </para>
+
+                        <para>
+                            The fourth punch is much harder, and does 5
+                            stuns of damage. This is greater than your
+                            current total (3), so puts you immediately
+                            at 5 stuns (critical, -25).
+                        </para>
+
+                        <para>
+                            If your stuns ever reach <e>Beaten</e>, then you must
+                            make a health check as for wounds, but failure
+                            makes you unconscious, and success leaves you
+                            standing.
+                        </para>
+
+                        <para>
+                            Note that stuns and wounds are kept track of
+                            separately, and their penalties add together.
+                            If you have 3 stuns (moderate, -10) and two
+                            wounds (light, -5) you have a total penalty of
+                            -15.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Mixed Damage</title>
+
+                        <para>
+                            The final type of damage is <e>Mixed</e>. Mixed
+                            damage is split between stuns and wounds, with
+                            the first going on stuns. Mixed damage adds
+                            cumulatively to both stuns and wounds. If you
+                            have four stuns, and take one level of mixed
+                            damage, you take one stun, giving you five stuns
+                            total.
+                        </para>
+                    </sect4>
+                </sect3>
+
+            </sect2>
+
+            <sect2>
+                <title>End of Round</title>
+
+                <para>
+                    At the end of each round, any general
+                    book keeping can be performed. If health rolls
+                    are needed to remain conscious, then they are
+                    made now.
+                </para>
+            </sect2>
+        </sect1>
+
+        <!--
+            Wounds and healing.
+        -->
+        <sect1 href="combat/combat-wounds.yags" pageNumber="999"/>
+
+        <!--
+            Pull in advanced melee combat rules.
+        -->
+        <sect1 href="combat/combat-melee.yags"/>
+
+        <!--
+            Pull in advanced missile combat rules.
+        -->
+        <sect1 href="combat/combat-missile.yags"/>
+
+        <sect1 href="combat/initiative.yags"/>
+
+    </body>
+</article>
+
+

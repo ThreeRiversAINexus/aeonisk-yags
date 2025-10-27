@@ -1,0 +1,179 @@
+<?xml version="1.0"?>
+
+<characters xmlns="https://yags-rpg.net/xml" showPoints="true">
+
+    <character name="Jenny Galloway">
+        <description>
+            <short>
+                A gun moll working for East London gangs in the 1930s.
+            </short>
+            <gender>Female</gender>
+            <age>21</age>
+
+            <image src="packages/jenny_galloway.jpg"/>
+
+            <background>
+                <para>
+                    Jenny grew up as an orphan in London during the Great War,
+                    living as a petty thief. As men started to take an interest
+                    in her, she found that prostitution was more profitable.
+                    Eventually, she discovered that even more money was to be had
+                    by conning and blackmailing men than sleeping with them.
+                </para>
+
+                <para>
+                    She has learnt how to defend herself with both the gun and a
+                    knife, but much prefers the former. She risks losing everything
+                    however due to a serious drink problem.
+                </para>
+
+                <para>
+                    Priorities were experience, attributes and advantages.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="5" soak="12">
+                <attribute name="strength" score="2"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="3"/>
+                <attribute name="dexterity" score="4"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="3"/>
+                <attribute name="empathy" score="4"/>
+                <attribute name="will" score="3"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="4"/>
+                    <skill name="Charm" score="6"/>
+                    <skill name="Guile" score="4"/>
+                    <skill name="Sleight" score="3"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak English" score="4"/>
+                    <skill name="Speak French" score="2" cost="0"/>
+                    <skill name="Speak German" score="2" cost="0"/>
+                    <skill name="Area lore (London)" score="4"/>
+                </group>
+
+                <group name="Social" type="skills">
+                    <skill name="Streetwise" score="4"/>
+                    <skill name="Gambling" score="4"/>
+                    <skill name="Intrigue" score="3"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Guns" score="5"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Educated" cost="0"/>
+
+                <advantage name="Sexy" cost="+3"/>
+                <advantage name="Reflexes" cost="+1"/>
+                <advantage name="Addiction (alchohol)" cost="-3"/>
+
+                <advantage name="Combat reflexes" skill="Brawl" cost="2"/>
+                <advantage name="Quick load" skill="Guns" cost="2"/>
+                <advantage name="Multiple targets" skill="Guns" cost="4"/>
+
+                <advantage name="Carousing" skill="Social" cost="2"/>
+                <advantage name="Seduction" skill="Social" cost="4"/>
+                <advantage name="Flirt" skill="Social" cost="4"/>
+                <advantage name="Etiquette" skill="Social" cost="2"/>
+                <advantage name="Fashion" skill="Social" cost="2"/>
+                <advantage name="Gambling (Poker)" skill="Gambling" cost="2"/>
+            </advantages>
+        </statistics>
+    </character>
+
+
+    <character name="Joe Parker">
+        <description>
+            <short>Shady businessman and mob front man.</short>
+            <age>28</age>
+            <gender>Male</gender>
+
+            <image src="packages/mob_1.jpg"/>
+
+            <background>
+                <para>
+                    Joe started his career working on the docks, where he
+                    earned extra pay ensuring that certain crates got between
+                    ships and shore without the authorities seeing them.
+                    When there was trouble, he wasn't averse to using violence
+                    to get things quietened down.
+                </para>
+
+                <para>
+                    Strings were pulled, and he now has a job as a customs
+                    inspector. He happily accepts bribes from various gangs
+                    and ensures that their cargo gets through without trouble.
+                </para>
+
+                <para>
+                    Priorities were attributes, experience and advantages.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="5" soak="12">
+                <attribute name="strength" score="4"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="5"/>
+                <attribute name="dexterity" score="4"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="2"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="3"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="3"/>
+                    <skill name="Awareness" score="3"/>
+                    <skill name="Brawl" score="5"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="3"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak English" score="4"/>
+                    <skill name="Speak Irish" score="4" cost="0"/>
+                    <skill name="Area lore (London)" score="4"/>
+                </group>
+
+                <group name="Criminal" type="skills">
+                    <skill name="Streetwise" score="5"/>
+                    <skill name="Guns" score="4"/>
+                    <skill name="Burglary" score="2"/>
+                    <skill name="Intimidation" score="4"/>
+                    <skill name="Administration" score="1"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Poorly educated" cost="-1"/>
+
+                <advantage name="Authority" cost="+1"/>
+                <advantage name="Heavily built" cost="+1"/>
+            </advantages>
+        </statistics>
+    </character>
+
+</characters>
+
+

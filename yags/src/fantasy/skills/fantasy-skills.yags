@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+
+<!--
+    List of fantasy specific skills.
+
+    Copyright (c) 2019, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.7 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+
+    <techniques>options/techniques.yags</techniques>
+    <techniques>lowtech/lowtech-techniques.yags</techniques>
+
+
+    <!--
+        LORE skills.
+    -->
+
+    <skill name="First aid" type="standard">
+        <group>Medicine</group>
+
+        <short>Basic first aid and healing.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This skill is the basic knowledge of how to clean and bind a wound, how to
+                set a broken bone and similar activities. It is commonly had to a limited
+                degree by soldiers or others who often see injury and wounds.
+            </para>
+            <para>
+                Unlike <e>Knowledge: Medicine</e> it does not cover detailed knowledge of
+                the body, of medicines and herbs, or how to deal with disease and sickness
+                beyond the basic use of flame or axe.
+            </para>
+        </description>
+        
+        <examples>
+            <example target="10">
+                Tend to stuns on a person. Modified by their total penalty from stuns and
+                wounds. On success, reduce the number of stuns they have by one. Cannot be
+                applied again until they have had eight hours rest. Takes a minute. Also
+                cleans any injuries to reduce the chance of infection, and stop bleeding.
+            </example>
+            <example target="15">
+                Tend to wounds on a person. Modified by their total penalty from stuns and
+                wounds. On success, reduce the number of wounds they have by one. Can only
+                be applied once a week, or after all their wounds are healed. Takes an hour.
+            </example>
+            <example target="20">
+                Stabilise a person who has become fatally wounded. Takes a minute.
+            </example>
+        </examples>
+    </skill>
+    
+
+    <skill name="Nature" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about plants and animals.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This covers knowledge of plants and animals.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Memory" type="standard">
+        <group>Perform</group>
+
+        <short>Memorising large numbers of items.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained to remember and recall large amounts
+                of information with a great deal of accuracy. This feat is
+                normally achieved by constructing a <e>Memory Palace</e>
+                within your mind, where you can file away items of
+                information. It may be used to remember songs, stories,
+                conversations, maps or pictures.
+            </para>
+
+            <para>
+                You may commit 5 items of information to your memory palace
+                per point of skill. An item can be a single short list or
+                a complete Edda - the complexity of the item affects whether
+                you can remember it, not how many rooms it takes up in your
+                memory palace.
+            </para>
+        </description>
+
+        <examples>
+            <example target="20">
+                Memorise a short conversation, a letter, the layout of a
+                castle or village, a face in enough detail to draw a
+                portrait later, a typical song.
+            </example>
+
+            <example target="30">
+                Memorise a lecture, a long letter, the detailed layout of
+                a village, or contents of a room, half a dozen faces,
+                a typical poem or story.
+            </example>
+
+            <example target="40">
+                Memorise a days worth of meeting, 100 pages of text or the
+                contents of a castle or manor house, a crowd of people,
+                a long saga.
+            </example>
+        </examples>
+    </skill>
+
+
+
+    <skill name="Forgery" type="standard">
+        <group>Rogue</group>
+        <group>Legal</group>
+
+        <default>Sleight</default>
+
+        <short>Forging documents and seals.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The art of forging documents, signatures and seals. Covers
+                both producing forged material, and detecting it.
+            </para>
+        </description>
+    </skill>
+
+
+</skill-list>
+
+
+

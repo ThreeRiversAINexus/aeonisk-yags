@@ -1,0 +1,158 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+
+    <header>
+        <title>Yags Modern</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            Rules for covering modern and futuristic worlds.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.8 $</version>
+            <date>$Date: 2007-04-20 19:49:47 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2007</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Yags Modern</title>
+
+            <para>
+                Yags can be used for games set in pretty much any kind of
+                setting, from stone age hunter gatherers to star travelling
+                mercenaries. The availability of skills and equipment is
+                broadly controlled by the tech level of the campaign. Modern
+                day Earth is considered to be TL 8.
+            </para>
+
+            <targetlist targetFirst="true">
+                <targetLabel>TL</targetLabel>
+                <valueLabel>Technology</valueLabel>
+
+                <item target="0" value="Stone age"/>
+                <item target="1" value="Bronze age"/>
+                <item target="2" value="Iron age"/>
+                <item target="3" value="Medieval"/>
+                <item target="4" value="Renaissence (1400-1700)"/>
+                <item target="5" value="Enlightenment (1700-1900)"/>
+                <item target="6" value="Mechanisation (1900-1945)"/>
+                <item target="7" value="Atomic (1945-1980)"/>
+                <item target="8" value="Digital (now)"/>
+                <item target="9" value="Microtech (2020+)"/>
+            </targetlist>
+
+            <para>
+                Tech level is not a perfect description of a setting, since
+                alternate histories and science fiction settings will vary
+                immensly with what is available. Historical settings are
+                somewhat easier since they can follow the suggestions given
+                above. Alternative history settings (such as Steam Punk)
+                may differ greatly however, and will have to be detailed
+                in specific world books.
+            </para>
+
+            <para>
+                The <e>Technology Level</e> concept is more a rough guide
+                to make things easier. If trying to fit things to it is
+                making it harder to design a setting, then drop or modify
+                them as you need to.
+            </para>
+
+            <sect2>
+                <title>Skills and Technology</title>
+
+                <para>
+                    Not all skills are available at all technology levels,
+                    but for the most part it is fairly obvious what should
+                    or should not be available. There's a few skills however
+                    which change in use as civilisation advances.
+                </para>
+
+                <sect3>
+                    <title>Science</title>
+
+                    <para>
+                        <e>Science</e> wasn't invented as a concept until
+                        late TL 4, early TL5. Before that, those who
+                        studied how the world worked were
+                        <e>Natural Philosophers</e>.
+                    </para>
+
+                    <para>
+                        <e>Natural Philosophy</e> was the closest thing they
+                        had to <e>Science</e>, but was firmly rooted in the
+                        ancient Greek view of the world. The study of the
+                        heavens was <e>Astrology</e>, which was consisered
+                        part of mathematics, logic and geometry - all covered
+                        by the skill of <e>Artes Liberalas</e> (the seven
+                        classical knowledges).
+                    </para>
+
+                    <para>
+                        <e>Science</e> will begin to complement
+                        <e>Natural Philosophy</e> by late TL 4 (an academic
+                        character will have both), and academics will have
+                        both. By TL 5, <e>Science</e> will gain ascendance,
+                        <e>Mathematics</e> and <e>Astronomy</e> will branch
+                        out into their own skills, and the old astrological
+                        knowledges will become the rather useless
+                        <e>Astrology</e>.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1 href="../articles/vehicles.yags"/>
+
+        <sect1 href="../articles/missiles.yags"/>
+
+        <sect1 href="../articles/computers.yags"/>
+
+        <sect1>
+            <title>Modern Equipment</title>
+
+            <import-equipment href="../equipment/modern/firearms.yags" style="full"/>
+        </sect1>
+
+        <sect1 format="wide">
+            <title>Modern Firearms</title>
+
+            <para>
+                The following lists some weapons and armour types which are
+                commonly available in a late 20th/early 21st century campaign.
+            </para>
+
+            <y:import-weaponlist href="../equipment/modern/firearms.yags" importance="2" style="list">
+                <y:category>Pistols</y:category>
+                <y:category>Rifles</y:category>
+                <y:category>SMG</y:category>
+            </y:import-weaponlist>
+        </sect1>
+    </body>
+</article>
+
+

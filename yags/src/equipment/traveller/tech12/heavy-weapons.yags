@@ -1,0 +1,462 @@
+<?xml version="1.0"?>
+
+<!--
+
+    General equipment lists.
+
+    Copyright 2005 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted provided that the following
+    conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+    above copyright notice, this list of conditions and the following
+    disclaimer.
+
+    2) Redistributions in compiled form (transformed to other DTDs,
+    converted to PDF, PostScript, RTF and other formats) must
+    reproduce the above copyright notice, this list of conditions
+    and the following disclaimer in the documentation and/or other
+    materials provided with the distribution.
+
+    THIS CONTENT IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+    WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS CONTENT, EVEN IF ADVISED
+    OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Version: $Revision: 1.10 $
+    Date:    $Date: 2007-07-30 20:50:17 $
+
+    All units are in cgs.
+
+    Prices are in credits.
+
+    Tech Level
+     4 1450-1700
+     5 1700-1900
+     6 1900-1950
+     7 1950-1980
+     8 1980-2020
+     9 2020+ (Interplanetary)
+    10 Interstellar (early jump)
+    11 Interstellar (Jump)
+    12 Interstellar (Imperium)
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+
+
+    <item name="Heavy Xaser rifle">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A laser rifle plus power pack.</short>
+
+        <description>
+            <para>
+                Similar to a laser rifle, but powered from an external
+                power source. This is usually a power pack strapped to the
+                back of the user. It has much better damaging ability,
+                range and capacity than its lighter cousins.
+            </para>
+
+            <para>
+                Such a weapon can be modified to give fully automatic
+                ability, but there is a danger of overheating. It is
+                possible to plug the rifle into a larger power supply,
+                such as one provided by a vehicle.
+            </para>
+        </description>
+
+        <weight>8000</weight>
+        <material>metal</material>
+        <cost>2500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+
+            <combat>
+                <attack>+12</attack>
+                <damage>30</damage>
+                <range>
+                    <increment>50</increment>
+                    <short>1500</short><medium>2500</medium><long>3500</long>
+                </range>
+            </combat>
+
+            <strength>4</strength><load>8</load><reach>2</reach>
+            <capacity>60</capacity><rof>5</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><semiauto/><laser/><heavy/><tripleauto/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy Plasma Rifle">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A rifle firing plasma bursts.</short>
+
+        <description>
+            <para>
+                Heavier than a laser rifle, the plasma rifle fires bursts of
+                super heated plasma. It tends to have a short range, but is
+                capable of considerable damage. It comes with an attached
+                power supply which must be worn as a back pack.
+            </para>
+        </description>
+
+        <weight>9000</weight>
+        <material>metal</material>
+        <cost>15000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+
+            <combat>
+                <attack>+7</attack>
+                <damage>32</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>100</short>
+                    <medium>150</medium>
+                    <long>250</long>
+                </range>
+            </combat>
+
+            <strength>4</strength><load>9</load><reach>3</reach>
+            <capacity>80</capacity><rof>10</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><automatic/><plasma/><heavy/>
+                <explosive score="1"/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy Fusion Rifle">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A rifle firing fusion bursts.</short>
+
+        <description>
+            <para>
+                One of the heaviest man-portable weapons available, it is
+                really an anti-armour weapon which also happens to be
+                truly nasty against infantry. It is often seen in use by
+                <e>battledress</e> troops, since the heavy weight and
+                power requirements are best served by powered armour.
+            </para>
+
+            <para>
+                It's main disadvantage is that the plasma burst is
+                sub-sonic, making it possible to avoid beyond short range.
+            </para>
+        </description>
+
+        <weight>13000</weight>
+        <material>metal</material>
+        <cost>65000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+            <class>heavy</class>
+
+            <combat>
+                <attack>+8</attack>
+                <damage>50</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>250</short>
+                    <medium>500</medium>
+                    <long>750</long>
+                </range>
+            </combat>
+
+            <strength>5</strength><load>15</load><reach>3</reach>
+            <capacity>60</capacity><rof>4</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><semiauto/><vehicle/>
+                <heavy/><plasma/><explosive score="2"/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy Laser Gun">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>A very heavy laser gun.</short>
+
+        <description>
+            <para>
+                This is a heavy laser gun designed to be either mounted
+                on a tripod or attached to a vehicle. Either way, it
+                requires huge amounts of energy to fire, especially in
+                sustained mode. It is designed for use against heavy
+                infantry or light vehicle targets.
+            </para>
+
+            <para>
+                The internal battery pack does not last long, so it is
+                usually either hooked up to another energy source, or
+                external battery packs are used. External packs weight
+                25kg and have enough energy for 1000 shots.
+            </para>
+        </description>
+
+        <weight>40000</weight>
+        <material>metal</material>
+        <cost>100000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+
+            <combat>
+                <attack>+20</attack>
+                <damage>35</damage>
+                <range>
+                    <increment>60</increment>
+                    <short>3000</short>
+                    <medium>6000</medium>
+                    <long>12000</long>
+                </range>
+            </combat>
+
+            <strength>10</strength><load>40</load><reach>4</reach>
+
+            <capacity>200</capacity><rof>100</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><firearm/><laser/><automatic score="20"/><heavy/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+
+    <item name="MANPAT-60">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>Single shot man portable missile.</short>
+
+        <description>
+            <para>
+                A disposable missile system designed to be easily portable
+                by an infantry squad. It comes with a single short range
+                missile which is capable of taking out heavily armoured
+                targets. The launcher fires a grav assisted 60mm missile
+                with clever homing, stealth and a 5km range.
+            </para>
+
+            <para>
+                The <e>clever</e> guidance system is capable of tracking
+                its designated target after launch with no further input
+                from its operator, or to be programmed to locate its own
+                target based on a simple profile.
+            </para>
+        </description>
+
+        <weight>5000</weight>
+        <material>metal</material>
+        <cost>5000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+
+            <combat>
+                <attack>+8</attack>
+                <damage>65</damage>
+                <range>
+                    <increment>0</increment>
+                    <short>50</short>
+                    <medium>2500</medium>
+                    <long>5000</long>
+                </range>
+            </combat>
+
+            <strength>3</strength><load>5</load><reach>2</reach>
+            <capacity>1</capacity><rof>1</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><guided type="clever" skill="20"/><vehicle/>
+                <heavy/><explosive score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+
+    <item name="Plasma Charge">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>Explosive charge.</short>
+
+        <description>
+            <para>
+                A plasma based explosive charge, designed for getting
+                through walls and doors, or simply disabling vehicles.
+                It can be used as an anti-infantry weapon, though tends
+                to be overkill. It is equivalent to about 20lb of TNT.
+                It is a Size 10 explosion.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>metal</material>
+        <cost>500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Demolitions</category>
+            <class>bomb</class>
+
+            <combat>
+                <attack>+0</attack>
+                <damage>80</damage>
+            </combat>
+
+            <strength>2</strength><load>1</load><reach>0</reach>
+
+            <properties>
+                <vehicle/><heavy/><explosive score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Fusion Charge">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>Explosive charge.</short>
+
+        <description>
+            <para>
+                A fusion based explosive charge, designed for getting
+                through walls and doors, or simply disabling vehicles.
+                It can be used as an anti-infantry weapon, though tends
+                to be overkill. It is equivalent to about 120lb of TNT.
+                It is not considered a nuclear device as such, but uses
+                similar technology to a fusion rifle (though the only
+                real difference between this and a 'micronuke' is yield).
+                It is a Size 10 explosion.
+            </para>
+        </description>
+
+        <weight>1500</weight>
+        <material>metal</material>
+        <cost>2500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Demolitions</category>
+            <class>bomb</class>
+
+            <combat>
+                <attack>+0</attack>
+                <damage>110</damage>
+            </combat>
+
+            <strength>2</strength><load>1</load><reach>0</reach>
+
+            <properties>
+                <vehicle/><heavy/><explosive score="4"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Micronuke">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>0</legality>
+
+        <short>Dial-a-yield micronuke.</short>
+
+        <description>
+            <para>
+                This is a small explosive device which uses a micro
+                fusion bomb to cause a very large amount of damage,
+                up to 250t of TNT in force. The actual yield can be
+                specified when it is primed, from 1t up to the
+                maximum possible.
+            </para>
+
+            <para>
+                It is considered a Size 20 explosion, making it
+                suitable for use against large space craft. The
+                damage can be lowered to +160.
+            </para>
+        </description>
+
+        <weight>5000</weight>
+        <material>metal</material>
+        <cost>5000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Demolitions</category>
+            <class>bomb</class>
+
+            <combat>
+                <attack>+0</attack>
+                <damage>230</damage>
+            </combat>
+
+            <strength>2</strength><load>5</load><reach>0</reach>
+
+            <properties>
+                <vehicle/><heavy/><explosive score="32"/>
+            </properties>
+        </weapon>
+    </item>
+
+</equipment>
+
+

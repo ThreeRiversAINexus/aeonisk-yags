@@ -1,0 +1,353 @@
+<?xml version="1.0"?>
+
+<!--
+    Fantasy armour equipment lists.
+
+    Copyright 2005-2020, Samuel Penn, sam@notasnark.net
+
+    Redistribution and use with or without modification are permitted provided
+    that the following conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+        above copyright notice and this list of conditions.
+
+    2) Redistributions in binary/printed forms must include copyright
+        attribution.
+
+    The purpose of these equipment lists are to provide a generic and complete
+    list of equipment for RPG purposes, in a format that can be used in other
+    games by anyone, with minimum fuss and license worries. If you make changes
+    and/or additions, then it'd be great if they are passed back or made
+    freely available, but you don't have to.
+
+    Categories
+
+    Adventuring     The sort of things only adventurers have.
+    Rogue           Thieves/assassins tools and the like.
+    Food            Food and drink.genre
+    Animals         An animal which isn't livestock - horses and dogs.
+    Livestock       Animals bred for food, such as pigs and cows.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices should be in farthings, but prices can't really be trusted yet.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+
+    <item name="Gambeson">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A heavily padded cloth jacket.</short>
+
+        <description>
+            <para>
+                A quilted jacket made of padded linen or wool, designed either to be worn as 
+                armour in its own right, or worn under mail or plate armour. It is cheap and 
+                easy to make, and is often the only armour worn by peasants. Some people
+                also wear it simply for its warmth, and it can double as a winter coat.
+            </para>
+        </description>
+
+        <weight>2000</weight><material>cloth</material><cost>12</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection><load>2</load>
+
+            <covers>
+                <torso/><arms/><groin/>
+            </covers>
+
+            <properties>
+                <light/><soft/>
+            </properties>
+        </armour>
+    </item>
+
+
+    <item name="Leather trousers">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>Light armour.</short>
+
+        <description>
+            <para>
+                Trousers made of thick leather. They are flexible so as not to restrict 
+                movement, but only provide limited protection. However they are not designed
+                to be worn under other armour.
+            </para>
+        </description>
+
+        <weight>1000</weight><material>leather</material><cost>40</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>1</load>
+
+            <covers>
+                <groin/><legs/>
+            </covers>
+
+            <properties>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Leather jacket">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>Leather jacket.</short>
+
+        <description>
+            <para>
+                A flexible and soft jacket which gives protection to the torso and arms.
+                It is not designed to be worn under other armour.
+            </para>
+        </description>
+
+        <weight>1000</weight><material>leather</material><cost>60</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+2</protection><load>1</load>
+
+            <covers>
+                <torso/><arms/><groin/>
+            </covers>
+
+            <properties>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+
+    <item name="Leather cuirass">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>Hardened leather breastplate.</short>
+        
+        <description>
+            <para>
+                A breastplate made from boiled leather, which provides some protection
+                for the torso. It can be worn over a gambeson or similar armour, much
+                like a metal breast plate.
+            </para>
+        </description>
+
+        <weight>500</weight><material>leather</material><cost>12</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection><load>1</load>
+
+            <covers>
+                <torso/>
+            </covers>
+
+            <properties>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+
+
+    <item name="Metal helm">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>A plain metal helm.</short>
+
+        <description>
+            <para>
+                A metal helm which covers the top, back and sides of
+                the head. Sometimes has a nose guard as well.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>metal</material>
+        <cost>40</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>1</load>
+
+            <covers>
+                <skull/>
+            </covers>
+
+            <properties>
+                <heavy/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail shirt">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>A shirt of mail.</short>
+
+        <description>
+            <para>
+                A mail shirt which covers the torso but not the arms.
+            </para>
+        </description>
+
+        <weight>4000</weight>
+        <material>metal</material>
+        <cost>200</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+4</protection>
+            <load>4</load>
+            <weight>4000</weight>
+
+            <covers>
+                <torso/>
+                <groin/>
+            </covers>
+
+            <properties>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail hauberk">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>A mail hauberk.</short>
+
+        <description>
+            <para>
+                A layer of mail which covers the torso, arms and upper
+                legs. It is heavy and noisy, but provides excellent
+                protection.
+            </para>
+        </description>
+
+        <weight>7000</weight>
+        <material>metal</material>
+        <cost>400</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+6</protection>
+            <load>7</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <thighs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+                <vitals score="3"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail leggings">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>Mail trousers.</short>
+
+        <description>
+            <para>
+                Mail trousers which cover the legs and waist. Can be
+                worn under a hauberk. Needs to be worn over cloth or
+                leather armour to prevent chaffing.
+            </para>
+        </description>
+
+        <weight>5000</weight>
+        <material>metal</material>
+        <cost>400</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>5</load>
+
+            <covers>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail coif">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>Mail armour to cover head and neck.</short>
+
+        <description>
+            <para>
+                Covers the head and shoulders. Worn under a helm, it
+                protects the neck from sword blows.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>metal</material>
+        <cost>400</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>2</load>
+
+            <covers>
+                <neck/>
+                <skull/>
+            </covers>
+
+            <notes>Often worn under a helm.</notes>
+            <properties>
+                <mail/>
+                <heavy/>
+            </properties>
+        </armour>
+    </item>
+
+
+</equipment>
+
+
