@@ -326,6 +326,14 @@ class EnemyCombatManager:
 
         logger.debug(f"Generating declaration for {enemy.name} (ID: {enemy.agent_id})")
 
+        # Check if free targeting mode is enabled
+        config = self.shared_state.session_config if self.shared_state else {}
+        enemy_config = config.get('enemy_agent_config', {})
+        free_targeting = enemy_config.get('free_targeting_mode', False)
+
+        # Get combat ID mapper if in free targeting mode
+        combat_id_mapper = self.shared_state.get_combat_id_mapper() if self.shared_state and free_targeting else None
+
         # Generate tactical prompt
         from .enemy_prompts import generate_tactical_prompt
 
@@ -335,7 +343,9 @@ class EnemyCombatManager:
             enemy_agents=active_enemies,
             shared_intel=self.shared_intel,
             available_tokens=available_tokens,
-            current_round=self.current_round
+            current_round=self.current_round,
+            combat_id_mapper=combat_id_mapper,
+            free_targeting=free_targeting
         )
 
         # Get LLM response

@@ -4,10 +4,27 @@
   "party_size": 3,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
-  "vendor_spawn_frequency": 3,
-  "enemy_agents_enabled": true,
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds). Vendors offer equipment, ritual supplies, seeds, and services.",
+  "vendor_spawn_frequency": 5,
+
   "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
   "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_spawn_examples": "DM can spawn enemies with: [SPAWN_ENEMY: name | template | count | position | tactics]",
+  "_example_basic": "[SPAWN_ENEMY: Thugs | grunt | 3 | Near-Enemy | aggressive_melee]",
+  "_example_sniper": "[SPAWN_ENEMY: Rooftop Sniper | sniper | 1 | Extreme-Enemy | extreme_range]",
+  "_example_boss": "[SPAWN_ENEMY: Gang Leader | boss | 1 | Near-Enemy | adaptive]",
   "agents": {
     "dm": {
       "llm": {
@@ -99,9 +116,16 @@
           "Support community harmony"
         ],
         "equipped_weapons": {
-          "primary": "fists"
+          "primary": "ritual_blade"
         },
-        "carried_weapons": []
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_blade": 1,
+          "crystal_focus": 1,
+          "incense": 4,
+          "blood_offering": 2,
+          "memory_crystal": 2
+        }
       },
       {
         "name": "Vesper Karsel",
