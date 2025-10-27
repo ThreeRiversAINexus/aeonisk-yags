@@ -37,7 +37,7 @@ def generate_tactical_prompt(
     shared_intel: SharedIntel,
     available_tokens: List[str],
     current_round: int,
-    combat_id_mapper=None,
+    target_id_mapper=None,
     free_targeting: bool = False
 ) -> str:
     """
@@ -53,7 +53,7 @@ def generate_tactical_prompt(
         shared_intel: Shared intelligence pool
         available_tokens: Unclaimed tactical tokens
         current_round: Current combat round
-        combat_id_mapper: Optional combat ID mapper for free targeting mode
+        target_id_mapper: Optional target ID mapper for free targeting mode
         free_targeting: Whether to use unified combatant list (no ally/enemy labels)
 
     Returns:
@@ -72,7 +72,7 @@ def generate_tactical_prompt(
     sections.append(_format_doctrine(enemy))
 
     # Battlefield Situation
-    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, combat_id_mapper, free_targeting))
+    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
 
     # Tactical Options
     sections.append(_format_tactical_options(enemy))
@@ -193,7 +193,7 @@ def _format_battlefield(
     player_agents: List[Any],
     enemy_agents: List[EnemyAgent],
     available_tokens: List[str],
-    combat_id_mapper=None,
+    target_id_mapper=None,
     free_targeting: bool = False
 ) -> str:
     """Format battlefield situation section."""
@@ -202,7 +202,7 @@ def _format_battlefield(
     section = f"""## BATTLEFIELD SITUATION
 {"=" * 60}"""
 
-    if free_targeting and combat_id_mapper:
+    if free_targeting and target_id_mapper:
         # FREE TARGETING MODE: Unified combatant list
         section += "\n\n### Combatants in Combat Zone:"
 
@@ -210,8 +210,8 @@ def _format_battlefield(
 
         # Add all PCs
         for pc in player_agents:
-            cbt_id = combat_id_mapper.get_combat_id(getattr(pc, 'agent_id', None))
-            if cbt_id:
+            tgt_id = target_id_mapper.get_target_id(getattr(pc, 'agent_id', None))
+            if tgt_id:
                 pc_name = getattr(pc, 'name', None) or getattr(pc.character_state, 'name', 'Unknown') if hasattr(pc, 'character_state') else 'Unknown'
                 pc_position = str(getattr(pc, 'position', 'Unknown'))
 
@@ -219,29 +219,29 @@ def _format_battlefield(
                 pc_health = getattr(pc, 'health', 0)
                 pc_max_health = getattr(pc, 'max_health', 0)
 
-                combatants.append(f"- [{cbt_id}] {pc_name} | {pc_position} | {pc_health}/{pc_max_health} HP")
+                combatants.append(f"- [{tgt_id}] {pc_name} | {pc_position} | {pc_health}/{pc_max_health} HP")
 
         # Add all other active enemies (including self)
         for other_enemy in enemy_agents:
             if other_enemy.is_active:
-                cbt_id = combat_id_mapper.get_combat_id(other_enemy.agent_id)
-                if cbt_id:
+                tgt_id = target_id_mapper.get_target_id(other_enemy.agent_id)
+                if tgt_id:
                     unit_count = f" ({other_enemy.unit_count} units)" if other_enemy.is_group else ""
-                    combatants.append(f"- [{cbt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP{unit_count}")
+                    combatants.append(f"- [{tgt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP{unit_count}")
 
         section += "\n" + "\n".join(combatants)
 
         section += f"\n\n**YOUR UNIT**: {enemy.name}"
         section += f"\n**YOUR FACTION**: {enemy.faction}"
         section += "\n\n⚠️  **CRITICAL TARGETING INSTRUCTIONS** ⚠️"
-        section += "\n- Each combatant has a unique ID in brackets: [cbt_XXXX]"
-        section += "\n- You MUST use the combat ID when targeting, NOT the name"
-        section += "\n- CORRECT: TARGET: cbt_7a3f"
+        section += "\n- Each person has a unique ID in brackets: [tgt_XXXX]"
+        section += "\n- You MUST use the target ID when targeting, NOT the name"
+        section += "\n- CORRECT: TARGET: tgt_7a3f"
         section += "\n- WRONG: TARGET: Kiran Voss (this will FAIL!)"
         section += f"\n\n**How to decide who to target:**"
         section += "\n1. Read the names to identify faction allegiance"
         section += f"\n2. Consider your faction relationships ({enemy.faction})"
-        section += "\n3. Use the combat ID (in brackets) when declaring your target"
+        section += "\n3. Use the target ID (in brackets) when declaring your target"
         section += "\n\n⚠️  **WARNING**: You can target ANYONE on this list. Choose wisely!"
 
     else:

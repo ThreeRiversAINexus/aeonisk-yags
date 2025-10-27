@@ -804,6 +804,33 @@ def parse_new_clock_marker(narration: str) -> List[Dict[str, any]]:
     return new_clocks
 
 
+def extract_invalid_advance_story_markers(text: str) -> List[str]:
+    """
+    Find malformed [ADVANCE_STORY: ...] markers that don't have enough fields.
+
+    Used for retry mechanism - detects markers that will fail parsing.
+
+    Args:
+        text: DM narration text
+
+    Returns:
+        List of incomplete marker contents (without brackets)
+    """
+    # Match any [ADVANCE_STORY: ...] marker
+    pattern = r'\[ADVANCE_STORY:\s*([^\]]+)\]'
+    candidates = re.findall(pattern, text, re.IGNORECASE)
+
+    invalid = []
+    for content in candidates:
+        pipe_count = content.count('|')
+        # Need at least 1 pipe for 2 fields (location|situation)
+        if pipe_count < 1:
+            invalid.append(content)
+            logger.debug(f"Found invalid ADVANCE_STORY marker with {pipe_count + 1} fields (need 2): {content[:50]}")
+
+    return invalid
+
+
 def parse_advance_story_marker(narration: str) -> Dict[str, any]:
     """
     Parse story advancement markers from DM narration.

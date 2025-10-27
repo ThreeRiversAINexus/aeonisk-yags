@@ -1631,6 +1631,22 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 )
                 synthesis_text = response.content[0].text.strip()
 
+                # Check for invalid SPAWN_ENEMY markers and retry if needed
+                from .enemy_spawner import extract_invalid_spawn_markers
+                invalid_spawns = extract_invalid_spawn_markers(synthesis_text)
+
+                if invalid_spawns:
+                    logger.warning(f"Found {len(invalid_spawns)} invalid SPAWN_ENEMY markers in synthesis - requesting retry")
+                    retry_response = await self._retry_invalid_markers(
+                        marker_type="SPAWN_ENEMY",
+                        invalid_markers=invalid_spawns,
+                        round_num=round_num
+                    )
+                    # Append corrected markers to synthesis
+                    if retry_response.strip():
+                        synthesis_text += f"\n\n{retry_response}"
+                        logger.info(f"Appended retry response to synthesis")
+
                 # Log LLM call for replay
                 if self.llm_logger:
                     self.llm_logger._log_llm_call(
@@ -1766,11 +1782,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         'source': 'combat_triplet'
                     }
 
-                # If still no effect, generate fallback
+                # If still no effect, generate fallback (but check for cooperative intent first)
                 if not effect and resolution and resolution.success:
-                    effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
-                    if effect:
-                        logger.debug(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
+                    # Detect cooperative vs hostile intent to prevent friendly fire damage on helpful actions
+                    intent_lower = action.get('intent', '').lower()
+                    desc_lower = action.get('description', '').lower()
+
+                    cooperative_keywords = ['share', 'help', 'assist', 'protect', 'heal',
+                                           'purify', 'coordinate', 'support', 'aid', 'buff',
+                                           'cleanse', 'stabilize', 'treat', 'mend']
+
+                    is_cooperative = any(kw in intent_lower or kw in desc_lower
+                                        for kw in cooperative_keywords)
+
+                    if not is_cooperative:
+                        effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
+                        if effect:
+                            logger.debug(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
+                    else:
+                        logger.debug(f"Skipping fallback damage for cooperative action: {intent_lower}")
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -1785,14 +1815,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     target_enemy_name = None  # Initialize for legacy path
                     is_friendly_fire = False
 
-                    # Check if using combat ID system (free targeting mode)
-                    if target_identifier and target_identifier.startswith('cbt_'):
-                        combat_id_mapper = self.shared_state.get_combat_id_mapper() if self.shared_state else None
-                        if combat_id_mapper and combat_id_mapper.enabled:
-                            target_entity = combat_id_mapper.resolve_target(target_identifier)
+                    # Check if using target ID system (free targeting mode)
+                    if target_identifier and target_identifier.startswith('tgt_'):
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target_id_mapper and target_id_mapper.enabled:
+                            target_entity = target_id_mapper.resolve_target(target_identifier)
 
                             # Check if target is a player (friendly fire!)
-                            if target_entity and combat_id_mapper.is_player(target_identifier):
+                            if target_entity and target_id_mapper.is_player(target_identifier):
                                 is_friendly_fire = True
                                 attacker_name = action.get('agent_id', 'Unknown')
                                 target_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
@@ -2854,6 +2884,97 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             self._last_prompt_metadata = loaded_prompt.metadata
             return "\n".join(prompt_parts)
+
+    async def _retry_invalid_markers(
+        self,
+        marker_type: str,
+        invalid_markers: List[str],
+        round_num: int
+    ) -> str:
+        """
+        Ask DM to properly format incomplete markers.
+
+        Args:
+            marker_type: "SPAWN_ENEMY" or "ADVANCE_STORY"
+            invalid_markers: List of incomplete marker contents
+            round_num: Current round number
+
+        Returns:
+            LLM response with corrected markers
+        """
+
+        if marker_type == "SPAWN_ENEMY":
+            format_spec = """
+REQUIRED FORMAT (ALL 5 FIELDS):
+[SPAWN_ENEMY: name | template | count | position | tactics]
+
+**Templates:** grunt, elite, sniper, boss, void_cultist, enforcer
+**Positions:** Near-Enemy, Far-Enemy, Engaged
+**Tactics:** aggressive_melee, aggressive_ranged, defensive, support
+**Count:** 1 or 2 only
+
+Example:
+[SPAWN_ENEMY: Freeborn Raiders | grunt | 2 | Far-Enemy | aggressive_ranged]
+"""
+        elif marker_type == "ADVANCE_STORY":
+            format_spec = """
+REQUIRED FORMAT (2 FIELDS):
+[ADVANCE_STORY: new_location | new_situation]
+
+Example:
+[ADVANCE_STORY: Abandoned Warehouse District | The team tracks the raiders to their hideout, preparing for final confrontation]
+"""
+        else:
+            logger.error(f"Unknown marker type: {marker_type}")
+            return ""
+
+        retry_prompt = f"""
+You generated incomplete {marker_type} markers. Please provide the COMPLETE format for each:
+
+INVALID MARKERS:
+{chr(10).join(f'- [{marker_type}: {m}]' for m in invalid_markers)}
+
+{format_spec}
+
+Provide ONLY the corrected markers, one per line. No narrative or explanation.
+"""
+
+        # Log retry attempt to JSONL
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_marker_retry(
+                round_num=round_num,
+                marker_type=marker_type,
+                invalid_markers=invalid_markers,
+                retry_prompt=retry_prompt
+            )
+
+        # Get LLM config
+        provider = self.llm_config.get('provider', 'openai')
+        model = self.llm_config.get('model', 'gpt-4')
+
+        # Call LLM with lower temperature for format compliance
+        from .llm_provider import get_provider
+        llm_client = get_provider(provider, model)
+
+        response = await llm_client.generate_async(
+            prompt=retry_prompt,
+            temperature=0.3,  # Lower temp for format compliance
+            max_tokens=300
+        )
+
+        # Log retry result to JSONL
+        success = len(response.strip()) > 0
+        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_marker_retry_result(
+                round_num=round_num,
+                marker_type=marker_type,
+                retry_response=response,
+                success=success
+            )
+
+        logger.info(f"Retry response for {marker_type}: {response[:200]}")
+        return response
 
     async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None, action=None) -> str:
         """Generate DM response using LLM."""

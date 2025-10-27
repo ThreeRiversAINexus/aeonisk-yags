@@ -617,6 +617,62 @@ the ley node..."
 
 ---
 
+## Marker Retry System
+
+### Event Type: `marker_retry_attempt`
+**Implementation Date:** 2025-10-27
+**Purpose:** Log when DM generates invalid marker and requires retry
+
+Logs when DM produces incomplete/malformed markers (SPAWN_ENEMY or ADVANCE_STORY) that fail format validation. Tracks retry attempts for post-game analysis.
+
+**Schema:**
+```json
+{
+  "event_type": "marker_retry_attempt",
+  "ts": "2025-10-27T04:36:09.123Z",
+  "session": "session_abc123",
+  "round": 3,
+  "marker_type": "SPAWN_ENEMY",
+  "invalid_markers": ["Freeborn Raiders"],
+  "retry_prompt": "You generated incomplete SPAWN_ENEMY markers..."
+}
+```
+
+**Use Cases:**
+- Identify which prompts cause format errors
+- Track retry frequency by marker type
+- Improve prompt engineering to reduce retries
+- Analyze correlation between scenario complexity and format errors
+
+---
+
+### Event Type: `marker_retry_result`
+**Implementation Date:** 2025-10-27
+**Purpose:** Log result of marker retry attempt
+
+Captures the corrected markers from retry LLM call. Used for validating retry success rate and analyzing LLM format compliance.
+
+**Schema:**
+```json
+{
+  "event_type": "marker_retry_result",
+  "ts": "2025-10-27T04:36:10.456Z",
+  "session": "session_abc123",
+  "round": 3,
+  "marker_type": "SPAWN_ENEMY",
+  "retry_response": "[SPAWN_ENEMY: Freeborn Raiders | grunt | 2 | Far-Enemy | aggressive_ranged]",
+  "success": true
+}
+```
+
+**Use Cases:**
+- Measure retry success rate
+- Identify persistent format issues
+- Track retry cost (additional LLM calls)
+- Validate retry mechanism effectiveness
+
+---
+
 ## Bugs Fixed During Implementation
 
 ### Bug #1: AttributeError - enemy_id

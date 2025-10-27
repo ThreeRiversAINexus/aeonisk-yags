@@ -593,6 +593,60 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_marker_retry(
+        self,
+        round_num: int,
+        marker_type: str,
+        invalid_markers: List[str],
+        retry_prompt: str
+    ):
+        """
+        Log when DM needs to retry generating a marker due to format errors.
+
+        Args:
+            round_num: Current round number
+            marker_type: Type of marker ("SPAWN_ENEMY" or "ADVANCE_STORY")
+            invalid_markers: List of incomplete marker contents
+            retry_prompt: The prompt sent to LLM for retry
+        """
+        event = {
+            "event_type": "marker_retry_attempt",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "marker_type": marker_type,
+            "invalid_markers": invalid_markers,
+            "retry_prompt": retry_prompt
+        }
+        self._write_event(event)
+
+    def log_marker_retry_result(
+        self,
+        round_num: int,
+        marker_type: str,
+        retry_response: str,
+        success: bool
+    ):
+        """
+        Log result of marker retry attempt.
+
+        Args:
+            round_num: Current round number
+            marker_type: Type of marker ("SPAWN_ENEMY" or "ADVANCE_STORY")
+            retry_response: The LLM's corrected response
+            success: Whether retry produced valid markers
+        """
+        event = {
+            "event_type": "marker_retry_result",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "marker_type": marker_type,
+            "retry_response": retry_response,
+            "success": success
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:
