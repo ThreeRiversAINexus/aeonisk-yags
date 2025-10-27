@@ -634,6 +634,7 @@ def parse_state_changes(
         'clock_triggers': [],
         'void_change': 0,
         'void_reasons': [],
+        'void_target_character': None,  # Track who receives void change (None = acting character)
         'conditions': [],
         'notes': [],
         'position_change': None
@@ -656,10 +657,12 @@ def parse_state_changes(
     # Parse void triggers (now returns source field)
     void_change, void_reasons, void_source = parse_void_triggers(narration, intent, outcome_tier)
 
-    # RECOVERY MOVES: Reduce void on successful grounding/purge
+    # RECOVERY MOVES: Reduce void on successful grounding/purge/void cleansing
     intent_lower = intent.lower()
+    narration_lower = narration.lower()
     grounding_keywords = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
     purge_keywords = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
+    void_cleansing_keywords = ['cleanse void', 'purify void', 'void cleansing', 'spiritual cleansing', 'purification ritual']
 
     if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
         if any(kw in intent_lower for kw in grounding_keywords):
@@ -667,6 +670,37 @@ def parse_state_changes(
             void_change = -1
             void_reasons = ['Grounding meditation success']
             state_changes['notes'].append("Grounding: -1 Void (personal recovery)")
+
+        elif any(kw in intent_lower for kw in void_cleansing_keywords):
+            # Void Cleansing Ritual: -1 void on Solid Success+ (margin ≥5)
+            # Canonical requirement: ritual at ley site with offering
+            # IMPORTANT: Must have explicit target_character - no keyword-based targeting
+            target_character = action.get('target_character')
+
+            if not target_character or target_character.lower() in ['none', '']:
+                # No explicit target - this is environmental purification, not personal cleansing
+                state_changes['notes'].append("Void Cleansing: Environmental purification (specify target_character for personal cleansing)")
+            else:
+                # Explicit character targeting - apply personal void cleansing
+                ley_site_present = any(phrase in narration_lower for phrase in ['ley site', 'sacred ground', 'nexus point', 'ley line', 'ley node'])
+                offering_consumed = any(phrase in narration_lower for phrase in ['offering', 'incense', 'burned', 'consumed', 'sacrifice'])
+
+                # Require at least Solid Success (margin ≥5) for void reduction
+                success_margin = resolution.get('margin', 0)
+                if success_margin >= 5:
+                    if ley_site_present or offering_consumed:
+                        # Successful void cleansing with proper ritual components
+                        void_change = -1
+                        void_reasons = [f'Void cleansing ritual on {target_character} (ley site/offering)']
+                        state_changes['void_target_character'] = target_character
+                        state_changes['notes'].append(f"Void Cleansing: -1 Void for {target_character} (ritual purification)")
+                        logger.info(f"Void cleansing ritual: {action.get('character', 'Unknown')} cleansing {target_character}'s void")
+                    else:
+                        # Successful ritual but missing ley site AND offering - no void reduction
+                        state_changes['notes'].append("Void Cleansing: Ritual succeeded but requires ley site or offering for purification")
+                else:
+                    # Insufficient margin for cleansing
+                    state_changes['notes'].append(f"Void Cleansing: Margin {success_margin} too low (need ≥5 for purification)")
 
         elif any(kw in intent_lower for kw in purge_keywords):
             # Successful purge: -scene void (handled by DM, mark as note)

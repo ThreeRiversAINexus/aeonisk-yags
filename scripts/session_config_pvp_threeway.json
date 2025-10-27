@@ -1,0 +1,197 @@
+{
+  "session_name": "pvp_threeway_test",
+  "max_turns": 8,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+
+  "_comment_threeway": "=== THREE-WAY PVP TEST ===",
+  "_threeway_info": "Testing complex PvP with 3 factions. Who shoots who? Maximum confusion.",
+
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": false,
+    "max_enemies_per_combat": 3,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true,
+    "free_targeting_mode": true
+  },
+
+  "_comment_scenario": "Three-way standoff with some NPCs mixed in",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      },
+      "_scenario_hint": "Generate a three-way standoff: Kiran (Tempest), Sable (Nexus), and Ash (Freeborn neutral) caught in a tense situation. Add 1-2 NPCs from ANY faction. Mexican standoff style - unclear who should shoot who. Maybe contested territory, artifact争夺, or misunderstanding."
+    },
+    "players": [
+      {
+        "name": "Kiran Voss",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "_note": "Tempest operative - should be hostile to Nexus, unsure about Freeborn",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Achieve mission objective",
+          "Avoid unnecessary casualties",
+          "Determine who is friend or foe"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 6,
+          "Stealth": 4,
+          "Awareness": 4,
+          "Athletics": 3,
+          "Astral Arts": 3
+        },
+        "void_score": 2,
+        "soulcredit": 0,
+        "equipped_weapons": {
+          "primary": "rifle"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "rifle": 1,
+          "ammo": 3,
+          "medkit": 1
+        }
+      },
+      {
+        "name": "Sable Echo",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "_note": "Nexus enforcer - should be hostile to Tempest, might protect Freeborn",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "goals": [
+          "Maintain law and order",
+          "Protect civilians if possible",
+          "Identify threats accurately"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 2,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4,
+          "Size": 4
+        },
+        "skills": {
+          "Combat": 4,
+          "Guns": 5,
+          "Awareness": 5,
+          "Charm": 4,
+          "Stealth": 3,
+          "Intimidation": 3
+        },
+        "void_score": 0,
+        "soulcredit": 3,
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "ammo": 2,
+          "badge": 1
+        }
+      },
+      {
+        "name": "Ash Reeve",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "_note": "Freeborn scavenger - neutral, just wants to survive",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 4
+        },
+        "goals": [
+          "Survive this mess",
+          "Don't get caught in crossfire",
+          "Maybe profit from the chaos"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 3,
+          "Willpower": 2,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 4,
+          "Guns": 4,
+          "Awareness": 3,
+          "Stealth": 5,
+          "Athletics": 4,
+          "Streetwise": 4
+        },
+        "void_score": 1,
+        "soulcredit": 2,
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "ammo": 2,
+          "scrap": 1
+        }
+      }
+    ]
+  },
+  "notes": "Three-way PvP test: 3 PCs from different factions + some NPCs. With free_targeting_mode, all 3 PCs + NPCs appear in the same list. Tests complex decision-making: Who do I shoot? Who are my allies? Can I form temporary truces? Maximum IFF/ROE challenge."
+}

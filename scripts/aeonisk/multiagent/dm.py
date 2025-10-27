@@ -2175,7 +2175,29 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_void_change(state_changes['void_change'])
 
-                void_state = mechanics.get_void_state(player_id)
+                # Check if void change targets a different character (collaborative cleansing)
+                target_character_name = state_changes.get('void_target_character')
+                if target_character_name:
+                    # Find target character's player_id by character name
+                    target_player_id = None
+                    for pid, char_state in mechanics.character_states.items():
+                        if hasattr(char_state, 'name') and char_state.name == target_character_name:
+                            target_player_id = pid
+                            break
+
+                    if target_player_id:
+                        void_state = mechanics.get_void_state(target_player_id)
+                        target_name = target_character_name
+                    else:
+                        # Couldn't find target, fall back to acting character
+                        logger.warning(f"Could not find target character '{target_character_name}' for void change, applying to actor")
+                        void_state = mechanics.get_void_state(player_id)
+                        target_name = action.get('character', player_id)
+                else:
+                    # Default: apply to acting character
+                    void_state = mechanics.get_void_state(player_id)
+                    target_name = action.get('character', player_id)
+
                 old_void = void_state.score
 
                 if state_changes['void_change'] > 0:
@@ -2188,7 +2210,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     )
                     # Show void increase if it actually changed
                     if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                        narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
                 else:
                     # Void reduction (recovery moves)
                     void_state.reduce_void(
@@ -2197,7 +2219,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     )
                     # Show void decrease if it actually changed
                     if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void: {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                        narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
                 # Check for Eye of Breach appearance on high void
                 eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
@@ -2436,7 +2458,29 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                     self.shared_state.session.track_void_change(state_changes['void_change'])
 
-                void_state = mechanics.get_void_state(player_id)
+                # Check if void change targets a different character (collaborative cleansing)
+                target_character_name = state_changes.get('void_target_character')
+                if target_character_name:
+                    # Find target character's player_id by character name
+                    target_player_id = None
+                    for pid, char_state in mechanics.character_states.items():
+                        if hasattr(char_state, 'name') and char_state.name == target_character_name:
+                            target_player_id = pid
+                            break
+
+                    if target_player_id:
+                        void_state = mechanics.get_void_state(target_player_id)
+                        target_name = target_character_name
+                    else:
+                        # Couldn't find target, fall back to acting character
+                        logger.warning(f"Could not find target character '{target_character_name}' for void change, applying to actor")
+                        void_state = mechanics.get_void_state(player_id)
+                        target_name = action.get('character', player_id)
+                else:
+                    # Default: apply to acting character
+                    void_state = mechanics.get_void_state(player_id)
+                    target_name = action.get('character', player_id)
+
                 old_void = void_state.score
 
                 if state_changes['void_change'] > 0:
@@ -2449,7 +2493,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     )
                     # Show void increase if it actually changed
                     if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void: {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                        narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
                 else:
                     # Void reduction (recovery moves)
                     void_state.reduce_void(
@@ -2458,7 +2502,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     )
                     # Show void decrease if it actually changed
                     if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void: {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                        narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
                 # Check for Eye of Breach appearance on high void
                 eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)

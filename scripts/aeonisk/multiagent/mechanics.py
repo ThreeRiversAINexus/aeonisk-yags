@@ -1394,6 +1394,59 @@ class MechanicsEngine:
             self.soulcredit_states[agent_id] = state
         return self.soulcredit_states[agent_id]
 
+    def has_offering(self, character_state: Any) -> tuple[bool, Optional[str], int]:
+        """
+        Check if character has any valid offering in inventory.
+
+        Returns:
+            tuple: (has_offering: bool, offering_type: str or None, quantity: int)
+        """
+        if not hasattr(character_state, 'inventory'):
+            return (False, None, 0)
+
+        # Check for valid offering items in inventory
+        offering_keys = ['incense', 'purification_incense', 'blood_offering']
+        for key in offering_keys:
+            quantity = character_state.inventory.get(key, 0)
+            if quantity > 0:
+                return (True, key, quantity)
+
+        return (False, None, 0)
+
+    def consume_offering(self, character_state: Any, offering_type: Optional[str] = None) -> Optional[str]:
+        """
+        Consume one offering from character's inventory.
+
+        Args:
+            character_state: Character state with inventory
+            offering_type: Specific offering to consume (or None to auto-select)
+
+        Returns:
+            Name of consumed offering, or None if failed
+        """
+        if not hasattr(character_state, 'inventory'):
+            logger.warning(f"Character {getattr(character_state, 'name', 'unknown')} has no inventory")
+            return None
+
+        # If no specific offering requested, find any available
+        if offering_type is None:
+            has_any, offering_type, _ = self.has_offering(character_state)
+            if not has_any:
+                logger.warning(f"Character {character_state.name} has no offerings to consume")
+                return None
+
+        # Verify character has this offering
+        quantity = character_state.inventory.get(offering_type, 0)
+        if quantity <= 0:
+            logger.warning(f"Character {character_state.name} has no {offering_type} to consume")
+            return None
+
+        # Consume the offering
+        character_state.inventory[offering_type] = quantity - 1
+        logger.info(f"Consumed 1 {offering_type} from {character_state.name}'s inventory (remaining: {quantity - 1})")
+
+        return offering_type
+
     def check_void_trigger(
         self,
         action: str,

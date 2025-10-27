@@ -443,7 +443,7 @@ def create_standard_vendors() -> List[Vendor]:
         vendor_type=VendorType.HUMAN_TRADER,
         inventory=[
             VendorItem("Echo-Calibrator", "Tech alternative to altar (DC 16 Dex+Tech)", price_spark=8),
-            VendorItem("Purification Incense (Bundle)", "High-grade ritual cleansing", price_drip=8),
+            VendorItem("Purification Incense (Bundle)", "High-grade ritual cleansing", price_drip=8, item_type="offering"),
             VendorItem("Talisman Blanks (x5)", "Premium ritual substrates", price_spark=1),
             VendorItem("Attuned Seed (Fire)", "Stable flame-aspected seed", price_spark=2, item_type="seed"),
             VendorItem("Attuned Seed (Water)", "Stable water-aspected seed", price_spark=2, item_type="seed"),
@@ -531,7 +531,7 @@ def create_standard_vendors() -> List[Vendor]:
         vendor_type=VendorType.VENDING_MACHINE,
         inventory=[
             VendorItem("Ritual Altar Access (1hr)", "Temple altar booking", price_spark=1),
-            VendorItem("Incense Stick (Single)", "Basic ritual cleansing", price_breath=10),
+            VendorItem("Incense Stick (Single)", "Basic ritual cleansing", price_breath=10, item_type="offering"),
             VendorItem("Ley-Chalk (3pk)", "Temporary glyph drawing", price_drip=2),
             VendorItem("Whisper Wax Tablet", "Breath-activated recording", price_breath=15),
             VendorItem("Talisman Blank", "Single ritual substrate", price_drip=3),
@@ -620,7 +620,7 @@ def create_standard_vendors() -> List[Vendor]:
             VendorItem("Med Kit", "Emergency medical supplies", price_drip=0),
             VendorItem("Ration Pack (x3)", "Survival rations", price_drip=0),
             VendorItem("Signal Flare", "Call for help", price_drip=0),
-            VendorItem("Purification Incense", "Ritual cleansing", price_drip=0),
+            VendorItem("Purification Incense", "Ritual cleansing", price_drip=0, item_type="offering"),
         ],
         greeting="[EMERGENCY CACHE] Crisis protocol active. Take what you need."
     )
