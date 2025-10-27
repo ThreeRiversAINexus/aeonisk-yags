@@ -1,0 +1,260 @@
+{
+  "session_name": "void_cleansing_test",
+  "max_turns": 15,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+
+  "_comment_scenario": "=== VOID CLEANSING TEST SCENARIO ===",
+  "_test_focus": "Test void reduction through ritual cleansing with offerings and ley sites",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "_vendor_info": "Spawn vendor early to test offering purchases",
+  "vendor_spawn_frequency": 3,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "scenario": {
+    "theme": "Void Cleansing Pilgrimage",
+    "location": "Ancient Ley Site - The Resonant Altar",
+    "situation": "The party has traveled to a known ley site deep in the contested zones - a place where ley lines converge and create natural spiritual resonance. The ancient altar here has been used for void cleansing rituals for centuries. However, the site attracts void-curious scavengers and rogue operators who seek to disrupt or exploit the sacred ground. The party must perform their cleansing rituals while dealing with potential threats.",
+    "initial_clocks": [
+      {
+        "name": "Void Cleansing Complete",
+        "current": 0,
+        "max": 6,
+        "description": "Party members successfully reduce their void scores through ritual cleansing"
+      },
+      {
+        "name": "Ley Site Stability",
+        "current": 8,
+        "max": 10,
+        "description": "The ley site remains calm and suitable for rituals (decreases if combat occurs)"
+      }
+    ]
+  },
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Riven Ashglow",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 2,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Charisma": 3,
+          "Size": 4
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 5,
+          "Charm": 3,
+          "Awareness": 3,
+          "Stealth": 3,
+          "Melee": 3
+        },
+        "void_score": 4,
+        "soulcredit": -2,
+        "goals": [
+          "Cleanse accumulated void corruption from risky ritual work",
+          "Restore standing with Resonance Communes through proper purification",
+          "Learn safer void management techniques"
+        ],
+        "equipped_weapons": {
+          "primary": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "combat_knife": 1,
+          "crystal_focus": 1,
+          "incense": 3,
+          "purification_incense": 2,
+          "blood_offering": 1,
+          "memory_crystal": 1
+        },
+        "energy_inventory": {
+          "breath": 15,
+          "drip": 12,
+          "grain": 2,
+          "spark": 1
+        }
+      },
+      {
+        "name": "Ash Vex",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Astral Arts": 4,
+          "Systems": 5,
+          "Stealth": 4,
+          "Awareness": 4,
+          "Drone Operation": 4,
+          "Guns": 3
+        },
+        "void_score": 5,
+        "soulcredit": -1,
+        "goals": [
+          "Prove void can be managed through disciplined cleansing rituals",
+          "Document cleansing techniques for Tempest research archives",
+          "Avoid mandatory memory-wipe by demonstrating controlled void reduction"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "void_scanner": 1,
+          "drone_controller": 1,
+          "incense": 2,
+          "hollow_seed": 2,
+          "neural_stimulant": 1
+        },
+        "energy_inventory": {
+          "breath": 20,
+          "drip": 18,
+          "grain": 3,
+          "spark": 2
+        }
+      },
+      {
+        "name": "Thresh Ireveth",
+        "pronouns": "they/them",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 6
+        },
+        "skills": {
+          "Combat": 5,
+          "Athletics": 4,
+          "Awareness": 4,
+          "Intimidation": 3,
+          "Investigation": 3,
+          "Guns": 5,
+          "Melee": 4,
+          "Brawl": 4,
+          "Astral Arts": 2
+        },
+        "void_score": 3,
+        "soulcredit": 2,
+        "goals": [
+          "Perform regulation cleansing ritual to maintain Pantheon operational standards",
+          "Return void score to 0 through proper ley site purification",
+          "Protect the ley site from void cultists or scavengers"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "urban_riot_carapace": 1,
+          "purification_incense": 5,
+          "pantheon_badge": 1,
+          "blood_offering": 2,
+          "med_kit": 1
+        },
+        "energy_inventory": {
+          "breath": 25,
+          "drip": 15,
+          "grain": 4,
+          "spark": 3
+        }
+      }
+    ]
+  },
+
+  "_test_checklist": [
+    "1. Characters start with void 3-5 (need cleansing)",
+    "2. Characters have offerings in inventory (incense, purification_incense, blood_offering)",
+    "3. Characters have currency to purchase more offerings from vendor",
+    "4. Scenario explicitly mentions ley site in description",
+    "5. Vendor spawns on round 3 to test purchase mechanics",
+    "6. Test void reduction via successful ritual (margin ≥5) + offering/ley site",
+    "7. Test offering consumption from inventory tracking",
+    "8. Test soulcredit gains from void cleansing (+2-3)",
+    "9. Test insufficient margin failure case",
+    "10. Test ritual without offering/ley site failure case"
+  ],
+
+  "notes": "Focused void cleansing test with 3 characters (void 3-5). Scenario at ley site. All have ritual capability and offerings. Vendor enabled for purchase testing. Expected flow: perform cleansing rituals, purchase more offerings if needed, reduce void to 0-2 range."
+}

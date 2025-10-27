@@ -1,0 +1,145 @@
+{
+  "session_name": "iff_roe_test",
+  "max_turns": 8,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+
+  "_comment_iff_test": "=== IFF/ROE TESTING ===",
+  "_iff_info": "Testing free-form targeting with multi-faction combat. Can AI identify friend vs foe?",
+
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true,
+    "free_targeting_mode": true
+  },
+
+  "_comment_scenario": "Force multi-faction combat scenario - PCs + allied NPCs vs hostile NPCs",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      },
+      "_scenario_hint": "Generate three-way battle with Tempest vs Nexus factions. Include combatants from both factions."
+    },
+    "players": [
+      {
+        "name": "Kiran Voss",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "_note": "Tempest PC - should recognize Tempest enemies as allies by name",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Survive the firefight",
+          "Identify friend vs foe correctly",
+          "Support Tempest forces against Nexus"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 6,
+          "Stealth": 4,
+          "Awareness": 4,
+          "Athletics": 3,
+          "Astral Arts": 3
+        },
+        "void_score": 2,
+        "soulcredit": 0,
+        "equipped_weapons": {
+          "primary": "rifle"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "rifle": 1,
+          "ammo": 3,
+          "medkit": 1
+        }
+      },
+      {
+        "name": "Sable Echo",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "_note": "Nexus PC - should recognize Nexus enemies as allies by name",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "goals": [
+          "Maintain order and law",
+          "Identify friend vs foe correctly",
+          "Support Nexus enforcers against Tempest"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 2,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4,
+          "Size": 4
+        },
+        "skills": {
+          "Combat": 4,
+          "Guns": 5,
+          "Awareness": 5,
+          "Charm": 4,
+          "Stealth": 3,
+          "Intimidation": 3
+        },
+        "void_score": 0,
+        "soulcredit": 3,
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "ammo": 2,
+          "badge": 1
+        }
+      }
+    ]
+  },
+  "notes": "IFF/ROE test: Tempest PC + Nexus PC. DM should spawn Tempest enemies + Nexus enemies. With free_targeting_mode, all combatants see unified list. Test: Do they shoot their own faction by accident? Do they correctly identify allies by name?"
+}

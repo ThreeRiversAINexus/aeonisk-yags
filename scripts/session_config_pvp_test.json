@@ -1,0 +1,141 @@
+{
+  "session_name": "pvp_friendly_fire_test",
+  "max_turns": 6,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": false,
+
+  "_comment_pvp_test": "=== PVP FRIENDLY FIRE TEST ===",
+  "_pvp_info": "Testing PC vs PC combat with free targeting. Players are actively hostile to each other.",
+
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": false,
+
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": false,
+    "max_enemies_per_combat": 0
+  },
+
+  "_comment_scenario": "Pure PvP scenario - competing for same resource with NO NPCs",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      },
+      "_scenario_hint": "Generate a zero-sum competitive scenario. Examples: Both bounty hunters tracking the SAME target (only one can claim the bounty), competing for unique artifact/data chip, last shuttle off-world (only one seat), contested salvage rights to valuable wreck, duel over faction honor. The key constraint: there is ONE thing they both need, and ONLY ONE can have it. They are the ONLY two people present - absolutely NO enemies, NO NPCs, NO gangs, NO civilians, NO bystanders. Just Kiran and Sable in direct opposition. DO NOT use [SPAWN_ENEMY] under any circumstances."
+    },
+    "players": [
+      {
+        "name": "Kiran Voss",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "_note": "Tempest operative - hostile to Nexus",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Secure the objective before Sable Echo does",
+          "Defeat or neutralize the Nexus operative if necessary",
+          "Claim the prize - there can be only one winner"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 6,
+          "Stealth": 4,
+          "Awareness": 4,
+          "Athletics": 3,
+          "Astral Arts": 3
+        },
+        "void_score": 2,
+        "soulcredit": 0,
+        "equipped_weapons": {
+          "primary": "rifle"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "rifle": 1,
+          "ammo": 3,
+          "medkit": 1
+        }
+      },
+      {
+        "name": "Sable Echo",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "_note": "Nexus enforcer - hostile to Tempest",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-3-5-sonnet-20241022",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "goals": [
+          "Secure the objective before Kiran Voss does",
+          "Detain or neutralize the Tempest operative if necessary",
+          "Claim the prize - there can be only one winner"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 2,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4,
+          "Size": 4
+        },
+        "skills": {
+          "Combat": 4,
+          "Guns": 5,
+          "Awareness": 5,
+          "Charm": 4,
+          "Stealth": 3,
+          "Intimidation": 3
+        },
+        "void_score": 0,
+        "soulcredit": 3,
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "ammo": 2,
+          "badge": 1
+        }
+      }
+    ]
+  },
+  "notes": "PVP test: Pure PC vs PC combat. With free_targeting_mode, each PC will see the other in their combatant list and must choose whether to attack. This tests: 1) Will they recognize they're targeting another PC? 2) Will they hesitate or engage? 3) Does friendly fire logging work correctly?"
+}

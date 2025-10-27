@@ -764,6 +764,42 @@ class AIPlayerAgent(Agent):
         if ('give' in intent or 'transfer' in intent or 'pool' in intent) and outcome.get('success', False):
             self._process_transfer(intent, outcome)
 
+    def _map_vendor_item_to_inventory_key(self, vendor_item_name: str) -> Optional[str]:
+        """
+        Map vendor item names to character inventory keys.
+        Returns None if item shouldn't be added to inventory (services, consumables without tracking).
+        """
+        mapping = {
+            # Offerings - track in inventory
+            'incense stick': 'incense',
+            'incense stick (single)': 'incense',
+            'purification incense (bundle)': 'purification_incense',
+            'purification incense': 'purification_incense',
+
+            # Medical supplies
+            'med kit (basic)': 'med_kit',
+            'med kit (tactical)': 'med_kit',
+            'breathwater flask': 'breathwater_flask',
+
+            # Tech items
+            'echo-calibrator': 'echo_calibrator',
+            'void scanner (basic)': 'void_scanner',
+            'scrambled id chip': 'scrambled_id',
+            'data slate (encrypted)': 'data_slate',
+            'comm unit': 'comm_unit',
+
+            # Consumables (simple tracking)
+            'glowsticks': 'glowsticks',
+            'sparksticks': 'sparksticks',
+            'dripfruit chews': 'dripfruit',
+            'ration pack': 'rations',
+
+            # Services - don't add to inventory
+            'ritual altar access': None,
+            'bond insurance policy': None,
+        }
+        return mapping.get(vendor_item_name.lower())
+
     def _process_purchase(self, intent: str, outcome: Dict[str, Any]):
         """Process a successful purchase and deduct currency."""
         # Simple item price lookup (prices from energy_economy.py)
@@ -781,6 +817,9 @@ class AIPlayerAgent(Agent):
             'bond insurance policy': {'spark': 12},
             'data slate (encrypted)': {'drip': 10},
             'incense stick': {'breath': 10},
+            'incense stick (single)': {'breath': 10},
+            'purification incense (bundle)': {'drip': 8},
+            'purification incense': {'drip': 8},
             'ritual altar access': {'spark': 1},
             'void scanner (basic)': {'spark': 4},
         }
@@ -799,8 +838,17 @@ class AIPlayerAgent(Agent):
 
             # Attempt to spend currency
             if self.character_state.energy_inventory.spend_currency(currency_type, amount):
+                # FIX: Add item to inventory after successful purchase
+                inventory_key = self._map_vendor_item_to_inventory_key(purchased_item)
+                if inventory_key:
+                    current_count = self.character_state.inventory.get(inventory_key, 0)
+                    self.character_state.inventory[inventory_key] = current_count + 1
+                    logger.info(f"Added {inventory_key} to {self.character_state.name}'s inventory (now: {current_count + 1})")
+
                 logger.info(f"{self.character_state.name} purchased {purchased_item} for {amount} {currency_type}")
                 print(f"[{self.character_state.name}] 💰 Purchased {purchased_item} (-{amount} {currency_type})")
+                if inventory_key:
+                    print(f"[{self.character_state.name}] 📦 +1 {inventory_key} (total: {self.character_state.inventory[inventory_key]})")
                 print(f"[{self.character_state.name}] Currency: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
             else:
                 logger.warning(f"{self.character_state.name} couldn't afford {purchased_item} ({amount} {currency_type})")
@@ -1693,7 +1741,7 @@ Now that you have this information, declare your action using the required forma
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
                 elif 'target_enemy' in key:
-                    # Extract enemy target if specified
+                    # Extract enemy target if specified (legacy - prefer target_character)
                     if value.lower() != 'none':
                         data['target_enemy'] = value
 
@@ -1711,6 +1759,40 @@ Now that you have this information, declare your action using the required forma
                                         target_display = f"{target_entity.character_state.name} ({value})"
 
                         logger.info(f"{self.character_state.name} targeting: {target_display}")
+
+                elif 'target_character' in key or 'target_pc' in key:
+                    # Universal character targeting (for rituals, buffs, debuffs, IFF scenarios)
+                    if value.lower() not in ['none', '']:
+                        # Handle "self" keyword
+                        if value.lower() == 'self':
+                            data['target_character'] = self.character_state.name
+                            logger.info(f"{self.character_state.name} targeting self")
+                        else:
+                            # Resolve combat ID to actual name
+                            target_display = value
+                            if value.startswith('cbt_') and self.shared_state:
+                                combat_id_mapper = self.shared_state.get_combat_id_mapper()
+                                if combat_id_mapper and combat_id_mapper.enabled:
+                                    target_entity = combat_id_mapper.resolve_target(value)
+                                    if target_entity:
+                                        # Get name from either enemy or PC
+                                        if hasattr(target_entity, 'name'):
+                                            target_display = target_entity.name
+                                            data['target_character'] = target_entity.name
+                                        elif hasattr(target_entity, 'character_state'):
+                                            target_display = target_entity.character_state.name
+                                            data['target_character'] = target_entity.character_state.name
+                                    else:
+                                        # Couldn't resolve combat ID, use as-is
+                                        data['target_character'] = value
+                                else:
+                                    # No combat ID mapper, use as-is
+                                    data['target_character'] = value
+                            else:
+                                # Direct name targeting
+                                data['target_character'] = value
+
+                            logger.info(f"{self.character_state.name} targeting character: {target_display}")
                 elif 'target_position' in key:
                     # Extract position if specified - STORE but don't apply yet
                     value_lower = value.lower()
