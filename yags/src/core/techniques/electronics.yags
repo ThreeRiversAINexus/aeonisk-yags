@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+
+<!--
+    Electronic techniques.
+
+    Techniques to do with using and building electronic devices.
+ -->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.3 $</version>
+            <date>$Date: 2006-11-17 21:12:11 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2005</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+<!--
+    <advantage name="Microtechnology" type="technique">
+        <cost points="4"/>
+        <skill name="Engineering"/>
+        <skill name="Mechanics"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Experience with nanotechnology.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Nanotechnology" type="technique">
+        <cost points="8"/>
+        <skill name="Engineering"/>
+        <skill name="Mechanics"/>
+        <prerequisite>Microtechnology</prerequisite>
+        <prerequisite>Chemical engineering</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Experience with nanotechnology.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Chemical engineering" type="technique">
+        <cost points="4"/>
+        <skill name="Engineering"/>
+        <skill name="Mechanics"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Experience with nanotechnology.
+            </para>
+        </description>
+    </advantage>
+-->
+</advantages>
+
+

@@ -1,0 +1,1088 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+                href="/home/sam/src/forge/yagsbook/xml/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+    <header>
+        <title>Yags High Tech</title>
+        <tagline>Yags 0.7.6</tagline>
+
+        <summary>
+            Vehicles and other mechanical constructs.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <license type="Yags">
+            <year>2012</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Vehicles</title>
+
+            <quote signature="Jeremy Clarkson, Top Gear">
+                Tonight: an awful new car from Rover; a brilliant new car from
+                Aston Martin; and the Apache helicopter gunship: can it get
+                missile lock on a Lotus Exige?
+            </quote>
+
+            <para>
+                <tm>Yags</tm> is all about characters and the things that
+                they can do. But sometimes a character wants to do something
+                bigger, faster and more awesome than they can manage with
+                their frail fleshy bodies. For this reason <tm>Yags</tm>
+                also includes these rules for vehicles.
+            </para>
+
+            <para>
+                The term <e>vehicle</e> can also be extended to cover all
+                forms of constructs, from scary killer robots to fortresses
+                and giant space ships. More mundanely, it also covers
+                trains, planes and cars. There are sections to cover combat
+                between vehicles, since the sort of very big guns that
+                military vehicles have a tendency to carry step outside the
+                bounds of character scale combat.
+            </para>
+
+            <para>
+                In brief, vehicles mostly the same rules as characters.
+                There are some changes to account for the differences in
+                size, but a most things are additional, the character
+                rules merely being one end of a sliding scale.
+            </para>
+
+            <sect2>
+                <title>Vehicle Size</title>
+
+                <para>
+                    Whether something counts as a vehicle is based on its
+                    construction rather than its size. Generally, something
+                    that has been built out of non-living material is
+                    classed as a vehicle. It is not based on size - a
+                    motorbike is vehicle scale whilst an elephant is still
+                    character scale.
+                </para>
+
+                <para>
+                    Vehicles also include buildings, so a house uses vehicle
+                    rules as far as absorbing damage is concerned.
+                </para>
+
+                <para>
+                    All vehicles have a <t>Size</t> statistic, just like
+                    characters do. This is on the same scale, so a <t>Size</t> 5
+                    motorbike is about the same size as an adult human.
+                    A vehicle's <t>Size</t> is roughly proportional to its
+                    volume. A <t>Size</t> 5 vehicle is about 1 cubic metre.
+                    Every ten fold increase in volume adds +5 to the <t>Size</t>.
+                    Some examples of vehicle sizes are below.
+                </para>
+
+                <targetlist>
+                    <valueLabel>Type of vehicle</valueLabel>
+                    <targetLabel>Size</targetLabel>
+
+                    <item target="4-5" value="Motorbike"/>
+                    <item target="8-10" value="Family car"/>
+                    <item target="10-15" value="Tank"/>
+                    <item target="20" value="Frigate"/>
+                    <item target="30" value="Battleship"/>
+                    <item target="45" value="Aircraft carrier"/>
+                </targetlist>
+
+                <para>
+                    Because of the logarithmic scale, even very large Science Fiction
+                    starships can be represented in double digit sizes.
+                    Since attacks can't damage targets more than 15 size
+                    points larger, damage and armour values can also
+                    remain relatively low.
+                </para>
+
+                <sect3>
+                    <title>Vehicle Damage</title>
+
+                    <para>
+                        Damage, and the absorption thereof, is considered to be
+                        on a different scale to characters. Unless noted, weapons
+                        and armour are <e>character scale</e>. Anything to do with
+                        a vehicle tends to be <e>vehicle scale</e>, and will be
+                        specified with a 'Vc' in its properties. A vehicle scale
+                        weapon that does +20 damage is far more effective than
+                        a character scale weapon which does the same.
+                    </para>
+
+                    <para>
+                        Vehicles don't have wounds and stuns, but they do have
+                        <e>damage</e>. This is based on the vehicle's <t>Size</t>,
+                        though isn't directly proportional to it. Instead, it is
+                        equal to the square of the vehicle's <t>Size</t>, divided
+                        by 20:
+                    </para>
+
+                    <para>
+                        Damage levels = <t>Size</t>^2 / 20 (round to nearest) + 2.
+                    </para>
+
+                    <para>
+                        There are 3 damage levels - superficial, moderate and
+                        critical. A vehicle that has taken superficial damage
+                        is at no penalty to manoeuvring, a moderately damaged
+                        vehicle is at -10 and a critically damaged vehicle is
+                        at -25 and halves its top speed and acceleration.
+                        In addition, a vehicle always has one damage level in
+                        <e>disabled</e>, which gives a -40 penalty. A vehicle
+                        stops working once it becomes disabled, though it's
+                        possible to get it working again with a difficulty 20
+                        <e>Mechanics</e> check (takes 1 round per point of
+                        <e>Size</e> of the vehicle).
+                    </para>
+
+                    <example title="Damage Levels">
+                        <para>
+                            As an example, take a modern BMW M3, with a
+                            Size of 9. It will have 4 body levels
+                            (9 * 9 = 81, divided by 20 = 4), plus the two
+                            free levels for a total of 6.
+                        </para>
+
+                        <para>
+                            The first five get split between superficial (2),
+                            moderate (2) and critical (1), and the sixth
+                            goes into disabled (1).
+                        </para>
+
+                        <para>
+                            The first two points of damage the car takes will
+                            leave it as <e>superficially damaged</e>. On taking
+                            its third level it becomes <e>moderately damaged</e>.
+                            This is similar to how character scale damage works.
+                        </para>
+                    </example>
+
+                    <para>
+                        There are two types of vehicle damage - <e>Major</e>
+                        and <e>Minor</e>. The former is the default type and
+                        is similar to <e>wounds</e> at character scale.
+                        <e>Minor</e> damage is like <e>stuns</e> and is non
+                        cumulative, but is applied to the same damage track
+                        as <e>Major</e> damage. Generally, damage from
+                        character scale weapons is <e>Minor</e> damage.
+                    </para>
+
+                    <para>
+                        When a vehicle receives <e>Major</e> damage, the
+                        damage is added directly to the damage track. If
+                        a vehicle has 4 damage, and takes 3 points of
+                        <e>Major</e> damage, it now has 7 damage.
+                    </para>
+
+                    <para>
+                        <e>Minor</e> damage represents dents and scratches
+                        which are unlikely to take a vehicle out of
+                        commission. Every two points of <e>Minor</e> damage
+                        adds one to the damage track if the vehicle is no
+                        more than superficially damaged.
+                    </para>
+
+                    <para>
+                        Three points of <e>Minor</e> damage are required to
+                        damage a vehicle that already has moderate damage,
+                        and five points if it is already critically damaged.
+                    </para>
+
+                    <example title="Minor Damage">
+                        <para>
+                            A size 28 battleship has 41 (39 + 2) damage levels,
+                            with 14 in superficial, 13 in moderate, 13 in
+                            critical and a final one in disabled.
+                        </para>
+
+                        <para>
+                            It is being fired on by a small artillery gun
+                            (effective size 15) that is doing
+                            minor damage. The first two shots do 13 levels
+                            each, causing 6 damage twice, taking it to 12 levels
+                            (still superficial). The third shot also does
+                            13 levels. The first four points do two points of
+                            damage on the superficial track, and the remaining
+                            nine points do three damage (1 per 3) on the
+                            moderate damage track.
+                        </para>
+                    </example>
+
+                    <sect4>
+                        <title>Shooting at Vehicles</title>
+
+                        <para>
+                            If a vehicle is attacked with a character scale
+                            weapon, then the damage roll is halved and the
+                            damage caused is <e>Minor</e>. Any vehicle which
+                            is more than 10 <t>Size</t> points larger than the
+                            weapon (normally vehicles of <t>Size</t> 16+)
+                            take no damage from character scale attacks.
+                            Also, only <e>wounds</e> are converted to
+                            vehicle damage - stuns are ignored.
+                        </para>
+
+                        <para>
+                            Man portable firearms are generally considered to
+                            be <t>Size</t> 5, though specialist anti-vehicle
+                            weapons may be larger. The most effective of these
+                            are generally classed as vehicle scale anyway.
+                        </para>
+
+                        <para>
+                            If a character weapon happens to be 5+ size
+                            points larger than the vehicle under attack, then
+                            the damage caused is <e>major</e> damage. If the
+                            weapon is 10+ size points larger, then the damage
+                            roll is not halved. Outside of fantasy, such
+                            events will tend to be limited to elephants trampling
+                            a motorcycle.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Shooting at Characters</title>
+
+                        <para>
+                            If a vehicle scale weapon is used against characters
+                            then the character receives no soak roll unless they
+                            are fully protected with heavy armour. In the latter
+                            case then their soak roll is 'merely' halved.
+                        </para>
+
+                        <para>
+                            Note that a character scale weapon mounted on a
+                            vehicle (e.g. a turret mounted light machine gun)
+                            is still considered character scale. It is the size
+                            and characteristics of the weapon, not the vehicle,
+                            which are important.
+                        </para>
+
+                        <para>
+                            If the weapon is 10+ <t>Size</t> points larger than
+                            the target, then even heavy armour is completely
+                            ignored. Characters also suffer the multiplication
+                            of damage from oversized vehicle attacks (see below),
+                            but normally it's irrelevant by this point.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Shooting into Vehicles</title>
+
+                        <para>
+                            When combat happens between vehicles, a lot of the
+                            time passengers will end up being the target. This
+                            can be either due to deliberate aiming, or through
+                            simple bad luck. For the purposes of these rules,
+                            a 'hit' may be an actual direct hit, or may be due
+                            to shrapnel or ricochet. In either case, the actual
+                            cause of the 'hit' is abstracted for simplicity.
+                        </para>
+
+                        <para>
+                            If there is a hit on a vehicle that causes at least
+                            one point of minor or major damage, there is a chance
+                            that characters in that location are hit. For something
+                            like a car, 'that location' is considered to be any
+                            hit on the vehicle. For larger vehicles, such as a
+                            ship, determination of location is left to the GM.
+                            Note that even one point of minor damage against a
+                            vehicle has a chance of harming a passenger, even
+                            though that won't actually add damage to the vehicle.
+                            What counts is the number of points of damage, not the
+                            levels added to the vehicle's damage track.
+                        </para>
+
+                        <para>
+                            Roll a d20, and on a 20+, a random character was hit.
+                            If using automatic fire, add +1 to the roll per 2
+                            bullets. If the rounds are explosive, add +3 per 1m
+                            blast radius of the round. If somebody was hit, roll
+                            again at a cumulative -5 to see if a subsequent
+                            person was hit. Each person can only be hit once.
+                        </para>
+
+                        <para>
+                            On a hit, the damage done is always character scale.
+                            If the original attack was character scale, then
+                            drop the damage type by one level. The damage is
+                            10 x damage levels + 1d20.
+                        </para>
+
+                        <example title="Hitting Passengers">
+                            <para>
+                                A gangster fires into a car, with a 10 round
+                                burst of gunfire from his Thompson SMG, causing
+                                1 minor wound. Since minor wounds are halved,
+                                this only causes superficial damage. However,
+                                any passengers have a chance of being hit on
+                                a d20 roll of 15+ (normally 20+, but +5 for
+                                the 10 round burst).
+                            </para>
+
+                            <para>
+                                If a passenger is hit, then will take
+                                10 (1 x 10) + 1d20 damage. This is unlikely
+                                to cause serious harm, but if any damage is
+                                done to a character it will be <e>wounds</e>.
+                            </para>
+                        </example>
+                    </sect4>
+
+                    <sect4>
+                        <title>Size Matters</title>
+
+                        <quote signature="Red 2, Star Wars">
+                            Look at the size of that thing!
+                        </quote>
+
+                        <para>
+                            Differences in size between vehicles can be far
+                            greater than that between animals (at least, in the
+                            real world). In the modern world, the largest vehicles
+                            are aircraft carriers of size 40+. SF starships (not
+                            covered under <e>High Tech</e>) can be even larger
+                            (the <e>Death Star</e> would be about Size 80).
+                        </para>
+
+                        <para>
+                            Each vehicle mounted weapon has its own <t>Size</t>
+                            which is independent of the vehicle it is mounted on.
+                            Most anti-vehicle weapons (such as the main gun on
+                            a tank) are <t>Size</t> 10. Secondary weapons (such
+                            as a heavy machine gun) will be <t>Size</t> 5.
+                            Heavier artillery or naval guns may be <t>Size</t>
+                            15, 20 or larger.
+                        </para>
+
+                        <para>
+                            For vehicle on vehicle action, if the target vehicle is
+                            11+ <t>Size</t> larger than the attacking weapon then
+                            any damage caused is <e>Minor</e>. If the target is
+                            16+ <t>Size</t> larger, then no damage is caused.
+                        </para>
+
+                        <para>
+                            If the attack is 10+ larger, then any damage levels
+                            caused are doubled and any soak is halved. Each
+                            further +10 <t>Size</t> increase adds a further
+                            multiple to the damage caused and completely ignores
+                            soak.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>General Statistics</title>
+
+                <para>
+                    Size isn't the only statistic vehicles have in <tm>Yags</tm>.
+                    As for characters, <t>Strength</t>, <t>Health</t>,
+                    <t>Agility</t> and <t>Perception</t> also exist for vehicles.
+                </para>
+
+                <para>
+                    <t>Strength</t> is pretty straightforward, and is a measure
+                    of the vehicle's pulling power. It can be compared directly
+                    against the strength of a person. Generally, it is equal to
+                    the square root of the BHP of the vehicle plus half it's
+                    Size. So, a small car such as the <e>Peugeot 205</e>,
+                    which is Size 8 and has 60 BHP would have a Strength
+                    of 12 (4 + 7.7). The He 111 medium bomber, Size 15
+                    with two 1,300 HP engines would have a Strength of 58 (7 + 51).
+                </para>
+
+                <para>
+                    <t>Health</t> is a measure of the general reliability and
+                    toughness of the vehicle. A <t>Health</t> of 3 is pretty
+                    standard. A fragile F1 car or broken old banger may have
+                    a <t>Health</t> of 2, more rugged off-road cars or military
+                    vehicles will have higher <t>Health</t>.
+                </para>
+
+                <para>
+                    <t>Agility</t> represents how agile the vehicle is.
+                    Generally though. it isn't used directly since vehicles
+                    rarely drive themselves. Instead, it caps the
+                    <t>Dexterity</t> of the driver (rider/pilot). It doesn't
+                    affect the speed of the vehicle, but may affect how well
+                    it handles at high speeds.
+                </para>
+
+                <para>
+                    <t>Perception</t> is only used if the vehicle has its own
+                    sensor systems. For most vehicles in the High Tech era
+                    sensors are limited to the Mk I eyeball, so this is zero.
+                </para>
+
+                <sect3>
+                    <title>Soak</title>
+
+                    <para>
+                        A construct will normally have a base soak equal to
+                        its size. If it is stronger or weaker than usual
+                        then this can vary. The following guide can be used
+                        to determine the base soak of a vehicle or building.
+                        These are guidelines only, and any values in between
+                        (or outside) those given can be used.
+                    </para>
+
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Soak</targetLabel>
+                        <valueLabel>Type of construct</valueLabel>
+
+                        <item target="x0.25" value="Fragile.">
+                            About as weak as a vehicle can be without falling
+                            apart. The Lunar Lander would count as Fragile due
+                            to the need to save on mass.
+                        </item>
+
+                        <item target="x0.5" value="Weak.">
+                            A very weak object, normally poorly constructed
+                            or deliberately designed to be light.
+                        </item>
+
+                        <item target="x1" value="Average.">
+                            Any typical building or vehicle will have a
+                            base soak equal to its size.
+                        </item>
+
+                        <item target="x1.5" value="Reinforced.">
+                            If the object has been reinforced, such as a
+                            rally car, SUV or heavily constructed building.
+                            About the strongest most flying vehicles will be.
+                        </item>
+
+                        <item target="x2" value="Strong.">
+                            Object has been designed from the start to be
+                            tough and durable. A tank, battleship or bunker
+                            will tend to be this strong.
+                        </item>
+
+                        <item target="x3" value="Very strong.">
+                            A heavily built vehicle, such as the strongest
+                            tanks, or a heavily toughened bunker. The entire
+                            design of the construct is geared towards making
+                            it strong, rather than pretty or fast.
+                        </item>
+
+                        <item target="x4" value="Super strong.">
+                            A heavily built vehicle made from ultra-tech
+                            materials (TL10+), or one which is designed to
+                            do little more than resist damage at the expense
+                            of being very space inefficient.
+                        </item>
+
+                        <item target="x5" value="Ultra strong.">
+                            Ultra-tech object which does little more than
+                            resist damage which is also very space inefficient,
+                            but also highly resistant to damage.
+                        </item>
+                    </targetlist>
+
+                    <para>
+                        This is the base soak of the construct, and is not
+                        affected by heavy weapons or other effects.
+                    </para>
+
+                    <para>
+                        As for characters, vehicles and buildings may be
+                        armoured. Many heavily armoured vehicles will have
+                        two armour ratings - one for the heavy front armour,
+                        and the second for the lighter sides and rear.
+                        Most armour on vehicles is considered to be
+                        <e>Light vehicle</e>. <e>Heavy vehicle weapons</e>
+                        (normally armour piercing weapons, such as HEAT)
+                        halve such armour.
+                    </para>
+
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Armour</targetLabel>
+                        <valueLabel>Examples of armour</valueLabel>
+
+                        <item target="5-30" value="Armoured vehicle.">
+                            Armoured vehicles (such as APCs, armoured limo)
+                            will tend to have armour in the 5-30 range.
+                        </item>
+
+                        <item target="20-30" value="Light tank.">
+                            Heavily armoured vehicles, such as tanks, will
+                            tend to have up to 30 points of front armour.
+                        </item>
+
+                        <item target="30-50" value="Heavy tank.">
+                            The toughest of tanks will have armours in this
+                            sort of range.
+                        </item>
+
+                        <item target="40-60" value="Battleships.">
+                            Heavy battleships.
+                        </item>
+
+                        <item target="-10" value="Tech -6.">
+                            At tech levels prior to 7, materials are limited
+                            so reduce armour values by 10.
+                        </item>
+
+                        <item target="-5" value="Tech 7.">
+                            For tech level 7 era vehicles, reduce armour
+                            levels by 5.
+                        </item>
+
+                        <item target="+5" value="Tech 9-10.">
+                            At tech levels 9-10, increase armour by +5.
+                        </item>
+
+                        <item target="+10" value="Tech 11-13">
+                            At tech levels 11-13, increase armour by +10.
+                        </item>
+
+                        <item target="+15" value="Tech 14+">
+                            At tech levels above 13, increase armour by +15.
+                        </item>
+                    </targetlist>
+                </sect3>
+
+                <sect3>
+                    <title>Speed and other things</title>
+
+                    <para>
+                        Vehicles will generally have a <e>speed</e>, which is
+                        the top speed in km/h. They also have an <e>acceleration</e>,
+                        which is in km/h/s. What this means is that a motorbike
+                        with an acceleration of 20 km/h/s will, from a standing
+                        start, be doing 20 km/h after 1 second. After 5 seconds
+                        (a round) it will be doing 100km/h. In reality acceleration
+                        slows as a vehicle approaches its top speed, but this is
+                        ignored for simplicity.
+                    </para>
+
+                    <para>
+                        If you really want to, halve acceleration if the vehicle
+                        is travelling at greater than half its top speed.
+                    </para>
+
+                    <para>
+                        Each vehicle also has a <e>range</e>, which is how many
+                        kilometres it can travel on a single load of fuel. Again,
+                        this is just an average for simplicity. If you want,
+                        increase fuel consumption by 50% above 100km/h, double it
+                        above 150km/h, and add further multiples for each extra
+                        50km/h.
+                    </para>
+
+                    <para>
+                        For purposes of combat, a vehicle has a <e>Move</e>
+                        rating. As for characters, this is how far the vehicle
+                        can move in a round, in metres. This is equal to
+                        half the vehicle's top speed, ignoring unit conversions.
+                        For example, a vehicle with a top speed of 180km/h will
+                        have a <e>Move</e> of 90. This gives a speed the
+                        vehicle can move at in combat without penalty.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Vehicle Weapons</title>
+
+                <quote signature="Tales from the Floating Vagabond">
+                    <line>Shoot gun.</line>
+                    <line>Shoot big gun.</line>
+                    <line>Shoot OH MY GOD, DON'T POINT THAT GUN AT MY PLANET!</line>
+                </quote>
+
+                <para>
+                    Vehicle mounted weapons can range from heavy machine guns
+                    to 18" naval guns and beyond. Modern autocannons can make
+                    a mockery of the automatic fire rules, and the ranges and
+                    damage levels mean human targets don't stand much of a
+                    chance.
+                </para>
+
+                <para>
+                    There is a <e>Heavy weapons</e> skill for using man portable
+                    heavy weapons, such as rocket launchers, mortars and light
+                    machine guns.
+                </para>
+
+                <para>
+                    For bigger weapons, characters use the <e>Gunnery</e> skill,
+                    which covers everything from tank guns to heavy artillery.
+                </para>
+
+                <sect3>
+                    <title>Extreme Automatic Fire</title>
+
+                    <para>
+                        The standard rules for automatic fire assume a burst
+                        size of 10 bullets, with the option of larger burst
+                        sizes for really high rates of fire. Many modern
+                        autocannons routinely spew out thousands of rounds
+                        a minute, making the more extreme ends of the rules
+                        somewhat common.
+                    </para>
+
+                    <para>
+                        Firstly, the effects of a burst according to the number
+                        of bullets in it is unaffected, maxing out at 37+.
+                        An autocannon burst size of 100 bullets is no different
+                        in this sense than one with 50 bullets, except it is
+                        retains effectiveness at longer ranges.
+                    </para>
+
+                    <para>
+                        An automatic weapon halves the burst size at 10% of
+                        short range, and each subsequent multiple of this.
+                        A more general rule is that the base range is
+                        increased to be 1% of short range per bullet in the
+                        burst. An autocannon with a basic burst size of 50,
+                        is fully effective out to 50% of short range. After
+                        this, and for each multiple of 50% of short range,
+                        the effective burst size is halved.
+                    </para>
+
+                    <para>
+                        If an automatic weapon has a burst size greater than
+                        100, then close range is capped at 100%.
+                    </para>
+
+                    <example title="Automatic Fire">
+                        <para>
+                            The GAU-8 has a short range of 1km, and is rated as
+                            Au-50, with a RoF of 350. Every round it can fire
+                            7 bursts of 50 bullets each.
+                        </para>
+
+                        <para>
+                            Out to 50% of short range, or 500m, each burst is
+                            counted as having 50 bullets. Out to 1km, burst
+                            size is reduced to 25 bullets. Up to 1.5km, it is
+                            12 bullets, 6 bullets out to 2km, 3 out to 2.5km
+                            and 1 out to 3km.
+                        </para>
+
+                        <para>
+                            This gives a maximum effective range for the weapon
+                            of 3.5km, shorter than the 8km long range. However,
+                            the <e>following fire</e> technique can increase
+                            this effective range. Otherwise, the chance of actually
+                            hitting anything 8km away is pretty much zero.
+                        </para>
+                    </example>
+
+                    <para>
+                        Vehicle scale weapons also gain a +1 bonus to their
+                        effective size for every full 10 bullets in the burst.
+                        If they do explosive damage (e.g., HE rounds), then
+                        also add +2 size for the first 1m of explosive radius,
+                        and a further +2 for each doubling of radius.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Vehicle Actions</title>
+
+            <warning title="Work In Progress">
+                <para>
+                    This section is still very much a work in progress.
+                </para>
+            </warning>
+
+            <para>
+                For the most part, vehicles are secondary to the plot - they
+                allow characters to get from A to B with a minimum of time
+                and fuss. Occasionally however, the journey is the interesting
+                bit, but modelling a high speed car chase can be tricky to
+                handle.
+            </para>
+
+            <note title="Too Many Rules">
+                <para>
+                    There are a lot of rules here, and if you really want to
+                    keep it simple, then only ever require a drive check when
+                    something really exciting happens. You can use a simple
+                    target number, or have an opposed check between two
+                    people. That's where most games leave it, and in many
+                    cases that is good enough.
+                </para>
+
+                <para>
+                    If you have a game where action sequences involving
+                    vehicles are common, or you have sunk all your points
+                    into being a really good driver, then you may want to
+                    be able to show off your skills, and this is where
+                    these rules are designed to be useful.
+                </para>
+            </note>
+
+            <sect2>
+                <title>From A to B</title>
+
+                <quote signature="Anon">
+                    A good driver can get out of situations an excellent
+                    driver would never get into.
+                </quote>
+
+                <para>
+                    Firstly, when driving a normal route, without any attempt
+                    at high speed or evasion, there is a simple
+                    <t>Perception</t> based <e>Drive</e> check made every hour
+                    at a target of 10. This is not capped by the vehicle's
+                    statistics, and mostly comes down to the driver being aware
+                    of what is going on around them. After a number of checks
+                    equal to their <t>Will</t>, they gain a level of exhaustion,
+                    and a further level every 2 checks after that.
+                </para>
+
+                <para>
+                    If a check is failed, then the driver must make an immediate
+                    <t>Dexterity</t> based driving check at the same difficulty.
+                    If this succeeds, then an accident is narrowly avoided.
+                    Otherwise, there is a collision.
+                    If they have a skill of at least 4, then they may opt to gain
+                    a level of exhaustion to halve the difficulty of the second
+                    check.
+                </para>
+
+                <para>
+                    If the driver wishes to travel faster than normal, then they
+                    can reduce journey time by 20%, but the target difficulties
+                    are increased by +5. Each further 5% reduction increases the
+                    difficulty by an extra +5 (e.g., difficulty 45 to halve the
+                    journey time). If the speed is pushing the limits of the car,
+                    add a further +5.
+                </para>
+
+                <para>
+                    There is also the option to drive carefully. Increase journey
+                    time by 50% to reduce difficulty by 5. Double journey time to
+                    reduce difficulty by 10.
+                </para>
+
+                <para>
+                    This assumes medium amounts of traffic.
+                </para>
+
+                <targetlist targetFirst="false" bold="true">
+                    <targetLabel>Modifier</targetLabel>
+                    <valueLabel>Level of traffic</valueLabel>
+
+                    <item target="-10" value="Light traffic.">
+                        Equivalent to late at night, where there's always
+                        room to overtake and plenty of distance between
+                        vehicles.
+                    </item>
+
+                    <item target="+0" value="Medium traffic.">
+                        Late evening or during quiet periods during the
+                        day. There is space between traffic, but a lot of
+                        breaking and lane changing will be necessary.
+                    </item>
+
+                    <item target="+10" value="Heavy traffic.">
+                        Everyone is moving, but you need to be aggressive
+                        to overtake, since there is rarely a clear line
+                        between vehicles. Rush hour on motorways during
+                        a good day. Travel time is +25% normal.
+                    </item>
+
+                    <item target="+25" value="It's a car park.">
+                        Traffic is pretty much stationary, and there's no
+                        where to go. Travel time is +100% normal.
+                    </item>
+                </targetlist>
+
+                <para>
+                    It also assumes good weather.
+                </para>
+
+                <targetlist targetFirst="false" bold="true">
+                    <targetLabel>Modifier</targetLabel>
+                    <valueLabel>Driving conditions</valueLabel>
+
+                    <item target="+0" value="Good conditions.">
+                        Dry roads during the day.
+                    </item>
+
+                    <item target="+5" value="Wet roads, light rain.">
+                        The roads are wet and/or there is light rain
+                        or fog reducing visibility.
+                    </item>
+
+                    <item target="+10" value="Heavy rain.">
+                        Very heavy rain can reduce visibility and cover
+                        the road with a lot of water, reducing breaking
+                        ability.
+                    </item>
+
+                    <item target="+15" value="Ice and snow.">
+                        Very icy conditions can make driving hazardous.
+                        If there is just a little ice, treat as light
+                        or heavy rain as applicable.
+                    </item>
+
+                    <item target="+5" value="Dark.">
+                        If it is dark, and the roads aren't well lit,
+                        then there is less chance of seeing an obstruction.
+                    </item>
+
+                    <item target="+10" value="Thick Fog.">
+                        If it's dark, then you can at least see the lights
+                        of other cars. In thick fog, even this isn't
+                        possible and driving can be really dangerous.
+                    </item>
+                </targetlist>
+
+                <para>
+                    In most situations, a collision will be unlikely to
+                    occur unless the driver is suffering penalties from
+                    exhaustion.
+                </para>
+
+                <para>
+                    In terms of skill, a new driver will have a <e>Drive</e>
+                    of about 2. After a few months of regular driving, this
+                    will increase to about 3, and will reach 4 after a year
+                    or two of experience.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Action Scenes</title>
+
+                <para>
+                    The previous rules won't be needed very often - unless
+                    it's important to the plot in some way that there's a
+                    chance of failure, assume that anyone with skill can
+                    safely drive from A to B. However, in some circumstances
+                    driving can be more exciting, and skill checks become
+                    more useful.
+                </para>
+
+                <para>
+                    If playing out a car chase or similar action sequence,
+                    then a skill check is required whenever there is an
+                    'action point'. Whenever the road changes, or there
+                    is an obstacle to avoid, a skill check is required.
+                    For a simple drive along a straight road, in stressful
+                    circumstances (trying to drive as quickly as possible),
+                    use the following table.
+                </para>
+
+                <targetlist targetFirst="false" bold="true">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Result</valueLabel>
+
+                    <item target="0" value="Failure.">
+                        Complete failure. Make a second check, on another
+                        failure you crash, on success the car simply
+                        loses half its speed.
+                    </item>
+
+                    <item target="10" value="Minimal success.">
+                        You don't manage to get into the right gear,
+                        and only achieve 50% of possible acceleration.
+                    </item>
+
+                    <item target="20" value="Good driving.">
+                        Achieve 75% of car's maximum acceleration.
+                    </item>
+
+                    <item target="30" value="Excellent driver.">
+                        Perfect gear changes and keeping to a
+                        straight line, achieve 100% of car's
+                        acceleration.
+                    </item>
+                </targetlist>
+
+                <para>
+                    Add modifiers to the difficulty from the previous
+                    section for poor road conditions. The skill check
+                    is made using <t>Dexterity</t> and <e>Drive</e>,
+                    with <t>Dexterity</t> capped by the vehicle's
+                    <t>Agility</t>.
+                </para>
+
+                <para>
+                    When the vehicles reach a point of interest (such
+                    as a sharp corner, narrow gap or obstacle), another
+                    check is required. Firstly though, the GM needs to
+                    determine the safe speed for this action, then
+                    all drivers get to choose the speed they're
+                    attempting around it.
+                </para>
+
+                <targetlist targetFirst="false" bold="true">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Result</valueLabel>
+
+                    <item target="0" value="Tortoise (-25%).">
+                        You are driving well below the safe speed for
+                        this event. You're going to lose the race, but
+                        at least you won't crash.
+                    </item>
+
+                    <item target="10" value="Safety first (+0%).">
+                        You're driving at a suitable speed for the
+                        required action (within safe speed limits),
+                        with sane breaking before hand.
+                    </item>
+
+                    <item target="20" value="Taking risks (+25%).">
+                        Hard breaking at the last moment, and a bit
+                        on the fast side.
+                    </item>
+
+                    <item target="40" value="Dangerous driving (+50%).">
+                        Late breaking, power sliding and making it
+                        look good. If you don't crash.
+                    </item>
+
+                    <item target="80" value="Deadly driving (+75%).">
+                        Even later breaking, taking the 'racing line'
+                        perfectly and taking your car to the limit.
+                    </item>
+
+                    <item target="120" value="Elite (+100%).">
+                        The sort of manoeuvre that wins races, or
+                        ends your driving career permanently.
+                    </item>
+                </targetlist>
+
+                <para>
+                    On success, you come out of the event at the
+                    modified safe speed.
+                </para>
+
+                <example title="Hard Driving">
+                    <para>
+                        Alice and Bob are both taking part in a street
+                        race, and are neck and neck when they start
+                        heading down a stretch of open round with a
+                        T-junction at the end.
+                    </para>
+
+                    <para>
+                        The GM decides that a safe speed for this
+                        corner is 20kph. Alice tries to take the junction
+                        at 30kph, and Bob goes for 25kph.
+                    </para>
+
+                    <para>
+                        For Bob, it's a simple difficulty 20 check, which
+                        he makes without too much difficulty and comes out
+                        of the junction at 25kph.
+                    </para>
+
+                    <para>
+                        For Alice, it's difficulty 40, and she rolls only
+                        33. She needs to immediately make a second check
+                        to avoid a crash, and she decides to take a point
+                        of Fatigue to halve the difficulty. She makes the
+                        second check, but is shaken from the experience,
+                        and comes out of the junction at 20kph (half her
+                        attempted speed because of the first failure).
+                    </para>
+                </example>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Sensors</title>
+            <para>
+                Sensors, in particular radar, came into use during TL 6,
+                and became common place in TL 7.
+            </para>
+
+            <sect2>
+                <title>Sensor Size</title>
+                <para>
+                    A sensor system has a <e>Perception</e> statistic which
+                    represents its basic ability to detect things, much like
+                    characters do. For a mechanical sensor, this rating is based
+                    on the size of the system.
+                </para>
+                <para>
+                    A system which is 10 cubic metres in size has a base
+                    <e>Perception</e> of 3. Every ten fold increase in volume
+                    gives a +3 bonus to <e>Perception</e>. Such sensors are
+                    considered to be vehicle scale.
+                </para>
+                <para>
+                    A vehicle scale sensor has a basic range of one kilometre.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Sensitivity</title>
+                <para>
+                    The ability of a sensor to actually detect things (which
+                    includes sensitivity, and the ability to tell noise from a
+                    real signal) is given as the <e>skill rating</e> of the
+                    sensor system. This is generally based on technology level,
+                    but also modified by quality.
+                </para>
+                <para>
+                    A basic TL 6 sensor system has a skill of 1. This is increased
+                    to 3 at TL 7 and 4 at TL 8. Every two TL beyond that increases
+                    it by a further +1.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Detection</title>
+                <para>
+                    When trying to detect a target, a sensor check is made every
+                    minute.
+                </para>
+                <para>
+                    The difficulty is equal to 5 for every multiple of range,
+                    modified by -3 for each point of <t>Size</t> of the target.
+                </para>
+                <para>
+                    If there are multiple targets, then add +2 to the size for
+                    each doubling of the number of targets.
+                </para>
+                <para>
+                    A medium bomber (size 15) at a range of 10km has a target
+                    difficulty of +50 (for range) -45 (for size) = 5. This is
+                    easy for a late TL 6 (3 x 2 + 1d20) to spot. At 15km, the
+                    difficult raises to 30, which is outside of sensor range.
+                    However, a fleet of 100 bombers has a difficult of -6
+                    to be spotted at this range (+12 to size, which is -36 to
+                    the difficulty). The normal detection distance will be
+                    around 20km (difficulty 19).
+                </para>
+                <para>
+                    Larger radars, or networks of them, can detect bomber
+                    fleets out to much greater ranges. For a network of radar
+                    detectors, add a multiple to the base range for each extra
+                    radar.
+                </para>
+            </sect2>
+        </sect1>
+    </body>
+
+</article>
+
+

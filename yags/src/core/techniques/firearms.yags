@@ -1,0 +1,357 @@
+<?xml version="1.0"?>
+
+<!--
+    Combat techniques.
+    Now split up and moved into the techniques directory.
+ -->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.2 $</version>
+            <date>$Date: 2007-11-04 14:58:08 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2005</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+    <!--
+        Athletics.
+    -->
+
+    <!--
+        Firearms techniques.
+    -->
+    <advantage name="Gun fu" type="technique">
+        <cost points="4"/>
+        <skill name="Guns"/>
+
+        <short>Use a pistol in close combat.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are trained in using a pistol effectively in close
+                combat situations, mixing it effortlessly with open
+                hand attacks. Whenever you use a pistol against
+                targets within your combat move, you may use your
+                <t>Agility</t> rather than <t>Dexterity</t>.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Quick load" type="technique">
+        <cost points="2"/>
+        <skill name="Firearms"/>
+
+        <short>Quickly load and fire a gun.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can change the cartridge on an auto loading gun quickly
+                and reliably. Reduce the load time of a gun by 1, plus a
+                further 1 per full 4 levels of skill.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Quick draw" type="technique">
+        <cost points="2"/>
+        <skill name="Guns"/>
+        <prerequisite>Quick load</prerequisite>
+        <short>Quickly draw and fire a pistol.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can draw and fire a pistol in the same round without
+                any penalty, as long as it is readily available (e.g. in
+                a holster or belt).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Multiple targets" type="technique">
+        <cost points="4"/>
+        <skill name="Firearms"/>
+        <prerequisite>Quick load</prerequisite>
+        <short>Fire at multiple targets.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When firing multiple shots (as single shots, not using
+                automatic fire), you may split your shots between
+                multiple targets. For every full four points of skill,
+                you may fire at one additional target each round.
+                Each extra target gives you a -10 penalty to all
+                shots fired, and the targets must be declared at the
+                start of the round.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Sharp shooter" type="technique">
+        <cost points="4"/>
+        <skill name="Firearms"/>
+        <prerequisite>Quick load</prerequisite>
+        <short>Double the range increment of firearms.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are experienced with firing a gun accurately, and can
+                double the range increment of your weapon when firing.
+                This is separate from, and stacks with, the modifiers
+                to the effective range for aiming or careful shots.
+                Effectively, a careful shot is now effective out to four
+                times the range, and an aimed shot out to six times.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Controlled fire" type="technique">
+        <cost points="4"/>
+        <skill name="Firearms"/>
+
+        <prerequisite>Quick load</prerequisite>
+
+        <short>Fire controlled bursts at multiple targets.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When using automatic fire to shoot at a single target,
+                you can fire subsequent bursts at different targets.
+                All targets must be declared at the start of the
+                round, and each extra target gives you a -10 penalty
+                to all bursts fired. The number of extra targets you
+                can fire at is equal to 1 per 4 levels of skill.
+            </para>
+        </description>
+    </advantage>
+
+
+
+    <advantage name="Improved automatic fire" type="technique">
+        <cost points="6"/>
+        <skill name="Firearms"/>
+
+        <prerequisite>Controlled fire</prerequisite>
+
+        <short>Ignore range penalty with automatic fire.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Using <e>automatic fire</e> against an area normally
+                doubles the effective distance. With this technique,
+                you can ignore this penalty.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Selective fire" type="technique">
+        <cost points="6"/>
+        <skill name="Firearms"/>
+
+        <prerequisite>Controlled fire</prerequisite>
+
+        <short>Select targets with automatic fire.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When using automatic fire against an area, the first
+                target of each burst may be chosen from any of the
+                available targets. Targets after that start from the
+                nearest. That target is not selected a second time
+                in the burst, even if they are the next nearest target.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Triple shot" type="technique">
+        <cost points="6"/>
+        <skill name="Guns"/>
+
+        <prerequisite>Sharp shooter</prerequisite>
+
+        <short>Three precision shots.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A technique involving three shots targeted at the
+                target's vitals. It is a single attack which may be
+                a <e>snapshot</e>, <e>normal</e> or <e>careful</e> shot.
+                Only one <e>Triple shot</e> action may be made each
+                round.
+            </para>
+
+            <para>
+                The effective distance to the target is tripled, and on
+                success any wounds caused are tripled.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Fire on the run" type="technique">
+        <cost points="4"/>
+        <skill name="Firearms"/>
+
+        <prerequisite>Quick load</prerequisite>
+
+        <short>Firing whilst running.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can ignore the usual penalty of doubling target
+                distance when firing a gun whilst running.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Awkward shot" type="technique">
+        <cost points="4"/>
+        <skill name="Firearms"/>
+
+        <prerequisite>Quick load</prerequisite>
+
+        <short>Firing from awkward positions.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can ignore a level of penalty for firing from
+                awkward positions (such as whilst hanging on a rope,
+                clinging to a windowsill, or on an unstable platform).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Two guns" type="technique">
+        <cost points="6"/>
+        <skill name="Guns"/>
+
+        <prerequisite>Sharp shooter</prerequisite>
+
+        <short>Fire two guns without penalty.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can fire two guns at once without suffering the
+                penalty of doubled distance. Both guns must be
+                <e>Pistols</e>, and it must be possible to use both
+                single handed.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Marksman" type="technique">
+        <cost points="6"/>
+        <skill name="Guns"/>
+        <prerequisite>Sharp shooter</prerequisite>
+
+        <short>Greater accuracy with aimed shots.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With the <e>Marksman</e> technique you are specialised in
+                firing accurately at long range, often with specialist
+                sniper rifles. If you take an <e>aimed shot</e> with a
+                <e>Rifle</e>, then you quarter the distance to the target
+                (rather than thirding it).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Sniper" type="technique">
+        <cost points="8"/>
+        <skill name="Guns"/>
+        <prerequisite>Marksman</prerequisite>
+
+        <short>Firing rifles very accurately at long range.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When making an aimed shot at medium or long range, you
+                gain the attack bonus of the weapon, and reduce the
+                fumble chance by your <e>Guns</e> skill. The fumble
+                chance can be reduced to less than 1, removing all
+                chance of fumbling.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Concentrated fire" type="technique">
+        <cost points="4"/>
+        <skill name="Heavy weapons"/>
+
+        <short>Very effective machine gun fire.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When using a <e>heavy weapon</e> to lay down automatic
+                fire, damage bonus gained for hitting with multiple
+                bullets can go above +10. The limit is raised by +5
+                for every 4 points of skill (e.g. +15 at 4, +20 at 8 etc).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Heavy fire" type="technique">
+        <cost points="4"/>
+        <skill name="Heavy weapons"/>
+
+        <short>Precision shooting at large targets.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When using a <e>vehicle scale</e> weapon you can lay down
+                an accurate burst of fire, increasing the <t>Size</t> of
+                the weapon by +5 for purposes of what you can damage.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Following fire" type="technique">
+        <cost points="4"/>
+        <skill name="Heavy weapons"/>
+
+        <short>Skilled use of autocannons</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When using a fully automatic <e>vehicle scale</e> weapon
+                you can keep multiple bursts on target over the course
+                of the round, increasing the chance of hitting at extreme
+                ranges.
+            </para>
+
+            <para>
+                Each success you make on hitting with a burst, gives you
+                +1 effective bullet for the next burst at the same target.
+                This bonus applies after reducing the number of bullets
+                for range, but can never increase the number of bullets to
+                more than is actually in the burst.
+            </para>
+
+            <para>
+                As long as a burst gains at least one success, then add
+                the bonus from this burst, plus one for each success, to
+                the next burst.
+            </para>
+        </description>
+    </advantage>
+</advantages>
+
+

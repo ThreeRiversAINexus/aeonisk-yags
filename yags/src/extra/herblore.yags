@@ -1,0 +1,559 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/web/xsl/yagsbook/html/yagsbook.xsl" type="text/xsl"?>
+
+<article
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="yagsbook.xsd">
+
+    <header>
+        <title>Herb Lore</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            Using herbs, drugs and poisons within the game.
+        </summary>
+
+        <author>
+            <fullname>Samuel</fullname>
+            <email>sam@bifrost.demon.co.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.11 $</version>
+            <date>$Date: 2003-12-29 12:21:17 $</date>
+        </cvsinfo>
+
+        <license>
+            <year>2003</year>
+            <holder>Samuel Penn</holder>
+            <url>http://www.gnu.org/licenses/fdl.html</url>
+            <text>
+                Permission is granted to copy, distribute and/or
+                modify this document under the terms of the GNU
+                Free Documentation License, Version 1.1; with no
+                invariant sections, no Front-Cover Texts, and with
+                no Back-Cover Texts.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Herb Lore</title>
+
+            <para>
+                Herbs, medicines, poisons and drugs all have similar
+                properties, and often how they are classified depends as
+                much on why they are used, as it does on their effects.
+                The term <e>Herb</e> will be used as a general catch-all
+                term for all of the above.
+            </para>
+
+            <para>
+                This article describes rules for using herbs within the Yags
+                system, explaining their effects, and possible uses. These
+                rules assume a fantasy or otherwise low-tech background, but
+                can be applied to modern or futuristic nerve toxins just as
+                well as a witch's brew.
+            </para>
+
+            <para>
+                These rules assume non-magical properties for herbs. Magical
+                herbs would work in a similar way, though their effects
+                would not be limited to those outlined here.
+            </para>
+        </sect1>
+
+        <sect1>
+            <title>Skills</title>
+
+            <para>
+                Often, herbs will be bought or obtained from someone
+                who has already prepared it. Some characters will want
+                to find and prepare herbs of their own however, and in this
+                case they will need the skills to do so.
+            </para>
+
+            <skill-list>
+                <skill name="Herb lore" type="knowledge">
+                    <description>
+                        <para>
+                            The <e>herb lore</e> skill gives knowledge of
+                            the indentification, preperation and use of
+                            all manner of herbs, drugs and poisons.
+                        </para>
+                    </description>
+
+                    <examples>
+                        <example target="10">
+                            Identify a common herb and know its primary
+                            properties.
+                        </example>
+
+                        <example target="15">
+                            Identify an uncommon herb, and know its primary
+                            properties. Know most of the properties of a
+                            common herb, including antidote (if any).
+                        </example>
+
+                        <example target="20">
+                            Identify a rare herb, know most things about
+                            an uncommon herb, or everything about a common
+                            herb.
+                        </example>
+
+                        <example target="25">
+                            Identify a very rare herb, know most things
+                            about rare herbs, and everything about other
+                            herbs.
+                        </example>
+
+                        <example target="30">
+                            Know most things about very rare herbs, and
+                            everything about other types. Certain special
+                            or unique herbs will be at least this difficult
+                            to identify.
+                        </example>
+
+                        <example target="35">
+                            Know everything about all herbs except for
+                            special or unique ones.
+                        </example>
+                    </examples>
+                </skill>
+            </skill-list>
+        </sect1>
+
+        <sect1>
+            <title>Herb Effects</title>
+
+            <para>
+                Herbs and poisons can have a variety of effects when
+                administered to a person. Often, a herb will have multiple
+                effects, with lesser symptoms occurring first, and more
+                serious ones later. For example, a poison might cause
+                weakness, followed by paralysis, coma and finally death.
+            </para>
+
+            <para>
+                These symptoms occur over a period of time which may
+                span anything from a few seconds, to several days.
+                True <e>instant death</e> poisons are very rare, though
+                several may kill a person in less than a minute.
+            </para>
+
+            <para>
+                Having said that, many poisons and drugs, if properly
+                administered, are difficult to resist (modern medicine
+                wouldn't be quite as useful as it is, if the effect
+                of drugs were quite as random as they often are in role
+                playing games). Often, the only chance of survival will
+                lay in an antidote, assuming one is readily available.
+            </para>
+
+            <sect2>
+                <title>Standard Effects</title>
+
+                <para>
+                    All effects last as least as long as the herb lasts.
+                </para>
+
+                <sect3>
+                    <title>Beneficial Effects</title>
+
+                    <termlist sort="true">
+                        <entry term="Cleanse">
+                            The herb cleans a wound, preventing it from
+                            becoming infected.
+                        </entry>
+
+                        <entry term="High">
+                            The creature gains a more positive outlook on
+                            life, feeling good about themselves and others.
+                        </entry>
+
+                        <entry term="Wakefulness">
+                            The herb instills energy and vigor into a person
+                            keeping them awake when otherwise they would
+                            fall asleep. Penalties from fatigue are halved,
+                            and there is a +1 bonus to stamina to all rolls
+                            to resist fatigue.
+                        </entry>
+                    </termlist>
+                </sect3>
+
+                <sect3>
+                    <title>Detrimental Effects</title>
+
+                    <para>
+                        Detrimental effects may be either temporary or
+                        permanent (though death is always permanent). The
+                        description of the herb will say how long the
+                        effects last, but they always last as least as
+                        long as they are being resisted.
+                    </para>
+
+                    <termlist sort="true">
+                        <entry term="Blindness">
+                            Creature's vision becomes blurry and indistinct.
+                            Perception is reduced by one for vision related
+                            rolls. If reduced to zero, then the creature is
+                            totally blind. Other skills which rely on sight
+                            (such as combat) have their attribute reduced by
+                            one as well.
+                        </entry>
+
+                        <entry term="Clumsy">
+                            Creature looses some coordination, loosing -1 to
+                            dexterity and agility. If this occurs multiple
+                            time, then there is a further -1 each time, to a
+                            minimum of zero (when the creature is probably
+                            incapable of moving).
+                        </entry>
+
+                        <entry term="Coma">
+                            Creature falls into an unconscious state, from
+                            which it is impossible to wake them. Such a
+                            symptom is nearly always followed by death. If
+                            death does not occur (due to the fatal effects
+                            of the poison being resisted), then a stamina
+                            roll of 30+ each week can be made to gain
+                            consciousness.
+                        </entry>
+
+                        <entry term="Convulsions">
+                            Creature goes into convulsions, loosing control
+                            of their muscles. They are unable to do anything
+                            whilst this is happening.
+                        </entry>
+
+                        <entry term="Cramps">
+                            Creature suffers muscle cramp. This causes a
+                            great deal of pain, and makes movement difficult
+                            and undesirable. Agility and dexterity are at -1
+                            if anything is attempted, and movement is halved.
+                        </entry>
+
+                        <entry term="Death">
+                            The creature dies, often through paralysis of
+                            heart or lungs, oxygen starvation or some other
+                            failure of a vital organ.
+                        </entry>
+
+                        <entry term="Nausea">
+                            Creature becomes ill, and suffering dizzyness
+                            and vomiting. Agility and dexterity are halved.
+                        </entry>
+
+                        <entry term="Severe Cramps">
+                            Similar to cramps, but the effects are much
+                            worse. Agility and dexterity are reduced to one
+                            while severe cramps are being suffered, and
+                            movement is quartered.
+                        </entry>
+
+                        <entry term="Uninhibited">
+                            The creature looses inhibitions they might of
+                            had, reacting on a more instinctive level. The
+                            creature has a modified to Will, which is either
+                            positive or negative depending on the situation,
+                            but always increases the chance of a creature
+                            doing something (it will add for a bravery roll
+                            to face up to a threat, but subtract from
+                            restraint or temperence rolls to resist getting
+                            into a fight or lusting after someone).
+                        </entry>
+
+                        <entry term="Weakness">
+                            Creature feels faint and somewhat unsteady.
+                            Strength is halved, whilst agility and
+                            dexterity are all reduced by one.
+                        </entry>
+                    </termlist>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Properties of Herbs</title>
+
+            <para>
+                All herbs have a number of properties which define how
+                they are used within the game. There are two general
+                categories of properties. The first deals with the finding
+                and preparation of the herb, the second deals with its use.
+            </para>
+
+            <sect2>
+                <title>Preparation</title>
+            </sect2>
+
+            <sect2>
+                <title>Searching for Herbs</title>
+
+                <para>
+                    When searching for herbs, factors such as the season,
+                    climate and terrain need to be accounted for.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Use of Herbs</title>
+
+                <para>
+                    Herbs have a number of properties which define how they
+                    can be used. Amongst these are potency (how large a dose
+                    is required to be effective), application (injected,
+                    ingested) etc.
+                </para>
+
+                <sect3>
+                    <title>Toxicity</title>
+
+                    <para>
+                        The toxicity of a herb gives the size of dosage required
+                        for the listed effect. Increasing the dosage can give a
+                        stronger effect, and/or have undesired side effects.
+                    </para>
+
+                    <para>
+                        Toxicity is measured on a scale between I and VI. Herbs
+                        of toxicity I are not very effective, and require large
+                        amounts of the drug to have the desired effect. Such
+                        herbs will generally not be listed, since more powerful
+                        herbs are normally available, and are much more effective.
+                    </para>
+
+                    <para>
+                        Toxicity VI herbs are very powerful, and even a small
+                        taste of one can have the listed effect.
+                    </para>
+
+                    <para>
+                        The following chart shows the different toxicity
+                        levels, and how much of a substance is required in
+                        order to affect a creature. Dosages per kg of host
+                        are given.
+                    </para>
+
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Toxicity</targetLabel>
+                        <valueLabel>Effective dose</valueLabel>
+
+                        <entry target="I" value="Almost nontoxic.">
+                            More than 1kg of substance may be needed to
+                            affect an adult (15g/kg +).
+                        </entry>
+
+                        <entry target="II" value="Slightly toxic.">
+                            About half a litre  to a litre (10g/kg).
+                        </entry>
+
+                        <entry target="III" value="Moderately toxic.">
+                            About 100ml or more (2g/kg).
+                        </entry>
+
+                        <entry target="IV" value="Very toxic.">
+                            Anything from a teaspoon to 30ml (250mg/kg).
+                        </entry>
+
+                        <entry target="V" value="Extremely toxic.">
+                            Less than a teaspoon of substance, only a few
+                            millilitres (25mg/kg).
+                        </entry>
+
+                        <entry target="VI" value="Supertoxic.">
+                            Just a taste of such a substance is enough,
+                            a few drops (less than 5mg/kg).
+                        </entry>
+                    </targetlist>
+                </sect3>
+
+                <sect3>
+                    <title>Strength</title>
+
+                    <para>
+                        Strength is often linked to potency. If the listed dose
+                        is given, then the strength of the herb is compared to
+                        the subject's stamina to see if the listed effects occur.
+                        A larger dose, or better preperation of the herb, can
+                        result in a higher than listed strength.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Time</title>
+
+                    <para>
+                        The time for a herb to have its effects. Fast herbs act
+                        in rounds, slow herbs act in hours or longer. Most herbs
+                        have a time of minutes.
+                    </para>
+
+                    <para>
+                        The time given must pass before the herb has its first
+                        effect, at which point a stamina check is made against
+                        the strength of the herb. Another check is required after
+                        each passage of 'time'.
+                    </para>
+
+                    <para>
+                        A modifier to the herb strength is given here as well,
+                        which reduces the strength of the herb by the given
+                        amount after each stamina check.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Effects</title>
+
+                    <para>
+                        One or more effects will be listed for each herb.
+                        The first effect comes into play as soon as a
+                        stamina roll is failed. If multiple effects are
+                        listed, then the next effect along kicks in when
+                        the next stamina check is failed.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Application</title>
+
+                    <para>
+                        Many herbs have several applications, allowing them
+                        to be tailored to fit the occasion. At one dosage, a
+                        herb may heal, at another, it may kill. Similarly,
+                        different dosages may allow a poison to have a slow
+                        effect over time, making it harder to detect and
+                        counter.
+                    </para>
+
+                    <para>
+                        The latter type of poison is given to the target
+                        cumulatively over a long period. Only poisons which
+                        remain in the system can be administered in this
+                        way.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Example of Herb Use</title>
+
+                <para>
+                    A poison has a strength of 30, a time of 1 minute/-5,
+                    and effects of weakness, cramps, paralysis, coma, death.
+                    Some unsuspecting person, with a stamina of 3, drinks
+                    some of this poison. A minute later, she must make a
+                    stamina roll to resist, against the poison's strength
+                    of 30. She rolls 12 + 14 = 26, and the poison 'rolls'
+                    30 + 7 = 37. She starts to feel weak, and possibly
+                    guesses that something is wrong.
+                </para>
+
+                <para>
+                    After two minutes, she makes a second check, rolling a
+                    total of 23. This time the poison's strength is down to
+                    25, plus a die roll of 10, means the victim is suffering
+                    the second effect - cramps.
+                </para>
+
+                <para>
+                    A minute later, the strength of the poison has reduced
+                    to 20. Again her roll is not enough to resist the poison,
+                    so she becomes paralysed.
+                </para>
+
+                <para>
+                    After four minutes, the poison's strength is down to
+                    15. She rolls a total of 28, against the poison's 22.
+                    This time, she resists. She remains paralysed, but
+                    does not slip into a coma.
+                </para>
+
+                <para>
+                    Another minute, and the poison is weakening, now down
+                    to a strength of 10. However, the victim's stamina
+                    roll is not good, and she slips into a coma.
+                </para>
+
+                <para>
+                    Six minutes after she took the poison, she makes another
+                    roll to resist the poison, now strength 5. She makes it,
+                    staving off death. The poison's strength is then reduced
+                    to zero, and it can have no more effect. The victim is
+                    not dead, but she will probably remain in a coma for a
+                    long while.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Common Herbs</title>
+
+            <sect2>
+                <title>Intoxicants</title>
+
+                <herb name="Alcohol">
+                    <frequency>Common</frequency>
+                    <toxicity>III</toxicity>
+
+                    <application label="">
+                        <strength>15</strength>
+                        <time modifier="-10">5mn</time>
+                        <extradose>+3</extradose>
+                        <effects>
+                            <effect>Happy</effect>
+                            <effect>Uninhibited</effect>
+                            <effect>Clumsy</effect>
+                            <effect>Uninhibited</effect>
+                            <effect>Weakness</effect>
+                            <effect>Nausea</effect>
+                            <effect>Coma</effect>
+                            <effect>Death</effect>
+                        </effects>
+                    </application>
+
+                    <description>
+                        <para>
+                            Alcohol is a very common drug, which is used by
+                            a very large proportion of the population for
+                            entertainment.
+                        </para>
+                    </description>
+                </herb>
+            </sect2>
+
+            <sect2>
+                <title>Classic Real World Poisons</title>
+
+                <herb name="Arsenic">
+                    <frequency>Common</frequency>
+                    <toxicity>V</toxicity>
+
+                    <application label="Fast Poison">
+                        <strength>20</strength>
+                        <time modifier="-1">30mn</time>
+                        <effects>
+                            <effect>Weakness</effect>
+                            <effect>Nausea</effect>
+                            <effect>Convulsions</effect>
+                            <effect>Coma</effect>
+                            <effect>Death</effect>
+                        </effects>
+                    </application>
+
+                    <description>
+                        <para>
+                            Arsenic is one of the oldest poisons.
+                        </para>
+                    </description>
+                </herb>
+
+            </sect2>
+
+        </sect1>
+    </body>
+</article>

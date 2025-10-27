@@ -1,0 +1,950 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/web/xsl/yagsbook/html/yagsbook.xsl" type="text/xsl"?>
+
+<article>
+    <header>
+        <title>H&#x00e2;rn Religion</title>
+        <tagline>Yags H&#x00e2;rn</tagline>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@bifrost.demon.co.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.17 $</version>
+            <date>$Date: 2003-04-06 17:31:13 $</date>
+        </cvsinfo>
+
+        <license>
+            <year>2002</year>
+            <holder>Samuel Penn</holder>
+            <url>http://www.bifrost.demon.co.uk/comp/yagsbook/fdl.html</url>
+            <text>
+                Permission is granted to copy, distribute and/or
+                modify this document under the terms of the GNU
+                Free Documentation License, Version 1.1 or any
+                later version published by the Free Software
+                Foundation; with no invariant sections, with no
+                Front-Cover Texts, and with no Back-Cover Texts.
+                A copy of the license is included in the section
+                entitled "GNU Free Documentation License".
+            </text>
+        </license>
+
+        <style name="religion"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Religion</title>
+
+<para>
+The gods of Harn are real, and the powers they grant to their
+priests are just as real. Described here are rules for playing
+priests in Harn using Yags. For a complete description of the
+gods and their beliefs, see the HarnMaster Religion supplement.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<sect3><title>Levels of Knowledge</title>
+<para>
+There are three levels of knowledge which define what cult
+invocations are taught to a trainee priest. Invocations of
+level I are taught to all initiates by their mentor. Village
+priests will have most, if not all, level I cult invocations,
+of some level. In game terms, a priest character can begin
+with knowledge of any level I invocation up to the normal
+limit of skill.
+</para>
+
+<para>
+Level II invocations are those which are revealed only to those
+who have proven themselves to those above them. Often, village
+priests will have no knowledge of these, but wandering priests
+may perform the services needed from time to time, occasionally
+stopping to teach the secrets to those in great need who have
+shown diligence in the faith.
+</para>
+
+<para>
+Knowledge of the Level III invocations is restricted to the
+highest levels of the priestly orders, and only those who have
+risen in the ranks will be taught them.
+</para>
+</sect3>
+
+<sect3><title>Study of Invocations</title>
+<para>
+Invocations were gifted by the gods to their followers when the
+principle religions were being founded. The original followers
+were taught the ways to call on their god's power by the gods
+themselves. Since that time, the gods have taken no further part
+in the teaching of this knowledge, and it has been handed down
+from priest to priest through the ages.
+</para>
+
+<para>
+Knowledge of an invocation cannot be gained in any way other
+than being taught by someone with higher skill. This generally
+means finding a priest of senior ability and persuading them to
+teach the student. This limitation allows the more senior members
+of the order greater control over who advances in the church.
+It is also a weakness, in that the premature death of senior
+members of the church, who may be the only ones who know an
+invocation up to a given level, will weaken the church permanently.
+Most of the major religions have temples dedicated to the teaching
+of the religions secrets to younger members, to try and minimise
+the risk.
+</para>
+</sect3>
+</sect2>
+
+<sect2><title>Using Cult Invocations</title>
+<para>
+Cult invocations may be taught to anyone, though only those
+favoured by the god may find any use from that knowledge. A
+cult invocation is a mixture of prayer, ceremony and sacrifice
+as well as actual skill.
+</para>
+
+<para>
+The invocation skill is always rolled against charisma. If the
+invocation affects another person directly (e.g. It does not
+take some physical form), then the target gets an ego roll to
+resist. Their ego is opposed against the priest's ego, though the
+priest gets a bonus equal to their invocation score.
+</para>
+
+<sect3><title>Sacrifice</title>
+<para>
+One of the demands of the skill is that a suitable sacrifice is
+made to the god during the prayer ceremony. The nature of the
+sacrifice depends on the god, and the ritual that is being used.
+It can range from a share of the crops, the loss of a valuable
+item, or the sacrifice of an animal, or even a person.
+</para>
+
+<sect4><title>Material Cost</title>
+<para>
+The material cost the sacrifice is given with the invocation
+description, and is rated from low, to very high. This is
+relative to the earnings of the person who is benefitting from
+the invocation.
+</para>
+
+<para>
+If the cost is noted as immediate, then the sacrifice must be
+paid before, or as, the invocation is made. Otherwise, it is
+possible to delay the sacrifice until afterwards. How long
+afterwards is up to the priest, though as soon as possible is
+generally a good idea to avoid invoking the displeasure of
+their deity.
+</para>
+
+<para>
+As a general guide, the following costs of the material
+sacrificed can be used. Cost is relative to the means of the
+individual benefiting from the god's attention. For those
+who don't have a stable income, then living expenses can be
+substituted for income. For example, a 'high' cost would
+equate to the amount normally spent on food and lodgings for
+a period of a week. These costs are not hard and fast, though
+should average out over time.
+</para>
+
+<para>
+It is the responsibility of the benefactor of the invocation to
+ensure that some recompense is paid to the god, not the
+responsibility of the priest. Payment may be directly to the
+god (in the form of a sacrifice), or payment to a temple. In
+the latter case, wealth flows from the common folk, to the
+local temples and then up to the more important temples.
+Eventually, the wealth pays for a crusade, quest or new temple
+in the name of the god.
+</para>
+
+<para>
+    <variablelist>
+    <varlistentry>
+    <term>Low</term>
+    <listitem>
+        A token amount, generally amounting to half a day's
+        earnings. A serf or similar person who does not earn
+        money, or have much material wealth to spare, may
+        substitute half a day's labour done for the local temple.
+        Often a son or daughter will be sent to help the
+        priest for a day.
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term>Moderate</term>
+    <listitem>
+        Two days earnings, or two day's labour. Similar possible
+        payments might be the loan of tools or vehicles (such as
+        a cart, or donkey) for the period to the local temple.
+        If a travelling priest has performed an invocation for
+        a family, then the family may be expected to provide food
+        and lodgings for the priest for a couple of days.
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term>High</term>
+    <listitem>
+        A week's earnings. In a similar way to moderate sacrifices,
+        payment in other forms is possible. Those who are capable
+        may be requested to perform some task for the religion.
+    </listitem>
+    </varlistentry>
+
+    <varlistentry>
+    <term>Very high</term>
+    <listitem>
+        A month's earnings. Such sacrifices are very rarely required
+        by invocations. Only the most powerful invocations have
+        such a cost, and the effects of these invocations are normally
+        long lasting.
+    </listitem>
+    </varlistentry>
+    </variablelist>
+</para>
+</sect4>
+
+<sect4><title>Spiritual Cost</title>
+<para>
+Some invocations have a spiritual cost as well. This cost is
+in luck points, which must be paid immediately. This is shown
+as /x after the material cost, where x is the number of luck
+points.
+</para>
+
+<para>
+This loss of luck is normally temporary, though if the invocation
+was used in a way the god is not happy with, it will be permanent.
+Generally, use of an invocation in a way that goes directly against
+the god's wishes will be forbidden, whilst unnecessary use of their
+power will result in luck being lost.
+</para>
+</sect4>
+</sect3>
+
+<sect3><title>Effects of an Invocation</title>
+<para>
+Invocations are not subtle. If a god is going to be bothered
+to interfere amongst mortals, then they want to advertise the
+fact. An invocation must clearly name the deity. A successful
+invocation will produce obvious special effects. A protected
+person might glow, a healing invocation might produce glowing
+lights around the person as they are healed. A curse will
+strike a person down with flames, darkness or a ray of light,
+depending on the preference of the deity.
+</para>
+
+<para>
+The effects of Naveh tend to involve darkness, a shimmer
+around the object affected or similar illusory effects.
+</para>
+
+<para>
+Agrik and Larani tend to be bright, and very obvious. Sarajin's
+invocations will tend to summon an icy wind, or a layer of frost.
+</para>
+</sect3>
+
+<sect3><title>Resisting Invocations</title>
+<para>
+It is possible to resist the effects of an invocation, though
+only if the invocation affects a target directly. An invocation
+that causes a pillar of fire to strike a target does not allow
+resistance (other than soak). An invocation which causes disease
+in a target does.
+</para>
+
+<para>
+The resistance is the ego of the target against the ego of
+the priest, with the priest getting a bonus equal to their
+invocation skill. Both priest and target also each gain a bonus
+equal to their current luck.
+</para>
+
+<para>
+A resistance roll which fails by 10 or more causes the
+invocation to be a critical success, which may have an
+additional effect, depending on the invocation.
+</para>
+</sect3>
+
+<sect3>
+    <title>Boosting Invocations</title>
+    
+    <para>
+        Some invocations can be boosted beyond the normal level
+        of effect, and these have a higher cost. The priest must
+        decide whether to pay the higher costs before any roll
+        is made. If they fail to make the higher difficult, then
+        the effect is that of the highest difficulty they did
+        achieve, but the cost remains the same.
+    </para>
+</sect3>
+</sect2>
+
+<sect2><title>Cult Skills</title>
+<para>
+Cult skills are further secrets of a religion, though unlike
+rituals they are totally mundane, but simply not well known.
+Most are closely guarded secrets, though some are simply
+restricted to a particular religion because no one else has
+a need for them.
+</para>
+
+<para>
+Learning cult skills is restricted, in that anyone with less
+than level four in the skill can only improve by having
+another teach them. Once level four has been reached,
+improvement can be through self study and experience as for
+other skills.
+</para>
+</sect2>
+
+<sect2><title>Aura</title>
+<para>
+All living things have an aura, which can sometimes be
+determined through religious rituals. The aura of a person
+or creature gives an insight into their nature, personality
+and religious beliefs.
+</para>
+
+<para>
+Any religious ritual which allows a priest to divine the
+aura of a person uses the following guide for use of their
+ritual skill.
+</para>
+
+<para>
+<table>
+    <colspec colwidth="1.5cm"/>
+    <colspec colwidth="6.5cm"/>
+    <thead>
+        <row>
+            <entry>Target</entry>
+            <entry>Information gained from Aura</entry>
+        </row>
+    </thead>
+    <tbody>
+        <row>
+            <entry>10</entry>
+            <entry>
+            The bloodline or basic nature of the target is known.
+            Whether someone is Human, Sindarin, Faerie or an
+            elemental or demonoic spirit is known.
+            </entry>
+        </row>
+        <row>
+            <entry>20</entry>
+            <entry>
+            Elemental and divine affinities, if any. Shek-Pvar who
+            are attuned to an element will have an aura tainted by
+            that element. Priests of a god are also bound to their
+            god, and this affects their aura.
+            </entry>
+        </row>
+        <row>
+            <entry>30</entry>
+            <entry>
+            The physical and mental well being of the target is
+            known. Roughly how exhausted, injured and hungry the
+            target is can be determined, as well as their primary
+            emotions.
+            </entry>
+        </row>
+        <row>
+            <entry>40</entry>
+            <entry>
+            Knowledge of a person's morals, in regard to whether
+            they are good or evil is obtained.
+            </entry>
+        </row>
+        <row>
+            <entry>50</entry>
+            <entry>
+            If the target has any leanings towards Law or Chaos,
+            then this can be determined.
+            </entry>
+        </row>
+        <row>
+            <entry>60</entry>
+            <entry>
+            The religion of the target, even if they are not a
+            priest. Also given, is a general guide to how
+            strongly they follow the ideals of their faith.
+            </entry>
+        </row>
+    </tbody>
+</table>
+</para>
+
+</sect2>
+
+<sect2><title>Divine Intervention</title>
+<para>
+Invocations are not the only way in which a god may aid one
+of their followers. They are heavy on ritual and ceremony,
+and can only be used by those who are part of the mainstream
+church (since they will not be taught to anyone else).
+</para>
+
+
+<para>
+Any follower of a god however may call for divine intervention.
+Divine aid takes a round to be called for, though the character
+may perform other actions whilst doing so. However, the call
+for divine intervention must be made vocally, in a loud, clear
+voice. The name of the god must be invoked, and the nature of
+the request must be stated.
+</para>
+
+<para>
+Assuming that the request does not go against the morals of the
+god, then there is a chance that the god will intervene on
+behalf of their follower. The character spends a number of points
+of luck, and rolls for intervention as follows.
+
+<skillequation>
+    <attribute>luck spent</attribute>
+    <constant>5</constant>
+    <die/>
+</skillequation>
+
+The luck spent is always lost permanently, regardless of the
+outcome. The target number that must be obtained depends on how
+worthy the request is.
+</para>
+
+<para>
+<table>
+    <colspec colwidth="1.5cm"/>
+    <colspec colwidth="6.5cm"/>
+    <thead>
+        <row>
+            <entry>Target</entry>
+            <entry>Worthiness of request</entry>
+        </row>
+    </thead>
+    <tbody>
+        <row>
+            <entry>20</entry>
+            <entry>
+            Very worthy.
+            </entry>
+        </row>
+        <row>
+            <entry>30</entry>
+            <entry>
+            Worthy.
+            </entry>
+        </row>
+        <row>
+            <entry>40</entry>
+            <entry>
+            Neutral.
+            </entry>
+        </row>
+        <row>
+            <entry>50</entry>
+            <entry>
+            Unworthy.
+            </entry>
+        </row>
+    </tbody>
+</table>
+</para>
+
+
+
+</sect2>
+
+<sect2><title>Priest Characters</title>
+<para>
+The majority of priests attain priesthood after spending
+many years training in a religious institution. There, they
+are taught the tenants of their faith, as well as the basic
+invocations and cult skills they are expected to learn.
+</para>
+
+<para>
+Player character priests will normally be at least 21 years
+old. Characters younger than this will rarely have had time
+to learn all the necessary skills, and will be considered an
+acolyte, rather than a full priest.
+</para>
+
+<para>
+Priests of all religions will have the following common
+invocations:
+</para>
+
+<para>
+Blessing 2
+</para>
+
+<para>
+They will also have the following skills:
+    Religion (their own) 4
+    Scribe (their own) 4
+</para>
+
+<para>
+These do need to be paid for.
+</para>
+</sect2>
+</sect1>
+
+<sect1><title>Common Invocations</title>
+<para>
+Common invocations are available to, and taught by, priests
+of all religions. However, they are different in the details,
+so the invocation skill for Blessing (Morgath) is very different
+to that for Blessing (Larani).
+</para>
+
+<para>
+Many of the common invocations are based off the same invocation
+skill. There are three meta-invocations - Blessing, Channel and
+Divination. All priests start with at least knowledge of
+Blessing. This provides knowledge of the basic ceremonies the
+priest has to be able to perform, in order to contact their god,
+perform baptism's, marriage and funeral rites.
+</para>
+
+<para>
+Invocations which make use of these meta-invocations will name
+them in parenthesis after the invocation title.
+</para>
+
+<para>
+<import-invocations href="invocations/common.xml" religion="Common"/>
+</para>
+
+</sect1>
+
+
+
+<sect1><title>Agrik</title>
+<taglines>
+	<line>Lord of the Four Horsemen</line>
+</taglines>
+
+<para>
+The fiery, evil god of war, favoured by those who enjoy cruelty
+and destruction. Agrik is worshiped by dozens of squabbling
+clerical sects and fighting orders.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<para>
+<import-invocations href="invocations/agrik.xml" religion="Agrik"/>
+</para>
+
+</sect2>
+
+<sect2><title>Character Templates</title>
+
+<sect3><title>Cult skills</title>
+
+<sect4><title>Torture</title>
+<para>
+Knowledge of how to torture a person, without actually killing
+them. This is rolled opposed against the victim's will to try
+and break them.
+</para>
+</sect4>
+
+<sect4><title>Berserk</title>
+<para>
+This skill enables the priest to enter a berserk rage.
+</para>
+</sect4>
+</sect3>
+
+<sect3><title>Eight Demons</title>
+<para>
+<import-character-template href="templates/agrik-clerics.xml"
+                            name="Eight Demons Clerical Order"/>
+</para>
+
+<para>
+</para>
+</sect3>
+
+
+<sect3><title>Fuming Gate</title>
+
+<para>
+<import-character-template href="templates/agrik-clerics.xml"
+                            name="Fuming Gate Clerical Order"/>
+
+</para>
+</sect3>
+</sect2>
+</sect1>
+
+
+<sect1><title>Halea</title>
+<taglines>
+	<line>Enslaver of Hearts and Loins</line>
+</taglines>
+
+<para>
+The goddess of wealth and pleasure. She demands unswerving
+devotion and her adherents. Only women can enter her clergy.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<para>
+<import-invocations href="invocations/halea.xml" religion="Halea"/>
+</para>
+</sect2>
+
+<sect2><title>Cult skills</title>
+
+<sect3><title>Erotic arts</title>
+<para>
+The skill of giving pleasure to someone. Also includes various
+forms of exotic dancing and knowledge of how to dress and present
+oneself in order to create desire in others, as well as simply
+being very, very good in bed.
+</para>
+</sect3>
+</sect2>
+
+<sect2><title>Character Templates</title>
+
+
+<sect3><title>Silken Voice (Halea)</title>
+
+<para>
+<import-character-template href="templates/silkenvoice.xml"/>
+</para>
+
+</sect3>
+</sect2>
+</sect1>
+
+
+<sect1><title>Ilvir</title>
+<taglines>
+	<line>Prince of the Fatherless Multitude</line>
+</taglines>
+
+<para>
+The creator of the Ivashu. His followers are individualists,
+creative, and mystical. Dozens of sects worship Ilvir, although
+his adherents are few and mostly found in Orbaal.
+</para>
+
+<sect2><title>Cult Invocations</title>
+<para>
+<import-invocations href="invocations/ilvir.xml" religion="Ilvir"/>
+</para>
+</sect2>
+
+
+</sect1>
+
+
+<sect1><title>Larani</title>
+<taglines>
+	<line>Lady of Paladins</line>
+</taglines>
+
+<para>
+The Lady of Paladins is the goddess of chivalry and battle,
+favoured by the feudal nobility. Those who follow her are
+expected to display courage, compassion and honour.
+</para>
+
+<para>
+Despite being a goddess of War, Larani despises violence, and
+believes that it should only be used as a last resort. Her
+followers vary greatly in how closely they follow this
+particular ideal, the militant orders of her church can be
+especially lax at times at avoiding violent confrontation.
+</para>
+
+<para>
+There are two clerical orders - The Spear of Shattered Sorrow
+and the Order of Hyvrik. Both have martial and non-martial
+members, though all (in theory) prefer non-violent solutions
+to disputes.
+</para>
+
+<para>
+The sponsored fighting orders are not taught priestly
+invocations, unless they have proven themselves worthy over
+a long period of time.
+</para>
+
+
+<sect2><title>Cult Invocations</title>
+<para>
+<import-invocations href="invocations/larani.xml" religion="Larani"/>
+</para>
+</sect2>
+
+
+<sect2><title>Common skills</title>
+<para>
+Law; weapon and shield; ride; lance; guile; battle.
+</para>
+</sect2>
+
+
+<sect2><title>Character Templates</title>
+
+
+<sect3><title>Order of Hyvrik (Larani)</title>
+
+<para>
+<import-character-template href="templates/larani-clerics.xml" name="Order of Hyvrik"/>
+<br/>
+<import-character-template href="templates/larani-clerics.xml" name="Order of Hyvrik Warrior"/>
+</para>
+
+</sect3>
+</sect2>
+</sect1>
+
+
+<sect1><title>Morgath</title>
+<taglines>
+	<line>Tormentor of the Unlamented Dead</line>
+</taglines>
+
+<para>
+Morgath is the master of chaos, evil and the undead, who
+despises all things fair and noble. His church is dour and
+ruthless, and infamous for its human sacrifice.
+</para>
+
+<para>
+The most feared aspect of priests of Morgath is their ability
+to create, and control, undead. There are two types of undead
+- the Amorvrin (willing) and the Gulmorvrin (unwilling). The
+latter are far more common.
+</para>
+
+<sect2><title>Encounters with the Shadow</title>
+<para>
+Amorvrin may have a shadow extending beyond their bodies.
+Entering this, or touching a morvrus, is generally not a good
+idea. It is an extension of Bukrai # the power of Morgath.
+</para>
+
+<para>
+Contact with the Shadow causes an immediate mental attack on
+the living soul. The morvrus attacks with its will, as per a
+damage roll which is soaked with the living soul's own will.
+Damage is suffered in fatigue levels. Each round of contact
+causes another will attack.
+</para>
+
+<para>
+Note that for a gulmorvrin, touch is enough to initiate this
+will attack, even if the attack does not get through armour.
+</para>
+
+<para>
+If the living creature falls unconscious from fatigue, then
+they are possessed by the Shadow. The soul is offered two
+choices - accept it, and become an amorvrus, or refuse it and
+become gulmorvrus.
+</para>
+
+<para>
+In any event, the living creature immediately becomes undead.
+Their body levels are effectively doubled, and if they are
+gulmorvrin, they come under the control of the Shadow which
+possessed them.
+</para>
+
+<para>
+The Shadow extends out one metre for each point of will an
+amorvrin has. If multiple Shadows are overlapping, only one
+Shadow attack is made, but at increased strength. Use the
+highest will # 4, plus 1 for each point of will overlapping.
+</para>
+</sect2>
+
+<sect2><title>Cult Invocations</title>
+<para>
+<import-invocations href="invocations/morgath.xml" religion="Morgath"/>
+</para>
+</sect2>
+
+</sect1>
+
+
+<sect1><title>Naveh</title>
+<taglines>
+	<line>Lord of the Pitch Shadow</line>
+</taglines>
+
+<para>
+A god of darkness, best known as the bringer of nightmares,
+and worshiped by thieves and assassins. His fanatical clerics
+will commit suicide to prove their faith.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<para>
+<import-invocations href="invocations/naveh.xml" religion="Naveh"/>
+</para>
+</sect2>
+
+</sect1>
+
+
+<sect1><title>Peoni</title>
+<taglines>
+	<line>Bringer of Life Renewed</line>
+</taglines>
+
+<para>
+The gentle goddess of agriculture and healing, worshiped by
+most rural folk. Peoni's clergy are divided into celibate male
+and female orders; both maintain hospitals. Temples are always
+near poverty.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<para>
+<import-invocations href="invocations/peoni.xml" religion="Peoni"/>
+</para>
+</sect2>
+
+</sect1>
+
+
+<sect1><title>Sarajin</title>
+<taglines>
+	<line>King of the Icy Wind</line>
+</taglines>
+
+<para>
+The god of battlelust, who demands honour and bravery from his
+adherents, mostly Ivinians. His sport is war and he sometimes
+joins human battles.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<para>
+<import-invocations href="invocations/sarajin.xml" religion="Sarajin"/>
+</para>
+</sect2>
+
+</sect1>
+
+
+<sect1><title>Save-K'nor</title>
+<taglines>
+	<line>Lord of Puzzles</line>
+</taglines>
+
+<para>
+The god of knowledge and seeker of enlightenment, the Sage
+of Heaven. His adherents believe that a stable and ordered
+society precludes evil behaviour.
+</para>
+
+<sect2><title>Cult Invocations</title>
+<para>
+<import-invocations href="invocations/saveknor.xml" religion="Save-K'nor"/>
+</para>
+</sect2>
+</sect1>
+
+<sect1><title>Siem</title>
+<taglines>
+	<line>Master of the Lord of Dreams</line>
+</taglines>
+
+<para>
+The benign god of mystery, magic and dreams. He is the special
+deity of elves and dwarves. Siem's worshipers favour a personal
+approach to the deity rather than one based on rigid church
+doctrine. As such, there is little need for actual priests of
+this god, and temples are few and far between. Shrines do exist,
+though they are more likely to be a natural feature, such as
+a pool or tree, as they are to be a stone monument.
+</para>
+
+<para>
+Priests of Siem are more common amongst the Sindarin and Khuzdul
+than they are amongst humans, mostly because he is the deity of
+these races, but also partly because he appeals more to their
+way of thinking. Few priests of the god are full time priests,
+they are often merely people who have become close to him.
+</para>
+
+<sect2><title>Cult Invocations</title>
+
+<para>
+The normaly method of progressing knowledge of invocations is
+through study under a senior priest. The lack of any church
+structure makes this infeasible for followers of Siem.
+</para>
+
+<para>
+Unlike the other gods, Siem comes to those he considers worthy
+himself, and shows them the paths they must follow to broaden
+their understanding. When the time is right, a follower of Siem
+is given a vision of a place to find, normally in the wilderness.
+There, the knowledge of the god will be revealed to them.
+</para>
+
+<para>
+<import-invocations href="invocations/siem.xml" religion="Siem"/>
+</para>
+</sect2>
+
+</sect1>
+
+<sect1><title>Barbarian Religions</title>
+
+<para>
+The various barbarian tribes of Harn have their own religions, generally
+based around shamans. Like for the more mainstream religions, they have
+their own beliefs, invocations and morals.
+</para>
+
+<sect2><title>Comman Shaman Invocations</title>
+
+<para>
+Shamans do not get access to the common invocations used by mainstream
+priests, however they do have their own versions of these. The following
+invocations can be learnt be taught by all shamans.
+</para>
+
+<para>
+<import-invocations href="invocations/barbarians.xml" religion="Barbarian"/>
+</para>
+</sect2>
+
+<sect2><title>Gozyda Invocations</title>
+<para>
+<import-invocations href="invocations/barbarians.xml" religion="Gozyda"/>
+</para>
+</sect2>
+
+</sect1>
+</body>
+
+</article>

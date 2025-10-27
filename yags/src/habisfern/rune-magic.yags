@@ -1,0 +1,2203 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags"
+         xmlns:h="http://yagsbook.sourceforge.net/xml/yags/habisfern">
+    <header>
+        <title>Rune Magic</title>
+        <tagline>YAGS Habisfern</tagline>
+
+        <summary>
+            Magic in the world of Habisfern, describing how it is used
+            and the background behind it.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 0.7.10 $</version>
+            <date>$Date: 2006-06-07 21:30:46 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2016</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="magic"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Rune Magic</title>
+
+            <para>
+                <svg src="runes/air.svg" width="13mm" height="13mm"/>
+                <svg src="runes/fire.svg" width="13mm" height="13mm"/>
+                <svg src="runes/iron.svg" width="13mm" height="13mm"/>
+                <svg src="runes/earth.svg" width="13mm" height="13mm"/>
+                <svg src="runes/water.svg" width="13mm" height="13mm"/>
+                <svg src="runes/spirit.svg" width="13mm" height="13mm"/>
+            </para>
+
+            <quote signature="Halgorn the Necromancer">
+                Magic is given to us by the gods, who do not wish to see us
+                grow stronger than them. Where we build, the magic fades away.
+                It is in the dark forests and wild lands that the magic of the
+                gods is strongest.
+            </quote>
+
+            <para>
+                The World of Men, also known as the Middle Earth, is seen
+                as solid and real, something which can be touched, felt and
+                understood by everyone. Where man has built places to live,
+                where cut wood and shaped stone mark the mark of civilisation,
+                so the strength of the real world is greatest.
+            </para>
+            <para>
+                Man though does not have full control over all things, and
+                the further one goes from the shaped and bounded places
+                which men call home, the thinner the walls are between this
+                world and the <e>Dreamlands</e>. At night, the spirits of
+                these other lands find a way into civilised areas though
+                the dreams of men. In the unseen darkness and shadows of
+                night, the rule of men is undone.
+            </para>
+            <para>
+                Not all men though fear these other realms, there are some
+                who actively seek them out, and try to command the powers
+                that lay within them to do their bidding. Such people are
+                commonly called Wizards, and with runes and words of power
+                they can awaken the dream lands, and reshape the world of
+                men to their bidding. With understanding though comes a
+                price, for your mind cannot understand both the world of
+                dreams and the world of men at the same time.
+            </para>
+            <para>
+                The Wizards of Habisfern are descendants of rune smiths
+                and shamans from older times. Their magic is simple and
+                straightforward, and for the most part it deals with
+                the problems faced by everyone day to day. Not anyone can
+                learn and use magic, and the path to its mastery can be
+                difficult. Corruption and insanity are two prices which
+                may need to be paid for careless use of these powers.
+            </para>
+            <para>
+                For this reason, Wizards are somewhat feared, and
+                definitely distrusted. Too many have gone over the edge,
+                giving in to the nightmares which fill their sleep, their
+                mind linked too closely to the Dreamlands, leaving them
+                unable to function sanely in the middle lands.
+            </para>
+
+            <sect2>
+                <title>The Realms</title>
+
+                <para>
+                    The world of men is known as the Middle Earth, since
+                    all other realms lay above and below it. It is a realm
+                    of physical things, though in places it can be warped
+                    where another realm touches upon it.
+                </para>
+                <para>
+                    Below the Middle Earth is the <e>Under Earth</e>, also
+                    known as the Realm of the Dead. It is said to be either
+                    a huge cavern below all other places, or a maze of
+                    twisty tunnels which are designed to confuse and trap
+                    those who venture there. It is a quiet and empty place,
+                    for most who come here do not last long, their spirits
+                    soon being reborn back in the Middle Earth or with the
+                    gods.
+                </para>
+                <para>
+                    Above our world is the Over Earth, which is where the
+                    gods are said to dwell. They take the spirits of those
+                    that have pleased them from the Under Earth to dwell
+                    with them in their paradise.
+                </para>
+                <para>
+                    Surrounding and entwined with Middle Earth are the
+                    Dreamlands. These are formed from the dreams of men and
+                    gods, and are the home of living spirits such as the fey.
+                    It is from the Dreamlands that the power of magic is
+                    normally drawn. It is a place of dreams, easily moulded to
+                    the wishes of those in it.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>The Mysteries</title>
+
+                <para>
+                    Knowledge of magic is divided into seven
+                    <e>Mysteries</e>, each of which grants the wizard power
+                    over one part of the world. A wizard may learn any
+                    number of Mysteries, though many only bother learning
+                    one or two. Six of the Mysteries are considered to be
+                    related to each other, being thought of as forming a
+                    circle. Mysteries on opposite sides of the circle
+                    oppose each other, and mastery of one will limit
+                    ability in the other.
+                </para>
+
+                <svg src="images/rune-circle.svg" width="70mm" height="70mm"
+                     align="center"/>
+
+                <para>
+                    The six main Mysteries are <e>Spirit</e>, <e>Water</e>,
+                    <e>Earth</e>, <e>Iron</e>, <e>Fire</e> and <e>Air</e>.
+                    There is a seventh, called <e>Dragon</e>, which stands
+                    separate to the others. It cannot be learnt until the
+                    others have been understood to a sufficient degree,
+                    and it gives power over the fundamental reality of the
+                    world. The nature of <e>Dragon</e> is not described in
+                    this article, for its powers are unknown to most wizards.
+                </para>
+                <para>
+                    A Mystery may be used in its raw form, or <e>runes</e> may
+                    be learnt which unlock quicker, more powerful, effects.
+                </para>
+                <para>
+                    Mysteries can be considered to form a circle, with each
+                    one opposed by the one opposite. Learning an opposing
+                    Mystery can interfere with what you know. Every full three
+                    points of skill in a Mystery causes a -1 penalty to your
+                    attribute when using an opposed Mystery.
+                </para>
+                <para>
+                    A Mystery is supported by its two neighbours. For every
+                    four full points of the lowest neighbour, you gain +1 to
+                    your attribute when making a Mystery check.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Unlocking the Mysteries</title>
+                <para>
+                    Once you have learnt a Mystery to a level of 10, you may
+                    teach its secrets to another. Only those who have faerie
+                    ancestry in their veins can learn the Mysteries.
+                </para>
+                <para>
+                    Learning your first mystery is a difficult task, and requires
+                    that you have Fey Blood in order to have any chance of success.
+                    It takes three months in total, though failure at any stage
+                    means that the whole process must be restarted from the
+                    beginning. No more than a week must pass between one month of
+                    study and the next.
+                </para>
+                <para>
+                    During the first month, you must open your mind to the world,
+                    seeking understanding of the voices that penetrate from the
+                    Dream Lands. With guidance from your teacher, you learn to
+                    understand how the world speaks. At the end of the month, you
+                    must have an <t>Intelligence</t> check at a TN of 30.
+                </para>
+                <para>
+                    During the second month, you learn to take charge of the voices,
+                    and begin to exercise your will upon the world. At the end of
+                    it you must make a <t>Will</t> check at a TN of 30.
+                    If you succeed, you may proceed to the final stage of your
+                    study.
+                </para>
+                <para>
+                    During your third month you learn to draw the powers you need
+                    to create your magic into your body. At the end of it, you
+                    must make a TN 30 <t>Health</t> check. On success,
+                    you gain a skill in your first Mystery at a level of 1. On
+                    failure, you must begin again. At least three months must
+                    pass before your next attempt.
+                </para>
+                <para>
+                    When retrying a part of the training, you gain a +3 bonus
+                    to your check for each time you have successfully completed
+                    that part of it, and +1 for each time you have failed it.
+                    If you succeed in the <t>Intelligence</t> stage, but fail
+                    at the <t>Will</t> stage, then next time you try the
+                    <t>Intelligence</t> TN is only 27, and the <t>Will</t>
+                    is only 29.
+                </para>
+                <sect3>
+                    <title>Improving Your Chances</title>
+                    <para>
+                        Opening your mind to a mystery can be hard even for the
+                        best people, resulting in many failed attempts. Fortunately
+                        there are ways to improve your chance of success.
+                    </para>
+                    <targetlist targetFirst="false" bold="true">
+                        <targetLabel>Bonus</targetLabel>
+                        <valueLabel>Situation</valueLabel>
+
+                        <item target="+5" value="Equinox.">
+                            Starting the first month of training on an
+                            Equinox makes the Intelligence check easier.
+                        </item>
+                        <item target="+5" value="Winter.">
+                            Starting the second month of training on the
+                            Winter Solstice makes the Will check easier.
+                        </item>
+                        <item target="+5" value="Summer.">
+                            Starting the third month of training on the
+                            Summer Solstice makes the Health check easier.
+                        </item>
+                        <item target="+10" value="Sanity.">
+                            You may open your mind fully to the Dreamlands,
+                            a process that costs you one point of Sanity,
+                            but greatly simplifies the process. You may
+                            do this for each of the months.
+                        </item>
+                        <item target="+5" value="Fast.">
+                            You may fast during the period.
+                        </item>
+                    </targetlist>
+                </sect3>
+                <sect3>
+                    <title>Learning Other Mysteries</title>
+                    <para>
+                        Once you have been taught a single Mystery, learning
+                        the others can be done without the guide of a teacher.
+                        It takes a month of meditation, and at the end requires
+                        an <t>Intelligence</t> check against a TN of 20 + 5 per
+                        every Mystery currently known.
+                    </para>
+                    <para>
+                        You may open your mind up to the <e>Dreamlands</e>, which
+                        allows a greater chance of obtaining the knowledge that
+                        you seek. Doing so though comes at a cost of your
+                        <e>Sanity</e>. You lose one point in your Sanity trait,
+                        but gain a +10 to the <t>Intelligence</t> check.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Using Raw Powers</title>
+
+                <para>
+                    Each <e>Mystery</e> has a number of raw powers that can be
+                    used as long as you have at least 1 point in that Mystery.
+                    To use such a power, you make a <y:will>Mystery</y:will> check
+                    against a TN of either 10, or the <y:will/> of a resisting
+                    target.
+                </para>
+
+                <para>
+                    Unless otherwise specified, it takes a full round to
+                    use a Power, and the effect will either be momentary
+                    or last as long as you concentrate. Using a
+                    power is a <e>slow</e> action, but does not require
+                    any gestures or incantations unless specified.
+                </para>
+
+                <para>
+                    If you are hit in combat whilst activating a power, then
+                    you add +10 to the TN for every level of <e>wound</e> or
+                    <e>stun</e> that you suffered. This is in addition to
+                    the normal penalties for being wounded.
+                </para>
+
+                <para>
+                    Whilst concentrating on a magic power, you are at -1 to
+                    any agility, dexterity or perception checks that you
+                    make for each power you are concentrating on.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Rituals</title>
+
+                <para>
+                    Some powers can be enhanced by the use of rituals,
+                    such as an incantation or the drawing of a circle.
+                    Possible rituals are listed along with the powers,
+                    and each one used gives a +1 bonus to <t>will</t>.
+                </para>
+
+                <para>
+                    If a ritual is listed as being <e>necessary</e>
+                    then a -1 penalty is suffered if it is not used.
+                    Using such a ritual still grants a +1 bonus
+                    however.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Runes</title>
+
+                <para>
+                    Though most wizards keep to using the basic powers of
+                    the Mysteries, a few strive to gain a deeper knowledge
+                    of magic, by learning <e>Runes</e>. A rune is a
+                    simple invocation which is associated with a Mystery,
+                    and which provides a simple magical effect. Simple does
+                    not mean weak however, and some rune are capable
+                    of destroying a town or slaying someone with a word.
+                </para>
+                <para>
+                    Each rune must be learnt separately, and is treated
+                    as a <e>technique</e>, in that they have a prerequisite
+                    of a skill level and other rune. However, they
+                    cannot be purchased with experience, but must
+                    be learnt through meditation and self-sacrifice.
+                </para>
+                <para>
+                    Runes are thought to be an inherent part of the world,
+                    created originally by the gods. As such, it is not
+                    possible to invent new runes of your own.
+                </para>
+
+                <sect3>
+                    <title>Learning Runes</title>
+
+                    <para>
+                        Learning <e>runes</e> takes at least a week, and requires
+                        an <t>Intelligence</t> check against a TN of 5 * level of the
+                        <e>rune</e>. You require a number of successes equal to the
+                        level of rune, and it takes a week for each roll.
+                    </para>
+                    <para>
+                        If you wish, you can attempt to learn a <e>rune</e> in days
+                        rather than weeks. This doubles the TN, but allows a
+                        roll every day rather than every week.
+                    </para>
+                    <para>
+                        Since <e>runes</e> are a fundamental part of you magic, you
+                        don't need to study from someone who already knows it. Instead,
+                        you meditate and commune with the world, opening your mind to
+                        the magic and letting the knowledge in.
+                    </para>
+                    <para>
+                        You cannot do anything else whilst learning a <e>rune</e>.
+                        It is normal to leave civilisation and find somewhere wild
+                        to study, away from distractions. You cannot travel, and
+                        cannot interrupt your learnings. Any significant interruptions
+                        means you must start your learning all over again.
+                    </para>
+                    <sect4>
+                        <title>Bonuses</title>
+                        <para>
+                            The high level runes are impossible for most people to
+                            learn. However, there are ways of getting bonuses to the
+                            learning rolls.
+                        </para>
+                        <sect5>
+                            <title>Insanity</title>
+                            <para>
+                                You gain a +10 bonus to the roll for a cost of 1xp
+                                of <e>Sanity</e>.
+                            </para>
+                        </sect5>
+                        <sect5>
+                            <title>Fasting</title>
+                            <para>
+                                You gain +5 bonus if you fast during this period.
+                            </para>
+                        </sect5>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Describing Runes</title>
+
+                    <para>
+                        Most runes can be invoked in a single action, and
+                        require little in the way of gestures or
+                        incantations. Runes are described under the
+                        section for the individual Mysteries, and they all
+                        follow the same format. An example rune is given
+                        below.
+                    </para>
+
+                    <h:spell name="Example Rune" level="1" type="any">
+                        <h:time>Action</h:time>
+                        <h:range>Short</h:range>
+                        <h:duration>Concentration</h:duration>
+                        <h:area>Large</h:area>
+                        <h:target>Few</h:target>
+                        <h:resist>Will</h:resist>
+
+                        <h:prerequisite>Another rune</h:prerequisite>
+
+                        <description>
+                            <para>
+                                A description of what the Rune does and how it
+                                can be used. Most Runes are relatively simple in
+                                their effects.
+                            </para>
+                        </description>
+
+                        <description title="Boost (Good):">
+                            <para>
+                                A description of what can be achieved on a <e>good</e>
+                                success when invoking the Rune.
+                            </para>
+                        </description>
+                    </h:spell>
+
+                    <para>
+                        The first part of the description lists basic attributes
+                        of the rune. Their meanings are given below. These attributes
+                        can often be <e>extended</e>, increasing the range, duration
+                        or area of the rune. Each time a rune is extended, it increases
+                        the TN, normally by 5. You can extend multiple attributes
+                        multiple times, as long as you can achieve the new TN. Choosing
+                        to extend a rune must be done before attempting the invocation.
+                    </para>
+                    <para>
+                        It is also possible to <e>boost</e> a rune. This is decided
+                        after the roll. Each rune lists the effects of boosting, and
+                        can be achieved on a <e>Good</e> or better success.
+                    </para>
+                    <para>
+                        Rather than boosting you can opt to reduce the <e>Fatigue</e>
+                        gained when invoking the rune.
+                    </para>
+
+                    <sect4>
+                        <title>Time</title>
+
+                        <para>
+                            How long it takes to invoke the <e>rune</e>. Most runes can
+                            be invoked in a single <s>Action</s>, and you can move or
+                            defend yourself at the same time as invoking the rune. Runes
+                            can have a time of <s>Round</s>, in which case you cannot
+                            move or take any other actions that round.
+                        </para>
+                        <itemlist order="strict">
+                            <item name="Action">
+                                It takes a single action to invoke this rune.
+                            </item>
+                            <item name="Round">
+                                It takes a full round to invoke this rune. You cannot
+                                move or take any other actions that round.
+                            </item>
+                            <item name="Minute">
+                                Invoking this rune takes a whole minute. Every round in
+                                which you have to move or defend yourself adds 5 to the
+                                TN to invoke the rune.
+                            </item>
+                        </itemlist>
+                    </sect4>
+
+                    <sect4>
+                        <title>Range</title>
+
+                        <para>
+                            <e>Runes</e> have a limit to how far away the target of their
+                            effects can be. If there are multiple targets, then unless
+                            otherwise specified in the description of the rune then this
+                            is the distance to the furthest one.
+                        </para>
+                        <para>
+                            Each time you extend the range of a rune, then you add +5
+                            to the TN. Runes with a range of Self, Sight, Communication
+                            or Blood cannot be extended.
+                        </para>
+
+                        <itemlist order="strict">
+                            <item name="Self">
+                                The rune either can only affect you, or the effects are
+                                centred on you.
+                            </item>
+
+                            <item name="Touch">
+                                You can affect yourself, or a target you are directly
+                                touching. You can extend this range to Reach.
+                            </item>
+
+                            <item name="Reach">
+                                You can affect a target you can touch with an item you
+                                are holding, or within three metres of you which you
+                                can clearly see. You can extend this range to Short.
+                            </item>
+
+                            <item name="Short">
+                                You can affect a target out to a range of 25m. You can
+                                extend this range to be Medium.
+                            </item>
+
+                            <item name="Medium">
+                                You can affect a target out to a range of 100m. You can
+                                extend this range to be Long.
+                            </item>
+
+                            <item name="Long">
+                                You can affect a target out to a range of 250m. This
+                                range can be boosted multiple times. Each time it is
+                                extended you can double the maximum distance.
+                            </item>
+
+                            <item name="Sight">
+                                You can affect everything that you can see. This is
+                                normally an attribute of Runes which have passive effects.
+                            </item>
+
+                            <item name="Communication">
+                                You must be able to communicate clearly with the target
+                                using voice. If communication requires speech, then they
+                                must be able to understand you.
+                            </item>
+
+                            <item name="Blood">
+                                You must have some of the targets blood, flesh or hair
+                                to be able to affect them. As long as this requirement
+                                is met, there is no limit to the range. You require a
+                                small cup full of blood, flesh the size of a toe or
+                                a full lock of hair.
+                            </item>
+                        </itemlist>
+                    </sect4>
+
+                    <sect4>
+                        <title>Duration</title>
+
+                        <para>
+                            <e>Duration</e> determines how long the effects of the rune
+                            invocation lasts. Extending the duration is much harder than
+                            other attributes of a rune, and only runes with a duration
+                            of <e>Rounds</e> or <e>Minutes</e> can be extended.
+                        </para>
+
+                        <itemlist order="strict">
+                            <item name="Momentary">
+                                The magic lasts only an instant, though the consequences
+                                may be permanent. A spell which slays a person would be
+                                momentary, but death lasts forever.
+                            </item>
+                            <item name="Natural">
+                                The magic has an affect which will decay naturally over
+                                time. The rate of decay will be described in the description
+                                of the rune.
+                            </item>
+                            <item name="Will">
+                                The magic lasts as long as you will it to. Such magic does
+                                not require much thought to maintain, and you can perform
+                                other actions, including invoking other runes, whilst doing
+                                it. Any runes you invoke during this time though are at +10
+                                TN (+15 if from an opposed mystery). You can will
+                                multiple magical effects, but the penalties stack. You can
+                                end a willed invocation at any time.
+                            </item>
+                            <item name="Rounds">
+                                The magic lasts for as long as you concentrate. Every extra
+                                round you concentrate for beyond the first gains you one
+                                Fatigue. Can be extended to Minutes at an increase of +15.
+                            </item>
+                            <item name="Minutes">
+                                The magic lasts for as long as you concentrate. Every extra
+                                minute that you concentrate for beyond the first gains you
+                                one level of Fatigue. Can be extended to Hours at an increase
+                                of +30.
+                            </item>
+                            <item name="Hours">
+                                The magic lasts for as long as you concentrate. Every extra
+                                hour that you concentrate for beyond the first gains you
+                                one level of Exhaustion.
+                            </item>
+                            <item name="Day">
+                                The effect lasts until the next sunset. In the far north
+                                of the world, such effects can last many months. If underground,
+                                the invocation ends at sunset as if you were on the surface
+                                at your location.
+                            </item>
+                            <item name="Moon">
+                                The effect lasts until the next new moon. The actual time
+                                of ending is when the new crescent first rises above the
+                                horizon. Mountains, buildings and other obstructions that
+                                block the horizon do not affect this, but your altitude
+                                does.
+                            </item>
+                        </itemlist>
+                        <para>
+                            Invocations which last <e>Rounds</e>, <e>Minutes</e> or
+                            <e>Hours</e> require intense concentration to maintain. Whilst
+                            concentrating, you cannot invoke any other runes, though you
+                            can try using raw magical effects. All skill checks are halved,
+                            and you move at half speed. At the end of each period, you can
+                            choose whether to continue concentrating or to drop the effect.
+                            If you continue, you gain a <e>Fatigue</e> (or an <e>Exhaustion</e>
+                            for <e>Hours</e> effects) and must make a <t>Will</t> check at
+                            a TN of 10. If you fail, the effect ends anyway (though you
+                            still gain <e>Fatigue</e> or <e>Exhaustion</e>).
+                        </para>
+                        <para>
+                            Both <e>Will</e> and <e>Concentration</e> effects require you to
+                            be conscious, so anything that causes you to lose consciousness
+                            (including sleep) causes them to immediately end.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Target</title>
+
+                        <para>
+                            The target of the rune defines how many individual targets
+                            can be affected by a single invocation. As for the
+                            <e>Range</e>, the number of targets can be extended if you
+                            need to affect a larger number of things. All targets must
+                            be within the <e>Range</e> of the spell.
+                        </para>
+
+                        <itemlist order="strict">
+                            <item name="Self">
+                                You can only affect yourself with this rune. Runes with
+                                a range of Self normally also have a target of Self,
+                                though some may have a radius effect centred on you.
+                            </item>
+
+                            <item name="One">
+                                You can affect a single individual target, either yourself
+                                or one target within range.
+                            </item>
+
+                            <item name="Individual">
+                                The target can be a single individual, either yourself
+                                or one target within range. You can extend this to Few.
+                            </item>
+
+                            <item name="Few">
+                                Can affect up to 3 targets with this Rune, none more
+                                than 3 metres from another. You can extend it to be Dozen.
+                            </item>
+
+                            <item name="Dozen">
+                                Can affect up to 12 targets with this Rune. You can
+                                select individual targets out of a crowd, but none can
+                                be more than 5 metres from another.
+                                You can extend this to be Crowd.
+                            </item>
+
+                            <item name="Crowd">
+                                Can affect up to 50 targets, but are unable to limit
+                                this to particular individuals. You designate a particular
+                                individual and all those closest to them are affected.
+                                None can be more than 10 metres from another.
+                                You can extend this multiple times, doubling the number
+                                affected each time.
+                            </item>
+
+                            <item name="Range">
+                                All targets within range of the rune are affected
+                                regardless of number or distance from each other.
+                            </item>
+
+                            <item name="Tiny">
+                                Affects a single target up to size 1. Can be extended to
+                                small.
+                            </item>
+                            <item name="Small">
+                                Affects a single target up to size 3. Can be extended to
+                                medium.
+                            </item>
+                            <item name="Medium">
+                                Affects a single target up to size 6. Can be extended to
+                                large.
+                            </item>
+                            <item name="Large">
+                                Affects a single target up to size 10. Can be extended to
+                                huge.
+                            </item>
+                            <item name="Huge">
+                                Affects a single target up to size 15. Can be extended to
+                                gigantic.
+                            </item>
+                            <item name="Gigantic">
+                                Affects a single target up to size 20. Each further
+                                extension increases the size that can be affected by
+                                +5.
+                            </item>
+                        </itemlist>
+                    </sect4>
+
+                    <sect4>
+                        <title>Radius</title>
+
+                        <para>
+                            If a radius is given instead of a target, then
+                            the rune affects everything within this
+                            radius, focused on a point within the maximum
+                            range.
+                        </para>
+
+                        <itemlist order="strict">
+                            <item name="Tiny">
+                                Affects an area out to 1m from the target point.
+                                Can be extended to Small.
+                            </item>
+                            <item name="Small">
+                                Affects an area out to 3m from the target point.
+                                Can be extended to Medium.
+                            </item>
+                            <item name="Medium">
+                                Affects an area out to 10m from the target point.
+                                Can be extended to Large.
+                            </item>
+                            <item name="Large">
+                                Affects an area out to 25m from the target point.
+                                Can be extended to Huge.
+                            </item>
+                            <item name="Huge">
+                                Affects an area out to 50m from the target point.
+                                Can be extended multiple times, each level of boost
+                                will double the radius.
+                            </item>
+                        </itemlist>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Invoking a Rune</title>
+
+                    <para>
+                        When a <e>Rune</e> is invoked, you must make a
+                        <y:skeq><y:attr>Will</y:attr><y:sk>Mystery</y:sk><y:die/></y:skeq>
+                        check against a target difficulty equal to five times the level
+                        of the <e>Rune</e> (plus any extras from <e>extending</e>. If you
+                        succeed, then the rune is invoked and you gain an amount of
+                        <e>Exhaustion</e> based on the level of the rune. If you fail,
+                        then you gain one Fatigue and nothing happens.
+                    </para>
+
+                    <targetlist targetFirst="true">
+                        <targetLabel>Level</targetLabel>
+                        <valueLabel>Fatigue / Exhaustion</valueLabel>
+
+                        <item target="1" value="1 Fatigue"/>
+                        <item target="3, 5" value="1 Exhaustion"/>
+                        <item target="7, 9" value="2 Exhaustion"/>
+                        <item target="11, 13" value="3 Exhaustion"/>
+                        <item target="15+" value="4 Exhaustion"/>
+                    </targetlist>
+
+                    <para>
+                        Each level of success you get above the target needed may be
+                        used to reduce the <e>Exhaustion</e> by 1 level. Dropping it
+                        below 1 will reduce it to a single level of <e>Fatigue</e>,
+                        and beyond that to zero. High level runes are harder to
+                        invoke, and also require more successes to avoid becoming.
+                        exhausted.
+                    </para>
+
+                    <sect4>
+                        <title>Extending Attributes</title>
+
+                        <para>
+                            Before you attempt the invocation, you can choose to
+                            <e>extend</e> one or more of the standard attributes
+                            of the rune. Each level of boost normally adds +5 to
+                            the TN of the invocation.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Boosting Effects</title>
+                        <para>
+                            If you succeed with extra levels of success, then you can either
+                            use these to boost the effectiveness of the invocation (either
+                            for a <e>Good</e> or <e>Excellent</e> success), or to reduce the
+                            effort involved in the invocation.
+                        </para>
+                        <para>
+                            Level one and three runes can be boosted once (with a <e>Good</e>
+                            success), level five and seven runes can be boosted twice (with an
+                            <e>Excellent</e> success). Higher level runes may be boosted up
+                            to three times (with a <e>Superb</e> success).
+                        </para>
+                        <para>
+                            The decisions to boost effectiveness or reduce fatigue is made
+                            after the roll to invoke the rune. You may combine reducing the
+                            fatigue with boosting the effect.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Words and Gestures</title>
+                        <para>
+                            Invoking a <e>Rune</e> requires the words of the rune to be
+                            spoken allowed, and in some cases for gestures to be made to
+                            trace out the symbols being spoken. The more powerful the
+                            invocation, the bolder the voice and gestures required.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Mystery of Earth</title>
+            <para>
+                <e>Earth</e> gives power over the ground and rocks, over
+                animals and plants, over life and death. It is the most
+                common of the Mysteries, for it is the most useful in
+                day to day life. With it, wizards are able to improve
+                harvests and cure diseases.
+            </para>
+            <para>
+                Earth is tied to women. It is the Mystery that gives the
+                ability to create familiars.
+            </para>
+            <sect2>
+                <title>Innate Abilities</title>
+                <para>
+                    If you have knowledge of the Mystery of Earth then you
+                    automatically gain the following abilities when your
+                    skill in the Mystery reaches a certain level.
+                </para>
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Skill</targetLabel>
+                    <valueLabel>Innate Ability</valueLabel>
+                    <item target="1" value="Healing.">
+                        You may add your Earth skill to any checks involving
+                        healing, first aid or related skills.
+                    </item>
+                    <item target="3" value="Animals.">
+                        You may add your Earth skill to any checks used to
+                        control, manage or befriend animals.
+                    </item>
+                    <item target="5" value="Growth.">
+                        You may add your Earth skill to any checks involved
+                        with farming or growing or tending plants.
+                    </item>
+                    <item target="7" value="Womb.">
+                        As a woman, you have control over your own fertility.
+                        If you have sex, you may choose whether it results in
+                        pregnancy or not. You may terminate your own pregnancy
+                        at any time.
+                    </item>
+                    <item target="9" value="Ageless.">
+                        As a woman, you have some control over the ageing
+                        of your own body. From the point you gain this level of
+                        skill, you age half as quickly as other people.
+                    </item>
+                </targetlist>
+                <para>
+                    These abilities are automatic.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Raw Powers</title>
+                <para>
+                    The following magical abilities may be used by anyone who
+                    has knowledge of Earth. The greater your skill, the more
+                    powerful the effects will be.
+                </para>
+                <para>
+                    Channelling magic in this way does not require words to be
+                    spoken to runes to be inscribed, it just requires a time of
+                    meditation and peace. You gain one level of exhaustion when
+                    doing this.
+                </para>
+                <sect3>
+                    <title>Fertility</title>
+                    <para>
+                        You can control the growth of plants. This enchantment
+                        is seen as the most useful by non-wizards, since it
+                        allows crops to grow faster.
+                    </para>
+                    <para>
+                        The enchantment takes a day to cast, and increases growth
+                        by 10%, or reduces growth by 20% for a single plant. It 
+                        lasts a week, so must be cast once a week over the entire 
+                        growing season. The base difficulty is 10. Multiple
+                        castings do not stack, instead only the most powerful
+                        effect applies. The base effect covers an area of ground
+                        1m x 1m, so a small plot of plants, or a single tree.
+                    </para>
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Target</targetLabel>
+                        <valueLabel>Increase in effect</valueLabel>
+                        <item target="+10" value="Growth.">
+                            Increase growth by a further +10% above base for each 
+                            +10 added to the target number. Alternatively, reduce
+                            growth by 20% for each +10.
+                        </item>
+                        <item target="+10" value="Garden.">
+                            Affect all plants within a garden, an area 10m x 10m
+                            in size.
+                        </item>
+                        <item target="+20" value="Field.">
+                            Affect all plants within a field, an area 100m x 100m
+                            in size.
+                        </item>
+                        <item target="+30" value="Village.">
+                            Affect all plants within a village, an area one square
+                            kilometre in size.
+                        </item>
+                        <item target="+40" value="Town.">
+                            Affect all plants within a square league (one map hex).
+                        </item>
+                        <item target="+5" value="Health.">
+                            Increases health of the plants, improving their resistance
+                            to disease. May be taken multiple times.
+                        </item>
+                        <item target="+5" value="Selective.">
+                            Allows you to be selective in the type of plants you
+                            affect, for example not improving weeds.
+                        </item>
+                    </targetlist>
+                </sect3>
+                <sect3>
+                    <title>Health</title>
+                    <para>
+                        By channelling the energy of Life itself into a person,
+                        you may make them well, or make them ill. The process is
+                        a slow one, any you must lay hands upon their flesh for
+                        an hour for it to take affect.
+                    </para>
+                    <para>
+                        You may cast this upon yourself.
+                    </para>
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Target</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+                        <item target="10" value="Mend flesh.">
+                            The target of your magic may make a Health check in
+                            order to recover stuns. This is in addition to any
+                            other healing checks that are made this day. Every
+                            five points above the base difficulty that you
+                            achieve gives them an extra +1 to their check.
+                        </item>
+                        <item target="20" value="Mend wound.">
+                            The target of your magic may make a Health check in
+                            order to recover wounds. This may only be done on an
+                            individual once a day, and they also gain a level of
+                            exhaustion when it is done. Every ten points above
+                            the base difficulty that you achieve gives them an
+                            extra +1 to their check.
+                        </item>
+                        <item target="20" value="Malign transfer.">
+                            You may transfer a poison or disease from either 
+                            yourself to the target, or from the target to yourself.
+                        </item>
+                        <item target="30" value="Remove disease.">
+                            The target of your magic may make a Health check to
+                            recover from one disease. They get a +2 bonus for
+                            every five points you exceed the difficulty by.
+                        </item>
+                        <item target="30" value="Remove poison.">
+                            The target of your magic may make a Health check to
+                            recover from one poison. They get a +2 bonus for
+                            every five points you exceed the difficulty by. This
+                            is only effective against slow acting poisons, since
+                            poisons which play out in under an hour cannot be
+                            affected.
+                        </item>
+                        <item target="10" value="Exhaustion.">
+                            The target of your magic gains one level of exhaustion.
+                            Unless they are already asleep, they have a chance of
+                            noticing that something is amiss. They may make a base
+                            Perception check against your Empathy. On a good success,
+                            they realise that you are the source of their tiredness.
+                        </item>
+                        <item target="+10" value="Quicker.">
+                            You may channel the magic quicker, reducing the time
+                            needed to 30 minutes by raising the difficulty. Taking
+                            this option twice will reduce the time further to 15
+                            minutes.
+                        </item>
+                    </targetlist>
+                </sect3>
+                <sect3>
+                    <title>Commune</title>
+
+                    <para>
+                        You may try to communicate with animals and plants.
+                        What they know can be quite limited.
+                    </para>
+
+                    <para>
+                        Animals which are used to dealing with humans and
+                        which get on well with them (trained dogs and
+                        horses) have a target difficulty of 10. Wild
+                        versions of such, or animals used to humans such
+                        as cats, cows, trained birds are 20.
+                    </para>
+
+                    <para>
+                        Other mammals and birds are 30, as are trees.
+                        Lizards are 40, insects and bushes are 50 and
+                        grasses are 70.
+                    </para>
+
+                    <targetlist targetFirst="true">
+                        <targetLabel>Success</targetLabel>
+                        <valueLabel>Level of communication</valueLabel>
+
+                        <item target="Moderate">
+                            Basic empathy, getting an idea of whether the
+                            target feels good or bad.
+                        </item>
+
+                        <item target="Good">
+                            Simple ideas can be read, and simple questions
+                            related to those ideas can be asked. Where is
+                            food? Which way did the big thing go?
+                        </item>
+
+                        <item target="Excellent">
+                            Enables child like conversations with the
+                            target. The target does not have access to
+                            information it would not have. A tree cannot
+                            see for example, but it can feel vibrations
+                            in the ground.
+                        </item>
+
+                        <item target="Superb">
+                            Adult like conversations. Topics are still
+                            limited to what the target would know about.
+                        </item>
+
+                        <item target="Fantastic">
+                            Tap into the memories of the target directly,
+                            even seeing visions if applicable.
+                        </item>
+                    </targetlist>
+                </sect3>
+            </sect2>
+            <sect2>
+                <title>Runes of Earth</title>
+                <para>
+                    The following Runes are available to you if you have studied
+                    the Mystery of Earth.
+                </para>
+                <h:import-spells href="runes/earth.yags"/>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Mystery of Water</title>
+            <para>
+                Knowledge of the Mystery of Water gives you power over lakes
+                and rivers, seas and water. It represents the deep ocean which
+                engulfs and swallows those within it, the darkness which hides
+                and frightens and the coldness which stills limbs and depresses
+                the spirit. As water quenches fire, so this power quenches
+                passions and energy.
+            </para>
+
+            <para>
+                <e>Water</e> is associated with the masculine side of magic
+                and so male wizards suffer fewer penalties when it is
+                mastered.
+            </para>
+            <sect2>
+                <title>Innate Abilities</title>
+                <para>
+                    If you have knowledge of the Mystery of Water then you
+                    automatically gain the following abilities when your
+                    skill in the Mystery reaches a certain level.
+                </para>
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Skill</targetLabel>
+                    <valueLabel>Innate Ability</valueLabel>
+                    <item target="1" value="Movement.">
+                        You may add your skill to your movement rate when
+                        swimming in water.
+                    </item>
+                    <item target="3" value="Warmth.">
+                        You have a resistance to cold, and may consider the
+                        effective temperature to be one level higher than it
+                        actually is per two levels of skill, to a maximum of
+                        'standard'.
+                    </item>
+                    <item target="5" value="Hidden.">
+                        You may add your Water skill to any checks for hiding,
+                        or remaining hidden or silent.
+                    </item>
+                    <item target="7" value="Water.">
+                        As a man, you may survive underwater indefinitely.
+                    </item>
+                    <item target="9" value="Shadow.">
+                        As a man, you may take the form of a shadow all the
+                        time you are in darkness. You are difficult to see
+                        (double any stealth checks), and may move through
+                        the narrowest of gaps, such as under doors or
+                        between bars. If you are caught in full light whilst
+                        in shadow form, you immediately revert, a process
+                        that could kill you if there is insufficient room.
+                    </item>
+                </targetlist>
+                <para>
+                    These abilities are automatic.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Raw Powers</title>
+                <para>
+                    With knowledge of Water, you have access to the following
+                    powers.
+                </para>
+                <sect3>
+                    <title>Water</title>
+                    <para>
+                        You have power over water and watery things.
+                    </para>
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Target</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+                        <item target="10" value="Purity.">
+                            You may purify all water within reach of you.
+                            This cancels poisons, and turns tainted water
+                            good. Salted water turns fresh. Other liquids,
+                            such as wine or blood, become fresh but otherwise
+                            remain in their natural form. Takes an hour, and
+                            causes one level of exhaustion.
+                        </item>
+                        <item target="10" value="Dryness.">
+                            You may keep water from you, allowing you to
+                            remain dry in light rain. Each hour causes you
+                            one level of exhaustion.
+                        </item>
+                        <item target="20" value="Dryness.">
+                            You may remain dry in moderate or heavy rain.
+                            Each hour causes you one level of exhaustion.
+                        </item>
+                        <item target="30" value="Dryness.">
+                            You may remain dry in a tropical storm, or when
+                            submerged in water. Each hour causes you
+                            one level of exhaustion.
+                        </item>
+                        <item target="40" value="Walk on water.">
+                            You may walk on still water. Each minute causes
+                            you one level of exhaustion.
+                        </item>
+                    </targetlist>
+                </sect3>
+                <sect3>
+                    <title>Rain</title>
+                    <para>
+                        You can summon moisture from the air and sky, possibly
+                        causing rain to fall. The dryer the air is, the harder
+                        it is to do this. It takes an hour of concentration, and
+                        causes one level of fatigue.
+                    </para>
+                    <para>
+                        You can also reduce rainfall by the same amount. By default,
+                        this power will not change the moisture content of the air,
+                        but may cause it to either start raining or stop raining.
+                    </para>
+                    <para>
+                        In cold weather, rain will actually be sleet or snow.
+                    </para>
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Target</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+                        <item target="10" value="Rain 100m.">
+                            You can force moisture out of the air over an area
+                            100m in radius, centred on you. If the humidity is
+                            high enough, then it will form mist, fog or actually
+                            start to rain. You can also try and stop it from
+                            raining if the humidity is low enough.
+                        </item>
+                        <item target="20" value="Rain 300m.">
+                            Try and force it to rain, to a radius of 300m.
+                        </item>
+                        <item target="30" value="Rain 1km.">
+                            Try and force it to rain, to a radius of 1km.
+                        </item>
+                        <item target="40" value="Rain 3km.">
+                            Try and force it to rain, to a radius of 3km.
+                        </item>
+                        <item target="50" value="Rain 10km.">
+                            Try and force it to rain, to a radius of 10km.
+                        </item>
+                        <item target="+5" value="Slightly change humidity.">
+                            Increase or decrease humidity by one level.
+                        </item>
+                        <item target="+10" value="Moderately change humidity.">
+                            Increase or decrease humidity by two levels.
+                        </item>
+                        <item target="+20" value="Strongly change humidity.">
+                            Increase or decrease humidity by three levels.
+                        </item>
+                    </targetlist>
+                </sect3>
+                <sect3>
+                    <title>Cold</title>
+                    <para>
+                        You can make it cold. Takes an hour, and causes one
+                        level of exhaustion. You may continue to concentrate
+                        to keep the temperature deflated. Gain another level
+                        of exhaustion after a number of hours equal to your
+                        Will.
+                    </para>
+                    <para>
+                        How long the temperature takes to recover depends on
+                        the size of the area affected, the local geography and
+                        the temperature difference. Generally, assume that there
+                        is a half life, with the difference halving over some
+                        period of time. This may be a minute for a 3m radius
+                        area, or a day for a 1km radius area in a depression.
+                    </para>
+                    <targetlist targetFirst="true" bold="true">
+                        <targetLabel>Target</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+                        <item target="10" value="Cold 3m.">
+                            The temperature of the air immediately around you drops
+                            by one level. A strong wind may prevent the temperature
+                            drop due to the colder air being replaced by warmer air,
+                            though this can affect wind patterns over a larger area.
+                        </item>
+                        <item target="20" value="Cold 10m.">
+                            Drop the air temperature by one level out to 10m radius.
+                        </item>
+                        <item target="30" value="Cold 30m.">
+                            Drop the air temperature by one level out to 30m radius.
+                        </item>
+                        <item target="40" value="Cold 100m.">
+                            Drop the air temperature by one level out to 100m radius.
+                        </item>
+                        <item target="50" value="Cold 300m.">
+                            Drop the air temperature by one level out to 300m radius.
+                        </item>
+                        <item target="60" value="Cold 1km.">
+                            Drop the air temperature by one level out to 1000m radius.
+                        </item>
+                        <item target="+5" value="Make it colder.">
+                            Increase the amount that the temperature drops by one
+                            further level.
+                        </item>
+                    </targetlist>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Mystery of Spirit</title>
+
+            <para>
+                The Mystery of <e>Spirit</e> gives you control over
+                the realm of spirits, souls and minds. It is the realm
+                of seekers after knowledge, and the haunts of ghosts.
+            </para>
+
+            <para>
+                <e>Spirit</e> is linked to the female side of life, and
+                women who master its secrets suffer fewer penalties than
+                do men. <e>Spirit</e> is directly opposed to <e>Iron</e>,
+                and indirectly opposed to <e>Fire</e> and <e>Earth</e>.
+            </para>
+
+            <sect2>
+                <title>Innate Abilities</title>
+                <para>
+                    If you have knowledge of the Mystery of Spirit then you
+                    automatically gain the following abilities when your
+                    skill in the Mystery reaches a certain level.
+                </para>
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Skill</targetLabel>
+                    <valueLabel>Innate Ability</valueLabel>
+                    <item target="1" value="Empathy.">
+                        You may add your Spirit skill to any Empathy based
+                        skill checks.
+                    </item>
+                    <item target="3" value="Memory.">
+                        You may add your Spirit skill to any knowledge check,
+                        having an improved memory.
+                    </item>
+                    <item target="5" value="Aura sense.">
+                        By spending a round concentrating, you can view the
+                        auras of all those in sight, though you halve your
+                        skill check when doing this.
+                    </item>
+                    <item target="7" value="Blood dreams.">
+                        As a woman, you have a connection to other women in
+                        your family. You can sense the minds of your mother
+                        and all women descended from her. You know if they
+                        are alive or dead, and can visit their dreams.
+                    </item>
+                    <item target="9" value="Faecce.">
+                        As a woman, you create a faecce (or fetch) of a man by having
+                        their child. The decision as to whether the child will
+                        be a simulacrum must be made within days of conception.
+                    </item>
+                </targetlist>
+                <para>
+                    These abilities are automatic.
+                </para>
+                <sect3>
+                    <title>Faecce</title>
+
+                    <para>
+                        When you create a <e>faecce</e> (pronounced fetcha, sometimes
+                        called fetch), you give birth to a creature that has a
+                        permanent link to their father. All the time you have access
+                        to the faecce, you have considerable power over the father.
+                    </para>
+                    <para>
+                        Faecce appear to be normal humans. They develop as a normal
+                        human child does, and will eventually grow old and die. Their
+                        appearance will be very similar to that of their father,
+                        though their emotions may put them at odds, eventually
+                        developing an inexplicable hatred of them.
+                    </para>
+                    <para>
+                        Once the child is born, then as the mother you gain access
+                        to the sleeping dreams of the father. As long as the three
+                        of you sleep, and you are in close proximity to the faecce,
+                        you can view, and even enter, the father's dreams.
+                    </para>
+                    <para>
+                        For every four years of age that the faecce has, the father
+                        has a -1 penalty (minimum 0) to their <t>Will</t> to resist
+                        your magic.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Raw Powers</title>
+
+                <sect3>
+                    <title>Aura</title>
+
+                    <para>
+                        You may sense the aura of all those around you. All living
+                        things have a spirit, and all spirits have an aura. The
+                        aura is a reflection of the spirit's true nature, and it is
+                        difficult to mask.
+                    </para>
+
+                    <para>
+                        By spending a round concentrating on an animal or person,
+                        you can see their aura. Normally, there is no resistance
+                        to this, and the base difficulty is 10. Under some circumstance,
+                        the target may get to resist with their <t>Will</t>, but this
+                        is exceptional.
+                    </para>
+                    <para>
+                        You must be able to clearly see the target in order to view
+                        their aura, and they must be Near to you.
+                    </para>
+
+                    <targetlist targetFirst="true">
+                        <valueLabel>Detail seen</valueLabel>
+                        <targetLabel>Success</targetLabel>
+
+                        <item target="Moderate (10)" value="Type.">
+                            You can tell the type of spirit being examined, and know
+                            whether it is a human, fey, beast or undead. You can also
+                            tell the gender and general age of the spirit, and if they
+                            have a strong emotion active than this can also be
+                            determined.
+                        </item>
+
+                        <item target="Good (20)" value="State.">
+                            The general state of mind of the target, as
+                            well as some of the strongest emotions that
+                            drive the target, even if they aren't currently
+                            active.
+                        </item>
+
+                        <item target="Excellent (30)" value="Emotions.">
+                            Visions of what the target's strongest emotions
+                            represent. A person thinking about their true
+                            love would present an image of their love. If
+                            the target is not focused on any one thing,
+                            then glimpses of what they can see may be
+                            seen.
+                        </item>
+
+                        <item target="Superb (40)" value="History.">
+                            Visions of important events in the life of the
+                            target. Images of their parents or family,
+                            their loves and hates.
+                        </item>
+                    </targetlist>
+                </sect3>
+                <sect3>
+                    <title>Warding</title>
+                    <para>
+                        You may create a circle of warding against spirits.
+                        You inscribe an area, and all the time you remain
+                        within the area pure spirits can not cross over the
+                        boundary unless they beat you with a contest of will.
+                        If they fail, then they gain a level of exhaustion.
+                        They may try again after a minute.
+                    </para>
+                    <para>
+                        The radius of the warded area is normally limited to
+                        <e>Reach</e>. Warding an area out to <e>Near</e>
+                        reduces your effective Will by one. The warded area
+                        must be visible to you, and you must be awake for the
+                        ward to have an effect.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Necromancy</title>
+                    <para>
+                        You may summon, and communicate with, the spirits of
+                        the recently dead. The spirit must still be present,
+                        which normally means the body must be mostly intact
+                        and not decayed. Once a body has decayed, a spirit is
+                        free to move to the underworld. Generally, the dead
+                        are burnt within a couple of days of death, in order
+                        to free their spirit as soon as possible.
+                    </para>
+                    <para>
+                        You gain a level of exhaustion summoning a dead spirit,
+                        and it is visible to all those nearby. It can communicate
+                        in any language that it knows, but is not compelled to
+                        answer questions.
+                    </para>
+                    <para>
+                        The base difficulty to summon a spirit is 10. If the
+                        spirit does not wish to be summoned, then the difficulty
+                        is equal to the <t>Will</t> x 4 of the spirit.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Mystery of Air</title>
+
+            <para>
+                Air is the realm of the sky and wind, it is the realm of the
+                sun and therefore light. Being above the Earth, it is also
+                considered sterile. Air also provides control over sight and
+                images.
+            </para>
+            <para>
+                The mystery of Air is considered to be masculine. It is directly
+                opposed to Earth, and is related to Spirit and Fire.
+            </para>
+            <sect2>
+                <title>Innate Abilities</title>
+                <para>
+                    If you have knowledge of the Mystery of Air then you
+                    automatically gain the following abilities when your
+                    skill in the Mystery reaches a certain level.
+                </para>
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Skill</targetLabel>
+                    <valueLabel>Innate Ability</valueLabel>
+                    <item target="1" value="Sight.">
+                        You may add your Air skill to any sight based
+                        Perception skill checks.
+                    </item>
+                    <item target="3" value="Weather sense.">
+                        You may predict the weather with a reasonable
+                        degree of accuracy for the next 48 hours.
+                    </item>
+                    <item target="5" value="Flight.">
+                        You have greater freedom of movement through the air,
+                        and can jump or fall your skill times your normal
+                        distance.
+                    </item>
+                    <item target="7" value="Weather monger.">
+                        As a man, you may shift the weather slightly merely
+                        by your will. One element of the weather may be
+                        changed by one level, and it takes about an hour
+                        to take effect, covering everything in sight.
+                    </item>
+                    <item target="9" value="Image.">
+                        As a man, you can cause an illusion to cover your
+                        appearance, changing your form. It is a visual
+                        illusion only, but lasts as long as you want it to.
+                    </item>
+                </targetlist>
+                <para>
+                    These abilities are automatic.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Raw Powers</title>
+
+                <sect3>
+                    <title>Wind</title>
+                    <para>
+                        You can call up the wind and cause it to blow as you
+                        desire. It takes an hour to summon the wind, which can
+                        only be done whilst you stand under the open sky. It
+                        will cover a corridor that spans 100m to either side of
+                        you, start about 100m behind you and stretches for a
+                        kilometre ahead of you.
+                    </para>
+                    <para>
+                        You can increase the area covered, or reduce the time
+                        to summon the wind, by increasing the target difficulty.
+                        It costs a level of exhaustion to summon the wind like
+                        this, but you can keep it up for a number of hours equal
+                        to your <t>Will</t> without further fatigue cost.
+                    </para>
+                    <targetlist targetFirst="true">
+                        <valueLabel>Wind Strength</valueLabel>
+                        <targetLabel>Target</targetLabel>
+
+                        <item target="10" value="Gentle Breeze.">
+                            You can summon a gentle breeze. Leaves and small
+                            twigs constantly moving, light flags extended.
+                        </item>
+                        <item target="20" value="Strong Breeze.">
+                            You can summon a strong breeze. Large branches in
+                            motion, white foam crests on the sea are frequent.
+                            Light barrels tip over, difficult to hold a banner.
+                        </item>
+                        <item target="30" value="Gale.">
+                            You can summon a gale. Twigs broken from trees,
+                            progress on foot is seriously impeded. Considerable
+                            airborne spray on the sea, moderately high waves
+                            with breaking crests.
+                        </item>
+                        <item target="40" value="Storm.">
+                            You can summon a storm. Trees can be uprooted.
+                            Very high waves on the sea, spray reduces visibility.
+                        </item>
+                        <item target="50" value="Hurricane.">
+                            You can summon a hurricane. Severe widespread damage
+                            to vegetation and structures. Debris and unsecured
+                            objects are hurled about. Huge waves on the sea, which
+                            is completely white with foam and spray.
+                        </item>
+                        <item target="+5" value="Halve time.">
+                            Halve the time it takes for the wind to reach full
+                            strength. You can take this multiple times.
+                        </item>
+                        <item target="+5" value="Double distance.">
+                            You can increase the distance the wind carries for.
+                            You can take this multiple times, increasing the
+                            multiple (x2, x3, x4) each time.
+                        </item>
+                        <item target="+5" value="Double width.">
+                            You can increase the width of the corridor affected.
+                            You can take this multiple times, increasing the
+                            multiple (x2, x3, x4) each time.
+                        </item>
+                    </targetlist>
+                    <para>
+                        The wind blows in the direction you face. Changing
+                        direction after summoning the wind is hard, and costs
+                        a level of exhaustion and takes five minutes.
+                    </para>
+                    <para>
+                        If there is already a wind blowing, the two winds will
+                        merge, though the result will never be stronger than
+                        the strongest original wind. Instead, you can change
+                        the direction of a wind, or cancel it.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Light</title>
+                    <para>
+                        You can create a glowing light that fills the air
+                        around you. At its most basic, it is an aura that
+                        surrounds your body, giving off a soft glow that
+                        makes you highly visible, and allows you to see
+                        the shapes of things in your hands.
+                    </para>
+                    <para>
+                        You can extend the range of the effect, so that the
+                        air itself glows, illuminating the whole area. Since
+                        it affects the air around you, even the interior of
+                        containers is lit up by the effect.
+                    </para>
+                    <targetlist targetFirst="true">
+                        <valueLabel>Effect</valueLabel>
+                        <targetLabel>Target</targetLabel>
+
+                        <item target="10" value="Soft glow.">
+                            You can create a soft glow, that allows you to
+                            see the shape of things.
+                        </item>
+                        <item target="20" value="Soft light.">
+                            You create a light that is bright enough to read
+                            by, but soft enough such that it does not hurt
+                            your eyes.
+                        </item>
+                        <item target="30" value="Bright light.">
+                            You can fill the area with daylight.
+                        </item>
+                        <item target="40" value="Harsh light.">
+                            The area is filled with a harsh light that can
+                            make it difficult to see.
+                        </item>
+                        <item target="50" value="Blinding light.">
+                            The light is so bright that it is impossible to
+                            see unless your eyes are protected.
+                        </item>
+                        <item target="+5" value="Radius.">
+                            You can increase the radius of the region affected
+                            by 1m for each +5 added to the difficulty.
+                        </item>
+                    </targetlist>
+                    <item>
+                        If the effect is given a radius, then the level of
+                        light fills out to that area, then decreases by a
+                        level for each multiple. So a bright light, with
+                        a radius of 2m, would be a soft light out to 4m and
+                        a soft glow out to 6m.
+                    </item>
+                </sect3>
+            </sect2>
+            <sect2>
+                <title>Air Runes</title>
+
+                <h:import-spells href="runes/air.yags"/>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Fire</title>
+
+            <para>
+                <e>Fire</e> represents heat, flames, mobility and passion. Though
+                the actual creation of fire is hard, wizards can control existing
+                fires, as well as imbue heat and passion in another.
+            </para>
+            <para>
+                The mystery of Fire is considered to be female. It is directly
+                opposed to Water, and is related to Air and Iron.
+            </para>
+            <sect2>
+                <title>Innate Abilities</title>
+                <para>
+                    If you have knowledge of the Mystery of Fire then you
+                    automatically gain the following abilities when your
+                    skill in the Mystery reaches a certain level.
+                </para>
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Skill</targetLabel>
+                    <valueLabel>Innate Ability</valueLabel>
+                    <item target="1" value="Creature of Warmth.">
+                        You may ignore up to one level of hot temperature for
+                        each point of Fire skill that you have. You also gain
+                        a soak bonus equal to the same against fire or heat
+                        based damage.
+                    </item>
+                    <item target="3" value="Mobility.">
+                        Your affinity with Fire grants you speed and
+                        reactions beyond that of a normal person. You may
+                        add your Fire skill to your total move when running or
+                        sprinting, and also gain it as an initiative bonus.
+                    </item>
+                    <item target="5" value="Create of Fire.">
+                        You may see things by their warmth, even in complete
+                        darkness. You also gain a resistance to fire adding
+                        three times your skill to resist fire damage. This
+                        affects only you, not any of your possessions. You
+                        still suffer from the effects of smoke.
+                    </item>
+                    <item target="7" value="Body of Fire.">
+                        As a woman, you gain incredible resistance to fire
+                        and heat. You have a bonus to your soak equal to
+                        ten times your skill. You can breathe in fire and
+                        smoke as if it were fresh air. Your resistance does
+                        not extend to clothing, armour or other possessions.
+                    </item>
+                    <item target="9" value="Body of Smoke.">
+                        As a woman, you can make your body as light as smoke
+                        when in the presence of a fire. This allows you to
+                        float on air all the time that the smoke is beneath
+                        you.
+                    </item>
+                </targetlist>
+                <para>
+                    These abilities are automatic.
+                </para>
+            </sect2>
+            <sect2>
+                <title>Raw Powers</title>
+
+                <sect3>
+                    <title>Look into the Fire</title>
+                    <para>
+                        You may use a fire to spy upon things that happen
+                        around it. Any open flame that you can see within
+                        your line of sight, you may look out of as if you
+                        were sitting within it. A camp fire many leagues
+                        distant (and visible as a speck of light) can be
+                        used to see those camped around it.
+                    </para>
+                    <para>
+                        The quality of the visions depend on the size of
+                        the flames, and your distance from them. At a base,
+                        it is assumed that the fire is the size of a camp fire,
+                        and that it is within 100m.
+                    </para>
+                    <para>
+                        This ability only extends to vision - you may not
+                        hear things through the ability. However, you don't
+                        need an absolutely clear line of sight - being able
+                        to see some of the flames through bushes, or a crack
+                        in a wall, is enough.
+                    </para>
+                    <targetlist targetFirst="true">
+                        <targetLabel>Success</targetLabel>
+                        <valueLabel>Vision quality</valueLabel>
+
+                        <item target="10" value="Poor quality.">
+                            Your vision through the fire is poor, and you can
+                            not make out much more than shadowy shapes within
+                            a few metres of the flames.
+                        </item>
+                        <item target="20" value="Medium quality.">
+                            Your vision is reasonable, and you can make out
+                            enough detail to recognise individual people.
+                            However, what you see is slightly blurry and
+                            unstable.
+                        </item>
+                        <item target="30" value="High quality.">
+                            Your vision is as clear as if you were there
+                            yourself.
+                        </item>
+                        <item target="40" value="Sounds.">
+                            As well as having clear vision, you can begin to
+                            make out sounds. You can hear speech, but cannot
+                            recognise words.
+                        </item>
+
+                        <item target="50" value="Speech.">
+                            Your ability to hear sound allows you to understand
+                            speech close to the fire, as if you were located in
+                            the fire.
+                        </item>
+                        <item target="+5" value="x3 distance.">
+                            You can see from fires up to triple the normal distance
+                            away. This takes the range to 300m, or can be combined
+                            with the x10 distance multiplier.
+                        </item>
+                        <item target="+10" value="x10 distance.">
+                            You can see from fires up to ten times the normal distance
+                            away. This takes the range to 1km, but you can take this
+                            multiple times (and combine it with the x3 multiplier).
+                        </item>
+                    </targetlist>
+                </sect3>
+
+                <sect3>
+                    <title>Controlling Flames</title>
+                    <para>
+                        You may control a fire that is close by, causing it to
+                        burn more intensely or to die down. You may also cause
+                        it to explode outwards. It is assumed that the fire is
+                        near to you (15m), and the size of a small bonfire.
+                    </para>
+                    <targetlist targetFirst="true">
+                        <targetLabel>Success</targetLabel>
+                        <valueLabel>Effect</valueLabel>
+
+                        <item target="10" value="Feed the flames.">
+                            You can cause a fire to burn more intensely. Half the
+                            time it lasts, but increase the heat (damage) by 50%.
+                        </item>
+                        <item target="10" value="Quell the flames.">
+                            You can cause a fire to die down, reducing in size
+                            by one level. Each extra level of success reduces
+                            by a further level each round. You may extinguish a
+                            fire in this way.
+                        </item>
+                    </targetlist>
+                </sect3>
+            </sect2>
+            <sect2>
+                <title>Runes of Fire</title>
+                <para>
+                    The following Runes are available to you if you have studied
+                    the Mystery of Fire.
+                </para>
+                <h:import-spells href="runes/fire.yags"/>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Iron</title>
+
+            <para>
+                <e>Iron</e> is the realm of metal and rock. It is solid and
+                unmoving. With it, you can summon the strongest of elementals,
+                or make yourself or others as tough as stone.
+            </para>
+            <para>
+                The mystery of Iron is considered to be male. It is directly
+                opposed to Spirit, and is related to Fire and Earth.
+            </para>
+            <sect2>
+                <title>Innate Abilities</title>
+                <para>
+                    If you have knowledge of the Mystery of Iron then you
+                    automatically gain the following abilities when your
+                    skill in the Mystery reaches a certain level.
+                </para>
+                <targetlist targetFirst="true" bold="true">
+                    <targetLabel>Skill</targetLabel>
+                    <valueLabel>Innate Ability</valueLabel>
+                    <item target="1" value="Health.">
+                        You gain a bonus to all Health checks equal to your
+                        Iron skill. This includes rolls to resist poison,
+                        disease and death.
+                    </item>
+                    <item target="3" value="Strength.">
+                        Your close relationship with stone and metal gives you
+                        strength. You gain a bonus to strength related rolls
+                        (though not damage rolls) equal to your Iron skill.
+                    </item>
+                    <item target="5" value="Hardiness.">
+                        Your affinity with Iron hardens you against attacks,
+                        and you gain a permanent bonus to your soak equal to
+                        your Iron skill.
+                    </item>
+                    <item target="7" value="Hold.">
+                        As a man, you may hold firm like a mountain. At will,
+                        you may fasten yourself to the ground, increasing your
+                        Strength ten fold when resisting attempts to move you.
+                        You can grasp up to two people when doing this, and
+                        your Strength is similarly increased for purposes of
+                        holding them still.
+                    </item>
+                    <item target="9" value="Body of Iron.">
+                        As a man, you may take on the characteristics of iron
+                        in order to harden yourself against damage. Your
+                        Agility and Dexterity drop to 1, but your bonus to
+                        soak increases to five times your skill. It takes one
+                        round to make the change to your Iron form, but a
+                        minute to change back.
+                    </item>
+                </targetlist>
+                <para>
+                    These abilities are automatic.
+                </para>
+
+                <sect3>
+                    <title>Raw Powers</title>
+
+                    <sect4>
+                        <title>Break Stone</title>
+                        <para>
+                            By touching stone or rock you can cause it to fracture
+                            and break, eventually crumbling to dust.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+            <sect2>
+                <title>Runes of Iron</title>
+                <para>
+                    The following Runes are available to you if you have studied
+                    the Mystery of Iron.
+                </para>
+                <h:import-spells href="runes/iron.yags"/>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Other Magic</title>
+
+            <sect2>
+                <title>Elementals</title>
+                <para>
+                    <e>Elementals</e> are spirits that inhabit physical matter,
+                    such as mud, rock, water or air. Knowledge of any of the
+                    Mysteries allows you to summon an elemental of that form
+                    as long as their is sufficient material around. You cannot
+                    summon an elemental of water in the middle of the desert
+                    where there is no water, and you cannot summon an elemental
+                    of fire without a fire being already present.
+                </para>
+                <para>
+                    The ritual of summoning an elemental spirit takes an hour
+                    to perform, and normally requires a blood sacrifice - often
+                    an animal, but humans allow especially powerful elementals
+                    to be summoned. The spirit will remain until the next
+                    sunrise or sunset. In the far north, where the days or
+                    nights are long, elementals may remain bound for months at
+                    a time.
+                </para>
+                <para>
+                    The base difficulty of the ritual is 10, though what this
+                    binds is a mindless automation that can only carry out simple
+                    instructions.
+                </para>
+                <para>
+                    A base elemental is size 3, with all other attributes at one.
+                    Size or physical attributes can be raised by 1 point for each
+                    +5 increase to the ritual difficulty. Raising the empathy,
+                    intelligence or will of an elemental is not directly possible.
+                </para>
+                <sect3>
+                    <title>Sacrifice</title>
+                    <para>
+                        The strength of the elemental can be greatly increased by
+                        making a sacrifice a part of the ritual. Most commonly,
+                        an animal will be used, but human sacrifice is far more
+                        desirable if you are willing to ignore the moral issues.
+                    </para>
+                    <para>
+                        The Will of the elemental is linked directly to its power.
+                        A standard elemental has a Will of 1. Sacrificing an
+                        animal of at least size 1 will add one to the elemental's
+                        Will. An animal of at least Size 4 will give a +2 bonus.
+                        A human sacrifice will give a +3 bonus.
+                    </para>
+                    <para>
+                        The Intelligence and Perception of the elemental is equal
+                        to its Will.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Necromancy</title>
+                <para>
+                    It is possible to use your magic to raise the bodies of the
+                    dead. Doing this requires the use of either <e>Earth</e> or
+                    <e>Spirit</e> magic. The basics are the same for both, and
+                    each raises corporeal undead known as druagr, though there
+                    are subtle differences depending on which Mystery is used.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Insanity</title>
+
+            <para>
+                The <e>Mysteries</e> provide you with mastery over the
+                different aspects of the world, enabling you to twist
+                reality to your will. Sometimes however, reality will twist
+                back, warping your mind in ways that make you not quite
+                human. Though this warping is seen as a bad thing, it can
+                lead to a greater understanding of the magic you are
+                trying to control.
+            </para>
+
+            <para>
+                Ultimately, any wizard who overuses magic will go insane.
+                The basic powers of each Mystery are the safest, which is
+                why many wizards do not go to the trouble of learning
+                cantrips. Those who strive for greater understanding though
+                must ultimately pay the price of magic.
+            </para>
+
+            <para>
+                There are two ways to gain insanity. The first is by fumbling
+                the use of magic, the second is by stretching your abilities
+                when trying to learn new magic.
+            </para>
+
+            <sect2>
+                <title>Levels of Insanity</title>
+
+                <para>
+                    <e>Insanity</e> is a Trait, and like other traits it
+                    ranges from 0 (completely sane) to 5 (critically insane).
+                </para>
+
+                <targetlist targetFirst="true">
+                    <targetLabel>Insanity</targetLabel>
+                    <valueLabel>Description</valueLabel>
+
+                    <item target="0">
+                        Mundane and stable. No signs of abnormal insanity.
+                    </item>
+
+                    <item target="1">
+                        Mildly insane. You generally behave as normal,
+                        though your reactions to stress may be more
+                        extreme than others.
+                    </item>
+
+                    <item target="2">
+                        Moderate insanity. You will have a number of quirks
+                        which others will consider unusual, though which
+                        will not be immediately apparent.
+                    </item>
+
+                    <item target="3">
+                        High insanity. Your quirks and actions are quite
+                        severe, and people will mark you as being odd, and
+                        possibly dangerous.
+                    </item>
+
+                    <item target="4">
+                        Severe insanity. You find it difficult to function
+                        in normal society, and will have a number of mental
+                        defects which cause others to avoid you.
+                    </item>
+
+                    <item target="5">
+                        Critically insane. You cannot socialise normally,
+                        and in fact probably have difficulty living with
+                        yourself.
+                    </item>
+                </targetlist>
+            </sect2>
+
+            <sect2>
+                <title>Fumbling Magic</title>
+
+                <para>
+                    When invoking a cantrip or calling on a power, if you
+                    roll a natural '1', then the magic fails and there is
+                    a chance of something worse happening. In order to keep
+                    control of the magic, it is necessary to make a Will
+                    check.
+                </para>
+
+                <targetlist>
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Condition</valueLabel>
+
+                    <item target="10">
+                        Using a Power.
+                    </item>
+
+                    <item target="10 + 5 x level">
+                        Using a cantrip.
+                    </item>
+
+                    <item target="+ 5 x aura">
+                        In a region with an aura.
+                    </item>
+
+                    <item target="+5">
+                        It is night, between sunset and sunrise.
+                    </item>
+
+                    <item target="+5">
+                        The moon is above the horizon and not hidden by
+                        clouds. Being underground, or in a permanent
+                        building out of sight of the moon can negate this.
+                    </item>
+
+                    <item target="+5">
+                        The moon is full, regardless of whether it can be
+                        seen.
+                    </item>
+                </targetlist>
+
+                <para>
+                    If you get a <e>good</e> success, then the magic simply
+                    fails and there are no side effects. On a <e>moderate</e>
+                    success you gain one level of <e>fatigue</e>, but are
+                    otherwise unaffected.
+                </para>
+
+                <para>
+                    On a failure, you gain one level of <e>fatigue</e> and
+                    are stunned for the remainder of the round, being unable
+                    to act or even defend yourself. The following round, and
+                    each round thereafter, you may try to gain control again,
+                    though the difficulty is reduced by 10. Failure results
+                    in continuing to be stunned.
+                </para>
+
+                <para>
+                    If you fail a number of checks greater than your current
+                    <e>Insanity</e>, then the magic threatens to overwhelm
+                    you completely (note that this means a single failure
+                    if you have no insanity). You may choose to either try
+                    to control the magic, or to let it wash over you. If you
+                    do the latter then you are stunned for one more round
+                    and then recover (no roll). However, the magic leaves a
+                    lasting imprint on you, and you gain a <e>quirk</e>. The
+                    quirk lasts for a week. At the end of the week, there
+                    is a 50% chance of the quirk becoming permanent and you
+                    gaining one level of insanity.
+                </para>
+
+                <para>
+                    If you try to control the magic, then make another
+                    check the following round. If this fails, then you are
+                    immediately <e>overwhelmed</e> for the next 1d20 minutes.
+                    No further checks are required, but the effect of being
+                    overwhelmed can be a lot worse.
+                </para>
+
+                <sect3>
+                    <title>Overwhelmed</title>
+
+                    <para>
+                        If you become <e>overwhelmed</e> by the magic, then
+                        you exhibit behaviour which is tied to the Mystery
+                        you were trying to control. The effect lasts for 1d20
+                        minutes.
+                    </para>
+
+                    <sect4>
+                        <title>Confused (Spirit)</title>
+
+                        <para>
+                            Your mind is confused by an overload of sensation.
+                            For the duration your <t>Perception</t> is doubled
+                            for noticing general things, but at -2 if you try
+                            to focus on anything (such as individual words),
+                            or trying to attack or dodge.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Depression (Water)</title>
+
+                        <para>
+                            You are severely depressed, and see no reason to
+                            act or do anything. If there is a good reason to
+                            move, then you must make a Will check at a target
+                            of 30 to do so. More focused actions (fighting,
+                            using magic) is impossible.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Lust (Earth)</title>
+
+                        <para>
+                            You are overcome with lust.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Catatonic (Iron)</title>
+
+                        <para>
+                            You are unable to think or act.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Rage (Fire)</title>
+
+                        <para>
+                            You are overcome with rage.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Mindless (Air)</title>
+
+                        <para>
+                            You are unable to concentrate on any one thing,
+                            finding it difficult to act in a coherent fashion.
+                        </para>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Quirks</title>
+
+                    <para>
+                        A quirk is minor personality defect. Quirks can last
+                        a short time or be permanent.
+                    </para>
+
+                    <y:import-advantages href="options/quirks.yags"/>
+                </sect3>
+            </sect2>
+        </sect1>
+    </body>
+
+</article>
+
+

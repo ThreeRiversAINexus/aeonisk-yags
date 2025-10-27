@@ -1,0 +1,177 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Combat (Modern)</title>
+        <tagline>YAGS</tagline>
+
+        <summary>
+            Combat rules covering the use of firearms and other
+            modern technologies. Also includes any future combat,
+            such as lasers and exotic armour.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.18 $</version>
+            <date>$Date: 2007-01-13 16:42:30 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2006</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+
+        <sect1>
+            <title>Extended Modern Combat</title>
+
+            <para>
+                The following rules extend on the weapon types available
+                and other factors.
+            </para>
+
+            <sect2>
+                <title>Armour Properties</title>
+
+                <itemlist order="sort">
+                    <item name="Nuclear-Biological-Chemical">
+                        Completely sealed armour designed to resist
+                        corrosive chemicals and germ warfare attacks.
+                        May use filters or have its own air supply.
+                    </item>
+
+                    <item name="Vacuum">
+                        Completely sealed with its own air supply and
+                        capable of operating in airless conditions.
+                    </item>
+
+                    <item name="Reflective">
+                        Provides double soak bonus against lasers.
+                    </item>
+                </itemlist>
+            </sect2>
+
+            <sect2>
+                <title>Weapon Ranges</title>
+
+
+                <sect3>
+                    <title>Atmosphere Types</title>
+
+                    <para>
+                        In alien environments, the type of atmosphere can
+                        have an effect on the range bands of a weapon. The
+                        accuracy of the weapon is not affected.
+                    </para>
+
+                    <table>
+                        <title>Priority</title>
+                        <colspec colwidth="25mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+                        <colspec colwidth="12mm"/>
+
+                        <thead>
+                            <row>
+                                <entry>Environment</entry>
+                                <entry>Laser</entry>
+                                <entry>Particle</entry>
+                                <entry>Plasma</entry>
+                                <entry>Slugthrower</entry>
+                            </row>
+                        </thead>
+
+                        <tbody>
+                            <row>
+                                <entry>Vacuum</entry>
+                                <entry>x10</entry>
+                                <entry>x5</entry>
+                                <entry>x3</entry>
+                                <entry>x1.5</entry>
+                            </row>
+
+                            <row>
+                                <entry>Trace</entry>
+                                <entry>x10</entry>
+                                <entry>x5</entry>
+                                <entry>x3</entry>
+                                <entry>x1.5</entry>
+                            </row>
+
+                            <row>
+                                <entry>Very thin</entry>
+                                <entry>x5</entry>
+                                <entry>x3</entry>
+                                <entry>x2</entry>
+                                <entry>x1.25</entry>
+                            </row>
+
+                            <row>
+                                <entry>Thin</entry>
+                                <entry>x2</entry>
+                                <entry>x2</entry>
+                                <entry>x1.5</entry>
+                                <entry>x1</entry>
+                            </row>
+
+                            <row>
+                                <entry>Standard</entry>
+                                <entry>x1</entry>
+                                <entry>x1</entry>
+                                <entry>x1</entry>
+                                <entry>x1</entry>
+                            </row>
+
+                            <row>
+                                <entry>Dense</entry>
+                                <entry>x0.5</entry>
+                                <entry>x.75</entry>
+                                <entry>x.75</entry>
+                                <entry>x1</entry>
+                            </row>
+
+                            <row>
+                                <entry>Very Dense</entry>
+                                <entry>x0.25</entry>
+                                <entry>x0.50</entry>
+                                <entry>x0.50</entry>
+                                <entry>x0.75</entry>
+                            </row>
+
+                            <row>
+                                <entry>Super Dense</entry>
+                                <entry>x0.10</entry>
+                                <entry>x0.50</entry>
+                                <entry>x0.25</entry>
+                                <entry>x0.75</entry>
+                            </row>
+                        </tbody>
+                    </table>
+
+                </sect3>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

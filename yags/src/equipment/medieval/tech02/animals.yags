@@ -1,0 +1,378 @@
+<?xml version="1.0"?>
+
+<!--
+    General equipment lists.
+
+    Copyright 2005-2012, Samuel Penn, sam@glendale.org.uk
+
+    Redistribution and use with or without modification are permitted provided
+    that the following conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+        above copyright notice and this list of conditions.
+
+    2) Redistributions in binary/printed forms must include copyright
+        attribution.
+
+    All units are in cgs.
+
+    Prices should be in farthings, but prices can't really be trusted yet.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+    <item name="Dozen chickens">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>0</techLevel>
+        <source>Farmer</source>
+        <weight>6000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">3</cost>
+
+        <short>A dozen live chickens.</short>
+
+        <description>
+            <para>
+                Chickens are a relatively cheap and common commodity,
+                making a single chicken relatively worthless as far
+                as money is concerned. If fewer chickens are needed,
+                then bartering is the order of the day.
+            </para>
+        </description>
+
+    </item>
+
+    <item name="Cow">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <source>Farmer</source>
+
+        <short>A single fully grown cow.</short>
+
+        <description>
+            <para>
+                A cow will generally be ready to be milked. Those that
+                aren't capable of milking will be cheaper.
+            </para>
+        </description>
+
+        <weight>500000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">280</cost>
+    </item>
+
+    <item name="Ewe and lamb">
+        <category>Livestock</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Farmer</source>
+
+        <short>An ewe with a newly born lamb.</short>
+
+        <description>
+            <para>
+                Lambs are often sold with their mothers, since they are
+                easier to keep fresh if alive but can't survive without
+                their mother's milk.
+            </para>
+        </description>
+
+        <weight>250000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">100</cost>
+    </item>
+
+    <item name="Ox">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <source>Farmer</source>
+
+        <short>Oxen make great draft animals.</short>
+
+        <description>
+            <para>
+                Oxen are castrated adult cattle commonly used as draft
+                animals, either for ploughing or for pulling carts.
+                Castration makes them easier to control. Until the
+                horse collar reaches Europe (at the end of TL 2),
+                oxen make for better draft animals than horses.
+            </para>
+        </description>
+
+        <weight>750000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">340</cost>
+    </item>
+
+    <item name="Pig">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <source>Farmer</source>
+
+        <short>The source of bacon sandwiches.</short>
+
+        <weight>75000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">80</cost>
+    </item>
+
+    <item name="Sheep">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <source>Shepard</source>
+
+        <short>Used for wool or meat.</short>
+
+        <weight>75000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">40</cost>
+    </item>
+
+    <item name="Peregrine Falcon (fledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>3</availability>
+        <source>Falconer</source>
+
+        <short>A falcon with developed feathers and capable of flight.</short>
+
+        <weight>250</weight>
+        <material>animal</material>
+
+        <cost units="saxon">960</cost>
+    </item>
+
+    <item name="Peregrine falcon (unfledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>3</availability>
+        <source>Falconer</source>
+
+        <short>A falcon with undeveloped feathers.</short>
+
+        <weight>150</weight>
+        <material>animal</material>
+
+        <cost units="saxon">480</cost>
+    </item>
+
+    <item name="Sparrow Hawk (fledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Falconer</source>
+
+        <short>A hawk with developed feathers and capable of flight.</short>
+
+        <weight>200</weight>
+        <material>animal</material>
+
+        <cost units="saxon">96</cost>
+    </item>
+
+    <item name="Sparrow Hawk (unfledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Falconer</source>
+
+        <short>A hawk with undeveloped feathers.</short>
+
+        <weight>150</weight>
+        <material>animal</material>
+
+        <cost units="saxon">48</cost>
+    </item>
+
+    <item name="Lap dog" quality="2">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>1</availability>
+
+        <short>A common house trained dog.</short>
+
+        <weight>5000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">16</cost>
+    </item>
+
+    <item name="Lap dog" quality="4">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>A high quality house trained dog.</short>
+
+        <weight>5000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">480</cost>
+    </item>
+
+    <item name="Buck Hound">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Huntsman</source>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A hound for hunting deer.</short>
+
+        <weight>10000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">480</cost>
+    </item>
+
+    <item name="Peregrine hawk's nest">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>4</availability>
+
+        <short>A nest with unhatched eggs.</short>
+
+        <weight>500</weight>
+        <material>animal</material>
+
+        <cost units="saxon">960</cost>
+    </item>
+
+    <item name="Sparrow hawk nest">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>2</availability>
+
+        <short>A nest with unhatched eggs.</short>
+
+        <weight>500</weight>
+        <material>animal</material>
+
+        <cost units="saxon">96</cost>
+    </item>
+
+    <item name="Swarm of bees (virgin)">
+        <category>Livestock</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Beekeeper</source>
+
+        <short>A swarm of virgin bees.</short>
+
+        <weight>200</weight>
+        <material>animal</material>
+
+        <cost units="saxon">64</cost>
+    </item>
+
+    <item name="Horse (riding)">
+        <category>Animals</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <source>Ostler</source>
+
+        <short>An average quality riding horse.</short>
+
+        <weight>250000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">800</cost>
+    </item>
+
+    <item name="Greyhound (trained)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>3</availability>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A trained greyhound.</short>
+
+        <weight>60000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">480</cost>
+    </item>
+
+    <item name="Hunting dog (trained)">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A trained hunting dog.</short>
+
+        <weight>50000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">960</cost>
+    </item>
+
+    <item name="Dunghill dog">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A dog used when hunting fowl.</short>
+
+        <weight>30000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">16</cost>
+    </item>
+
+    <item name="Slave (male)">
+        <category>People</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Slaver</source>
+
+        <short>A young man, useful for manual labor.</short>
+
+        <weight>70000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">800</cost>
+    </item>
+
+    <item name="Slave (female)">
+        <category>People</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Slaver</source>
+
+        <short>A young woman, useful for light work.</short>
+
+        <weight>60000</weight>
+        <material>animal</material>
+
+        <cost units="saxon">520</cost>
+    </item>
+
+
+
+</equipment>
+
+

@@ -1,0 +1,1621 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+                href="/home/sam/src/forge/yagsbook/xml/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+    <header>
+        <title>Citizens of the Galaxy</title>
+        <tagline>YAGS SciFi</tagline>
+
+        <summary>
+            Science fiction character generation rules for YAGS.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.2.1 $</version>
+            <date>$Date: 2018-09-09 12:27:45 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2018</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="character"/>
+    </header>
+    
+    <front href="images/scifi-front.svg"/>
+
+    <body>
+        <sect1>
+            <title>Laser Guns and Spaceships</title>
+
+            <para>
+                <tm>YAGS SciFi</tm> is a science fiction roleplaying game system designed
+                for playing characters in a galaxy spanning empire, where mighty space
+                fleets can battle in the depths of space and explorers can explore strange
+                new worlds each week, without having to spend centuries in travel. The 
+                rules of Newton and Einstein still (mostly) apply, except where they need
+                to be bent, twisted or outright broken in order to allow for all of the
+                above.
+            </para>
+            
+            <image src="images/ship_planet.png" width="85mm" height="40mm" align="center"/>
+
+            <para>
+                It is the type of science fiction where humans (or at least, blue furry 
+                creatures that act very much like humans) are still the stars of the story.
+                Aliens are understandable, and computers are tools that made things easier
+                for people, but don't replace them. AI may exist, but it is limited, and
+                people live (mostly) in the bodies that they were born with, rather than
+                uploading their consciousness into machines or whole new bodies. If androids
+                exist, then they are either rare, illegal or limited in what they can do.
+            </para>
+            
+            <para>
+                So though technology has advanced well beyond what is possible today, the
+                advances are mostly in the form of mechanical engineering, rather than
+                software and nanotech. Giant starships can ferry people between star systems
+                at greater than the speed of light, or fight great space battles at ranges
+                of thousands of kilometres. Cities may float above the clouds of gas giants,
+                or beneath the seas of ocean worlds. Within such cities, flying cars, 
+                holographic advertising displays and personal communication devices will be
+                a common sight.
+            </para>
+            
+            <para>
+                This is the science fiction of <e>Babylon 5</e>, <e>Aliens</e> or
+                <e>Ringworld</e>. It does not claim to be <e>hard</e>, but neither is it 
+                space fantasy where science and scale are regularly ignored for no reason.
+            </para>
+            
+            <sect2>
+                <title>Assumptions</title>
+
+                <para>
+                    The sort of assumptions that are made by these rules concern
+                    the type of technology available, and the type of societies
+                    that Player Characters will come from, can be summed up as
+                    follows:
+                </para>
+
+                <itemlist order="strict">
+                    <item name="Human centric">
+                        Many people within the campaign are human, or at least human enough
+                        such that they don't require special rules. Aliens can range from 
+                        non-existant or rare, to reasonably common. However, they are 
+                        generally understandable by humans and not utterly exotic.
+                    </item>
+
+                    <item name="Star Spanning Empire">
+                        Most of humanity is spread across a single empire that spans tens
+                        of thousands of star systems, and travel between these systems is
+                        relatively common and cheap.
+                    </item>
+
+                    <item name="Jump drives">
+                        FTL travel is by a jump drive or hyperspace technology
+                        which can travel a few light years a day. FTL communication 
+                        faster than this may or may not be possible.
+                    </item>
+
+                    <item name="Meat space">
+                        Something prevents run away computing power in the
+                        early 21st century, making true AIs very rare, and
+                        reducing the effects of Cyberspace realities. Humans are
+                        needed to fly spaceships, fire weapons and generally go
+                        out and do things.
+                    </item>
+                    
+                    <item name="Super Efficient Space Drives">
+                        There are no reactionless drives (or at least, they are
+                        sufficiently high tech to be beyond what is commonly available),
+                        but what there is would be considered magical by today's standards.
+                        It's possible to cross a typical solar system in days to weeks.
+                    </item>
+                    
+                    <item name="Psionics">
+                        There may or may not be Psionics, or the ability to
+                        manipulate reality with the mind. This could be limited to
+                        plain old telepathy, or allow for more exotic abilities.
+                    </item>
+                </itemlist>
+
+                <para>
+                    These assumptions are designed to allow star spanning heroic
+                    fiction, not totally unlike that found in certain classic
+                    RPG systems from the 1970s, or similar to TV SciFi shows such
+                    as <e>Babylon 5</e>, <e>Firefly</e> or <e>Farscape</e>. High
+                    technology is possible, and it is possible to centre a
+                    campaign on who has the biggest and best equipment, but people
+                    are still needed to control that equipment. Computers are
+                    regulated to making life easier, rather than dominating the story.
+                </para>
+                
+                <sect3>
+                    <title>Known Space</title>
+                    
+                    <para>
+                        The campaign itself is assumed to be set in a more or less unified
+                        empire, which has some degree of stability.
+                    </para>
+                </sect3>
+            </sect2>
+            
+            <sect2>
+                <title>Technology</title>
+                
+                <para>
+                    In a galaxy spanning civilisation, the level of available technology is
+                    not evenly distributed, and whilst the core worlds may have cities floating
+                    in the skies, and instant regrowth of lost body parts, the outer colonies
+                    may still be struggling at the pre-industrial level.
+                </para>
+                
+                <para>
+                    Trade happens though, and useful tools will find their way to even the
+                    most backward worlds. Just as mobile phones are crucial to the life of
+                    people in developing countries today, even a feudal society may find it
+                    useful to equip the royal guard with laser guns, and to rent the use of
+                    weather satillites in return for gold.
+                </para>
+                
+                <para>
+                    As such, you should expect a range of technology being used wherever you
+                    are in the galaxy. Items which are durable and don't require an understanding
+                    of how they work to be able to use them are welcome everywhere.
+                </para>
+                
+                <sect3>
+                    <title>Technology Levels</title>
+                    
+                    <para>
+                        <tm>YAGS SciFi</tm> details the progress of technology from the modern
+                        day (TL 8) until the edges of the impossible (TL 17), but really works
+                        best in the range of TL 13 - 16, where interstellar travel is fast and
+                        easy.
+                    </para>
+                    
+                    <para>
+                        The following overview describes the different levels of technology from
+                        the point of how it affects a possible campaign, and the characters
+                        within it.
+                    </para>
+
+                    <sect4>
+                        <title>TL 7 - The Atomic Age</title>
+                        
+                        <para>
+                            This is the technological equivalent of the third quarter of the
+                            20th century, from the 1940s until about 1980. It is the start of
+                            the computer age, of commercial jet engines and mass communication.
+                            It is also the start of the atomic age, and of space travel.
+                        </para>
+                        
+                        <para>
+                            The technology available here could get people into space, but it's
+                            hard and expensive, and not conducive to a galaxy spanning campaign.
+                            It is probably the highest level of technology possible mechanically
+                            though, and probably common on a lot of small colony worlds.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 8 - The Digital Age</title>
+                        
+                        <para>
+                            Equivalent to technology between 1980 and 2020. Computers and
+                            personal communication come to dominate. Space technology and
+                            exploration also becomes a lot more practical.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 9 - Interplanetary</title>
+                        
+                        <para>
+                            This is the level of technology beyond what is available in the
+                            real world, up to maybe 2100. It assumes that interplanetary space
+                            travel becomes possible and practical for humans, with limited 
+                            colonisation of other worlds. The rate of change in computer 
+                            technology begins to slow, if not come to a halt, but energy 
+                            storage becomes a lot denser, safer and more efficient, allowing
+                            for advanced mobile devices which last weeks on a single charge.
+                            Medical technology continues to advance.
+                        </para>
+                        
+                        <para>
+                            This is about the minimum level of technology practical for a SciFi
+                            campaign, but options can be quite limited in scope.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 10-11 - Interstellar</title>
+                    
+                        <para>
+                            Interstellar travel becomes possible, and campaigns set at this
+                            level will have limited travel between the stars. Fusion power
+                            becomes a lot more efficient and prevalent, bodily organs can be
+                            regrown, and lasers and particle beams become common weapons.
+                        </para>
+                        
+                        <para>
+                            At this point exploration of alien star systems is still slow and
+                            expensive, so may be good for a campaign of exploration where the
+                            players are amongst the few exploring new worlds. There is likely
+                            to be a wild frontier mentality, with colonists laying claim to
+                            worlds and hoping for independence. Large corporations
+                            and governments may well have other ideas.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 12-13 - Galactic Empires</title>
+                        
+                        <para>
+                            This is a new age of exploration and discovery as interstellar
+                            traveller becomes faster, cheaper and more reliable. Repulsor
+                            fields come onto the scene, making 'anti-gravity' vehicles
+                            possible. This is a good time for the formation and expansion of
+                            galactic empires.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 14-15 - The</title>
+                        
+                        <para>
+                            By this point fast interstellar travel is the norm.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 16-17 - The Limits of the Possible</title>
+                        
+                        <para>
+                            This is the maximum level of technology for most galactic empire
+                            campaigns. It may be available in the core worlds, but will probably
+                            not be seen much beyond these.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>TL 18+ - The Impossible</title>
+                        
+                        <para>
+                            This level of technology may be possessed by advanced alien
+                            civilisations, but it is really beyond the scope of these rules.
+                        </para>
+                    </sect4>
+                </sect3>
+                
+                <sect3>
+                    <title>Common Tech</title>
+                    
+                    <para>
+                        Though there is a wide range of technology levels across civilised
+                        space, galactic trade ensures that there are some high tech goods which
+                        can be pretty much assumed to be anywhere. These will generally be built
+                        by TL 15+ worlds, but available for sale in all C class or better space 
+                        ports at least, if not on the high streets of worlds that are open to
+                        interplanetary trade.
+                    </para>
+                    
+                    <para>
+                        The costs of such goods are pretty stable, with variations only really
+                        being noticeable towards the edges of known space.
+                    </para>
+
+                    <sect4>
+                        <title>Communications</title>
+                        
+                        <para>
+                            Radio is the standard form of communication across large distances
+                            in space, but short-range personal communication tends to use N-wave
+                            comms. These are built into hand-sized communicators which act much
+                            like a TL-8 'smart phone', except they last over a week of heavy
+                            use on a single charge (up to a month with light use), and have a
+                            communication range of up to a hundred kilometres, which is 
+                            transparent to pretty much anything.
+                        </para>
+                        <para>
+                            In populated regions, this is routed through communication stations
+                            (similar to mobile phone masts in TL-8), allow world-wide 
+                            communications, even if in a building or underground.
+                        </para>
+                        <para>
+                            Larger units extend range to up to one thousand kilometres. Most
+                            ships will have one, especially shuttles or other ships designed to
+                            land on wilderness worlds. Personal comms then route through the
+                            shuttle's more powerful unit to allow communication with orbital
+                            ships. Most populated worlds with a C+ star port will have full
+                            world coverage via a satellite system.
+                        </para>
+                        <para>
+                            Small, discrete units have a range of about 1km, and are generally
+                            used for local comms within an assault team.
+                        </para>
+                        <para>
+                            N-wave communications are heavily encrypted, and can make heavy
+                            use of rapid 'frequency' hopping that makes them difficult to
+                            detect or jam in low data (audio or especially text) modes.
+                        </para>
+                        <para>
+                            They provide accurate 3D positioning on any world with full
+                            coverage, and limited accuracy on worlds with more limtied
+                            coverage.
+                        </para>
+                    </sect4>
+                    
+                    <sect4>
+                        <title>Firearms</title>
+                        
+                        <para>
+                            The most common personal firearms are 5mm gauss weapons. They are
+                            cheap, reliable and deadly. Rifles may be gauss or laser. The latter
+                            are less poweful, but much more accurate, especially at range.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+            
+            <sect2>
+                <title>Galactic Citizens</title>
+                
+                <para>
+                    Character generation in <tm>YAGS</tm> is based around a point buy
+                    system, so you can build any sort of character that you wish, within
+                    reason. The assumption though is that your character is a part of
+                    galactic culture, with familiarity of space travel and high technology,
+                    even if you haven't necessarily experienced it first hand yourself.
+                </para>
+                
+                <para>
+                    In order for a roleplaying game to be successful, player characters
+                    need to have a reason for wanting to go and do the sort of dangerous
+                    things that make for a good adventure. To this end, it helps to have
+                    an idea of the type of adventures the group is expecting to have, so
+                    that everyone's character can be designed to want to participate.
+                </para>
+                
+                <para>
+                    There are many different types of campaigns, and
+                </para>
+                
+                <para>
+                    <s>Traders</s>. You have a starship and some money, and wish to make
+                    more money, generally by buying low and selling high. Such campaigns
+                    often involve <e>complications</e> to make life just that little bit
+                    more exciting. A variation involves smuggling or dealing with illegal
+                    goods, which is higher risk put has potentially higher rewards.
+                </para>
+                
+                <para>
+                    <s>Military</s>. A military campaign involves you being part of a
+                    larger organisation (maybe the Imperial military), and taking on
+                    missions as directed by your superiors. There may not be much room for
+                    flexibility in what you do, since you have to obey orders, but you are
+                    backed by an organisation which can provide guns and other equipment as
+                    needed, so gives the opportunity to try out cool hardware without having
+                    to buy (or steal) it.
+                </para>
+                
+                <para>
+                    <s>Mercenaries</s>. Similar to a military campaign, but you are freelancers
+                    who get to pick your own missions. Riskier but you have more control over
+                    your destiny. Whether you work for 'good causes' or anyone who pays is
+                    up to you, and complications can always make the latter seem like the
+                    former.
+                </para>
+                
+                <para>
+                    <s>Explorers</s>. You have a starship and want to explore the uncharted
+                    parts of the galaxy, mapping new worlds and contacting alien civilisations.
+                    You may be part of some government backed scout service, belong to a
+                    university, or may simply be freelance archaeologissts looking to loot
+                    other worlds and sell artefacts to the highest bidder.
+                </para>
+                
+                <para>
+                    <s>Scoundrals</s>. You operate on the wrong side of the law. Maybe you
+                    perform heists, stealing expensive goods from the secure dwellings of the
+                    rich and powerful. Maybe it's scams where you con people out of their
+                    earnings. Or maybe you just act as thugs and enforcers for criminal gangs
+                    within a cluster of star systems. The choice is up to you. Until you get
+                    caught.
+                </para>
+                
+                <sect3>
+                    <title>The Rules In Brief</title>
+                    
+                    <para>
+                        <tm>YAGS</tm> uses a single twenty sided die (d20) for pretty much
+                        everything. As with many RPG systems, players determine success or
+                        failure by rolling a die and comparing it to their character's skills.
+                    </para>
+                    
+                    <para>
+                        In <tm>YAGS</tm>, a skill check needs to equal or exceed a target
+                        number (TN), which is often 20. They get a bonus to the dice roll
+                        equal to an attribute multiplied by their skill level. For example,
+                        to drive a car, they multiply their <t>Dexterity</t> attribute and 
+                        <t>Drive</t> skill together, then roll and add 1d20.
+                    </para>
+                    
+                    <para>
+                        The human average for an attribute is 3, and a professional level of
+                        skill is 4, so a typical skilled driver would roll 3 x 4 (12) + d20.
+                    </para>
+                    
+                    <sect4>
+                        <title>Attributes</title>
+                        
+                        <para>
+                            There are 8 primary attributes to define, and all
+                            begin with a score of 3 (which is average for an
+                            adult human). The minimum for any attribute is 2,
+                            the maximum is 8, though anything above 5 is
+                            considered to be <e>very</e> exceptional.
+                        </para>
+
+                        <itemlist order="strict">
+                            <item name="Strength (S)">
+                                How strong you are, including your ability to
+                                lift and hurt things. If you have a high
+                                strength then you will tend to be larger as
+                                well.
+                            </item>
+
+                            <item name="Health (H)">
+                                A measure of your physical fitness and stamina.
+                                Health is used in checks to remain alive after
+                                being seriously wounded.
+                            </item>
+
+                            <item name="Agility (A)">
+                                Your agility represents your quickness, athletic
+                                prowess and balance. It is used for brawling,
+                                wrestling, sneaking, reaction tests and acrobatics.
+                            </item>
+
+                            <item name="Dexterity (D)">
+                                Dexterity is your hand-eye coordination,
+                                sleight-of-hand and skill with melee weapons.
+                                Pistols also use dexterity, and rifles may
+                                use dexterity or perception.
+                            </item>
+
+                            <item name="Perception (P)">
+                                How alert you are, and the general quality of
+                                your senses. If perceptive, you are good at
+                                hiding and noticing things. Rifles and larger
+                                weapons use perception.
+                            </item>
+
+                            <item name="Intelligence (I)">
+                                A measure of your wit, cunning, memory and
+                                intuition. Knowledges are based on intelligence,
+                                as are logic and reasoning skills.
+                            </item>
+
+                            <item name="Empathy (E)">
+                                Empathy is your ability to understand others.
+                                It is used to make friends, convince people
+                                emotionally, or to tell if someone is lying to
+                                you. Empathy doesn't affect your intentions
+                                to be nice or nasty, but does affect how well
+                                you notice other people's feelings.
+                            </item>
+
+                            <item name="Will (W)">
+                                Your Will is a measure of mental fortitude,
+                                being used to resist psi, instincts and
+                                emotions. A high Will makes you a good liar,
+                                a low Will means you are gullible and likely
+                                to give in to fear, lust and greed.
+                            </item>
+                        </itemlist>
+                    </sect4>
+
+                    <sect4>
+                        <title>Skills</title>
+
+                        <para>
+                            Skills are abilities which are gained through study, experience and
+                            training. There are 8 basic skills (called <e>talents</e>) which all
+                            begin at a score of 2, all other skills are assumed to start at zero
+                            unless stated otherwise for your background.
+                        </para>
+
+                        <para>
+                            A skill of 4-5 is considered to be a trained professional, 6-7
+                            is an expert, 8-11 is elite and 12+ is a true master of the
+                            profession. Skills above 15 are pretty much unheard of. The 
+                            maximum that a player character can start with is 10.
+                        </para>
+
+                        <sect5>
+                            <title>Techniques</title>
+
+                            <para>
+                                Techniques are specialities bought within a
+                                particular skill. They enable you to perform actions
+                                that would be impossible or hard without it, or
+                                grant a bonus in certain situations (sometimes to
+                                related skills).
+                            </para>
+                        </sect5>
+                    </sect4>
+
+                    <sect4>
+                        <title>Advantages</title>
+                        
+                        <para>
+                            <e>Advantages</e> and <e>Disadvantages</e> can only be purchased at
+                            character generation time, and may describe your character's
+                            background, or some inherent abilities that your character has.
+                            Though they can't be purchased after character generation, some may
+                            be gained in play through other means.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+        
+        <sect1>
+            <title>Creating a Character</title>
+            
+            <para>
+                Galactic citizens don't spring from nowhere, they have a background which
+                defines who they are and what they can do. The first part of character
+                generation consists of deciding on what that background is. 
+            </para>
+            
+            <para>
+                It is assumed that you have grown up part of galactic culture. Though you
+                many have never left your home planet, or grew up on a single space station,
+                you have been part of the culture and technology available to the rest of
+                the galaxy. 
+            </para>
+            
+            <para>
+                Much like someone living in a rural village in Europe still has a mobile phone,
+                watches the latest Hollywood films and reads the daily world news, a person
+                living on a world with a pre-spaceflight civilisation still sees the drive flares
+                of the starships which trade with them, they here the news from distant worlds
+                and get to watch films set in the glittering cloud cities of the core worlds.
+            </para>
+            
+            <para>
+                Consumer technology is useful everywhere, so just like farmers in rural Africa
+                use mobile phones to access bank accounts or check the internet for crop prices,
+                so people on low tech worlds will have access to the same digital assistants and
+                mobile communications that those in high tech worlds do. They might not have
+                the very latest models, and they may favour those that fall back to old
+                fashioned electromagnetic signals, but they're common enough that pretty much
+                everyone is at least aware of what is possible.
+            </para>
+            
+            
+            <sect2>
+                <title>Background Packages</title>
+                
+                <para>
+                    Each package may provide a set of skills and attributes that you can add
+                    to your character. Sometimes the package will provide an option between
+                    two or more choices.
+                </para>
+                
+                <para>
+                    Every character begins with a score of 3 in all attributes. They also
+                    begin with a score of 2 in each of their talents - basic skills which
+                    everyone has. Everything else is assumed to start at zero.
+                </para>
+                
+                <para>
+                    Attribute modifiers provided as part of a package stack with all others.
+                    If two packages provide +1 strength, then you will have a strength of 5.
+                </para>
+                
+                <para>
+                    Skills don't stack directly. Skills will be provided at either a level of
+                    two or three. If you gain a skill of two, and you already have a skill of
+                    two, then it becomes three. If your skill is already three or higher, than
+                    gaining a skill of two has no further effect.
+                </para>
+                
+                <para>
+                    If you gain a skill of four, then it replaces an existing skill of three
+                    or less. If you already have a skill of four or higher, then you instead
+                    gain +1 in that skill, though this cannot increase a skill beyond eight.
+                </para>
+                
+                <para>
+                    Regardless of skill level, whenever you get a duplicate skill you will
+                    gain one technique in that skill.
+                </para>
+                
+                <y:packages title="Universal Background">
+                    <y:package name="Citizen of the Galaxy">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                Everyone who is part of the galactic culture starts with these
+                                skills. The sector knowledge skill they select will be based on
+                                their home sector, and their local language will be a language
+                                spoken on their world or nearby.
+                            </para>
+                        </description>
+                        
+                        <y:skills>
+                            <y:skill name="Speak (Galanglic)" score="4"/>
+                            <y:skill name="Speak (Local language)" score="4"/>
+                            <y:skill name="Knowledge (Known Space)" score="2"/>
+                            <y:skill name="Knowledge (Sector *)" score="2"/>
+                        </y:skills>
+                    </y:package>
+                </y:packages>
+
+                <para>
+                    Everyone gets a basic background package. Choose one.
+                </para>
+                
+                <y:packages title="Backgrounds">
+                    <description xmlns="http://yagsbook.sourceforge.net/xml">
+                        <para>
+                            Choose one of these which represent what skills
+                            you picked up during your childhood.
+                        </para>
+                    </description>
+
+                    <y:package name="Athlete">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                During your childhood you excelled at athletics, and was
+                                probably a member of a local sports team. You didn't do
+                                so well on the academic side however.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:attribute name="Health" score="+1"/>
+                            <y:attribute name="Intelligence" score="-1"/>
+                        </y:attributes>
+                        
+                        <y:skills>
+                            <y:skill name="Athletics" score="4"/>
+                            <y:skill name="Throw" score="4"/>
+                            <y:skill name="Sport" score="4"/>
+                            <y:choice>
+                                <y:skill name="Leadership" score="2"/>
+                                <y:skill name="Brawl" score="4"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+                    
+                    <y:package name="Geek">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                Your were a geek with an interest in science and technology,
+                                though weren't as gifted physically.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:attribute name="Intelligence" score="+1"/>
+                            <y:attribute name="Strength" score="-1"/>
+                        </y:attributes>
+                        
+                        <y:skills>
+                            <y:skill name="Netiquette" score="4"/>
+                            <y:skill name="Research" score="2"/>
+                            <y:skill name="Mathematics" score="2"/>
+                            <y:choice>
+                                <y:skill name="Computing" score="2"/>
+                                <y:skill name="Electronics" score="2"/>
+                            </y:choice>
+                            <y:choice>
+                                <y:skill name="Science" score="2"/>
+                                <y:skill name="Mechanics" score="2"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+                    
+                    <y:package name="Street kid">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                You lived on the streets, and were probably either an orphan
+                                or grew up as part of a poor family. Even if you were never a
+                                criminal, you knew plenty of people who were.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:choice>
+                                <y:attribute name="Dexterity" score="+1"/>
+                                <y:attribute name="Perception" score="+1"/>
+                            </y:choice>
+                            <y:attribute name="Health" score="-1"/>
+                        </y:attributes>
+                        
+                        <y:skills>
+                            <y:skill name="Awareness" score="4"/>
+                            <y:skill name="Guile" score="4"/>
+                            <y:skill name="Streetwise" score="2"/>
+                            <y:choice>
+                                <y:skill name="Burglary" score="2"/>
+                                <y:skill name="Stealth" score="4"/>
+                            </y:choice>
+                            <y:choice>
+                                <y:skill name="Sleight" score="4"/>
+                                <y:skill name="Guns" score="2"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+                    
+                    <y:package name="Rich Kid">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                You were born to rich parents, and spent your youth with
+                                access to pretty much whatever you wanted.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:attribute name="Will" score="+1"/>
+                            <y:attribute name="Empathy" score="-1"/>
+                        </y:attributes>
+                        
+                        <y:skills>
+                            <y:skill name="Charm" score="4"/>
+                            <y:skill name="Guile" score="4"/>
+                            <y:skill name="Drive" score="2"/>
+                            <y:choice>
+                                <y:skill name="Etiquette" score="2"/>
+                                <y:skill name="Pilot" score="2"/>
+                            </y:choice>
+                            <y:choice>
+                                <y:skill name="Current affairs" score="2"/>
+                                <y:skill name="Perform" score="2"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+                    
+                    <y:package name="Starport Orphan">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                You grew up on starports.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:attribute name="Perception" score="+1"/>
+                            <y:attribute name="Health" score="-1"/>
+                        </y:attributes>
+                        
+                        <y:skills>
+                            <y:skill name="Awareness" score="4"/>
+                            <y:skill name="Guile" score="4"/>
+                            <y:skill name="Knowledge (Sector *)" score="4"/>
+                            <y:choice>
+                                <y:skill name="Streetwise" score="2"/>
+                                <y:skill name="Trade" score="2"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+                </y:packages>
+                
+                <y:packages title="Professions">
+                    <description xmlns="http://yagsbook.sourceforge.net/xml">
+                        <para>
+                            Select a profession.
+                        </para>
+                    </description>
+
+                    <y:package name="Academic">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                You are an academic.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:attribute name="Intelligence" score="+1"/>
+                        </y:attributes>
+                        
+                        <y:skills>
+                            <y:skill name="Research" score="4"/>
+                            <y:skill name="Teach" score="2"/>
+                            <y:skill name="Administration" score="2"/>
+                            <y:skill name="Any academic skill" score="4"/>
+                            <y:skill name="Any academic skill" score="4"/>
+                            <y:choice>
+                                <y:skill name="Computing" score="2"/>
+                                <y:skill name="Leadership" score="2"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+
+                    <y:package name="Soldier">
+                        <description xmlns="http://yagsbook.sourceforge.net/xml">
+                            <para>
+                                You are trained at the soldier.
+                            </para>
+                        </description>
+                        
+                        <y:attributes>
+                            <y:attribute name="Health" score="+1"/>
+                        </y:attributes>
+
+                        <y:skills>
+                            <y:skill name="Guns" score="4"/>
+                            <y:skill name="Military affairs" score="2"/>
+                            <y:skill name="Brawl" score="4"/>
+                            <y:choice>
+                                <y:skill name="Heavy Weapons" score="4"/>
+                                <y:skill name="Demolitions" score="4"/>
+                            </y:choice>
+                            <y:choice>
+                                <y:skill name="Leadership" score="4"/>
+                                <y:skill name="Gunnery" score="4"/>
+                            </y:choice>
+                        </y:skills>
+                    </y:package>
+                </y:packages>
+            </sect2>
+
+            
+            <sect2>
+                <title>Background</title>
+                
+                <sect3>
+                    <title>Background</title>
+
+                    <para>
+                        You may select one or more background options, which
+                        may be <e>advantages</e> or <e>disadvantages</e>. You
+                        may take as many advantages as you have points for,
+                        plus optionally one disadvantage which gives you an
+                        extra point to spend on an advantage.
+                    </para>
+
+                    <sect4>
+                        <title>Advantages</title>
+
+                        <y:import-advantages href="options/advantages.yags" type="advantage"/>
+                    </sect4>
+
+                    <sect4>
+                        <title>Disadvantages</title>
+
+                        <y:import-advantages href="options/advantages.yags" type="disadvantage"/>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+ 
+
+
+        <sect1>
+            <title>Skills</title>
+
+            <para>
+                There are a wide range of skills available to Imperium
+                characters, the most common of which are described here.
+                There is a focus on those skills which are common within
+                the high technology of the Imperium, and though low tech
+                skills can be learnt, they are uncommon and are described
+                elsewhere.
+            </para>
+
+            <para>
+                There is a high level of education throughout most of the
+                Imperium, and the huge economic base means that people
+                can afford to spend longer specialising in one area.
+                As such, higher level skills will encountered more often,
+                even if only finding a specialist is a lot easier when
+                you can just search for their website.
+            </para>
+
+            <para>
+                A skill at a level of '2' represents those who have basic
+                familiarity with the skill. A skill of 2 is sufficient to
+                drive a car safely, operate a computer with confidence,
+                or fire a gun reasonably on a firing range.
+            </para>
+
+            <para>
+                A skill at a level of '4' represents having good knowledge
+                of a subject. Most people will have a skill of at least 4
+                in the primary skills necessary for their jobs, or in those
+                skills they've been using on a regular basis for a long
+                time. A person who has driven a car for many years probably
+                has a Drive of 4; office administrators probably have
+                Computer operation and Administration at 4. Most regular
+                army personnel will have 4 in basic combat skills.
+            </para>
+
+            <para>
+                A skill of '6' represents special training or lots of
+                experience. The difference between someone who has done
+                something a lot, and someone who has had advanced training,
+                is often represented by the latter knowing a lot of
+                <e>techniques</e> related to that skill.
+            </para>
+
+            <para>
+                A skill of '8' or above is normally only held by those who
+                have studied or trained very hard. Special forces operatives
+                may have 8 or more in their primary skill, and well known
+                academics will also have this sort of level.
+            </para>
+
+            <sect2>
+                <title>Types of Skills</title>
+
+                <sect3>
+                    <title>Standard skills</title>
+
+                    <para>
+                        Most skills are considered to be <e>standard
+                        skills</e>. Such skills can be learnt relatively
+                        easily, including being self taught. They can also
+                        be used by a character who has a skill of zero,
+                        though such an attempt fumbles on a natural one
+                        or two.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Talents</title>
+
+                    <para>
+                        Talents are skills which are known by everyone
+                        from childhood onwards. They are treated just as
+                        standard skills, with the exception that all
+                        characters start with a skill level of two in all
+                        talents.
+                    </para>
+
+                    <para>
+                        There are only eight talents, and are listed by
+                        default on the character sheet. Talents are
+                        sometimes marked with an asterix (*).
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Knowledges</title>
+
+                    <para>
+                        A knowledge is a special type of skill which cannot
+                        be attempted unless the character has a skill level
+                        of at least one. They can rarely be self taught,
+                        requiring a teacher or study aid (such as a book)
+                        to learn from.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Languages</title>
+
+                    <para>
+                        Language skills are treated on a scale from
+                        one to four, and are not normally 'rolled'
+                        like other skills. Instead, the level of skill
+                        gives a guide to how much of a conversation a
+                        character can understand.
+                    </para>
+
+                    <itemlist order="strict">
+                        <item name="Level one">
+                            The character can recognise the language
+                            and knows a few words, but cannot put
+                            sentences together.
+                        </item>
+
+                        <item name="Level two">
+                            The character can understand and form basic
+                            sentences. The character can probably get by
+                            in the market or in an inn.
+                        </item>
+
+                        <item name="Level three">
+                            The character has a good grasp of the
+                            language and can hold a decent
+                            conversation. They will obviously still be
+                            a foreigner however, and many unusual words
+                            will be beyond their understanding.
+                        </item>
+
+                        <item name="Level four">
+                            The character is fluent in the language.
+                            If they are a foreigner, then they may
+                            still have an accent, but they will not
+                            have any problems communicating.
+                        </item>
+
+                        <item name="Level five and above">
+                            If the character is a non-native speaker,
+                            then they can speak without an accent. This
+                            level and beyond gives detailed knowledge of
+                            different dialects and really obscure words,
+                            but is not of use in everyday conversation.
+                        </item>
+                    </itemlist>
+
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Skill Rules</title>
+
+                <sect3>
+                    <title>Defaults</title>
+
+                    <para>
+                        Some skills have a default - this will generally be
+                        one of the <e>talents</e>. If desired, the default
+                        can be used instead, but the result (after the die
+                        roll) is halved, plus the chance of fumbling is
+                        doubled.
+                    </para>
+
+                    <para>
+                        A default skill may also restrict the type of
+                        tasks which are possible. For example, <e>Trade</e>
+                        defaults to <e>Guile</e>, but the latter can only
+                        be used to barter, and isn't much use if the
+                        character needs to know the real value of goods.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Pre-requisites</title>
+
+                    <para>
+                        A few skills have pre-requisites. Before this skill
+                        can be purchased at level one, all pre-requisites
+                        must be met. A skill like Physics might have a
+                        pre-requisite of Mathematics-2 and Science-2 for
+                        example, which means both skills must be known at
+                        level 2 before buying physics.
+                    </para>
+
+                    <para>
+                        Further, the main skill may never be more than
+                        double the level of any of the pre-requisites. A
+                        physicist would have to raise their Mathematics
+                        and Science to at least 3, before raising
+                        Physics to 6.
+                    </para>
+
+                    <para>
+                        A character cannot put points into a skill if the
+                        next level of skill is not allowed.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Limited Skills</title>
+
+                    <para>
+                        Under some genres, a skill may be <e>limited</e>
+                        by another skill. This concept is mostly limited to
+                        knowledge or science skills. When a skill is limited
+                        by another skill, the first skill may never be more
+                        than half the score of the second.
+                    </para>
+
+                    <para>
+                        For example, during the <e>Enlightenment</e>, when
+                        Science was being discovered, the Science skill is
+                        limited by Natural Philosophy. If a character has
+                        a Natural Philosophy of 7, then their Science
+                        cannot be higher than 3 (since raising it any higher
+                        would make it greater than 3.5). Once the
+                        character's Natural Philosophy has been raised to
+                        8, then they can begin to raise their Science to 4.
+                    </para>
+
+                    <para>
+                        A character cannot put points into a skill if the
+                        next level of skill is not allowed.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Skill Techniques</title>
+
+                    <para>
+                        A <e>Technique</e> is a specialisation of a skill,
+                        and may provide bonuses or allow some particular
+                        special action to be attempted. A skill may have
+                        several techniques associated with it, and some
+                        techniques can be used with more than one skill.
+                        In the latter case, the technique only needs to
+                        be purchased once - it can then be used with any
+                        skill which uses it, as long as the skill is of
+                        sufficient level.
+                    </para>
+
+                    <para>
+                        A technique has a cost associated with it, which is
+                        the number of experience points which need to be
+                        spent to buy it. A level 6 technique costs 6 points
+                        to buy. The cost of the technique is also the
+                        minimum skill level that must be achieved before
+                        the technique can be purchased. If you do not have
+                        the required skill at a sufficient level, then the
+                        technique can't be bought.
+                    </para>
+
+                    <para>
+                        Finally, a technique may have a prerequisite. These
+                        are the techniques which must be known before this
+                        technique can be learnt.
+                    </para>
+
+                    <example title="Buying a technique">
+                        <para>
+                            <e>Hard to kill</e> is a level 2 technique
+                            which is based on the <e>Brawl</e> skill. To
+                            buy it, you must have a brawl of at least 2,
+                            at which point you can spend 2 points to buy
+                            <e>Hard to kill</e>.
+                        </para>
+
+                        <para>
+                            <e>Ignore pain</e> is a level 4 technique
+                            which is based on <e>Brawl</e> and which has
+                            <e>Hard to kill</e> as a prerequisite. If you
+                            have a <e>Brawl</e> skill of 4 or more, and
+                            have already purchased <e>Hard to kill</e>,
+                            then you can spend 4 points to buy
+                            <e>Ignore Pain</e>.
+                        </para>
+                    </example>
+
+                    <para>
+                        Some techniques will be based on a skill group
+                        rather than a skill. In this case the technique
+                        can be purchased when <e>any</e> skill in that
+                        group reaches the technique's level, but it can
+                        only be used with those skills of sufficient
+                        level.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Buying skills</title>
+
+                <para>
+                    All characters who are part of the <e>Imperium</e> start
+                    with the following skills for free at a score of 4:
+                </para>
+
+                <para>
+                    Area lore (Imperium), Speak Galanglic.
+                </para>
+
+                <para>
+                    Unless you are <e>illiterate</e>, you can automatically
+                    read and write any language you have a skill in. You may
+                    swap the <e>Area lore (Imperium)</e> for an Area lore
+                    of wherever you come from, or specialise in an individual
+                    sector (e.g., <e>Area lore (Spinward Marches)</e>) if
+                    you wish.
+                </para>
+
+                <para>
+                    There are also eight <e>Talents</e> which all characters
+                    start with at a score of 2. These represent skills which
+                    everyone picks up during childhood, and include
+                    <e>Awareness</e>, <e>Athletics</e>, <e>Brawl</e>,
+                    <e>Charm</e>, <e>Guile</e>, <e>Sleight</e>, <e>Stealth</e>
+                    and <e>Throw</e>.
+                </para>
+
+                <para>
+                    All other skills start at 0, and must be purchased.
+                    Increasing a skill by one level costs a number of points
+                    equal to the new level of the skill. So to raise a skill
+                    from 3 to 4 costs 4 points. To raise a skill from 0 to 4
+                    costs 10 points (1 + 2 + 3 + 4).
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Skill list</title>
+
+                <para>
+                    The following skills are commonly available, and are
+                    organised according to category. Some skills may be
+                    listed more than once.
+                </para>
+
+                <y:list-skills>
+                    <y:skills>skills/sf-skills.yags</y:skills>
+                    <y:skills>../core/skills/academic-skills.yags</y:skills>
+                    <y:skills>../core/skills/business-skills.yags</y:skills>
+                    <y:skills>../core/skills/combat-skills.yags</y:skills>
+                    <y:skills>../core/skills/standard-skills.yags</y:skills>
+                    <y:skills>../core/skills/technical-skills.yags</y:skills>
+                    <y:skills>../core/skills/vehicle-skills.yags</y:skills>
+                    <y:skills>../core/skills/investigation-skills.yags</y:skills>
+                    <y:skills>../core/skills/outdoor-skills.yags</y:skills>
+                </y:list-skills>
+            </sect2>
+
+            <sect2>
+                <title>Skill descriptions</title>
+
+                <y:import-skills>
+                    <y:skills>skills/sf-skills.yags</y:skills>
+                    <y:skills>../core/skills/academic-skills.yags</y:skills>
+                    <y:skills>../core/skills/business-skills.yags</y:skills>
+                    <y:skills>../core/skills/combat-skills.yags</y:skills>
+                    <y:skills>../core/skills/standard-skills.yags</y:skills>
+                    <y:skills>../core/skills/technical-skills.yags</y:skills>
+                    <y:skills>../core/skills/vehicle-skills.yags</y:skills>
+                    <y:skills>../core/skills/investigation-skills.yags</y:skills>
+                    <y:skills>../core/skills/outdoor-skills.yags</y:skills>
+
+                    <y:techniques>../core/techniques/academic.yags</y:techniques>
+                    <y:techniques>../core/techniques/combat.yags</y:techniques>
+                    <y:techniques>../core/techniques/firearms.yags</y:techniques>
+                    <y:techniques>../core/techniques/physical.yags</y:techniques>
+                    <y:techniques>../core/techniques/social.yags</y:techniques>
+                    <y:techniques>../core/techniques/technical.yags</y:techniques>
+                    <y:techniques>../core/techniques/vehicle.yags</y:techniques>
+
+                    <y:techniques>skills/academic-techniques.yags</y:techniques>
+                    <y:techniques>skills/technical-techniques.yags</y:techniques>
+                    <y:techniques>skills/vehicle-techniques.yags</y:techniques>
+                </y:import-skills>
+            </sect2>
+
+            <sect2>
+                <title>Techniques</title>
+
+                <para>
+                    Techniques are a way to specialise within a skill.
+                    Generally they are the result of specialist training
+                    rather than experience, so will mark the difference
+                    between the talented amateur and the professional.
+                    Some techniques allow you to perform actions which
+                    are not possible without the technique.
+                </para>
+
+                <para>
+                    A technique may be learnt when the skill it is based on
+                    (which may be a group of skills) reaches the level of
+                    the technique. The cost to learn the technique is equal
+                    to its level, and any prerequisite techniques must have
+                    already been purchased.
+                </para>
+
+                <para>
+                    Techniques are purchased from the same experience point
+                    pool that skills are purchased from.
+                </para>
+
+                <sect3>
+                    <title>Academic Techniques</title>
+
+                    <para>
+                        The Academic techniques cover the sciences and
+                        other areas of knowledge. Generally, each is a
+                        specialisation within a subject - so the
+                        <e>Physics</e> skill will have techniques for
+                        <e>Nuclear Physics</e>, <e>Relativity</e> etc.
+                    </para>
+
+                    <para>
+                        A specialisation technique halves the difficulty
+                        of tasks within the specialisation. If a technique
+                        for a specialisation doesn't exist, then make it
+                        up. Most academic specialisations are level 4.
+                        Those which are for cutting edge specialisations
+                        might be 6 or 8.
+                    </para>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/academic.yags</y:adv>
+                        <y:adv>skills/academic-techniques.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Combat Techniques</title>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/combat.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Firearms Techniques</title>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/firearms.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Physical Techniques</title>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/physical.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Social Techniques</title>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/social.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Technical Techniques</title>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/technical.yags</y:adv>
+                        <y:adv>skills/technical-techniques.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Vehicle Techniques</title>
+
+                    <para>
+                        There are a small number of basic vehicle skills,
+                        and familiarity is required for specific vehicle
+                        types. For example, <e>Pilot</e> will enable you
+                        to fly any type of aircraft, though your skill roll
+                        is halved if you aren't familiar with a particular
+                        type.
+                    </para>
+
+                    <para>
+                        Familiarity is gained by purchasing a technique, so
+                        many of the vehicle techniques are for familiarity.
+                        If you aren't familiar with a type of vehicle, then
+                        you cannot use any techniques with that vehicle.
+                    </para>
+
+                    <y:import-advantages type="technique" tree="true">
+                        <y:adv>../core/techniques/vehicle.yags</y:adv>
+                        <y:adv>skills/vehicle-techniques.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Experience and Advancement</title>
+
+            <para>
+                Over the course of your adventures, you will gain the
+                opportunity to learn new skills and improve existing ones.
+                Some of this improvement will come directly from adventures,
+                but most of it will be gained during downtime with training
+                and learning.
+            </para>
+
+            <sect2>
+                <title>Experience</title>
+
+                <para>
+                    Whilst performing exciting acts of heroism (or dastardly
+                    acts of greed, your choice), you may get the opportunity
+                    to improve an existing skill or learn a new one.
+                </para>
+
+                <para>
+                    If you currently have no score in a skill, but get the
+                    opportunity to try the skill, then you may gain a single
+                    point of experience in that skill. This may only be
+                    done with skills which could reasonably be improved
+                    through exposure in this way. Firing a gun (pistol),
+                    trying to find a black market dealer (streetwise) or
+                    applying bandages (first aid) are all skills which
+                    a little bit of practise can get you started.
+                </para>
+
+                <para>
+                    If you already have a skill, but it is at a level of 3
+                    or less, then it could also improve. If you use the skill
+                    extensively, or use it in an ingenious way, then you
+                    can also gain a point of experience in it.
+                </para>
+
+                <para>
+                    Once a skill reaches a level of 4, it will not improve
+                    in this way.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Down time</title>
+
+                <para>
+                    It is assumed that most characters spend most of their
+                    time not actually in 'adventures'. Much of this
+                    downtime will be spent performing their normal daily
+                    routine jobs, relaxing or training. If the party are
+                    merchant traders, then this time will probably be
+                    spent shipping routine goods. If they are part of
+                    a military organisation, then they are probably
+                    on routine duty, training, or catching up on R&amp;R.
+                </para>
+
+                <para>
+                    During this time, you will have the opportunity to
+                    learn new skills or improvement old ones.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Training</title>
+
+                <para>
+                    It is assumed that most characters spend most of their
+                    time not actually in 'adventures'. Much of this
+                    downtime will be spent performing their normal daily
+                    routine jobs, relaxing or training. If the party are
+                    merchant traders, then this time will probably be
+                    spent shipping routine goods. If they are part of
+                    a military organisation, then they are probably
+                    on routine duty, training, or catching up on R&amp;R.
+                </para>
+
+                <para>
+                    If time is spent training, then a typical training
+                    session is assumed to take a month. A month of
+                    training will be in a single skill. <e>Intensive</e>
+                    training may reduce the time to as little as a
+                    week (some military training may be like this).
+                    Few people can put up with this sort of intensive
+                    training for more than a few sessions of this
+                    sort of intense effort however. If you want,
+                    assume that a month of training consists of some
+                    intensive training plus routine downtime.
+                </para>
+
+                <table>
+                    <title>Improvement through Training</title>
+                    <colspec colwidth="28mm"/>
+                    <colspec colwidth="14mm"/>
+                    <colspec colwidth="14mm"/>
+
+                    <thead>
+                        <row>
+                            <entry>Score</entry>
+                            <entry>Check</entry>
+                            <entry>Gain</entry>
+                        </row>
+                    </thead>
+
+                    <tbody>
+                        <row>
+                            <entry>0-2</entry>
+                            <entry>20</entry>
+                            <entry>3</entry>
+                        </row>
+                        <row>
+                            <entry>3-4</entry>
+                            <entry>25</entry>
+                            <entry>3</entry>
+                        </row>
+                        <row>
+                            <entry>5-6</entry>
+                            <entry>30</entry>
+                            <entry>2</entry>
+                        </row>
+                        <row>
+                            <entry>7-9</entry>
+                            <entry>35</entry>
+                            <entry>2</entry>
+                        </row>
+                        <row>
+                            <entry>10+</entry>
+                            <entry>40</entry>
+                            <entry>1</entry>
+                        </row>
+                    </tbody>
+                </table>
+
+                <para>
+                    After a session of training, make an <t>Intelligence</t>
+                    check, at a target difficulty depending on your current
+                    score in the skill being trained. If you succeed, then
+                    you gain <e>twice</e> the experience listed on the table
+                    above. If you fail, then you gain the listed experience.
+                    If you fail by more than 10, then the amount gained is
+                    the listed gain minus 1.
+                </para>
+
+                <para>
+                    The above assumes that you have a competent trainer.
+                    If your trainer is poor quality then add +5 to the
+                    difficulty. If you have a good quality trainer, then
+                    reduce the difficulty by 5. If you have good training
+                    facilities, reduce the difficulty by another 5.
+                </para>
+
+                <para>
+                    For purely physical skills (e.g. athletics, but not
+                    pistol or piloting) you may substitute <t>Health</t>
+                    for <t>Intelligence</t>.
+                </para>
+
+                <sect3>
+                    <title>Learning Techniques</title>
+
+                    <para>
+                        <e>Techniques</e> may be learnt in a similar
+                        fashion. An <t>Intelligence</t> check is made
+                        at a level equal to 5 times the level of the
+                        technique being taught (modified by training
+                        quality). On success, the technique is learnt,
+                        on failure half the XP is gained. On a bad
+                        failure, only 1 XP is gained.
+                    </para>
+
+                    <para>
+                        For every XP you already have in the technique,
+                        reduce the difficulty by 3.
+                    </para>
+
+                    <para>
+                        A specialist training course may teach multiple
+                        techniques. In this case, add up the total of
+                        all the techniques and treat them as a single
+                        roll. The lowest level techniques are always
+                        learnt first. No more than 1 technique per
+                        2 levels of <e>Teach</e> skill can be taught.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Typical NPCs</title>
+
+            <para>
+                The Imperium is populated with a wide range of character
+                types, some of which are listed below. These are examples
+                of a typical member of a profession, and most of them are
+                far less experienced than player characters will be.
+            </para>
+
+            <para>
+                Individual NPCs will likely have some hobby and secondary
+                skills as well - only those skills related to the profession
+                are listed. Other skills are unlikely to be higher than 2.
+            </para>
+
+            <import-characters href="options/gallery.yags"/>
+        </sect1>
+
+    </body>
+
+</article>
+
+

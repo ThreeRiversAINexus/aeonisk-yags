@@ -1,0 +1,328 @@
+<?xml version="1.0"?>
+
+<!--
+    List of fantasy specific skills.
+
+    Copyright (c) 2019, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.7 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+    
+
+    <!--
+        LORE skills.
+    -->
+
+    <skill name="Arcana" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about the magical arts.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This covers knowledge, both theoretical and practical, of the magical
+                arts of the arcane. It also covers things related to arcana, such as
+                some types of creatures known for their magical properties.
+            </para>
+        </description>
+    </skill>
+    
+
+    
+    <skill name="Nature" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about plants and animals.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This covers knowledge of plants and animals.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Engineering" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about mechanical engineering.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are skilled in the knowledges of mechanical and structural engineering,
+                geometry and maths. This has practical uses in terms of warfare and
+                architecture, but is also used for theoretical mathematics. Where it is
+                available, it also includes knowledge of clockwork devices and firearms.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Religion" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about religion.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have knowledge of the world's religions. Not only do you know the different
+                gods and their domains and mythology, but you also have a good understanding of
+                the cults and religions which follow them. You can recognise religious symbols,
+                prayers and teachings and determine which religion they belong to.
+            </para>
+            <para>
+                This knowledge also covers the afterlife, and knowledge about spirits and undead
+                creatures.
+            </para>
+        </description>
+        
+        <examples>
+            <example target="10">
+                Basic knowledge about one of the common gods.
+            </example>
+            <example target="15">
+                Basic knowledge about one of the uncommon gods.
+            </example>
+            <example target="20">
+                Basic knowledge about one of the rare gods.
+            </example>
+            <example target="30">
+                Basic knowledge about one of the forgotten or very rare gods.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Geography" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about geography.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have basic knowledge about the geography of the world, which includes
+                a general understanding of how mountains, rivers, forests, deserts and other
+                terrain types form and behave. This provides you a better understanding of
+                any place, even if you have no specific knowledge of it, since you can work
+                things out from first principles.
+            </para>
+            <para>
+                It also covers general world geography.
+            </para>
+        </description>
+    </skill>
+    
+    <skill name="Nobility" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about nobles.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge about noble families, how to behave amongst nobles,
+                and also how they work.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Warfare" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about military strategy.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Military strategy and tactics, how armies operate and similar things.
+            </para>
+        </description>
+    </skill>
+    
+    <skill name="Dungeoneering" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about dungeons.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge about dungeons and the things that live in them.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Planes" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about the planes.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge about the outer planes and things.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="History" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about history.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge about things that have happened in the past.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Alchemy" type="knowledge">
+        <group>Knowledge</group>
+
+        <short>Knowledge about alchemy.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge about alchemy and strange chemicals.
+            </para>
+        </description>
+    </skill>
+
+
+
+    <skill name="Medicine" type="knowledge">
+        <group>Lore</group>
+
+        <prerequisite>First aid</prerequisite>
+        <default>First aid</default>
+
+        <short>Healing severe wounds.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Performing major operations on a wounded person. This
+                requires some specialist tools (though rarely more
+                complicated than sharp knives and tongs). It is used
+                with <e>intelligence</e>.
+            </para>
+
+            <para>
+                A chirurgury attempt takes an hour, and may be performed
+                on a person with wounds. Stuns are unaffected by use of
+                this skill. The difficulty is equal to 20 + the wound
+                (not stun) penalties of the patient. Success results in
+                the patient automatically healing one wound at their
+                next natural healing check, <e>before</e> the check is
+                made. Only one chirurgury check can be made each day
+                on a single patient, but once one has been successful,
+                not further attempts count until the patient is wounded
+                again.
+            </para>
+
+            <para>
+                A fumble results in the patient receiving an extra
+                wound (killing a <e>fatally wounded</e> person), though
+                further attempts can be made.
+            </para>
+        </description>
+    </skill>
+
+
+
+ 
+
+    <skill name="Philosophy" type="knowledge">
+        <group>Lore</group>
+
+        <short>Ethics, economics and politics.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A lore which covers ethics, economics and politics. It
+                is different from the <e>Politics</e> and <e>Trade</e>
+                skills which represent experience in the real world.
+                <e>Philosophy</e> gives knowledge of theory, of other
+                systems of government and ways of doing business, and
+                is mainly of use for being able to debate with other
+                philosophers.
+            </para>
+        </description>
+    </skill>
+
+
+
+
+
+
+    <skill name="Memory" type="standard">
+        <group>Perform</group>
+
+        <short>Memorising large numbers of items.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained to remember and recall large amounts
+                of information with a great deal of accuracy. This feat is
+                normally achieved by constructing a <e>Memory Palace</e>
+                within your mind, where you can file away items of
+                information. It may be used to remember songs, stories,
+                conversations, maps or pictures.
+            </para>
+
+            <para>
+                You may commit 5 items of information to your memory palace
+                per point of skill. An item can be a single short list or
+                a complete Edda - the complexity of the item affects whether
+                you can remember it, not how many rooms it takes up in your
+                memory palace.
+            </para>
+        </description>
+
+        <examples>
+            <example target="20">
+                Memorise a short conversation, a letter, the layout of a
+                castle or village, a face in enough detail to draw a
+                portrait later, a typical song.
+            </example>
+
+            <example target="30">
+                Memorise a lecture, a long letter, the detailed layout of
+                a village, or contents of a room, half a dozen faces,
+                a typical poem or story.
+            </example>
+
+            <example target="40">
+                Memorise a days worth of meeting, 100 pages of text or the
+                contents of a castle or manor house, a crowd of people,
+                a long saga.
+            </example>
+        </examples>
+    </skill>
+
+
+
+    <skill name="Forgery" type="standard">
+        <group>Rogue</group>
+        <group>Legal</group>
+
+        <default>Sleight</default>
+
+        <short>Forging documents and seals.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The art of forging documents, signatures and seals. Covers
+                both producing forged material, and detecting it.
+            </para>
+        </description>
+    </skill>
+
+
+</skill-list>
+
+
+

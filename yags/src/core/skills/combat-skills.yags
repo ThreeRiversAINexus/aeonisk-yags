@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="https://yags-rpg.net/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+<!--
+    Place holder for combat skills. Simply declares the skill groups to
+    collect.
+
+    Copyright (c) 2012, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.4 $
+    Date:    $Date: 2007-09-09 09:59:02 $
+    Author: Samuel Penn
+    -->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+    <skill name="Melee" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed melee</group>
+        <default>Brawl</default>
+
+        <short>Using a melee weapon in combat.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is the skill of fighting with melee a weapon. It can be
+                used with pretty much any standard weapon type, including
+                blades, spears, shields and clubs. Particularly exotic
+                weapons may require <e>Techniques</e> to be able to use
+                them effectively. <e>Melee</e> is normally used with
+                <t>Dexterity</t>. Small or improvised weapons such as
+                knives and daggers use the <e>Brawl</e> skill.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Tactics" type="standard">
+        <group>Combat</group>
+        <group>Military</group>
+
+        <short>Knowledge of combat tactics.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Tactics, strategy and leadership when planning and fighting
+                a battle involving small groups. It can be used to
+                choose a suitable site for battle, to determine weaknesses
+                in the enemy's strategy and defences, and to plan the
+                logistics of travel and supply.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Bow" type="standard">
+        <group>Combat</group>
+        <group>Missile</group>
+
+        <short>Using all sorts of bows, including crossbows.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You know how to use all types of bows, such as short bows,
+                long bows and crossbows. As well as providing accuracy, you
+                can use this skill to improve time to reload bows such as
+                crossbows. Crossbows tend to be easy to use, but other types
+                of bows can be difficult to master so to make most use of
+                them requires also learning suitable techniques.
+            </para>
+
+            <para>
+                If you don't have this skill, then range penalties are doubled
+                for standard bows, and reload times are doubled for crossbows.
+                Also, the fumble chance is increased to 3 for standard bows.
+                Shooting a bows uses <t>Perception</t>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Guns">
+        <group>Combat</group>
+        <group>Firearms</group>
+
+        <techRange min="5" max="20"/>
+        <short>Shooting pistols, SMGs, shotguns and rifles.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The use and handling of pistols, revolvers, SMGs,
+                shotguns, rifles, carbines and the like. Heavier
+                weapons such as light machine guns and rocket
+                launchers come under <e>Heavy Weapons</e>, but
+                can default to <e>Guns</e>.
+            </para>
+
+            <para>
+                If using a <e>Pistol</e>, then you use <e>Guns</e>
+                with <t>Dexterity</t>. When using a <e>Rifle</e>, you
+                may opt to use <t>Perception</t> instead. Add-ons to
+                rifles such as underslung grenade launchers would use
+                the <e>Heavy Weapons</e> skill instead.
+            </para>
+
+            <para>
+                At short range, you may normally add the attack bonus of
+                the weapon to your attack roll unless you are making a
+                <e>snapshot</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Heavy weapons" type="skill">
+        <group>Combat</group>
+        <group>Firearms</group>
+        <group>Vehicle</group>
+        <default>Guns</default>
+
+        <techRange min="5" max="20"/>
+        <short>Using heavy machine guns.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This skill provides you with knowledge of how to use
+                heavy weapons such as vehicle mounted machine guns,
+                grenade launchers, anti-tank weapons and mortars.
+                Most non-man portable weapons fall into this
+                category. Always uses <t>Perception</t> when
+                firing weapons.
+            </para>
+
+            <para>
+                <e>Very</e> large weapons (naval guns, tank guns,
+                starship mounted particle accelerators) come under the
+                <e>Gunnery</e> skill. If it requires more maths than
+                judgement, then it's probably <e>Gunnery</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Gunnery">
+        <group>Military</group>
+
+        <techRange min="5" max="20"/>
+        <short>Firing large vehicle mounted guns.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The <e>gunnery</e> skill covers the use of very large
+                vehicle mounted or emplacement weapons, such as artillery
+                and battleship main guns. Whereas <e>Heavy weapons</e>
+                covers "barely man portable in a Hollywood action film"
+                weapons, Gunnery is only for the really big weapons which
+                often require several crew members to operate. Will
+                often use <t>Intelligence</t>, since doing the maths to
+                plot the trajectory is generally more important than
+                quick reflexes.
+            </para>
+        </description>
+    </skill>
+
+</skill-list>
+
+
+

@@ -1,0 +1,255 @@
+<?xml version="1.0"?>
+
+<!--
+    These list advantages and disadvantages available to all characters
+    in the Habisfern campaign.
+
+    Version: $Revision: 1.16 $
+    Date:    $Date: 2006-08-12 15:15:16 $
+    Author:  Samuel Penn (sam@glendale.org.uk)
+
+-->
+
+<advantages xmlns="http://yagsbook.sourceforge.net/xml/yags">
+
+    <advantage name="Dreaming" type="advantage">
+        <cost points="+3"/>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Like many other people, you dream about the future. Unlike
+                most others though, your dreams are a reflection of reality.
+                You can't control what your dreams are about, but they tend
+                to be events that will affect you. They don't necessarily show
+                what will happen, but what could happen if certain decisions
+                are made.
+            </para>
+
+            <para>
+                A dream will occur when an important event is due to occur.
+                Often, this will be once per adventure, though may vary
+                depending on the structure of the campaign. It will give
+                hints as to what is going to happen, showing something that
+                could happen. Though they aren't always clear, they should
+                generally be useful. Their focus tends to be on what is
+                important personally though, rather than what is important
+                globally. However, they will sometimes foreshadow future
+                events that are far in the future.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Second sight" type="advantage">
+        <cost points="+3"/>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You can see creatures and places of the <e>Otherworld</e>,
+                which are normally hidden to sight. Spirits, hauntings and
+                echoes of the past are readily visible to you, and can
+                sometimes be hard to discern from 'reality'. Otherworldly
+                things will be attracted to you, for good or ill, due to
+                your ability to converse with them. You can also sometimes
+                see paths that lead to these realms, and can lead others
+                there.
+            </para>
+
+            <para>
+                Your sight will have probably marked you out as being
+                different from an early age, and you will have a reputation
+                of seeing and hearing things that others cannot. People
+                who know you may distrust you, but will also recognise your
+                ability as being potentially useful.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Wyrd" type="advantage">
+        <cost points="+3"/>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                At your birth, an omen was seen, or a prophecy made about
+                you which will lead you into into darkness, and cause
+                pain and suffering for those around you.
+            </para>
+
+            <para>
+                The good news is that fate will try and ensure that the
+                prophecy will come to pass. It is not guaranteed, but if
+                something should happen to you that would otherwise
+                prevent you from fulfilling your prophecy (such as dying),
+                then fate will try to arrange things otherwise.
+            </para>
+
+            <para>
+                This can be similar to the effect of spending a luck point,
+                but there will often be a darker twist to the method of
+                your salvation.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Shapechanger" type="advantage">
+        <cost points="+3"/>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You may take the form of an animal. You may only take
+                the form of a single animal, and it must be roughly
+                human sized - wolves are the most common form taken.
+                When you change, none of your clothing or equipment
+                will change with you, and the process normally takes
+                about three rounds.
+            </para>
+            <para>
+                You may not take a form that can fly, though you may
+                take that of a sea creature. Certain cults may allow
+                you further control over this ability.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Luck" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You are lucky, and have one extra point of luck. You may take
+                this as many times as you can afford.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Minor vow" type="disadvantage">
+        <cost points="-1"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Everybody makes a vow of some sort, a few people will
+                take a vow before the gods and dedicate their to keeping
+                to it. You are one of these people. Choose a vow and a
+                god, as well as a reason for having made the vow. If you
+                ever break it, then you will suffer bad luck in your
+                future endeavours (-3 to all luck checks) until you seek
+                amends.
+            </para>
+
+            <para>
+                A <e>minor vow</e> does not come up that often, or is not
+                a great inconvenience (for the player, rather than the
+                character). It includes such things as a vow of chastity,
+                a vow to always share your meal, or never to wear red.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Major vow" type="disadvantage">
+        <cost points="-3"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Everybody makes a vow of some sort, a few people will
+                take a vow before the gods and dedicate their to keeping
+                to it. You are one of these people. Choose a vow and a
+                god, as well as a reason for having made the vow. If you
+                ever break it, then you will suffer bad luck in your
+                future endeavours (-5 to all luck checks) until you seek
+                amends.
+            </para>
+
+            <para>
+                A <e>major vow</e> will either affect you much of the time,
+                or is a great inconvenience. A vow to always offer to spare
+                a foe (and to honour it), to never sleep under the same
+                roof twice, to always honour an agreement.
+            </para>
+
+            <para>
+                Deliberately subverting a vow, unless it is done in a
+                particularly clever and unique way (the gods can be easily
+                amused it seems), is considered to be breaking it. Sparing
+                a man's life, knowing your friend will then kill him is
+                not clever. Completely replacing the roof of a house so
+                you can sleep there the following night could be.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Strong willed" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have a strong will, enabling you to resist temptation
+                and weaknesses of spirit better than others can. You may
+                raise any of your trait scores by up to a total of three
+                points, to a maximum of eight. This three points may be
+                placed on a single trait, or split between two or three.
+            </para>
+            <para>
+                You may take this advantage multiple times.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Weak willed" type="disadvantage">
+        <cost points="-1"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You are weak willed, and are more likely to give into the
+                temptations of flesh or spirit. You must drop your traits
+                by three levels, to a minimum of two. This drop may be
+                split between your traits in any way you please, as long
+                as none are dropped below two.
+            </para>
+            <para>
+                You may only take this disadvantage once.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Long lived" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You are more likely to live a long life compared to others,
+                and gain a -3 to any ageing checks that you make. This will
+                only benefit you in the long term - if you live a life full
+                of adventure and excitement, you are unlikely to have to
+                worry about dying of old age.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Elf friend" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have a good relationship with the fey, and the reactions
+                of any fey you meet will be one level better than normal. If
+                you deliberately harm them though, then their reactions become
+                one level worse than normal, since they view your actions as
+                a betrayal of trust.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Shadow" type="advantage">
+        <cost points="+3"/>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have a darkness in your past that haunts you. It is as
+                if there is something there that watches over you, and
+                potentially leading danger to you.
+            </para>
+            <para>
+                However, when you are most in danger, it may come to your
+                aid. The exact nature of the shadow that haunts you is
+                unknown, but you may one day get an opportunity to find out.
+            </para>
+        </description>
+    </advantage>
+</advantages>
+

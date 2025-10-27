@@ -1,0 +1,499 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+                href="/home/sam/src/forge/yagsbook/xml/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+    <header>
+        <title>Yags Traveller Equipment</title>
+        <tagline>Yags Traveller</tagline>
+
+        <summary>
+            Equipment lists for Yags Traveller at Tech Level 12.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.15 $</version>
+            <date>$Date: 2009-07-19 17:19:18 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2007</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="equipment"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Equipment</title>
+
+            <para>
+                There is a wide variety of equipment available throughout
+                the Imperium. The full set of equipment lists for TL 12
+                is given here.
+            </para>
+
+            <sect2>
+                <title>Technology Levels</title>
+
+                <para>
+                    Costs are listed for the TL of introduction for any
+                    item. At one TL beyond that, halve the cost. At two
+                    TLs, the cost is one third. Beyond that, cost may
+                    actually go up due to the item having been long since
+                    replaced by something else. If there aren't better
+                    alternatives, then the cost is no better than a third.
+                </para>
+
+                <sect3>
+                    <title>TL 8 (Information Age)</title>
+
+                    <para>
+                        By TL8, computers have become ubiquitous. Personal
+                        mobile communication have transformed society to
+                        the point where many people cannot imagine not
+                        being in instant communication with their friends
+                        and colleagues.
+                    </para>
+
+                    <para>
+                        Digital information networks span the globe,
+                        allowing the sharing and retrieval of pretty much
+                        any information desired. Even secure military and
+                        government systems start to become attached to
+                        these networks, before enhancing their capability
+                        and reducing their security.
+                    </para>
+
+                    <para>
+                        Gene therapy, cloning, DNA testing and other advances
+                        in medical and biological sciences change the face
+                        of the world. Genetically modified foods have the
+                        capability to feed billions, and genetically modified
+                        humans start moral and ethical arguments only previously
+                        mentioned in science fiction.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>TL 9 (Interplanetary)</title>
+
+                    <para>
+                        Early space faring civilisation, will have the
+                        capability to colonise other worlds within their
+                        own solar system. Computers are common with
+                        world spanning information networks. Fusion power
+                        starts to become feasible, opening the doors to
+                        improved starship drives and also helping to feed
+                        society's increasing desire for power hungry
+                        electronics.
+                    </para>
+
+                    <para>
+                        Contra-gravity starts to become possible, though
+                        designs at this stage are bulky and expensive.
+                        Basically, contra-gravity allows a machine to push
+                        against nearby matter, though the strength of the
+                        force drops off very rapidly (initially, within a
+                        few metres) allowing hover vehicles but not flight
+                        to orbit. As the technology improves, so combined
+                        aerospacecraft that use contra-gravity to reduce their
+                        weight and traditional rockets for thrust make flight
+                        to orbit cheap and affordable.
+                    </para>
+
+                    <para>
+                        Medical science allows routine cloning, which
+                        together with gene therapy begins to wipe out
+                        inherited diseases. Super drugs which can cure most
+                        known illness and disease become common. Personal
+                        communications shrink to implants which combine
+                        phone, PDA and entertainment functions. Cybernetics
+                        becomes common, both as enhancements and also for
+                        medical reasons.
+                    </para>
+
+                    <para>
+                        Fashion is not untouched by the rise of technology,
+                        and smart clothing becomes pretty standard as every
+                        day wear. Simple electronic functionality can be
+                        printed onto textiles, allowing simple graphics to
+                        be displayed on sleeves. Colour changing ability
+                        is common, with advertising and slogons on T-shirts
+                        having simple animations. More expensive clothing
+                        can adapt itself according to feedback from sensors
+                        in contact with your body, reacting to temperature,
+                        excitement or intoxication.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>TL 10</title>
+
+                    <para>
+                        The early Third Imperium was considered TL 10.
+                        Contra-grav is rare, but stardrives are common,
+                        though mostly limited to J1 or J2.
+                    </para>
+
+                    <para>
+                        Gauss weapons are the norm.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>TL 11</title>
+
+                    <para>
+                        This covers the Third Imperium from about 500 to
+                        about 1000. There are many TL 11 worlds within the
+                        Imperium. They are slightly backwards compared to
+                        the highest levels of Imperium technology, but it
+                        is mostly a level of degree.
+                    </para>
+
+                    <para>
+                        Contra-grav is common, but wheeled and railed travel
+                        is still the norm. Computer networks span the world,
+                        and good medical technology is commonly available.
+                        Full regrowth is not possible, and some things still
+                        require cybernetic replacements.
+                    </para>
+
+                    <para>
+                        Most common weapons are gauss weapons, with plasma
+                        and laser weapons filling speciality roles.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>TL 12</title>
+
+                    <para>
+                        This is the technological level of the Imperium's
+                        military, and the highest level found commonly
+                        amongst its worlds. The Imperium is considered to
+                        have reached TL12 around the year 1000.
+                    </para>
+
+                    <para>
+                        Contra-grav is ubiquitous, turing personalities
+                        are found in many places, common stardrives can
+                        manage between J-3 and J-6.
+                    </para>
+
+                    <para>
+                        Guass weapons are beginning to give way to plasma
+                        and laser weapons, as the latter become more
+                        reliable, smaller and cheaper. Fusion weapons
+                        begin to become man-portable.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Legality</title>
+
+                <para>
+                    The legality of an item determines who is allowed to
+                    use it. Some worlds are more restrictive than others,
+                    and items which are allowed to be freely carried and
+                    used in one place, may be forbiddon in another.
+                </para>
+
+                <para>
+                    Generally, an item is freely available to civilians
+                    if its legality rating is equals or exceeds the law
+                    level of the world. If it is one less, then it may
+                    be available with a license, otherwise use and ownership
+                    is restricted to government or specialist personel
+                    only.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>General Equipment</title>
+
+                <para>
+                    Generic equipment, tools, drugs and other things which
+                    aren't weapons, armour or vehicles.
+                </para>
+
+                <import-equipment style="full">
+                    <list>../equipment/traveller/tech10/generic.yags</list>
+                    <list>../equipment/traveller/tech11/generic.yags</list>
+                    <list>../equipment/traveller/tech12/generic.yags</list>
+                </import-equipment>
+            </sect2>
+
+            <sect2>
+                <title>Weapons and Armour</title>
+
+                <sect3>
+                    <title>Armour</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech12/armour.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Small arms</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech9/smallarms.yags</list>
+                        <list>../equipment/traveller/tech10/smallarms.yags</list>
+                        <list>../equipment/traveller/tech11/smallarms.yags</list>
+                        <list>../equipment/traveller/tech12/smallarms.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Heavy Weapons</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech11/heavy-weapons.yags</list>
+                        <list>../equipment/traveller/tech12/heavy-weapons.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Melee Weapons</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech10/melee.yags</list>
+                        <list>../equipment/traveller/tech12/melee.yags</list>
+                    </import-equipment>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Vehicles</title>
+
+                <sect3>
+                    <title>Civilian</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech12/vehicles/transport.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Military</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech10/vehicles/tanks.yags</list>
+                        <list>../equipment/traveller/tech12/vehicles/tanks.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Starships</title>
+
+                    <import-equipment style="full">
+                        <list>../equipment/traveller/tech10/vehicles/starships.yags</list>
+                        <list>../equipment/traveller/tech12/vehicles/starships.yags</list>
+                    </import-equipment>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Weapon and Armour Notes</title>
+
+            <sect2>
+                <title>Weapons</title>
+
+                <sect3>
+                    <title>Notes</title>
+
+                    <itemlist order="sort">
+                        <item name="Au">
+                            Fully automatic weapon, capable of firing multiple
+                            shots or burst fire. Unless specified, an automatic
+                            burst consist of 10 rounds. If a number is specified,
+                            then the burst has this many rounds.
+                        </item>
+
+                        <item name="Co-X">
+                            Damage effect is a cone, of X degrees. A single attack
+                            is made, and all within the cone get a defence.
+                        </item>
+
+                        <item name="Ex-X">
+                            Explosive damage. Does full damage to the target and
+                            those within X metres. Does mixed damage at -5 out to
+                            double X, and stun damage at -10 out to triple X.
+                        </item>
+
+                        <item name="Fi">
+                            Firearm. Missile weapon firing a high velocity round.
+                            Halves all armour which isn't rated as bullet proof.
+                            Quarters most defence rolls (except full defence).
+                        </item>
+
+                        <item name="Hv">
+                            Heavy weapon. Halves non-heavy bulletproof armour,
+                            ignores all weaker types of armour.
+                        </item>
+
+                        <item name="Li">
+                            Light weapon. Double the value of heavy or
+                            bulletproof armour (overrides the effects of
+                            being a firearm).
+                        </item>
+
+                        <item name="Lo-X">
+                            Weapon must be reloaded. X is number of rounds to reload.
+                        </item>
+
+                        <item name="Ls">
+                            Laser weapon, unaffected by wind, though may suffer
+                            in fog and thick atmospheres. Does not loose accuracy
+                            or suffer fumble increase at medium and long range.
+                            Counts as a firearm for defence rolls.
+                        </item>
+
+                        <item name="Pl">
+                            Plasma or fusion weapon. If it does damage against
+                            living targets then it does damage twice - once at
+                            full effectiveness, and a second time at one lower
+                            (normally mixed).
+                        </item>
+
+                        <item name="SA">
+                            Semi-automatic weapon, can fire multiple shots in a
+                            single round but is not capable of burst fire.
+                        </item>
+
+                        <item name="So">
+                            Sonic weapon, ignores all armour but very short
+                            ranged. It's base damage is halved at medium range
+                            and quartered at long range (instead of the normal
+                            damage modifiers).
+                        </item>
+
+                        <item name="TA">
+                            Automatic weapon that can fire automatic bursts of
+                            3 rounds as a single attack. Counts as a single
+                            attack, but any wounds caused are doubled.
+                        </item>
+
+                        <item name="Vc">
+                            Vehicle weapon. Against non-vehicle targets, completely
+                            ignores all soak unless heavy armour is worn, in which
+                            case the soak roll is merely halved.
+                        </item>
+                    </itemlist>
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1 format="wide">
+            <title>Weapons and Armour Tables</title>
+
+            <sect2>
+                <title>Weapons</title>
+
+                <para>
+                    The following weapons are available in the Imperium. Slug throwers
+                    still make for good, general purpose, weapons and are the least
+                    likely to break when put through the sort of abuse most equipment
+                    sees in the battlefield.
+                </para>
+
+
+                <sect3>
+                    <title>Small arms</title>
+
+                    <para>
+                        These are small weapons designed to be easily man
+                        portable. They range from pistols up to rifles.
+                    </para>
+
+                    <y:import-weaponlist href="../equipment/traveller/tech12/smallarms.yags"
+                                         importance="2" style="list">
+                        <y:category>Pistols</y:category>
+                        <y:category>Rifles</y:category>
+                        <y:category>Shotguns</y:category>
+
+                        <y:list>../equipment/traveller/tech9/smallarms.yags</y:list>
+                        <y:list>../equipment/traveller/tech10/smallarms.yags</y:list>
+                        <y:list>../equipment/traveller/tech11/smallarms.yags</y:list>
+                        <y:list>../equipment/traveller/tech12/smallarms.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Heavy Weapons</title>
+
+                    <para>
+                        These weapons are either normally vehicle mounted,
+                        or considered to be squad support weapons, often used
+                        by troops in full battledress. At the very least they
+                        require backpacks for energy or ammunition.
+                    </para>
+
+                    <y:import-weaponlist href="../equipment/traveller/tech12/heavy-weapons.yags"
+                                         importance="2" style="list">
+                        <y:category>Energy</y:category>
+                        <y:category>Heavy</y:category>
+
+                        <y:list>../equipment/traveller/tech11/heavy-weapons.yags</y:list>
+                        <y:list>../equipment/traveller/tech12/heavy-weapons.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Bombs and Explosives</title>
+
+                    <para>
+                        Mines, bombs, explosive charges and other things that
+                        make a big bang.
+                    </para>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Demolitions</y:category>
+
+                        <y:list>../equipment/traveller/tech12/heavy-weapons.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Melee Weapons</title>
+
+                    <para>
+                        Mostly anachronistic, melee weapons are still used in
+                        some circumstances, often for stylistic reasons. The
+                        weapons listed here are the Tech Level 12 equivalents
+                        of ancient weapons.
+                    </para>
+
+                    <y:import-weaponlist href="../equipment/traveller/tech12/melee.yags"
+                                         importance="2" style="list">
+                        <y:category>Melee</y:category>
+
+                        <y:list>../equipment/traveller/tech10/melee.yags</y:list>
+                        <y:list>../equipment/traveller/tech12/melee.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+            </sect2>
+        </sect1>
+    </body>
+
+</article>
+
+

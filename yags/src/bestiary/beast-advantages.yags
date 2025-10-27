@@ -1,0 +1,490 @@
+<?xml version="1.0"?>
+
+<advantages xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <advantage name="Animal" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                An <e>Animal</e> is not capable of sapient thought in the
+                same way that humans are. Their intelligence rating is used
+                instead to represent animal cunning. They may have a high
+                intelligence, but aren't capable of abstract thought.
+            </para>
+
+            <para>
+                Animals with an intelligence of 3+ may be capable of using
+                tools (e.g., crows or chimpanzees). Most herd animals will
+                tend to have an intelligence of 1, predators about 2.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Tiny" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A <e>Tiny</e> animal is smaller than Size 0. Their Size
+                rating is still zero, but they suffer various penalties
+                which are described in the <s>Bestiary</s> section on
+                <e>Size</e>. Creatures can have multiple levels of
+                <e>Tiny</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Weak" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A <e>Weak</e> creature is too small to have a physical
+                strength comparable to humans, and so all strength rolls
+                (including damage) are halved. Soak rolls against non-weak
+                attacks are also halved. Generally, animals with
+                a Size of 3 or less will be considered <e>Weak</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Very weak" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Similar to a <e>Weak</e> creature, but all strength and
+                soak rolls are divided by five. Creatures of size 1 or
+                less will often have the <e>Very weak</e> disadvantage.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Claws (S/M/L)" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This creature has claws or talons which can be effectively
+                used in combat. Claws are mostly of use in the attack, and
+                don't provide a large defensive bonus. There are three types
+                of claws, based on the size of them
+            </para>
+            <para>
+                <s>Small:</s> They provide a +1 damage bonus. The damage
+                type of small claws is <e>stun</e>. Cats and birds often
+                have small claws.
+            </para>
+            <para>
+                <s>Medium:</s> They provide +1 attack, +3 to damage and
+                change the damage type to <e>mixed</e>. Big cats or large
+                birds of prey may have medium claws.
+            </para>
+            <para>
+                <s>Large:</s> They provide +1 defence, +3 attack, +5 to
+                damage and change the damage type to <e>wound</e>. Animals
+                such as Utah Raptor may have large claws.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Bite (S/M/L)" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This creature has a bite can be used effectively in combat.
+                They can be small, medium or large, and this is determined
+                by the relative size of the teeth, and their biting power.
+                Bites are almost exclusively offensive weapons which do not
+                provide much in the way of defensive bonuses.
+            </para>
+            <para>
+                <s>Small:</s> They provide a +2 damage bonus. The damage
+                type of a small bite is <e>mixed</e>. Cats and dogs have
+                small bites.
+            </para>
+            <para>
+                <s>Medium:</s> They provide +1 attack, +4 to damage and
+                change the damage type to <e>mixed</e>. Big cats have
+                medium bites.
+            </para>
+            <para>
+                <s>Large:</s> They provide +2 attack, +7 to damage
+                damage and change the damage type to <e>wound</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Kick (S/M/L)" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This creature has the capability to kick its prey. This
+                generally requires long, agile legs, with clawed or blunt
+                feet which can cause considerable damage. They can be
+                used defensively to keep an attacker at bay.
+            </para>
+            <para>
+                <s>Small:</s> They provide +1 to attack and defence, and
+                +2 damage. The damage type is <e>stun</e>.
+            </para>
+            <para>
+                <s>Medium:</s> They provide +2 attack and defence, as well
+                as +4 damage. The damage type is <e>mixed</e>. Horses and
+                similar creatures have medium Kicks.
+            </para>
+            <para>
+                <s>Large:</s> They provide +3 attack and defence, and +7
+                damage. The damage type is <e>wound</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Horns (S/M/L>" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The creature has horns, antlers or tusks which it can use in
+                combat. Often, such adornments are used only in mating rituals,
+                but they can be deadly in combat. They provide a +3 bonus to
+                defence, a +1 bonus to attack and damage, and change the damage
+                type to <e>mixed</e>.
+            </para>
+            <para>
+                <s>Small:</s> They provide +2 to attack, defence and damage.
+                The damage type is <e>mixed</e>.
+            </para>
+            <para>
+                <s>Medium:</s> They provide +4 to attack, defence and damage.
+                The damage type is <e>mixed</e>.
+            </para>
+            <para>
+                <s>Large:</s> They provide +6 to attack, defence and damage.
+                The damage type is <e>wound</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Slow" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                <e>Slow</e> creatures have a slower movement rate than
+                their attributes would normally suggest. Base movement
+                is two thirds (round down) what it would normally be.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Land on feet" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                These creatures are capable of always landing on their
+                feet when falling, and are good at cushioning their fall,
+                being able to survive falls from great heights. Reduce
+                any height fallen by their <t>Agility</t>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Fragile" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Fragile creatures have only half (round down) the normal
+                number of wound and stun levels.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Sturdy" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Sturdy creatures have 50% extra (round down) wound and
+                stun levels. They are particularly tough and difficult
+                to kill.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Reduced pain" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Creatures which had reduced pain only suffer half the normal
+                penalties due to wounds, stuns and fatigue (round down). This
+                makes the penalties -2/-5/-7/-12/-20 instead of
+                -5/-10/-15/-25/40.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Resistence to shock" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This creature is resistant to the effects of shock. Their
+                initiative cannot be reduced by shock unless due to
+                explosions.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Stupid" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A stupid creature has little or no mind of its own. It is
+                probably a controlled automaton or something similar. They
+                require an intelligence check to make any complicated plan,
+                normally at difficulty 20. Any <e>Stupid</e> creature will
+                always have an intelligence of 1.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Diseased" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A <e>diseased</e> creature carries some form of pathogen
+                that can infect another living creature. The nature of
+                the disease may vary from creature to creature, but unless
+                otherwise stated it is assumed that the creature is likely
+                to be carrying some generic disease, rather than generating
+                a specific type of disease themselves.
+            </para>
+            <para>
+                For any natural attack (normally bite or claw) that hits
+                and causes one or more wounds, the target should make a
+                <t>Health</t> check against a difficulty of 15 + 5 per
+                level of wound. Failure means that they have contracted a
+                disease.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Venomous" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Venomous creatures have a bite or sting that can deliver
+                an incapacitating chemical to the target. They don't
+                need to do actual damage to have an affect, so the
+                normal soak of the target is ignored. The venomous
+                attack and the results of the venom will be listed in
+                the creature description.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Poisonous" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Poisonous creatures have toxins within their body
+                which can harm anyone who eats them. Poisonous creatures
+                (unless they are also <e>venomous</e>) do not poison
+                creatures that they attack, but may poison creatures
+                that attack them (by taking a bite of poison flesh).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Light sensitivity" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Light sensitive creatures have difficulty seeing in full
+                daylight, but have improved vision at night. They suffer a -1
+                to their <t>Perception</t> in bright light, but gain a +1 to
+                their <t>Perception</t> in low light.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Disease resistance" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Such creatures are almost completely immune to disease. The
+                initial target number to resist any disease is halved.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Poison resistance" type="advantage">
+        <genre>Real</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Such creatures are almost completely immune to poisons and venoms.
+                The initial target number to resist any poison or venom is halved.
+            </para>
+        </description>
+    </advantage>
+
+    <!--
+        Miscellaneous.
+    -->
+
+    <advantage name="Mind Speech" type="advantage">
+        <genre>Mythical</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The creature is able to communicate with people within
+                a given range via telepathy. It cannot read anything other
+                than their surface thoughts. Communication requires a shared
+                language to be used.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Undead" type="advantage">
+        <genre>Mythical</genre>
+        <genre>Horror</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                An undead creature is a walking corpse, animated through
+                supernatural means. Undead do not need to eat, drink or
+                breath. They are difficult to kill, since they do no have
+                vital organs, and only take a wound or stun for every 10
+                points of damage over their soak unless the damage comes
+                from a Vehicle scale weapon. They often have abnormal
+                health (seven), above average strength, and low will.
+            </para>
+            <para>
+                Undead are immune to both poison and disease. It may be
+                possible for them to be carriers of some types of disease,
+                but they will not be negatively affected by them.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Incorporeal" type="advantage">
+        <genre>Mythical</genre>
+        <genre>Horror</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                An incorporeal creature has no physical body, and hence no
+                direct way to affect the physical world. They have no wound
+                or stun levels, and no soak, since they cannot be harmed
+                physically. An incorporeal creature may often have the
+                <e>Life Drain</e> ability.
+            </para>
+            <para>
+                Incorporeal creatures will often have a visible form, though
+                it is wispy and difficult to see. Incorporeal undead generally
+                keep roughly the same shape and form that they had in life,
+                but they can shrink or flatten themselves as desired. They
+                are often unable to attack in this form, and it takes a round
+                of concentration to drastically change shape or size.
+            </para>
+            <para>
+                The incorporeal can move wherever they please, including
+                through solid walls. Base movement is equal to their
+                <t>agility</t> + <t>will</t>, though is slowed through
+                dense material. For anything denser than water, reduce
+                movement by the density of the material. So rock walls will
+                reduce movement to a third, lead to a tenth, gold to a
+                twentieth etc.
+            </para>
+            <para>
+                Only <e>Blessed</e> or otherwise spirit affecting attacks
+                can harm an incorporeal creature.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Life Drain" type="advantage">
+        <genre>Mythical</genre>
+        <genre>Horror</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A creature with <e>Life Drain</e> is able to suck the life out
+                of a living target. Many, but not all, such creatures are
+                also <e>incorporeal</e>. All they need to do is to touch their
+                victim, and a coldness will be felt that brings them closer
+                to death.
+            </para>
+            <para>
+                For an incorporeal creature, any successful hit will cause
+                life drain. For a corporeal creature, the strike must be
+                firm enough such that it is felt, so any hit must cause
+                damage (even if it is only a single stun).
+            </para>
+            <para>
+                A successful life drain always reduces the highest of agility
+                and dexterity by one point (the victim's choice if both are
+                equal). This is recovered at a rate of one point per day.
+                Both attacker and victim then make Will checks, with damage
+                being caused as <e>exhaustion</e> just as a damage and soak
+                check would.
+            </para>
+            <para>
+                Once unconscious, the victim will be further drained until
+                their agility and dexterity are both zero. After that,
+                strength and health are drained in the same way until the
+                victim dies when zero is reached on all physical attributes.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Horror" type="advantage">
+        <genre>Mythical</genre>
+        <genre>Horror</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This creatures causes <e>Horror</e> in those that see
+                it. A fear check is needed when the creature is first
+                seen, against the level of the Horror ability. Failure
+                results in the victim being struck by unnatural fear.
+                See the section on Undead for details on Horror checks.
+            </para>
+            <para>
+                Note that <e>Horror</e> is always supernatural, and is
+                not considered to be regular fear.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Blessed" type="advantage">
+        <genre>Mythical</genre>
+        <genre>Horror</genre>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A blessed creature has been touched by the supernatural,
+                and draws strength from some other realm. As such, it is
+                able to heal damage dealt to it very quickly, making it
+                almost immune to damage from normal sources. A blessed
+                creature is either blessed by the light, or blessed by
+                darkness. Both types of blessings behave the same, but
+                creatures of the light are affected by weapons of
+                darkness and vice versa.
+            </para>
+
+            <para>
+                A blessed creature, on receiving either wounds or stuns,
+                will immediately heal one level of both. This occurs
+                after effects of the wound are accounted for. So a single
+                blow which fatally wounds a creature could still kill
+                it. If the creature survives however, it would then
+                become critically wounded (regardless of how wound levels
+                beyond fatal the creature was taken).
+            </para>
+
+            <para>
+                At the end of the round, and each round thereafter, the
+                creature will heal one wound and stun level, until it
+                is fully healed.
+            </para>
+
+            <para>
+                Some weapons may be blessed (either by light or darkness),
+                and damage caused by these cannot be healed with this
+                advantage. A light blessed creature cannot heal wounds
+                from a darkness weapon, and vice versa.
+            </para>
+        </description>
+    </advantage>
+</advantages>
+
+

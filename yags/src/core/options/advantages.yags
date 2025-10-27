@@ -1,0 +1,406 @@
+<?xml version="1.0"?>
+
+<!--
+    These list generic advantages and disadvantages,
+
+    Version: $Revision: 1.29 $
+    Date:    $Date: 2008-06-14 22:46:42 $
+    Author:  Samuel Penn (sam@glendale.org.uk)
+
+-->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags">
+
+    <advantage name="Lucky" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are lucky, and receive a +1 to luck checks. Once per
+                session, you may re-roll a single die roll that you make,
+                and take the best of the two rolls. You may choose to
+                permanently spend you <e>luck</e>, in order to get out
+                of a deadly situation, or cause an act of serendipity
+                in your favour.
+            </para>
+
+            <para>
+                You may take luck multiple times, to get a bigger bonuses
+                or more re-rolls each session. Only one point of luck may
+                be spent on a single roll however.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Keen eared" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have exceptional hearing, and gain a +2 bonus to
+                your <t>Perception</t> when making hearing checks.
+                When fighting in total darkness in close combat,
+                your <t>Perception</t> has a minimum of 1.
+            </para>
+        </description>
+        <forbiddon>Poor hearing</forbiddon>
+    </advantage>
+
+    <advantage name="Keen eyed" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have exceptional vision, and gain a +2 bonus to
+                your <t>Perception</t> when making vision checks.
+                It does not grant a bonus for ranged attacks.
+            </para>
+        </description>
+        <forbiddon>Poor vision</forbiddon>
+        <forbiddon>Missing eye</forbiddon>
+    </advantage>
+
+    <advantage name="Iron constitution" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have a particularly hardy constitution, and gain +2
+                to your <t>Health</t> to resist all forms of poison,
+                disease and other forms of illness.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Musically talented" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have a natural talent with music, and gain a +2 bonus
+                to <t>Empathy</t> or <t>Intelligence</t> when playing a
+                musical instrument, or composing for one.
+            </para>
+        </description>
+        <forbiddon>Can't sing</forbiddon>
+    </advantage>
+
+    <advantage name="Eidetic memory" type="advantage">
+        <cost points="+3"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are very good at remembering things. The target
+                difficulty for trying to remember something you have seen
+                or heard is halved. You may be able to remember an image
+                or piece of text perfectly for a period of time, but
+                such recall does not often exceed a few hours.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Night vision" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have particularly good night vision. Except in total
+                darkness, any penalties to your <t>Perception</t> are
+                halved (round down) when either making vision checks, or
+                when your <t>Perception</t> is used to cap other
+                attributes.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Good looking" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are extremely good looking, and can use it to your
+                advantage in your dealings with anyone who finds you
+                sexually attractive, or in a situation where being smart
+                and presentable would be an advantage. Gain a +1 bonus to
+                whatever attribute you are using (normally <t>Empathy</t>).
+            </para>
+
+            <para>
+                Being <e>good looking</e> has the side effect of making you
+                easy to recognise.
+            </para>
+        </description>
+        <forbiddon>Ugly</forbiddon>
+    </advantage>
+
+    <advantage name="Sexy" type="advantage">
+        <cost points="+3"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                As well as being <e>good looking</e>, the way in which you
+                walk, talk and dress comes across as very sexy to anyone
+                who would be sexually attracted to you. Others will tend
+                to flirt with you given a chance, and you may gain +2
+                to <t>Empathy</t> in such situations.
+            </para>
+        </description>
+        <forbiddon>Ugly</forbiddon>
+        <forbiddon>Good looking</forbiddon>
+    </advantage>
+
+    <advantage name="Graceful" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <forbiddon>Clumsy</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are graceful in your movements. Whenever you are trying
+                to impress people with athletic feats, then upon a success
+                you gain an extra level of success that goes towards making
+                you look good. This covers dancing, gymnastics or even
+                sword play. This has no effect on the practical outcome.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Need little sleep" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <forbiddon>Heavy sleeper</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You don't need as much sleep as other people. You
+                recover fatigue twice as quickly when sleeping, and
+                only need 4 hours sleep to count as having a full
+                night's rest.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Beautiful voice" type="advantage">
+        <cost points="+2"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have a clear and pleasant voice which other people
+                find attractive to listen to. When singing, you never
+                fumble and can always take 10. For all social
+                activities where the sound of your voice can work in your
+                favour, you may always roll twice and take the highest
+                roll. This will not help you when trying to convey
+                complex information (e.g. teaching) or when not being
+                nice (e.g., commanding or intimidating). It may help
+                with <e>Perform</e>, <e>Charm</e> and <e>Guile</e>
+                skill tests.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Commanding presence" type="advantage">
+        <cost points="+3"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are more than capable of making yourself heard
+                when you need to take charge of the situation. When
+                giving orders, people always pay attention (though
+                they may ignore you). You never fumble <e>Leadership</e>
+                or <e>Intimidation</e> checks. When organising teams,
+                on a success you add your <e>Leadership</e> to people's
+                skill checks.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Educated" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You begin the game having had an education, being both
+                literate and counting as being <e>Educated</e>. In a
+                setting where education and literacy is the norm, then
+                this advantage does not need to be purchased and is the
+                default for everyone.
+            </para>
+
+            <para>
+                You are automatically able to read and write any language
+                that you can speak.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Heavily built" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <prerequisite>Strength 4</prerequisite>
+        <forbiddon>Small</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are heavily built, being tougher and broader than normal. You get one 
+                extra level of <e>stun</e>, plus a +5 bonus to resist knock-down or trip
+                attempts.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Ambidexterterous" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You suffer no penalty for performing actions with your off hand.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Large" type="advantage">
+        <cost points="+3"/>
+        <genre>Common</genre>
+
+        <prerequisite>Strength 4+</prerequisite>
+        <forbiddon>Small</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are very large, being both tall and heavily built. You gain a bonus of 
+                +1 to both your <t>Strength</t> and your <t>Size</t> (raising it to 6 for
+                humans), which provides you with an extra level of wounds and stuns. You 
+                also have extra reach, and any reach 0 melee attacks are instead considered 
+                reach 1. You may not have a <t>Strength</t> below 4 when you take this.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Charismatic" type="advantage">
+        <cost points="+3"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are good at getting on with people, and gain a +1 bonus
+                to <t>Empathy</t> when trying to befriend or persuade a
+                person.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Quick" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have a +1 bonus to <t>Agility</t> for purposes of
+                initiative. See the combat rules for a description of
+                how initiative works.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Animal empathy" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have a natural ability to get on well with
+                animals. All animals react well to you, and have
+                their reaction shifted to one better category.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Reserves of strength" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You may tap into reserves of strength at any time, allowing
+                to to perform feats not normally possible. At any time,
+                you may have +1 or +2 to your <t>Strength</t> for a single
+                activity or a round of actions, though you gain one point of
+                fatigue per point of bonus for doing so.
+            </para>
+
+            <para>
+                You must have a <t>Strength</t> of at least 4 in order to
+                take this advantage.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Fit" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <forbiddon>Unfit</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have one more fatigue level than you would normally
+                have from your <t>Health</t>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Tourist" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You do well when visiting foreign cultures or places, and
+                pick up local language and information quickly. If your
+                GM is using the <e>Background Experience</e> option for
+                gaining XP, then you gain +10 bonus to the d20 roll to
+                see if you pick up Language or Area lore skills.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Multi-cultured" type="advantage">
+        <cost points="+1"/>
+        <genre>Common</genre>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You start the game with knowledge of other languages and
+                cultures. You may take this advantage multiple times, and
+                each time it gives you up to three languages or area lore
+                skills you may start with a score of 4 in.
+            </para>
+
+            <para>
+                If you are <e>Educated</e>, then you
+                automatically also know the written forms of each
+                language as well, otherwise you must take each alphabet
+                as a separate language.
+            </para>
+        </description>
+    </advantage>
+</advantages>
+

@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+
+<!--
+    Gear from the real world, approximately 1980 - 2020.
+
+    Copyright 2010 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted as long as the above copyright
+    notice is retained.
+
+    All units are in cgs.
+
+    Prices are in US dollars.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="Interceptor Body Armour">
+        <category>Armour</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>8</techLevel>
+        <legality>3</legality>
+        <weight>7000</weight>
+        <cost units="usd">350</cost>
+
+        <short>Modern ballistic vest.</short>
+        <description>
+            <para>
+                A type of ballistic armour used by the US military.
+            </para>
+        </description>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+8</protection>
+            <load>7</load>
+            <weight>7000</weight>
+            <covers>
+                <torso/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mobile Phone">
+        <category>Communication</category>
+        <importance>2</importance><availability>3</availability>
+        <techLevel>8</techLevel>
+        <legality>5</legality>
+        <weight>200</weight>
+        <cost units="usd">50</cost>
+
+        <short>A simple mobile phone.</short>
+        <description>
+            <para>
+                A simple mobile phone capable of making voice calls. It
+                may have the ability to take notes and record audio.
+                Battery life will be in the order of a week or two,
+                depending on how much it is used.
+            </para>
+        </description>
+    </item>
+
+    <item name="Smart Phone">
+        <category>Communication</category>
+        <importance>2</importance><availability>3</availability>
+        <techLevel>8</techLevel>
+        <legality>5</legality>
+        <weight>400</weight>
+        <cost units="usd">500</cost>
+
+        <short>Smart phone.</short>
+        <description>
+            <para>
+                A typical smart phone of the type available around 2010.
+                It has voice and data capability, plus about 16GB+ of
+                data storage. It almost certainly has a touch screen and
+                may have a small keyboard. Battery life will be in the
+                order of a day to a few days, depending on capabilities.
+            </para>
+
+            <para>
+                It will be able to play and record audio, pictures and
+                video, as well as providing the ability to connect into
+                computer systems for remote administration and having
+                a basic SatNav with maps and route finding.
+            </para>
+        </description>
+    </item>
+</equipment>
+
+

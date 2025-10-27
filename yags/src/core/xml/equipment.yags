@@ -1,0 +1,4385 @@
+<?xml version="1.0"?>
+
+<!--
+
+    General equipment lists.
+
+    Copyright 2005 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted provided that the following
+    conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+    above copyright notice, this list of conditions and the following
+    disclaimer.
+
+    2) Redistributions in compiled form (transformed to other DTDs,
+    converted to PDF, PostScript, RTF and other formats) must
+    reproduce the above copyright notice, this list of conditions
+    and the following disclaimer in the documentation and/or other
+    materials provided with the distribution.
+
+    THIS CONTENT IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+    WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS CONTENT, EVEN IF ADVISED
+    OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Version: $Revision: 1.25 $
+    Date:    $Date: 2006-09-02 11:11:48 $
+
+    Categories
+
+    Adventuring     The sort of things only adventurers have.
+    Rogue           Thieves/assassins tools and the like.
+    Food            Food and drink.genre
+    Animals         An animal which isn't livestock - horses and dogs.
+    Livestock       Animals bred for food, such as pigs and cows.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices should be in farthings, but prices can't really be trusted yet.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+    <item name="10' pole">
+        <category>Adventuring</category>
+        <importance>3</importance>
+        <availability>2</availability>
+        <tech level="0"/>
+        <source>Carpenter</source>
+
+        <short>A 10' long pole designed for prodding things.</short>
+
+        <description>
+            <para>
+                The stereotypical item of adventuring gear. A 10' long
+                pole about two inches thick, used for checking for traps
+                or prodding icky things.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>wood</material>
+
+        <dimensions>
+            <length>300</length>
+            <width>5</width>
+            <height>5</height>
+        </dimensions>
+
+        <cost>1</cost>
+    </item>
+
+    <item name="Egg (chicken)">
+        <category>Food</category>
+        <importance>2</importance>
+
+        <availability>1</availability>
+        <tech level="0"/>
+
+        <short>A fresh chicken egg.</short>
+
+        <description>
+            <para>
+                A single raw egg, ready to be cooked for a meal.
+            </para>
+        </description>
+
+        <weight>50</weight>
+        <material>animal</material>
+
+        <cost>1</cost>
+
+    </item>
+
+    <item name="Vegetables">
+        <category>Food</category>
+        <importance>2</importance>
+        <tech level="0"/>
+        <availability>1</availability>
+
+        <short>One meal of fresh vegetables.</short>
+
+        <description>
+            <para>
+                A mixture of fresh vegetables, enough for one meal.
+            </para>
+        </description>
+
+        <weight>50</weight>
+        <material>plant</material>
+
+        <cost>1</cost>
+    </item>
+
+    <item name="Flask of wine" quality="1">
+        <category>Food</category>
+        <importance>1</importance>
+
+        <availability>1</availability>
+        <tech level="1"/>
+
+        <short>A flask of poor quality wine.</short>
+
+        <description>
+            <para>
+                A flask of cheap wine which is not particularly
+                tasty.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <cost>5</cost>
+    </item>
+
+    <item name="Flask of wine" quality="2">
+        <category>Food</category>
+        <importance>2</importance>
+
+        <availability>2</availability>
+        <tech level="1"/>
+
+        <short>A flask of average quality wine.</short>
+
+        <description>
+            <para>
+                A flask of wine which is okay, but nothing special.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <cost>15</cost>
+    </item>
+
+    <item name="Flask of wine" quality="3">
+        <category>Food</category>
+        <importance>2</importance>
+        <tech level="1"/>
+        <availability>2</availability>
+
+        <short>A flask of good quality wine.</short>
+
+        <description>
+            <para>
+                A flask of good wine.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <cost>30</cost>
+    </item>
+
+    <item name="Flask of wine" quality="4">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>3</availability>
+        <tech level="1"/>
+        <short>A flask of fine quality wine.</short>
+
+        <description>
+            <para>
+                A flask of excellent wine, of vintage stock. It tastes
+                exellent, but is quite expensive.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Flask of wine" quality="5">
+        <category>Food</category>
+        <importance>1</importance>
+
+        <availability>4</availability>
+        <tech level="1"/>
+        <short>A flask of exellent quality wine.</short>
+
+        <description>
+            <para>
+                A flask of superb wine.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <cost>500</cost>
+    </item>
+
+    <item name="Loaf of bread">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>A fresh loaf of bread.</short>
+
+        <description>
+            <para>
+                A pretty standard loaf of bread.
+            </para>
+        </description>
+
+        <weight>400</weight>
+        <material>food</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Fresh meat">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>One portion of fresh meat.</short>
+
+        <description>
+            <para>
+                A portion of fresh meat for a single meal. Normally
+                accompanied with bread and/or vegetables.
+            </para>
+        </description>
+
+        <weight>100</weight>
+        <material>animal</material>
+
+        <cost>20</cost>
+    </item>
+
+    <item name="Pint of ale">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>A pint of strong ale.</short>
+
+        <description>
+            <para>
+                A pint of good strong ale.
+            </para>
+        </description>
+
+        <weight>800</weight>
+        <material>liquid</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Pint of bear">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>A pint of bear.</short>
+
+        <description>
+            <para>
+                A pint of good beer.
+            </para>
+        </description>
+
+        <weight>800</weight>
+        <material>liquid</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Pint of mead">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>2</availability>
+
+        <short>A pint of mead.</short>
+
+        <description>
+            <para>
+                A pint of good mead.
+            </para>
+        </description>
+
+        <weight>800</weight>
+        <material>liquid</material>
+
+        <cost>4</cost>
+    </item>
+
+    <item name="Bell, small hand">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>2</availability>
+
+        <short>A small bronze hand bell.</short>
+
+        <description>
+            <para>
+                A small bronze hand bell, of the sort often used by
+                watchmen and guards to sound for aid.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>50</cost>
+    </item>
+
+    <item name="Chain, light">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>3</availability>
+
+        <short>A metre length of light chain.</short>
+
+        <description>
+            <para>
+                A one metre length of chain, useful for light loads
+                or securing animals. Normally made of iron. Longer
+                lengths of chain can be bought, this is just the cost
+                per metre.
+            </para>
+        </description>
+
+        <dimensions>
+            <length>100</length>
+            <width>1</width>
+            <height>1</height>
+        </dimensions>
+
+        <weight>2000</weight>
+        <material>metal</material>
+
+        <cost>300</cost>
+    </item>
+
+    <item name="Chain, heavy">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>4</availability>
+
+        <short>A metre length of heavy chain.</short>
+
+        <description>
+            <para>
+                A one metre length of chain, designed for heavy loads
+                such as securing large creatures, ships or heavy loads.
+                This is the price and weight per metre.
+            </para>
+        </description>
+
+        <dimensions>
+            <length>100</length>
+            <width>3</width>
+            <height>3</height>
+        </dimensions>
+
+        <weight>5000</weight>
+        <material>metal</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Glass bottle">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>4</availability>
+
+        <short>A small glass bottle with a cork stopper.</short>
+
+        <description>
+            <para>
+                A fragile glass bottle, designed to hold a liquid or
+                powder. It can be sealed shut with a cork.
+            </para>
+        </description>
+
+        <dimensions>
+            <length>20</length>
+            <width>5</width>
+            <height>5</height>
+        </dimensions>
+
+        <weight>100</weight>
+        <material>glass</material>
+
+        <cost>5000</cost>
+    </item>
+
+    <item name="Padlock" quality="1">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>3</availability>
+
+        <short>A poor quality padlock.</short>
+
+        <description>
+            <para>
+                A poor quality padlock, designed to keep a door or chest
+                shut. Requires a relatively big key, and can be quite easy
+                to pick. Often it is easier to just break it though, by
+                either hitting it very hard, or levering it open.
+            </para>
+        </description>
+
+        <weight>250</weight>
+        <material>iron</material>
+
+        <cost>2000</cost>
+
+        <device xmlns="https://yags-rpg.net/xml/d20">
+            <difficulty>20</difficulty>
+            <hardness>3</hardness>
+            <hitpoints>5</hitpoints>
+            <break>20</break>
+        </device>
+
+        <device xmlns="https://yags-rpg.net/xml/yags">
+            <difficulty>15</difficulty>
+            <soak>10</soak>
+            <toughness>1</toughness>
+            <break>30</break>
+        </device>
+    </item>
+
+    <item name="Padlock" quality="2">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>4</availability>
+
+        <short>An average quality padlock.</short>
+
+        <description>
+            <para>
+                A padlock of average quality, of the sort used to keep
+                a door or chest locked shut.
+            </para>
+        </description>
+
+        <weight>300</weight>
+        <material>iron</material>
+
+        <cost>5000</cost>
+
+        <device xmlns="https://yags-rpg.net/xml/d20">
+            <difficulty>25</difficulty>
+            <hardness>3</hardness>
+            <hitpoints>6</hitpoints>
+            <break>22</break>
+        </device>
+
+        <device xmlns="https://yags-rpg.net/xml/yags">
+            <difficulty>20</difficulty>
+            <soak>12</soak>
+            <toughness>1</toughness>
+            <break>33</break>
+        </device>
+    </item>
+
+    <item name="Padlock" quality="3">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>3</availability>
+
+        <short>A good quality padlock.</short>
+
+        <description>
+            <para>
+                A good quality padlock.
+            </para>
+        </description>
+
+        <weight>300</weight>
+        <material>iron</material>
+
+        <cost>10000</cost>
+
+        <device xmlns="https://yags-rpg.net/xml/d20">
+            <difficulty>30</difficulty>
+            <hardness>4</hardness>
+            <hitpoints>7</hitpoints>
+            <break>20</break>
+        </device>
+
+        <device xmlns="https://yags-rpg.net/xml/yags">
+            <difficulty>25</difficulty>
+            <soak>12</soak>
+            <toughness>1</toughness>
+            <break>35</break>
+        </device>
+    </item>
+
+    <item name="Hourglass">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>4</availability>
+
+        <short>An hourglass, used to keep track of time.</short>
+
+        <description>
+            <para>
+                Made of glass, within a wooden frame, it is about
+                twenty centimetres tall and capable of timing events
+                for about 30 minutes.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>glass</material>
+
+        <cost>30000</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Magnifying glass">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>5</availability>
+
+        <short>A small glass lens with a wooden handle.</short>
+
+        <description>
+            <para>
+                This lens is about 5cm in diameter, and has a useful
+                magnification of about x2. It is liable to fracture
+                if dropped.
+            </para>
+        </description>
+
+        <dimensions>
+            <length>15</length>
+            <width>6</width>
+            <height>6</height>
+        </dimensions>
+
+        <weight>100</weight>
+        <material>glass</material>
+
+        <cost>20000</cost>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <tool xmlns="https://yags-rpg.net/xml/d20">
+            <skill>Appraise</skill>
+            <bonus>+2</bonus>
+            <notes>
+                Gives a bonus to appraise checks on small items.
+            </notes>
+        </tool>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <skill>Mechanical</skill>
+            <bonus>+3</bonus>
+            <notes>
+                Gives a bonus to disable traps and open locks.
+            </notes>
+        </tool>
+    </item>
+
+    <item name="Merchant's scale">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>4</availability>
+
+        <short>A weighing device.</short>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>1000</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Mirror, small metal">
+        <category>Adventuring</category>
+
+        <availability>4</availability>
+
+        <short>A highly polished peice of metal.</short>
+
+        <weight>100</weight>
+        <material>bronze</material>
+
+        <cost>1000</cost>
+    </item>
+
+    <item name="Perfume" quality="1">
+        <category>Fashion</category>
+        <importance>1</importance>
+
+        <availability>3</availability>
+
+        <short>A small vial of poor quality perfume.</short>
+
+        <weight>100</weight>
+        <material>liquid</material>
+
+        <cost>10</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Perfume" quality="2">
+        <category>Fashion</category>
+        <importance>2</importance>
+
+        <availability>4</availability>
+
+        <short>A small vial of perfume.</short>
+
+        <weight>100</weight>
+        <material>liquid</material>
+
+        <cost>200</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Perfume" quality="3">
+        <category>Fashion</category>
+        <importance>2</importance>
+
+        <availability>5</availability>
+
+        <short>A small vial of good quality perfume.</short>
+
+        <weight>50</weight>
+        <material>liquid</material>
+
+        <cost>1000</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Soap">
+        <category>Fashion</category>
+        <importance>2</importance>
+
+        <availability>3</availability>
+
+        <short>A bar of soap.</short>
+
+        <weight>250</weight>
+        <material>solid</material>
+
+        <cost>4</cost>
+    </item>
+
+    <item name="Scroll case">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>4</availability>
+
+        <short>A tube for holding scrolls.</short>
+
+        <weight>250</weight>
+        <material>wood</material>
+
+        <cost>8</cost>
+    </item>
+
+    <item name="Sewing needle">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>1</availability>
+
+        <short>A small bone sewing needle.</short>
+
+        <weight>5</weight>
+        <material>bone</material>
+
+        <cost>5</cost>
+    </item>
+
+    <item name="Signal whistle">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>5</availability>
+
+        <short>A small iron whistle.</short>
+
+        <weight>5</weight>
+        <material>iron</material>
+
+        <cost>100</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Signet ring">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>3</availability>
+
+        <short>A ring with a pattern embossed upon it.</short>
+
+        <weight>5</weight>
+        <material>silver</material>
+
+        <cost>200</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Spyglass">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>6</availability>
+
+        <short>An iron tube with two lenses in it.</short>
+
+        <weight>500</weight>
+        <material>iron</material>
+
+        <cost>20000</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Water clock">
+        <category>Adventuring</category>
+        <importance>1</importance>
+
+        <availability>5</availability>
+
+        <short>A clock which works by timing the drips of water.</short>
+
+        <weight>5000</weight>
+        <material>glass</material>
+
+        <cost>20000</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Writing ink (vial)">
+        <category>Adventuring</category>
+        <importance>2</importance>
+
+        <availability>4</availability>
+
+        <short>A clay vial of writing ink.</short>
+
+        <weight>50</weight>
+        <material>clay</material>
+
+        <cost>40</cost>
+
+        <properties>
+            <special/>
+        </properties>
+    </item>
+
+    <item name="Backpack">
+        <category>Container</category>
+        <importance>3</importance>
+
+        <availability>2</availability>
+
+        <short>A leather bag for keeping stuff in.</short>
+
+        <dimensions>
+            <length>50</length>
+            <width>40</width>
+            <height>40</height>
+        </dimensions>
+
+        <weight>2000</weight>
+        <material>leather</material>
+
+        <cost>20</cost>
+    </item>
+
+    <item name="Barrel (small)">
+        <category>Container</category>
+        <importance>1</importance>
+
+        <availability>1</availability>
+
+        <short>A small wooden barrel.</short>
+
+        <dimensions>
+            <length>100</length>
+            <width>50</width>
+            <height>50</height>
+        </dimensions>
+
+        <weight>10000</weight>
+        <material>wood</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Basket (large)">
+        <category>Container</category>
+        <importance>0</importance>
+
+        <availability>1</availability>
+
+        <short>A woven basket.</short>
+
+        <weight>500</weight>
+        <material>wood</material>
+
+        <cost>12</cost>
+    </item>
+
+    <item name="Basket (small)">
+        <category>Container</category>
+        <importance>0</importance>
+
+        <availability>1</availability>
+
+        <short>A woven basket.</short>
+
+        <weight>100</weight>
+        <material>wood</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Belt pouch (small)">
+        <category>Container</category>
+        <importance>1</importance>
+
+        <availability>2</availability>
+
+        <short>A small leather belt pouch.</short>
+
+        <weight>100</weight>
+        <material>leather</material>
+
+        <cost>4</cost>
+    </item>
+
+    <item name="Belt pouch (large)">
+        <category>Container</category>
+        <importance>1</importance>
+
+        <availability>2</availability>
+
+        <short>A large leather belt pouch.</short>
+
+        <weight>250</weight>
+        <material>leather</material>
+
+        <cost>6</cost>
+    </item>
+
+    <item name="Bolt case">
+        <category>Container</category>
+        <importance>2</importance>
+
+        <availability>2</availability>
+
+        <short>A wooden case for holding quarrels.</short>
+
+        <weight>500</weight>
+        <material>wood</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Bucket, metal">
+        <category>Container</category>
+        <importance>1</importance>
+
+        <availability>2</availability>
+
+        <short>A metal bucket.</short>
+
+        <weight>2000</weight>
+        <material>iron</material>
+
+        <cost>500</cost>
+    </item>
+
+    <item name="Bucket, wood">
+        <category>Container</category>
+        <importance>1</importance>
+
+        <availability>1</availability>
+
+        <short>A wooden bucket.</short>
+
+        <weight>2000</weight>
+        <material>wood</material>
+
+        <cost>50</cost>
+    </item>
+
+    <item name="Chest, large">
+        <category>Container</category>
+        <importance>2</importance>
+
+        <availability>3</availability>
+
+        <short>A large wooden chest, almost a metre long.</short>
+
+        <dimensions>
+            <length>90</length>
+            <width>60</width>
+            <height>60</height>
+        </dimensions>
+
+        <weight>20000</weight>
+        <material>wood</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Chest, small">
+        <category>Container</category>
+        <importance>2</importance>
+
+        <availability>2</availability>
+
+        <short>A small wooden chest.</short>
+
+        <dimensions>
+            <length>45</length>
+            <width>30</width>
+            <height>30</height>
+        </dimensions>
+
+        <weight>8000</weight>
+        <material>wood</material>
+
+        <cost>20</cost>
+    </item>
+
+    <item name="Iron pot">
+        <category>Container</category>
+        <category>Cooking</category>
+
+        <availability>2</availability>
+
+        <short>An iron pot, of the sort used for cooking.</short>
+
+        <weight>3000</weight>
+        <material>metal</material>
+
+        <cost>50</cost>
+    </item>
+
+    <item name="Quiver">
+        <category>Container</category>
+
+        <availability>2</availability>
+
+        <short>A quiver for holding arrows.</short>
+
+        <weight>500</weight>
+        <material>leather</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Sack, large">
+        <category>Container</category>
+
+        <availability>2</availability>
+
+        <short>A sack big enough for a person.</short>
+
+        <weight>250</weight>
+        <material>cloth</material>
+
+        <cost>20</cost>
+    </item>
+
+    <item name="Sack, small">
+        <category>Container</category>
+
+        <availability>1</availability>
+
+        <short>A small sack big enough to hold a chicken.</short>
+
+        <weight>100</weight>
+        <material>cloth</material>
+
+        <cost>5</cost>
+    </item>
+
+    <item name="Strongbox (iron), large">
+        <category>Container</category>
+
+        <availability>4</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>An iron strongbox, for keeping valuables.</short>
+
+        <dimensions>
+            <length>90</length>
+            <width>60</width>
+            <height>60</height>
+        </dimensions>
+
+        <weight>60000</weight>
+        <material>iron</material>
+
+        <cost>500</cost>
+    </item>
+
+    <item name="Strongbox (iron), small">
+        <category>Container</category>
+
+        <availability>4</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>An iron strongbox, for keeping valuables.</short>
+
+        <dimensions>
+            <length>45</length>
+            <width>30</width>
+            <height>30</height>
+        </dimensions>
+
+        <weight>25000</weight>
+        <material>iron</material>
+
+        <cost>300</cost>
+    </item>
+
+    <item name="Strongbox (steel), large">
+        <category>Container</category>
+
+        <availability>5</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A steel strongbox, for keeping valuables.</short>
+
+        <dimensions>
+            <length>90</length>
+            <width>60</width>
+            <height>60</height>
+        </dimensions>
+
+        <weight>50000</weight>
+        <material>steel</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Strongbox (steel), small">
+        <category>Container</category>
+
+        <availability>5</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A steel strongbox, for keeping valuables.</short>
+
+        <dimensions>
+            <length>45</length>
+            <width>30</width>
+            <height>30</height>
+        </dimensions>
+
+        <weight>20000</weight>
+        <material>iron</material>
+
+        <cost>1000</cost>
+    </item>
+
+    <item name="Water skin">
+        <category>Container</category>
+
+        <availability>2</availability>
+
+        <short>A watertight flask for holding wine or water.</short>
+
+        <weight>100</weight>
+        <material>leather</material>
+
+        <cost>60</cost>
+    </item>
+
+    <item name="Block and tackle, light">
+        <category>Climbing</category>
+
+        <availability>4</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A light block and tackle.</short>
+
+        <weight>1000</weight>
+        <material>metal</material>
+
+        <cost>50</cost>
+    </item>
+
+    <item name="Block and tackle, medium">
+        <category>Climbing</category>
+
+        <availability>5</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A meidum block and tackle.</short>
+
+        <weight>2000</weight>
+        <material>metal</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Block and tackle, heavy">
+        <category>Climbing</category>
+
+        <availability>5</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A heavy block and tackle.</short>
+
+        <weight>4000</weight>
+        <material>metal</material>
+
+        <cost>500</cost>
+    </item>
+
+    <item name="Crampons">
+        <category>Climbing</category>
+
+        <availability>4</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>Spikes worn on a shoe to help in climbing.</short>
+
+        <weight>750</weight>
+        <material>metal</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Grappling hook">
+        <category>Climbing</category>
+
+        <availability>3</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A 3-way iron hook.</short>
+
+        <weight>1000</weight>
+        <material>metal</material>
+
+        <cost>80</cost>
+    </item>
+
+    <item name="Ladder, wood">
+        <category>Climbing</category>
+
+        <availability>3</availability>
+
+        <short>2m of wooden ladder.</short>
+
+        <weight>3000</weight>
+        <material>wood</material>
+
+        <cost>5</cost>
+    </item>
+
+    <item name="Ladder, metal">
+        <category>Climbing</category>
+
+        <availability>3</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>2m of metal ladder.</short>
+
+        <weight>5000</weight>
+        <material>iron</material>
+
+        <cost>200</cost>
+    </item>
+
+    <item name="Piton">
+        <category>Climbing</category>
+
+        <availability>3</availability>
+
+        <short>A spike used in rock climbing.</short>
+
+        <weight>250</weight>
+        <material>iron</material>
+
+        <cost>5</cost>
+    </item>
+
+    <item name="Rope, hemp">
+        <category>Climbing</category>
+
+        <availability>3</availability>
+
+        <short>20m of hemp rope.</short>
+
+        <weight>12000</weight>
+        <material>hemp</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Rope, silk">
+        <category>Climbing</category>
+
+        <availability>5</availability>
+        <properties>
+            <special/>
+        </properties>
+
+        <short>20m of silk rope.</short>
+
+        <weight>5000</weight>
+        <material>silk</material>
+
+        <cost>1600</cost>
+    </item>
+
+    <item name="Acid" quality="1">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Alchemist</source>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A weak acid, used for dissolving metal.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Acid" quality="2">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Alchemist</source>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>An acid, used for dissolving metal.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>5000</cost>
+    </item>
+
+    <item name="Acid" quality="3">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Alchemist</source>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A strong acid, used for dissolving metal.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>20000</cost>
+    </item>
+
+    <item name="Caltrops">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Blackmarket</source>
+
+        <properties>
+            <special/>
+            <illegal/>
+        </properties>
+
+        <short>A set of caltrops, enough for one use.</short>
+
+        <weight>250</weight>
+        <material>iron</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Glass cutter">
+        <category>Rogue</category>
+        <availability>5</availability>
+
+        <properties>
+            <special/>
+            <illegal/>
+        </properties>
+
+        <short>A diamond glass cutter.</short>
+
+        <weight>25</weight>
+        <material>diamond</material>
+
+        <cost>5000</cost>
+    </item>
+
+    <item name="Glue" quality="1">
+        <category>Rogue</category>
+        <availability>2</availability>
+
+        <short>A weak glue.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>50</cost>
+    </item>
+
+    <item name="Glue" quality="2">
+        <category>Rogue</category>
+        <availability>3</availability>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>An average glue.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>500</cost>
+    </item>
+
+    <item name="Glue" quality="3">
+        <category>Rogue</category>
+        <availability>4</availability>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A strong glue.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Grease">
+        <category>Rogue</category>
+        <availability>1</availability>
+
+        <short>Enough grease for one square metre of floor.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Hearing cone">
+        <category>Rogue</category>
+        <availability>4</availability>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A short wooden cone, the narrow end fits into an ear.</short>
+
+        <weight>250</weight>
+        <material>wood</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Jemmy">
+        <category>Rogue</category>
+        <availability>3</availability>
+        <source>Blacksmith</source>
+
+        <short>A short iron bar with a wedged end.</short>
+
+        <dimensions>
+            <length>50</length>
+            <width>3</width>
+            <height>2</height>
+        </dimensions>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>50</cost>
+    </item>
+
+    <item name="Iron spikes">
+        <category>Rogue</category>
+        <availability>2</availability>
+        <source>Blacksmith</source>
+
+        <short>An iron spike.</short>
+
+        <weight>100</weight>
+        <material>metal</material>
+
+        <cost>4</cost>
+    </item>
+
+    <item name="Lock picks">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Locksmith</source>
+
+        <properties>
+            <special/>
+            <illegal/>
+        </properties>
+
+        <short>Tools used to open locks.</short>
+
+        <weight>10</weight>
+        <material>metal</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Marbles (glass)">
+        <category>Rogue</category>
+        <availability>5</availability>
+        <source>Glassblower</source>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A bag of small glass marbles.</short>
+
+        <weight>250</weight>
+        <material>glass</material>
+
+        <cost>400</cost>
+    </item>
+
+    <item name="Marbles (stone)">
+        <category>Rogue</category>
+        <availability>3</availability>
+
+        <short>A bag of small stone marbles.</short>
+
+        <weight>250</weight>
+        <material>stone</material>
+
+        <cost>12</cost>
+    </item>
+
+    <item name="Oil, lubricating">
+        <category>Rogue</category>
+        <availability>3</availability>
+
+        <short>A small flash of lubricating oil.</short>
+
+        <weight>250</weight>
+        <material>liquid</material>
+
+        <cost>12</cost>
+    </item>
+
+    <item name="Skeleton key">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Locksmith</source>
+
+        <properties>
+            <special/>
+            <illegal/>
+        </properties>
+
+        <short>A key for opening many locks.</short>
+
+        <weight>10</weight>
+        <material>metal</material>
+
+        <cost>5000</cost>
+    </item>
+
+    <item name="Small hammer">
+        <category>Rogue</category>
+        <availability>2</availability>
+        <source>Blacksmith</source>
+
+        <short>A small hammer, easily concealed in a hand.</short>
+
+        <weight>200</weight>
+        <material>metal</material>
+
+        <cost>10</cost>
+    </item>
+
+    <item name="String, hemp">
+        <category>Rogue</category>
+        <availability>2</availability>
+
+        <short>A 10m length of string.</short>
+
+        <weight>50</weight>
+        <material>hemp</material>
+
+        <cost>3</cost>
+    </item>
+
+    <item name="String, silk">
+        <category>Rogue</category>
+        <availability>5</availability>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A 10m length of silk string.</short>
+
+        <weight>10</weight>
+        <material>silk</material>
+
+        <cost>200</cost>
+    </item>
+
+    <item name="Weapon black">
+        <category>Rogue</category>
+        <availability>4</availability>
+
+        <short>Black coating to dull a single weapon.</short>
+
+        <weight>200</weight>
+        <material>liquid</material>
+
+        <cost>500</cost>
+    </item>
+
+    <item name="Wire saw">
+        <category>Rogue</category>
+        <availability>4</availability>
+        <source>Blacksmith</source>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A small wire saw, easily portable.</short>
+
+        <weight>20</weight>
+        <material>metal</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Blankets, simple">
+        <category>Adventuring</category>
+        <availability>2</availability>
+        <tech level="1"/>
+
+        <short>A thin blanket.</short>
+
+        <weight>1000</weight>
+        <material>cloth</material>
+
+        <cost>20</cost>
+    </item>
+
+    <item name="Blankets, thick">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="1"/>
+
+        <short>A thick blanket.</short>
+
+        <weight>2000</weight>
+        <material>cloth</material>
+
+        <cost>80</cost>
+    </item>
+
+    <item name="Blankets, winter">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="1"/>
+
+        <short>A thick winter blanket.</short>
+
+        <weight>5000</weight>
+        <material>cloth</material>
+
+        <cost>400</cost>
+    </item>
+
+    <item name="Candle">
+        <category>Adventuring</category>
+        <availability>1</availability>
+        <tech level="1"/>
+
+        <short>A wax candle, provides about an hour of light.</short>
+
+        <weight>50</weight>
+        <material>wax</material>
+
+        <cost>1</cost>
+    </item>
+
+    <item name="Canvas">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="1"/>
+
+        <short>A square metre of canvas.</short>
+
+        <weight>1000</weight>
+        <material>cloth</material>
+
+        <cost>16</cost>
+    </item>
+
+    <item name="Chalk">
+        <category>Adventuring</category>
+        <availability>0</availability>
+        <tech level="0"/>
+
+        <short>A stick of white chalk.</short>
+
+        <weight>10</weight>
+        <material>stone</material>
+
+        <cost>1</cost>
+    </item>
+
+    <item name="Fish hook">
+        <category>Adventuring</category>
+        <availability>2</availability>
+        <tech level="1"/>
+        <source>Blacksmith</source>
+
+        <short>A small metal hook.</short>
+
+        <weight>5</weight>
+        <material>metal</material>
+
+        <cost>16</cost>
+    </item>
+
+    <item name="Fishing net">
+        <category>Adventuring</category>
+        <availability>2</availability>
+        <tech level="1"/>
+        <source>Fisherman</source>
+
+        <short>A 2m by 2m fishing net.</short>
+
+        <weight>3</weight>
+        <material>hemp</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Flint and steel">
+        <category>Adventuring</category>
+        <availability>2</availability>
+        <tech level="1"/>
+
+        <short>A fire starting kit.</short>
+
+        <weight>50</weight>
+        <material>stone</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Lantern, beacon">
+        <category>Adventuring</category>
+        <availability>5</availability>
+        <tech level="2"/>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A large glass lantern with an iron framework.</short>
+
+        <weight>20000</weight>
+        <material>glass</material>
+
+        <cost>10000</cost>
+    </item>
+
+    <item name="Lantern, bullseye">
+        <category>Adventuring</category>
+        <availability>4</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A bullseye lantern.</short>
+
+        <weight>2000</weight>
+        <material>glass</material>
+
+        <cost>1200</cost>
+    </item>
+
+    <item name="Lantern, hooded">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="1"/>
+
+        <short>A standard hooded lantern.</short>
+
+        <weight>1000</weight>
+        <material>glass</material>
+
+        <cost>800</cost>
+    </item>
+
+    <item name="Lamp oil">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="1"/>
+
+        <short>Lamp oil, enough for 6 hours.</short>
+
+        <weight>500</weight>
+        <material>liquid</material>
+
+        <cost>6</cost>
+    </item>
+
+    <item name="Pavilion" quality="2">
+        <category>Adventuring</category>
+        <availability>5</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+            <luxury/>
+        </properties>
+
+        <short>A tent large enough for 10 people.</short>
+
+        <weight>25000</weight>
+        <material>cloth</material>
+
+        <cost>10000</cost>
+    </item>
+
+    <item name="Pavilion" quality="3">
+        <category>Adventuring</category>
+        <availability>5</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+            <luxury/>
+        </properties>
+
+        <short>A tent large enough for 10 people.</short>
+
+        <weight>35000</weight>
+        <material>cloth</material>
+
+        <cost>30000</cost>
+    </item>
+
+    <item name="Pavilion" quality="4">
+        <category>Adventuring</category>
+        <availability>5</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+            <luxury/>
+        </properties>
+
+        <short>A tent large enough for 10 people.</short>
+
+        <weight>60000</weight>
+        <material>cloth</material>
+
+        <cost>50000</cost>
+    </item>
+
+    <item name="Pavilion" quality="5">
+        <category>Adventuring</category>
+        <availability>5</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+            <luxury/>
+        </properties>
+
+        <short>A tent large enough for 10 people.</short>
+
+        <weight>100000</weight>
+        <material>cloth</material>
+
+        <cost>100000</cost>
+    </item>
+
+    <item name="Rations, standard">
+        <category>Adventuring</category>
+        <availability>1</availability>
+        <tech level="0"/>
+
+        <short>One week's worth of standard rations.</short>
+
+        <weight>5000</weight>
+        <material>food</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Rations, dried">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="0"/>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>One week's worth of dried rations.</short>
+
+        <weight>2000</weight>
+        <material>food</material>
+
+        <cost>600</cost>
+    </item>
+
+    <item name="Tent, large">
+        <category>Adventuring</category>
+        <availability>4</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A tent for four people.</short>
+
+        <weight>10000</weight>
+        <material>cloth</material>
+
+        <cost>2000</cost>
+    </item>
+
+    <item name="Tent, small">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="1"/>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>A tent for two people.</short>
+
+        <weight>6000</weight>
+        <material>cloth</material>
+
+        <cost>400</cost>
+    </item>
+
+    <item name="Torch">
+        <category>Adventuring</category>
+        <availability>1</availability>
+        <tech level="0"/>
+
+        <short>A torch, lasts 1 hour.</short>
+
+        <weight>500</weight>
+        <material>wood</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Whetstone">
+        <category>Adventuring</category>
+        <availability>2</availability>
+        <tech level="1"/>
+
+        <short>A small portable whetstone.</short>
+
+        <weight>500</weight>
+        <material>stone</material>
+
+        <cost>2</cost>
+    </item>
+
+    <item name="Dozen chickens">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <source>Farmer</source>
+
+        <short>A dozen live chickens.</short>
+
+        <description>
+            <para>
+                Chickens are a relatively cheap and common commodity,
+                making a single chicken relatively worthless as far
+                as money is concerned. If fewer chickens are needed,
+                then bartering is the order of the day.
+            </para>
+        </description>
+
+        <weight>6000</weight>
+        <material>animal</material>
+
+        <cost>3</cost>
+    </item>
+
+    <item name="Cow">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <source>Farmer</source>
+
+        <short>A single fully grown cow.</short>
+
+        <description>
+            <para>
+                A cow will generally be ready to be milked. Those that
+                aren't capable of milking will be cheaper.
+            </para>
+        </description>
+
+        <weight>500000</weight>
+        <material>animal</material>
+
+        <cost>280</cost>
+    </item>
+
+    <item name="Ewe and lamb">
+        <category>Livestock</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Farmer</source>
+
+        <short>An ewe with a newly born lamb.</short>
+
+        <description>
+            <para>
+                Lambs are often sold with their mothers, since they are
+                easier to keep fresh if alive, but can't survive without
+                their mother's milk.
+            </para>
+        </description>
+
+        <weight>250000</weight>
+        <material>animal</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Ox">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <source>Farmer</source>
+
+        <short>Oxen make great draft animals.</short>
+
+        <weight>750000</weight>
+        <material>animal</material>
+
+        <cost>340</cost>
+    </item>
+
+    <item name="Pig">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <source>Farmer</source>
+
+        <short>The source of bacon sandwiches.</short>
+
+        <weight>75000</weight>
+        <material>animal</material>
+
+        <cost>80</cost>
+    </item>
+
+    <item name="Sheep">
+        <category>Livestock</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <source>Shephard</source>
+
+        <short>Used for wool or meat.</short>
+
+        <weight>75000</weight>
+        <material>animal</material>
+
+        <cost>40</cost>
+    </item>
+
+    <item name="Peregrine Falcon (fledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>3</availability>
+        <source>Falconer</source>
+
+        <short>A falcon with developed feathers and capable of flight.</short>
+
+        <weight>250</weight>
+        <material>animal</material>
+
+        <cost>960</cost>
+    </item>
+
+    <item name="Peregrine falcon (unfledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>3</availability>
+        <source>Falconer</source>
+
+        <short>A falcon with undeveloped feathers.</short>
+
+        <weight>150</weight>
+        <material>animal</material>
+
+        <cost>480</cost>
+    </item>
+
+    <item name="Sparrow Hawk (fledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Falconer</source>
+
+        <short>A hawk with developed feathers and capable of flight.</short>
+
+        <weight>200</weight>
+        <material>animal</material>
+
+        <cost>96</cost>
+    </item>
+
+    <item name="Sparrow Hawk (unfledged)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Falconer</source>
+
+        <short>A hawk with undeveloped feathers.</short>
+
+        <weight>150</weight>
+        <material>animal</material>
+
+        <cost>48</cost>
+    </item>
+
+    <item name="Lap dog" quality="2">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>1</availability>
+
+        <short>A common house trained dog.</short>
+
+        <weight>5000</weight>
+        <material>animal</material>
+
+        <cost>16</cost>
+    </item>
+
+    <item name="Lap dog" quality="3">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A good quality house trained dog.</short>
+
+        <weight>5000</weight>
+        <material>animal</material>
+
+        <cost>100</cost>
+    </item>
+
+    <item name="Lap dog" quality="4">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>A high quality house trained dog.</short>
+
+        <weight>5000</weight>
+        <material>animal</material>
+
+        <cost>480</cost>
+    </item>
+
+    <item name="Lap dog" quality="5">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>Pure breed house trained dog.</short>
+
+        <weight>5000</weight>
+        <material>animal</material>
+
+        <cost>960</cost>
+    </item>
+
+    <item name="Buck Hound">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Huntsman</source>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A hound for hunting deer.</short>
+
+        <weight>10000</weight>
+        <material>animal</material>
+
+        <cost>480</cost>
+    </item>
+
+    <item name="Peregrine hawk's nest">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>4</availability>
+
+        <short>A nest with unhatched eggs.</short>
+
+        <weight>500</weight>
+        <material>animal</material>
+
+        <cost>960</cost>
+    </item>
+
+    <item name="Sparrow hawk nest">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>2</availability>
+
+        <short>A nest with unhatched eggs.</short>
+
+        <weight>500</weight>
+        <material>animal</material>
+
+        <cost>96</cost>
+    </item>
+
+    <item name="Swarm of bees (virgin)">
+        <category>Livestock</category>
+        <importance>1</importance>
+        <availability>2</availability>
+        <source>Beekeeper</source>
+
+        <short>A swarm of virgin bees.</short>
+
+        <weight>200</weight>
+        <material>animal</material>
+
+        <cost>64</cost>
+    </item>
+
+    <item name="Horse (riding)">
+        <category>Animals</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <source>Ostler</source>
+
+        <short>An average quality riding horse.</short>
+
+        <weight>250000</weight>
+        <material>animal</material>
+
+        <cost>800</cost>
+    </item>
+
+    <item name="Greyhound (trained)">
+        <category>Animals</category>
+        <importance>1</importance>
+        <availability>3</availability>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A trained greyhound.</short>
+
+        <weight>60000</weight>
+        <material>animal</material>
+
+        <cost>480</cost>
+    </item>
+
+    <item name="Hunting dog (trained)">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A trained hunting dog.</short>
+
+        <weight>50000</weight>
+        <material>animal</material>
+
+        <cost>960</cost>
+    </item>
+
+    <item name="Dunghill dog">
+        <category>Animals</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <properties>
+            <trained/>
+        </properties>
+
+        <short>A dog used when hunting fowl.</short>
+
+        <weight>30000</weight>
+        <material>animal</material>
+
+        <cost>16</cost>
+    </item>
+
+    <item name="Slave (male)">
+        <category>People</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Slaver</source>
+
+        <short>A young man, useful for manual labor.</short>
+
+        <weight>70000</weight>
+        <material>animal</material>
+
+        <cost>800</cost>
+    </item>
+
+    <item name="Slave (female)">
+        <category>People</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <source>Slaver</source>
+
+        <short>A young woman, useful for light work.</short>
+
+        <weight>60000</weight>
+        <material>animal</material>
+
+        <cost>520</cost>
+    </item>
+
+    <item name="Accepting service of another's ceorl">
+        <category>Fines</category>
+        <importance>2</importance>
+
+        <short></short>
+
+        <cost>2400</cost>
+    </item>
+
+    <item name="Hand axe">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A small weapon designed to be used in one hand.</short>
+
+        <description>
+            <para>
+                A small axe, not designed specifically for combat but
+                can be used in close quarters fighting. It has a small
+                head, with a haft about 30cm long.
+            </para>
+        </description>
+
+        <weight>250</weight>
+        <material>metal</material>
+
+        <cost>40</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Axes</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+2</attack>
+                <defence>+1</defence>
+                <damage>+5</damage>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.5</load>
+            <reach>1</reach>
+
+            <properties>
+                <heavy/>
+                <throwable/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Battle axe">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A one or two handed axe.</short>
+
+        <description>
+            <para>
+                An axe designed for single handed user. It has a single
+                bladed head, with a haft about 60cm long.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>60</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Axes</category>
+            <class>single</class>
+            <combat>
+                <attack>+4</attack>
+                <defence>+3</defence>
+                <damage>+10</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>2</load>
+            <reach></reach>
+
+            <properties>
+                <heavy/>
+                <impaling/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Broad axe">
+        <category>Weapon</category>
+        <importance>2</importance>
+
+        <short>A large two handed axe.</short>
+
+        <description>
+            <para>
+                A large two handed axe with a long haft, around 150cm
+                in length. It is topped with a single broad blade. It
+                is poor in defence, but very good against armour.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>80</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Axes</category>
+            <class>great</class>
+            <combat>
+                <attack>+7</attack>
+                <defence>+4</defence>
+                <damage>+15</damage>
+            </combat>
+
+            <strength>6</strength>
+            <load>3</load>
+            <reach>3</reach>
+
+            <properties>
+                <twohanded/>
+                <heavy/>
+                <impaling/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Club">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A wooden club, a very simple weapon.</short>
+
+        <description>
+            <para>
+                Often, a club is not much more than a shaft of wood,
+                maybe with some metal on one end to weight it. It is
+                considered to be a simple weapon.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>wood</material>
+
+        <cost>4</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Clubs</category>
+            <class>brawl</class>
+            <class>single</class>
+
+            <combat>
+                <attack>+2</attack>
+                <defence>+3</defence>
+                <damage type="split">+5</damage>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>1</reach>
+
+            <properties>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Dagger">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A short bladed weapon.</short>
+
+        <description>
+            <para>
+                Daggers are halfway between a knife and a sword - unlike
+                a knife they are properly designed as a weapon rather
+                than a tool or eating implement.
+            </para>
+        </description>
+
+        <weight>250</weight>
+        <material>metal</material>
+
+        <cost>20</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Knives</category>
+            <class>brawl</class>
+            <class>single</class>
+
+            <combat>
+                <attack>+2</attack>
+                <defence>+3</defence>
+                <damage>+4</damage>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.5</load>
+            <reach>0</reach>
+
+            <properties>
+                <impaling/>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Scramasax">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A cheap sword.</short>
+
+        <description>
+            <para>
+                A cheap single edged sword, forged from a single piece
+                of iron.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>20</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+4</attack>
+                <defence>+3</defence>
+                <damage>+7</damage>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>1</reach>
+
+            <properties>
+                <weak/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Long sword">
+        <category>Weapon</category>
+        <importance>2</importance>
+
+        <short>A double edged two handed sword.</short>
+
+        <description>
+            <para>
+                The blade of a long sword can be 100cm long or more,
+                with another 20cm for the hilt. They are designed for
+                one handed use, but the hilt is long enough for a
+                two handed grip.
+            </para>
+        </description>
+
+        <weight>1200</weight>
+        <material>metal</material>
+
+        <cost>1200</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>great</class>
+
+            <combat>
+                <attack>+6</attack>
+                <defence>+4</defence>
+                <damage>+14</damage>
+            </combat>
+
+            <strength>4</strength>
+            <load>2</load>
+            <reach>3</reach>
+
+            <properties>
+                <twohanded/>
+                <thrusting/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Broad sword">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A typical double edged sword.</short>
+
+        <description>
+            <para>
+                The common sword, with a one handed grip and a blade
+                length of about 85 to 90cm. The blade edges tend to be
+                parallel, designed for slashing and cutting.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>metal</material>
+
+        <cost>960</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+5</attack>
+                <defence>+5</defence>
+                <damage>+12</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>1</load>
+            <reach>2</reach>
+
+            <properties>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Great sword">
+        <category>Weapon</category>
+        <importance>2</importance>
+
+        <short>A large two handed sword.</short>
+
+        <description>
+            <para>
+                These are similar to long swords, but are heavy enough
+                to pretty much require a double grip. Blade length is in
+                the order of 110cm to 130cm in length, with a long
+                hilt for a two handed grip.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>metal</material>
+
+        <cost>4000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>great</class>
+
+            <combat>
+                <attack>+8</attack>
+                <defence>+6</defence>
+                <damage>+16</damage>
+            </combat>
+
+            <strength>6</strength>
+            <load>3</load>
+            <reach>3</reach>
+            <weight>3000</weight>
+
+            <properties>
+                <twohanded/>
+                <heavy/>
+                <strong/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Knife">
+        <category>Weapon</category>
+        <importance>3</importance>
+
+        <short>A short bladed weapon.</short>
+
+        <weight>100</weight>
+        <material>metal</material>
+
+        <cost>12</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Knives</category>
+            <class>brawl</class>
+            <class>single</class>
+
+            <combat>
+                <attack>+1</attack>
+                <defence>+2</defence>
+                <damage type="mixed">+2</damage>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.25</load>
+            <reach>0</reach>
+            <weight>250</weight>
+
+            <properties>
+                <light/>
+                <throwable/>
+                <weak/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Long spear">
+        <category>Weapon</category>
+        <importance>2</importance>
+
+        <short>A long two handed spear.</short>
+
+        <weight>2000</weight>
+        <material>wood</material>
+
+        <cost>8</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Spear</category>
+            <class>longshaft</class>
+
+            <combat>
+                <attack>+4</attack>
+                <defence>+4</defence>
+                <damage>+11</damage>
+            </combat>
+
+            <strength>5</strength>
+            <load>2</load>
+            <reach>4</reach>
+            <weight>2000</weight>
+
+            <properties>
+                <twohanded/>
+                <thrusting/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Mace">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>2</availability>
+
+        <short>A short weapon with a metal head.</short>
+
+        <weight>2000</weight>
+        <material>metal</material>
+
+        <cost>40</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Clubs</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+3</attack>
+                <defence>+3</defence>
+                <damage>+11</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>2</load>
+            <reach>1</reach>
+
+            <properties>
+                <crushing/>
+                <heavy/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Quarterstaff">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>1</availability>
+
+        <short>A 2m long heavy wooden staff.</short>
+
+        <weight>1000</weight>
+        <material>wood</material>
+
+        <cost>8</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Spears</category>
+            <class>longshaft</class>
+            <class>great</class>
+
+            <combat>
+                <attack>+5</attack>
+                <defence>+9</defence>
+                <damage type="mixed">+8</damage>
+            </combat>
+
+            <strength>4</strength>
+            <load>1</load>
+            <reach>3</reach>
+
+            <properties>
+                <twohanded/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Bill">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A long shafted axe.</short>
+
+        <weight>1000</weight>
+        <material>wood</material>
+
+        <cost>20</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Spears</category>
+            <class>longshaft</class>
+            <class>great</class>
+
+            <combat>
+                <attack>+5</attack>
+                <defence>+8</defence>
+                <damage>+13</damage>
+            </combat>
+
+            <strength>5</strength>
+            <load>1</load>
+            <reach>3</reach>
+
+            <properties>
+                <twohanded/>
+                <heavy/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Round shield">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>2</availability>
+
+        <short>A standard shield.</short>
+
+        <weight>1500</weight>
+        <material>wood</material>
+        <cost>20</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Shields</category>
+            <class>shield</class>
+
+            <combat>
+                <attack>+2</attack>
+                <defence>+5</defence>
+                <damage>+0</damage>
+                <bash>+5</bash>
+            </combat>
+
+            <strength>2</strength>
+            <load>1.5</load>
+            <reach>1</reach>
+            <weight>1500</weight>
+
+            <properties>
+                <blocking/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Small shield">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A small shield.</short>
+
+        <weight>1000</weight>
+        <material>wood</material>
+        <cost>12</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Shields</category>
+            <class>shield</class>
+
+            <combat>
+                <attack>+2</attack>
+                <defence>+3</defence>
+                <damage>+0</damage>
+                <bash>+3</bash>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>1</reach>
+
+            <properties>
+                <blocking/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Buckler">
+        <category>Shields</category>
+        <importance>1</importance>
+        <availability>2</availability>
+
+        <short>A very small and light shield.</short>
+
+        <weight>500</weight>
+        <material>leather</material>
+        <cost>8</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Shields</category>
+            <class>shield</class>
+
+            <combat>
+                <attack>+0</attack>
+                <defence>+3</defence>
+                <damage>+0</damage>
+                <bash>+2</bash>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.5</load>
+            <reach>0</reach>
+
+            <properties>
+                <blocking/>
+                <light/>
+                <weak/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Short sword">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>A short double edged sword.</short>
+
+        <weight>1000</weight>
+        <material>metal</material>
+        <cost>60</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>single</class>
+
+            <description>
+                <para>
+                    A short blade, about 60cm long.
+                </para>
+            </description>
+
+            <combat>
+                <attack>+4</attack>
+                <defence>+3</defence>
+                <damage>+9</damage>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>1</reach>
+
+            <properties>
+                <impaling/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Hunting spear">
+        <category>Weapon</category>
+        <importance>1</importance>
+        <availability>2</availability>
+
+        <short>A light spear used for hunting.</short>
+
+        <weight>500</weight>
+        <material>wood</material>
+        <cost>8</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Spears</category>
+            <class>single</class>
+            <class>longshaft</class>
+
+            <combat>
+                <attack>+3</attack>
+                <defence>+2</defence>
+                <damage>+7</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>10</short>
+                    <medium>30</medium>
+                    <long>50</long>
+                </range>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>3</reach>
+            <weight>1000</weight>
+
+            <properties>
+                <missile/>
+                <thrusting/>
+                <twohanded/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="War spear">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>A heavy spear with a broad blade.</short>
+
+        <description>
+            <para>
+                A heavy spear with a broad blade on the end. Used for
+                melee fighting, and not really designed to be thrown
+                at all, though it can be.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>wood</material>
+        <cost>16</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Spears</category>
+            <class>single</class>
+            <class>longshaft</class>
+
+            <combat>
+                <attack>+5</attack>
+                <defence>+3</defence>
+                <damage>+11</damage>
+                <range>
+                    <increment>5</increment>
+                    <short>10</short>
+                    <medium>20</medium>
+                    <long>30</long>
+                </range>
+            </combat>
+
+            <strength>3</strength>
+            <load>1.5</load>
+            <reach>3</reach>
+
+            <properties>
+                <missile/>
+                <thrusting/>
+                <heavy/>
+                <twohanded/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Warhammer">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A heavy headed hammer on a long shaft.</short>
+
+        <weight>1000</weight>
+        <material>wood</material>
+        <cost>40</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Clubs</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+3</attack>
+                <defence>+2</defence>
+                <damage>+12</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>1</load>
+            <reach>2</reach>
+            <weight>1000</weight>
+
+            <properties>
+                <crushing/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="War flail">
+        <category>Weapon</category>
+        <importance>1</importance>
+        <availability>4</availability>
+
+        <short>Metal balls on a chain.</short>
+
+        <weight>2000</weight>
+        <material>metal</material>
+        <cost>80</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Flails</category>
+            <class>flail</class>
+
+            <combat>
+                <attack>+6</attack>
+                <defence>+6</defence>
+                <damage>+10</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>2</load>
+            <reach>3</reach>
+
+            <properties>
+                <crushing/>
+                <chain/>
+                <heavy/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Throwing axe">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>A small axe designed for throwing.</short>
+
+        <weight>250</weight>
+        <material>metal</material>
+        <cost>20</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Axes</category>
+            <class>thrown</class>
+
+            <combat>
+                <attack>+2</attack>
+                <damage>+4</damage>
+                <range strength="true">
+                    <increment>10</increment>
+                    <short>3</short>
+                    <medium>6</medium>
+                    <long>9</long>
+                </range>
+            </combat>
+
+            <strength>2</strength>
+            <load>0.5</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <heavy/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Short bow">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>A short bow.</short>
+
+        <description>
+            <para>
+                The short bow is a simple bow, about a metre in
+                length. The pentrating power is based on the strength
+                of the user, and also the maximum pull of the bow.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>wood</material>
+        <cost>20</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Bows</category>
+            <class>bow</class>
+
+            <combat>
+                <attack>+3</attack>
+                <damage>+5</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>30</short>
+                    <medium>60</medium>
+                    <long>120</long>
+                </range>
+            </combat>
+
+            <strength>2</strength>
+            <load>0.5</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <impaling/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Long bow">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>A long bow.</short>
+
+        <description>
+            <para>
+                Unlike the short bow, the long bow is often composite in
+                nature, being formed of two types of wood for maximum
+                tension. Long bows are crafted according to the strength
+                of the archer. A weaker archer will have great
+                difficulty in drawing a high strength bow.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>wood</material>
+        <cost>80</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Bows</category>
+            <class>bow</class>
+
+            <combat>
+                <attack>+2</attack>
+                <damage>+12</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>60</short>
+                    <medium>120</medium>
+                    <long>240</long>
+                </range>
+            </combat>
+
+            <strength>3</strength>
+            <load>1</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <impaling/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Throwing knife">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A knife designed for throwing.</short>
+
+        <weight>250</weight>
+        <material>metal</material>
+        <cost>60</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Knives</category>
+            <class>thrown</class>
+
+            <combat mode="Thrown" importance="2">
+                <attack>+3</attack>
+                <damage>+2</damage>
+                <range strength="true">
+                    <increment>10</increment>
+                    <short>2</short>
+                    <medium>5</medium>
+                    <long>10</long>
+                </range>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.25</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <weak/>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Sling">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A cheap weapon which hurls stones.</short>
+
+        <weight>100</weight>
+        <material>cloth</material>
+        <cost>4</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Bows</category>
+            <class>thrown</class>
+
+            <combat>
+                <attack>+8</attack>
+                <damage>+7</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>20</short>
+                    <medium>40</medium>
+                    <long>60</long>
+                </range>
+            </combat>
+
+            <strength>2</strength>
+            <load>0</load>
+            <reach>0</reach>
+            <weight>100</weight>
+
+            <properties>
+                <missile/>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Javelin">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>A light spear.</short>
+
+        <weight>250</weight>
+        <material>wood</material>
+        <cost>12</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Spears</category>
+            <class>thrown</class>
+
+            <combat>
+                <attack>+5</attack>
+                <damage>+5</damage>
+
+                <range strength="true">
+                    <increment>15</increment>
+                    <short>3</short>
+                    <medium>6</medium>
+                    <long>9</long>
+                </range>
+            </combat>
+
+            <strength>2</strength>
+            <load>0.25</load>
+            <reach>2</reach>
+
+            <properties>
+                <missile/>
+                <impaling/>
+                <light/>
+                <weak/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Light crossbow">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A light crossbow.</short>
+
+        <weight>500</weight>
+        <material>wood</material>
+        <cost>80</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Bows</category>
+            <class>crossbow</class>
+
+            <combat>
+                <attack>+7</attack>
+                <damage>15</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>15</short>
+                    <medium>30</medium>
+                    <long>60</long>
+                </range>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <impaling/>
+                <reload>10</reload>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Medium crossbow">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A medium crossbow.</short>
+
+        <weight>1000</weight>
+        <material>wood</material>
+        <cost>40</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Bows</category>
+            <class>crossbow</class>
+
+            <combat>
+                <attack>+9</attack>
+                <damage>22</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>40</short>
+                    <medium>80</medium>
+                    <long>160</long>
+                </range>
+            </combat>
+
+            <strength>3</strength>
+            <load>1.5</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <impaling/>
+                <reload>15</reload>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy crossbow">
+        <category>Weapon</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A heavy crossbow.</short>
+
+        <weight>2000</weight>
+        <material>wood</material>
+        <cost>120</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Bows</category>
+            <class>crossbow</class>
+
+            <combat>
+                <attack>+10</attack>
+                <damage>30</damage>
+                <range>
+                    <increment>15</increment>
+
+                    <short>60</short>
+                    <medium>120</medium>
+                    <long>240</long>
+                </range>
+            </combat>
+
+            <strength>3</strength>
+            <load>2</load>
+            <reach>0</reach>
+
+            <properties>
+                <missile/>
+                <impaling/>
+                <reload>20</reload>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Quilted jacket">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A heavily padded cloth jacket.</short>
+
+        <description>
+            <para>
+                A heavy jacket of padded cloth. It is bulkier than
+                soft leather armour, but its extra thickness adds
+                greater protection. It is viewed as peasant armour,
+                and rarely worn by noble warriors.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>cloth</material>
+        <cost>12</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>2</load>
+            <weight>2000</weight>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+            </covers>
+
+            <properties>
+                <light/>
+                <soft/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Quilted hauberk">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>A heavily padded cloth hauberk.</short>
+
+        <description>
+            <para>
+                A long heavy jacket of padded cloth. It is commonly
+                worn by militia troops, since it is cheap, light and
+                easy to make. It can be better than mail against
+                small improvised weapons since its thickness gives
+                better padding.
+            </para>
+        </description>
+
+        <weight>3000</weight>
+        <material>cloth</material>
+        <cost>20</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+4</protection>
+            <load>3</load>
+
+            <covers>
+                <neck/>
+                <torso/>
+                <arms/>
+                <groin/>
+                <thighs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <light/>
+                <soft/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Quilted vest">
+        <category>Armour</category>
+        <importance>1</importance>
+        <availability>2</availability>
+
+        <short>A heavily padded cloth vest.</short>
+
+        <description>
+            <para>
+                A padded vest, which protects the torso. Often made
+                of cloth and wool. Cheap and light.
+            </para>
+        </description>
+
+        <weight>750</weight>
+        <material>cloth</material>
+        <cost>8</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+2</protection>
+            <load>1</load>
+
+            <covers>
+                <torso/>
+            </covers>
+
+            <properties>
+                <light/>
+                <soft/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Quilted leggings">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>2</availability>
+
+        <short>Heavily padded trousers.</short>
+
+        <description>
+            <para>
+                Made of cloth and wool, these are padded trousers which
+                cover the legs up to the waist. They tend to be quite
+                bulky and restrict leg movement quite a bit.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>cloth</material>
+        <cost>24</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>2</load>
+
+            <covers>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <light/>
+                <soft/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Soft leather trousers">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>Leather trousers.</short>
+
+        <description>
+            <para>
+                Trousers made of thick leather. They are flexible so as
+                not to restrict movement, but only provide limited
+                protection. Often worn under mail to add extra padding.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>leather</material>
+        <cost>40</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>1</load>
+
+            <covers>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <notes>Can be worn under mail leggings.</notes>
+
+            <properties>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Soft leather jacket">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>Leather jacket.</short>
+
+        <description>
+            <para>
+                A flexible and soft jacket which gives protection to
+                the torso and arms. It is thin enough to be worn
+                under mail - either a mail shirt or mail hauberk.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>leather</material>
+        <cost>60</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+2</protection>
+            <load>1</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+            </covers>
+
+            <notes>
+                Can be worn under mail, a cuirass or vambraces.
+            </notes>
+
+            <properties>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Hard leather jacket">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>Hard leather jacket.</short>
+
+        <description>
+            <para>
+                A tough leather jacket designed to protect the upper
+                body. It can be restrictive since much of it consists
+                of boiled leather plates.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>leather</material>
+        <cost>80</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>2</load>
+
+            <covers>
+                <neck/>
+                <torso/>
+                <arms/>
+                <groin/>
+                <thighs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Kurbal cuirass">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>Hardened leather breastplate.</short>
+
+        <weight>500</weight>
+        <material>leather</material>
+        <cost>12</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>1</load>
+            <weight>1000</weight>
+
+            <notes>
+                Can be worn over soft leather or quilted armour.
+            </notes>
+
+            <covers>
+                <torso/>
+            </covers>
+
+            <properties>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Fur jacket">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>A heavy fur and leather jacket.</short>
+
+        <description>
+            <para>
+                A heavy jacket made of thick fur and leather. Suffers
+                from being bulky, but is also warm so useful in cold
+                climates.
+            </para>
+        </description>
+
+        <weight>3000</weight>
+        <material>fur</material>
+        <cost>40</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+4</protection>
+            <load>3</load>
+
+            <covers>
+                <neck/>
+                <torso/>
+                <arms/>
+                <groin/>
+                <thighs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <light/>
+                <soft/>
+                <warm/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Fur trousers">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>3</availability>
+
+        <short>Heavy fur and leather trousers.</short>
+
+        <description>
+            <para>
+                A heavy set of trousers of thick fur and leather.
+                Suffers from being bulky, but is also warm.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>fur</material>
+        <cost>40</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+2</protection>
+            <load>2</load>
+
+            <covers>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <light/>
+                <soft/>
+                <warm/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Metal helm">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+
+        <short>A plain metal helm.</short>
+
+        <description>
+            <para>
+                A metal helm which covers the top, back and sides of
+                the head. Sometimes has a nose guard as well.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>metal</material>
+        <cost>40</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>1</load>
+
+            <covers>
+                <skull/>
+            </covers>
+
+            <properties>
+                <heavy/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail shirt">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>A shirt of mail.</short>
+
+        <description>
+            <para>
+                A mail shirt which covers the torso but not the arms.
+            </para>
+        </description>
+
+        <weight>4000</weight>
+        <material>metal</material>
+        <cost>200</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+4</protection>
+            <load>4</load>
+            <weight>4000</weight>
+
+            <covers>
+                <torso/>
+                <groin/>
+            </covers>
+
+            <properties>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail hauberk">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>A mail hauberk.</short>
+
+        <description>
+            <para>
+                A layer of mail which covers the torso, arms and upper
+                legs. It is heavy and noisy, but provides excellent
+                protection.
+            </para>
+        </description>
+
+        <weight>7000</weight>
+        <material>metal</material>
+        <cost>400</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+6</protection>
+            <load>7</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <thighs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+                <vitals score="3"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail leggings">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>Mail trousers.</short>
+
+        <description>
+            <para>
+                Mail trousers which cover the legs and waist. Can be
+                worn under a hauberk. Needs to be worn over cloth or
+                leather armour to prevent chaffing.
+            </para>
+        </description>
+
+        <weight>5000</weight>
+        <material>metal</material>
+        <cost>400</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>5</load>
+
+            <covers>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Mail coif">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>4</availability>
+
+        <short>Mail armour to cover head and neck.</short>
+
+        <description>
+            <para>
+                Covers the head and shoulders. Worn under a helm, it
+                protects the neck from sword blows.
+            </para>
+        </description>
+
+        <weight>2000</weight>
+        <material>metal</material>
+        <cost>400</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>2</load>
+
+            <covers>
+                <neck/>
+                <skull/>
+            </covers>
+
+            <notes>Often worn under a helm.</notes>
+            <properties>
+                <mail/>
+                <heavy/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Ring habergeon">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A heavy form of mail armour.</short>
+
+        <weight>7000</weight>
+        <material>metal</material>
+        <cost>150</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+4</protection>
+            <load>7</load>
+
+            <covers>
+                <torso/>
+                <groin/>
+            </covers>
+
+            <notes>Can be worn over soft leather.</notes>
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Ring hauberk">
+        <category>Armour</category>
+        <importance>2</importance>
+        <availability>4</availability>
+
+        <short>A heavy form of mail armour.</short>
+
+        <weight>10000</weight>
+        <material>metal</material>
+        <cost>300</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+6</protection>
+            <load>10</load>
+            <weight>10000</weight>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <thighs/>
+            </covers>
+
+            <notes>Can be worn over soft leather.</notes>
+            <properties>
+                <restrictive score="2"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+                <vitals score="3"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Ring leggings">
+        <category>Armour</category>
+        <importance>1</importance>
+        <availability>4</availability>
+
+        <short>A heavy form of mail armour.</short>
+
+        <weight>6000</weight>
+        <material>metal</material>
+        <cost>250</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>6</load>
+
+            <covers>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <notes>Can be worn over soft leather.</notes>
+            <properties>
+                <restrictive score="2"/>
+                <noisy score="1"/>
+                <mail/>
+                <heavy/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Light Samurai Armour">
+        <category>Armour</category>
+        <importance>0</importance>
+        <availability>4</availability>
+
+        <short>Light samurai armour.</short>
+
+        <weight>2000</weight>
+        <material>metal</material>
+        <cost>250</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+6</protection>
+            <load>2</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Heavy Samurai Armour">
+        <category>Armour</category>
+        <importance>0</importance>
+        <availability>4</availability>
+
+        <short>Heavy samurai armour.</short>
+
+        <weight>4000</weight>
+        <material>metal</material>
+        <cost>250</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+12</protection>
+            <load>4</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <restrictive score="1"/>
+                <noisy score="1"/>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+
+
+    <item name="Katana">
+        <category>Weapon</category>
+        <importance>0</importance>
+
+        <short>A single edged two handed sword.</short>
+
+        <description>
+            <para>
+                A katana is a particular type of sword of Japanese origin.
+                It has a long, singled edged blade, with a two handed grip.
+                Like the European bastard sword, it can be used one or
+                two handed. The katana is designed for cutting, never for
+                stabbing - the rarity of metal in Japan meant there was
+                never a need to penetrate mail or metal plate armour.
+            </para>
+
+            <para>
+                Due to their rarity, most katanas are of high quality.
+            </para>
+        </description>
+
+        <weight>1100</weight>
+        <material>metal</material>
+
+        <cost>5000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>great</class>
+
+            <combat>
+                <attack>+6</attack>
+                <defence>+5</defence>
+                <damage>+14</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>2</load>
+            <reach>2</reach>
+
+            <properties>
+                <twohanded/>
+                <heavy/>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Wakizashi">
+        <category>Weapon</category>
+        <importance>0</importance>
+
+        <short>A single edged short sword.</short>
+
+        <description>
+            <para>
+                A short Japanese single edged sword. Unlike the katana, it
+                could be used for thrusting with the point, but was still
+                designed to be used against lightly armoured opponents.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>1000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+3</attack>
+                <defence>+3</defence>
+                <damage>+10</damage>
+            </combat>
+
+            <strength>2</strength>
+            <load>2</load>
+            <reach>1</reach>
+
+            <properties>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="No-dachi">
+        <category>Weapon</category>
+        <importance>0</importance>
+
+        <short>A single edged great sword.</short>
+
+        <description>
+            <para>
+                A large Japanese great sword. It's blade has a single edge
+                and like the katana it is designed for cutting rather than
+                thrusting.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+
+        <cost>2000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Swords</category>
+            <class>single</class>
+
+            <combat>
+                <attack>+9</attack>
+                <defence>+7</defence>
+                <damage>+17</damage>
+            </combat>
+
+            <strength>5</strength>
+            <load>2</load>
+            <reach>3</reach>
+
+            <properties>
+                <twohanded/>
+                <heavy/>
+                <light/>
+            </properties>
+        </weapon>
+    </item>
+
+</equipment>
+
+

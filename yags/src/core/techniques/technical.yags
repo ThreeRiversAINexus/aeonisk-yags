@@ -1,0 +1,184 @@
+<?xml version="1.0"?>
+
+<!--
+    Computer techniques.
+
+    Techniques to do with the field of information technology.
+ -->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.4 $</version>
+            <date>$Date: 2008-06-14 22:46:42 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2011</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+    <advantage name="System administration" type="technique">
+        <cost points="4"/>
+        <skill name="Computing"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Provides experience in the maintenance and design of a
+                particular type of computer system. Allows networks to
+                be configured and optimised, users to be managed and
+                file systems and services to be configured.
+            </para>
+
+            <para>
+                Without this technique, you will find it very hard to
+                perform any type of computer administration, and the
+                difficulty of any such tasks is doubled.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Computer intrusion" type="technique">
+        <cost points="4"/>
+        <skill name="Computing"/>
+
+        <prerequisite>System administration</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of how to break security on computer
+                systems, gain passwords and otherwise compromise a
+                system's security. If you have this technique, then
+                you can halve the difficulty of any tasks related to
+                trying to compromise the security of a computer system.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Computer forensics" type="technique">
+        <cost points="4"/>
+        <skill name="Computing"/>
+        <prerequisite>System administration</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have experience with examining computer systems
+                for hidden or deleted files, examining logs for
+                signs of messages or other evidence. You can also
+                use this knowledge to hide information on a system
+                so that it cannot be retrieved. Note that though
+                encrypted information can be found, you may not be
+                able to decrypt it.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Computer security" type="technique">
+        <cost points="4"/>
+        <skill name="Computing"/>
+
+        <prerequisite>System administration</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of how to secure a computer network.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Scripting" type="technique">
+        <cost points="2"/>
+        <skill name="Computing"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The ability to write simple scripts to automate tasks
+                on a computer. Scripts are simple programs that can
+                make life a lot easier. Working on large software
+                projects requires <e>Programming</e> however.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Programming" type="technique">
+        <cost points="4"/>
+        <skill name="Computing"/>
+
+        <prerequisite>Scripting</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of and experience with programming a computer
+                system. With this, it is possible to design and write
+                complex software products.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Cryptanalysis" type="technique">
+        <cost points="4"/>
+        <skill name="Computing"/>
+        <prerequisite>Cryptography</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of encryption and decryption software and
+                methodology. Experience with such makes it much easier
+                when trying to access encrypted data. This technique
+                covers practical experience of using cryptographic
+                software, not necessarily the theory.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Engineer (*)" type="technique">
+        <cost points="4"/>
+        <skill name="Engineering"/>
+        <short>Engineering specialisation.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are specialised in an engineering discipline.
+                This is a generic specialisation for the Engineering
+                skill. You can take this as many times as you want,
+                each time with a different specialisation.
+            </para>
+
+            <para>
+                You can specialise in a branch (civic, electrical,
+                mechanical) or a topic area (aircraft, boats,
+                computers, communication, cars, power plants,
+                nuclear power, medical systems, etc).
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Mechanic (*)" type="technique">
+        <cost points="4"/>
+        <skill name="Mechanics"/>
+        <short>Mechanics specialisation.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is a specific specialisation of <e>Mechanics</e>.
+                You are skilled in diagnosing and repairing certain types
+                of machines. A specialisation might be <e>cars</e>,
+                <e>internal combustion engines</e>, <e>clockwork</e>,
+                <e>planes</e> etc.
+            </para>
+        </description>
+    </advantage>
+
+</advantages>
+
+

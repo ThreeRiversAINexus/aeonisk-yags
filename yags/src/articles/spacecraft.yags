@@ -1,0 +1,1248 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Spacecraft</title>
+        <tagline>YAGS 0.7.9</tagline>
+
+        <summary>
+            Space craft and space combat.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.2 $</version>
+            <date>$Date: 2009-07-19 17:19:18 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2013</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Spacecraft</title>
+
+            <para>
+                Though spacecraft are just another type of vehicle, they
+                are provided their own section here for a number of reasons.
+                Firstly, all the interesting spacecraft tend to be
+                imaginary works of fiction, and the physics by which most
+                of them operate are incompatible with each other. Firstly
+                then, we need to lay down the laws by which spacecraft in
+                <tm>YAGS</tm> work.
+            </para>
+
+            <para>
+                Secondly, the <tm>YAGS</tm> rules for vehicles assume that
+                designs are based on real life, or near real-life, designs.
+                There is no real design system as such - just a set of
+                guidelines to try and keep things vaguely consistent.
+                Spacecraft will often be designed entirely from scratch
+                without any basis in reality, so it helps to tie things
+                down a bit.
+            </para>
+
+            <para>
+                Thirdly, whilst most people have a good idea about how a
+                car behaves, few people can get their head around space
+                travel. Even if you don't drive, you've almost definitely
+                been in a car that's travelled through a town centre, so
+                you know how fast it goes and how long a journey takes.
+                Most people don't have that common sense knowledge for
+                a journey from Earth to Mars, or a trip around the
+                moons of Saturn. A set of rules helps fill in for that
+                lack of common sense.
+            </para>
+
+            <para>
+                As with all rules in games, they can be ignored. However,
+                the rules here do allow ships to be designed with a
+                reasonable degree of accuracy. However, this does also
+                mean that a little bit of maths may be involved.
+            </para>
+
+            <sect2>
+                <title>The Ground Rules</title>
+
+                <quote signature="Douglas Adams">
+                    Space is big. Really big. You just won't believe how
+                    vastly mind-bogglingly big it is. I mean, you may think
+                    it's a long way down the road to the chemist, but that's
+                    just peanuts to space.
+                </quote>
+
+                <para>
+                    The physics of <tm>YAGS SciFi</tm> is somewhat harder
+                    than most Hollywood fiction. It can take days to weeks
+                    to travel across the solar system, and weapon ranges
+                    are in the order of tens of kilometres. Anti-gravity
+                    exists, though only at higher tech levels and it can
+                    be quite limited. Ships generally still move by throwing
+                    hot stuff out the back very fast according to the
+                    principles of Newtonian motion.
+                </para>
+
+                <sect3>
+                    <title>Sizes</title>
+
+                    <para>
+                        The size of ships is measured in displacement tonnes
+                        of liquid hydrogen. 1 dt is about 15 cubic metres
+                        (about 14.75 to be more precise, but 15 is assumed).
+                        Ships below 10dt are rare - generally light fighters
+                        and similar vessels. A typical ship that might be
+                        owned by a group of PC's will be on the order of
+                        100dt - 500dt in size.
+                    </para>
+
+                    <para>
+                        Even the smallest fighters tend to be around
+                        Size 15 in <tm>YAGS</tm> terms - larger than any
+                        modern day tank. The largest vessels will be
+                        hundreds of thousands of displacement tonnes,
+                        with a million tonnes being extremely rare.
+                    </para>
+
+                    <para>
+                        Note that an Imperial class Star Destroyer from
+                        <em>Star Wars</em> would be over 4 million tonnes,
+                        so ships are relatively small compared to those in
+                        many Hollywood films.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Time and Movement</title>
+
+                    <para>
+                        Time is measured in turns of 10 seconds. This is
+                        twice as long as a standard <s>YAGS</s> round, but
+                        is a simpler number to deal with when working out
+                        distances and acceleration.
+                    </para>
+
+                    <para>
+                        All distances are measured in kilometres. Effective
+                        ranges of most space combats will vary from tens of
+                        kilometres to hundreds of kilometres, depending on
+                        the size of vessels involved. This ranges are
+                        relatively small for space, and it means that objects
+                        such as planets are huge relative to a combat arena.
+                    </para>
+
+                    <para>
+                        How quickly a spacecraft moves is measured by its
+                        <e>acceleration</e>, which is given in 'g'. Every
+                        'g' of acceleration allows the ship to accelerate
+                        up to (roughly) 1km/turn/turn. A craft with an
+                        acceleration of 3g, will be moving at 3km/turn
+                        after the first turn, 6km/turn after the second
+                        turn and so on. In reality, 1g is equivalent to
+                        9.8m/s/s, but <s>YAGS</s> assumes 10m/s/s for simplicity.
+                    </para>
+
+                    <para>
+                        <e>Delta V (dV)</e> represents the maximum speed of a
+                        space craft. Any ship using reaction drives (i.e.,
+                        the type that burn 'fuel' and throw it out the
+                        back) will have a maximum speed. <e>dV</e> means
+                        change in velocity, so any acceleration (even if it
+                        is to slow down, or change direction) comes out of
+                        your total dV.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Technology Levels</title>
+                <para>
+                    The technology level (TL) is crucial in a SciFi game,
+                    and likewise that carries over to the design of
+                    spacecraft. It is assumed that all spacecraft are
+                    TL6+, though really interesting designs don't start
+                    becoming possible until TL9-10. If you want galaxy
+                    spanning science fiction, then using these rules
+                    you should be looking at TL13+
+                </para>
+                <sect3>
+                    <title>TL 6</title>
+                    <para>
+                        The first space rocket was the German V2 which was
+                        used in very late TL 6, however the 'going into space'
+                        part was a side effect of the 'bomb London' part, so
+                        space travel is normally considered to have started in
+                        TL 7. However, the technology was there to do in TL6,
+                        and people were definitely thinking about the subject.
+                    </para>
+                    <para>
+                        Spacecraft built in this period are very basic,
+                        have no computers of any sort and have very low
+                        performance.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>TL 7-8</title>
+                    <para>
+                        By TL 7 we got to the Moon, by TL 8 we'd forgotten
+                        how to do it. Space travel is hard and expensive,
+                        and getting living creatures out of orbit is a big
+                        project. Much better designs are possible at these
+                        levels, as long as we don't mind irradiating ourselves
+                        by using nuclear propulsion systems.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>TL 9-10</title>
+                    <para>
+                        Interplanetary travel starts to become feasible at
+                        these levels, and space combat does as well. Travel
+                        to the outer planets is still hard, and expensive,
+                        but by late TL 10 it's not beyond the capability of
+                        large corporations.
+                    </para>
+                    <para>
+                        It is assumed that basic interstellar travel becomes
+                        possible during TL 10, in the form of Jump drives or
+                        Hyperspace.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>TL 11-12</title>
+                    <para>
+                        At this point space travel starts to become affordable
+                        and practical for a much larger number of people, and
+                        trade between worlds is an everyday occurrence. For
+                        campaigns set in interstellar empires, TL 11+ would
+                        be the minimum recommended technology level.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>TL 13+</title>
+                    <para>
+                        At TL 13 or so, space travel becomes routine, and ships
+                        that can travel great distances fairly quickly become
+                        common place. It's at this point that craft that can
+                        both land on, and take off from an Earth-sized planet
+                        as well as being capable of interstellar flight become
+                        really practical.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Design the Hull</title>
+
+                <para>
+                    The first decision point is the size of the ship. This
+                    is measured in displacement tonnes, and for most jump
+                    capable craft will be in the order of 100dt - 1000dt.
+                    Ships bigger than this tend to be military vessels,
+                    large freighters or cruise ships. The tonnage controls
+                    how much room there is for weapons, drives, crew etc,
+                    and also how much damage the ship can take.
+                </para>
+
+                <para>
+                    The second decision is the rough shape of the vessel.
+                    This affects the internal volume (space for things),
+                    surface area (weight of armour and space for turrets)
+                    and modifiers to Health and Agility.
+                </para>
+
+                <table>
+                    <title>Hull Design</title>
+                    <colspec colwidth="25mm"/>
+                    <colspec colwidth="10mm"/>
+                    <colspec colwidth="10mm"/>
+                    <colspec colwidth="10mm"/>
+                    <colspec colwidth="10mm"/>
+                    <colspec colwidth="10mm"/>
+
+                    <thead>
+                        <row>
+                            <entry>Shape</entry>
+                            <entry>Vol.</entry>
+                            <entry>Area</entry>
+                            <entry>Aero.</entry>
+                            <entry>H</entry>
+                            <entry>A</entry>
+                        </row>
+                    </thead>
+
+                    <tbody>
+                        <row>
+                            <entry>Block</entry>
+                            <entry>0.95</entry>
+                            <entry>1.00</entry>
+                            <entry>0.10</entry>
+                            <entry>+0</entry>
+                            <entry>+0</entry>
+                        </row>
+                        <row>
+                            <entry>Flat</entry>
+                            <entry>0.90</entry>
+                            <entry>1.25</entry>
+                            <entry>1.00</entry>
+                            <entry>+0</entry>
+                            <entry>+0</entry>
+                        </row>
+                        <row>
+                            <entry>Wing</entry>
+                            <entry>0.85</entry>
+                            <entry>1.50</entry>
+                            <entry>3.00</entry>
+                            <entry>+0</entry>
+                            <entry>+1</entry>
+                        </row>
+                        <row>
+                            <entry>Sphere</entry>
+                            <entry>1.00</entry>
+                            <entry>0.75</entry>
+                            <entry>0.25</entry>
+                            <entry>+1</entry>
+                            <entry>+0</entry>
+                        </row>
+                        <row>
+                            <entry>Wedge</entry>
+                            <entry>0.75</entry>
+                            <entry>1.25</entry>
+                            <entry>1.00</entry>
+                            <entry>+1</entry>
+                            <entry>+0</entry>
+                        </row>
+                        <row>
+                            <entry>Cone</entry>
+                            <entry>0.85</entry>
+                            <entry>1.25</entry>
+                            <entry>0.75</entry>
+                            <entry>+1</entry>
+                            <entry>-1</entry>
+                        </row>
+                        <row>
+                            <entry>Cylinder</entry>
+                            <entry>0.95</entry>
+                            <entry>1.00</entry>
+                            <entry>0.50</entry>
+                            <entry>+0</entry>
+                            <entry>-1</entry>
+                        </row>
+                        <row>
+                            <entry>Dispersed</entry>
+                            <entry>0.50</entry>
+                            <entry>2.00</entry>
+                            <entry>0.10</entry>
+                            <entry>-2</entry>
+                            <entry>+1</entry>
+                        </row>
+                        <row>
+                            <entry>Agile</entry>
+                            <entry>0.75</entry>
+                            <entry>1.50</entry>
+                            <entry>0.50</entry>
+                            <entry>-1</entry>
+                            <entry>+2</entry>
+                        </row>
+                    </tbody>
+                </table>
+
+                <para>
+                    The volume multiplier gives the internal volume of the craft.
+                    A 200dt <e>Dispersed</e> hull for example will only have 100dt
+                    available for systems.
+                </para>
+
+                <para>
+                    Area gives the surface area multiplier. The surface area is
+                    equal to the square of the cube root of mass. Turrets, drives
+                    and other surface features have to fit into the available
+                    area. Surface area also governs armour - the bigger the surface
+                    area, the greater the mass of armour required to give a
+                    certain soak bonus.
+                </para>
+
+                <para>
+                    <s>Area</s> = Volume^(2/3)
+                </para>
+
+                <para>
+                    Modifiers to Health and Agility apply to the final statistic,
+                    not to derived statistics. So checks and skill modifiers are
+                    affected, but ship mass is not.
+                </para>
+
+                <sect3>
+                    <title>Derived Statistics</title>
+
+                    <sect4>
+                        <title>Size</title>
+                        <para>
+                            The <s>Size</s> of a spacecraft is the same as for any
+                            vehicle in <s>YAGS</s>, and increases by +5 for every
+                            tenfold increase in vehicle size. It's a simple logarithm
+                            to work out the Size for any volume, but the following
+                            table gives some common values.
+                        </para>
+                        <table>
+                            <title>Hull Size</title>
+                            <colspec colwidth="10mm" align="center"/>
+                            <colspec colwidth="30mm" align="center"/>
+                            <colspec colwidth="10mm" align="center"/>
+                            <colspec colwidth="35mm"/>
+
+                            <thead>
+                                <row>
+                                    <entry>Size</entry>
+                                    <entry>Volume (dt)</entry>
+                                    <entry>Hull</entry>
+                                    <entry>Example</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row><entry>11</entry><entry>1</entry><entry>6</entry><entry></entry></row>
+                                <row><entry>12</entry><entry>2</entry><entry>7</entry><entry></entry></row>
+                                <row><entry>13</entry><entry>3</entry><entry>8</entry><entry></entry></row>
+                                <row><entry>14</entry><entry>4 - 5</entry><entry>10</entry><entry></entry></row>
+                                <row><entry>15</entry><entry>6 - 8</entry><entry>11</entry><entry></entry></row>
+                                <row><entry>16</entry><entry>9 - 13</entry><entry>13</entry><entry>Light fighter.</entry></row>
+                                <row><entry>17</entry><entry>14 - 21</entry><entry>14</entry><entry></entry></row>
+                                <row><entry>18</entry><entry>22 - 33</entry><entry>16</entry><entry>Heavy fighter.</entry></row>
+                                <row><entry>19</entry><entry>34 - 52</entry><entry>18</entry><entry></entry></row>
+                                <row><entry>20</entry><entry>53 - 83</entry><entry>20</entry><entry>Titan II, Space Shuttle Orbiter</entry></row>
+                                <row><entry>21</entry><entry>84 - 133</entry><entry>22</entry><entry>Small trader.</entry></row>
+                                <row><entry>22</entry><entry>134 - 210</entry><entry>24</entry><entry></entry></row>
+                                <row><entry>23</entry><entry>211 - 334</entry><entry>26</entry><entry></entry></row>
+                                <row><entry>24</entry><entry>335 - 529</entry><entry>29</entry><entry></entry></row>
+                                <row><entry>25</entry><entry>530 - 839</entry><entry>31</entry><entry></entry></row>
+                                <row><entry>26</entry><entry>840 - 1,330</entry><entry>34</entry><entry></entry></row>
+                                <row><entry>27</entry><entry>1,331 - 2,108</entry><entry>36</entry><entry>Saturn V</entry></row>
+                                <row><entry>28</entry><entry>2,109 - 3,341</entry><entry>39</entry><entry></entry></row>
+                                <row><entry>29</entry><entry>3,342 - 5,295</entry><entry>42</entry><entry></entry></row>
+                                <row><entry>30</entry><entry>5,296 - 8,392</entry><entry>45</entry><entry></entry></row>
+                                <row><entry>31</entry><entry>8,393 - 13,301</entry><entry>48</entry><entry>Small warship.</entry></row>
+                                <row><entry>32</entry><entry>13,302 - 21,081</entry><entry>51</entry><entry></entry></row>
+                                <row><entry>33</entry><entry>21,082 - 33,412</entry><entry>54</entry><entry></entry></row>
+                                <row><entry>34</entry><entry>33,413 - 52,955</entry><entry>58</entry><entry></entry></row>
+                                <row><entry>35</entry><entry>52,956 - 83,298</entry><entry>61</entry><entry></entry></row>
+                                <row><entry>36</entry><entry>83,929 - 133,017</entry><entry>65</entry><entry></entry></row>
+                                <row><entry>37</entry><entry>133,018 - 210,818</entry><entry>68</entry><entry></entry></row>
+                                <row><entry>38</entry><entry>210,819 - 334,124</entry><entry>72</entry><entry>Large capital ship.</entry></row>
+                                <row><entry>39</entry><entry>334,125 - 529,552</entry><entry>76</entry><entry></entry></row>
+                                <row><entry>40</entry><entry>529,553 - 839,283</entry><entry>80</entry><entry></entry></row>
+                            </tbody>
+                        </table>
+
+                        <para>
+                            The hull of a ship is the number of damage levels it
+                            can sustain before being destroyed, and goes up with
+                            the square of the <s>Size</s>.
+                        </para>
+
+                        <para>
+                            Since each +5 <s>Size</s> is a tenfold increase in
+                            volume, this roughly translates as a doubling of
+                            length, width and height, assuming that the ships
+                            are of a similar shape.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Health, Soak and Mass</title>
+
+                        <para>
+                            A typical space craft has a <s>Soak</s> equal to its <s>Size</s>,
+                            but this is modified by the craft's <t>Health</t>. Health is a
+                            measure of the general toughness of a vehicle, and affects both
+                            the soak and mass.
+                        </para>
+                        <para>
+                            <s>Mass</s> represents how hard a craft is to accelerate, and
+                            increasing it reduces both acceleration and delta vee. Adding
+                            armour also increases the mass, so heavy warships tend to be
+                            slower than flimsier craft.
+                        </para>
+                        <para>
+                            Note that generally, the internal components of a craft do not
+                            affect mass. It is assumed that everything has roughly the same
+                            density for simplicity.
+                        </para>
+                        <table>
+                            <title>Ship Health</title>
+                            <colspec colwidth="15mm" align="center"/>
+                            <colspec colwidth="20mm" align="center"/>
+                            <colspec colwidth="30mm"/>
+
+                            <thead>
+                                <row>
+                                    <entry>Health</entry>
+                                    <entry>Modifier</entry>
+                                    <entry>Description</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row>
+                                    <entry>1</entry><entry>x 0.25</entry>
+                                    <entry>Fragile.</entry>
+                                </row>
+                                <row>
+                                    <entry>2</entry><entry>x 0.50</entry>
+                                    <entry>Weak.</entry>
+                                </row>
+                                <row>
+                                    <entry>3</entry><entry>x 1.00</entry>
+                                    <entry>Average.</entry>
+                                </row>
+                                <row>
+                                    <entry>4</entry><entry>x 1.50</entry>
+                                    <entry>Reinforced.</entry>
+                                </row>
+                                <row>
+                                    <entry>5</entry><entry>x 2.00</entry>
+                                    <entry>Strong.</entry>
+                                </row>
+                                <row>
+                                    <entry>6</entry><entry>x 2.50</entry>
+                                    <entry>Very strong.</entry>
+                                </row>
+                                <row>
+                                    <entry>7</entry><entry>x 3.00</entry>
+                                    <entry>Super strong.</entry>
+                                </row>
+                                <row>
+                                    <entry>8</entry><entry>x 4.00</entry>
+                                    <entry>Super strong.</entry>
+                                </row>
+                                <row>
+                                    <entry>9</entry><entry>x 5.00</entry>
+                                    <entry>Super strong.</entry>
+                                </row>
+                            </tbody>
+                        </table>
+                        <para>
+                            If the craft's <t>Health</t> is modified by its design,
+                            then this modifier applies after working out the above.
+                            The modifier applies to both Soak and Mass.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Weapons</title>
+
+                <para>
+                    Space is big, really big, and the ranges of many
+                    space-born weapons are huge compared to the sort
+                    of scales present in ground combat.
+                </para>
+
+                <para>
+                    The <e>short range</e> of a space weapon is the distance
+                    at which it does the stated damage. Each increment of
+                    the short range reduces the damage by -25.
+                </para>
+
+                <para>
+                    Since such weapons are designed to be used at massive
+                    distances, the distance increment is normally in
+                    multiples of 1km.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Space Drives</title>
+
+                <para>
+                    There are three broad types of drive systems assumed.
+                </para>
+
+                <sect3>
+                    <title>Reaction Drive</title>
+
+                    <para>
+                        The least <e>magical</e> of the drive systems is a
+                        form of reaction drive, which at higher technology levels
+                        are assumed to be high efficiency and high thrust,
+                        enabling craft to accelerate at multiple g's, without
+                        requiring much in the way of reaction mass.
+                    </para>
+
+                    <para>
+                        The simplest reaction drives are chemical rockets, but
+                        more exotic forms are available at higher technology levels.
+                    </para>
+
+                    <note title="Acceleration Over Time">
+                        <para>
+                            Most rockets consist of 90% fuel by mass. As the
+                            craft burns fuel, so its mass drops, so its
+                            acceleration increases. Doing this correctly involves
+                            a lot of maths, so we ignore this and assume an
+                            averaged constant value for simplicity.
+                        </para>
+
+                        <para>
+                            If you want, assume that an empty fuel tank has a
+                            mass of 10% of a full one.
+                        </para>
+                    </note>
+
+                    <para>
+                        The <s>Thrust</s> of a reaction drive is the force it puts out any 
+                        given second. The higher the thrust, the faster a rocket will 
+                        accelerate.
+                    </para>
+                    <para>
+                        The <s>Efficiency</s> of a reaction drive is a measure of how quickly
+                        it uses propellent. A drive with a high efficiency uses propellent less
+                        quickly, so can burn for longer.
+                    </para>
+
+                    <note title="Real Physics">
+                        <para>
+                            Units are deliberately not given for either <e>Thrust</e>
+                            or <e>Impulse</e> since they aren't direct analogues to
+                            anything in the real world. However <e>Thrust</e> is
+                            related to force, and <e>Impulse</e> is related to
+                            specific impulse (seconds).
+                        </para>
+                        <para>
+                            The actual numbers have been multiplied in order to
+                            give the in-game values without needing further tweaking.
+                            <e>Impulse</e> is approximately specific impulse divided
+                            by 170. <e>Thrust</e> is Kilo-Newtons divided by 180.
+                            The constants were chosen to give an approximation of
+                            real world space ship designs.
+                        </para>
+                    </note>
+
+                    <para>
+                        A <e>reaction drive</e> is defined by its <s>Thrust</s>
+                        and its <s>Efficiency</s>. Thrust scales with the size
+                        of the drive, so a 10dt drive produces ten times as much
+                        total thrust as a 1dt drive of the same type.
+                        The efficiency remains the same regardless of size.
+                    </para>
+
+                    <para>
+                        The <s>acceleration</s> of a craft is equal to its
+                        <e>total thrust</e> divided by its <e>mass</e>, in 'g' (where
+                        1g = 10m/s/s for simplicity).
+                    </para>
+
+                    <para>
+                        The <s>delta vee</s> is equal to the <e>basic thrust</e> divided
+                        by the <e>mass</e> times the amount of fuel (in dt) times
+                        the <e>efficiency</e>. This gives a value in metres per second,
+                        so divide by 1000 to get km/s.
+                    </para>
+
+                    <sect4>
+                        <title>Chemical Rockets (TL 6+)</title>
+
+                        <para>
+                            The standard low tech way of getting around in space,
+                            using a chemical reaction to force matter out the back
+                            which propels the spacecraft forward. They are generally
+                            moderately high thrust, but very inefficient. There
+                            are three common types of chemical rockets.
+                        </para>
+
+                        <para>
+                            <s>Solid rocket</s> engines are cheaper and easier to
+                            maintain, but not as powerful as liquid engines. They
+                            also have the disadvantage that once they are 'lit',
+                            they cannot be throttled or switched off. They are
+                            normally used as booster rockets.
+                        </para>
+
+                        <para>
+                            <s>Liquid rocket</s> engines are much more efficient,
+                            but because they require the storing of two different
+                            super cooled liquids, they are harder to build and
+                            maintain. Keeping them ready for launch can
+                            be difficult.
+                        </para>
+
+                        <para>
+                            <s>Metallic Hydrogen</s> is an exotic material that
+                            consists of another state of Hydrogen. It produces
+                            considerably more energy than liquid Hydrogen, but
+                            can only be formed under extreme pressures.
+                        </para>
+
+                        <para>
+                            Chemical rockets always have an <s>Area</s> equal to
+                            half the volume, rounded up. Unless separate engines
+                            are mounted, up to one tenth the normal thrust can be
+                            used to manoeuvre.
+                        </para>
+
+                        <table>
+                            <title>Chemical Rocket</title>
+                            <colspec colwidth="10mm" align="center"/>
+                            <colspec colwidth="30mm"/>
+                            <colspec colwidth="15mm" align="end"/>
+                            <colspec colwidth="15mm" align="center"/>
+                            <colspec colwidth="15mm" align="center"/>
+
+                            <thead>
+                                <row>
+                                    <entry>TL</entry>
+                                    <entry>Type</entry>
+                                    <entry>Cost (Cr)</entry>
+                                    <entry>Thrust</entry>
+                                    <entry>Impulse</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row>
+                                    <entry>6</entry><entry>Solid rocket</entry>
+                                    <entry>$5M</entry><entry>22</entry><entry>1.4</entry>
+                                </row>
+                                <row>
+                                    <entry>6</entry><entry>Liquid rocket</entry>
+                                    <entry>$5M</entry><entry>25</entry><entry>2.5</entry>
+                                </row>
+
+                                <row>
+                                    <entry>7</entry><entry>Solid rocket</entry>
+                                    <entry>$3M</entry><entry>24</entry><entry>1.5</entry>
+                                </row>
+                                <row>
+                                    <entry>7</entry><entry>Liquid rocket</entry>
+                                    <entry>$3M</entry><entry>28</entry><entry>2.7</entry>
+                                </row>
+                                
+                                <row>
+                                    <entry>8</entry><entry>Solid rocket</entry>
+                                    <entry>$2M</entry><entry>25</entry><entry>1.6</entry>
+                                </row>
+                                <row>
+                                    <entry>8</entry><entry>Liquid rocket</entry>
+                                    <entry>$3M</entry><entry>30</entry><entry>2.8</entry>
+                                </row>
+
+                                
+                                <row>
+                                    <entry>9+</entry><entry>Solid rocket</entry>
+                                    <entry>$1MK</entry><entry>26</entry><entry>1.7</entry>
+                                </row>
+                                <row>
+                                    <entry>9</entry><entry>Liquid rocket</entry>
+                                    <entry>$3M</entry><entry>32</entry><entry>3.0</entry>
+                                </row>
+
+                                
+                                <row>
+                                    <entry>10</entry><entry>Metallic Hydrogen</entry>
+                                    <entry>$300K</entry><entry>40</entry><entry>1500</entry>
+                                </row>
+                                <row>
+                                    <entry>11</entry><entry>Metallic Hydrogen</entry>
+                                    <entry>$200K</entry><entry>60</entry><entry>2000</entry>
+                                </row>
+                                <row>
+                                    <entry>12</entry><entry>Metallic Hydrogen</entry>
+                                    <entry>$150K</entry><entry>70</entry><entry>2250</entry>
+                                </row>
+                                <row>
+                                    <entry>13+</entry><entry>Metallic Hydrogen</entry>
+                                    <entry>$100K</entry><entry>75</entry><entry>2500</entry>
+                                </row>
+                            </tbody>
+                        </table>
+
+                        <para>
+                            Chemical rockets often remain in use up until TL 12 when
+                            the <e>plasma torch</e> becomes available. Despite being
+                            inefficient, they are the cleanest form of drive, and don't
+                            leave behind radioactive residue, making them suited for
+                            getting off planets where you care about the environment.
+                            For interplanetary travel, they stop being used around TL 9
+                            or 10, as more efficient (but dirtier) drives take over.
+                        </para>
+                        <para>
+                            Fuel for both solid and liquid rockets is measured in dt,
+                            and includes all the necessary containment facilities. Fuel
+                            is assumed to have a mass of 0.5 (an average between a full
+                            tank and an empty tank).
+                        </para>
+                        <example title="Solid Rocket Boosters, TL 7">
+                            <para>
+                                The Space Shuttle's SRBs (solid rocket boosters) are
+                                each about 30dt in size. With 27dt of solid fuel, and
+                                3dt of thruster, they have a total mass of 16.5 (fuel
+                                counts as half, though the gross mass is 30, the empty
+                                mass closer to 3).
+                            </para>
+                            <para>
+                                The <e>thrust</e> is 3 * 21 = 63. This gives an
+                                acceleration of 63 / 16.5 = 3.8. The delta vee of
+                                the booster is fuel tonnage (27) * impulse (1.5) = 40.
+                            </para>
+                            <para>
+                                So the booster has a thrust of 3.8, which it will burn
+                                for slightly over 10 turns. Once its fuel is depleted,
+                                it will be travelling at 4 km/s.
+                            </para>
+                        </example>
+                    </sect4>
+
+                    <sect4>
+                        <title>Nuclear Thermal Rockets (TL 7+)</title>
+
+                        <para>
+                            Nuclear fission rockets work on a similar principle to
+                            chemical rockets - a propellent is heated and thrown out
+                            the back. However, instead of the propellent being used
+                            as the fuel, the fuel is Uranium in a nuclear reactor,
+                            which is used to heat a propellent such as water or
+                            hydrogen.
+                        </para>
+
+                        <para>
+                            They are bigger and heavier than chemical rockets, so
+                            a larger engine is needed for the same thrust. However,
+                            they are a lot more efficient, so require far less fuel
+                            for the same delta-v.
+                        </para>
+
+                        <para>
+                            They are both expensive and incredibly dirty, requiring a lot
+                            of radiation shielding. If water is being used as a
+                            propellent instead of hydrogen, add +5 to the basic
+                            thrust, but reduce efficiency by 500.
+                        </para>
+
+                        <table>
+                            <title>Nuclear Rocket</title>
+                            <colspec colwidth="10mm" align="center"/>
+                            <colspec colwidth="30mm"/>
+                            <colspec colwidth="15mm" align="end"/>
+                            <colspec colwidth="15mm" align="center"/>
+                            <colspec colwidth="15mm" align="center"/>
+
+                            <thead>
+                                <row>
+                                    <entry>TL</entry>
+                                    <entry>Type</entry>
+                                    <entry>Cost (Cr)</entry>
+                                    <entry>Thrust</entry>
+                                    <entry>Efficiency</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row>
+                                    <entry>7</entry>
+                                    <entry>Nuclear Thermal</entry>
+                                    <entry>100 M</entry>
+                                    <entry>10</entry>
+                                    <entry>2,000</entry>
+                                </row>
+                                <row>
+                                    <entry>8</entry>
+                                    <entry>Nuclear Thermal</entry>
+                                    <entry>60 M</entry>
+                                    <entry>15</entry>
+                                    <entry>2,500</entry>
+                                </row>
+                                <row>
+                                    <entry>9</entry>
+                                    <entry>Nuclear Thermal</entry>
+                                    <entry>40 M</entry>
+                                    <entry>20</entry>
+                                    <entry>3,000</entry>
+                                </row>
+                                <row>
+                                    <entry>10</entry>
+                                    <entry>Nuclear Thermal</entry>
+                                    <entry>30 M</entry>
+                                    <entry>25</entry>
+                                    <entry>3,250</entry>
+                                </row>
+                                <row>
+                                    <entry>11</entry>
+                                    <entry>Nuclear Thermal</entry>
+                                    <entry>25 M</entry>
+                                    <entry>30</entry>
+                                    <entry>3,500</entry>
+                                </row>
+                                <row>
+                                    <entry>12+</entry>
+                                    <entry>Nuclear Thermal</entry>
+                                    <entry>20 M</entry>
+                                    <entry>35</entry>
+                                    <entry>3,750</entry>
+                                </row>
+                            </tbody>
+                        </table>
+
+                        <para>
+                            Nuclear thermal drives are often invented around
+                            TL 7, but are very often ignored as a practical
+                            means of getting off planet unless there is an
+                            overwhelming necessity for them (e.g., an alien
+                            invasion). By the time they can be made light
+                            and clean, they have been made obsolete by the
+                            <e>plasma drive</e> (though even this is really a
+                            different implementation of the same idea).
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Nuclear Pulse Drive (TL 8+)</title>
+                        <para>
+                            Also known as the <e>Orion Drive</e>, the Nuclear Pulse
+                            Drive works by use of an external pulsed plasma propulsion
+                            system. Basically, drop nuclear bombs out the back and use
+                            the explosions to push you forward. It sounds insane, but
+                            it was seriously considered in the 1960s. It is assumed
+                            that a practical working drive could be produced by TL 8.
+                        </para>
+                        <para>
+                            Early designs use pellets of fissionable material,
+                            which would explode (possibly ignited using lasers)
+                            against a pusher plate. Nuclear shielding would be
+                            necessary, and launching from the surface of an
+                            inhabited world is generally considered to be bad
+                            form.
+                        </para>
+                        <para>
+                            Later designs move to pellets of fusion fuel, and
+                            later anti-matter fuel. In all cases, the size of
+                            the drive includes the pusher plate and shielding.
+                        </para>
+                        <table>
+                            <title>Nuclear Pulse Drive</title>
+                            <colspec colwidth="10mm" align="center"/>
+                            <colspec colwidth="30mm"/>
+                            <colspec colwidth="15mm" align="end"/>
+                            <colspec colwidth="15mm" align="center"/>
+                            <colspec colwidth="15mm" align="center"/>
+
+                            <thead>
+                                <row>
+                                    <entry>TL</entry>
+                                    <entry>Type</entry>
+                                    <entry>Cost (Cr)</entry>
+                                    <entry>Thrust</entry>
+                                    <entry>Efficiency</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row>
+                                    <entry>8</entry>
+                                    <entry>Nuclear Pulse</entry>
+                                    <entry>100 M</entry>
+                                    <entry>100</entry>
+                                    <entry>5,000</entry>
+                                </row>
+                                <row>
+                                    <entry>9</entry>
+                                    <entry>Nuclear Pulse</entry>
+                                    <entry>60 M</entry>
+                                    <entry>125</entry>
+                                    <entry>7,500</entry>
+                                </row>
+                                <row>
+                                    <entry>10</entry>
+                                    <entry>Pulsed Fusion</entry>
+                                    <entry>40 M</entry>
+                                    <entry>200</entry>
+                                    <entry>10,000</entry>
+                                </row>
+                                <row>
+                                    <entry>11</entry>
+                                    <entry>Pulsed Fusion</entry>
+                                    <entry>30 M</entry>
+                                    <entry>250</entry>
+                                    <entry>15,000</entry>
+                                </row>
+                                <row>
+                                    <entry>12</entry>
+                                    <entry>Pulsed Anti-Matter</entry>
+                                    <entry>25 M</entry>
+                                    <entry>400</entry>
+                                    <entry>20,000</entry>
+                                </row>
+                                <row>
+                                    <entry>13+</entry>
+                                    <entry>Pulsed Anti-Matter</entry>
+                                    <entry>20 M</entry>
+                                    <entry>500</entry>
+                                    <entry>30,000</entry>
+                                </row>
+                            </tbody>
+                        </table>
+                    </sect4>
+
+                    <sect4>
+                        <title>Ion Drive (TL 8-14)</title>
+                        <para>
+                            Ion Drives are small, efficient drives with very low
+                            thrust. They are short lived in usefulness, since
+                            they cannot compete with the high thrust medium
+                            efficiency drives that come into play during TL 9/10,
+                            but remain as the most efficient drive type available
+                            for a long time, as well as becoming relatively cheap
+                            compared to a lot of the alternatives.
+                        </para>
+                        <table>
+                            <title>Ion Drive</title>
+                            <colspec colwidth="10mm" align="center"/>
+                            <colspec colwidth="30mm"/>
+                            <colspec colwidth="15mm" align="end"/>
+                            <colspec colwidth="15mm" align="center"/>
+                            <colspec colwidth="15mm" align="center"/>
+
+                            <thead>
+                                <row>
+                                    <entry>TL</entry>
+                                    <entry>Type</entry>
+                                    <entry>Cost (Cr)</entry>
+                                    <entry>Thrust</entry>
+                                    <entry>Efficiency</entry>
+                                </row>
+                            </thead>
+
+                            <tbody>
+                                <row>
+                                    <entry>8</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>25 M</entry>
+                                    <entry>2</entry>
+                                    <entry>20,000</entry>
+                                </row>
+                                <row>
+                                    <entry>9</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>10 M</entry>
+                                    <entry>3</entry>
+                                    <entry>25,000</entry>
+                                </row>
+                                <row>
+                                    <entry>10</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>3 M</entry>
+                                    <entry>4</entry>
+                                    <entry>30,000</entry>
+                                </row>
+                                <row>
+                                    <entry>11</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>1 M</entry>
+                                    <entry>5</entry>
+                                    <entry>35,000</entry>
+                                </row>
+                                <row>
+                                    <entry>12</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>300 K</entry>
+                                    <entry>6</entry>
+                                    <entry>40,000</entry>
+                                </row>
+                                <row>
+                                    <entry>13</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>100 K</entry>
+                                    <entry>7</entry>
+                                    <entry>45,000</entry>
+                                </row>
+                                <row>
+                                    <entry>14+</entry>
+                                    <entry>Ion Drive</entry>
+                                    <entry>30 K</entry>
+                                    <entry>8</entry>
+                                    <entry>50,000</entry>
+                                </row>
+                            </tbody>
+                        </table>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Repulsor Drives</title>
+
+                    <para>
+                        Repulsors are like tractor beams, but they push.
+                        What they push against are nearby masses, such as
+                        the ground. They are very short range, so can't be
+                        used to traverse a solar system, but at high tech
+                        levels they can be used to reach orbit.
+                    </para>
+
+                    <para>
+                        They may be found on spacecraft which need to land
+                        on planets, and tend to be used during the final
+                        landing or take off, so as not to scorch the landing
+                        area with the fusion torch drives.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Jump Drives (TL10+)</title>
+
+                    <para>
+                        <e>Jump Drives</e> are used to move between stars,
+                        and allow faster than light travel. A 'Jump' always
+                        takes a fixed amount of time - about a week - and
+                        whilst in jump space a ship is out of contact with
+                        the rest of the universe, including other ships in
+                        jump space.
+                    </para>
+                    <para>
+                        Jump drives are rated according to the distance they
+                        travel during each jump, generally J1 to J6, where the
+                        J number gives the number of parsecs travelled.
+                    </para>
+                    <para>
+                        A jump drive takes up tonnage equal to some proportion
+                        of the ship size. This proportion goes down at higher
+                        technology levels. Technology level also limits the
+                        range of a Jump drive. Drives also require fuel, which
+                        is again based on ship tonnage.
+                    </para>
+                    <table>
+                        <title>Ion Drive</title>
+                        <colspec colwidth="15mm" align="center"/>
+                        <colspec colwidth="15mm" align="center"/>
+                        <colspec colwidth="10mm" align="center"/>
+                        <colspec colwidth="10mm" align="center"/>
+                        <colspec colwidth="10mm" align="center"/>
+                        <colspec colwidth="10mm" align="center"/>
+                        <colspec colwidth="10mm" align="center"/>
+                        <colspec colwidth="10mm" align="center"/>
+
+                        <thead>
+                            <row>
+                                <entry>TL</entry>
+                                <entry>J1</entry>
+                                <entry>J2</entry>
+                                <entry>J3</entry>
+                                <entry>J4</entry>
+                                <entry>J5</entry>
+                                <entry>J6</entry>
+                            </row>
+                        </thead>
+
+                        <tbody>
+                            <row>
+                                <entry>10</entry>
+                                <entry>50%</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                            </row>
+                            <row>
+                                <entry>11</entry>
+                                <entry>30%</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                            </row>
+                            <row>
+                                <entry>12</entry>
+                                <entry>10%</entry>
+                                <entry>30%</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                            </row>
+                            <row>
+                                <entry>13</entry>
+                                <entry>5%</entry>
+                                <entry>10%</entry>
+                                <entry>30%</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                            </row>
+                            <row>
+                                <entry>14</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>10%</entry>
+                                <entry>30%</entry>
+                                <entry>-</entry>
+                                <entry>-</entry>
+                            </row>
+                            <row>
+                                <entry>15</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>10%</entry>
+                                <entry>30%</entry>
+                                <entry>-</entry>
+                            </row>
+                            <row>
+                                <entry>16</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>10%</entry>
+                                <entry>30%</entry>
+                            </row>
+                            <row>
+                                <entry>17</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>10%</entry>
+                            </row>
+                            <row>
+                                <entry>18+</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                                <entry>5%</entry>
+                            </row>
+                        </tbody>
+                    </table>
+                    <para>
+                        The jump drives include fuel for a single jump
+                        at maximum range. For extra fuel, enough for another
+                        maximum jump, is a further 10% at TL 10-12. At TL13-15,
+                        it is 5%. At TL16+, it is 2%.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

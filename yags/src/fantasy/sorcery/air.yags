@@ -1,0 +1,520 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Air Runes.
+    Version: $Revision: 1.5 $
+    Date:    $Date: 2005-08-13 15:47:35 $
+-->
+<grimoire xmlns="https://yags-rpg.net/xml/yags" name="Aéas">
+    <description xmlns="https://yags-rpg.net/xml">
+        <para>
+            The <s>Aéas</s> domain governs the element of <e>air</e>, as well
+            as the weather. It is also the domain of light and illusions.
+        </para>
+    </description>
+
+    <spell name="Light" level="10" type="aéas">
+        <time>Action</time>
+        <range>Touch</range>
+        <duration>Minutes</duration>
+        <radius>Small</radius>
+        
+        <short>Creates light.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Creates a dim light, as bright as candlelight, that illuminates the 
+                designated area, originating from the point touched. If an
+                object is touched, then the glow radiates from a patch the size of
+                a hand.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The light is as bright as torchlight.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Apparition" level="20" type="air">
+        <range>Reach</range>
+        <duration>Minutes</duration>
+        <target>Medium</target>
+
+        <prerequisite>Light</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You create a stationary apparition that looks like anything you
+                like, up to the size limit of the invocation. The image is slightly
+                translucent, and a TN 15 <e>Awareness</e> check will notice this
+                fact.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Either the image can move at a walking pace under your direction,
+                or it appears solid, requiring a TN 25 <e>Awareness</e> check
+                to notice that something is out of place.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Disguise" level="30" type="air">
+        <range>Touch</range>
+        <duration>Minutes</duration>
+        <target>Medium</target>
+        <resist>Will</resist>
+
+        <prerequisite>Apparition</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can layer a disguise on yourself or a touched target. The disguise is
+                an illusion that looks concrete, and provides a +10 bonus to any visual
+                disguise checks.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The illusion has an audio component, and also provides a bonus to disguise
+                your voice.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The illusion becomes tactile.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Sight" level="40" type="air">
+        <range>Sight</range>
+        <duration>Minutes</duration>
+        <target>Self</target>
+
+        <prerequisite>Obscure</prerequisite>
+
+        <short>Improves your vision</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You can improve your vision, granting a +1 bonus to Perception, and allowing
+                you to see in low light conditions as if it were full daylight.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                You gain the ability to see in darkness as well as 
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The bonus is +2.
+            </para>
+        </description>
+    </spell>
+    
+    
+    <spell name="Flash" level="20" type="air">
+        <range>Reach</range>
+        <duration>Natural</duration>
+        <target>One</target>
+        
+        <prerequisite>Light</prerequisite>
+
+        <short>Blinds people</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Creates a brief flash of light in the target's face, which can temporarily
+                blind them. They get a <t>Health</t> TN 20 check to resist. If they fail,
+                they gain 10 shock and -2 to attributes for anything requiring sight. This
+                penalties drops by 1 each round. If they make their check, then the penalty
+                is only -1. Regardless, they lose any night vision they had.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The penalty is -3 on failure, and -2 on success.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The penalty is -4 on failure, and -2 on success. The <e>shock</e> damage
+                increases to 15.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Searing Light" level="30" type="air">
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <target>Individual</target>
+
+        <prerequisite>Flash</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Creates a searing beam of light which burns the targets, doing +21 stun
+                damage to each one.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Does +24 damage.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Does +27 damage.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Obscure" level="30" type="air">
+        <range>Reach</range>
+        <duration>Minutes</duration>
+        <target>Medium</target>
+
+        <prerequisite>Apparition</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Obscures a person making them difficult to see. Grants a bonus
+                to their stealth check to hide. If they are stationary and out
+                in the open, it is an <e>Awareness</e> TN 10 to spot them. If
+                they are hiding, then they gain a +10 bonus to their <e>Stealth</e>.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The TN to spot out in the open is 15, and the <e>Stealth</e>
+                bonus is +15.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The TN to spot out in the open is 20, and the <e>Stealth</e>
+                bonus is +20.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Breeze" level="10" type="air">
+        <time>Action</time>
+        <range>Short</range>
+        <duration>Rounds</duration>
+        <resist>Strength</resist>
+
+        <short>Create a breeze that blows away from you.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You invoke a breeze that blows away from you in a direct line.
+                The channel is 3 metres wide and as tall as you are, lasting as
+                long as you concentrate. The breeze is strong enough to blow
+                back smoke, or raise a cloud of dust.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                You can create swirls and eddies in the breeze in order to
+                manipulate things. Make a <t>Dexterity</t> check against a
+                target difficulty. To knock off a hat or lift a skirt, this
+                is 15, to close a book, 20, to bring a small item to you is
+                25.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Blast" level="20" type="air">
+        <time>Action</time>
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <target>Individual</target>
+
+        <prerequisite>Breeze</prerequisite>
+
+        <short>Knocks a target down, disorientating them.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                By invoking this <e>spell</e> you call a sudden gust of wind that
+                can knock down a single target. Make an opposed <t>Will</t> check
+                against the target's <t>Strength</t>, and on success the target
+                is knocked to the ground where they stand and takes a single
+                <e>Stun</e>. Each level of success on this check does a further
+                <e>Stun</e> and knocks them back a metre.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Either, you can add +10 to your <t>Will</t> check, or you can
+                try to disorientate your target. If they are knocked down, their
+                <e>initiative</e> is dropped to zero and they are unable to act
+                for the rest of the round.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                You gain a +10 bonus to your <t>Will</t> check, and the target
+                is disorientated on success. Even if they remain standing, they
+                gain 5 shock.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Fly" level="30" type="air">
+        <time>Action</time>
+        <range>Self</range>
+        <target>Self</target>
+        <duration>Rounds</duration>
+        <prerequisite>Blast</prerequisite>
+        
+        <short>Allows you to fly for a short distance.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When this spell is cast, a gust of wind propels you upwards and
+                in the direction you wish at a speed of 10m/round. If you are
+                flying when the spell ends, then you will immediately begin to
+                fall to the ground.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The speed is equal to 20m/round.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The speed is equal to 30m/round.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Thunder" level="30" type="air">
+        <time>Action</time>
+        <range>Medium</range>
+        <radius>Medium</radius>
+        <duration>Momentary</duration>
+        
+        <prerequisite>Blast</prerequisite>
+        
+        <short>Creates a flash of light and loud bang.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When this spell is cast, there is a deafening bang and flash of light
+                at the designated point, which confuses everyone within the spell effect.
+                A TN 25 Health check is needed to resist, or initiative is dropped by 20.
+                On success, initiative is dropped by 10.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The TN of the Health check is increased to 30, and the shock value is 25.
+                On a successful resist, 15 shock is gained.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The TN of the Health check is increased to 35, and the shock value if 30.
+                On a successful resist, 20 shock is gained.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Lightning" level="40" type="air">
+        <time>Action</time>
+        <range>Long</range>
+        <target>Individual</target>
+        <duration>Momentary</duration>
+        <prerequisite>Thunder</prerequisite>
+        
+        <short>Creates bolts of lightning.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This spell creates one or more bolts of lightning that automatically strike
+                their targets, doing +18 <e>mixed</e> damage to their targets, ignoring
+                armour. If the target takes damage, then a Health check is required at a 
+                TN of 20, or the target falls prone, their initiative dropped to zero. If
+                they succeed, then they take 10 shock.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The damage is increased to +21, and the TN is 25.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The damage is increased to +24, and the TN is 30.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Hurl" level="40" type="air">
+        <time>Action</time>
+        <range>Long</range>
+        <target>Medium</target>
+        <duration>Momentary</duration>
+        <resist>Strength</resist>
+        <prerequisite>Fly</prerequisite>
+        
+        <short>Hurl someone into the air.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This spell takes a target and hurls them into the air, leaving them to then
+                fall to the ground and take damage. The must make a <t>Strength</t> check at
+                TN 30. Each five or part they fail by, they are thrown 10m into the air, and
+                then fall back and take falling damage. For every 10m height, the target can
+                be moved 3m in any horizontal direction.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The TN is increased to 35.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The TN is increased to 40.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Whisper" level="20" type="air">
+        <time>Action</time>
+        <range>Far</range>
+        <target>Individual</target>
+        <duration>Rounds</duration>
+        <prerequisite>Breeze</prerequisite>
+        
+        <short>Whisper a message to someone.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                With this spell you can send a whispered message to someone within direct line
+                of sight. If there is anything blocking line of sight, then the whispered message
+                will not be delivered. The message must be vocalised, and it can be as long as
+                the spell lasts.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Voice" level="30" type="air">
+        <time>Action</time>
+        <range>Self</range>
+        <target>Self</target>
+        <duration>Will</duration>
+        <prerequisite>Whisper</prerequisite>
+        
+        <short>Made your voice nicer.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                After casting this spell, your voice becomes better sounding - either more
+                seductive, authoritive or intimidating. You gain a +6 bonus to any social
+                skills that rely on your voice.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The bonus is increased to +7.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The bonus is increased to +8.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Silence" level="30" type="air">
+        <time>Action</time>
+        <range>Self</range>
+        <target>Self</target>
+        <duration>Minutes</duration>
+        <radius>Medium</radius>
+        <prerequisite>Whisper</prerequisite>
+        
+        <short>Suppress sounds in the area.</short>
+        
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Suppresses sound in the area of the spell. Whispers cannot be heard, normal
+                speech becomes a quiet whisper and shouting becomes normal speech. Anyone
+                trying to here things in the area gets a +15 modifier to their TN.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The sound is silenced by two levels. The TN modifier is +25.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                Sound is completely silenced. All attempts to hear anything fail.
+            </para>
+        </description>
+    </spell>
+</grimoire>
+
+

@@ -1,0 +1,100 @@
+<?xml version="1.0"?>
+
+<!--
+
+    Generic equipment lists for Tech Level 10 Traveller.
+
+    Copyright 2007 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted provided that the above
+    copyright notice is retained.
+
+    Version: $Revision: 1.2 $
+    Date:    $Date: 2007-10-13 12:55:40 $
+
+    All units are in cgs.
+
+    Prices are in credits.
+
+    Tech Level
+     4 1450-1700
+     5 1700-1900
+     6 1900-1950
+     7 1950-1980
+     8 1980-2020
+     9 2020+ (Interplanetary)
+    10 Interstellar (early jump)
+    11 Interstellar (Jump)
+    12 Interstellar (Imperium)
+ -->
+
+<equipment xmlns="https://yags-rpg.net/xml">
+    <item name="Lock picks">
+        <category>Spy</category>
+        <importance>3</importance>
+        <availability>1</availability>
+        <techLevel>10</techLevel>
+        <legality>1</legality>
+
+        <short>High tech lock picks.</short>
+        <description>
+            <para>
+                Using the latest in micro-engineering, this set of lock
+                picks can break most standard mechanical locks in a short
+                period of time. Just insert the tool, and it automatically
+                adjusts itself to fit the lock, and open it. It is the
+                existence of tools such as these which have made plain
+                mechanical locks obsolete.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0</load>
+            <skill name="Burglary" bonus="+40"/>
+        </tool>
+
+        <weight>150</weight>
+        <material>plastic</material>
+        <cost units="credits">750</cost>
+    </item>
+
+    <item name="Eye in the sky">
+        <category>Media</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>10</techLevel>
+        <legality>2</legality>
+
+        <cost units="credits">6000</cost>
+        <weight>2000</weight>
+
+        <short>Contra-grav flying camera.</short>
+
+        <description>
+            <para>
+                This is a contra-grav media recorder of the type often
+                used by reporters. It can record audio and video (with
+                IR and low light options coming as standard on most
+                models) in high definition in a 360 degree arc. It can
+                be remote controlled, has an operating ceiling of
+                about 100m and a top flight speed of 50km/h. It can
+                operate for up to 12 hours without recharging, though
+                can extend this by a few hours through solar cells.
+            </para>
+
+            <para>
+                At TL11, it has a ceiling of 200m, a speed of 100km/h
+                and a duration of 24 hours. At TL12, these are increased
+                to 1km, 200km/h and 48 hours. Alternatively, halve cost
+                and weight each TL about 10.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>2</load>
+            <skill name="RPV Operation" bonus="+15"/>
+        </tool>
+    </item>
+
+</equipment>

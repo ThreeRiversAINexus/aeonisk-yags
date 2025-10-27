@@ -1,0 +1,217 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+                href="/home/sam/src/forge/yagsbook/xml/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+    <header>
+        <title>Bushido Characters</title>
+        <tagline>Yags Bushido</tagline>
+
+        <summary>
+            These rules are concerned with the characters and settings
+            commonly found in Asian films and history, specifically
+            covering Samurai characters and also more modern oriental
+            martial arts.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.5 $</version>
+            <date>$Date: 2006-07-18 19:26:23 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2006</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="character"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Yags Bushido</title>
+
+            <para>
+                <e>Yags Bushido</e> contains genre specific rules for
+                playing characters in feudal Japan or similar settings.
+                However, it also includes extended rules for unarmed
+                combat skills - commonly known as <e>martial arts</e>
+                (though technically, <e>all</e> combat skills, regardless
+                of whether they use a weapon or not, are martial arts).
+                This makes <e>Yags Bushido</e> also of use to those
+                playing in a Western or Modern setting. Because of this
+                somewhat wider remit, this article also covers specifically
+                Western combat sports such as <e>Boxing</e>.
+            </para>
+
+            <sect2>
+                <title>The Martial Arts</title>
+
+                <para>
+                    By default, <e>Yags</e> uses a single skill
+                    (<e>brawl</e>) to cover all unarmed and close weapon
+                    combat. Though its name may suggest unskilled drunken
+                    bar room fights, a high level of <e>brawl</e>
+                    represents a high degree of training and expertise,
+                    on par with a 'traditional' martial arts such as
+                    Karate.
+                </para>
+
+                <para>
+                    In a sense, <e>brawl</e> represents no style and no
+                    constraints - pretty similar to the style of fighting
+                    favoured by Bruce Lee. It's aim is to take down the
+                    enemy with a minimum of fuss, and is the skill favoured
+                    and tought by modern special forces and police units
+                    in the West.
+                </para>
+
+                <para>
+                    By comparison, the specialist martial arts tend to
+                    concentrate on a single style of attack or defence, and
+                    though may be better in their given area, are weaker
+                    for all round combat. Many of them also teach a
+                    philosophy and etiquette (who to bow to, the meaning of
+                    the belt colours, who the current masters are) as well
+                    as combat skills. Some (such as Judo, or Boxing) are
+                    more suited to controlled fights in a sports hall and
+                    tend to be very limited on a battlefield.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Character Generation</title>
+
+                <para>
+                    There are no character generation rules specific for
+                    <e>Yags Bushido</e>. It is suggested that some form of
+                    the Modern rules are used.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Traits</title>
+
+            <para>
+                The following <e>traits</e> are suggested for a setting
+                where honour and duty are important.
+            </para>
+
+            <sect3>
+                <title>Honour/Dishonour</title>
+
+                <para>
+                    <e>Honour </e> is about saving face and the
+                    reputation of yourself, your Lord and your family.
+                </para>
+            </sect3>
+
+            <sect3>
+                <title>Duty/Disloyalty</title>
+
+                <para>
+                    Duty is towards your Lord, and commands you to fulfill
+                    your responsibilities to the best of your abilities.
+                </para>
+            </sect3>
+
+            <sect3>
+                <title>Harmony/Corruption</title>
+
+                <para>
+                    <e>Harmony</e> is sought by priests, who seek to
+                    understand the balance of the universe and align
+                    themselves towards the Celestial Order. Those who
+                    stray from the path, and seek to undo Order are
+                    said to be Corrupted.
+                </para>
+            </sect3>
+
+            <sect3>
+                <title>Bravery/Cowardice</title>
+            </sect3>
+
+            <sect3>
+                <title>Ferocity/Restraint</title>
+            </sect3>
+        </sect1>
+
+
+        <sect1>
+            <title>Skills</title>
+
+            <sect2>
+                <title>Skill list</title>
+
+                <y:list-skills>
+                    <y:skills>../core/skills/bushido-skills.yags</y:skills>
+                </y:list-skills>
+            </sect2>
+
+            <sect2>
+                <title>Skill descriptions</title>
+
+                <y:import-skills>
+                    <y:skills>../core/skills/bushido-skills.yags</y:skills>
+
+                    <y:techniques>../core/techniques/techniques.yags</y:techniques>
+                    <y:techniques>../core/techniques/lowtech-techniques.yags</y:techniques>
+                    <y:techniques>../core/techniques/bushido-techniques.yags</y:techniques>
+                </y:import-skills>
+            </sect2>
+
+            <sect2>
+                <title>Other skills and styles</title>
+
+                <para>
+                    The above list of skills includes a small number of
+                    combat styles which are meant to provide a broad sample
+                    of those available in the real world. Given the level
+                    of abstraction in the skill system, it's difficult to
+                    provide a more detailed list without repitition.
+                </para>
+
+                <para>
+                    Obviously, it will be possible to meet ancient masters
+                    of less popular (or long forgotten styles). In which
+                    case they can be modelled on those provided. The real
+                    difference is that a specific <e>Melee tactics</e>
+                    technique will need to be learnt for each one. This
+                    gives a small advantage to rare skills.
+                </para>
+
+                <para>
+                    It is technically possible for a character can invent a
+                    fighting style of their own. Though no rules are
+                    currently given here, it is suggested that a minumum
+                    skill of 10 is required in a suitably similar skill
+                    before such can be even attempted.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Techniques</title>
+
+            <y:import-advantages type="technique" tree="true">
+                <y:adv>../core/techniques/bushido-techniques.yags</y:adv>
+            </y:import-advantages>
+        </sect1>
+    </body>
+
+</article>
+
+

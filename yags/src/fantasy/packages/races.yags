@@ -1,0 +1,189 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl" type="text/xsl"?>
+
+<y:packages xmlns="https://yags-rpg.net/xml"
+          xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <y:package name="Human">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Humans are the most common and widespread of the races, and
+                come in a variety of ethnicities, sizes, capabilities and
+                cultures. They are considered the default race, around which
+                everything else is defined.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Any one" score="+1"/>
+            <y:attribute name="Any one" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Speak (Common)" score="4"/>
+            <y:skill name="Speak (*)" score="4"/>
+            <y:skill name="Knowledge: Common" score="2"/>
+            <y:skill name="Any talent" score="2"/>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Dwarf">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Dwarfs are short, stocky individuals, averaging 140cm in height and weighing
+                around 90kg. They are a tough and hardy folk, accustomed to living in huge
+                subterranean cities located in high mountains. They are expert craftsmen and
+                engineers, and have a reputation for being somewhat dour and practical.
+            </para>
+            <para>
+                Given their reputation as craftsmen, they can be highly sought after in human
+                settlements as blacksmiths and stonemasons. It's not uncommon for a human
+                village to have a dwarf family working the local smithy, or overseeing the
+                construction of a keep or manor.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Size" score="4"/>
+            <y:attribute name="Health" score="+1"/>
+            <y:attribute name="Empathy" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Speak (Dwarven)" score="4"/>
+            <y:skill name="Speak (*)" score="4"/>
+            <y:skill name="Knowledge: Common" score="2"/>
+            <y:choice>
+                <y:skill name="Dungeoneering" score="2"/>
+                <y:skill name="Engineering" score="2"/>
+            </y:choice>
+        </y:skills>
+
+        <y:advantages>
+            <y:advantage name="Dark vision">
+                Dwarves are used to living in the dark, and can see twice as far as humans
+                can in low-light conditions.
+            </y:advantage>
+            <y:advantage name="Infravision">
+                Dwarves can see slightly further into the infrared spectrum than humans can,
+                giving them the ability to see changes in temperature. This allows them a
+                limited ability to see in pitch blackness.
+            </y:advantage>
+        </y:advantages>
+    </y:package>
+
+    <y:package name="Bahgi">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Also known as <e>cat folk</e>, these are quite rare around the
+                <e>Middle Sea</e>, and come from the east. They are humanoid in appearance,
+                though their bodies are covered in thin fur, which can vary greatly in colour.
+                Colour tends to denote tribal group, so Bahgi of the same family will tend
+                to have similar colouring.
+            </para>
+            
+            <para>
+                They have cat-like heads, with sharp teeth and large eyes. Their hands and
+                feed have small claws rather than nails, which are a minor benefit in combat
+                and when climbing.
+            </para>
+            
+            <para>
+                They are known for being fast and agile, but also not very intelligent. They
+                can be quite selfish and also vain about their appearance.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Size" score="5"/>
+            <y:attribute name="Agility" score="+1"/>
+            <y:attribute name="Intelligence" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Speak (Common)" score="4"/>
+            <y:skill name="Speak (*)" score="4"/>
+            <y:skill name="Knowledge: Common" score="2"/>
+            <y:choice>
+                <y:skill name="Athletics" score="2"/>
+                <y:skill name="Stealth" score="2"/>
+            </y:choice>
+        </y:skills>
+        
+        <y:advantages>
+            <y:advantage name="Dark vision">
+                Bahgi have very good night vision, and can see twice as far in low light as
+                humans can.
+            </y:advantage>
+            <y:advantage name="Climbing">
+                Bahgi are good climbers, and gain a +1 attribute bonus when making climbing
+                tests.
+            </y:advantage>
+            <y:advantage name="Claws">
+                Their claws allow them to cause mixed damage in unnarmed combat.
+            </y:advantage>
+            <y:advantage name="Weak willed">
+                They have -1 to all their starting Virtues.
+            </y:advantage>
+        </y:advantages>
+    </y:package>
+    
+    
+    <y:package name="Halfling">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Adult halfings appear very much like small children. They are thought to have
+                been created by the elves, with the expectation that they would make better
+                slaves. To some extent, this has turned out to be true, since Halflings tend
+                to be more subservient than humans.
+            </para>
+            <para>
+                An adult male halfling is about 110cm tall, a female about 10cm shorter.
+                They make up for their size by being nimble and quick.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Size" score="3"/>
+            <y:attribute name="Dexterity" score="+1"/>
+            <y:attribute name="Strength" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Speak (Common)" score="4"/>
+            <y:skill name="Speak (*)" score="4"/>
+            <y:skill name="Knowledge: Common" score="2"/>
+            <y:choice>
+                <y:skill name="Sleight" score="2"/>
+                <y:skill name="Stealth" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Gnome">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Gnomes are small fey creatures.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Size" score="3"/>
+            <y:attribute name="Intelligence" score="+1"/>
+            <y:attribute name="Strength" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Speak (Fey)" score="4"/>
+            <y:skill name="Speak (*)" score="4"/>
+            <y:skill name="Speak (*)" score="4"/>
+            <y:skill name="Knowledge: Common" score="2"/>
+            <y:skill name="Knowledge: Nature" score="2"/>
+            <y:skill name="Survival" score="2"/>
+            <y:choice>
+                <y:skill name="Sleight" score="2"/>
+                <y:skill name="Charm" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+</y:packages>

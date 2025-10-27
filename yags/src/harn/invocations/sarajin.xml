@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+
+<invocations>
+
+<invocation religion="Sarajin" rank="1">
+<name>Prayer to Elkyri I</name>
+<time>1 round</time>
+<range>Self</range>
+<difficulty>10</difficulty>
+<cost>Low</cost>
+<description>
+A prayer to one specific Elkyri. Gives a bonus to one skill to
+perform one task of one fifth the invocation roll.
+</description>
+</invocation>
+
+<invocation religion="Sarajin" rank="1">
+<name>Unsarl's Hug I</name>
+<time>1 minute</time>
+<range>Touch</range>
+<difficulty>20</difficulty>
+<cost>Low/immediate</cost>
+<description>
+Increases subject's strength by one twentieth of the invocation
+roll. Lasts until sleep.
+</description>
+</invocation>
+
+<invocation religion="Sarajin" rank="1">
+<name>Jarlak's Lope I</name>
+<time>1 minute</time>
+<range>Touch</range>
+<difficulty>20</difficulty>
+<cost>Low/immediate</cost>
+<description>
+Increases subject's agility by one twentieth of the invocation
+roll. Lasts until sleep.
+</description>
+</invocation>
+
+</invocations>

@@ -1,0 +1,898 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+                 type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+    <header>
+        <title>Fantasy Characters</title>
+        <tagline>YAGS Fantasy</tagline>
+
+        <summary>
+            Creating characters for a fantasy campaign.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@notasnark.net</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 0.8.0 $</version>
+            <date>$Date: 2007-09-09 09:58:44 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2019</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="character"/>
+    </header>
+
+    <front href="images/fantasy-front.svg"/>
+
+    <body>
+        <sect1>
+            <title>Fantasy</title>
+
+            <para>
+                <tm>YAGS Fantasy</tm> is designed for roleplaying in a high fantasy
+                world, one with magic, dragons and ancient underground ruins. Since
+                it is <tm>YAGS</tm>, it is still a gritty system, but one slanted
+                towards heroes being able to perform great deeds, as long as they
+                plan well and don't go in the front door.
+            </para>
+            
+            <sect2>
+                <title>The Setting</title>
+                
+                <para>
+                    There is no defined setting for <tm>YAGS Fantasy</tm>, instead
+                    it is assumed that it either fits into an existing system from
+                    a different system, or is being used with a setting of your own.
+                </para>
+                
+                <para>
+                    The game does make some assumptions though. Firstly, magic is
+                    relatively common, both in terms of people able to use magic
+                    and also items which have a magical ability, such as swords, 
+                    armour, wands and other wondrous items.
+                </para>
+                
+                <para>
+                    It assumes that there are a variety of different sapient races,
+                    such as elves, dwarves and orcs, as well as humans. These races
+                    are relatively common, and player characters can generally choose
+                    to play one of them if they want to.
+                </para>
+                
+                <para>
+                    Finally, it assumes that there are a large variety of monstrous
+                    creatures to be fought and defeated, as well as a need for heroes
+                    to go out and do so. Such monsters may be found in the wildernous,
+                    or lurking in ancient subterranean ruins.
+                </para>
+            </sect2>
+            
+            <sect2>
+                <title>The Rules</title>
+                
+                <para>
+                    The rules for <tm>YAGS</tm> aren't simple, but the basics are.
+                    For most tasks, you roll a single d20 and add a number to that.
+                    High rolls are always good, and to succeed you need to equal or
+                    exceed a Target Number (TN). A moderately challenging task has a
+                    TN of 20, which a typical skilled person will succeed on about
+                    two thirds of the time.
+                </para>
+                
+                <para>
+                    Everyone has a number of base <e>attributes</e> (such as
+                    Strength, Agility, Intelligence etc), which default to 3 for
+                    humans, but normally ranage between 2 and 6. Everyone also has 
+                    a number of skills, which start at zero and can rise to 10 or
+                    even higher. A typical skilled individual has a skill of 4.
+                </para>
+                
+                <para>
+                    When making a skill test, you multiply your attribute and skill,
+                    and add that to your d20 roll. So a typical professional will
+                    be rolling d20 + 12.
+                </para>
+                
+                <para>
+                    There are no classes or levels, progression is through raising
+                    your skills and attributes.
+                </para>
+            </sect2>
+            
+            <sect2>
+                <title>Characters</title>
+                
+                <para>
+                    Characters are defined by a mix of numbers, including
+                    attributes and skills.
+                </para>
+                
+                <sect3>
+                    <title>Attributes</title>
+
+                    <para>
+                        Attributes define your primary, raw, abilities.
+                        Though attributes can be changed during the game,
+                        they change only slowly, generally over a period of
+                        years.
+                    </para>
+                    <para>
+                        There are eight primary attributes - <t>Strength</t>,
+                        <t>Health</t>, <t>Agility</t>, <t>Dexterity</t>,
+                        <t>Perception</t>, <t>Intelligence</t>, <t>Empathy</t>
+                        and <t>Will</t>.
+                    </para>
+                    <para>
+                        Each of them defaults to a score of three, though they
+                        can range between 2 and 6 during character generation.
+                    </para>
+                    <para>
+                        An attribute of 2 indicates that you are
+                        significantly worse than the average in that
+                        attribute. Conversely, an attribute of 4 represents
+                        noticeably above average ability, and 5 or more is
+                        exceptional ability.
+                    </para>
+
+                    <sect4>
+                        <title>Strength</title>
+
+                        <para>
+                            With a high strength you are able to carry more,
+                            move faster and hit harder than other people.
+                            Strength is useful for warriors.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Health</title>
+
+                        <para>
+                            With a high health you are able to continue
+                            going for longer, shrug off the effects of
+                            poison or fatigue, and stay alive after being
+                            badly wounded.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Agility</title>
+
+                        <para>
+                            A high agility allows you to react quicker and
+                            move faster than other people. You are also
+                            better at dodging, wrestling and brawling, as
+                            well as being a good climber and jumper.
+                            Agility is also used when sneaking.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Dexterity</title>
+
+                        <para>
+                            High dexterity provides you with natural ability
+                            at filching and lock picking, but also with the
+                            use of swords and other melee weapons. Dexterity
+                            is useful for both warriors and thieves.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Perception</title>
+
+                        <para>
+                            Perception is a measure of your ability to
+                            notice the world around you. A high perception
+                            means you are more likely to spot ambushes,
+                            notice a pick pocket or find a place to hide.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Intelligence</title>
+
+                        <para>
+                            A high intelligence provides you with wits,
+                            memory and reasoning ability. Since you have a
+                            better memory, you can make better use of
+                            knowledge you have read or been taught. You are
+                            quicker at learning, and less likely to be
+                            confused by people.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Empathy</title>
+
+                        <para>
+                            A high empathy allows you to understand the
+                            emotions and motivations of other people. If
+                            you so wish, you may use this to get on with
+                            them better. Fast talking, seduction and
+                            oratory all use empathy.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Will</title>
+
+                        <para>
+                            A high will enables you to keep control of your
+                            mind in times of stress. You are less likely to
+                            be tempted or fooled, and are able to keep cool
+                            in times of stress.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+        </sect1>
+        
+        <sect1>
+            <title>Building a Character</title>
+            
+            <para>
+                Building a character consists of selecting three different templates, one
+                for your race, one for your upbringing and one for your current career.
+                Each of these builds upon each other, providing modifiers and skills to
+                your character which define what they have done up until now.
+            </para>
+            
+            <note title="Non-Player Characters">
+                <para>
+                    The rules for character generation here are designed for
+                    <e>player characters</e>. Nothing is stopping NPCs from being
+                    designed using these rules, but it's probably easier to simply
+                    give an NPC the skills and abilities that they need.
+                </para>
+                <para>
+                    The important point is that these rules won't create an average
+                    person, but someone who is above average in capability and
+                    experience. <tm>YAGS Fantasy</tm> is all about playing heroes
+                    in a high magic setting after all.
+                </para>
+                <para>
+                    <tm>YAGS</tm> is flexible in that it doesn't matter how a character
+                    was designed or built - the rules work the same after character
+                    generation, and there's no need to balance things or to ensure that
+                    a character fits into a rigidly defined 'class' or 'level'.
+                </para>
+            </note>
+            
+            <para>
+                Templates don't affect where your character goes next, that is up to you,
+                but the skills and abilities that they provide your character can govern
+                what paths are easier or harder.
+            </para>
+            
+            <para>
+                You will get a number of modifiers to your attributes. All your attributes
+                begin at three. Any positive modifiers simply add to your current attribute
+                value, up to a maximum of six. Negative modifiers reduce an attribute, to a
+                minimum of two. If a modifier takes an attribute to below two, then instead
+                you should apply the modifier to another attribute of your choice.
+            </para>
+            
+            <para>
+                Skills will provide you with a skill of a given value, normally either 2 or
+                4. If you don't already have the skill, then it will be set to the given
+                value. If you already have the skill, then it may be modified upwards.
+            </para>
+            
+            <para>
+                If you gain a skill at level 2, and you already have the skill at a level of
+                2 or lower, then it is raised to 3. Gaining a skill at level 2 if you already
+                have it at 3 or more does not increase it further. Generally, gaining a skill
+                at level 2 only provides you with basic background familiarity with the skill.
+                The exception is for <e>Talents</e>, will can be raised to 4 in this way.
+            </para>
+            
+            <para>
+                If you gain a skill at level 4, and you already have the skill at a level of
+                3 or lower, then you gain it at level 4. If you already have the skill at
+                level 4 or more, then you gain +1 on the skill.
+            </para>
+            
+            <para>
+                If you ever gain a skill you already have, even if it doesn't increase, then
+                you also gain a <e>technique</e> for that skill. More on these later.
+            </para>
+
+            <sect2>
+                <title>Race</title>
+
+                <para>
+                    The first stage of character generation is to select your race. Humans
+                    are the most common and flexible of the various races, but they are by
+                    no means the only option. Non-humans tend to have certain characteristics,
+                    but since most of them have populations in the millions, there is plenty
+                    of room for divergence.
+                </para>
+                
+                <y:packages src="packages/races.yags"/>
+            </sect2>
+
+            <sect2>
+                <title>Upbringing</title>
+                
+                <para>
+                    Your upbringing defines your family and early childhood. Some are restricted
+                    by your race, others are generic and can be taken by anyone. They represent
+                    your background up until your early to late teens, the exact period will depend
+                    on the package you choose, and how you want to describe it.
+                </para>
+                
+                <y:packages src="packages/upbringing.yags"/>
+            </sect2>
+            
+            
+            <sect2>
+                <title>Careers</title>
+                
+                <para>
+                    This is what you've chosen to do with your adult life up until the start of
+                    the game. You have probably spent a few years working in this life, so have
+                    a reasonable amount of experience equivalent to a young professional. If
+                    human, you may be in your early twenties, though you can be younger or older
+                    if you wish.
+                </para>
+                
+                <para>
+                    Some combinations of upbringing and careers may be unlikely, but most things
+                    are possible with a bit of creativity. A <e>Street Urchin</e> could become a
+                    <e>Knight</e>, and the story of how they persuaded someone to take them on
+                    as a squire, and provide them with training and eventually equipment could
+                    make for an interesting background story.
+                </para>
+                
+                <y:packages src="packages/careers.yags"/>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Advantages and Disadvantages</title>
+
+            <para>
+                Advantages and disadvantages help you flesh out your
+                abilities and backgrounds. They give you bonuses which
+                make you better than everyone else, or add limitations
+                which restrict you in some way.
+            </para>
+
+            <sect2>
+                <title>Virtues</title>
+
+                <para>
+                    The first thing that you can do with your points of
+                    advantages is to modify your <e>Virtues</e>.
+                    There are five virtues: Bravery, Chastity, Discipline,
+                    Sanity and Temperance. They all default to four, but
+                    you can buy one up by +2 with 1 point of advantage, or
+                    drop one by -2 for 1 point of disadvantage.
+                </para>
+                <para>
+                    Alternatively, you can raise one by +1 by dropping one
+                    by -1. In either case, no trait can start higher than
+                    six or lower than two.
+                </para>
+                <para>
+                    Virtues may come into play during times of stress, when
+                    the actions of your character may not be what you, the
+                    player, want them to be. If a huge troll charges out of
+                    a cave at you, you may wish to stand and fight but
+                    whether you do or not may depend on your <e>Bravery</e>
+                    virtue.
+                </para>
+                <para>
+                    A high virtue allows you to dictate your character's
+                    actions freely. A low virtue means that your character
+                    is more likely to give in to their base instincts and
+                    act as the GM decides.
+                    However, acting without passion is viewed negatively
+                    in Habisfern. The <e>Ice</e> seeks to destroy all
+                    human emotion, so those that always act through
+                    reason and logic may be viewed with suspicion.
+                </para>
+                <para>
+                    Virtues may go up and down during play, and do so by gaining
+                    or losing experience points. Losing experience on a virtue
+                    does not drop it a level as soon as excess experience drops
+                    below zero. Instead, a virtue can have negative experience
+                    against it. As soon as the negative experience <e>exceeds</e>
+                    half the current value of the virtue, it drops a level.
+                </para>
+                <para>
+                    For example, you start with a Bravery of 3. You gain one point
+                    of experience in Bravery due to your actions, giving a Bravery
+                    score of "3, +1 xp". You then perform some cowardly acts, losing
+                    2 experience in Bravery, so your virtue becomes "3, -1 xp". If
+                    you lose another point, then it becomes "3, -2 xp", but since
+                    2 is greater than half the current score (1.5), your trait
+                    drops to "2, +1 xp".
+                </para>
+
+                <sect3>
+                    <title>Bravery</title>
+                    <para>
+                        A measure of your bravery when facing things that could
+                        do you harm. A high bravery is required for warriors and
+                        those that put themselves in harms way. New experiences
+                        are more likely to cause fear than threats that you have
+                        encountered before, and the level of the threat is also
+                        relative - a brave peasant may run from a large man with
+                        a club, but a less brave warrior, who is highly skilled
+                        and has a sword, may well not consider the brute a threat.
+                    </para>
+                    <para>
+                        A high bravery is considered a good feature of a person
+                        within the Kingdom.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Chastity</title>
+                    <para>
+                        Sex is something that many people desire, but it is not
+                        always a good time to pursue it. Your chastity is a measure
+                        of your ability to resist temptations of the flesh, and not
+                        to be turned by a soft word, a gentle caress, or the sight
+                        of naked flesh.
+                    </para>
+                    <para>
+                        If you have a low chastity then you are more likely to be
+                        distracted when others flirt with you, but you will also be
+                        more comfortable when you wish to flirt with others.
+                        A high chastity will mean you are not easily tempted, but
+                        you will be more uncomfortable when you do wish to seek
+                        the pleasures of the flesh.
+                    </para>
+                    <para>
+                        Whilst a low chastity is frowned upon, so is a high chastity.
+                        Sex is an important part of life, and an interest in it is
+                        considered healthy and normal for both men and women. Lack
+                        of passion is a sign of the Ice, and may be viewed with
+                        suspicion.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Discipline</title>
+                    <para>
+                        Discipline measures your ability to keep your calm when more
+                        exciting things call for your attention. It prevents you from
+                        losing your temper when an enemy hurls an insult at you, or
+                        from killing a hated enemy who has offered his surrender.
+                    </para>
+                    <para>
+                        A high Discipline means that the bards and skalds of the enemy
+                        will not be able to draw you away from your shield wall. But it
+                        can also mean you are viewed as a coward if you do not respond
+                        to insults when they are given, or as a inhuman killer when you
+                        fight without passion.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Sanity</title>
+                    <para>
+                        There are things in the world that can tear your mind apart
+                        just by your looking at them. Sanity is a measure of how well
+                        you are grounded in this world, rather than the world of the
+                        Dreamlands. A sane person has a higher resistance to the
+                        effects of magic and the faerie folk. An insane person can
+                        learn magic faster, and has a greater ability to deal with
+                        the fey and similar creatures.
+                    </para>
+                    <para>
+                        A high sanity is always considered good, unless you want to
+                        use magic yourself. In that case, sacrificing your sanity is
+                        a fast way to gain power, though a low sanity can be
+                        dangerous to you and those around you.
+                    </para>
+                </sect3>
+                <sect3>
+                    <title>Temperance</title>
+                    <para>
+                        As chastity is to the pleasures of sex, so Temperance is to
+                        the pleasures of food and drugs. There are times when not
+                        succumbing to drunkenness is definitely a good idea but, as
+                        with chastity, avoiding pleasure when there is no reason to
+                        is considered a bad characteristic for a person to have.
+                    </para>
+                    <para>
+                        If you have a high Temperance, then you will have a reputation
+                        of not showing respect to your host, for both the giving of
+                        food and drink and partaking of it, are considered an
+                        important part of society. However, a low Temperance is a sign
+                        of poor self control.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>List of Advantages</title>
+
+                <sect3>
+                    <title>Common Advantages</title>
+
+                    <y:import-advantages type="advantage">
+                        <y:adv>../core/options/advantages.yags</y:adv>
+                        <y:adv>../core/options/background.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+                <sect3>
+                    <title>Common Disadvantages</title>
+
+                    <y:import-advantages type="disadvantage">
+                        <y:adv>../core/options/advantages.yags</y:adv>
+                        <y:adv>../core/options/background.yags</y:adv>
+                    </y:import-advantages>
+                </sect3>
+
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Skills</title>
+            
+            <para>
+                Your skills are measured on a scale of one upwards. Generally, a score of four
+                is considered to be a professional level, and eight is considered to be at a
+                master level. Skills at higher scores are possible, with the best masters in the
+                world having scores in the range of 10 to 15.
+            </para>
+            
+            <para>
+                You begin play with a number of skills according to the templates that you chose
+                for your <e>Race</e>, <e>Background</e> and <e>Career</e>. You may have some
+                extra points to put on skills after that as well, to allow you to perform some
+                final customisations.
+            </para>
+            
+            <para>
+                Skills can be raised with <e>Experience</e>, which is gained during play. The
+                amount of <e>Experience</e> needed to raise a skill to the next level is equal
+                to the next level. So to raise a skill from four to five, will cost five
+                experience.
+            </para>
+            
+            <table>
+                <title>Skill Costs</title>
+                <colspec colwidth="15mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+                <colspec colwidth="6mm"/>
+
+                <thead>
+                    <row>
+                        <entry>Score:</entry>
+                        <entry>1</entry>
+                        <entry>2</entry>
+                        <entry>3</entry>
+                        <entry>4</entry>
+                        <entry>5</entry>
+                        <entry>6</entry>
+                        <entry>7</entry>
+                        <entry>8</entry>
+                        <entry>9</entry>
+                        <entry>10</entry>
+                        <entry>11</entry>
+                        <entry>12</entry>
+                    </row>
+                </thead>
+
+                <tbody>
+                    <row>
+                        <entry>Total cost:</entry>
+                        <entry>1</entry>
+                        <entry>3</entry>
+                        <entry>6</entry>
+                        <entry>10</entry>
+                        <entry>15</entry>
+                        <entry>21</entry>
+                        <entry>28</entry>
+                        <entry>36</entry>
+                        <entry>45</entry>
+                        <entry>55</entry>
+                        <entry>66</entry>
+                        <entry>78</entry>
+                    </row>
+                </tbody>
+            </table>
+            
+            <para>
+                Normally, if you don't have a skill then you can't use it. Some skills
+                <e>default</e> to another skill. In this case, you can use the default skill
+                instead, however the result you roll is halved. Many physical skills will
+                default to either an <e>Attribute</e> or a <e>Talent</e>.
+            </para>
+            
+            <sect2>
+                <title>Techniques</title>
+                
+                <para>
+                    Many skills have <e>Techniques</e> associated with them. When your skill
+                    reaches a level equal to the cost of the <e>Technique</e> then you can
+                    purchase it with <e>Experience</e>. <e>Techniques</e> often allow you to do
+                    things which would wouldn't normally be able to do, or make some things
+                    easier. There are various different types of technique.
+                </para>
+                
+                <sect3>
+                    <title>Specialisations</title>
+                    
+                    <para>
+                        A <e>Skill Specialisation</e> is a type of <e>Technique</e> that allows
+                        you to learn some narrow use of the skill. For example, the <e>Survival</e>
+                        skill has specialisations in different types of terrain and climate.
+                        If you don't have a relevant specialisation, then you default to the skill
+                        itself, which means that your roll is halved.
+                    </para>
+                    <para>
+                        Specialisations can be either <e>Easy</e> or <e>Hard</e>. An <e>Easy</e>
+                        specialisation costs 2 points, and a <e>Hard</e> specialisation costs 4
+                        points.
+                    </para>
+                </sect3>
+                
+                <sect3>
+                    <title>Skill Mastery</title>
+                    
+                    <para>
+                        A <e>Skill Mastery</e> is like a specialisation but more flexible. They
+                        are generally used when the most common usage of a skill is in an opposed
+                        roll against another person with the skill. In a quick contest, the
+                        opponent with the highest <e>Mastery</e> level can either re-roll their
+                        roll, or force a re-roll of their opponents. In a long contest, then they
+                        get a number of re-rolls equal to the difference in mastery levels.
+                    </para>
+                    
+                    <para>
+                        Alternatively, a <e>Skill Mastery</e> may be used for open ended craft or
+                        performance skills.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Skills by Groups</title>
+
+                <para>
+                    The following lists all the skills according to
+                    various groups. Skills which belong to more than
+                    one group are listed multiple times. When
+                    designing a character that you want to be good at
+                    some type of thing, these grouping can give an
+                    idea about which skills to buy.
+                </para>
+
+                <y:list-skills maxTech="3">
+                    <y:skills>skills/fantasy-skills.yags</y:skills>
+                    <y:skills>skills/knowledge-skills.yags</y:skills>
+                    <y:skills>../core/skills/core-skills.yags</y:skills>
+                </y:list-skills>
+            </sect2>
+
+            <sect2>
+                <title>Skill Descriptions</title>
+
+                <y:import-skills maxTech="3">
+                    <y:skills>skills/fantasy-skills.yags</y:skills>
+                    <y:skills>skills/knowledge-skills.yags</y:skills>
+                    <y:skills>../core/skills/core-skills.yags</y:skills>
+
+                    <y:techniques>../core/techniques/combat.yags</y:techniques>
+                    <y:techniques>../core/techniques/physical.yags</y:techniques>
+                    <y:techniques>../core/techniques/social.yags</y:techniques>
+                </y:import-skills>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Luck</title>
+
+            <para>
+                <e>Habisfern</e> is a world where fate and destiny are
+                seen to be a very real part of everyday life. For some
+                people, Fate will guide them towards their goal, for
+                others, Fate may try to drag them down to their doom.
+                In Habisfern, whether Fate has an interest in a character
+                is represented by the <e>Luck</e> and <e>Cursed</e>
+                traits.
+            </para>
+
+            <para>
+                The GM may at certain points in an adventure call for a
+                Luck check. Some checks can be determined to see how
+                many guards are on duty, if a window has been left open
+                etc. If the character succeeds, then things work out in
+                the character's favour.
+            </para>
+
+            <targetlist targetFirst="true">
+                <targetLabel>Chance</targetLabel>
+                <valueLabel>Circumstance</valueLabel>
+
+                <item target="5" value="Likely.">
+                    Event is very likely to happen unless the
+                    character is particularly unlucky.
+                </item>
+
+                <item target="10" value="Evens.">
+                </item>
+
+                <item target="15" value="Unlikely.">
+                </item>
+
+                <item target="20" value="Improbable.">
+                </item>
+            </targetlist>
+
+            <sect2>
+                <title>Using Luck</title>
+
+                <para>
+                    Luck may also be used to cheat death. At any point,
+                    a character with at least one point of <e>Luck</e>
+                    may spend it, loosing it permanently, in order
+                    to remain alive after a death result.
+                </para>
+
+                <para>
+                    Instead of being dead, the character is left in a
+                    state of being stable but fatally wounded. It cannot
+                    be relied upon entirely - being only wounded after
+                    falling into a pit of lava still leaves you in a
+                    pit of lava.
+                </para>
+            </sect2>
+        </sect1>
+
+         <sect1>
+            <title>Experience Progression</title>
+
+            <para>
+                The principle way for a character to improve their skills
+                and attributes in Yags is through training and study. Since
+                how this is done is described in the <e>Campaign</e>
+                article, it is not discussed here. However,
+                <e>Habisfern</e> also allows characters to gain experience
+                from performing heroic deeds. Depending on how often
+                a character has an <e>adventure</e>, such experience may
+                be quicker or slower than training.
+            </para>
+
+            <para>
+                Normally, a character is assumed to gain about 2 points
+                of experience per average game session. This normally
+                assumes an evening of play. A particularly intensive
+                session would warrant 3 points, a light session only 1.
+            </para>
+
+            <para>
+                If individual characters or players stood out during
+                the session, then a bonus point may also be gained.
+            </para>
+
+            <para>
+                Experience may be spent in the following ways.
+            </para>
+
+            <itemlist order="1">
+                <item>
+                    Any skill which currently has a score of 3 or less may
+                    have one experience point placed on it.
+                </item>
+
+                <item>
+                    One skill of four or higher, or a single attribute,
+                    or a single trait may have one experience point placed
+                    on it. Only one of these options may be chosen for a
+                    single session.
+                </item>
+
+                <item>
+                    Any number of points may be placed into any number
+                    of techniques, as long as the prerequisites for the
+                    technique have been met.
+                </item>
+            </itemlist>
+
+            <para>
+                The GM may wish to enforce players only spending experience
+                on skills that have actually been used during the session.
+            </para>
+
+            <sect2>
+                <title>Improving Skills</title>
+
+                <para>
+                    Skills can be raised with experience, at a cost
+                    equal to the level the skill is being raised to.
+                    Knowledge skills always require some source of
+                    knowledge available if it is to be raised.
+                </para>
+
+                <para>
+                    A technique cannot be used until the full cost of
+                    the technique has been paid for.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Improving Attributes</title>
+
+                <para>
+                    Attributes can be raised with experience, at a cost
+                    equal to five times the level the character is
+                    raising the attribute to. So an attribute of three
+                    will cost 20 points to raise it to 4.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Advantages</title>
+
+                <para>
+                    It is not possible to buy new advantages after
+                    character generation. It may be possible to gain an
+                    advantage (or something similar to it) in play,
+                    but it does not need to be paid for.
+                </para>
+
+                <para>
+                    Similarly, disadvantages cannot, or do not need to be,
+                    paid off. If the character starts with an Enemy, and
+                    manages to remove the Enemy in game, then they are
+                    no longer have an enemy. There is no requirement that
+                    they pick up a new enemy (though they may if there is
+                    an in-game reason to do so), or have to take a new
+                    disadvantage to replace the old one.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Traits</title>
+
+                <para>
+                    Traits may be raised (or reduced) during the game, as
+                    long as the GM is happy that the character is being
+                    played in a way that corresponds to the direction the
+                    trait is going. A character with a trait of Valorous,
+                    who is being played as a coward, cannot have their
+                    Valorous trait increased. A character with Cowardice
+                    who was being played as a coward, but who showed signs
+                    that they were trying not to be a coward, could
+                    buy off their Cowardice trait however.
+                </para>
+
+                <para>
+                    It costs 10 experience points to change a Trait by one
+                    level.
+                </para>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

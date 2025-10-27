@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+
+<!--
+    Cybernetic equipment for a SciFi campaign, TL 9 (2020 - 2100).
+
+    Copyright 2011 Samuel Penn, sam@glendale.org.uk
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted as long as the above copyright
+    notice is retained.
+
+    All units are in cgs.
+
+    Prices are in US dollars.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="Dermal Armour">
+        <category>Cybernetic</category>
+        <importance>2</importance><availability>1</availability>
+        <techLevel>9</techLevel>
+        <legality>3</legality>
+        <weight>2000</weight>
+        <cost>150000</cost>
+
+        <short>Armour implants.</short>
+        <description>
+            <para>
+                This advanced armour is implanted beneath the skin, providing
+                the ultimate in covert protection. It is uncomfortable, and
+                gives the wearer a certain bulk, making a thin person look
+                quite 'wrong'. It has the disadvantage of not being removable
+                without surgery. Implanting (or removing) it requires 6 months
+                of surgery and bed rest.
+            </para>
+
+            <para>
+                After all that, the protection it provides is limited. However
+                standard armour can be worn over the top and any protection
+                afforded stacks with the dermal armour.
+            </para>
+        </description>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>2</load>
+            <weight>2000</weight>
+            <covers>
+                <torso/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Eyes">
+        <category>Cybernetic</category>
+        <importance>2</importance><availability>1</availability>
+        <techLevel>9</techLevel>
+        <legality>4</legality>
+        <weight>0</weight>
+        <cost>60000</cost>
+
+        <short>Cybernetic eyes.</short>
+        <description>
+            <para>
+                Implanted eyes, originally designed as a prosthetic for the
+                blind have evolved into something also useful for the fully
+                sighted. Such eyes completely replace a healthy pair, and
+                look normal to cursory examination. They provide increased
+                visual performance, plus the ability to switch to infra red
+                or low light vision.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Vision tests" attribute="+1"/>
+        </tool>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Awareness" score="20">
+                Notice that eyes are unnatural if actively paying attention
+                to them. Double difficulty if just in conversation. Triple
+                the price for hyper-realistic eyes which add +10 to the
+                base difficulty.
+            </skill>
+        </task>
+    </item>
+
+    <item name="Skeletal Enhancement">
+        <category>Cybernetic</category>
+        <importance>2</importance><availability>1</availability>
+        <techLevel>9</techLevel>
+        <legality>3</legality>
+        <weight>3000</weight>
+        <cost>750000</cost>
+
+        <short>Strength upgrade.</short>
+        <description>
+            <para>
+                This is a complex procedure that replaces much of the skeleton
+                with a hardened alloy, plus reworking of the nerves and muscles
+                to integrate with this. It provides a +1 bonus to strength.
+            </para>
+        </description>
+    </item>
+
+    <item name="Remote Synthetic">
+        <category>Gadget</category>
+        <importance>2</importance><availability>1</availability>
+        <techLevel>9</techLevel>
+        <legality>5</legality>
+        <weight>95000</weight>
+        <cost>50000</cost>
+
+        <short>Remote operated synthetic robot.</short>
+        <description>
+            <para>
+                This is synthetic android which is modelled to look as realistic
+                as possible. It has skin, hair, body warmth and the ability to
+                speak, walk and do what most humans can do. However, it must be
+                remotely operated at all times, generally by a person hooked into
+                VR sensors fed from the android's eyes and ears.
+            </para>
+
+            <para>
+                They generally come in a variety of standard appearances (randomly
+                generated from a basic template), but a specific person can be
+                mimicked for twice the price. It has internal power to last about
+                12 hours of standard use in an office-like environment.
+            </para>
+        </description>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Awareness" score="15">
+                Notice that the android is artificial if actively paying
+                attention, double the difficulty if only notice in passing.
+                Add +10 to the difficulty for a double price version.
+            </skill>
+        </task>
+    </item>
+
+    <item name="Turing Synthetic">
+        <category>Gadget</category>
+        <importance>2</importance><availability>1</availability>
+        <techLevel>9</techLevel>
+        <legality>4</legality>
+        <weight>95000</weight>
+        <cost>150000</cost>
+
+        <short>Automated synthetic robot.</short>
+        <description>
+            <para>
+                This is synthetic android which is modelled to look as realistic
+                as possible. It has skin, hair, body warmth and the ability to
+                speak, walk and do what most humans can do. It is controlled by
+                a 'Turing Personality' software program which can mimic human
+                behaviour and actions to a certain degree.
+            </para>
+
+            <para>
+                The personality has access to an expert system, so can respond
+                to a conversation for a limited domain. They are generally used
+                as receptionists, information kiosk attendants or in similar
+                roles where they need to answer questions about a topic. They
+                can be used as waiters, but the manual dexterity required is
+                stretching the limits of what they are capable of, and they are
+                not well suited to the task.
+            </para>
+
+            <para>
+                Assume that they have a strength of 3, but agility and dexterity
+                of 2. Empathy and Intelligence are 1. They can fake being polite
+                and knowing a lot, but they have issues if anything goes outside
+                their programmed parameters.
+            </para>
+        </description>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Awareness" score="10">
+                Notice that the android is artificial if actively paying
+                attention, double the difficulty if only notice in passing.
+                Add +10 to the difficulty for a double price version.
+            </skill>
+        </task>
+    </item>
+</equipment>
+
+

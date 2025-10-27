@@ -1,0 +1,551 @@
+<html>
+    <head>
+        <title>Yags Character Sheet</title>
+
+    </head>
+
+    <style>
+        h1 {
+            color: red;
+            font-size: 18pt;
+            border-bottom: 2mm solid red;
+            margin: 0mm;
+            width: 200mm;
+        }
+
+        table.information {
+            width: 200mm;
+            background-color: #ffff99;
+            font-size: 8pt;
+        }
+
+        table.information td.label {
+            font-weight: bold;
+            text-align: right;
+            width: 20mm;
+            margin: 0mm;
+            padding: 0mm;
+        }
+
+        table.information td.value {
+            width: 30mm;
+            border-bottom: 1pt solid black;
+            background-color: white;
+        }
+
+        div.name-box {
+            position: absolute;
+            top: 3mm;
+            left: 125mm;
+            float: both;
+            width: 75mm;
+            height: 5mm;
+            box: 110mm 5mm;
+            border: 1pt solid black;
+        }
+
+        table.attributes tr.label td {
+            font-size: 8pt;
+            font-weight: bold;
+            width: 15mm;
+        }
+
+        table.attributes tr.value td {
+            border: 1pt solid black;
+            height: 5mm;
+        }
+
+        table.attributes tr.label td.hidden {
+            width: 5mm;
+        }
+
+        table.attributes tr.value td.hidden {
+            border: none;
+            height: 5mm;
+        }
+        
+        table.character {
+            position: absolute;
+            background-color: #eeffee;
+        }
+        
+        table.character td {
+            border-bottom: 1pt solid black;
+            height: 12pt;
+        }
+
+        table.skills {
+            position: absolute;
+            top: 40mm;
+            left: 2mm;
+            width: 65mm;
+            background-color: #eeffee;
+        }
+
+        table.skills tr {
+            width: 80mm;
+            padding: 0mm;
+        }
+
+        table.skills th {
+            text-align: left;
+            font-style: italic;
+            font-weight: bold;
+            font-size: 8pt;
+        }
+
+        table.skills td {
+            border-bottom: 1pt solid black;
+            padding: 0mm;
+            margin: 0mm;
+        }
+
+        table.skills td.skill {
+            width: 40mm;
+            height: 2mm;
+            font-style: italic;
+            font-family: Times;
+            font-size: 6pt;
+        }
+
+        table.skills td.score {
+            width: 10mm;
+        }
+
+        table.skills td.xp {
+            width: 5mm;
+        }
+        
+        table.combat {
+            background-color: #ffdddd;
+            position: absolute;
+            width: 135mm;
+            font-size: 8pt;
+        }
+                
+        table.combat tr th {
+            text-align: left;
+        }
+        
+        table.combat tr td {
+            background-color: #ffeeee;
+            height: 10pt;
+            font-size: 10pt;
+            padding: 0mm;
+        }
+
+        table.armour {
+            position: absolute;
+            left: 70mm;
+            top: 145mm;
+            background-color: #ffdddd;
+            font-size: 8pt;
+        }
+
+        table.armour th {
+            text-align: left;
+        }
+
+        table.armour td {
+            height: 24pt;
+            background-color: #ffeeee;
+            border-bottom: 1pt solid black;
+        }
+        
+        tr.border td {
+            border-bottom: 1pt solid black;
+            border-top: 2pt solid black;
+            height: 10pt;
+            color: #ffeeee;
+            font-size: 10pt;
+        }
+        
+        tr.boxed td {
+            text-align: center;
+            font-weight: bold;
+            width: 15mm;
+        }
+        
+        tr.boxed td.nobox {
+            border: none;
+            text-align: left;
+            width: 25mm;
+        }
+    </style>
+
+    <body style="margin-left: 1mm; width: 205mm; height: 290mm; border: 1pt solid black">
+        <h1>Yags Character Sheet</h1>
+
+        <div class="name-box">
+
+        </div>
+
+        <table class="information">
+            <tr>
+                <td class="label">Species/Sex</td>     <td class="value"/>
+                <td class="label">Birth date</td>   <td class="value"/>
+                <td class="value" valign="top" style="text-valign: top; border: 1pt solid black"colspan="2" rowspan="4">Description</td>
+            </tr>
+            <tr>
+                <td class="label">Nationality</td>      <td class="value"></td>
+                <td class="label">Year born</td>  <td class="value"></td>
+            </tr>
+            <tr>
+                <td class="label">Social class</td>   <td class="value"></td>
+            </tr>
+            <tr>
+                <td class="label">Profession</td>   <td class="value"/>
+            </tr>
+        </table>
+
+        <table class="attributes">
+            <tr class="label">
+                <td>Size</td>
+                <td>Strength</td>
+                <td>Stamina</td>
+                <td>Agility</td>
+                <td>Dexterity</td>
+                <td>Perception</td>
+                <td>Intelligence</td>
+                <td>Charisma</td>
+                <td>Will</td>
+                <td class="hidden"/>
+                <td>Luck</td>
+                <td>Soak</td>
+                <td>Move</td>
+            </tr>
+            <tr class="value">
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td class="hidden">&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+            </tr>
+        </table>
+
+        <table class="skills">
+            <tr>
+                <th>Skill</th><th>Score</th><th>xp</th>
+            </tr>
+            <tr>
+                <td class="skill">Athletics</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Awareness</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Brawl</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Charm</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Guile</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Sleight</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Stealth</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="skill">Throw</td>
+                <td class="score">&nbsp;</td>
+                <td class="xp">&nbsp;</td>
+            </tr>
+            
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+        
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+            <tr><td class="skill">&nbsp;</td><td class="score">&nbsp;</td>
+            <td class="xp">&nbsp;</td></tr>
+
+                        
+        </table>
+
+        <!-- Melee Weapons -->
+        <table class="combat" style="left: 70mm; top: 40mm;">
+            <tr>
+                <th style="width: 60mm;">Melee weapons</th>
+                <th style="width: 25mm;">Skill name</th>
+                <th>In</th>
+                <th>At</th>
+                <th>Df</th>
+                <th>Dmg</th>
+            </tr>
+            
+            <tr class="border">
+                <td>Brawl</td><td>Brawl</td>
+                <td/><td/><td/><td/>
+            </tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;">
+                    Total scores:
+                </td>
+                <td/><td/><td/><td/>
+            </tr>
+            
+            
+            <tr class="border"><td>Brawl</td><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;">
+                <em>Total scores:</em></td>
+                <td/><td/><td/><td/>
+            </tr>
+            
+            
+            <tr class="border"><td>Brawl</td><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;">
+                    <em>Total scores:</em>
+                </td>
+                <td/><td/><td/><td/>
+            </tr>
+            
+            
+            <tr class="border"><td>Brawl</td><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;"><em>Total scores:</em></td>
+                <td/><td/><td/><td/>
+            </tr>
+            
+            
+            <tr class="border"><td>Brawl</td><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;"><em>Total scores:</em></td>
+                <td/><td/><td/><td/>
+            </tr>
+                
+        </table>
+
+        <!-- Missile Weapons -->
+        <table class="combat" style="left: 70mm; top: 95mm;">
+            <tr>
+                <th style="width: 40mm;">Missile weapons</th>
+                <th style="width: 20mm;">Skill name</th>
+                <th style="width: 8mm;">Sh</th>
+                <th style="width: 8mm;">Md</th>
+                <th style="width: 8mm;">Lg</th>
+                <th style="width: 8mm;">Ex</th>
+                <th style="width: 8mm;">In</th>
+                <th style="width: 8mm;">At</th>
+                <th style="width: 8mm;">Df</th>
+                <th style="width: 8mm;">Dm</th>
+            </tr>
+            
+            <tr class="border"><td>B</td><td/><td/><td/><td/><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;">
+                <em>Total scores:</em></td>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td/><td/><td/><td/>
+            </tr>
+            
+            <tr class="border"><td>B</td><td/><td/><td/><td/><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;">
+                <em>Total scores:</em></td>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td/><td/><td/><td/>
+            </tr>
+            
+            <tr class="border"><td>B</td><td/><td/><td/><td/><td/><td/><td/><td/><td/></tr>
+            <tr>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="text-align: right; border: none; background-color: #ffdddd;">
+                <em>Total scores:</em></td>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td style="background-color: #ffdddd; border: none;"/>
+                <td/><td/><td/><td/>
+            </tr>
+        </table>
+        
+        <table class="armour" style="left: 70mm; top: 131mm;">
+            <tr>
+                <th style="width: 50mm;">Armour</th>
+                <th style="width: 20mm;">Load</th>
+                <th style="width: 15mm;">Soak</th>
+                <th style="width: 15mm;">Half</th>
+                <th style="width: 15mm;">Impale</th>
+                <th style="width: 15mm;">Soft</th>
+            </tr>
+            <tr><td/><td/><td/><td/><td/><td/></tr>
+            <tr><td/><td/><td/><td/><td/><td/></tr>
+            <tr><td/><td/><td/><td/><td/><td/></tr>
+        </table>
+        
+        <table class="combat" style="left: 70mm; top: 165mm; width: auto;">
+            
+            <tr>
+                <th>Type</th>
+                <th style="text-align: center;">(0)</th>
+                <th style="text-align: center;">(-1)</th>
+                <th style="text-align: center;">(-3)</th>
+                <th style="text-align: center;">(-6)</th>
+                <th style="text-align: center;">(-10)</th>
+                <th style="text-align: center;">(-15)</th>
+            </tr>
+            
+            <tr class="boxed">
+                <td class="nobox">Wounds</th>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O</td>
+            </tr>
+            
+            <tr class="boxed">
+                <td class="nobox">Stuns</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O</td>
+            </tr>
+            
+            <tr class="boxed">
+                <td class="nobox">Fatigue</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O O</td>
+                <td>O</td>
+            </tr>
+        </table>
+        
+        <table class="character"
+               style="left: 70mm; top: 185mm; width: 130mm; height: 50mm">
+               
+            <tr>
+                <th style="text-align: left;">Advantages/Disadvantages</th>
+            </tr>
+            
+            <tr>
+                <td style="height: 50mm">&nbsp;</td>
+            </tr>
+        </table>
+
+        <table class="character"
+               style="left: 2mm; width: 200mm;
+                      top: 240mm">
+            <tr>
+                <th style="width: 60mm; text-align: left">Technique</th>
+                <th style="width: 40mm; text-align: left">Skill</th>
+                <th style="width: 60mm; text-align: left">Technique</th>
+                <th style="width: 40mm; text-align: left">Skill</th>
+            </tr>
+            
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+        </table>
+    </body>
+</html>

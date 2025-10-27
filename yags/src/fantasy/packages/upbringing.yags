@@ -1,0 +1,253 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl" type="text/xsl"?>
+
+<y:packages xmlns="https://yags-rpg.net/xml"
+          xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <y:package name="Rural">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                An upbringing that is common for humans, you were brought up in
+                a small rural village, living amongst farmers, craftsmen and
+                woodsmen. Your family wasn't wealthy, and was fairly typical of
+                human families across the land.
+            </para>
+            <para>
+                Halflings and half-elves are quite common to have this upbringing,
+                half-orcs and dwarves less so and elves even less, though it would
+                be possible. You are used to hard labour, either on the fields or
+                as a craftsman. However you've had limited access to education,
+                or any chance to see much of the world beyond the confines of
+                your village.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Strength" score="+1"/>
+            <y:choice>
+                <y:attribute name="Intelligence" score="-1"/>
+                <y:attribute name="Will" score="-1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Profession: Farmer" score="4"/>
+            <y:choice>
+                <y:skill name="Brawl" score="2"/>
+                <y:skill name="Throw" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Survival" score="2"/>
+                <y:skill name="Knowledge: Common" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Noble">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You were raised as part of a noble family. This provided you with a safe environment
+                in which to grow up, and you were sheltered from the usual hardships that most people
+                have had to suffer. You also gained a bit of an education, as well as an understanding
+                of your importance in the world - which may have made you rather aloof.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Will" score="+1"/>
+            <y:choice>
+                <y:attribute name="Strength" score="-1"/>
+                <y:attribute name="Empathy" score="-1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Knowledge: Common" score="2"/>
+            <y:skill name="Knowledge: Nobility" score="2"/>
+            <y:choice>
+                <y:skill name="Charm" score="2"/>
+                <y:skill name="Guile" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Leadership" score="2"/>
+                <y:skill name="Administration" score="2"/>
+            </y:choice>
+        </y:skills>
+
+        <y:advantages>
+            <y:advantage name="Literate">
+                You can read and write any language you know.
+            </y:advantage>
+            <y:advantage name="Wealthy">
+                You begin with twice as much spare cash as normal.
+            </y:advantage>
+        </y:advantages>
+    </y:package>
+
+    <y:package name="Townsfolk">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You were raised as part of a merchant family in a town.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Empathy" score="+1"/>
+            <y:choice>
+                <y:attribute name="Perception" score="-1"/>
+                <y:attribute name="Health" score="-1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Profession: Merchant" score="2"/>
+            <y:choice>
+                <y:skill name="Charm" score="2"/>
+                <y:skill name="Guile" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Sleight" score="2"/>
+                <y:skill name="Knowledge: Engineering" score="2"/>
+            </y:choice>
+        </y:skills>
+
+        <y:advantages>
+            <y:advantage name="Literate">
+                You can read and write any language you know.
+            </y:advantage>
+        </y:advantages>
+    </y:package>
+
+    <y:package name="Monk">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You were raised as part of a religious order, secluded from the rest of the world.
+                This limits your knowledge of practical matters, but it provided you with food
+                and shelter, as well as a basic education, without the need to work in the fields.
+            </para>
+            <para>
+                Some monks are trained in fighting skills, though by this stage such training will
+                have been limited. At the very least, you have learned to resist temptations.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Will" score="+1"/>
+            <y:choice>
+                <y:attribute name="Strength" score="-1"/>
+                <y:attribute name="Empathy" score="-1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Knowledge: Religion" score="2"/>
+            <y:skill name="Profession: Scribe" score="2"/>
+            <y:choice>
+                <y:skill name="Brawl" score="2"/>
+                <y:skill name="Any knowledge" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Profession: Scribe" score="2"/>
+                <y:skill name="Knowledge: Philosophy" score="2"/>
+            </y:choice>
+        </y:skills>
+
+        <y:advantages>
+            <y:advantage name="Literate">
+                You can read and write any language you know.
+            </y:advantage>
+            <y:advantage name="Virtuous">
+                All your virtues start 1 point higher.
+            </y:advantage>
+        </y:advantages>
+    </y:package>
+
+    <y:package name="Urchin">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You grew up living on the streets of a town or city, surviving day to day by
+                scrounging or stealing scraps of food, and doing work wherever it could be
+                found, often for unscrupulous individuals who worked on the wrong side of the
+                law.
+            </para>
+        </description>
+        
+        <y:attribute name="Dexterity" score="+1"/>
+        <y:attributes>
+            <y:attribute name="Strength" score="-1"/>
+            <y:attribute name="Health" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Streetwise" score="2"/>
+            <y:skill name="Sleight" score="2"/>
+            <y:choice>
+                <y:skill name="Brawl" score="2"/>
+                <y:skill name="Athletics" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Guile" score="2"/>
+                <y:skill name="Stealth" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Traveller">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You grew up moving from place to place, either as part of
+                a caravan or even as a vagabond.
+            </para>
+        </description>
+        
+        <y:attribute name="Perception" score="+1"/>
+        <y:attributes>
+            <y:attribute name="Empathy" score="-1"/>
+            <y:attribute name="Will" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Ride" score="2"/>
+            <y:skill name="Knowledge: Geography" score="2"/>
+            <y:choice>
+                <y:skill name="Local" score="2"/>
+                <y:skill name="Guile" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Perform" score="2"/>
+                <y:skill name="Trade" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Barbarian">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You were born and raised into one of the wild cultures
+                of the north. You are mostly probably human, used to living
+                off the land, either as a nomad or in one of the many small
+                settlements.
+            </para>
+        </description>
+        
+        <y:attribute name="Health" score="+1"/>
+        <y:attributes>
+            <y:attribute name="Intelligence" score="-1"/>
+            <y:attribute name="Will" score="-1"/>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Survival" score="4"/>
+            <y:skill name="Nature" score="2"/>
+            <y:choice>
+                <y:skill name="Brawl" score="2"/>
+                <y:skill name="Ride" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Bow" score="2"/>
+                <y:skill name="Perform" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+</y:packages>

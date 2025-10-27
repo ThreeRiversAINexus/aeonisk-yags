@@ -1,0 +1,346 @@
+<?xml version="1.0"?>
+
+<!--
+
+    General equipment lists.
+
+    Copyright 2005-2012, Samuel Penn, sam@glendale.org.uk
+
+    Redistribution and use with or without modification are permitted provided
+    that the following conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+        above copyright notice and this list of conditions.
+
+    2) Redistributions in binary/printed forms must include copyright
+        attribution.
+
+    The purpose of these equipment lists are to provide a generic and complete
+    list of equipment for RPG purposes, in a format that can be used in other
+    games by anyone, with minimum fuss and license worries. If you make changes
+    and/or additions, then it'd be great if they are passed back or made
+    freely available, but you don't have to.
+
+    Version: $Revision: 1.1 $
+    Date:    $Date: 2007-08-30 18:15:54 $
+
+    Categories
+
+    Adventuring     The sort of things only adventurers have.
+    Rogue           Thieves/assassins tools and the like.
+    Food            Food and drink.genre
+    Animals         An animal which isn't livestock - horses and dogs.
+    Livestock       Animals bred for food, such as pigs and cows.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices should be in farthings, but prices can't really be trusted yet.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml"
+           xmlns:y="https://yags-rpg.net/xml/yags">
+    <item name="Egg (chicken)">
+        <category>Food</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>0</techLevel>
+        <legality>6</legality>
+        <weight>50</weight>
+        <cost units="saxon">1</cost>
+
+        <short>A fresh chicken egg.</short>
+
+        <description>
+            <para>
+                A single raw egg, ready to be cooked for a meal.
+            </para>
+        </description>
+    </item>
+
+    <item name="Vegetables">
+        <category>Food</category>
+        <importance>2</importance>
+        <tech level="0"/>
+        <availability>1</availability>
+
+        <short>One meal of fresh vegetables.</short>
+
+        <description>
+            <para>
+                A mixture of fresh vegetables, enough for one meal.
+            </para>
+        </description>
+
+        <weight>50</weight>
+        <material>plant</material>
+
+        <cost units="saxon">1</cost>
+    </item>
+
+    <item name="Flask of wine" quality="1">
+        <category>Food</category>
+        <importance>1</importance>
+
+        <availability>1</availability>
+        <tech level="1"/>
+
+        <short>A flask of poor quality wine.</short>
+
+        <description>
+            <para>
+                A flask of cheap, watered down wine. It is alcoholic enough to
+                make it safe to drink, but not really enough to get drunk on.
+                It tastes pretty poor as well.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <y:drug>
+            <y:strength extra="+5">15</y:strength>
+            <y:intoxicant/>
+        </y:drug>
+
+        <cost units="saxon">4</cost>
+    </item>
+
+    <item name="Flask of wine" quality="2">
+        <category>Food</category>
+        <importance>2</importance>
+
+        <availability>2</availability>
+        <tech level="1"/>
+
+        <short>A flask of average quality wine.</short>
+
+        <description>
+            <para>
+                A flask of average quality wine, of the sort normally
+                served at a noble's table, or in a larger inn. Seen as
+                being higher quality than beer, but is more expensive.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <y:drug>
+            <y:strength extra="+10">20</y:strength>
+            <y:intoxicant/>
+        </y:drug>
+
+        <cost units="saxon">12</cost>
+    </item>
+
+    <item name="Flask of wine" quality="3">
+        <category>Food</category>
+        <importance>2</importance>
+        <tech level="1"/>
+        <availability>2</availability>
+
+        <short>A flask of good quality wine.</short>
+
+        <description>
+            <para>
+                A flask of good wine.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <y:drug>
+            <y:strength extra="+10">25</y:strength>
+            <y:intoxicant/>
+        </y:drug>
+
+        <cost units="saxon">32</cost>
+    </item>
+
+    <item name="Flask of wine" quality="4">
+        <category>Food</category>
+        <importance>1</importance>
+
+        <availability>3</availability>
+        <tech level="1"/>
+        <short>A flask of fine quality wine.</short>
+
+        <description>
+            <para>
+                A flask of excellent wine, of vintage stock. It tastes
+                excellent, but is quite expensive.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <material>liquid</material>
+
+        <cost units="saxon">100</cost>
+    </item>
+
+
+    <item name="Bread">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>2</availability>
+
+        <short>A fresh loaf of wheat bread.</short>
+
+        <description>
+            <para>
+                A loaf of wheat bread. This is considered good quality
+                bread, and will normally be available to the nobility.
+            </para>
+        </description>
+
+        <weight>400</weight>
+        <material>food</material>
+
+        <cost units="saxon">3</cost>
+    </item>
+
+    <item name="Bread (Rye)">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>A fresh loaf of rye bread.</short>
+
+        <description>
+            <para>
+                A loaf of rye or barley bread. It is darker and heavier
+                than wheat bread, and is the common fair amongst the
+                peasantry.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>food</material>
+
+        <cost units="saxon">2</cost>
+    </item>
+
+    <item name="Fresh meat">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>One portion of fresh meat.</short>
+
+        <description>
+            <para>
+                A portion of fresh meat for a single meal. Normally
+                accompanied with bread and/or vegetables.
+            </para>
+        </description>
+
+        <weight>100</weight>
+        <material>animal</material>
+
+        <cost units="saxon">20</cost>
+    </item>
+
+    <item name="Pint of ale">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>A pint of strong ale.</short>
+
+        <description>
+            <para>
+                A pint of good strong ale. It was not uncommon for this to
+                be brewed by monks.
+            </para>
+        </description>
+
+        <weight>800</weight>
+        <material>liquid</material>
+
+        <cost units="saxon">2</cost>
+    </item>
+
+    <item name="Pint of beer">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>1</availability>
+
+        <short>A pint of beer.</short>
+
+        <description>
+            <para>
+                Beer is the common drink in Medieval Europe. It is unlikely
+                to be contaminated, unlike water, so was safer to drink.
+            </para>
+        </description>
+
+        <weight>800</weight>
+        <material>liquid</material>
+
+        <cost units="saxon">2</cost>
+    </item>
+
+    <item name="Pint of mead">
+        <category>Food</category>
+        <importance>3</importance>
+
+        <availability>2</availability>
+
+        <short>A pint of mead.</short>
+
+        <description>
+            <para>
+                A pint of good mead.
+            </para>
+        </description>
+
+        <weight>800</weight>
+        <material>liquid</material>
+
+        <cost units="saxon">4</cost>
+    </item>
+
+    <item name="Rations, standard">
+        <category>Adventuring</category>
+        <availability>1</availability>
+        <tech level="0"/>
+
+        <short>One week's worth of standard rations.</short>
+
+        <weight>5000</weight>
+        <material>food</material>
+
+        <cost units="saxon">100</cost>
+    </item>
+
+    <item name="Rations, dried">
+        <category>Adventuring</category>
+        <availability>3</availability>
+        <tech level="0"/>
+
+        <properties>
+            <special/>
+        </properties>
+
+        <short>One week's worth of dried rations.</short>
+
+        <weight>2000</weight>
+        <material>food</material>
+
+        <cost units="saxon">600</cost>
+    </item>
+
+</equipment>
+
+

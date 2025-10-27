@@ -1,0 +1,503 @@
+<?xml version="1.0"?>
+
+<!--
+
+    General equipment lists.
+
+    Copyright 2005 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted provided that the following
+    conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+    above copyright notice, this list of conditions and the following
+    disclaimer.
+
+    2) Redistributions in compiled form (transformed to other DTDs,
+    converted to PDF, PostScript, RTF and other formats) must
+    reproduce the above copyright notice, this list of conditions
+    and the following disclaimer in the documentation and/or other
+    materials provided with the distribution.
+
+    THIS CONTENT IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+    WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS CONTENT, EVEN IF ADVISED
+    OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Version: $Revision: 1.5 $
+    Date:    $Date: 2007-10-13 12:55:40 $
+
+    Categories
+
+    Medical     Drugs and stuff.
+    Armour      Armour
+    Weapons     Weapons
+    Media       Recording devices.
+    Spy         Stealth/spy gadgets.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices are in credits.
+
+    Tech Level
+     4 1450-1700
+     5 1700-1900
+     6 1900-1950
+     7 1950-1980
+     8 1980-2020
+     9 2020+ (Interplanetary)
+    10 Interstellar (early jump)
+    11 Interstellar (Jump)
+    12 Interstellar (Imperium)
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+
+    <!-- Misc Stuff -->
+    <item name="Medipack">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Field medical kit.</short>
+        <description>
+            <para>
+                Provides materials and drugs for tending wounds in the
+                field. This is a one-shot pack which provides pain
+                relief, nano-reconstructors and insta-skin.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0.25</load>
+            <uses>1</uses>
+            <skill name="First aid" bonus="+20"/>
+        </tool>
+
+        <weight>500</weight>
+        <material>plastic</material>
+        <cost units="credits">250</cost>
+    </item>
+
+    <item name="Security toolset">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>Electronic tools for breaking secure locks.</short>
+        <description>
+            <para>
+                A set of electronic tools and software for breaking
+                most types of electronic locks. Provides iris scan,
+                finger print and key card faking/recording devices.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0</load>
+            <skill name="Security systems" bonus="+10"/>
+        </tool>
+
+        <weight>250</weight>
+        <material>plastic</material>
+        <cost units="credits">5000</cost>
+    </item>
+
+    <item name="Security toolset (advanced)">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>Electronic tools for breaking secure locks.</short>
+        <description>
+            <para>
+                A set of electronic tools and software for breaking
+                most types of electronic locks. Provides iris scan,
+                finger print and key card faking/recording devices.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>1</load>
+            <skill name="Security systems" bonus="+20"/>
+        </tool>
+
+        <weight>1500</weight>
+        <material>plastic</material>
+        <cost units="credits">15000</cost>
+    </item>
+
+
+    <item name="Medical scanner">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>2</availability>
+        <techLevel>12</techLevel>
+        <legality>5</legality>
+
+        <short>Handheld medical scanner.</short>
+        <description>
+            <para>
+                Provides information on the person scanned, including
+                basic information such as heart rate, DNA profile,
+                blood pressure and type. Given 5 minutes and a blood
+                sample it can detect most known diseases or poisons.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0</load>
+            <skill name="Medicine" bonus="+10"/>
+        </tool>
+
+        <weight>250</weight>
+        <material>plastic</material>
+        <cost units="credits">5000</cost>
+    </item>
+
+    <item name="Grav belt">
+        <category>Clothing</category>
+        <importance>3</importance>
+        <availability>2</availability>
+        <techLevel>12</techLevel>
+
+        <short>A harness that provides contra-grav.</short>
+        <description>
+            <para>
+                A harness, power supply and contra-grav generator that
+                provides enough lift to carry about 150kg at about
+                5m/s. It has a maximum height of about 30m. Halve
+                speed and altitude for weights up to 250kg.
+            </para>
+
+            <para>
+                Though bulky, it could be worn under a heavy coat
+                or similar clothing.
+            </para>
+        </description>
+
+        <weight>5000</weight>
+        <cost units="credits">2500</cost>
+    </item>
+
+    <item name="Ghost suit">
+        <category>Clothing</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <short>Invisibility suit.</short>
+        <description>
+            <para>
+                A suit of clothing designed to render the wearer
+                invisible. It is reasonably tight fitting, and
+                quite thick, but provides <e>excellent</e>
+                camouflage to anyone wearing it.
+            </para>
+        </description>
+
+        <weight>1500</weight>
+        <cost units="credits">10000</cost>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>2</load>
+            <modifier name="Effective visual range" score="x20"/>
+        </tool>
+    </item>
+
+    <item name="Chameleon suit">
+        <category>Spy</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>2</legality>
+
+        <short>Instant camouflage suit.</short>
+        <description>
+            <para>
+                A suit of clothing that automatically adjusts its
+                colouring to match that of the background. This provides
+                a level of camouflage that can only be bested by either
+                full ghosting or dedicated camouflage nets.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <cost units="credits">2500</cost>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>1</load>
+            <modifier name="Effective visual range" score="x5"/>
+        </tool>
+    </item>
+
+    <item name="Holographic Recorder">
+        <category>Media</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <techLevel>12</techLevel>
+        <legality>5</legality>
+
+        <short>3D Recorder.</short>
+        <description>
+            <para>
+                A recording device capable of recording a scene in 3D as
+                a film. It is placed at the centre of the area to be recorded,
+                and everything within 10m and in line of sight is recorded. A
+                typical recording device can hold up to 6 hours of video.
+            </para>
+
+            <para>
+                The device is capable of seeing being objects to some extent.
+                A person will not block line of sight, though a wall will.
+            </para>
+        </description>
+
+        <weight>250</weight>
+        <cost units="credits">500</cost>
+    </item>
+
+    <item name="PDA">
+        <category>Media</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>5</legality>
+
+        <short>Personal organiser, phone and recorder.</short>
+        <description>
+            <para>
+                A small device capable of communicating using full audio
+                and 3D video over any suitable wireless infrastructure.
+                It is capable of recording events within about 1m of it,
+                has standard 2D photographic capability and provides
+                access to the world's computer networks.
+            </para>
+
+            <para>
+                The more expensive models will be slighter larger and
+                run a simplified Turing Personality which is capable of
+                acting as a personal assistant.
+            </para>
+        </description>
+
+        <weight>100</weight>
+        <cost units="credits">150</cost>
+    </item>
+
+    <item name="Stims">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>4</legality>
+
+        <cost units="credits">150</cost>
+
+        <short>Stimulent designed to help you stay awake.</short>
+
+        <description>
+            <para>
+                Designed to boost wakefulness, continued taking of this
+                drug can lead to addiction. Every dose reduces fatigue
+                and exhaustion penalties by the designated amount.
+            </para>
+        </description>
+
+        <drug xmlns="https://yags-rpg.net/xml/yags">
+            <addictive strength="1">
+                <duration time="weeks"/>
+                <reduction/>
+            </addictive>
+
+            <offsetter statistic="Fatigue">
+                <strength>50</strength>
+                <onset time="rounds"/>
+                <duration time="hours"/>
+            </offsetter>
+        </drug>
+    </item>
+
+    <item name="Universal Antidote">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>6</legality>
+
+        <cost units="credits">75</cost>
+
+        <short>Antidote for poisons, infections and disease.</short>
+
+        <description>
+            <para>
+                A universal antidote which works with most common
+                diseases, infections and poisons.
+            </para>
+        </description>
+
+        <drug xmlns="https://yags-rpg.net/xml/yags">
+            <helper event="Poisons, infections, disease">
+                <bonus>25</bonus>
+                <duration time="hours"/>
+            </helper>
+        </drug>
+    </item>
+
+    <item name="Boost">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>12</techLevel>
+        <legality>2</legality>
+
+        <cost units="credits">500</cost>
+
+        <short>Boosts physical ability.</short>
+
+        <description>
+            <para>
+                Provides a boost to <t>Dexterity</t>.
+            </para>
+        </description>
+
+        <drug xmlns="https://yags-rpg.net/xml/yags">
+            <addictive strength="1">
+                <duration time="weeks"/>
+                <reduction/>
+            </addictive>
+
+            <adder attribute="Dexterity">
+                <onset time="rounds"/>
+                <duration time="hours"/>
+                <bonus>1</bonus>
+            </adder>
+        </drug>
+    </item>
+
+    <item name="Changeling Net">
+        <category>Spy</category>
+        <importance>2</importance>
+        <availability>1</availability>
+        <legality>1</legality>
+
+        <cost units="credits">25000</cost>
+        <weight>2500</weight>
+
+        <short>Holographic disguise system.</short>
+
+        <description>
+            <para>
+                By projecting a holographic display over the body of the
+                wearer, this device provides a truly amazing disguise
+                capability. It cannot fake touch, DNA or smell, but will
+                fool most people. It is only capable of producing a good
+                disguise of a person who is at least the size of the
+                wearer - it cannot mask a person if they are tool large,
+                but can make them look larger (about Size +1).
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>2</load>
+            <skill name="Disguise" bonus="+50"/>
+        </tool>
+    </item>
+
+    <item name="Mood cloth">
+        <category>Clothing</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <legality>5</legality>
+
+        <cost units="credits">500</cost>
+        <weight>500</weight>
+
+        <short>Clothing which adjusts to you.</short>
+        <description>
+            <para>
+                Mood cloth is a type of clothing which is capable of shifting
+                its colour and style depending on your mood. The way it behaves
+                varies from type to type, but it determines your mood through
+                sensors in contact with your skin. It can change colour, loosen,
+                tighten, and even grow and shrink (using tightly woven
+                nano filaments which can stretch out, or curl up).
+            </para>
+
+            <para>
+                Normally available as business suits, party dresses, swimwear or
+                just standard casual clothing. Some types are networked, and can
+                react to the mood of those around you.
+            </para>
+        </description>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Computer hacking" score="50">
+                To hack appearance of networked models.
+            </skill>
+            <skill name="Computer hacking" score="80">
+                Force clothing to exceed safe parameters (causing discomfort,
+                or breaking itself).
+            </skill>
+        </task>
+    </item>
+
+    <item name="Changeling skin">
+        <category>Clothing</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>12</techLevel>
+        <legality>1</legality>
+
+        <cost units="credits">5000</cost>
+        <weight>200</weight>
+
+        <short>Long lasting fake textured skin.</short>
+        <description>
+            <para>
+                Similar in use to the <e>Fashion skin</e>, this is far more
+                advanced, and is designed for military or government use.
+                As well as being longer lasting (it will generally last
+                4 to 8 weeks), it also mimics a given DNA. It is best used
+                on hairless skin, and the gel is capable of growing fake
+                hair (of a defined colour, length and characteristics) in
+                designated locations. A normal head of hair can be grown in
+                a day, long hair in three to five days.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <uses>1</uses>
+            <skill name="Disguise" bonus="+35"/>
+        </tool>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Medicine" score="40">
+                Detect the fake skin on an examination.
+            </skill>
+        </task>
+    </item>
+</equipment>
+
+

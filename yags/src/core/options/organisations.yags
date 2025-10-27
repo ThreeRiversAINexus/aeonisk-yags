@@ -1,0 +1,224 @@
+<?xml version="1.0"?>
+
+<advantages xmlns="https://yags-rpg.net/xml/yags">
+
+    <advantage name="Struggling" type="disadvantage">
+        <cost points="-3"/>
+
+        <forbiddon>Wealthy</forbiddon>
+        <forbiddon>Rich</forbiddon>
+        <forbiddon>Very rich</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Your organisation is lacking in funds and has little or no
+                income. It probably owes considerable debts, and the bulk
+                of any income goes towards paying these off. Any resources
+                are in a state of disrepair.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Profitable" type="disadvantage">
+        <cost points="+0"/>
+
+        <forbiddon>Poor</forbiddon>
+        <forbiddon>Wealthy</forbiddon>
+        <forbiddon>Rich</forbiddon>
+        <forbiddon>Very rich</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Your organisation is profitable, and generates more money
+                that it costs to run. You don't generally need to worry
+                about whether bills are paid, or keeping any equipment you
+                have in good working order. Making big purchases could be
+                tricky however.
+            </para>
+
+            <para>
+                It is assumed that the organisation
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Wealthy" type="advantage">
+        <cost points="+3"/>
+
+        <forbiddon>Poor</forbiddon>
+        <forbiddon>Rich</forbiddon>
+        <forbiddon>Very rich</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are wealthy, and obviously so. What you own is of
+                good quality, and you have significantly more starting
+                money available to you (about five to ten times). You
+                probably also own good property, and have no debts.
+            </para>
+
+            <para>
+                You cannot afford to just go out and buy anything, and
+                you need an income to support your lifestyle. In a
+                modern setting, you have a total worth of around
+                a million pounds (including house, cars and savings).
+                In a medieval setting, you will own a prosperous
+                farm with healthy animals and a few servants and
+                family members who help you manage the farm.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Rich" type="advantage">
+        <cost points="+5"/>
+
+        <forbiddon>Poor</forbiddon>
+        <forbiddon>Wealthy</forbiddon>
+        <forbiddon>Very rich</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are rich, to the point that you could comfortably
+                live the rest of your life without needing any income,
+                though you'd probably have to live carefully. You
+                have very good property, excellent clothes and
+                equipment and plenty of savings.
+            </para>
+
+            <para>
+                In a modern setting, your total net worth is several
+                tens of millions of pounds, and you will have a
+                reasonable income from investments.
+            </para>
+
+            <para>
+                In a low technology setting, you will have a large
+                estate, many servants, horses and fine and exotic
+                equipment and furnishings. You probably support a
+                few warriors as well.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Very rich" type="advantage">
+        <cost points="+10"/>
+
+        <forbiddon>Poor</forbiddon>
+        <forbiddon>Wealthy</forbiddon>
+        <forbiddon>Rich</forbiddon>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are very rich, one of the richest people in the
+                land. In a modern setting, you have a net worth in
+                the low billions and probably have many complex
+                business interests, several mansions, yachts
+                and plenty of friends in high places.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Specialists" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The organisation has specialists on its payroll who can
+                provide services as needed. Each specialist should be
+                treated as an <e>Skilled</e> level character in their own
+                right, and skills should be focused in their area of
+                expertise (rather than being a generalist).
+            </para>
+            <para>
+                This can be taken multiple times in order to have multiple
+                specialists available. Each time it is taken, add a number
+                of specialists equal to the total cost (e.g., +1 gives you
+                a single specialist, +2 gives you a total of 3, +3 gives a
+                total of 6 etc).
+            </para>
+            <para>
+                If a specialist is lost for some reason, then it will
+                normally take 3-6 months to find a replacement, though this
+                time will increase if the organisation suffers a large
+                body count.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Contacts" type="advantage">
+        <cost points="+1"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The organisation has contacts who can be called on for
+                advice, and sometimes favours. These contacts may be
+                political, legal, military or otherwise. However, they
+                are always external to the organisation.
+            </para>
+            <para>
+                A contact will tend to be an <e>Exceptional</e> NPC
+                who is specialised in their own area. Unlike specialists,
+                contacts cannot always be called on at a moment's notice,
+                since they have their own jobs and responsibilities.
+                They are also unlikely to risk their lives or reputations
+                in helping you.
+            </para>
+            <para>
+                This can be taken multiple times in the same way that
+                <e>Specialists</e> can be.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Influence" type="advantage">
+        <cost points="+5"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                <e>Influence</e> is similar to a <e>Contact</e>, except
+                that it is with someone who is both very friendly to your
+                organisation, and who also has a lot of political power
+                which can be used in your favour. They are generally a
+                single <e>Heroic</e> character with a high wealth and/or
+                social status.
+            </para>
+            <para>
+                They are still external to your organisation, and are not
+                dedicated to you, but the relationship is probably mutually
+                beneficial and they will be more willing to stick their
+                neck out than a <e>Contact</e> would.
+            </para>
+            <para>
+                Each time that this is taken, a single Influence can be
+                obtained.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Small arms" type="advantage">
+        <cost points="+2"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Your organisation is able to supply small arms in enough
+                quantities to outfit you and our colleagues. Small arms
+                will not normally include heavy weapons such as machine
+                guns or RPGs, though rare access to such heavier hardware
+                may be possible on occasion.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Heavy Weapons" type="advantage">
+        <cost points="+5"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Your organisation is able to get hold of both small arms
+                and heavy weapons to a reasonable degree, though obtaining
+                tanks and fighter planes may be difficult.
+            </para>
+        </description>
+    </advantage>
+
+</advantages>

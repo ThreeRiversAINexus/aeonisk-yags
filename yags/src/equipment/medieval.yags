@@ -1,0 +1,1123 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/home/sam/src/forge/yagsbook/xml/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="http://yagsbook.sourceforge.net/xml"
+         xmlns:y="http://yagsbook.sourceforge.net/xml/yags">
+    <header>
+        <title>YAGS Medieval</title>
+        <tagline>YAGS</tagline>
+
+        <summary>
+            A guide to the middle ages.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 0.7.8 $</version>
+            <date>$Date: 2009-07-19 17:19:18 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2015</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="combat"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>The Middle Ages</title>
+
+            <quote signature="Julius Caesar">
+                Veni, vidi, vici.
+            </quote>
+
+            <para>
+                The period from the collapse of the Roman Empire to the
+                start of the Renaissance is probably the most popular as
+                far as fantasy campaign settings go. They are often based
+                on something similar to Medieval Europe, taking ideas from
+                a thousand years of history.
+            </para>
+
+            <para>
+                <tm>YAGS Medieval</tm> aims to cover this period of history,
+                detailing the weapons and equipment available during this
+                time, and taking a look at the possible genres and settings
+                that can make use of these eras. Whether you are running a game
+                set in the real Middle Ages, or in fantasy world with a mix of
+                low technology and magic, there should be something here of use.
+            </para>
+
+            <para>
+                Unlike <s>High Tech</s>, which covers very definite technology
+                levels (TL 6 through to TL 8), <tm>Medieval</tm> is somewhat
+                more complicated. Technologically, it covers from TL 2 to TL 3.
+                Though TL 2 is the <e>Iron Age</e>, this
+                ended before the rise of the Roman Empire. Since <tm>Medieval</tm>
+                covers the period <e>after</e> Rome fell, what gives?
+            </para>
+
+            <para>
+                The collapse of Rome saw a loss of technology and
+                infrastructure. Writing (at least, on any large scale) pretty much
+                disappeared in Western Europe during this time. The ability to
+                build large stone structures was lost. The lack of trade
+                reduced the types of raw materials available, again limiting
+                what was possible. Civilisation fell back to how it was before
+                the rise of Greece and Rome.
+            </para>
+
+            <para>
+                As far as equipment availability goes, this period is considered
+                similar to time of the Iron Age, around the time of the Etruscan
+                and early Roman cultures. Rome itself is assumed to have
+                achieved TL 3 at some point (maybe even TL 4 in some respects), and
+                the Medieval period sees Europe climbing back to this level of
+                technology, and beyond.
+            </para>
+
+            <sect2>
+                <title>TL 2 - The Dark Ages</title>
+
+                <quote signature="Beowulf">
+                    Now we have heard stories of high valour in times long
+                    past of tribal monarchs, lords of Denmark, how those
+                    leaders strove.
+                </quote>
+
+                <para>
+                    The fall of the Western Roman Empire in 476 marked the
+                    beginning of the <e>Dark Ages</e> for Europe. With the
+                    collapse of trade and the retreat of the Roman armies,
+                    towns and cities become both vulnerable and also
+                    redundant. With no trade, it was difficult to support
+                    large population centres. Taxes stopped being paid,
+                    and the roads and legions could no longer be maintained.
+                </para>
+
+                <para>
+                    From the perspective of gaming, the darkness that
+                    descended on Europe can be viewed as a boon. With the
+                    lack of trade routes, foreign countries regain their
+                    mysteriousness and travel becomes dangerous and
+                    exciting.
+                </para>
+
+                <para>
+                    This is also the likely period of the mythical
+                    King Arthur, though not the chivalrous version of
+                    <e>Le Morte d'Arthur</e> which belongs to a much
+                    later time period, but a darker, grittier version
+                    set in the aftermath of Rome's fall.
+                </para>
+
+                <para>
+                    This period ends around the start of the first
+                    millennium, at a time when the biggest threat to
+                    most of Europe are the Vikings. At this point there
+                    are lots of opportunities for adventure, and though
+                    the Vikings were viewed as raiders, they were also
+                    traders, farmers and bards. It is a perfect period
+                    for a <e>Mythical</e> Europe, where strange beasts
+                    dwell at the fringes of civilisation and ancient ruins
+                    hide treasure and knowledge of times past.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>TL 3 - Feudalism</title>
+
+                <quote signature="Eleanor of Aquitaine">
+                    Pitiful and pitied by no one, why have I come to the
+                    ignominy of this detestable old age, who was ruler of
+                    two kingdoms, mother of two kings?
+                </quote>
+
+                <para>
+                    This period saw a cultural as well as technological
+                    shift. Rather than tribes, Europe is beginning to
+                    organise itself into countries. Feudalism is the big
+                    change that allows cultures to stabilise and trade
+                    to start to flourish once again.
+                </para>
+                <para>
+                    This period is dominated on the battlefield by
+                    Knights, with armour improving greatly from the 11th
+                    to the 15th century.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>TL 4 - Late Medieval</title>
+
+                <quote signature="Richard The Third, Act 1">
+                    <line>Now is the winter of our discontent</line>
+                    <line>Made glorious summer by this son of York;</line>
+                </quote>
+
+                <para>
+                    The late medieval period sees a rise of the merchant class
+                    and the fall of the Knight as firearms start to see use on
+                    the battlefield. It is also an age of exploration and
+                    navigation never seen before.
+                </para>
+                <para>
+                    In our history, TL 4 was reached during the height of the Roman
+                    Empire, though they only touched upon some parts of it. In terms
+                    of urban construction, the importance of trade and the organisation
+                    of society the Roman Empire was TL 4. However, they never invented
+                    firearms, had little experience with long sea voyages and had no
+                    need of science.
+                </para>
+                <para>
+                    Since the focus of this article is on the <e>Medieval</e> period,
+                    it will actually ignore some things, such as firearms, completely.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Fantasy</title>
+
+                <quote signature="J.R.R. Tolkien">
+                    A safe fairyland is untrue to all worlds.
+                </quote>
+
+                <para>
+                    A large proportion of fantasy campaigns are probably
+                    set in a fantastic generic version of the Medieval
+                    period, so a lot of what can be found here is applicable
+                    to a fantasy game. A typical 'D&amp;D' game is probably set
+                    somewhere between TL 3 and TL 4, with firearms being an
+                    obvious common exception to what is available.
+                </para>
+                <para>
+                    The use of magic can greatly affect what is possible (golems to
+                    dig out sewers, or simple use of magic to directly dispose of waste
+                    can solve one of the biggest problems with large cities with a
+                    great deal of ease), and a lot of what is considered TL 4 is
+                    common in a fantasy setting due to magic rather than technology.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Medieval Campaigns</title>
+
+            <sect2>
+                <title>Crafting</title>
+
+                <para>
+                    Everything during this period is hand made. Smiths and
+                    other craftsman can be found in most villages, though
+                    their skills and experience can vary widely. It is
+                    very possible that characters will want to forge their
+                    own items (normally weapons and armour), or at least
+                    be interested in obtaining a 'special' item of highest
+                    quality.
+                </para>
+
+                <para>
+                    Anybody with the <e>Smithing</e> skill can make metal
+                    weapons and armour. The <e>Armourer</e> and <e>Weaponsmith</e>
+                    techniques are also recommended. If you don't have these
+                    then there are some limitations which are detailed later.
+                    Though many metal weapons have wooden or
+                    leather components, their construction is simple
+                    enough that they are covered by the main skill.
+                </para>
+
+                <itemlist order="sort">
+                    <item name="Smithing">
+                        Crafting metal items in a forge. A smith can make
+                        simple tools, nails, horseshoes, swords and armour.
+                    </item>
+
+                    <item name="Crafting">
+                        Non-metal crafting, including pottery and wooden
+                        items. Can also be used to make bows and other
+                        wooden weapons.
+                    </item>
+
+                    <item name="Handicraft">
+                        Working with cloth and yarn, including sewing,
+                        embroidery and making tapestries. Generally viewed
+                        as the domain of women.
+                    </item>
+                </itemlist>
+
+                <para>
+                    Some items (those deemed interesting to characters) will
+                    have their difficulty detailed in the equipment lists.
+                    The required skill (together with the most relevant
+                    technique) will be listed, along with the difficulty and
+                    the time required.
+                </para>
+
+                <para>
+                    When making an item, each attempt takes the amount of
+                    time listed. It is considered a long task, so a number
+                    of successes are required before the task is completed.
+                    Subsequent attempts add successes together until
+                    finished. Multiple items may be made at once if enough
+                    successes are obtained in a single roll.
+                </para>
+
+                <para>
+                    If you fail any attempt, then no progress is made, but
+                    there is no ill effect. Each subsequent failure though
+                    reduces the quality of the item by 2 points (see making
+                    inferior items below).
+                </para>
+
+                <sect3>
+                    <title>Crafting without Techniques</title>
+
+                    <para>
+                        If you are missing the necessary technique when
+                        crafting, then there are some limitations. You can
+                        never generate more than one success per roll, and
+                        any failure results in the quality being dropped
+                        by three points.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Improved Items</title>
+
+                    <para>
+                        It is possible to make high quality items which are
+                        better than average. Doing so raises the difficulty,
+                        and the decision to make a quality item must be made
+                        before any work begins. You can only make a quality
+                        item if you have the technique for making items of
+                        that type.
+                    </para>
+
+                    <para>
+                        For weapons, any of <e>damage</e>, <e>attack</e> and
+                        <e>defence</e> can be improved. For armour, it is
+                        possible to improve its <e>soak</e>.
+                    </para>
+
+                    <para>
+                        A statistic can be improved by at most 1 point for each
+                        full 5 points. So a broad sword that does +12 damage
+                        can have its damage improved by 2 points above the base
+                        (to +14). Any number of statistics can be improved, the
+                        limit applies to each one individually.
+                    </para>
+
+                    <para>
+                        Each point of improvement raises the difficulty by 10,
+                        and each statistic you are improving adds one to the
+                        number of successes required. The difficulty modifier
+                        is applied after halving the base difficulty for having
+                        the right technique.
+                    </para>
+
+                    <example title="Making a better sword">
+                        <para>
+                            A broadsword is difficulty 40 and requires 4 successes
+                            to make. A standard broadsword has a damage of +12,
+                            attack of +5 and a defence of +5.
+                        </para>
+
+                        <para>
+                            A skilled smith decides to make a quality version. He
+                            could raise the damage by +2, and/or both the attack and
+                            defence by +1.
+                        </para>
+
+                        <para>
+                            Since he has the <e>Weaponsmith</e> technique, the
+                            base difficulty to make a normal sword is halved to 20.
+                            Raising the damage to +14 (two point bonus) would add
+                            +20 to the difficulty, bringing it to 40, and increasing
+                            the required successes to 5 (one statistic improved).
+                        </para>
+
+                        <para>
+                            If he was skilled enough, then he could also raise both
+                            attack and damage by +1 each. This adds another +20 to
+                            the difficulty, bringing it to 60, and increases the
+                            required successes to 7 (+1 for each of the two statistics).
+                        </para>
+                    </example>
+
+                    <para>
+                        If any craft attempt fails during the process, then the
+                        item will be a standard item with no special bonuses.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Making Inferior Items</title>
+
+                    <para>
+                        If you're in a hurry, or just not very good, you can
+                        opt to make an inferior item. This doesn't require any
+                        special techniques. The difficulty (after halving, if
+                        you do have the technique) is dropped by 10, but the
+                        quality of the item is dropped by 2 points. Two random
+                        statistics are each dropped by 1 point (for armour, the
+                        soak is dropped by 2 points).
+                    </para>
+
+                    <para>
+                        If this brings any statistic to less than zero, then the
+                        item is useless. If someone does try to use it, it breaks
+                        on a roll of 1-5 (attack, defence, damage or soak roll).
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Books and Learning</title>
+
+                <para>
+                    Throughout the medieval period, monasteries were the
+                    centres of learning in Western Europe. Books were
+                    laboriously copied by hand by highly skilled monks
+                    who spent months artfully illuminating the text within.
+                </para>
+
+                <para>
+                    For some campaigns set in this period, books can be a
+                    vital part of the game, especially if it includes a
+                    more mythical version of Europe with the focus on
+                    learning magical arts.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>The Heroic Saga</title>
+
+                <quote signature="Icelandic proverb">
+                    Cattle die, kinsmen die, so shall you die too. But one thing
+                    I know that never dies: the fame of a dead man's deeds.
+                </quote>
+
+                <para>
+                    One feature of many sagas from this period is that they
+                    don't focus on a single character, but on a family across
+                    many generations. A heroic warrior eventually settles
+                    down and has sons, who then go off to perform heroic deeds
+                    of their own.
+                </para>
+
+                <para>
+                    The most important game element to allow this style of play
+                    is one that ensures advancement takes place over years of
+                    game time. A feature of many fantasy RPGs is that characters
+                    may begin at age 16 as inexperienced newbies, but have reached
+                    epic levels of ability before their 17th birthday.
+                </para>
+
+                <sect3>
+                    <title>Pacing</title>
+
+                    <para>
+                        Firstly, it is important that adventures don't happen too
+                        often. There should be no more than one or two major
+                        adventures over the course of a year. Characters will have
+                        a lot of down time, which may be spent either at home,
+                        or working as mercenaries for a lord.
+                    </para>
+
+                    <para>
+                        Generally, most activities will happen in the Autumn, after
+                        the harvest has been collected but before the Winter sets
+                        in. It is during this time that wars will be fought and
+                        blood feuds settled.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Experience</title>
+
+                    <para>
+                        The assumption of such a campaign is that it is about
+                        the character's rise to heroism. Most characters will
+                        start as <e>Mundane</e> and work their way up from
+                        there.
+                    </para>
+
+                    <para>
+                        Experience will come from three possible sources -
+                        exposure, heroism and training.
+                    </para>
+
+                    <para>
+                        If a character is exposed to a task which they aren't
+                        skilled in, then they can gain experience in a suitable
+                        skill. Use the rules for <e>Realistic Experience</e>
+                        in the standard <s>Character</s> rules for this.
+                    </para>
+
+                    <sect4>
+                        <title>Yearly Advancement</title>
+
+                        <para>
+                            At the end of each year, each character gains one
+                            point to put towards advancing a single attribute
+                            or gaining a point of luck (up to a maximum of 10).
+                        </para>
+                    </sect4>
+                </sect3>
+
+                <sect3>
+                    <title>Ageing and Death</title>
+
+                    <para>
+                        Eventually, everybody grows old and dies. Heroes like to
+                        die in battle (or at least, they claim they do), but
+                        those that survive enough battles get to make ageing
+                        checks.
+                    </para>
+
+                    <para>
+                        At the end of your 30th year, and each year thereafter,
+                        you need to make a an ageing check. Roll 1d20, against a
+                        difficulty of your age in decades (e.g., your first check
+                        is against a difficulty of 3).
+                    </para>
+
+                    <para>
+                        Failure means that you lose 1 point of experience from a
+                        physical (Strength, Health, Agility or Dexterity) attribute
+                        of your choice. Once an attribute has decayed in this way,
+                        it may never be improved. If an attribute ever drops below
+                        one, then you die.
+                    </para>
+
+                    <para>
+                        If you roll less than half the difficulty, then you also gain
+                        one point of <e>Decrepitude</e>. Decrepitude adds to the
+                        difficulty of all further ageing checks.
+                    </para>
+
+                    <para>
+                        If you have a high quality life style, add +1 to your roll.
+                        If you have a low quality life style, suffer a -1 penalty.
+                    </para>
+
+                    <sect4>
+                        <title>Gaining Decrepitude</title>
+
+                        <para>
+                            Whenever you gain <e>Decrepitude</e>, you need to make
+                            a check as follows. Roll 1d20 + decade + decrepitude.
+                        </para>
+
+                        <targetlist targetFirst="false">
+                            <item target="1-19" value="No effect."/>
+                            <item target="20-24" value="Decay."/>
+                            <item target="25-29" value="Illness."/>
+                            <item target="30+" value="Death."/>
+                        </targetlist>
+
+                        <para>
+                            The first time you get a <e>Decay</e> result, choose
+                            either Fitness (S/H), Flexibility (A/D), Memory (P/I)
+                            or Personality (E/W). From that point on, lose one point
+                            from the highest of the two associated attributes each
+                            time a <e>Decay</e> result is obtained.
+                        </para>
+                    </sect4>
+
+                </sect3>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>Travel and Adventure</title>
+
+            <quote signature="Geoffrey Chaucer, The Canterbury Tales">
+                Then the Miller fell off his horse.
+            </quote>
+
+            <para>
+                The great difference between a campaign set in the modern world,
+                and one set in a medieval period, is the ease in which a person,
+                or even information, can move from one place to another. The world
+                of the medieval is both larger (it takes months, or even years,
+                to move from one side to another) and smaller (what you know may
+                be limited to a few dozen miles around you) than its high tech
+                counterparts.
+            </para>
+            <para>
+                Travel in the medieval period was generally slow, exhausting and
+                also possibly dangerous. In a culture like Rome, the great road
+                network made things easier, but in most times and places travel
+                was along dirt tracks and across fields and hills.
+            </para>
+            <para>
+                One thing to keep in mind though was that, at least in Europe,
+                there weren't many places that were truly wilderness. Though there
+                were large tracts of dense forest, much of the land was covered
+                by villages no more than a few kilometres apart. A few hours
+                travel at most would get you to somewhere which could potentially
+                provide a room for the night, or at least an ale and some bread.
+            </para>
+
+            <sect2>
+                <title>A Walk in the Woods</title>
+                <para>
+                    <tm>YAGS</tm> divides the day into <e>Watches</e> of four
+                    hours each, and it is generally assumed that no more than
+                    two of those watches (8 hours) will be spent actually
+                    travelling.
+                </para>
+                <para>
+                    Whilst travelling along a cleared path it is assumed that
+                    you can move a distance in one watch equal to your basic
+                    movement in kilometres (so 12km every 4 hours, or 3km/h).
+                    Doing this will gain you one level of <e>Exhaustion</e>
+                    each watch.
+                </para>
+                <para>
+                    If you attempt to force march, then you will gain two levels
+                    of exhaustion in your third watch, and three levels in
+                    your fourth watch (for a total of seven) etc. Most people
+                    will be unable to march solidly for four watches (16 hours)
+                    without significant rest.
+                </para>
+                <para>
+                    The <e>Survival</e> skill allows you to walk long distances
+                    without becoming exhausted. After a watch of travel, you can
+                    make a <y:health>Survival</y:health> check at a difficulty of
+                    10 + 10 x Watches travelled in order to reduce the amount of
+                    <e>Exhaustion</e> gained by one level.
+                </para>
+                <sect3>
+                    <title>Environmental Factors</title>
+                    <para>
+                        Both the type of terrain and the current weather can have
+                        a big affect on how far you can travel in a day. Basic travel
+                        distances assume clear, flat ground or road with dry conditions.
+                    </para>
+                    <para>
+                        Each condition that makes travel harder reduces movement by a
+                        third (33%). Some particularly severe conditions can reduce it
+                        by two thirds (66%).
+                    </para>
+
+                    <targetlist bold="true" targetFirst="false">
+                        <targetLabel>Modifier</targetLabel>
+                        <valueLabel>Environment</valueLabel>
+
+                        <item target="x1" value="Clear path.">
+                            A clear path, such as flat grassland or a cleared
+                            trail.
+                        </item>
+                        <item target="-33%" value="Rough ground.">
+                            Rough ground includes woods or scrub, where there is significant
+                            underbrush or obstacles (trees, bushes) that need to be avoided.
+                            Thick woods have more trees, but less underbrush, so for these
+                            purposes are considered the same.
+                        </item>
+                        <item target="-33%" value="Broken ground.">
+                            Broken ground is made up of cliffs, rocks and gulleys which need
+                            to be worked around or climbed over in order to proceed.
+                        </item>
+                        <item target="-33%" value="Hilly ground.">
+                            Hills and foot hills. This may also count as rough ground,
+                            in which case both penalties apply. Roads do not reduce the
+                            penalty due to hilly ground.
+                        </item>
+                        <item target="-66%" value="Mountains.">
+                            Mountains can make travel very difficult, generally because
+                            there is no direct route from one place to another, so roads
+                            do not reduce the penalty for mountains.
+                        </item>
+                        <item target="-33%" value="Wetlands.">
+                            Wetlands are marshes or swamps where the ground is permanently
+                            water logged, with large standing areas of water making travel
+                            difficult.
+                        </item>
+                        <item target="-33%" value="Wet conditions.">
+                            If it is raining, or the ground is muddy, reduce
+                            movement. A good quality road allows you to ignore
+                            this penalty.
+                        </item>
+                        <item target="-33%" value="Light snow.">
+                            If there is light snow or ice, reduce movement. This also
+                            affects travel on a road.
+                        </item>
+                        <item target="-66%" value="Heavy snow.">
+                            Heavy snow can easily bring travel to a halt.
+                        </item>
+                        <item target="-33%" value="Moonlight.">
+                            Under dim light, such as moonlight, movement is reduced by
+                            a third. Under some circumstances, there may be a risk of
+                            falling into ravines or off cliffs depending on the terrain.
+                        </item>
+                        <item target="-66%" value="Starlight.">
+                            Under almost total darkness, movement is very slow.
+                        </item>
+                    </targetlist>
+                    <para>
+                        All the modifiers that apply should be used, and they all
+                        modify the starting value. So rough, hilly ground will reduce
+                        movement by two thirds.
+                    </para>
+                    <para>
+                        A path will allow you to ignore the penalty for woods,
+                        and a paved road will allow you to ignore the first 33% of penalty
+                        for anything except for hills and mountains.
+                    </para>
+                    <para>
+                        If travel is brought to zero, then some movement may still be
+                        possible, but a <y:health>Survival</y:health> check is required.
+                        For every 10 rolled, 1km of distance may be covered in a watch,
+                        up to a maximum of one third normal movement. All <e>Exhaustion</e>
+                        gained is doubled that watch.
+                    </para>
+                    <para>
+                        If movement is reduced to below zero (<e>Heavy snow</e> in
+                        <e>Rough</e> <e>Hills</e> for a total movement of -33% for example),
+                        then the <e>Survival</e> check is harder. Each 33% below zero
+                        increases the base target required by 5, and increases the
+                        <e>Exhaustion</e> by another multiple.
+                    </para>
+
+                    <sect4>
+                        <title>The Temperate Landscape</title>
+                        <para>
+                            The following types of terrain are common.
+                        </para>
+
+                        <sect5>
+                            <title>Woods</title>
+                            <para>
+                                Woods and forests count as <e>rough</e> ground. There may
+                                be paths through the woods, in which case the standard
+                                movement penalty can be ignored.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Hills</title>
+                            <para>
+                                Hills range from rolling downs to foothills at the edge of
+                                mountains. Both are treated as <e>Hilly ground</e>, but
+                                foothills may also count as <e>Broken</e>.
+                            </para>
+                            <para>
+                                Hills may also be <e>Rough ground</e> if they are woods or
+                                moorland.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Wetlands</title>
+                            <para>
+                                Wetlands can either be swamps (covered by trees) or marshes
+                                (grassland without trees), but the general idea is the same.
+                                Swamps are doubly hard since they also count as <e>Rough</e>.
+                            </para>
+                            <para>
+                                In wetlands, a <y:perception>Survival</y:perception> check of
+                                20 is needed every <e>watch</e> to avoid running into problems.
+                                You can halve this difficulty if the area is familiar to you.
+                            </para>
+                            <para>
+                                If you have a boat, wetlands may be easier, but you may need
+                                to portage the boat across areas of dry land. The speed is
+                                the same, but you remove the chance of running into problems.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Mountains</title>
+                            <para>
+                                Mountains will also count as <e>Broken Ground</e> unless there
+                                is a road or path available, making them almost impassable.
+                                It is normally assumed that travel through mountains is done
+                                by finding a route through, rather than by climbing over them.
+                            </para>
+                            <para>
+                                <e>High mountains</e> are assumed to have no easy route, and
+                                require climbing to bypass. A <y:agility>Athletics</y:agility>
+                                check is required at a target of 20 to make any progress during
+                                a <e>Watch</e>. Every multiple of 20 rolled allows you to move
+                                one kilometre through high mountains.
+                            </para>
+                        </sect5>
+                    </sect4>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Marathons</title>
+
+                <para>
+                    If you really want to get somewhere fast by foot, you can try
+                    running the whole way. This is incredibly exhausting, but a fit
+                    individual can cover a huge distance in a short time.
+                </para>
+                <para>
+                    When running, you cover roughly the same distance when you walk but
+                    every hour instead of every <e>Watch</e> (so four times faster).
+                    Every hour you spend running, you gain one level of exhaustion,
+                    and must make a check to see how much ground you cover by making
+                    a <y:health>Athletics</y:health> check.
+                </para>
+
+                <targetlist bold="true" targetFirst="false">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Distance Travelled</valueLabel>
+
+                    <item target="0" value="-12km.">
+                    </item>
+                    <item target="10" value="-9km.">
+                    </item>
+                    <item target="20" value="-6km.">
+                    </item>
+                    <item target="30" value="-3km.">
+                    </item>
+                    <item target="40" value="+0km.">
+                    </item>
+                    <item target="50" value="+1km.">
+                    </item>
+                    <item target="60" value="+2km.">
+                    </item>
+                    <item target="70" value="+3km.">
+                    </item>
+                    <item target="+80" value="+4km.">
+                    </item>
+                </targetlist>
+
+                <para>
+                    The base distance is your normal move in kilometres, modified by
+                    the results on the table above. You then apply any modifiers due
+                    to terrain or conditions as you normally would.
+                </para>
+                <para>
+                    If you want to run faster, then you double the rate at which you
+                    gain <e>Exhaustion</e> but get to add +10 to your roll.
+                </para>
+                <para>
+                    If your modified roll is less than zero, or your base move is
+                    modified to less than zero, then you move one kilometre.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Horse and Cart</title>
+
+                <para>
+                    Walking long distances can be tiring, and for those that can
+                    afford it a horse is often a better means of transport. Though
+                    they aren't necessarily much quicker, you are less likely to
+                    reach your destination fatigued. You can also carry more for
+                    less effort.
+                </para>
+                <para>
+                    However, horses (and especially) carts can have greater
+                    difficulties in hard terrain.
+                </para>
+                <para>
+                    If you have a <e>Ride</e> skill of at least two, you can halve
+                    the rate at which <e>Exhaustion</e> is gained if you are riding.
+                    If you are riding in a cart, you automatically halve the
+                    <e>Exhaustion</e> rate.
+                </para>
+                <para>
+                    Carts double all speed penalties however unless they are on a
+                    road or path. Horses take a further 33% penalty in rough
+                    or broken ground.
+                </para>
+            </sect2>
+        </sect1>
+
+        <sect1>
+            <title>The Dark Ages (TL 2)</title>
+
+            <quote signature="The Viking Havamal">
+                Wake early if you want another man's life or land.
+                No lamb for the lazy wolf. No battle's won in bed.
+            </quote>
+
+            <para>
+                From the fall of the Roman Empire, to the beginning of
+                feudalism, <tm>YAGS</tm> treats this period of history as
+                TL 2. Though not strictly the Iron Age, it is less advanced
+                than the period before and the period that comes after.
+            </para>
+
+            <image src="images/village.jpg" width="8cm"/>
+
+            <para>
+                Most of European civilisation at this time was made up
+                of small villages with a few larger market towns. Most
+                of the population had reverted to being rural, and most
+                social structures were tribal.
+            </para>
+
+            <sect2>
+                <title>The Economy</title>
+
+                <para>
+                    For much of the Dark Ages most trade was done by barter.
+                    Few Kings were powerful enough to be able to enforce their
+                    currency beyond their borders, and even within their borders
+                    coins devalued over time, as they were gradually shaved by
+                    unscrupulous merchants.
+                </para>
+
+                <para>
+                    In England, the most common coinage was silver, based on the
+                    Troy pound (373g of silver), which was split into 240 pennies (d).
+                    There was also the concept of a shilling, which was about 5 pennies
+                    (though this could vary). In modern money, 1d would be equivalent
+                    to about £20.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>War</title>
+
+                <para>
+                    War is common, but limited. For much of the <e>Dark Ages</e>
+                    most armies would consist of a few dozen people, raiding their
+                    neighbours for goods and slaves. Most battles can be viewed
+                    as skirmishes, with warriors seeking out individual fights
+                    rather than organising into tight formations.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Glossary</title>
+
+                <para>
+                    An overview of the meaning of Saxon words.
+                </para>
+
+                <itemlist order="sort">
+                    <item name="Ceorl">
+                        A freeman, someone who owns enough land to support their
+                        family.
+                    </item>
+
+                    <item name="Kotsetla">
+                        The poorest of the freemen.
+                    </item>
+
+                    <item name="Thegn">
+                        A noble.
+                    </item>
+
+                    <item name="Fyrd">
+                        The army raised by the King from his kingdom. Also, the
+                        requirement to serve the King in armed service.
+                    </item>
+                </itemlist>
+            </sect2>
+
+            <sect2>
+                <title>Fines and Services</title>
+
+                <sect3>
+                    <title>Weregilds</title>
+
+                    <para>
+                        The <e>weregild</e> is a direct measure of the worth of
+                        a man. If you commit a wrong against a person, then you
+                        are liable to pay a fine based on their weregild. Social
+                        status is the main definer of a man's worth.
+                    </para>
+
+                    <targetlist targetFirst="false">
+                        <item target="60s" value="Slave"/>
+                        <item target="200s" value="Ceorl"/>
+                        <item target="600s" value="Landless thegn"/>
+                        <item target="1200s" value="Thegn"/>
+                        <item target="50s" value="Landless Welsh"/>
+                        <item target="80s" value="Welsh with half a hide"/>
+                        <item target="120s" value="Welsh with 1 hide"/>
+                        <item target="80s" value="Son of Welsh with 1 hide"/>
+                        <item target="200s" value="King's Welsh horseman"/>
+                        <item target="600s" value="Welsh with 5 hides"/>
+                    </targetlist>
+
+                    <para>
+                        If you kill a person, then you must pay that person's
+                        weregild to their family, or suffer legal retribution.
+                        Blood feuds can be a dangerous and bloody affair, which
+                        can span generations, so paying up can be quicker and
+                        easier for everyone concerned. However, not everyone
+                        can afford to, and even those who can afford to aren't
+                        always willing to.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Fines</title>
+
+                    <targetlist targetFirst="false">
+                        <item target="120s" value="Accepting service of another's ceorl."/>
+                        <item target="60s" value="Ceorl seeking a new lord."/>
+                        <item target="10s" value="Binding an innocent ceorl."/>
+                        <item target="60s" value="Binding an innocent ceorl and shaving him like a priest."/>
+                        <item target="120s" value="Fighting (not in war)."/>
+                        <item target="50s" value="Ceorl entering into illicit union."/>
+                        <item target="100s" value="Thegn entering into illicit union."/>
+                        <item target="30s" value="Ceorl neglecting fyrd duty."/>
+                        <item target="40-50s" value="Failure to perform fyrd duty."/>
+                        <item target="60s" value="Landless thegn neglecting fyrd duty."/>
+                        <item target="60s" value="Freeman working on a Sunday."/>
+                        <item target="30s" value="Ordering a slave to work on Sunday."/>
+                        <item target="65s" value="Raping a female slave."/>
+                        <item target="5s" value="Holding a woman's breast."/>
+                        <item target="60s" value="Seducing a free woman."/>
+                        <item target="10s" value="Throw a woman down but not lie with her."/>
+                        <item target="30s" value="Not baptising a child within 30 days of birth."/>
+                        <item target="120s" value="Taking a nun from a nunnery."/>
+                        <item target="10s" value="Reward for catching a thief."/>
+                        <item target="3l" value="Violation of an archbishop's protection."/>
+                        <item target="2l" value="Violation of bishop/eolderman's protection."/>
+                        <item target="6s" value="Violation of ceorl's protection."/>
+                        <item target="50s" value="Violation of church's protection."/>
+                        <item target="5l" value="Violation of the king's protection."/>
+                    </targetlist>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Goods</title>
+
+                <sect3>
+                    <title>Food</title>
+
+                    <import-equipment style="full">
+                        <list>medieval/tech02/food.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Animals</title>
+
+                    <import-equipment style="full">
+                        <list>medieval/tech02/animals.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Generic</title>
+
+                    <import-equipment style="full">
+                        <list>medieval/tech02/generic.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Special</title>
+
+                    <import-equipment style="full">
+                        <list>medieval/tech02/special.yags</list>
+                    </import-equipment>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Arms and Armour</title>
+
+                <para>
+                    The <e>Dark Ages</e> pre-date the use of plate armour,
+                    and most warriors wear some form of <e>mail</e> armour.
+                    Shields are common, and are usually used in combination
+                    with swords or spears.
+                </para>
+
+                <sect3>
+                    <title>Weapons</title>
+
+                    <import-equipment style="full">
+                        <list>medieval/tech02/weapons.yags</list>
+                    </import-equipment>
+                </sect3>
+
+                <sect3>
+                    <title>Armour</title>
+
+                    <import-equipment style="full">
+                        <list>medieval/tech02/armour.yags</list>
+                    </import-equipment>
+                </sect3>
+            </sect2>
+        </sect1>
+
+
+        <sect1>
+            <title>Feudalism (TL 3)</title>
+
+            <para>
+                Here we consider weapons commonly available during TL3, which
+                is the technology level of most 'medieval' style fantasy
+                campaigns.
+            </para>
+
+            <sect2>
+                <title>Common Equipment</title>
+
+                <para>
+                    A list of commonly available equipment.
+                </para>
+
+                <import-equipment style="full">
+                    <list>lowtech/tech3/weapons.yags</list>
+                    <list>lowtech/tech3/armour.yags</list>
+                    <list>lowtech/tech3/generic.yags</list>
+                </import-equipment>
+            </sect2>
+        </sect1>
+
+        <sect1 format="wide">
+            <title>Equipment Charts</title>
+
+            <sect2>
+                <title>TL3 - Medieval</title>
+
+                <sect3>
+                    <title>Weapons</title>
+
+                    <y:import-weaponlist importance="2" style="list">
+                        <y:category>Axes</y:category>
+                        <y:category>Bows</y:category>
+                        <y:category>Clubs</y:category>
+                        <y:category>Knives</y:category>
+                        <y:category>Shields</y:category>
+                        <y:category>Spears</y:category>
+                        <y:category>Swords</y:category>
+
+                        <y:list>medieval/tech02/weapons.yags</y:list>
+                    </y:import-weaponlist>
+                </sect3>
+
+                <sect3>
+                    <title>Armour</title>
+
+                    <y:import-armourlist importance="2" href="lowtech/tech3/armour.yags"/>
+                </sect3>
+            </sect2>
+
+        </sect1>
+    </body>
+
+</article>
+
+

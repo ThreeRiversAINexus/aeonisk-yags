@@ -1,0 +1,1091 @@
+<?xml version="1.0"?>
+
+<!--
+    Modern skills, mostly sciences and engineering skills.
+
+    Copyright (c) 2005, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.11 $
+    Author: Samuel Penn
+-->
+
+<skill-list xmlns="http://yagsbook.sourceforge.net/xml/yags"
+            xmlns:y="http://yagsbook.sourceforge.net/xml/yags"
+            xmlns:yb="http://yagsbook.sourceforge.net/xml"
+            techniques="options/techniques.yags">
+
+    <groups>
+        <group>General</group>
+        <group>Science</group>
+        <group>Combat</group>
+        <group parent="Combat">Firearms</group>
+        <group>Business</group>
+        <group>Technical</group>
+        <group>Academic</group>
+        <group>Sport</group>
+        <group>Military</group>
+        <group>Rogue</group>
+        <group>Vehicle</group>
+    </groups>
+
+    <skill name="Accountancy" type="skill">
+        <group>Business</group>
+        <default>Administration</default>
+
+        <short>Managing finances.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Accountancy provides you with the knowledge of how to
+                manage the finances of a business or organisation.
+                It includes knowledge of tax laws, legal requirements
+                and how to use common tools (including computers) needed
+                to do your job.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Archaeology" type="knowledge">
+        <group>Academic</group>
+
+        <short>How to dig up ruins.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This skill is mostly about digging up the ruins of
+                ancient civilisations, and covers the practical
+                skills needed to find, recognise and preserve items,
+                as well as basic management - social, equipment
+                and legal. It does also include knowledge of how to
+                identify and date ruins, as well as general knowledge
+                of specific civilisations. However, detailed
+                knowledge of ancient history requires the <e>History</e>
+                skill.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Architecture" type="knowledge">
+        <group>Craft</group>
+
+        <short>How to design buildings.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill and knowledge required to design buildings,
+                from simple houses up to huge cathedrals. Larger
+                constructs may require knowledge of techniques in
+                order to stand much chance of success.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Bicycling" type="skill">
+        <group>Sport</group>
+        <default>Athletics</default>
+
+        <short>Being able to ride a bycle well.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Riding a bicycle well. Most people in a modern setting
+                probably learnt to ride a bike at some point, and so
+                this skill defaults to <e>athletics</e>. If you have
+                practised stunts or mounting biking in harsh conditions,
+                then you probably have this skill however.
+            </para>
+        </description>
+
+        <examples>
+            <example target="5">Riding a bicycle in good conditions.</example>
+        </examples>
+    </skill>
+
+    <skill name="Skiing" type="skill">
+        <group>Sport</group>
+        <default>Athletics</default>
+
+        <short>Using skies.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of skiing. Includes practical experience, as well
+                as knowledge of identifying poor conditions.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Drive" type="skill">
+        <group>General</group>
+        <group>Vehicle</group>
+        <default>Motorbike</default>
+
+        <short>Driving a car or similar vehicle.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of driving a car or similar sized vehicle.
+                Larger vehicles (lorry, tank) use this skill, though
+                may require techniques for competence.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Motorbike" type="skill">
+        <group>General</group>
+        <group>Vehicle</group>
+        <default>Drive</default>
+
+        <short>Driving a powered motorcycle.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of driving a motorcyle or similar two wheeled
+                vehicle.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Pilot" type="skill">
+        <group>General</group>
+        <group>Vehicle</group>
+
+        <short>Piloting a powered aircraft.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of piloting a powered aircraft. By default it
+                assumes a small low performance aircraft.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Gliding" type="skill">
+        <group>Vehicle</group>
+        <group>Sport</group>
+
+        <short>Piloting an unpowered aircraft.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have experience in flying gliders. This skill provides
+                you with the ability to fly a glider, to know how to find
+                and use thermals and geographic features for lift and how
+                to look after and maintain a glider. You'll also have
+                some knowledge of aviation law and etiquette.
+            </para>
+        </description>
+    </skill>
+
+
+
+
+    <skill name="Science" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <short>Basic science, logic and reasoning.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Science covers basic scientific knowledge, logical
+                reasoning and ballony detection. Most Western schools will
+                teach <e>science</e> to some degree. The skill provides
+                basic knowledge of the various sciences, an understanding
+                of the philosophy of science, and the ability to tell the
+                difference between a scientific theory and dodgy
+                pseudo-science.
+            </para>
+
+            <para>
+                All scientists will have <e>Science</e> to a greater or
+                lesser degree, as will those in science based professions
+                such as engineering or mathematics.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Mathematics" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <short>Geometry, aglebra etc.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Mathematics is the knowledge of advanced mathematics.
+                Simple arithmetic is considered to be basic intelligence.
+                Mathematics covers geometry, algebra, set theory,
+                probability and other branches of mathematics. Most
+                children with a Western education will have some
+                knowledge of Mathematics after leaving school, though
+                it's likely to be only a couple of points.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Cryptography" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <prerequisite>Mathematics</prerequisite>
+
+        <short>Designing and using cyphers.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Using and designing cyphers.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Physics" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <short>The science of physics.</short>
+
+        <prerequisite score="2">Science</prerequisite>
+        <prerequisite score="2">Mathematics</prerequisite>
+        <default>Science</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Physics is a particular branch of <e>Science</e>, concerned
+                with forces and motion, energy and matter at the smallest
+                scales. Particular branches of physics are treated as
+                <e>techniques</e> - not knowing the technique doubles the
+                difficulty.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     task="Nuclear physics">
+            <para>
+                Knowledge of nuclear physics, including how to build a
+                nuclear power station or a nuclear bomb. Also covers
+                how to work safely with radioactive materials.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     task="Quantum physics">
+            <para>
+                Knowledge of quantum mechanics.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     task="Relativity">
+            <para>
+                Relativity and gravity.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Chemistry" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <short>The science of chemistry.</short>
+
+        <prerequisite score="2">Science</prerequisite>
+        <default>Science</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Chemistry is a particular branch of <e>Science</e>, which
+                is concerned with the study of chemicals and elements.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Biology" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <short>The science of biology.</short>
+
+        <prerequisite score="2">Science</prerequisite>
+        <default>Science</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Biology is a particular branch of <e>Science</e>, and
+                covers the study of living things.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Medicine" type="knowledge">
+        <group>Science</group>
+        <prerequisite>First aid</prerequisite>
+        <prerequisite>Biology</prerequisite>
+
+        <short>Diagnosis and healing.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of diagnosing illnesses, and knowing what to
+                do to cure an illness. Provides knowledge of the currently
+                available drugs and how best to make use of them. Whilst
+                first aid is focused on basic wounds (mostly cuts and
+                bruises) and tends to be quite simple in its solutions,
+                medicine provides a wide range of knowledge about how
+                the body works, what drugs are available, and how best
+                to diagnose illness and injuries.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Surgery" type="skill">
+        <group>Science</group>
+        <default>Medicine</default>
+        <prerequisite score="4">Medicine</prerequisite>
+
+        <short>Performing complex surgery.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is a particular specialisation of medicine, focused on
+                cutting people open and fixing their insides. It is considered
+                to be quite a difficult skill, and failure can often be fatal
+                for the patient.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Astronomy" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <default>Astrophysics</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is concerned with the study of stars and planets,
+                their motions, positions and general behaviour. It does
+                not provide full detail on their formation and physical
+                makeup (that is left to <e>Astrophysics</e>).
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Astrophysics" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <prerequisite score="4">Physics</prerequisite>
+        <prerequisite score="2">Astronomy</prerequisite>
+        <default>Astronomy</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Astrophysics deals with the makeup and behaviour of stars
+                and planets from the point of view of physics. It is not
+                concerned with particular stars (that is <e>Astronomy</e>)
+                but with the underlaying physics behind them.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Biochemistry" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <prerequisite score="4">Biology</prerequisite>
+        <prerequisite score="4">Chemistry</prerequisite>
+        <default>Biology</default>
+        <default>Chemistry</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the study of the chemicals of life.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Botany" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <default>Biology</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the study of plants.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Zoology" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <default>Biology</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the study of animals.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Anthropology" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <short>The study of Homonids.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the study of Homonids.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Ecology" type="knowledge">
+        <group>Academic</group>
+        <group>Science</group>
+
+        <prerequisite score="2">Biology</prerequisite>
+        <prerequisite score="2">Zoology</prerequisite>
+
+        <default>Botany</default>
+        <default>Zoology</default>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is knowledge of ecosystems, of the relationships
+                between plants and animals living together in balance.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="History" type="knowledge">
+        <group>Academic</group>
+
+        <short>Knowledge of the past.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The study of historical events. As standard, it gives a
+                knowledge of a broad range of recorded history without
+                specialisation in any one area. Most people will know
+                more about their own culture than others, so there's a
+                +10 or +20 increase to the difficulty to know the history
+                of cultures outside your own (note that some historical
+                events, such as who built the pyramids, is popular
+                knowledge even in non-Middle Eastern cultures).
+            </para>
+
+            <para>
+                There are many techniques which allow you to specialise
+                in a period or culture. These are 4 points each.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Occult" type="knowledge">
+        <group>Academic</group>
+        <group>Occult</group>
+
+        <short>Knowledge of the supernatural.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of the occult and things related to it.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Economics" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <short>Knowledge of financial matters.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Economics is the study of how the economy and
+                financial world works.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Politics" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <short>Knowledge of politics.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of political systems and how to take advantage
+                of them. It may provide some knowledge of the current
+                political groups of your culture, but this is really
+                covered by <e>Current affairs</e>, and any knowledge
+                provided by <e>Politics</e> will be more long term and
+                theoretical.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Current affairs" type="knowledge">
+        <group>Business</group>
+        <group>Social</group>
+
+        <short>Current affairs.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Represents uptodate knowledge of what is going on in your
+                society. This is a skill which is constantly changing, so
+                if you loose contact with society, then you will be at a
+                large disadvantage when you return. It also covers knowing
+                how to get information and how to interpret it, so
+                becoming uptodate again is relatively quick for you.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Law" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <short>Knowledge of the law.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of the legal system, including how it works,
+                what the laws are, and how to bend or avoid them.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Administration" type="skill">
+        <group>Business</group>
+        <group>Social</group>
+
+        <short>Being able to manage people and paper.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of managing an organisation, from dealing with
+                people, basic finance, reception type duties and so on and
+                so forth. You also know how to best short cut administration
+                enforced by others, cutting through bureacracy in the
+                shortest possible times.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Research" type="skill">
+        <group>Academic</group>
+
+        <default>Any Academic skill</default>
+
+        <short>Being able to find information.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of being able to find information in books, on
+                a computer system, or in any other knowledge source which
+                doesn't require interaction with people (beyond standard
+                dealing with librarians etc).
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Computer operation" type="skill">
+        <group>Technical</group>
+        <default>Intelligence</default>
+        <default>Electronic operation</default>
+
+        <short>The skill of using a computer.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This covers basic computer use, from switching it on
+                to using a word processor, browsing the web or sending
+                an email. High levels of skill will allow basic
+                programming tasks and diagnosing faults.
+            </para>
+
+            <para>
+                If the computer system does not have a point-and-click,
+                or otherwise very simple, style of interface, then you
+                must use <e>Computer hacking</e> instead.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Looking for a particular file using easy criteria.
+            </example>
+
+            <example target="20">
+                Filtering information from a database and analysing
+                it (producing graphs, finding correlations).
+            </example>
+
+            <example target="20">
+                Connecting a computer to a network, or software to a
+                server. Halved if you have the right System Administration
+                technique.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Computer hacking" type="skill">
+        <group>Technical</group>
+        <group>Rogue</group>
+
+        <prerequisite>Computer operation</prerequisite>
+        <default>Computer operation</default>
+
+        <short>Indepth knowledge of computers.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A hacker is someone who has in depth knowledge of how
+                computer systems work. Sometimes, this knowledge can be
+                put towards circumventing security on computer systems,
+                but doesn't have to. This skill covers programming,
+                system design, network administration and most other
+                advanced tasks.
+            </para>
+
+            <para>
+                The point-and-click style of system administration can
+                be covered by <e>Computer operation</e>, though this skill
+                doesn't include much knowledge of why things work the
+                way they do.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Communication systems">
+        <group>Technical</group>
+        <group>Military</group>
+
+        <short>Using radios and similar communications gear.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This skill provides advanced knowledge of how to use
+                communication devices such as radios. It does not just
+                cover how to switch a device on and talk into it, since
+                that is covered by basic <t>Intelligence</t>, but provides
+                in depth knowledge of how to fix it when things go wrong,
+                how to get around jamming, how to jam someone else's
+                communications, and how to improve signal strength.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Sensor systems">
+        <group>Technical</group>
+        <group>Military</group>
+
+        <short>Using radar, sonar and other sensor systems.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Provides knowledge and experience with using advanced
+                sensor systems, interpreting raw sensor data, knowing
+                how to evade and block sensors, and how to make best
+                use of an existing sensor network.
+            </para>
+
+            <para>
+                This provides far more knowledge than a person working in
+                traffic control would have, and it is a skill normally
+                only found in the military, in labs or amongst hackers.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Security systems">
+        <group>Technical</group>
+        <group>Rogue</group>
+
+        <short>Using and evading security.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Provides knowledge of using and by-passing electronic
+                security systems such as short range sensors, pressure
+                pads, electronic locks, iris and fingerprint scanners
+                etc. It can be used to forge ID to try and bypass such
+                systems.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Surveillance systems">
+        <group>Technical</group>
+        <group>Rogue</group>
+
+        <default>Security systems</default>
+
+        <short>Spying on people with electronic devices.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This skill provides knowledge of using and evading bugs,
+                hidden cameras, tracking devices and the like. You may
+                use this skill or <e>Awareness</e> to search for them.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Gunnery">
+        <group>Military</group>
+
+        <short>Firing large vehicle mounted guns.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The <e>gunnery</e> skill covers the use of very large
+                vehicle mounted or emplacement weapons, such as artillery
+                and battleship main guns. Whereas <e>Heavy weapons</e>
+                covers "barely man portable in a Hollywood action film"
+                weapons, Gunnery is only for the really big weapons which
+                often require several crew members to operate. Will
+                often use <t>Intelligence</t>, since doing the maths to
+                plot the trajectory is generally more important than
+                quick reflexes.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Electronics">
+        <group>Technical</group>
+        <prerequisite>Electronics operation</prerequisite>
+
+        <short>Building electronic devices.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have skill in building electronic devices, as well as
+                a good understanding of how they work and the theories on
+                which they are constructed.
+            </para>
+
+            <para>
+                There is a technique for each type of electronic device
+                that can be built. Knowing the correct technique halves
+                the difficulty for a task.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Machinest">
+        <group>Technical</group>
+        <default>Mechanics</default>
+
+        <short>Building tools</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of building high tech tools. Though absolutely
+                vital to a high tech society, most mechanics and engineers
+                can get away with buying standard parts from a local shop.
+                In a society where there isn't a ready availability of tools
+                and parts, most (if not all) engineers will have some
+                level of skill in <e>Machinest</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Engineering">
+        <group>Technical</group>
+
+        <short>The science of building things.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The knowledge and skill of designing, building and repairing
+                machines, buildings and other structures. Engineering tends
+                towards the theoretical side of things, and does not
+                necessarily cover the everyday maintenance of such items.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Mechanics">
+        <group>Technical</group>
+        <default>Engineering</default>
+
+        <short>Fixing machines.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of fixing mechanical devices when they break.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Electrician">
+        <group>Technical</group>
+
+        <short>Fixing electrical things.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of fixing electrical systems when they break.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Fencing">
+        <group>Sport</group>
+
+        <short>Fighting with light fencing weapons.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The sport of using light fencing weapons. It can be used
+                in dueling and combat, though is primarily concerned with
+                the use of fencing weapons as a sport. Because it is
+                <e>not</e> part of the Combat group, it cannot be used
+                with any of the standard combat techniques.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Pistol">
+        <group>Combat</group>
+        <group>Firearms</group>
+
+        <short>Using pistols.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Firing a hand gun with accuracy.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Rifle">
+        <group>Combat</group>
+        <group>Firearms</group>
+
+        <short>Firing rifles.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The use and handling of rifles, shotguns, sub machine guns
+                and the like.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Sniper" type="skill">
+        <group>Combat</group>
+        <group>Firearms</group>
+
+        <short>Long range single shots.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Firing a rifle over long distance with accuracy. Covers not
+                just accuracy with firing, but knowing how to find a good
+                position, keeping in cover, planning escape routes after
+                you've assassinated the target and other actions required
+                to be a good sniper.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Heavy weapons" type="skill">
+        <group>Combat</group>
+        <group>Firearms</group>
+        <group>Vehicle</group>
+
+        <short>Using heavy machine guns.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This skill provides you with knowledge of how to use
+                heavy weapons such as vehicle mounted machine guns,
+                grenade launchers, anti-tank weapons and mortars.
+                Most non-man portable weapons fall into this
+                category.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Strategy" type="skill">
+        <group>Military</group>
+
+        <short>Military strategy and logistics.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Unlike <e>Tactics</e>, which is concerned with small scale
+                skirmishes, military strategy provides knowledge and
+                experience of running a war, including making most
+                effective use of troops, logistics and knowledge of
+                large scale tactics.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Demolitions">
+        <group>Military</group>
+        <group>Rogue</group>
+
+        <short>Blowing things up efficiently.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Blowing things up is easy, but doing it with the minimum
+                of explosives, at minimal risk to yourself, and in a way
+                that causes maximum damage is somewhat harder. This skill
+                provides everything you need to know about destroying
+                things with explosives. You also know about the different
+                types of explosives, how best to store, move and deploy
+                them, and how to disarm other people's bombs.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Combat engineering" type="skill">
+        <group>Military</group>
+
+        <short>Building things quickly.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Most infantry has experience with digging trenches,
+                building bridges and putting up sandbags. A combat
+                engineer has a lot of experience doing this. This
+                skill covers getting the job done in the minimum
+                time, often so that's its good enough to do what it
+                needs to do. It covers a wide range of tasks, from
+                bridge building to tunneling, and is more practical
+                than theoretical.
+            </para>
+
+            <para>
+                Unlike 'real' engineering skills, this one assumes
+                that the needed materials aren't readily to hand and
+                that the people doing most of the heavy lifting are
+                are mostly unskilled infantry, so the result will
+                often be simple and ugly. But it'll work.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Melee weapon" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed melee</group>
+
+        <short>Using a melee weapon in combat.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This is the skill of fighting with a heavy or bladed
+                weapon. You are not specialised in any particular style
+                of fighting, but you have a good knowledge of how to
+                attack and defend.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Boxing" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Sport</group>
+
+        <default>Brawl</default>
+
+        <short>The sport of boxing.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Boxing</e> is a specialised form of <e>brawl</e>,
+                which is designed for use under particular sporting
+                conditions. Though it can be used as a combat skill,
+                it is not designed to be, and can be ineffective
+                outside of the boxing ring. Knowledge of this skill
+                grants knowledge of the rules and etiquette of the
+                game, as well as skill at fighting.
+            </para>
+
+            <para>
+                Boxing is used like brawl to attack and defend. You
+                have +1 to your agility for purposes of defence, but
+                the penalty for making multiple defences is increased
+                by 50%. You get a bonus to punching damage equal to
+                your <e>Boxing</e> skill.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Aikijutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+
+        <prerequisite score="2">Brawl</prerequisite>
+
+        <short>Unarmed combat specialised in throws.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A style of unarmed combat which concentrates on throws and
+                locks. It is designed for real combat, and has a number of
+                techniques to get your opponent into a position ready to
+                be thrown or grabbed.
+            </para>
+
+            <para>
+                You gain a +1 to your agility for all trip attacks and
+                defences, and always use <y:agility>Aikijutsu</y:agility>
+                for such manouevres. If fighting from the prone position,
+                you suffer no penalties. It can otherwise be used in place
+                of <e>Brawl</e> for punches, kicks, dodges and other
+                unarmed combat moves.
+            </para>
+
+            <para>
+                If using a weapon, you gain the damage bonus of the weapon
+                and suffer a +1 increase in the fumble chance.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Karate" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+
+        <prerequisite score="2">Brawl</prerequisite>
+
+        <short>An aggressive unarmed combat style.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Karate</e> is one of the popular (or at least, well
+                known) styles of unarmed combat in the modern world. It
+                is specialised in attack rather than defence. Though it
+                is often used as a sport, it is effective in a real fight
+                as well.
+            </para>
+
+            <para>
+                It is used in the same way as <e>brawl</e> in combat,
+                though it does not teach the use of weapons. When fighting
+                unarmed, you gain a bonus to damage equal to your skill,
+                but suffer a -1 penalty to agility for defence rolls.
+            </para>
+        </description>
+    </skill>
+</skill-list>
+
