@@ -1,199 +1,241 @@
-# Aeonisk Backend
+# Aeonisk: Open Multi-Agent Research Infrastructure
 
-A comprehensive backend API for the Aeonisk game system, providing complete game state management, real-time updates, and secure player interactions.
+**GPL-licensed benchmark for tactical reasoning, risk assessment, and multi-agent coordination**
 
-## Architecture
+## The Problem
 
-### Technology Stack
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
-- **Database**: PostgreSQL with Drizzle ORM
-- **Real-time**: Socket.IO
-- **Authentication**: JWT
-- **Testing**: Jest with Supertest
-- **Containerization**: Podman
+Corporate copyright prevents ML research on semantically rich environments:
+- **Can't train on D&D mechanics** (Wizards of the Coast)
+- **Can't use Star Wars factions** (Disney)
+- **Can't touch any major IP** without legal risk
 
-### Project Structure
+Researchers are forced to use:
+- Abstract toy problems (GridWorld, CartPole)
+- Scraped data (legally murky)
+- Synthetic LLM output (circular training)
+
+**This stifles research.**
+
+## The Solution
+
+Aeonisk provides GPL-licensed infrastructure explicitly designed for ML research:
+
+### 📊 Aeonisk-86 Benchmark Dataset
+
+**86 tactical scenarios with complete outcome distributions**
+
+Unlike datasets capturing only realized outcomes, Aeonisk-86 provides the ENTIRE outcome space:
+- **6-tier taxonomy**: Critical failure → Exceptional success
+- **516 distinct labeled outcomes** (86 scenarios × 6 tiers)
+- **Full mechanical provenance** for each outcome
+- **Narrative + mechanical effects** specified
+
+**Novel contributions:**
+- Multi-tier outcome capture enables counterfactual reasoning
+- Complete risk profiles for each scenario
+- Graduated reward signals beyond binary success/failure
+- Human-in-the-loop synthetic generation with schema enforcement
+
+**Dataset:** `datasets/aeonisk_dataset_normalized_complete.txt` | [Hugging Face - COMING SOON]
+
+### 🎮 Multi-Agent Simulation Environment
+
+**O(n) tactical combat system designed for large-scale simulation**
+
+- Concentric ring positioning (vs O(n²) grid pathfinding)
+- Declare/resolve framework (commitment under uncertainty)
+- Faction dynamics with corruption mechanics
+- Full Python implementation with autonomous agents
+
+**Code:** This repository ([Setup Guide](scripts/README.md))
+
+### 🔬 Research Applications
+
+**What you can do with this:**
+
+- **Benchmarking**: Compare LLM reasoning on grounded tactical scenarios
+- **Multi-Agent RL**: Coordination testbed with faction dynamics
+- **Risk Assessment**: Outcome distributions enable risk-aware planning
+- **Counterfactual Reasoning**: Each scenario has 6 counterfactual outcomes
+- **Graduated Rewards**: Move beyond binary success/failure
+- **Alignment Research**: Void corruption models alignment drift
+- **Narrative Generation**: 516 examples of degree-appropriate storytelling
+
+## Quick Start
+
+### Using The Dataset
+
+```python
+# Load from repository
+import yaml
+
+with open('datasets/aeonisk_dataset_normalized_complete.txt', 'r') as f:
+    dataset = yaml.safe_load_all(f)
+
+for task in dataset:
+    scenario = task['scenario']
+    outcomes = task['gold_answer']['outcome_explanation']
+    # outcomes contains all 6 tiers with narratives + mechanics
+
+    # Example: Access specific outcome tier
+    critical_failure = outcomes['critical_failure']
+    exceptional_success = outcomes['exceptional']
 ```
-aeonisk-backend/
-├── src/
-│   ├── domain/           # Domain entities and business logic
-│   │   ├── entities/     # Character, GameSession entities
-│   │   └── schemas/      # Zod validation schemas
-│   ├── infrastructure/   # Database and external services
-│   │   ├── database/     # Drizzle schema and connection
-│   │   └── repositories/ # Data access layer
-│   ├── services/         # Business logic services
-│   ├── api/              # HTTP layer
-│   │   ├── routes/       # Express routes
-│   │   ├── controllers/  # Request handlers
-│   │   └── middleware/   # Auth, error handling
-│   └── utils/            # Shared utilities
-├── tests/
-│   ├── unit/            # Unit tests
-│   ├── integration/     # API integration tests
-│   └── e2e/             # End-to-end tests
-└── drizzle/             # Database migrations
-```
 
-## Features
+**Coming soon:** Hugging Face dataset with standardized API
 
-### Game State Management
-- Complete character creation and management
-- Game session tracking with phases
-- Action recording and history
-- NPC management
-- Void and Soulcredit economy
+### Running The Multi-Agent System
 
-### Real-time Updates
-- WebSocket support for live game updates
-- Session-based rooms for multiplayer
-- Character state synchronization
-- AI NPC updates
-
-### Security
-- JWT authentication
-- Rate limiting
-- Input validation with Zod
-- SQL injection protection via Drizzle ORM
-- CORS configuration
-
-### AI Integration
-- AI DM capabilities
-- NPC agent support
-- ChromaDB integration for RAG
-- Game lore and rules retrieval
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-
-### Characters
-- `GET /api/characters` - List user's characters
-- `POST /api/characters` - Create new character
-- `GET /api/characters/:id` - Get character details
-- `PUT /api/characters/:id` - Update character
-- `DELETE /api/characters/:id` - Delete character
-- `POST /api/characters/:id/void` - Modify void score
-- `POST /api/characters/:id/soulcredit` - Modify soulcredit
-- `POST /api/characters/:id/seeds/add` - Add raw seed
-- `POST /api/characters/:id/seeds/attune` - Attune seed
-
-### Game Sessions
-- `GET /api/sessions` - List user's sessions
-- `POST /api/sessions` - Create new session
-- `GET /api/sessions/:id` - Get session details
-- `PUT /api/sessions/:id` - Update session
-- `POST /api/sessions/:id/characters` - Add character to session
-- `POST /api/sessions/:id/actions` - Record action
-- `POST /api/sessions/:id/npcs` - Add NPC
-
-## Setup
-
-### Prerequisites
-- Node.js 18+
-- PostgreSQL 14+
-- Podman (or Docker)
-
-### Installation
 ```bash
-# Install dependencies
-npm install
+# Setup (one-time)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 
-# Copy environment variables
-cp .env.example .env
-
-# Start infrastructure with Podman
-task podman:up
-
-# Run database migrations
-npm run db:migrate
-
-# Start development server
-task dev
+# Run a session
+python3 scripts/run_multiagent_session.py scripts/session_config_combat.json
 ```
 
-### Testing
-```bash
-# Run all tests
-task test
+Generates complete RPG sessions with:
+- DM scenario generation
+- Player tactical decisions
+- Enemy AI with morale system
+- Detailed JSONL logs for analysis
 
-# Run tests in watch mode
-task test:watch
+**Full setup guide:** [scripts/README.md](scripts/README.md)
 
-# Run with coverage
-task test:coverage
+## Why GPL?
+
+This project is **explicitly GPL-licensed to route around copyright enclosure**.
+
+ML researchers should be able to use familiar, semantically rich domains without legal risk. D&D shouldn't be off-limits. Neither should any rich semantic space.
+
+If you think copyright enclosure is a problem:
+- Use this dataset
+- Extend this system
+- Build on this infrastructure
+
+GPL means improvements must be shared. That's the point.
+
+## Dataset Details
+
+**Location:** `datasets/aeonisk_dataset_normalized_complete.txt`
+
+**Schema:** See `datasets/aeonisk_dataset_guidelines.txt`
+
+**Properties:**
+- 86 scenarios across multiple domains (combat, social, investigation, ritual)
+- 6-tier outcome taxonomy per scenario
+- Full attribute/skill/difficulty specifications
+- Consistent YAML format
+- Complete mechanical provenance
+
+**Methodology:**
+- Human-in-the-loop synthetic generation
+- Schema enforcement for consistency
+- AI adjudication using YAGS ruleset
+- Multi-tier capture (not just realized outcomes)
+
+**Outcome Tiers:**
+- **Critical Failure** (< -20 margin): Catastrophic consequences
+- **Failure** (< 0): No progress, complications
+- **Marginal** (0-4): Minimal success
+- **Moderate** (5-9): Standard success
+- **Good** (10-14): Clear success
+- **Excellent** (15-19): Major advantage
+- **Exceptional** (20+): Outstanding breakthrough
+
+## System Architecture
+
+Built on:
+- **YAGS Core Rules** (GPL v2) - Attribute × Skill + d20 system
+- **Aeonisk Module** - Void/Soulcredit/Bond mechanics
+- **Multi-Agent Framework** - Autonomous DM, players, enemies
+- **O(n) Tactical System** - Ring-based positioning
+
+Full architecture docs: `.claude/ARCHITECTURE.md`
+
+## Project Status
+
+**Current (v0.1):**
+- ✅ 86-task dataset with multi-tier outcomes
+- ✅ Multi-agent simulation framework
+- ✅ O(n) tactical combat system
+- ✅ Autonomous DM, player, and enemy agents
+- ✅ JSONL logging for ML training data
+
+**In Development:**
+- 🚧 PettingZoo integration for RL research
+- 🚧 Hugging Face dataset publication
+- 📝 Research paper on multi-tier outcome capture
+
+**Future Work:**
+- Expanded dataset (200+ scenarios)
+- Additional scenario types
+- Multi-language prompt support
+- Benchmark comparisons across models
+
+## For Developers
+
+Want to run the multi-agent system? See [**scripts/README.md**](scripts/README.md) for:
+- Detailed installation and setup
+- Running sessions and configurations
+- Validating JSONL output
+- Architecture and codebase tour
+
+## Documentation
+
+- **Dataset Schema**: `datasets/aeonisk_dataset_guidelines.txt`
+- **System Architecture**: `.claude/ARCHITECTURE.md`
+- **Code Setup**: `scripts/README.md`
+- **Session Config**: `scripts/session_config_README.md`
+- **ML Logging Details**: `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md`
+
+## Contributing
+
+Contributions welcome for:
+- **Dataset expansion**: More scenarios, domains, edge cases
+- **Prompt engineering**: Better outcome generation
+- **RL integration**: PettingZoo environment completion
+- **Model comparisons**: Benchmark results and analysis
+
+GPL requirement: Improvements must be shared back.
+
+## Interactive Demo
+
+Try the Aeonisk DM GPT:
+[ChatGPT Custom GPT](https://chatgpt.com/g/g-680299b1a5f08191b869fe352f33cc1a-aeonisk)
+
+## License
+
+- **Dataset & Lore**: Aeonisk Permissive Commercial License (APCL) v1
+- **Code & YAGS Mechanics**: GNU GPL v2
+
+Both permit commercial use. APCL requires attribution; GPL requires sharing improvements. See `LICENSE` for complete APCL text and `yags/LICENSE.md` for YAGS GPL terms.
+
+## Citation
+
+```bibtex
+@dataset{aeonisk86_2025,
+  title={Aeonisk-86: Multi-Agent Tactical Reasoning Benchmark with Complete Outcome Distributions},
+  author={Three Rivers AI Nexus},
+  year={2025},
+  publisher={GitHub},
+  url={https://github.com/yourusername/aeonisk-yags}
+}
 ```
 
-## Environment Variables
-```
-# Server
-PORT=3000
-NODE_ENV=development
+## Contact
 
-# Database
-DATABASE_URL=postgresql://aeonisk:aeonisk_password@localhost:5432/aeonisk_game
+**Three Rivers AI Nexus**
+Email: threeriversainexus@gmail.com
 
-# ChromaDB
-CHROMADB_URL=http://localhost:8000
+Questions about:
+- Dataset usage and citations
+- Commercial licensing arrangements
+- Research collaborations
+- Technical support
 
-# JWT
-JWT_SECRET=your-secret-key-here
-JWT_EXPIRE=7d
+---
 
-# Rate Limiting
-RATE_LIMIT_WINDOW_MS=900000
-RATE_LIMIT_MAX_REQUESTS=100
-
-# CORS
-CORS_ORIGIN=http://localhost:5173
-
-# Logging
-LOG_LEVEL=info
-```
-
-## Database Schema
-
-### Core Tables
-- `users` - User accounts
-- `characters` - Player characters
-- `game_sessions` - Game sessions
-- `session_characters` - M2M relationship
-- `npcs` - Non-player characters
-- `actions` - Game actions/events
-- `void_history` - Void score changes
-
-## WebSocket Events
-
-### Client → Server
-- `authenticate` - Authenticate socket connection
-- `join-session` - Join game session room
-- `leave-session` - Leave game session room
-
-### Server → Client
-- `character-update` - Character state change
-- `session-update` - Session state change
-- `action-recorded` - New action in session
-- `npc-action` - AI NPC performed action
-
-## Development Workflow
-
-1. **Test-Driven Development**: Write tests first
-2. **Type Safety**: Full TypeScript coverage
-3. **Domain-Driven Design**: Clear separation of concerns
-4. **Repository Pattern**: Abstract data access
-5. **Service Layer**: Business logic isolation
-
-## Next Steps
-
-- [ ] Implement full authentication system
-- [ ] Add game session WebSocket handlers
-- [ ] Integrate AI DM capabilities
-- [ ] Add ritual system endpoints
-- [ ] Implement campaign management
-- [ ] Add file upload for character portraits
-- [ ] Implement data export/import
-- [ ] Add metrics and monitoring
+Built because copyright shouldn't block research.

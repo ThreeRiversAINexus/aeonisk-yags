@@ -1,16 +1,40 @@
-# Core dependencies
-pyyaml>=6.0
-openai>=1.0.0
-python-dotenv>=1.0.0
-pydantic>=2.0.0
-anthropic>=0.18.0
+# Aeonisk YAGS - Core Runtime Dependencies
+# Pinned versions from working venv (scripts/aeonisk/.venv)
+# Last updated: 2025-10-27
 
-# Vector database for knowledge retrieval (optional)
-chromadb>=0.4.0
+# AI/LLM Providers
+anthropic==0.71.0
+openai==2.6.0
 
-# Development dependencies
-pytest>=7.0.0
-pytest-cov>=4.0.0
-black>=23.0.0
-isort>=5.0.0
-flake8>=6.0.0
+# Vector Database & Embeddings
+chromadb==1.2.1
+sentence-transformers==5.1.1
+
+# Configuration & Environment
+pyyaml==6.0.3
+python-dotenv==1.1.1
+
+# Data Validation & Serialization
+pydantic==2.12.3
+
+# HTTP Clients
+httpx==0.28.1
+aiohttp==3.13.1
+
+# Reinforcement Learning (PettingZoo integration)
+pettingzoo==1.25.0
+gymnasium==1.2.1
+
+# Scientific Computing (required by chromadb/sentence-transformers)
+numpy==2.3.4
+scipy==1.16.2
+
+# Deep Learning (required by sentence-transformers)
+# Note: torch is large (~2GB). If you don't need embedding generation,
+# you can use pre-computed embeddings and skip this dependency.
+torch==2.9.0
+
+# Utilities
+rich==14.2.0  # Terminal formatting
+tqdm==4.67.1  # Progress bars
+click==8.3.0  # CLI support
