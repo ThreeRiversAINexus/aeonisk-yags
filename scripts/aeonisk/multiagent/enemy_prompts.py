@@ -36,7 +36,9 @@ def generate_tactical_prompt(
     enemy_agents: List[EnemyAgent],
     shared_intel: SharedIntel,
     available_tokens: List[str],
-    current_round: int
+    current_round: int,
+    combat_id_mapper=None,
+    free_targeting: bool = False
 ) -> str:
     """
     Generate complete tactical prompt for enemy agent using prompt_loader system.
@@ -51,6 +53,8 @@ def generate_tactical_prompt(
         shared_intel: Shared intelligence pool
         available_tokens: Unclaimed tactical tokens
         current_round: Current combat round
+        combat_id_mapper: Optional combat ID mapper for free targeting mode
+        free_targeting: Whether to use unified combatant list (no ally/enemy labels)
 
     Returns:
         Complete tactical prompt string
@@ -68,7 +72,7 @@ def generate_tactical_prompt(
     sections.append(_format_doctrine(enemy))
 
     # Battlefield Situation
-    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens))
+    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, combat_id_mapper, free_targeting))
 
     # Tactical Options
     sections.append(_format_tactical_options(enemy))
@@ -188,53 +192,99 @@ def _format_battlefield(
     enemy: EnemyAgent,
     player_agents: List[Any],
     enemy_agents: List[EnemyAgent],
-    available_tokens: List[str]
+    available_tokens: List[str],
+    combat_id_mapper=None,
+    free_targeting: bool = False
 ) -> str:
     """Format battlefield situation section."""
     from .faction_utils import are_factions_allied
 
     section = f"""## BATTLEFIELD SITUATION
-{"=" * 60}
+{"=" * 60}"""
 
-### Hostile Targets (Player Characters):"""
+    if free_targeting and combat_id_mapper:
+        # FREE TARGETING MODE: Unified combatant list
+        section += "\n\n### Combatants in Combat Zone:"
 
-    # Format PC targets (skip if Unseen)
-    pc_targets_shown = 0
-    for pc in player_agents:
-        pc_info = _format_pc_target(enemy, pc)
-        if pc_info:  # Only add if not None (Unseen condition returns None)
-            section += "\n" + pc_info
-            pc_targets_shown += 1
+        combatants = []
 
-    if pc_targets_shown == 0:
-        section += "\nNo visible player targets detected. They may be using stealth or concealment."
+        # Add all PCs
+        for pc in player_agents:
+            cbt_id = combat_id_mapper.get_combat_id(getattr(pc, 'agent_id', None))
+            if cbt_id:
+                pc_name = getattr(pc, 'name', None) or getattr(pc.character_state, 'name', 'Unknown') if hasattr(pc, 'character_state') else 'Unknown'
+                pc_position = str(getattr(pc, 'position', 'Unknown'))
 
-    # Separate allies from hostile enemies based on faction
-    allies = []
-    hostiles = []
-    for other_enemy in enemy_agents:
-        if other_enemy.agent_id == enemy.agent_id or not other_enemy.is_active:
-            continue
+                # Health is stored directly on AIPlayerAgent, not on CharacterState
+                pc_health = getattr(pc, 'health', 0)
+                pc_max_health = getattr(pc, 'max_health', 0)
 
-        if are_factions_allied(enemy.faction, other_enemy.faction):
-            allies.append(other_enemy)
-        else:
-            hostiles.append(other_enemy)
+                combatants.append(f"- [{cbt_id}] {pc_name} | {pc_position} | {pc_health}/{pc_max_health} HP")
 
-    # Format hostile enemy forces (opposing factions)
-    if hostiles:
-        section += "\n\n### Hostile Forces (Opposing Faction Enemies):"
-        section += "\n**These enemy units are HOSTILE to you - treat them as targets!**"
-        for hostile in hostiles:
-            section += "\n" + _format_hostile_enemy(enemy, hostile)
+        # Add all other active enemies (including self)
+        for other_enemy in enemy_agents:
+            if other_enemy.is_active:
+                cbt_id = combat_id_mapper.get_combat_id(other_enemy.agent_id)
+                if cbt_id:
+                    unit_count = f" ({other_enemy.unit_count} units)" if other_enemy.is_group else ""
+                    combatants.append(f"- [{cbt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP{unit_count}")
 
-    # Format allied enemies
-    if allies:
-        section += "\n\n### Allied Forces (Same Faction):"
-        for ally in allies:
-            section += "\n" + _format_allied_enemy(ally)
+        section += "\n" + "\n".join(combatants)
 
-    # Format tactical tokens
+        section += f"\n\n**YOUR UNIT**: {enemy.name}"
+        section += f"\n**YOUR FACTION**: {enemy.faction}"
+        section += "\n\n⚠️  **CRITICAL TARGETING INSTRUCTIONS** ⚠️"
+        section += "\n- Each combatant has a unique ID in brackets: [cbt_XXXX]"
+        section += "\n- You MUST use the combat ID when targeting, NOT the name"
+        section += "\n- CORRECT: TARGET: cbt_7a3f"
+        section += "\n- WRONG: TARGET: Kiran Voss (this will FAIL!)"
+        section += f"\n\n**How to decide who to target:**"
+        section += "\n1. Read the names to identify faction allegiance"
+        section += f"\n2. Consider your faction relationships ({enemy.faction})"
+        section += "\n3. Use the combat ID (in brackets) when declaring your target"
+        section += "\n\n⚠️  **WARNING**: You can target ANYONE on this list. Choose wisely!"
+
+    else:
+        # STANDARD MODE: Separate hostile/allied lists (backwards compatible)
+        section += "\n\n### Hostile Targets (Player Characters):"
+
+        # Format PC targets (skip if Unseen)
+        pc_targets_shown = 0
+        for pc in player_agents:
+            pc_info = _format_pc_target(enemy, pc)
+            if pc_info:  # Only add if not None (Unseen condition returns None)
+                section += "\n" + pc_info
+                pc_targets_shown += 1
+
+        if pc_targets_shown == 0:
+            section += "\nNo visible player targets detected. They may be using stealth or concealment."
+
+        # Separate allies from hostile enemies based on faction
+        allies = []
+        hostiles = []
+        for other_enemy in enemy_agents:
+            if other_enemy.agent_id == enemy.agent_id or not other_enemy.is_active:
+                continue
+
+            if are_factions_allied(enemy.faction, other_enemy.faction):
+                allies.append(other_enemy)
+            else:
+                hostiles.append(other_enemy)
+
+        # Format hostile enemy forces (opposing factions)
+        if hostiles:
+            section += "\n\n### Hostile Forces (Opposing Faction Enemies):"
+            section += "\n**These enemy units are HOSTILE to you - treat them as targets!**"
+            for hostile in hostiles:
+                section += "\n" + _format_hostile_enemy(enemy, hostile)
+
+        # Format allied enemies
+        if allies:
+            section += "\n\n### Allied Forces (Same Faction):"
+            for ally in allies:
+                section += "\n" + _format_allied_enemy(ally)
+
+    # Format tactical tokens (same for both modes)
     if available_tokens:
         section += "\n\n### Tactical Tokens Available:"
         section += "\n" + ", ".join(available_tokens)

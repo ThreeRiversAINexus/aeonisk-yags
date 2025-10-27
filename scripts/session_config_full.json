@@ -13,6 +13,7 @@
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
   "enemy_agent_config": {
+    "free_targeting_mode": true,
     "allow_groups": true,
     "max_enemies_per_combat": 20,
     "shared_intel_enabled": true,

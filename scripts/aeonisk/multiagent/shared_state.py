@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from .action_schema import ActionValidator
     from .knowledge_retrieval import KnowledgeRetrieval
     from .enemy_combat import EnemyCombatManager
+    from .combat_ids import CombatIDMapper
 
 
 @dataclass
@@ -39,6 +40,10 @@ class SharedState:
     action_validator: Optional['ActionValidator'] = None
     knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
     enemy_combat: Optional['EnemyCombatManager'] = None
+    combat_id_mapper: Optional['CombatIDMapper'] = None
+
+    # Session configuration (for accessing config flags like free_targeting_mode)
+    session_config: Dict[str, Any] = field(default_factory=dict)
 
     # Player agents (for ally buff targeting)
     player_agents: List[Any] = field(default_factory=list)
@@ -256,3 +261,14 @@ Generate something DIFFERENT from these recent scenarios.
         if self.knowledge_retrieval is None:
             self.initialize_mechanics()
         return self.knowledge_retrieval
+
+    def get_combat_id_mapper(self) -> 'CombatIDMapper':
+        """Get or create combat ID mapper."""
+        if self.combat_id_mapper is None:
+            from .combat_ids import CombatIDMapper
+            self.combat_id_mapper = CombatIDMapper()
+        return self.combat_id_mapper
+
+    def get_all_players(self) -> List[Any]:
+        """Get all registered player agents."""
+        return self.player_agents

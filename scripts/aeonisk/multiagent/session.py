@@ -55,6 +55,7 @@ class SelfPlayingSession:
         self.session_data: List[Dict[str, Any]] = []
         self.running = False
         self.shared_state = SharedState()
+        self.shared_state.session_config = self.config  # Store config for agents to access flags
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
         self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
@@ -482,6 +483,26 @@ class SelfPlayingSession:
         print("\n=== Declaration Phase ===")
         self._in_declaration_phase = True
         self._declared_actions.clear()
+
+        # Assign combat IDs for free targeting mode (if enabled)
+        enemy_config = self.config.get('enemy_agent_config', {})
+        if enemy_config.get('free_targeting_mode', False):
+            logger.info("Free targeting mode enabled - assigning combat IDs")
+            combat_id_mapper = self.shared_state.get_combat_id_mapper()
+            combat_id_mapper.enable()
+
+            # Get all active enemies (empty list if enemy combat disabled)
+            active_enemies = []
+            if self.enemy_combat and self.enemy_combat.enabled:
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(self.enemy_combat.enemy_agents)
+
+            # Assign IDs to all combatants (PCs + enemies)
+            combat_id_mapper.assign_ids(
+                player_agents=self.shared_state.player_agents,
+                enemy_agents=active_enemies
+            )
+            logger.info(f"Assigned {len(combat_id_mapper.get_all_combat_ids())} combat IDs")
 
         # Log declaration phase start
         if mechanics and mechanics.jsonl_logger:

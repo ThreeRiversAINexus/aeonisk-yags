@@ -261,7 +261,14 @@ You MUST try a different approach, tool, location, or angle. Repeating the same 
     # Build goal-aligned dialogue prompts
     dialogue_goal_text = ""
     if other_party_members:
-        if any('bond' in goal.lower() or 'harmony' in goal.lower() or 'community' in goal.lower() for goal in goals):
+        # Detect competitive/PVP scenarios - suppress coordination prompts if goals are competitive
+        competitive_keywords = ['before', 'only one', 'defeat', 'neutralize', 'detain', 'winner', 'vs', 'against']
+        is_competitive = any(keyword in goal.lower() for goal in goals for keyword in competitive_keywords)
+
+        if is_competitive:
+            # Competitive scenario - NO coordination prompts
+            dialogue_goal_text = ""
+        elif any('bond' in goal.lower() or 'harmony' in goal.lower() or 'community' in goal.lower() for goal in goals):
             dialogue_goal_text = f"""
 
 **🎯 HOW TO ACHIEVE YOUR GOALS:**
