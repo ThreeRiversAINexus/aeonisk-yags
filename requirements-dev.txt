@@ -1,0 +1,18 @@
+# Aeonisk YAGS - Development Dependencies
+# Pinned versions from working venv (scripts/aeonisk/.venv)
+# Last updated: 2025-10-27
+
+# Include all runtime dependencies
+-r requirements.txt
+
+# Testing Framework
+pytest==8.4.2
+pytest-cov==7.0.0
+coverage==7.11.0
+
+# Code Formatting
+black==25.9.0
+isort==7.0.0
+
+# Linting
+flake8==7.3.0
