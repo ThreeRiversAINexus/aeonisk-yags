@@ -1,0 +1,251 @@
+<?xml version = '1.0' ?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl" type="text/xsl"?>
+
+<!--
+    Copyright Samuel Penn, GPL v2.
+-->
+
+<bestiary xmlns="https://yags-rpg.net/xml">
+
+    <beast name="Ogres" primary="true">
+        <information>
+            <type>Humanoid</type>
+            <demeanor>Violent</demeanor>
+
+            <origin>Fantasy</origin>
+            <genre>Fantasy</genre>
+        </information>
+
+        <description>
+            <short>
+                Giant degenerate humanoids.
+            </short>
+            <image src="fantasy/graphics/ogre.jpg"/>
+
+            <physical>
+                <para>
+                    Ogres are a form of giant deformed humanoids. They have unnatural
+                    size and strength, and a predisposition to extreme violence. If
+                    they wear clothes it is for reasons of warmth rather than any
+                    feelings of modesty or social mores. Being considerably dumber than
+                    your average person, they are incapable of making weapons any more
+                    complicated than a club, so unless they have been equipped by
+                    others this is what they will carry.
+                </para>
+                <para>
+                    Ogres have a wide range of skin colours, though are often a
+                    yellowish brown or grey. They have little hair, and sometimes have
+                    tusks or overgrown teeth.
+                </para>
+                <para>
+                    Ogres stand about three metres tall, and generally weigh
+                    around 500kg.
+                </para>
+            </physical>
+
+            <social>
+                <para>
+                    Ogres have little in the way of an organised social structure,
+                    instead forming into small groups kept together by the threat of
+                    violence from whoever is the strongest.
+                </para>
+                <para>
+                    They can be solitary, or live with <e>Orcs</e> or other smaller
+                    humanoids, or they can form groups up to a dozen or so in size.
+                    The majority will tend to be females in this case, who will be
+                    shared amongst the males.
+                </para>
+                <para>
+                    They have a simple language, though aren't capable of complex
+                    thought or conversation.
+                </para>
+            </social>
+
+            <tactics>
+                <para>
+                    Ogres rarely use tactics. If they see something they can beat
+                    up, then they will charge towards it and attempt to kill and
+                    eat it - not always in that order.
+                </para>
+            </tactics>
+        </description>
+    </beast>
+
+    <beast name="Ogre" parent="Ogres">
+        <information>
+            <type>Humanoid</type>
+            <demeanor>Violent</demeanor>
+
+            <habitat climate="Any" terrain="Wilderness" frequency="Common"/>
+
+            <organisation group="Hunting party" number="2-5"/>
+            <organisation group="Raiding party" number="3-18"/>
+
+            <origin>Fantasy</origin>
+            <genre>Fantasy</genre>
+        </information>
+
+        <description>
+            <short>
+                A typical ogre warrior.
+            </short>
+
+            <physical>
+                <para>
+                    Ogres are large, almost 2.5 metres tall. They are dim-witted and
+                    slow, and rarely use weapons more complicated than a club.
+                </para>
+            </physical>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="8" soak="15">
+                <attribute name="strength" score="10"/>
+                <attribute name="health" score="5"/>
+                <attribute name="agility" score="2"/>
+                <attribute name="dexterity" score="2"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="1"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="2"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="4"/>
+                    <skill name="Awareness" score="4"/>
+                    <skill name="Brawl" score="6"/>
+                    <skill name="Charm" score="1"/>
+                    <skill name="Guile" score="1"/>
+                    <skill name="Sleight" score="1"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="3"/>
+                </group>
+
+                <group name="Skills" type="skills">
+                    <skill name="Speak own" score="3"/>
+                    <skill name="Survival" score="3"/>
+                    <skill name="Melee" score="4"/>
+                </group>
+            </skills>
+
+            <combat>
+                <combatstyle style="Brawl" skill="Brawl">
+                    <reach score="1"/>
+                    <attack attribute="agility" bonus="1"/>
+                    <defence attribute="agility" bonus="1"/>
+                    <damage type="stun" bonus="1"/>
+                </combatstyle>
+                <combatstyle style="Great club" skill="Melee">
+                    <reach score="3"/>
+                    <attack attribute="dexterity" bonus="+7"/>
+                    <defence attribute="dexterity" bonus="+5"/>
+                    <damage type="mixed" bonus="+12"/>
+                </combatstyle>
+
+                <armourstyle style="Base"/>
+
+                <armourstyle style="Furs">
+                    <armour name="Thick furs" protection="7"/>
+                </armourstyle>
+            </combat>
+
+            <advantages>
+                <advantage name="Light sensitivity"/>
+                <advantage name="Disease resistance"/>
+                <advantage name="Poison resistance"/>
+                <advantage name="Dark vision"/>
+            </advantages>
+        </statistics>
+    </beast>
+
+    <beast name="Mountain Ogre" parent="Ogres">
+        <information>
+            <type>Humanoid</type>
+            <demeanor>Violent</demeanor>
+
+            <habitat climate="Any" terrain="Wilderness" frequency="Common"/>
+
+            <organisation group="Hunting party" number="2-5"/>
+            <organisation group="Raiding party" number="3-18"/>
+
+            <origin>Fantasy</origin>
+            <genre>Fantasy</genre>
+        </information>
+
+        <description>
+            <short>
+                The largest type of commonly encountered ogre.
+            </short>
+
+            <physical>
+                <para>
+                    Standing four metres tall, <e>mountain ogres</e> are generally
+                    considered the largest of their kind. They may be as dim-witted
+                    and slow as their smaller brethren, but they are significantly
+                    larger, stronger and tougher.
+                </para>
+            </physical>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="11" soak="20">
+                <attribute name="strength" score="9"/>
+                <attribute name="health" score="5"/>
+                <attribute name="agility" score="2"/>
+                <attribute name="dexterity" score="2"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="1"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="2"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="4"/>
+                    <skill name="Awareness" score="4"/>
+                    <skill name="Brawl" score="7"/>
+                    <skill name="Charm" score="1"/>
+                    <skill name="Guile" score="1"/>
+                    <skill name="Sleight" score="1"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="3"/>
+                </group>
+
+                <group name="Skills" type="skills">
+                    <skill name="Speak own" score="3"/>
+                    <skill name="Survival" score="4"/>
+                    <skill name="Melee" score="7"/>
+                </group>
+            </skills>
+
+            <combat>
+                <combatstyle style="Brawl" skill="Brawl">
+                    <reach score="1"/>
+                    <attack attribute="agility" bonus="3"/>
+                    <defence attribute="agility" bonus="2"/>
+                    <damage type="stun" bonus="3"/>
+                </combatstyle>
+                <combatstyle style="Great club" skill="Melee">
+                    <reach score="3"/>
+                    <attack attribute="dexterity" bonus="+10"/>
+                    <defence attribute="dexterity" bonus="+7"/>
+                    <damage type="mixed" bonus="+19"/>
+                </combatstyle>
+
+                <armourstyle style="Base"/>
+
+                <armourstyle style="Furs">
+                    <armour name="Thick furs" protection="9"/>
+                </armourstyle>
+            </combat>
+
+            <advantages>
+                <advantage name="Light sensitivity"/>
+                <advantage name="Disease resistance"/>
+                <advantage name="Poison resistance"/>
+                <advantage name="Dark vision"/>
+            </advantages>
+        </statistics>
+    </beast>
+</bestiary>

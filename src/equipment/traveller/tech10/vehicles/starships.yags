@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<!--
+    TechLevel 10 Military Vehicles.
+-->
+<equipment xmlns="https://yags-rpg.net/xml"
+           xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <item name="Connor McBane Class">
+        <category>Vehicle</category>
+        <genre>Traveller</genre>
+        <techLevel>10</techLevel>
+        <legality>1</legality>
+        <availability>1</availability>
+        <importance>3</importance>
+
+        <short>20t Customs Gig</short>
+
+        <cost units="Cr">8210000</cost>
+        <weight>117000000</weight>
+
+        <construction>
+            <year>500</year>
+            <manufacturer>Solomani</manufacturer>
+        </construction>
+
+        <performance realm="Space">
+            <acceleration>20</acceleration>
+            <deltavee>7200</deltavee>
+        </performance>
+
+        <description>
+            <para>
+                A frequently used customs gig. Has a crew of 2, and can
+                carry up to 24 troops.
+            </para>
+        </description>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="17" soak="34" move="200" acceleration="120">
+                <attribute name="strength" score="22"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="4"/>
+                <attribute name="perception" score="2"/>
+            </attributes>
+
+            <stealth signature="-2"/>
+
+            <combat>
+                <armour location="Hull" score="20"/>
+
+                <weapon name="250 MJ Particle beam (Turret)">
+                    <attack score="7"/>
+                    <damage score="135"/>
+                    <increment>400000</increment>
+                    <rof>1</rof><capacity>60</capacity><recoil>0</recoil>
+                    <range>
+                        <short>200000</short>
+                    </range>
+                    <properties>
+                        <missile/><vehicle/><space/>
+                    </properties>
+                </weapon>
+            </combat>
+        </vehicle>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Sensors" level="5"/>
+        </tool>
+    </item>
+
+    <item name="Stellar Class Subsidized Liner">
+        <category>Vehicle</category>
+        <genre>Traveller</genre>
+        <techLevel>10</techLevel>
+        <legality>3</legality>
+        <availability>1</availability>
+        <importance>2</importance>
+
+        <short>600t passenger liner</short>
+
+        <cost units="Cr">327000000</cost>
+        <weight>3100000000</weight>
+
+        <construction>
+            <year>350</year>
+            <manufacturer>Vilani</manufacturer>
+        </construction>
+
+        <performance realm="Space">
+            <acceleration>12</acceleration>
+            <deltavee>4500</deltavee>
+            <jump>3</jump>
+        </performance>
+
+        <description>
+            <para>
+                An often seen type of liner which dates to the early years
+                of the Third Imperium. There are a number of varients,
+                including luxury yachts and mercenary cruisers.
+            </para>
+
+            <para>
+                It has 30 staterooms, a sickbay, passenger's lounge,
+                reception area, crew's lounge and a single life boat.
+                It requires a crew of 16 (7 bridge crew, 3 engineering,
+                1 medical, 1 command and 4 stewards).
+            </para>
+        </description>
+
+        <vehicle xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="24" soak="36" acceleration="1">
+                <attribute name="strength" score="22"/>
+                <attribute name="health" score="3"/>
+                <attribute name="agility" score="2"/>
+                <attribute name="perception" score="4"/>
+            </attributes>
+
+            <combat>
+                <armour location="Hull" score="10"/>
+            </combat>
+        </vehicle>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Sensors" level="5"/>
+        </tool>
+
+        <task xmlns="https://yags-rpg.net/xml/yags">
+            <skill name="Computer hacking" score="60">
+                Accessing ship systems.
+            </skill>
+            <skill name="Security systems" score="40">
+                Breaking and entering.
+            </skill>
+        </task>
+    </item>
+
+</equipment>
+
+

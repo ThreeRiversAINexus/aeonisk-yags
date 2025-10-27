@@ -1,0 +1,1482 @@
+<?xml version="1.0"?>
+
+<!--
+
+    General equipment lists.
+
+    Copyright 2005 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted provided that the following
+    conditions are met:
+
+    1) Redistributions of any source code (e.g. XML) must retain the
+    above copyright notice, this list of conditions and the following
+    disclaimer.
+
+    2) Redistributions in compiled form (transformed to other DTDs,
+    converted to PDF, PostScript, RTF and other formats) must
+    reproduce the above copyright notice, this list of conditions
+    and the following disclaimer in the documentation and/or other
+    materials provided with the distribution.
+
+    THIS CONTENT IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+    WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+    OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS CONTENT, EVEN IF ADVISED
+    OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Version: $Revision: 1.12 $
+    Date:    $Date: 2007-03-24 22:20:33 $
+
+    Categories
+
+    Adventuring     The sort of things only adventurers have.
+    Rogue           Thieves/assassins tools and the like.
+    Food            Food and drink.genre
+    Animals         An animal which isn't livestock - horses and dogs.
+    Livestock       Animals bred for food, such as pigs and cows.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices are in credits.
+
+    Tech Level
+     4 1450-1700
+     5 1700-1900
+     6 1900-1950
+     7 1950-1980
+     8 1980-2020
+     9 2020+ (Interplanetary)
+    10 Interstellar (early jump)
+    11 Interstellar (Jump)
+    12 Interstellar (Imperium)
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="Gauss Pistol, 4mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>650</weight>
+        <cost>300</cost>
+
+        <short>An advanced guass pistol.</short>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+6</attack><damage>23</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>50</short><medium>100</medium><long>200</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>1</load><reach>0</reach>
+            <capacity>15</capacity><rof>10</rof><recoil>-2</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><tripleauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Auto Pistol, 7mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>750</weight>
+        <cost>500</cost>
+        <short>A heavy pistol.</short>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+5</attack><damage>27</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>75</short><medium>150</medium><long>300</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>0.5</load><reach>0</reach>
+            <capacity>10</capacity><rof>5</rof><recoil>-3</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Railgun, 13mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>5000</weight>
+        <cost>7500</cost>
+        <short>Very high power sniper rifle.</short>
+
+        <description>
+            <para>
+                The TL12 railgun is the probably the peak of man portable
+                kinetic energy weapons. It fires a 13mm round at very high
+                velocity over a very long distance, and is capable of
+                getting through most armour, including full battledress.
+            </para>
+
+            <para>
+                They are normally used by snipers, not being terribly useful
+                in close combat due to their length and weight. On some
+                worlds range is actually limited by the horizon. The rounds
+                are fin stabalised on leaving the rifle, providng a degree
+                of accuracy only bested by laser weapons.
+            </para>
+        </description>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+12</attack><damage>55</damage>
+                <range>
+                    <increment>40</increment>
+                    <short>2000</short><medium>4000</medium><long>8000</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>5</load><reach>3</reach>
+            <capacity>8</capacity><rof>3</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><heavy/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Gauss Rifle, 4mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>2800</weight>
+        <cost>3000</cost>
+        <short>Standard gauss rifle.</short>
+
+        <description>
+            <para>
+                Semi-automatic gauss rifle, the standard weapon of the
+                Imperial Army, and available to civilians as well. It is
+                not fully automatic, but is capable of selective fire.
+                Some governments only allow modified versions which have
+                the selective fire capability removed.
+            </para>
+        </description>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+10</attack><damage>30</damage>
+                <range>
+                    <increment>30</increment>
+                    <short>500</short><medium>1000</medium><long>2500</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>3</load><reach>2</reach>
+            <capacity>40</capacity><rof>10</rof><recoil>-2</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><tripleauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Gauss Assualt Rifle, 4mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>12</techLevel>
+        <weight>2800</weight>
+        <cost>3000</cost>
+        <short>Military combat rifle.</short>
+
+        <description>
+            <para>
+                This is a slightly modified form of the gauss rifle, with
+                the capability of fully automatic fire. It is sometimes
+                favoured by infantry, though military command tends to
+                prefer the selective fire varient. It's availability to
+                civilians is often limited.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+9</attack><damage>30</damage>
+                <range>
+                    <increment>30</increment>
+                    <short>500</short><medium>1000</medium><long>2000</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>3</load><reach>2</reach>
+            <capacity>40</capacity><rof>40</rof><recoil>-2</recoil>
+            <properties>
+                <missile/><firearm/><automatic/><tripleauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Gauss SMG, 4mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>12</techLevel>
+        <weight>1900</weight>
+        <cost>2500</cost>
+        <short>Gauss sub-machine gun.</short>
+
+        <description>
+            <para>
+                This is an SMG designed to fire 4mm gauss ammunition.
+                It is slightly more powerful than a pistol, and much
+                shorter than carbines or assualt rifles, making it well
+                suited for close quarters combat.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+6</attack><damage>25</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>250</short><medium>500</medium><long>1500</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>2</load><reach>1</reach>
+            <capacity>30</capacity><rof>30</rof><recoil>-2</recoil>
+            <properties>
+                <missile/><firearm/><automatic/><tripleauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Grenade Launcher, 20mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>-</weight>
+        <cost>-</cost>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+5</attack><damage>40</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>50</short><medium>100</medium><long>150</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>0</load><reach>1</reach>
+            <capacity>5</capacity><rof>5</rof><recoil>-3</recoil>
+            <properties>
+                <missile/><semiauto/><explosive score="2"/><heavy/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+
+    <item name="Gauss Carbine, 4mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>2000</weight>
+        <cost>2200</cost>
+        <short>Short automatic rifle.</short>
+
+        <description>
+            <para>
+                A fully automatic weapon in a slightly designed to be smaller
+                than a rifle and delivering less damage. It is desgined for
+                use in close quarters combat, or where weight and size
+                constraints apply.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+8</attack><damage>27</damage>
+                <range>
+                    <increment>25</increment>
+                    <short>400</short><medium>800</medium><long>1600</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>2</load><reach>2</reach>
+            <capacity>30</capacity><rof>30</rof><recoil>-3</recoil>
+            <properties>
+                <missile/><firearm/><automatic/><tripleauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Shotgun (TL12) [solid slug]">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>4000</weight>
+        <cost>570</cost>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Shotguns</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+6</attack><damage>40</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>100</short><medium>200</medium><long>400</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>1</reach>
+            <capacity>10</capacity><rof>5</rof><recoil>-4</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <heavy/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Shotgun (TL12) [shot]">
+        <category>Weapon</category>
+        <importance>3</importance><availability>3</availability>
+        <techLevel>12</techLevel>
+        <weight>4000</weight>
+        <cost>570</cost>
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Shotguns</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+15</attack><damage>35</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>25</short><medium>50</medium><long>150</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>1</reach>
+            <capacity>10</capacity><rof>5</rof><recoil>-4</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <light/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+
+    <item name="Laser pistol (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A self contained laser pistol.</short>
+
+        <description>
+            <para>
+                A pistol capable of firing a laser, powered from its own
+                power pack. Its range is not particularly great, but it
+                has a good accuracy and can be recharged from a mains
+                power supply.
+            </para>
+
+            <para>
+                Wounds caused are less likely to get infected and they don't
+                ricochet, so are favoured for use in civilian defence. They
+                also have no recoil.
+            </para>
+        </description>
+
+        <weight>250</weight>
+        <material>metal</material>
+        <cost>1300</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+
+            <combat>
+                <attack>+8</attack>
+                <damage>20</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>100</short><medium>200</medium><long>400</long>
+                </range>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.5</load>
+            <reach>0</reach>
+
+            <capacity>8</capacity>
+            <rof>3</rof>
+            <recoil>0</recoil>
+
+            <properties>
+                <missile/><semiauto/><laser/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Xaser rifle (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A self contained laser rifle.</short>
+
+        <description>
+            <para>
+                A rifle capable of firing a laser, powered from its own
+                power pack. Its range is not particularly great, but it
+                has a good accuracy and can be recharged from a mains
+                power supply. It's main problem is an inability to fire
+                a large number of shots in quick succession due to power
+                limitations.
+            </para>
+
+            <para>
+                Wounds caused are less likely to get infected and they don't
+                ricochet, so are favoured for use in civilian defence. They
+                also have no recoil.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>metal</material>
+        <cost>2000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+
+            <combat>
+                <attack>+12</attack>
+                <damage>30</damage>
+                <range>
+                    <increment>50</increment>
+                    <short>1000</short>
+                    <medium>2000</medium>
+                    <long>4000</long>
+                </range>
+            </combat>
+
+            <strength>2</strength><load>2</load><reach>2</reach>
+            <capacity>20</capacity><rof>6</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><semiauto/><laser/><tripleauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy Xaser rifle (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A laser rifle plus power pack.</short>
+
+        <description>
+            <para>
+                Similar to a laser rifle, but powered from an external
+                power source. This is usually a power pack strapped to the
+                back of the user. It has much better damaging ability,
+                range and capacity than its lighter cousins.
+            </para>
+
+            <para>
+                Such a weapon can be modified to give fully automatic
+                ability, but there is a danger of overheating. It is
+                possible to plug the rifle into a larger power supply,
+                such as one provided by a vehicle.
+            </para>
+        </description>
+
+        <weight>8000</weight>
+        <material>metal</material>
+        <cost>2500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+
+            <combat>
+                <attack>+12</attack>
+                <damage>40</damage>
+                <range>
+                    <increment>50</increment>
+                    <short>1500</short><medium>2500</medium><long>3500</long>
+                </range>
+            </combat>
+
+            <strength>3</strength><load>8</load><reach>2</reach>
+            <capacity>60</capacity><rof>5</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><semiauto/><laser/><heavy/><tripleauto/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy Plasma Rifle (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A rifle firing plasma bursts.</short>
+
+        <description>
+            <para>
+                Heavier than a laser rifle, the plasma rifle fires bursts of
+                super heated plasma. It tends to have a short range, but is
+                capable of considerable damage. It comes with an attached
+                power supply which must be worn as a back pack.
+            </para>
+        </description>
+
+        <weight>9000</weight>
+        <material>metal</material>
+        <cost>15000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+
+            <combat>
+                <attack>+7</attack>
+                <damage>42</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>100</short>
+                    <medium>150</medium>
+                    <long>250</long>
+                </range>
+            </combat>
+
+            <strength>3</strength><load>9</load><reach>3</reach>
+            <capacity>80</capacity><rof>10</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><automatic/><plasma/>
+                <explosive score="1"/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Heavy Fusion Rifle (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A rifle firing fusion bursts.</short>
+
+        <description>
+            <para>
+                One of the heaviest man-portable weapons available, it is
+                really an anti-armour weapon which also happens to be
+                truly nasty against infantry. It is often seen in use by
+                <e>battledress</e> troops, since the heavy weight and
+                power requirements are best served by powered armour.
+            </para>
+
+            <para>
+                It's main disadvantage is that the plasma burst is
+                sub-sonic, making it possible to avoid beyond short range.
+            </para>
+        </description>
+
+        <weight>13000</weight>
+        <material>metal</material>
+        <cost>65000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Energy</category>
+            <class>rifle</class>
+            <class>heavy</class>
+
+            <combat>
+                <attack>+8</attack>
+                <damage>25</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>250</short>
+                    <medium>500</medium>
+                    <long>750</long>
+                </range>
+            </combat>
+
+            <strength>4</strength><load>13</load><reach>3</reach>
+
+            <capacity>60</capacity><rof>4</rof><recoil>0</recoil>
+
+            <properties>
+                <missile/><semiauto/><vehicle/><heavy/>
+                <plasma/><explosive score="2"/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Chaingun 20mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A vehicle mounted weapon.</short>
+
+        <description>
+            <para>
+                Designed to be vehicle mounted, this fires heavy slugs
+                designed to be used against soft vehicles or buildings,
+                or sometimes against infantry.
+            </para>
+        </description>
+
+        <weight>70000</weight>
+        <material>metal</material>
+        <cost>30000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+
+            <combat>
+                <attack>+10</attack>
+                <damage>20</damage>
+                <range>
+                    <increment>30</increment>
+                    <short>1000</short>
+                    <medium>2000</medium>
+                    <long>6000</long>
+                </range>
+            </combat>
+
+            <strength>8</strength><load>70</load><reach>4</reach>
+
+            <capacity>1000</capacity><rof>100</rof><recoil>-20</recoil>
+
+            <properties>
+                <missile/><firearm/><automatic/><vehicle/>
+                <reload score="5"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="VRF Gauss 4mm (TL12)">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Very rapid fire gauss machine gun.</short>
+
+        <description>
+            <para>
+                This vehicle mounted gauss weapon is designed for use
+                against infantry rather than as an anti-armour weapon.
+                Per-round, it lacks the stopping power of the chaingun,
+                but is more than capable of suppressing and/or killing
+                any infantry that come into range.
+            </para>
+        </description>
+
+        <weight>20000</weight>
+        <material>metal</material>
+        <cost>20000</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Heavy</category>
+            <class>heavy</class>
+
+            <combat>
+                <attack>+10</attack>
+                <damage>35</damage>
+                <range>
+                    <increment>25</increment>
+                    <short>1000</short>
+                    <medium>2000</medium>
+                    <long>4000</long>
+                </range>
+            </combat>
+
+            <strength>5</strength><load>20</load><reach>4</reach>
+
+            <capacity>1000</capacity><rof>200</rof><recoil>-15</recoil>
+
+            <properties>
+                <missile/><firearm/><automatic/><heavy/>
+                <reload score="5"/>
+            </properties>
+        </weapon>
+    </item>
+
+
+    <!--
+        Armour and other protective clothing.
+    -->
+
+    <item name="Combat vest (TL12)">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+        <short>A light combat vest.</short>
+
+        <description>
+            <para>
+                A protective vest consisting of stiffened cloth and
+                plastic covering the torso, and lighter more flexible
+                cloth around the arms.
+            </para>
+        </description>
+
+        <weight>1000</weight>
+        <cost>150</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+5</protection>
+            <load>0.5</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <light/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Protective underwear">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>10</techLevel>
+
+        <short>Light bulletproof cloth undergarment.</short>
+
+        <description>
+            <para>
+                A light undergarment which covers the torso, legs and
+                arms and can be worn under normal clothing. It is
+                normally included with heavier armour types.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>cloth</material>
+        <cost>250</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+3</protection>
+            <load>0</load>
+
+            <covers>
+                <torso/>
+                <groin/>
+                <arms/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <light/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Combat helmet (TL12)">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A hard combat helmet.</short>
+
+        <description>
+            <para>
+                A hard helmet made of the latest advanced alloys and plastics.
+                It does not fully enclose the face, though can have filters
+                attached to provide some extra life support. Visor includes
+                low light and thermal sensors which are super imposed on a HUD
+                display. In built communication system provides encrypted
+                networked comms with team members.
+            </para>
+        </description>
+
+        <weight>500</weight>
+        <material>plastic</material>
+        <cost>500</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+1</protection>
+            <load>0</load>
+
+            <covers>
+                <head/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <heavy/>
+                <vitals score="2"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Light combat armour (TL12)">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A full suit of combat armour</short>
+
+        <description>
+            <para>
+                A full body suit of combat armour, consisting of plastic
+                and cloth, with stiff plates and bulletproof weave.
+            </para>
+        </description>
+
+        <weight>1500</weight>
+        <material>plastic</material>
+        <cost>1000</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+8</protection>
+            <load>1</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <legs/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <light/>
+                <vitals score="3"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Heavy combat armour (TL11)">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>11</techLevel>
+
+        <short>A full suit of heavy combat armour</short>
+        <description>
+            <para>
+                A full body suit of combat armour, consisting of plastic
+                and cloth, with stiff plates and bulletproof weave. Unlike
+                light combat armour, this is fully enclosed and protects
+                from chemical and biological weapons, as well as providing
+                limited vacuum life support. It includes a helmet with
+                thermal and low light sensors displayed on the HUD.
+            </para>
+
+            <para>
+                The surface of the suit has cameleon properties to
+                automatically blend in with the surroundings.
+            </para>
+        </description>
+
+        <weight>8000</weight>
+        <material>plastic</material>
+        <cost>2500</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+13</protection>
+            <load>4</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <legs/>
+                <head/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <heavy/>
+                <restrictive score="1"/>
+                <vitals score="5"/>
+            </properties>
+        </armour>
+    </item>
+
+
+    <item name="Heavy combat armour (TL12)">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A full suit of heavy combat armour</short>
+        <description>
+            <para>
+                A full suit of enclosed armour made of the latest high tech
+                materials, including plastic, cloths and metal alloys. The
+                armour is light and flexible, and the wearer suffers no
+                measurable reduction in mobility. It provides full protection
+                from chemical and biological weapons, as well as limited
+                vacuum life support.
+            </para>
+
+            <para>
+                The helmet comes fully equipped with both IR and low light
+                sensors, which are automatically overlayed on the HUD to
+                provide the wearer with a multi-view capability, with the
+                onboard computer automatically switching translucency of
+                each layer to give maximum visibility. IFF and mission
+                parameters can also be overlayed.
+            </para>
+
+            <para>
+                Includes limited contra-grav technology which can double
+                jumping distances and chameleon camouflage.
+            </para>
+        </description>
+
+        <weight>6000</weight>
+        <material>plastic</material>
+        <cost>7500</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+15</protection>
+            <load>3</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <legs/>
+                <head/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <heavy/>
+                <vitals score="5"/>
+            </properties>
+        </armour>
+    </item>
+
+    <item name="Battledress (TL12)">
+        <category>Armour</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Heavy powered armour</short>
+        <description>
+            <para>
+                A set of heavy powered armour, providing the most advanced
+                personal protection available. The armour is fully enclosing,
+                providing all the benefits of heavy combat armour, but also
+                includes full vacuum support and contra-grav ability,
+                allowing 5 hours flight time on a full charge.
+            </para>
+
+            <para>
+                The surface of the suit provides full chameleon properties,
+                and hooks for heavy weapon power accessories at no extra
+                load.
+            </para>
+        </description>
+
+        <weight>100000</weight>
+        <material>plastic</material>
+        <cost>60000</cost>
+
+        <armour xmlns="https://yags-rpg.net/xml/yags">
+            <protection>+40</protection>
+            <load>0</load>
+
+            <covers>
+                <torso/>
+                <arms/>
+                <groin/>
+                <legs/>
+                <head/>
+            </covers>
+
+            <properties>
+                <bulletproof/>
+                <heavy/>
+                <restrictive score="1"/>
+                <vitals score="10"/>
+            </properties>
+        </armour>
+    </item>
+
+    <!-- Misc Stuff -->
+    <item name="Medipack">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Field medical kit.</short>
+        <description>
+            <para>
+                Provides materials and drugs for tending wounds in the
+                field. This is a one-shot pack which provides pain
+                relief, nano-reconstructors and insta-skin.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0.25</load>
+            <uses>1</uses>
+            <skill name="First aid" bonus="+20"/>
+        </tool>
+
+        <weight>500</weight>
+        <material>plastic</material>
+        <cost>250</cost>
+    </item>
+
+    <item name="Security toolset">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Electronic tools for breaking secure locks.</short>
+        <description>
+            <para>
+                A set of electronic tools and software for breaking
+                most types of electronic locks. Provides iris scan,
+                finger print and key card faking/recording devices.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0</load>
+            <skill name="Security systems" bonus="+10"/>
+        </tool>
+
+        <weight>250</weight>
+        <material>plastic</material>
+        <cost>5000</cost>
+    </item>
+
+    <item name="Security toolset (advanced)">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Electronic tools for breaking secure locks.</short>
+        <description>
+            <para>
+                A set of electronic tools and software for breaking
+                most types of electronic locks. Provides iris scan,
+                finger print and key card faking/recording devices.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0</load>
+            <skill name="Security systems" bonus="+20"/>
+        </tool>
+
+        <weight>250</weight>
+        <material>plastic</material>
+        <cost>15000</cost>
+    </item>
+
+    <item name="Lock picks">
+        <category>Medical</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>High tech lock picks.</short>
+        <description>
+            <para>
+                Using the latest in micro-engineering, this set of lock
+                picks can break most standard mechanical locks in a short
+                period of time. Just insert the tool, and it automatically
+                adjusts itself to fit the lock, and open it. It is the
+                existence of tools such as these which have made plain
+                mechanical locks obsolete.
+            </para>
+        </description>
+
+        <tool xmlns="https://yags-rpg.net/xml/yags">
+            <load>0</load>
+            <skill name="Burglary" bonus="+40"/>
+        </tool>
+
+        <weight>150</weight>
+        <material>plastic</material>
+        <cost>750</cost>
+    </item>
+
+    <item name="Combat knife">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A large survival/combat knife.</short>
+
+        <description>
+            <para>
+                A large single edged knife, of the type often used by
+                special forces. It is designed for heavy use, and its
+                blade is long enough to cause serious wounds.
+            </para>
+        </description>
+
+        <weight>300</weight>
+        <material>metal</material>
+
+        <cost>75</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Melee</category>
+            <class>brawl</class>
+            <class>melee</class>
+
+            <combat>
+                <attack>+2</attack>
+                <defence>+3</defence>
+                <damage>+5</damage>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.5</load>
+            <reach>0.5</reach>
+
+            <properties>
+                <light/><strong/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Knife">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A short bladed weapon.</short>
+
+        <description>
+            <para>
+                A simple knife designed for close combat. Constructed of
+                the latest alloys, it is quite strong and will retain its
+                edge even after heavy usage.
+            </para>
+        </description>
+
+        <weight>250</weight>
+        <material>metal</material>
+
+        <cost>25</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Melee</category>
+            <class>brawl</class>
+            <class>melee</class>
+
+            <combat>
+                <attack>+1</attack>
+                <defence>+2</defence>
+                <damage type="mixed">+2</damage>
+            </combat>
+
+            <strength>1</strength>
+            <load>0.25</load>
+            <reach>0</reach>
+
+            <properties>
+                <light/><throwable/><strong/>
+            </properties>
+        </weapon>
+    </item>
+
+
+    <item name="Dueling sabre">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>A short sword design for dueling.</short>
+
+        <description>
+            <para>
+                A light, sharp, singled edged weapon with a thrusting
+                point. The blade is quite flexible, but unlikely to
+                break. Often carried by nobles for use in dueling, it is
+                designed to cause light flesh wounds rather than actually
+                kill, ideal for fights to first blood.
+            </para>
+        </description>
+
+        <weight>750</weight>
+        <material>metal</material>
+
+        <cost>500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Melee</category>
+            <class>melee</class>
+
+            <combat>
+                <attack>+5</attack>
+                <defence>+3</defence>
+                <damage type="mixed">+11</damage>
+            </combat>
+
+            <strength>2</strength>
+            <load>1</load>
+            <reach>1</reach>
+
+            <properties>
+                <light/><strong/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Broadsword">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Modern equivalent of an ancient weapon.</short>
+
+        <description>
+            <para>
+                This is a heavy double edged sword designed to kill people
+                rather than to be used in a duel. Constructed of the latest
+                micro-engineered artificial alloys, it is unlikely to break,
+                rust or loose its edge.
+            </para>
+
+            <para>
+                Often available in many different styles, the most common is
+                a mirrored pattern finish.
+            </para>
+        </description>
+
+        <weight>1250</weight>
+        <material>metal</material>
+
+        <cost>1500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Melee</category>
+            <class>melee</class>
+
+            <combat>
+                <attack>+6</attack>
+                <defence>+5</defence>
+                <damage>+14</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>1</load>
+            <reach>2</reach>
+
+            <properties>
+                <strong/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Katana">
+        <category>Weapon</category>
+        <importance>3</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <short>Modern equivalent of an ancient weapon.</short>
+
+        <description>
+            <para>
+                This weapon is based on the traditional samurai sword used
+                on Terra thousands of years ago. It is curved with a single
+                edge, and designed for two handed use. Unlike many other
+                types of swords (especially two handed ones), it is
+                principally designed for use against unarmoured, or lightly
+                armoured opponents.
+            </para>
+        </description>
+
+        <weight>1500</weight>
+        <material>metal</material>
+
+        <cost>2500</cost>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Melee</category>
+            <class>melee</class>
+
+            <combat>
+                <attack>+6</attack>
+                <defence>+6</defence>
+                <damage>+16</damage>
+            </combat>
+
+            <strength>3</strength>
+            <load>2</load>
+            <reach>2</reach>
+
+            <properties>
+                <heavy/><light/><strong/><twohanded/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Stims">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <cost>150</cost>
+
+        <short>Stimulent designed to help you stay awake.</short>
+
+        <description>
+            <para>
+                Designed to boost wakefulness, continued taking of this
+                drug can lead to addiction. Every dose reduces fatigue
+                and exhaustion penalties by the designated amount.
+            </para>
+        </description>
+
+        <drug xmlns="https://yags-rpg.net/xml/yags">
+            <addictive strength="1">
+                <duration time="weeks"/>
+                <reduction/>
+            </addictive>
+
+            <offsetter statistic="Fatigue">
+                <strength>50</strength>
+                <onset time="rounds"/>
+                <duration time="hours"/>
+            </offsetter>
+        </drug>
+    </item>
+
+    <item name="Universal Antidote">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>3</availability>
+        <techLevel>12</techLevel>
+
+        <cost>75</cost>
+
+        <short>Antidote for poisons, infections and disease.</short>
+
+        <description>
+            <para>
+                A universal antidote which works with most common
+                diseases, infections and poisons.
+            </para>
+        </description>
+
+        <drug xmlns="https://yags-rpg.net/xml/yags">
+            <helper event="Poisons, infections, disease">
+                <bonus>25</bonus>
+                <duration time="hours"/>
+            </helper>
+        </drug>
+    </item>
+
+    <item name="Boost">
+        <category>Medical</category>
+        <importance>2</importance>
+        <availability>2</availability>
+        <techLevel>12</techLevel>
+
+        <cost>500</cost>
+
+        <short>Boosts physical ability.</short>
+
+        <description>
+            <para>
+                Provides a boost to <t>Dexterity</t>.
+            </para>
+        </description>
+
+        <drug xmlns="https://yags-rpg.net/xml/yags">
+            <addictive strength="1">
+                <duration time="weeks"/>
+                <reduction/>
+            </addictive>
+
+            <adder attribute="Dexterity">
+                <onset time="rounds"/>
+                <duration time="hours"/>
+                <bonus>1</bonus>
+            </adder>
+        </drug>
+    </item>
+</equipment>
+
+

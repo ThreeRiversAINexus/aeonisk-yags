@@ -1,0 +1,165 @@
+<?xml version="1.0"?>
+
+<!--
+    Modern skills, mostly sciences and engineering skills.
+
+    Copyright (c) 2005, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.4 $
+    Date:    $Date: 2007-09-29 19:37:25 $
+    Author: Samuel Penn
+-->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+
+
+    <skill name="Accountancy" type="skill">
+        <group>Business</group>
+        <default>Administration</default>
+        <techRange min="5" max="20"/>
+        <short>Managing finances.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Accountancy provides you with the knowledge of how to
+                manage the finances of a business or organisation.
+                It includes knowledge of tax laws, legal requirements
+                and how to use common tools (including computers) needed
+                to do your job.
+            </para>
+
+            <para>
+                With a <e>moderate</e> success you can meet all the
+                legal requirements and ensure the figures are right.
+                If you get at least a <e>poor</e> result, then failures
+                can be fixed the following month. A <e>good</e> success
+                allows you to perform some creative accountancy, whilst
+                an <e>excellent</e> success allows lots of creative
+                accountancy and making best use of tax laws.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Managing personal finances.
+            </example>
+
+            <example target="20">
+                Managing the finances of a small business.
+            </example>
+
+            <example target="30">
+                Managing the finances of a large business.
+            </example>
+
+            <example target="40">
+                Managing the finances of a multinational corporation.
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Economics" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <techRange min="5" max="20"/>
+        <short>Knowledge of financial matters.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Economics is the study of how the economy and
+                financial world works.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Politics" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <short>Knowledge of politics.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of political systems and how to take advantage
+                of them. It may provide some knowledge of the current
+                political groups of your culture, but this is really
+                covered by <e>Current affairs</e>, and any knowledge
+                provided by <e>Politics</e> will be more long term and
+                theoretical.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Current affairs" type="knowledge">
+        <group>Business</group>
+        <group>Social</group>
+
+        <short>Current affairs.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Represents up-to-date knowledge of what is going on in your
+                society in the arenas of politics, finance and entertainment.
+                This is a skill which is constantly changing, so
+                if you loose contact with society, then you will be at a
+                large disadvantage when you return. It also covers knowing
+                how to get information and how to interpret it, so
+                becoming up-to-date again is relatively quick for you.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Law" type="knowledge">
+        <group>Academic</group>
+        <group>Business</group>
+
+        <short>Knowledge of the law.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Knowledge of the legal system, including how it works,
+                what the laws are, and how to bend or avoid them. The
+                Law is an incredibly complicated subject, and as such
+                it may be necessary to purchase specialisations. Each
+                specialisation costs 4 points.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Administration" type="skill">
+        <group>Business</group>
+
+        <short>Being able to manage people and paper.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The skill of managing an organisation, from dealing with
+                people, basic finance, reception type duties and so on and
+                so forth. You also know how to best short cut administration
+                enforced by others, cutting through bureaucracy in the
+                shortest possible times.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Marketing" type="skill">
+        <group>Business</group>
+
+        <short>Managing advertising campaigns and PR.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Marketing, advertising and public relations skills.
+            </para>
+        </description>
+    </skill>
+</skill-list>
+

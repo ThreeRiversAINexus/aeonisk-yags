@@ -1,0 +1,443 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Perception</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            Rules on noticing things and hiding from other people. The rules
+            here range from reasonably simple through to very complex.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.5 $</version>
+            <date>$Date: 2007-07-12 18:39:20 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2007</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="core"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Perception</title>
+
+            <para>
+                This article looks at how <t>Perception</t> works in
+                considerable more detail than in the basic rules. Most of
+                the rules here are not meant to be used all the time - for
+                the most part they can be used simply as a guide.
+            </para>
+
+            <sect2>
+                <title>Basic Sight</title>
+
+                <para>
+                    Seeing people is generally straightforward. How hard is
+                    it to spot a person who is 100m away though? Or 1km?
+                    How about 1km and hiding behind a bush?
+                </para>
+
+                <para>
+                    It is assumed that a person has a basic spotting range
+                    equal to their <t>Perception</t> x 100m. A typical
+                    person can make out another person out to 300m. Beyond
+                    this range, double the difficulty to spot a person.
+                </para>
+
+                <targetlist>
+                    <targetLabel>Modifier</targetLabel>
+                    <valueLabel>Situation</valueLabel>
+
+                    <item target="0" value="Spot a standing person.">
+                        Base difficulty to see a person who is standing in
+                        the open, making no attempt to hide themselves.
+                    </item>
+                    <item target="-5/pt" value="Size above 5.">
+                        Each point of size of the target above 5, reduce the
+                        difficulty by 5. If they are smaller, then increase
+                        the difficulty by 5 per point.
+                    </item>
+                    <item target="+5" value="Distance 50m - 100m.">
+                        If the target is over 50m away, then increase the
+                        difficulty by +5.
+                    </item>
+                    <item target="+10" value="Distance over 100m.">
+                        If the target is 100m away or more, then increase the
+                        difficulty by +10. Each doubling (200m, 400m) adds
+                        a further +10.
+                    </item>
+                    <item target="+10" value="Half cover.">
+                        If the target is hidden in half cover.
+                    </item>
+                    <item target="+20" value="90% cover.">
+                        If the target is almost entirely hidden.
+                    </item>
+                </targetlist>
+
+                <para>
+                    To spot a target, you make a simple
+                    <y:perception>Awareness</y:perception> check at the
+                    specified difficulty. If you are actively looking
+                    (i.e., not doing anything else other than simple
+                    movement) then the difficulty is halved. It is assumed
+                    that generally people aren't able to <e>actively look</e>
+                    for long periods of time.
+                </para>
+
+                <para>
+                    The following chart shows difficulties to spot a person
+                    at a given distance, ignoring all other modifiers.
+                </para>
+
+                <targetlist targetFirst="true">
+                    <targetLabel>Modifier</targetLabel>
+                    <valueLabel>Distance</valueLabel>
+                    <item value="50m+" target="+5"/>
+                    <item value="100m+" target="+10"/>
+                    <item value="200m+" target="+20"/>
+                    <item value="400m+" target="+30"/>
+                    <item value="800m+" target="+40"/>
+                    <item value="1,600m+" target="+50"/>
+                    <item value="3,200m+," target="+60">
+                        This is the horizon for someone with an unobscured
+                        view standing on flat ground.
+                    </item>
+                    <item value="6,400m+" target="+70"/>
+                    <item value="12,800m+" target="+80"/>
+                    <item value="25km+," target="+90">
+                        This covers the distance to the horizon from a
+                        height of 100m.
+                    </item>
+                    <item value="50km+" target="+100"/>
+                </targetlist>
+
+                <para>
+                    Outside, assuming there is plenty of time to spot, then
+                    a person can be assumed to make a spot check of 26,
+                    enabling them to see a stationary person across a field
+                    out to 300m.
+                </para>
+
+                <sect3>
+                    <title>Hiding</title>
+
+                    <para>
+                        If you wish to actively hide from the sight of
+                        others, then you roll your
+                        <y:perception>Stealth</y:perception> and this
+                        becomes the base difficulty to spot you, modified
+                        by the previous tables.
+                    </para>
+
+                    <sect4>
+                        <title>Cover</title>
+
+                        <para>
+                            If you have something to hide behind which provides
+                            full cover (such as a wall), and aren't interested
+                            in being able to see those looking for you, then
+                            hiding can be considered an automatic success.
+                        </para>
+
+                        <para>
+                            If you wish to take the occassional peek, then you
+                            only get the 90% cover bonus. Note that objects
+                            which provide almost total cover (such as a tree)
+                            only give the 90% cover bonus, since it doesn't
+                            provide cover from all angles.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Lack of cover</title>
+
+                        <para>
+                            On the other hand, if there is no cover at all,
+                            then hiding can be difficult. If you're on a
+                            relatively flat plain, with only poor cover,
+                            then halve the <e>stealth</e> roll. With minimal
+                            cover, quarter the <e>stealth</e> roll.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Camouflage</title>
+
+                        <para>
+                            It is assumed that when you are trying to hide
+                            that your clothing is relatively neutral.
+                        </para>
+
+                        <para>
+                            If you are wearing suitable camouflage, then
+                            double the effective distance between you and
+                            the viewer. Standard camouflage is anything that
+                            is a suitable colour to match the background.
+                        </para>
+
+                        <para>
+                            If you have <e>good</e> camouflage, which is
+                            real camouflage gear (random patterns to break
+                            up edges etc), then the distance is x5.
+                        </para>
+
+                        <para>
+                            <e>Excellent</e> camouflage is x10. This represents
+                            bulky camouflage gear, with vegetation and the like
+                            covering you.
+                        </para>
+
+                        <para>
+                            <e>Superb</e> camouflage is almost perfect, and
+                            provides a x20 modifier to the distance. You can
+                            be almost impossible to see at any distance.
+                        </para>
+
+                        <sect5>
+                            <title>Chameleon suits</title>
+
+                            <para>
+                                <e>Chameleon suits</e> are an ultra-tech form
+                                of clothing which dynamically changes colour
+                                to match the environment. It will generally
+                                provide <e>standard</e> or <e>good</e>
+                                camouflage in any situation.
+                            </para>
+                        </sect5>
+
+                        <sect5>
+                            <title>Ghosting</title>
+
+                            <para>
+                                <e>Ghosting</e> is another ultra-tech invention
+                                which provides a form of limited invisibility.
+                                Anything which makes you partially transparent
+                                is considered to be <e>ghosting</e>. Depending
+                                on the level of technology, it will provide
+                                anything up to <e>superb</e> camouflage.
+                            </para>
+                        </sect5>
+                    </sect4>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Alarms and Sensors</title>
+
+                <para>
+                    Sensor systems have, much like characters do, two
+                    properties - a <t>Perception</t> attribute which
+                    represents the physical sensitivity of the device,
+                    and an <e>Awareness</e> skill which represents the
+                    quality of the processing software. The technological
+                    level is more likely to affect the type of sensors
+                    available, their price and availability, and how
+                    easy they are to fool.
+                </para>
+
+                <para>
+                    <e>Sensors</e> are generally limited to sensing
+                    only a specific type of activity - motion, sound,
+                    heat, vibration etc. If you know how to counter them,
+                    then they can be quite easy to counter.
+                </para>
+
+                <para>
+                    A typical sensor suite will have a <t>Perception</t>
+                    of about 3. A more complete setup (several well
+                    placed sensors) will have a <t>Perception</t> of 5,
+                    and an extensive setup will have 7.
+                </para>
+
+                <para>
+                    A typical <e>Awareness</e> score for an off the shelf
+                    sensor system would be 4. A good quality system will
+                    have an <e>Awareness</e> of 8, and top end systems 12.
+                </para>
+
+                <para>
+                    For most sensors, it is difficulty 10 to detect what
+                    they are looking for, or the <y:agility>Stealth</y:agility>
+                    of someone who is correctly trying to avoid detection.
+                </para>
+
+                <sect3>
+                    <title>Motion Sensors</title>
+
+                    <para>
+                        The type of sensors often used in burglar alarms
+                        from TL7 onwards. They are relatively easy to
+                        fool, simply by moving slowly. Can be countered
+                        with basic Stealth.
+                    </para>
+
+                    <para>
+                        Each sensor has a +1 to detection difficulty for
+                        each metre of range at TL7, +1 per 2m at TL8 and
+                        +1 per 5m at TL9+.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Sound Sensors</title>
+
+                    <para>
+                        These simply listen out for noise, and are
+                        generally set to trip at the sound of someone
+                        walking around. Anyone using <e>Stealth</e> to
+                        keep quiet will counter these sensors, even if
+                        they don't know that they are there.
+                    </para>
+
+                    <para>
+                        Each sensor has a +1 to detection difficulty for
+                        each metre of range at TL7, +1 per 2m at TL8 and
+                        +1 per 5m at TL9+.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Life Sensors</title>
+
+                    <para>
+                        Available from TL8, these use microwave sensors to
+                        detect motions such as heartbeats and breathing,
+                        and are capable of detecting people trapped under
+                        rock - they are very sensitive.
+                    </para>
+
+                    <para>
+                        The only way to avoid detection is to wear clothing
+                        which blocks microwaves. Typical protection adds +10
+                        to the difficulty, good quality adds +25 and excellent
+                        quality +50.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Heat Sensors</title>
+
+                    <para>
+                        Similar to <e>Life Sensors</e>, but look for the heat
+                        signature of a living person. Can be countered by
+                        special clothing in a similar way, though the bonus is
+                        doubled since they're easier to hide from.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Tremor Sensors</title>
+
+                    <para>
+                        Designed to detect vibrations in the ground, as caused
+                        by someone walking around. As for sound sensors, they
+                        can be countered by stealth, though only if the
+                        intruder knows they are there (more is involved than
+                        simply being quiet).
+                    </para>
+
+                    <para>
+                        Available at TL7+. At TL8+ footwear to try and reduce
+                        vibrations are available, providing +5, +10 and +15
+                        bonuses to stealth for standard, good and excellent
+                        quality equipment. Only applies when actively trying
+                        to counter such sensors.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Chemical Sensors</title>
+
+                    <para>
+                        Designed to check for particular chemicals, it works
+                        by <e>sniffing</e> for the smell of those chemicals.
+                        They can be highly sensitive, but quite restricted in
+                        what they can detect. At TL9 and above, they can
+                        perform DNA sequencing of people present in a room.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Long Range Sensors</title>
+
+                <para>
+                    Sensor systems such as radar are designed to work
+                    across tens or hundreds of kilometres. It is assumed
+                    that the size of the sensor system is of great
+                    importance at this scale. As for ranged weapons, these
+                    types of sensors have a <e>distance increment</e>,
+                    which is based on the size of the sensor system. For
+                    most systems, it is proportional to the square root
+                    of the sensor volume/mass.
+                </para>
+
+                <para>
+                    As for smaller sensor systems, the <e>skill</e> of the
+                    system represents software capability, and the
+                    <e>attribute</e> represents the quality of the
+                    hardware. A typical civilian system will have a
+                    <t>Perception</t> of 3, military or scientific systems
+                    will be closer to 5.
+                </para>
+
+                <sect3>
+                    <title>Visibility</title>
+
+                    <para>
+                        The environment greatly effects the range of
+                        a sensor system. The modifiers below assume
+                        radar.
+                    </para>
+
+                    <targetlist targetFirst="true">
+                        <targetLabel>Modifier</targetLabel>
+                        <valueLabel>Environment</valueLabel>
+                        <item value="Very noisy." target="x 1/100">
+                            Mountainous terrain.
+                        </item>
+                        <item value="Noisy." target="x 1/10">
+                            Hilly, forested or urban terrain.
+                        </item>
+                        <item value="Standard." target="x 1"/>
+                        <item value="Clean." target="x 10">
+                            Near orbit.
+                        </item>
+                        <item value="Empty." target="x 100">
+                            Deep space.
+                        </item>
+                    </targetlist>
+
+                    <para>
+                        For thermal sensors, square the range modifiers
+                        for <e>Clean</e> and <e>Empty</e>. Detecting hot
+                        objects in deep space is quite easy.
+                    </para>
+                </sect3>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

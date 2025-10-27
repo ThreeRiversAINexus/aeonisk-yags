@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl" type="text/xsl"?>
+
+<y:packages xmlns="https://yags-rpg.net/xml"
+          xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <y:package name="Soldier">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are a soldier working for a lord or city. You have
+                been trained to fight, and also equipped with arms and
+                armour of reasonable quality.
+            </para>
+            <para>
+                You may have seen an actual battle, or even been part
+                of a war, or maybe you've been lucky so far and have
+                only witnessed the odd brawl outside of a tavern that
+                needed breaking up.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Health" score="+1"/>
+            <y:attribute name="Intelligence" score="-1"/>
+            <y:choice>
+                <y:attribute name="Strength" score="+1"/>
+                <y:attribute name="Dexterity" score="+1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Melee" score="4"/>
+            <y:skill name="Tactics" score="4"/>
+            <y:skill name="Brawl" score="2"/>
+            <y:skill name="Profession: Soldier" score="4"/>
+            <y:choice>
+                <y:skill name="Knowledge: Warfare" score="2"/>
+                <y:skill name="Bow" score="2"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Throw" score="4"/>
+                <y:skill name="Athletics" score="4"/>
+            </y:choice>
+        </y:skills>
+        
+        <y:equipment>
+            <y:item name="Mail armour"/>
+            <y:item name="Broadsword"/>
+            <y:item name="Shield"/>
+            <y:item name="Metal helm"/>
+            <y:item name="Short spear"/>
+        </y:equipment>
+    </y:package>
+
+    <y:package name="Burglar">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You live on the wrong side of the law, taking advantage of the closely packed
+                housing and lack of night lights in the city to steal from those who have more
+                than you. Maybe you limit yourself to the rich and wealthy, or maybe you just
+                take whatever takes your fancy.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Agility" score="+1"/>
+            <y:attribute name="Will" score="-1"/>
+            <y:choice>
+                <y:attribute name="Dexterity" score="+1"/>
+                <y:attribute name="Perception" score="+1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Burglary" score="4"/>
+            <y:skill name="Stealth" score="4"/>
+            <y:skill name="Streetwise" score="4"/>
+            <y:skill name="Profession: *" score="2"/>
+            <y:skill name="Profession: *" score="2"/>
+            <y:choice>
+                <y:skill name="Athletics" score="4"/>
+                <y:skill name="Guile" score="4"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Awareness" score="2"/>
+                <y:skill name="Charm" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Knight">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You trained as a knight, and have proven your worth on the field of battle.
+                Unlike the common soldier, you have a warhorse and heavy armour. You may
+                fight for noble causes, or seek work as a mercenary for anyone who can pay
+                you coin. Some knights, fallen onto hard times due to the lack of a decent
+                war, turn to banditry to make their living, becoming well equipped thugs
+                that roam the countryside looking for victims.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Strength" score="+1"/>
+            <y:attribute name="Perception" score="-1"/>
+            <y:choice>
+                <y:attribute name="Dexterity" score="+1"/>
+                <y:attribute name="Health" score="+1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Melee" score="4"/>
+            <y:skill name="Ride" score="4"/>
+            <y:skill name="Profession: Soldier" score="4"/>
+            <y:skill name="Knowledge: Nobles" score="2"/>
+            <y:skill name="Tactics" score="4"/>
+            <y:choice>
+                <y:skill name="Athletics" score="4"/>
+                <y:skill name="Brawl" score="4"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Knowledge: Warfare" score="2"/>
+                <y:skill name="Leadership" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+
+    <y:package name="Ranger">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You live as a huntsmen and ranger.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Perception" score="+1"/>
+            <y:attribute name="Empathy" score="-1"/>
+            <y:choice>
+                <y:attribute name="Agility" score="+1"/>
+                <y:attribute name="Health" score="+1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Bow" score="4"/>
+            <y:skill name="Survival" score="4"/>
+            <y:skill name="Knowledge: Nature" score="4"/>
+            <y:skill name="Knowledge: Geography" score="4"/>
+            <y:choice>
+                <y:skill name="Stealth" score="4"/>
+                <y:skill name="Ride" score="4"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Awareness" score="2"/>
+                <y:skill name="Ride" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+    
+    <y:package name="Thug">
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Like a <e>Burglar</e>, you prey on the townsfolk of a city, taking advantage
+                of those who have things you want. Unlike a burglar, who tries to remain unseen
+                and avoid conflict where possible, you take on people directly, threatening or
+                even killing people who take the wrong turn down a dark ally at night.
+            </para>
+        </description>
+        
+        <y:attributes>
+            <y:attribute name="Strength" score="+1"/>
+            <y:attribute name="Will" score="-1"/>
+            <y:choice>
+                <y:attribute name="Agility" score="+1"/>
+                <y:attribute name="Perception" score="+1"/>
+            </y:choice>
+        </y:attributes>
+
+        <y:skills>
+            <y:skill name="Brawl" score="4"/>
+            <y:skill name="Streetwise" score="4"/>
+            <y:choice>
+                <y:skill name="Stealth" score="4"/>
+                <y:skill name="Guile" score="4"/>
+            </y:choice>
+            <y:choice>
+                <y:skill name="Awareness" score="2"/>
+                <y:skill name="Melee" score="2"/>
+            </y:choice>
+        </y:skills>
+    </y:package>
+    
+</y:packages>

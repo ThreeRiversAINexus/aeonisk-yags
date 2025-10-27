@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+
+<!--
+    Electronic techniques.
+
+    Techniques to do with using and building electronic devices.
+ -->
+
+<advantages xmlns="http://yagsbook.sourceforge.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.1 $</version>
+            <date>$Date: 2008-05-27 20:42:17 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2006</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+
+
+    <advantage name="Quantum gravity" type="technique">
+        <cost points="6"/>
+        <skill name="Physics"/>
+        <prerequisite>Quantum mechanics</prerequisite>
+        <short>The study of quantum gravity.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have a detailed knowledge of quantum gravity, how
+                it describes the universe, and a good theoretical
+                understanding of how grav technology really works.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Jump physics" type="technique">
+        <cost points="6"/>
+        <skill name="Physics"/>
+        <prerequisite>Relativity</prerequisite>
+        <short>The study of jump space.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You have a detailed knowledge of jump space, and know
+                how (at the theoretical level) jump drives work.
+            </para>
+        </description>
+    </advantage>
+
+
+
+    <advantage name="Xenobiology" type="technique">
+        <cost points="4"/>
+        <skill name="Biology"/>
+        <short>Knowledge of alien biological systems.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You are well read on a variety of alien biologies, and do
+                not suffer penalties for having to deal with unusual
+                xenomorphs. A truly exceptional biology might be difficult
+                to understand at first, but you'll be far better equipped
+                to deal with it than someone without your expansive
+                knowledge.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="History" type="technique">
+        <cost points="4"/>
+        <skill name="Knowledge (Interstellar)"/>
+        <skill name="Knowledge (Sector)"/>
+        <skill name="Knowledge (System)"/>
+
+        <short>Specialisation in the history of a region.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Your knowledge of an interstellar culture, sector or system
+                is specialised in the history of that area. Any knowledge
+                checks to do with the history of the region are easier.
+            </para>
+            <para>
+                You only buy this speciality once, and it applies to all the
+                applicable knowledge skills.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Politics" type="technique">
+        <cost points="4"/>
+        <skill name="Knowledge (Interstellar)"/>
+        <skill name="Knowledge (Sector)"/>
+        <skill name="Knowledge (System)"/>
+
+        <short>Specialisation in the history of a region.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Your knowledge of an interstellar culture, sector or system
+                is specialised in the politics of that area. Any knowledge
+                checks to do with the political systems or politicians of
+                the region are easier.
+            </para>
+            <para>
+                You only buy this speciality once, and it applies to all the
+                applicable knowledge skills.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Commercial" type="technique">
+        <cost points="4"/>
+        <skill name="Knowledge (Interstellar)"/>
+        <skill name="Knowledge (Sector)"/>
+        <skill name="Knowledge (System)"/>
+
+        <short>Specialisation in the commerce of a region.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Your knowledge of an interstellar culture, sector or system
+                is specialised in the commerce of that area. Any knowledge
+                checks to do with the commerce of the region are easier.
+            </para>
+            <para>
+                You only buy this speciality once, and it applies to all the
+                applicable knowledge skills.
+            </para>
+        </description>
+    </advantage>
+</advantages>
+
+

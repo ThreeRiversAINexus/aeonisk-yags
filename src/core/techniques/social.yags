@@ -1,0 +1,409 @@
+<?xml version="1.0"?>
+
+<!--
+    Core techniques.
+ -->
+
+<advantages xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags">
+    <header>
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 1.7 $</version>
+            <date>$Date: 2008-07-20 22:22:19 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2012</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+            <url>http://www.glendale.org.uk/gpl.txt</url>
+        </license>
+    </header>
+
+    <advantage name="Seduction" type="technique">
+        <cost points="4"/>
+        <skill name="Charm"/>
+
+        <prerequisite>Carousing</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are good at sweet talking people into going to bed
+                with you. When making a first impression, the reaction
+                you get is normally limited by how much time you get to
+                convince the other person to like you.
+            </para>
+
+            <para>
+                If you have <e>Seduction</e>, then every four levels of
+                skill means that you can get one better reaction level
+                in a short period of time. This greatly improves the odds
+                of them allowing you to continue flirting with them.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Carousing" type="technique">
+        <cost points="2"/>
+        <skill name="Social"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The character is a party animal, and gets on very well
+                with people in a party environment. Any circumstance
+                penalties such as the character not being welcome, or
+                people the character wants to talk to being busy, are
+                halved.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Etiquette" type="technique">
+        <cost points="2"/>
+        <skill name="Social"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Etiquette is a knowledge of good manners and social
+                behaviour whilst in polite company. A character with
+                Etiquette automatically knows how to address someone
+                of rank, how to flirt with a noble Lady without
+                offending her, how to behave at a joust or banquet
+                and which fork to use with the dessert.
+            </para>
+
+            <para>
+                Without this technique, <t>intelligence</t> checks
+                are required to avoid making a faux pas when in
+                polite company, normally of moderate difficulty
+                or higher.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Intimidation" type="technique">
+        <cost points="4"/>
+        <skill name="Social"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Being able to scare people, either with threats of simple
+                physical violence, or by more subtle means. Can either be
+                based on <t>Strength</t> or <t>Empathy</t>. When making an
+                intimidation check, make an opposed roll against the
+                target's <t>Will</t> (modified by any traits). Each level
+                of success will shift the target's level of cooperation
+                up by a category.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Fashion" type="technique">
+        <cost points="2"/>
+        <skill name="Social"/>
+
+        <prerequisite>Etiquette</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You know what the latest fashions are, and how to make
+                best use of them in order to look <e>good</e>. With
+                this technique you are very unlikely to wear something
+                which is either out of date or would cause embarressment
+                (unless of course you don't have a choice).
+            </para>
+
+            <para>
+                When you get a chance to dress for the occassion, then
+                you get a +1 to your attribute for social skills against
+                those that would be impressed.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="High fashion" type="technique">
+        <cost points="4"/>
+        <skill name="Social"/>
+        <prerequisite>Fashion</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are at the cutting edge of fashion, always one step
+                ahead of the crowd. When amongst those that would
+                consider themselves <e>fashionable</e>, then any that
+                try to compete against you socially do not get the
+                benefits of the <e>Fashion</e> technique, unless they
+                also have <e>High Fashion</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Scandalous fashion" type="technique">
+        <cost points="4"/>
+        <skill name="Social"/>
+        <prerequisite>Fashion</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are on the bleeding edge of fashion, somehow managing
+                to wear what on others would be scandalous but pulling it
+                off with such style and grace that it actually looks good.
+                This technique does not confer any direct bonus, but you
+                will gain a reputation since your clothing style will be
+                the talk of the town for a while to come.
+            </para>
+
+            <para>
+                If you are female, and have the <e>Good looking</e> or
+                <e>Sexy</e> advantage, then you get a further +1 bonus
+                if trying to seduce or attract someone. It's probably not
+                so much what you're wearing, but what you're not wearing
+                that draws attention.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Disguise" type="technique">
+        <cost points="2"/>
+        <skill name="Guile"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                When trying to disguise yourself you may use either
+                <t>Intelligence</t> or <t>Empathy</t>, and anyone trying
+                to see through the disguise may only use
+                <y:empathy>Guile</y:empathy> to spot it. People only
+                get a check to notice you if there is a good reason
+                to do so (you don't have quite the right clothing,
+                or you don't look like anyone they know).
+            </para>
+
+            <para>
+                The viewer gets half the original difficulty as a
+                bonus, and even then only if you didn't have sufficient
+                time to plan the disguise.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Misdirection" type="technique">
+        <cost points="4"/>
+        <skill name="Guile"/>
+        <short>Distract someone to hide what you are doing.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Distract someone so they don't notice something you are
+                doing, such as performing a magic trick, trying to slip
+                out of bonds, or fiddling with computer controls.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Cold reading" type="technique">
+        <cost points="4"/>
+        <skill name="Guile"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                A <e>cold reading</e> is when you give a person the
+                impression of knowing far more about them than you
+                actually do. Generally, you start with vague statements
+                which are refined based on the reactions of the target.
+                When using this technique, make an
+                <y:empathy>Guile</y:empathy> check against either a
+                base difficulty of 10 if the target is cooperative
+                (or has no reason to be suspicious), or against their
+                <y:will>Guile</y:will> if they aren't.
+            </para>
+
+            <para>
+                On a <e>moderate</e> success, you don't make a fool of
+                yourself, but aren't that impressive. On a <e>good</e>
+                success, you can give the impression of knowing more
+                than you should, and an <e>excellent</e> success is
+                very impressive.
+            </para>
+
+            <para>
+                The difficulty is doubled if you don't have this
+                technique. This technique is useful for conning people,
+                but can be a useful interrogation technique as well.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Dancing (*)" type="technique">
+        <cost points="2"/>
+        <skill name="Dance"/>
+        <short>Familiarity with a dance style.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have familiarity with a particular style of dance, and
+                know the etiquette, motions and graces of this style.
+            </para>
+            <itemlist order="strict" style="italic">
+                <item name="Ballroom">
+                    You are familiar with the types of dances commonly used
+                    in high class ballroom dances.
+                </item>
+                <item name="Folk">
+                    Folk dancing gives knowledge of the types of dances
+                    performed in rural villages and the like, as well as
+                    the ability to dance them.
+                </item>
+                <item name="Erotic">
+                    You have skill in the art of erotic dancing, of the
+                    type often practised in strip joints or sex clubs.
+                </item>
+                <item name="Disco">
+                    You are familiar with modern disco dancing.
+                </item>
+                <item name="Ballet">
+                    You are a ballet dancer.
+                </item>
+            </itemlist>
+        </description>
+    </advantage>
+
+
+
+    <advantage name="Flirt" type="technique">
+        <cost points="4"/>
+        <skill name="Charm"/>
+
+        <prerequisite>Carousing</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Flirt with a person in a socially acceptable manner. This
+                allows the character to make a seduction attempt in polite
+                company, even if the spouse of the enticed is present,
+                without other people really being sure about what is going
+                on. In a court situation, flirting can be common and
+                acceptable, as long as it doesn't actually lead to
+                anything.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Hidden insult" type="technique">
+        <cost points="4"/>
+        <skill name="Social"/>
+
+        <prerequisite>Etiquette</prerequisite>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Insult someone in a way that is polite and difficult to
+                respond to. If done cleverly, the target of the insult
+                may not even be sure that they have been insulted, which
+                makes it doubly difficult for them to respond.
+            </para>
+
+            <para>
+                Both insulter and target make an <t>Intelligence</t> based
+                <e>Guile</e> check. If the insulter wins, the target is at
+                a disadvantage for the rest of the scene (-1 to <t>Empathy</t>
+                and <t>Intelligence</t> when dealing with the insulter).
+                If the check fails, then nothing happens unless the target
+                also has this technique, in which case a witty reply means
+                that the insulter is at a disadvantage.
+            </para>
+        </description>
+    </advantage>
+
+
+    <advantage name="Passionate speaker" type="technique">
+        <cost points="4"/>
+        <skill name="Perform"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are a gifted orator, and gain a +1 to your
+                <t>empathy</t> when giving a speech.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Poet" type="technique">
+        <cost points="4"/>
+        <skill name="Perform"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are a skilled poet, having the skill to invent new
+                poems with wit and speed. Gain a +1 intelligence bonus
+                when composing poetry.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Shadowing" type="technique">
+        <cost points="4"/>
+        <skill name="Streetwise"/>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are trained in following people without being noticed
+                in an urban environment. Unlike pure stealth, where you
+                try not to be seen at all, <e>shadowing</e> is about not
+                being noticed. If you have this technique, you may use
+                <e>Streetwise</e> instead of <e>Stealth</e> or
+                <e>Awareness</e> to shadow someone or to spot someone
+                shadowing you.
+            </para>
+
+            <para>
+                If you have this technique, and your target doesn't, then
+                you only need to make a skill check if the target is
+                specifically checking to see if they are being followed,
+                or if the situation is difficult. If somebody is following
+                you, and they don't have this technique, then they must
+                use the lowest of their <e>Stealth</e> and <e>Streetwise</e>.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Brainwashing" type="technique">
+        <cost points="4"/>
+        <skill name="Psychology"/>
+        <short>The art of altering personalities..</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You know how to alter a person's personality to make them
+                think and act in a certain way. Outlawed in many civilised
+                societies, it is however sometimes taught by religious cults,
+                terrorist organisations and, it is rumoured, some black ops
+                agencies within the government.
+            </para>
+        </description>
+    </advantage>
+
+    <advantage name="Propaganda" type="technique">
+        <cost points="4"/>
+        <skill name="Psychology"/>
+        <skill name="Marketing"/>
+        <short>Selling ideas to a population.</short>
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You are skilled in the art of persuading entire populations
+                of an idea.
+            </para>
+        </description>
+    </advantage>
+
+</advantages>
+
+

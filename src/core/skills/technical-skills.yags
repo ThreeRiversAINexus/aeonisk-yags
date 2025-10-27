@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+
+<!--
+    Modern skills, mostly sciences and engineering skills.
+
+    Copyright (c) 2011, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.2 $
+    Date:    $Date: 2007-08-29 19:56:01 $
+    Author: Samuel Penn
+-->
+
+<skill-list xmlns="https://yags-rpg.net/xml/yags"
+            xmlns:y="https://yags-rpg.net/xml/yags"
+            xmlns:yb="https://yags-rpg.net/xml"
+            techniques="options/techniques.yags">
+
+    <skill name="Computing" type="skill">
+        <group>Technical</group>
+        <default>Intelligence</default>
+        <default>Electronics</default>
+        <techRange min="6" max="20"/>
+
+        <short>The skill of using a computer.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This covers the skills needed to use a modern computer,
+                from switching it on to finding files, sending messages
+                and using common applications. At the higher levels,
+                programming, system administration and network
+                intrusion become possible. This skill covers a wide
+                range of complex of tasks, which are detailed elsewhere.
+            </para>
+        </description>
+
+        <examples>
+            <example target="10">
+                Looking for a particular file using easy criteria.
+            </example>
+
+            <example target="20">
+                Filtering information from a database and analysing
+                it (producing graphs, finding correlations).
+            </example>
+        </examples>
+    </skill>
+
+    <skill name="Engineering">
+        <group>Technical</group>
+        <default>Mechanics</default>
+        <default>Electronics</default>
+        <specialisations>Engineer</specialisations>
+
+        <short>The application of science and maths.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The knowledge and skill of designing and building
+                machines, buildings and other structures. The skill covers
+                a wide range of engineering disciplines, from civil engineering
+                (buildings and bridges), to engines (mechanical) and electronics
+                (electrical). It is recommended that you take one or more
+                specialisations. This skill is mostly theoretical design. If you
+                are interested in purely practical skill for maintaining things
+                built by someone else, see skills like <e>Mechanics</e> and
+                <e>Electronics</e>.
+            </para>
+
+            <para>
+                Specialisations are level 4 techniques, and can include
+                <e>Electrical engineering</e>, <e>Civic engineering</e>,
+                <e>Mechanical engineering</e>. More specialist techniques
+                might be Machinist, Computers, Communications, etc.
+                If you already have a specialisation in <e>Electronics
+                operation</e>, then this can be used with <e>Engineering</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Mechanics">
+        <group>Technical</group>
+        <default>Engineering</default>
+        <familiarity>Mechanic</familiarity>
+
+        <short>Building and repairing mechanical machines.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is the skill of repairing and building mechanical
+                machines, such as car engines, power generators, guns
+                and clockwork. It is not the skill used for designing
+                new machines from scratch (use <e>Engineering</e> for
+                that), but is the skill needed by car mechanics or
+                engineers on ships and other vehicles.
+            </para>
+
+            <para>
+                Generally, this skill focuses on machines which have
+                physical moving parts. You will know how to plug
+                electronic components together, but they are black boxes
+                as far as this skill is concerned. Fixing broken machines
+                will often require tools. Not having the necessary tools
+                will make it harder. Not having any tools may make your
+                task at fixing impossible.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Electronics">
+        <group>Technical</group>
+        <default>Engineering</default>
+        <default>Electronics operation</default>
+
+        <short>Fixing electrical devices.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This is the skill of diagnosing and fixing electronic
+                devices. It's not very useful for building basic electronic
+                components from scratch, but you know how to wire together
+                such components, diagnose fixes and repair them.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Security systems" type="skill">
+        <group>Technical</group>
+        <group>Military</group>
+        <group>Criminal</group>
+
+        <short>Design and set-up of security systems.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained in deploying (and countering)
+                security systems such as burglar alarms, electronic
+                door locks, motion sensors, cameras and the like.
+                With this skill, you now what sort of systems are
+                available for use, and how to best deploy them to
+                maximise their effectiveness. You can also make
+                guesses as to how an existing security system is
+                set up, and how best to disable or avoid it.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Intelligence analysis" type="skill">
+        <group>Military</group>
+
+        <short>Analysing intelligence data.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained to analyse intelligence data in order
+                to understand what it means. You can look at troop movements
+                or supply movements for example and determine what the
+                enemy is planning.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Signal intelligence">
+        <group>Technical</group>
+        <group>Military</group>
+        <techRange min="6" max="20"/>
+
+        <short>Using sensor and communications equipment.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                You have been trained in the use of both communications and
+                sensor systems. Anyone can talk into a microphone or watch
+                a radar display, but you have in-depth knowledge of how such
+                things actually work, and how best to interpret data from
+                them. You have been trained in the use of electronic warfare,
+                how to get the best range out of communications gear, how
+                to interpret poor quality signals, and how to make best
+                use of signals intelligence.
+            </para>
+
+            <para>
+                This has some overlap with <e>Electronics operation</e>, but
+                is more a profession rather than a single skill and covers a
+                lot of the theory in both intelligence and counter-intelligence.
+            </para>
+        </description>
+    </skill>
+
+</skill-list>
+

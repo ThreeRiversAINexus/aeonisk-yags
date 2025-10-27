@@ -1,0 +1,56 @@
+<?xml version="1.0" ?>
+
+<invocations>
+
+<invocation religion="Save-K'nor" rank="1">
+<name>Library of the Hyn-Aerlori I</name>
+<time>1 round</time>
+<range>Touch</range>
+<difficulty>10</difficulty>
+<description>
+Protects one book, scroll or other object with recorded
+information from discovery. Grants a bonus to the Difficulty
+to find the item equal to one half the invocation roll.
+</description>
+</invocation>
+
+<invocation religion="Save-K'nor" rank="1">
+<name>Light of Uhla I</name>
+<time>1 round</time>
+<range>Self</range>
+<difficulty>10</difficulty>
+<cost>Low</cost>
+<description>
+Priest can see in the dark as if they had a perception of
+one tenth the invocation roll.
+</description>
+</invocation>
+
+<invocation religion="Save-K'nor" rank="1">
+<name>Wisdom of the Shea-Al-Aecor I</name>
+<time>15 minutes</time>
+<range>Self</range>
+<difficulty>10</difficulty>
+<cost>Moderate</cost>
+<description>
+Gives the priest insight into the proper course of action
+in a moral quandary.
+</description>
+</invocation>
+
+<invocation religion="Save-K'nor" rank="2">
+<name>Althea's Lamp II</name>
+<time>1 minute</time>
+<range>Touch</range>
+<difficulty>10</difficulty>
+<cost>High</cost>
+<description>
+Blesses a lamp with some of the attributes of Uhla. Those
+who are questioned in the light of Althea's Lamp must make
+a will check to avoid telling the truth. If they fail by
+10 or more, they cannot remain silent.
+</description>
+</invocation>
+
+</invocations>
+

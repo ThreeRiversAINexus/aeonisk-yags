@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Water Spells.
+-->
+<grimoire xmlns="https://yags-rpg.net/xml/yags" name="Air">
+    <description xmlns="https://yags-rpg.net/xml">
+        <para>
+            The <s>Water</s> domain governs the element of <e>water</e>, as well
+            as darkness, moisture and cold.
+        </para>
+        <para>
+            Water magic can negatively affect the chance of something catching on fire.
+            Normally, when trying to ignite something, roll a d20 and add a modifier. On a
+            20+, the item will ignite. For fire effects which cause damage, the modifier is
+            equal to the damage bonus.
+        </para>
+        <para>
+            Levels of darkness include Pitch Black, Very Dark, Dark, Twilight, Daylight,
+            Bright.
+        </para>
+    </description>
+
+    <spell name="Mist" level="10" type="water">
+        <time>Action</time>
+        <range>Touch</range>
+        <duration>Natural</duration>
+        <radius>Small</radius>
+        
+        <short>Creates a damp mist.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Causes mist to form in the air around the point specified. The water is pulled
+                out of the air, so if the air is completly dry then no mist will be formed.
+                The mist forms dew on surfaces, and will dampen substances such as cloth or
+                paper in the area, making them less likely (-10) to burn. Small fires such as a
+                candle or match may be extinguished.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The condensation will pool on the floor in puddles of water, and give a -20
+                modifier to any attempts to set things alight. Anything already burning,
+                such as a torch may be extinguised.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Shadow" level="10" type="water">
+        <time>Action</time>
+        <range>Self</range>
+        <duration>Minutes</duration>
+        <target>Medium</target>
+        
+        <short>Cloak yourself in dark shadows.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                This spell causes you to be cloaked in dark shadows, making it easier to
+                hide. It doesn't work if you are in bright light, but in a dark place it
+                provides a +10 bonus to any <e>Stealth</e> checks that you make.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The shadows created are deeper and darker, providing a +20 bonus as long
+                as you are in darkness.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Darkness" level="20" type="water">
+        <time>Action</time>
+        <range>Short</range>
+        <duration>Rounds</duration>
+        <radius>Medium</radius>
+        
+        <prerequisite>Shadow</prerequisite>
+        
+        <short>Creates a globe of darkness.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                The light level in the region drops by two levels.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The light level drops by three levels.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The light level drops by four levels.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Resist Cold" level="30" type="water">
+        <time>Action</time>
+        <range>Reach</range>
+        <duration>Hours</duration>
+        <target>Individual</target>
+        
+        <prerequisite>Darkness</prerequisite>
+        
+        <short>Protects you from the cold.</short>
+
+        <description xmlns="https://yags-rpg.net/xml">
+            <para>
+                Raises personal temperature by as much as 10°, allowing you to withstand
+                colder weather. It also provides +3 soak against cold based damage.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Raises personal temperature by as much as 30°. Soak against cold based
+                damage is increased by +6.
+            </para>
+        </description>
+
+        <description xmlns="https://yags-rpg.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                Raises personal temperature by as much as 50°. Soak against cold based
+                damage is increased by +12.
+            </para>
+        </description>
+    </spell>
+    
+</grimoire>
+
+

@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+
+<characters xmlns="https://yags-rpg.net/xml" showPoints="true">
+
+    <character name="Jim Irvin">
+        <description>
+            <species>Human</species>
+            <gender>Male</gender>
+            <age>37</age>
+            <short>
+                Jim is an agent working for the British secret service.
+                He gets to travel to exotic locations, meets beautiful
+                women and gets them killed.
+            </short>
+
+            <image src="packages/jim_irvin.jpg"/>
+
+            <background>
+                <para>
+                    Jim is a government spy who spends most of his time
+                    travelling around Europe and North Africa, infiltrating
+                    potentially hostile groups in order to either obtain
+                    intelligence, or to act as an assassin. His life means
+                    he can never trust anyone, and whenever he has started
+                    to care for someone, they have either died or betrayed him.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="5" luck="2" soak="12">
+                <attribute name="strength" score="4"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="4"/>
+                <attribute name="dexterity" score="5"/>
+                <attribute name="perception" score="5"/>
+                <attribute name="intelligence" score="4"/>
+                <attribute name="empathy" score="4"/>
+                <attribute name="will" score="4"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="4"/>
+                    <skill name="Awareness" score="4"/>
+                    <skill name="Brawl" score="6"/>
+                    <skill name="Charm" score="5"/>
+                    <skill name="Guile" score="5"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="4"/>
+                    <skill name="Throw" score="3"/>
+                </group>
+
+                <group name="Basic skills" type="knowledges">
+                    <skill name="Speak English" score="4"/>
+                    <skill name="Speak French" score="4" cost="0"/>
+                    <skill name="Speak German" score="4" cost="0"/>
+                    <skill name="Speak Arabic" score="4" cost="0"/>
+                    <skill name="Speak Russian" score="4" cost="0"/>
+                    <skill name="Area lore (Europe)" score="4"/>
+                    <skill name="Current affairs" score="3"/>
+                    <skill name="Military affairs" score="2"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Guns" score="4"/>
+                    <skill name="Tactics" score="2"/>
+                </group>
+
+                <skill name="Intelligence" type="skills">
+                    <skill name="Streetwise" score="4"/>
+                    <skill name="Burglary" score="3"/>
+                    <skill name="Security systems" score="3"/>
+                    <skill name="Demolitions" score="2"/>
+                    <skill name="Computer operation" score="2"/>
+                    <skill name="Electronics operation" score="1"/>
+                    <skill name="Intelligence analysis" score="1"/>
+                </skill>
+
+                <group name="Other skills" type="skills">
+                    <skill name="Drive" score="4"/>
+                    <skill name="Survival" score="2"/>
+                    <skill name="Intrigue" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Educated" cost="0"/>
+                <advantage name="Good looking" cost="1"/>
+                <advantage name="Linguist" cost="1"/>
+                <advantage name="Doom" cost="-1"/>
+
+                <advantage name="Close combat" skill="Brawl" cost="2"/>
+                <advantage name="Unarmed combat" skill="Brawl" cost="4"/>
+                <advantage name="Disabling hold" skill="Brawl" cost="4"/>
+                <advantage name="Combat reflexes" skill="Brawl" cost="4"/>
+                <advantage name="Hard to kill" skill="Brawl" cost="2"/>
+
+                <advantage name="Quick load" skill="Guns" cost="2"/>
+                <advantage name="Quick draw" skill="Guns" cost="2"/>
+                <advantage name="Sharp shooter" skill="Firearms" cost="4"/>
+
+                <advantage name="Parachuting" skill="Athletics" cost="2"/>
+                <advantage name="Swimming" skill="Athletics" cost="2"/>
+
+                <advantage name="Carousing" skill="Social" cost="2"/>
+                <advantage name="Seduction" skill="Social" cost="4"/>
+                <advantage name="Intimidation" skill="Social" cost="4"/>
+                <advantage name="Shadowing" skill="Streetwise" cost="4"/>
+
+                <advantage name="High speed driving" skill="Drive" cost="4"/>
+            </advantages>
+        </statistics>
+    </character>
+
+    <character name="Laura Connelly">
+        <description>
+            <short>
+                Modern bodyguard.
+            </short>
+            <gender>Female</gender>
+            <age>27</age>
+
+            <image src="packages/laura_connelly.jpg"/>
+
+            <background>
+                <para>
+                    Laura is a bodyguard who works for rich businessmen,
+                    politicians and criminals. She is highly skilled in hand
+                    to hand combat and close quarters gun combat, though
+                    tries to avoid ranged fire fights.
+                </para>
+
+                <para>
+                    Priorities were experience, attributes and advantages.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <attributes size="5" soak="12">
+                <attribute name="strength" score="4"/>
+                <attribute name="health" score="4"/>
+                <attribute name="agility" score="5"/>
+                <attribute name="dexterity" score="4"/>
+                <attribute name="perception" score="4"/>
+                <attribute name="intelligence" score="3"/>
+                <attribute name="empathy" score="2"/>
+                <attribute name="will" score="3"/>
+            </attributes>
+
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="6"/>
+                    <skill name="Awareness" score="4"/>
+                    <skill name="Brawl" score="8"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="4"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="4"/>
+                    <skill name="Throw" score="4"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak English" score="4"/>
+                    <skill name="Speak French" score="4" cost="0"/>
+                    <skill name="Area lore (England)" score="4"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Guns" score="8"/>
+                    <skill name="Tactics" score="5"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Drive" score="3"/>
+                    <skill name="Streetwise" score="2"/>
+                    <skill name="Burglary" score="2"/>
+                </group>
+            </skills>
+
+            <advantages>
+                <advantage name="Educated" cost="0"/>
+                <advantage name="Lucky (+2)" cost="0"/>
+
+                <advantage name="Enemy" cost="-1"/>
+
+                <advantage name="Close combat" skill="Brawl" cost="2"/>
+                <advantage name="Unarmed combat" skill="Brawl" cost="4"/>
+                <advantage name="Combat reflexes" skill="Brawl" cost="2"/>
+                <advantage name="Reflex dodge" skill="Brawl" cost="4"/>
+                <advantage name="Opportunity attack" skill="Brawl" cost="4"/>
+                <advantage name="Improved damage" skill="Brawl" cost="6"/>
+                <advantage name="Multiple attacks" skill="Brawl" cost="8"/>
+                <advantage name="Hard to kill" skill="Brawl" cost="2"/>
+                <advantage name="Ignore pain" skill="Brawl" cost="4"/>
+                <advantage name="Surprise attack" skill="Tactics" cost="2"/>
+                <advantage name="Tactical move" skill="Tactics" cost="4"/>
+                <advantage name="Lightly equipped" skill="Athletics" cost="4"/>
+
+                <advantage name="Quick load" skill="Firearms" cost="2"/>
+                <advantage name="Quick draw" skill="Guns" cost="2"/>
+                <advantage name="Multiple targets" skill="Firearms" cost="4"/>
+                <advantage name="Gun Fu" skill="Guns" cost="4"/>
+
+            </advantages>
+        </statistics>
+    </character>
+
+</characters>
+
+

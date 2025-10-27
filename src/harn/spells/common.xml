@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+
+<grimoire convocation="Common">
+
+    <spell name="Attune" level="0" convocation="common">
+        <range>Touch</range>
+        <duration>Special</duration>
+        <time>1 hour</time>
+        <description>
+            <para>
+                This spell is used to create a bond of affinity between
+                the caster and an object or enchantment. Attunement is
+                the first step towards controlling an enchantment or
+                object, and is not actually an end in itself. It will
+                only work on enchantments of equal or lower rank.
+            </para>
+            
+            <para>
+                Minor artifacts which have a mental trigger action must
+                be attuned to before they can be used. Other minor
+                artifacts do no require attuning (and hence can be used
+                by non-Shek-Pvar). Major artifacts require attuning
+                in order to control the artifact, though it may choose
+                to use its powers without attunement.
+            </para>
+            
+            <para>
+                When an item is attuned to, the Shek-Pvar will know all
+                powers in the artifact up to the rank of the <e>Attune</e>,
+                as well as knowing the number and convocation of the
+                others, and whether they are within two ranks of
+                the <e>Attune</e>, or higher.
+            </para>
+            
+            <para>
+                Regardless of the rank of the <e>Attune</e>, the trigger
+                words or actions for a minor artifact will be known.
+                However, for mental triggers, the <e>Attune</e> must
+                equal the rank of the spells. Since spells can only be
+                cast in order, a single high rank spell in an artifact
+                can block the casting of all the other spells.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Focus" level="0" convocation="common">
+        <time>1 day</time>
+        <range>Touch</range>
+        <duration>Special</duration>
+        <description>
+            <para>
+                This spell prepares an item for enchantment as a minor
+                artifact. The item should be a suitable foci of the given
+                convocation, and this spell enhances link the item has
+                with its convocation. The number of spells which can be
+                stored in the minor artifact is given by the suitability
+                of the item (see table below), multiplied by the rank
+                of the <e>Focus</e>.
+            </para>
+            
+            <targetlist>
+                <entry target="1" value="Opposed convocation"/>
+                <entry target="2" value="Unsuitable"/>
+                <entry target="3" value="Suitable"/>
+                <entry target="4" value="Highly suitable"/>
+                <entry target="+1" value="Marked with runes of convocation"/>
+            </targetlist>
+            
+            <para>
+                See the section on making minor artifacts for details
+                on what materials and objects are considered suitable.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Summon Elemental" level="0" convocation="common">
+        <time>1 minute</time>
+        <range>Short (50m)</range>
+        <resist>Will</resist>
+        <duration>Concentration</duration>
+        <boost>+25 Range is medium (100m)</boost>
+        <boost>+50 Range is far (200m)</boost>
+        <boost>+100 Range is extreme (500m)</boost>
+        <description>
+            <para>
+                This spell summons a Pvaric elemental out of some mundane
+                quantity of that element. Neutral and Savoryan elementals
+                can be summoned anywhere. The size of the elemental varies
+                according to the rank of the spell.
+            </para>
+
+            <para>
+                The elemental must remain within the range of the spell at
+                all times. If the Shek-Pvar forces the elemental out of
+                range, or circumstances allow this to occur, then she
+                looses control of the elemental. Regardless of the spell
+                range, the elemental will initially appear within Near
+                of the caster.
+            </para>
+            
+            <para>
+                The caster must make an oppossed will roll to control the
+                elemental when it is first summoned. The elemental can be
+                communicated with using a suitable Pvaric language.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Ward Against Elementals" level="0" convocation="common">
+        <time>1 round</time>
+        <range>Reach</range>
+        <resist>Will</resist>
+        <duration>Concentration</duration>
+        <boost>+25 Range is near</boost>
+        <boost>+50 Range is short</boost>
+        <boost>+100 Range is medium</boost>
+        <description>
+            <para>
+                Prevents elementals of the same convocation from entering
+                the area protected. Elementals of equal to or lower rank
+                than the rank of this spell are affected.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Speak with Elemental" level="10" convocation="common">
+        <range>Touch</range>
+        <resist>Will</resist>
+        <duration>Concentration</duration>
+        <boost>+10 Range is near</boost>
+        <boost>
+            +20 All designated targets within range can speak with
+            elementals.
+        </boost>
+        <boost>
+            +40 Targets can speak with all elementals, regardless of the
+            elemental's convocation.
+        </boost>
+
+        <description>
+            <para>
+                Enables the target to speak the language of elementals of the
+                spell's convocation.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Block" level="0" convocation="common">
+        <range>Self</range>
+        <duration>Concentration</duration>
+        <description>
+            <para>
+                This spell blocks spell of the same convocation from affecting
+                the caster assuming that they are of equal or lower rank. The
+                caster is also prevented from casting such spells himself,
+                regardless of the target of such spells.
+            </para>
+        </description>
+    </spell>
+    
+    <spell name="Elemental Bane" level="0" convocation="common">
+        <range>Near</range>
+        <duration>Momentary</duration>
+        <resist>Ego</resist>
+        <boost>+25 Range is Short</boost>
+        <boost>+50 Up to three elementals affected</boost>
+        <boost>+100 Up to 12 elementals affected</boost>
+        <description>
+            <para>
+                When invoked against a particular Elemental, this spell
+                causes pain and disruption in the target, destroying
+                part of it. One wound level of damage is caused per rank
+                of the spell.
+            </para>
+        </description>
+    </spell>
+
+</grimoire>

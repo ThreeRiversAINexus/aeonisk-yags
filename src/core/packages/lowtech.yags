@@ -1,0 +1,242 @@
+<?xml version="1.0"?>
+
+
+<characters xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <character name="Man-at-arms">
+        <description>
+            <short>
+                The man-at-arms is a professional foot soldier who is not
+                noble born.
+            </short>
+
+            <background>
+                <para>
+                    The man-at-arms is a freeman who works full time in
+                    their lord's employ as a foot soldier. The are trained
+                    in the use of melee weapons, notably sword, shield and
+                    spear.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="4"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Farming" score="2"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Bow" score="1"/>
+                    <skill name="Weapon and shield" score="4"/>
+                    <skill name="Battle" score="2"/>
+                    <skill name="Longshaft weapon" score="4"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Survival" score="1"/>
+                    <skill name="First aid" score="1"/>
+                </group>
+            </skills>
+        </statistics>
+    </character>
+
+
+    <character name="Bachelor Knight">
+        <description>
+            <short>
+                The knight bachelor is a noble warrior, who owns no lands
+                but who serves another noble lord.
+            </short>
+
+            <background>
+                <para>
+                    Bachelor knights are the lowest of the noble class.
+                    They are often second or third sons, who have little
+                    chance of inheriting land themselves, so need to
+                    make their fortunes fighting in wars for others.
+                </para>
+            </background>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="2"/>
+                    <skill name="Throw" score="3"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Weapon and shield" score="4"/>
+                    <skill name="Longshaft weapon" score="3"/>
+                    <skill name="Great weapon" score="2"/>
+                    <skill name="Single weapon" score="2"/>
+                    <skill name="Battle" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="First aid" score="1"/>
+                    <skill name="Ride" score="3"/>
+                    <skill name="Hunting" score="2"/>
+                    <skill name="Seneschal" score="1"/>
+                    <skill name="Heraldry" score="1"/>
+                </group>
+            </skills>
+        </statistics>
+    </character>
+
+    <character name="Scout">
+        <description>
+            <short>
+                Militia men are peasant warriors who have had more than
+                their fair share of experience fighting in their Lord's
+                militia.
+            </short>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="4"/>
+                    <skill name="Throw" score="3"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Farming" score="2"/>
+                </group>
+
+                <group name="Combat" type="skills">
+                    <skill name="Bow" score="4"/>
+                    <skill name="Longshaft weapon" score="2"/>
+                    <skill name="Single weapon" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Survival" score="4"/>
+                    <skill name="First aid" score="2"/>
+                </group>
+            </skills>
+        </statistics>
+    </character>
+
+    <character name="Rogue">
+        <description>
+            <short>
+                The rogue lives on the edge of society, making a living
+                by thievery, banditry or trickery.
+            </short>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="4"/>
+                    <skill name="Brawl" score="3"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="3"/>
+                    <skill name="Sleight" score="3"/>
+                    <skill name="Stealth" score="4"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Bow" score="3"/>
+                    <skill name="Single weapon" score="3"/>
+                    <skill name="Survival" score="2"/>
+                </group>
+            </skills>
+        </statistics>
+    </character>
+
+    <character name="Woodsman">
+        <description>
+            <short>
+                The woodsman cares for the Lord's orchards and grazing
+                lands. He has knowledge of the wild, of how to hunt it and
+                how to cultivate it.
+            </short>
+        </description>
+
+        <statistics xmlns="https://yags-rpg.net/xml/yags">
+            <skills>
+                <group name="Talents" type="talents">
+                    <skill name="Athletics" score="2"/>
+                    <skill name="Awareness" score="2"/>
+                    <skill name="Brawl" score="2"/>
+                    <skill name="Charm" score="2"/>
+                    <skill name="Guile" score="2"/>
+                    <skill name="Sleight" score="2"/>
+                    <skill name="Stealth" score="3"/>
+                    <skill name="Throw" score="2"/>
+                </group>
+
+                <group name="Knowledges" type="knowledges">
+                    <skill name="Speak own" score="4"/>
+                    <skill name="Area lore" score="4"/>
+                </group>
+
+                <group name="Profession" type="skills">
+                    <skill name="Copicing" score="4"/>
+                    <skill name="Farming" score="1"/>
+                    <skill name="Carpentry" score="2"/>
+                </group>
+
+                <group name="Other" type="skills">
+                    <skill name="Bow" score="3"/>
+                    <skill name="Single weapon" score="3"/>
+                    <skill name="Survival" score="3"/>
+                    <skill name="Hunting" score="2"/>
+                    <skill name="Herb lore" score="1"/>
+                    <skill name="First aid" score="1"/>
+                </group>
+            </skills>
+        </statistics>
+    </character>
+</characters>
+
+

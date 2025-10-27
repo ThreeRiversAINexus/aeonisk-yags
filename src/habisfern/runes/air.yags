@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+
+<!--
+    Air Runes.
+    Version: $Revision: 1.5 $
+    Date:    $Date: 2005-08-13 15:47:35 $
+-->
+<grimoire xmlns="http://yagsbook.sourceforge.net/xml/yags/habisfern" name="Air">
+
+    <spell name="Breeze" level="1" type="air">
+        <time>Action</time>
+        <range>Short</range>
+        <duration>Rounds</duration>
+        <resist>Strength</resist>
+
+        <short>Create a breeze that blows away from you.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You invoke a breeze that blows away from you in a direct line.
+                The channel is 3 metres wide and as tall as you are, lasting as
+                long as you concentrate. The breeze is strong enough to blow
+                back smoke, or raise a cloud of dust.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                You can create swirls and eddies in the breeze in order to
+                manipulate things. Make a <t>Dexterity</t> check against a
+                target difficulty. To knock off a hat or lift a skirt, this
+                is 15, to close a book, 20, to bring a small item to you is
+                25.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Fog" level="3" type="air">
+        <time>Round</time>
+        <range>Self</range>
+        <duration>Concentration</duration>
+        <radius>Large</radius>
+
+        <short>Summons a thick fog to obscure vision.</short>
+        <prerequisite>Breeze</prerequisite>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Summons a thick mist that covers the region around you, and
+                follows you as you move. Anything beyond 10m is obscured
+                completely.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The thickness of the fog is increased, and vision beyond 5m
+                is completely obscured.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Blast" level="5" type="air">
+        <time>Round</time>
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <target>Individual</target>
+
+        <prerequisite>Fog</prerequisite>
+
+        <short>Knocks a target down, disorientating them.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                By invoking this <e>rune</e> you call a sudden gust of wind that
+                can knock down a single target. Make an opposed <t>Will</t> check
+                against the target's <t>Strength</t>, and on success the target
+                is knocked to the ground where they stand and takes a single
+                <e>Stun</e>. Each level of success on this check does a further
+                <e>Stun</e> and knocks them back a metre.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Either, you can add +10 to your <t>Will</t> check, or you can
+                try to disorientate your target. If they are knocked down, their
+                <e>initiative</e> is dropped to zero and they are unable to act
+                for the rest of the round.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                You gain a +10 bonus to your <t>Will</t> check, and the target
+                is disorientated on success. On failure, their initiative still
+                drops by 10.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Lightning" level="7" type="air">
+        <time>Round</time>
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <target>One</target>
+
+        <prerequisite>Blast</prerequisite>
+
+        <short>Summon a lightning strike.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This invocation calls down a bolt of lightning from the sky,
+                striking a single target. The bolt will do +20 damage to the
+                target, ignoring armour. If at least one wound is caused,
+                then it does an amount of <e>shock</e> equal to the damage,
+                reducing the target's initiative.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The bolt does +25 damage.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The bolt does +30 damage.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Sky Fall" level="9" type="air">
+        <time>Round</time>
+        <range>Medium</range>
+        <duration>Momentary</duration>
+        <target>Medium</target>
+
+        <prerequisite>Lightning</prerequisite>
+
+        <short>Throw a target into the sky.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When invoked this rune throws the target into the sky, then
+                allows them to fall back to the ground, possibly killing them
+                in the process. The target is thrown 10 metres into the air,
+                and then they will take falling damage when they land.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                The target is thrown 20 metres into the air, and can be landed
+                anywhere within 5m of their starting location.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent):">
+            <para>
+                The target is thrown 30 metres into the air, and can be landed
+                anywhere within 10m of their starting location.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Whisper" level="3" type="air">
+        <time>Round</time>
+        <range>Short</range>
+        <duration>Will</duration>
+
+        <prerequisite>Breeze</prerequisite>
+
+        <short>Send a message on the air</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You may send a words to someone on the breeze. You must have
+                a direct line of sight from your mouth to their ears in order
+                for them to hear you, and the words must be whispered.
+                Those around your target are unable to hear your words though.
+                You may continue talking for as long as you will the invocation
+                to last.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You may carry the target's words back to you, allowing you to
+                hear their response.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Glow" level="1" type="air">
+        <range>Touch</range>
+        <duration>Minutes</duration>
+        <target>Tiny</target>
+        <radius>Tiny</radius>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You place a soft glow on a single object no larger than your fist.
+                The glow is steady and pure white, and illuminates an area out
+                to the radius of the effect to that of bright moonlight. The item
+                affected must remain within the invocation's range, or the effect
+                will end.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                You can boost the intensity of the glow to be that of an overcast
+                day. It is bright enough to see clearly by, but not blinding.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Apparition" level="3" type="air">
+        <range>Reach</range>
+        <duration>Minutes</duration>
+        <target>Medium</target>
+
+        <prerequisite>Glow</prerequisite>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You create a stationary apparition that looks like anything you
+                like, up to the size limit of the invocation. The image is slightly
+                translucent, and an easy <e>Awareness</e> check will notice this
+                fact.
+            </para>
+        </description>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good):">
+            <para>
+                Either the image can move at a walking pace under you direction,
+                or it appears solid, requiring a difficult <e>Awareness</e> check
+                to notice that something is out of place.
+            </para>
+        </description>
+    </spell>
+
+
+
+</grimoire>
+
+

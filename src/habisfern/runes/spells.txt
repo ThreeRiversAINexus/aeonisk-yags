@@ -1,0 +1,89 @@
+
+
+Spell Guidelines (Rough)
+
+1,3 - No more than 1 level of boost.
+
+5,7,9 - No more than 2 levels of boost.
+
+11+ - Unlimited levels of boost.
+
+1,3 - Ineffective in combat.
+
+5,7 - Moderate combat effectiveness (equivalent to melee).
+
+9+ - Highly effective in combat.
+
+
+Fire Magic
+
+
+Ignite, 1
+    Warm, 3
+        Resist Fire, 5
+        Heat, 5
+            Burning Wind, 7
+
+    Burning Motes, 3
+        Flaming Spear, 5
+            Ring of Fire, 7
+                Engulf, 9
+                    Body of Fire, 12
+            Whip of Flame, 7
+        Smoke fog, 5
+            Whither, 7
+                Boiling Rain, 9
+
+    Wild Fire, 3
+        Fire Burst, 5
+            Sea of Fire, 7
+
+    Alertness, 3
+        Quicken, 5
+            Haste, 7
+        Fire Sight, 5
+            Visions of the Flame, 7
+                Eyes of the Fires, 9
+
+
+
+Iron
+
+Harden, 1 - Make inanimate item harder, increase its soak.
+    Toughness, 3 - Make animate item harder, increase its soak.
+        Strength, 5 - Make someone stronger
+
+    Sharpen, 3 - An edged weapon does more damage.
+
+Shield, 1 - Defensive bonus against metal weapons.
+    Grasp, 3 - A metal weapon moves to your hand.
+        Dance, 5 - A metal weapon fights by itself.
+        Rust, 5 - Turn a metal item to rust.
+
+Water
+
+Wet, 1
+    Mist, 3
+        Flood, 5
+            Sink, 7
+                Fog, 9
+            Drown, 7
+        Rain, 5
+
+Chill, 1 - Make the item touched cold.
+    Cold, 3 - Drop the temperature in an area.
+        Snow, 5 - Make it snow over a large area
+            Freeze, 7 - Freeze one target, causes fatigue
+            Cold Cloak, 7 - Protection from fire
+        Ice, 5 - Turn water to ice
+        Fatigue, 5 - Cause fatigue in one target
+            Slow, 7 - Drop initiative of target
+                Hold, 9 - Paralyses the target in place
+
+Gloom, 1
+    Extinguish, 3
+        Blind, 5
+    Chill, 3
+        Fatigue, 5
+            Slow, 7
+

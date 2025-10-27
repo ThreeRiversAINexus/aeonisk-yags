@@ -1,0 +1,1085 @@
+<?xml version="1.0"?>
+<?xml-stylesheet
+    href="/usr/share/xml/yagsbook/article/xslt/html/yagsbook.xsl"
+    type="text/xsl"?>
+
+<article xmlns="https://yags-rpg.net/xml"
+         xmlns:y="https://yags-rpg.net/xml/yags">
+
+    <header>
+        <title>Computers</title>
+        <tagline>Yags</tagline>
+
+        <summary>
+            Rules for using and abusing computers.
+        </summary>
+
+        <author>
+            <fullname>Samuel Penn</fullname>
+            <email>sam@glendale.org.uk</email>
+        </author>
+
+        <cvsinfo>
+            <version>$Revision: 0.7.8 $</version>
+            <date>$Date: 2012-10-16 12:00:00 $</date>
+        </cvsinfo>
+
+        <license type="Yags">
+            <year>2012</year>
+            <holder>Samuel Penn</holder>
+            <text>
+                This document can be redistributed and/or modified
+                under the terms of the GNU Public License as published
+                by the Free Software Foundation version 2.
+            </text>
+        </license>
+
+        <style name="core"/>
+    </header>
+
+    <body>
+        <sect1>
+            <title>Computers</title>
+
+            <para>
+                Computers, in the form of machines that could think and
+                store information, first became possible at TL6, but in
+                the real world they didn't start to actually be produced
+                until early TL7. Early computers were mostly mechanical,
+                and it wasn't until the advent of good electronics that
+                they really started to develop.
+            </para>
+
+            <para>
+                Computer technology is currently improving at a rate
+                which makes it difficult to predict where things will
+                end up.
+            </para>
+
+            <note title="Thinking Machines">
+                <para>
+                    The author subscribes to Strong AI - the belief that
+                    there is nothing magical about the human mind, and
+                    that reproducing how it works in a machine is merely
+                    a hard problem we haven't yet solved. These rules
+                    assume that true AI is possible, and any difficulties
+                    with uploading a human mind into a computer are
+                    merely engineering issues.
+                </para>
+            </note>
+
+            <para>
+                Computers in Yags may provide bonuses to attempts to solve
+                problems and search for data. Computer systems between
+                tech levels are difficult to compare, so they aren't. It
+                is assumed that as computers get more powerful, the sort
+                of problems they are expected to deal with get more complex
+                as well.
+            </para>
+
+            <targetlist>
+                <targetLabel>Complexity</targetLabel>
+                <valueLabel>Type of computer</valueLabel>
+
+                <item target="-10" value="Micro PDA"/>
+                <item target="-5" value="PDA"/>
+                <item target="0" value="Desktop (TL8)"/>
+                <item target="+5" value="Large server"/>
+                <item target="+10" value="Mini-cluster"/>
+                <item target="+20" value="Mainframe"/>
+                <item target="+30" value="Data cluster"/>
+                <item target="+50" value="NSA Super cluster"/>
+            </targetlist>
+
+            <sect2>
+                <title>Using a computer</title>
+
+                <para>
+                    All forms of computer use, with the exception of fiddling
+                    with the hardware, is covered by the <e>Computing</e>
+                    skill. By itself it allows you to use a computer - perform
+                    searches, write documents and send emails for example.
+                    Having the <e>Scripting</e> technique allows you
+                    to automate tasks, and <e>Programming</e> allows
+                    you to write your own software. This assumes a TL8 level
+                    of computer technology.
+                </para>
+
+                <para>
+                    If you don't have <e>Scripting</e>, you can default
+                    from the basic skill (halve all rolls and increased fumble
+                    chance). If you don't have <e>Programming</e>, then as
+                    long as you have <e>Scripting</e> you can default from
+                    your basic skill. If you don't have either technique, then
+                    you can't write software.
+                </para>
+
+                <para>
+                    There are other techniques available as well, covering
+                    aspects such as network administration, security and
+                    forensics. Many will have <e>Scripting</e> as a
+                    pre-requisite.
+                </para>
+
+                <para>
+                    If the GM desires an extra level of detail, then requiring
+                    familiarity with different operating systems is an option.
+                    By default, you are familiar with whichever operating system
+                    is most common (e.g., Microsoft Windows - though this isn't
+                    always the case realistically).
+                </para>
+
+                <sect3>
+                    <title>Computers in TL 6</title>
+
+                    <para>
+                        The first computers were very different from those
+                        available today. The <e>Computing</e> skill covers
+                        some hardware related tasks, such as loading paper
+                        tape, replacing valves and unjamming mechanisms.
+                        It doesn't cover programming.
+                    </para>
+
+                    <para>
+                        Since most computers were unique, there is a
+                        different skill for each manufacturer. Each skill
+                        defaults to the others.
+                    </para>
+
+                    <para>
+                        There is no concept of computer security at this
+                        point, or networking. Data is kept on paper or card,
+                        and if you have physical access to it, then you have
+                        full access to the data.
+                    </para>
+
+                    <para>
+                        Most computer scientists will also know how to build
+                        and/or repair computers. They will have <e>Electronics</e>
+                        with the <e>Computers</e> specialisation.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Computers in TL 7</title>
+
+                    <para>
+                        Early TL7 is similar to TL6, by mid TL7 computers
+                        were very similar in concept to how they are today.
+                        Networks come into use (though world wide internets
+                        take a while to become possible) which link computers
+                        in an organisation.
+                    </para>
+
+                    <para>
+                        The computer itself is often a big mainframe, with
+                        users accessing them via dumb terminals. Breaking the
+                        security requires physical access to either a terminal
+                        or the network itself.
+                    </para>
+
+                    <para>
+                        By the time computers start becoming commonplace (at
+                        least in large organisations), they are settling down
+                        into designs, and a single computer skill covers all
+                        types of computers. However, <e>familiarity</e> may
+                        still be required, and there will be many different
+                        types of hardware and operating systems.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Computers in TL 9</title>
+
+                    <para>
+                        By TL9, computers are smaller, faster and more reliable
+                        than those of TL8. Fast networking is ubiquitous, and
+                        most consumer computing power is in the form of devices
+                        such as phones and tablets rather than as general purpose
+                        Personal Computers.
+                    </para>
+
+                    <para>
+                        Limited AI allows voice interfaces and natural language
+                        queries to reduce the need for computer skills from many
+                        of those who use them. It is assumed that sometime in
+                        TL 9 that <e>Turing Personalities</e> will become possible.
+                        These are AIs which are capable of passing themselves as
+                        human within a limited knowledge domain. They quickly
+                        replace call centres, or are used as chat bots or
+                        telephone receptionists.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Computers in TL 10+</title>
+
+                    <para>
+                        AI continues to improve at this level and beyond, but the
+                        full extent of their improvement will depend on the background.
+                        In <s>Yags SciFi</s>, a more human future is assumed, so AI
+                        is considered to be limited. <s>Yags UltraTech</s> assumes
+                        that full AIs will be available by TL10, and improve beyond
+                        human capabilities at higher TLs.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Hacking with computers</title>
+
+                <para>
+                    If you want to do something really clever with a computer,
+                    then you need to know something about how it works. Whilst
+                    most people can get away with a low <e>Computing</e> skill,
+                    and may even have the <e>Scripting</e> technique, real
+                    knowledge of how to put a computer through its paces
+                    requires the level 4+ computing techniques such as
+                    <e>Programming</e>, <e>System administration</e> or
+                    <e>Computer security</e>.
+                </para>
+
+                <note title="Hacking Terminology">
+                    <para>
+                        As used here, the term <e>hacking</e> refers to the
+                        term as it is used by old school hackers, originally
+                        those at MIT during the 1960s. Recently, it has come
+                        to mean 'breaking illegally into a computer system'
+                        for many people. A hacker is someone who plays with
+                        computers because they are fun, and because they
+                        want to understand how they work. Since the best way
+                        to understand a security system is to break it,
+                        hackers would often go places they shouldn't. However,
+                        once a system is cracked, most would make sure they
+                        didn't cause any damage, or let the owners know what
+                        the flaws were. Most, but not all. Many people who
+                        call themselves <e>hackers</e> however simply enjoy
+                        pushing computers to their limits, and would never
+                        break into a computer system they didn't have
+                        permission to access.
+                    </para>
+
+                    <para>
+                        Further, not all people who break into computer systems
+                        are <e>Hackers</e>. There are some - generally known as
+                        <e>Script Kiddies</e> - who simply want to cause
+                        damage. They have little or no knowledge of how
+                        things work, but simply run scripts written by those
+                        who do.
+                    </para>
+                </note>
+
+                <para>
+                    The sort of tasks that would be possible for someone with
+                    a basic level of computing skill are outlined below.
+                </para>
+
+                <itemlist order="strict">
+                    <item name="1 - Rudimentary">
+                        You can switch on a computer and, assuming you can find
+                        the post it note, login. You can open 'the internet',
+                        and maybe perform a web search. You know you have an
+                        'email' icon, which allows you to read your email, and
+                        send them as well. You don't understand how any of it
+                        works though. If the computer doesn't behave exactly
+                        as you expect, then you get confused.
+                    </item>
+
+                    <item name="2 - Basic">
+                        You can use a web browser, and are aware that there are
+                        different types, though you're not sure why. You can
+                        search for things online, and find maps of places or
+                        details about companies or people. You know about
+                        viruses, and that you need to keep your virus software
+                        uptodate, but may have difficulty doing so. You can
+                        send emails, and write letters, and can even connect a
+                        printer if the instructions are clear. You can use
+                        software you've been trained on with a basic level
+                        of competence.
+                    </item>
+
+                    <item name="2 - Basic (Scripting)">
+                        You can program macros in spreadsheets or word processors,
+                        do a bit of HTML and use the command line. You can place
+                        a set of commands in a script to automate a set of tasks,
+                        though aren't really familiar with the full powers of a
+                        scripting language. You can sort of read code though,
+                        as long as it is simple, or has lots of comments.
+                    </item>
+
+                    <item name="3 - Skilled">
+                        Your computer is patched and uptodate, and you use the
+                        browser you like the most. You may be a member of one
+                        or more social networks, and know how to keep your
+                        private data private - to an extent. You are familiar
+                        with most common types of software, and can pick up
+                        new software reasonably quickly. Your WiFi has a
+                        password, and it's reasonably secure.
+                    </item>
+
+                    <item name="3 - Skilled (Scripting)">
+                        You can write scripts that use many of the more
+                        common features available, and even write software
+                        in languages such as C or Java. Your code tends to
+                        be a mess though, and you don't have much concept of
+                        modularisation, unit testing or good practise.
+                    </item>
+
+                    <item name="4 - Professional">
+                        You've written a bit of code before, though you may
+                        not be a programmer. You can pick up new software
+                        relatively quickly without a manual, upgrade memory
+                        and hard drives and install a new OS. You are capable
+                        of performing complex web searches, setting up cloud
+                        storage and encrypting your data.
+                    </item>
+                </itemlist>
+
+                <para>
+                    An alternative approach is to assume a default system when
+                    the skill is first learnt, and other systems are
+                    represented by a familiarity technique, at level 2. If
+                    you aren't familiar with the system, then your roll is
+                    halved.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Computer Intrusion</title>
+
+                <para>
+                    Breaking into a computer system can be very easy, or very
+                    hard. Generally, getting access to information is very easy
+                    if you have physical access to the machine. At the very
+                    least, you can take it apart, pull out the hard drive
+                    (or holographic memory crystal) and make a copy to peruse
+                    at your leisure. If you don't care if the owners knew
+                    you were there, then you don't even need to make a copy.
+                </para>
+
+                <para>
+                    In order to gain access to a network without having physical
+                    access, then you need to make a <e>Computer operation</e>
+                    using the <e>Computer Intrusion</e> technique. The
+                    target difficulties are given on the following table. If
+                    you don't have the right technique, then double the
+                    difficulties. By default, an attempt takes a day.
+                </para>
+
+                <targetlist bold="true">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Task</valueLabel>
+
+                    <item target="20" value="Home system.">
+                        Most home users know little about security, and tend
+                        to run all sorts of software which provide any number
+                        of possible security holes. This assumes that the
+                        system belongs to an inexperienced user running a
+                        wireless system with poor passwords, or even default
+                        passwords on routers and firewalls.
+                    </item>
+
+                    <item target="40" value="Small business.">
+                        Small businesses may not have much more knowledge
+                        than a home user, but run fewer apps and tend to
+                        make more use of dedicated firewalls and DMZs.
+                    </item>
+
+                    <item target="60" value="Corporate system.">
+                        Typically a large business will have a dedicated
+                        staff of IT people (or outsource such a role) who
+                        know what they are doing. Systems will be locked
+                        down, with good firewalls and restricted access.
+                    </item>
+
+                    <item target="80" value="Secure system.">
+                        A high tech firm or important government system,
+                        where the focus is on security rather than usability.
+                        Users may be heavily restricted in what they can
+                        do, since security is seen as higher priority than
+                        productivity.
+                    </item>
+
+                    <item target="100" value="Military.">
+                        Any system which is locked down tight, with security
+                        being the one focus of the design. Such systems are
+                        often even harder to penetrate than the difficulty
+                        would suggest, since they may not actually have
+                        access from the outside world - or at least it is
+                        restricted via dedicated lines to a few secure
+                        locations. Finding those locations will be required
+                        before any attempts are made.
+                    </item>
+
+                    <item target="+50%" value="Up-to-date security">
+                        Network owners have been keeping the system up-to-date
+                        with the latest patches, and pro-actively securing
+                        the system. Modern operating systems now do this
+                        automatically.
+                    </item>
+
+                    <item target="-50%" value="Out of date">
+                        The system is badly out of date, and hasn't had any
+                        patches installed in the last couple of years.
+                    </item>
+
+                    <item target="-25%" value="Compromised">
+                        If the system is already compromised (by trojans,
+                        viruses and the like), then it is generally easier
+                        to access.
+                    </item>
+
+                    <item target="-50%" value="Physical access">
+                        If you have physical access to the server, then halve
+                        the difficulty.
+                    </item>
+                </targetlist>
+
+                <para>
+                    On your first attempt to hack a system, you may if you
+                    wish make a check at twice the normal difficulty after
+                    one hour. If that fails, then a second check may be
+                    made after a day. This assumes 24 hours elapsed
+                    time, with about half that time requiring effort on
+                    the part of the intruder (the rest is running scripts,
+                    or waiting for replies on hacker's mailing lists).
+                    Further attempts may be made each day. Once you have
+                    succeeded in accessing a system, you gain a +10 bonus
+                    to all subsequent checks.
+                </para>
+
+                <note title="Exploits and scripts">
+                    <para>
+                        The above table mostly abstracts the frequency
+                        of patches and updates to a system, the sort of
+                        software being run and how standard the installation
+                        is. Breaking into a home system is often easy
+                        because there are plenty of scripts available
+                        that can be used to automate the intrusion. More
+                        secure systems will have the exploits that the
+                        scripts make use of patched.
+                    </para>
+                </note>
+
+                <para>
+                    Computer systems of an earlier technology may be much
+                    easier, or much harder, to crack. If you are not
+                    prepared for the lower tech, then there is no change
+                    in difficulty, since trying to understand the long
+                    since deprecated protocols balances out any advantages
+                    gained from having better tools. If you have time to
+                    prepare however, and have access to the correct
+                    documentation and earlier toolsets, then all
+                    difficulties are halved for each drop in TL. Breaking
+                    a computer system above the TL you are used to is
+                    impossible.
+                </para>
+
+                <para>
+                    If an earlier TL crosses a paradigm shift (from
+                    electronics to vacuum tubes, or AI run systems to
+                    standard programmed systems) then you also need a
+                    different skill in order to do anything with such a
+                    museum piece.
+                </para>
+
+                <sect3>
+                    <title>Large Networks</title>
+
+                    <para>
+                        For many small networks, such as a typical company,
+                        once you're past the main firewall you have access
+                        to most of the rest of the system. For larger
+                        networks however, the network topology may require
+                        effort to get from the outer DMZ into more secure
+                        and/or interesting parts of the network.
+                    </para>
+
+                    <para>
+                        For a large network then, assume it consists of
+                        multiple parts which have to be accessed separately.
+                        Assume that the first access gets you into the
+                        DMZ of the network, and from there you need to
+                        make another check to access the rest of the
+                        network.
+                    </para>
+
+                    <para>
+                        A small company with a well designed system may have
+                        3 sections - DMZ, standard network and financials.
+                        The latter may be a level harder to break into.
+                    </para>
+
+                    <para>
+                        A large organisation will probably have 3-5 different
+                        parts to the network, with multi-national or central
+                        government organisations having as many as a dozen.
+                        It is up to the GM to decide what each part of the
+                        network covers.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Being detected</title>
+
+                    <para>
+                        If pro-active monitoring of the system is being done,
+                        then there is a chance of any intrusion being noted.
+                        The sysadmin of the defending network gets a check
+                        only if they have the <e>System administration</e>
+                        technique. If they don't, then they're going to be
+                        oblivious to what is going on unless you start
+                        breaking things.
+                    </para>
+
+                    <para>
+                        If the intruder is regularly accessing the system
+                        then the sysadmin gets to make a
+                        <y:intelligence>Computer operation</y:intelligence>
+                        check against a difficulty of 20 each week. If they
+                        have the <e>Computer security</e> technique, then
+                        this check is made each time the intruder accesses
+                        the system, or at least each day. For every level of
+                        success that the intruder got when breaking into the
+                        system, add +10 to the detection difficulty.
+                    </para>
+
+                    <para>
+                        It is unlikely that the system is being monitored
+                        constantly - unusual logins may be noted in logs
+                        several hours after you've grabbed what you wanted
+                        and disconnected. This can provide you with time to
+                        try and cover your tracks. Futuristic systems
+                        monitored by AIs may have an instant response
+                        however.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>It's Too Hard</title>
+
+                    <para>
+                        Often, a system will be too secure to gain access to,
+                        so it will be necessary to find less direct ways of
+                        getting into the system. Each option can only give you
+                        a single bonus (so digging through lots of rubbish
+                        on multiple nights only gives you the best bonus),
+                        but different options can stack together.
+                    </para>
+
+                    <note title="Feeling Lucky?">
+                        <para>
+                            Luck plays an important factor in a lot of these
+                            cases, mostly because a lot of it really will
+                            come down to luck. It doesn't matter how good you
+                            are at looking through rubbish, if the company
+                            hasn't actually thrown out anything useful.
+                        </para>
+
+                        <para>
+                            Skill can help still of course, since it both
+                            helps to identify useful things, and is also
+                            needed to put it to use. However, many of these
+                            risky tasks can be carried out by people who
+                            don't know much about computers.
+                        </para>
+                    </note>
+
+                    <sect4>
+                        <title>Just Steal It</title>
+
+                        <para>
+                            In any modern setting, many employees of an
+                            organisation will work from home, or at least have
+                            a way of accessing the main network whilst away
+                            from the office. If this is the case, then obtaining
+                            access to their laptop, home computer or PDA can
+                            provide a large advantage. Obviously, this requires
+                            some basic theft, or at least house breaking.
+                        </para>
+
+                        <para>
+                            Gaining access to an external point of entry will
+                            drop the difficulty by one or two levels (e.g.,
+                            from <e>Secure</e> to <e>Corporate</e> or
+                            <e>Small Business</e>). Non-technical employees
+                            often make the best targets, especially if they've
+                            simply installed VPN software on their home computer.
+                            It may be possible to break into their home PC
+                            remotely, then install key loggers or trojans to
+                            help provide you access.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Dumpster Diving</title>
+
+                        <para>
+                            People through away all sorts of useful stuff,
+                            and digging through their waste may show up notes
+                            containing passwords or internal network diagrams
+                            that provide you with something useful.
+                        </para>
+
+                        <para>
+                            Each night of searching, make a <e>Luck</e> check.
+                            On a 20+, you'll find something possibly useful.
+                            The GM makes a second <e>Luck</e> check for you to
+                            determine how useful it is, but you won't know
+                            what bonus (if any) it provides until you try to
+                            make use of it by another intrusion attempt.
+                        </para>
+
+                        <targetlist>
+                            <targetLabel>Luck Roll</targetLabel>
+                            <valueLabel>What you find...</valueLabel>
+
+                            <item target="&lt; 10">
+                                Information is out of date, or wrong, and
+                                provides no bonus.
+                            </item>
+
+                            <item target="10+">
+                                Some information about their network topology
+                                which gives a +5 bonus.
+                            </item>
+
+                            <item target="15+">
+                                List of public facing applications or firewall
+                                configuration, +10 bonus.
+                            </item>
+
+                            <item target="20+">
+                                Some useful passwords or information about
+                                possible security holes, +15 bonus.
+                            </item>
+
+                            <item target="25+">
+                                Looks like someone has chucked out their secure
+                                id token, +25 bonus.
+                            </item>
+                        </targetlist>
+
+                        <para>
+                            You gain a +2 bonus to both <e>Luck</e> checks
+                            if you have the <e>Dumpster diving</e> technique.
+                            The usefulness of the information fades over
+                            time, so reduce the bonus by +5 each week.
+                            Multiple bonuses don't stack. Note that anyone
+                            can search through rubbish, but if you don't have
+                            the <e>System administration</e> technique, you
+                            have a -2 penalty to the first Luck check.
+                        </para>
+
+                        <para>
+                            If the organisation makes an effort to destroy
+                            information before throwing it out, you have a
+                            -10 to the second check. If they have good
+                            processes in place, then it becomes almost
+                            impossible to find anything, and you suffer -20.
+                            Remember, a secure building may also have guards
+                            in place to stop this sort of thing as well.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Down the Pub</title>
+
+                        <para>
+                            People like to go down the pub at lunch time (or
+                            after work) and often talk about their job. If
+                            you can locate the network administrators and
+                            listen in on their conversations, then you might
+                            hear something useful.
+                        </para>
+
+                        <para>
+                            Each day, make a <e>Luck</e> check as for
+                            <e>Dumpster Diving</e>. If you don't have
+                            at least <e>System administration</e>, then
+                            there is a -5 penalty to the second check,
+                            and -2 if you don't have <e>Computer intrusion</e>.
+                            It really helps to understand what they're
+                            talking about to make use of the information.
+                        </para>
+
+                        <para>
+                            If you're feeling really sociable, then you can
+                            try to join them. Make an
+                            <y:empathy>Charm</y:empathy> check at 20+ to be
+                            able to join them without them clamming up.
+                            Assuming that they're a group of young males,
+                            then being a young good looking female geek
+                            who appears interested in technical stuff can
+                            really help.
+                        </para>
+
+                        <para>
+                            Once you've joined them, then you gain an
+                            automatic +1 to the first <e>Luck</e> check,
+                            plus a further +2 for each extra level of
+                            success. Double these if you have either the
+                            <e>Carousing</e> or <e>Flirt</e> techniques
+                            (the latter only if suitable), or triple if
+                            you have both.
+                        </para>
+
+                        <para>
+                            You have the option to try and prod them into
+                            giving you information by making both a
+                            <y:empathy>Guile</y:empathy> check, and an
+                            <y:intelligence>Computer operation</y:intelligence>
+                            check at one of
+                            the following difficulties (your choice). If you
+                            fail,it means that they get
+                            suspicious about you. If you have
+                            <e>Carousing</e> then you can avoid suspicion
+                            by a second guile check (same difficulty), but you
+                            won't be able to try again.
+                        </para>
+
+                        <targetlist>
+                            <targetLabel>Target</targetLabel>
+                            <valueLabel>Bluntness</valueLabel>
+
+                            <item target="20">
+                                Subtle questions to prompt them, can give a
+                                +1 Luck bonus.
+                            </item>
+
+                            <item target="30">
+                                Less subtle questioning, but gives a +2 bonus.
+                            </item>
+
+                            <item target="40">
+                                Quite directed questioning which would be
+                                obvious if they thought they were with
+                                customers or competitors. +3 bonus.
+                            </item>
+
+                            <item target="50">
+                                Blunt and direct questions which you can only
+                                get away with because you're so nice, +4 bonus.
+                            </item>
+                        </targetlist>
+
+                        <para>
+                            The <e>Luck</e> bonus in this case applies to
+                            both Luck checks (and stacks with the bonus from
+                            the first roll for the first Luck check). If you
+                            have <e>Carousing</e>, you can double this second
+                            bonus.
+                        </para>
+
+                        <para>
+                            If they are paranoid for some reason, there is a
+                            +50% increase to all Empathy related checks, or
+                            +100% if they are actively alert. Note that some
+                            organisations have their own pubs inside the
+                            building specifically to stop this sort of thing
+                            from happening.
+                        </para>
+                    </sect4>
+
+                    <sect4>
+                        <title>Social Engineering</title>
+
+                        <para>
+                            Often, the easiest way to get information out of a
+                            secure network, is to simply ask for it. People have
+                            a tendancy to be helpful, and can be persuaded to
+                            give away information they shouldn't when they see
+                            someone having trouble.
+                        </para>
+
+                        <para>
+                            The normal technique is to either phone up an
+                            organisation, or visit the front desk, and ask
+                            some leading questions. For example, you could
+                            contact the IT help desk with a technical query
+                            (pretend to be an employee, and claim that your
+                            VPN isn't working), or turn up at the offices for
+                            a fake meeting.
+                        </para>
+
+                        <para>
+                            Make a <y:will>Guile</y:will> check on the previous
+                            Bluntness table. If you have <e>Cold reading</e>,
+                            you can double any Luck bonus you receive.
+                        </para>
+                    </sect4>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Encryption</title>
+
+                <para>
+                    Secure computer systems will ensure that data is stored
+                    in an encrypted form. Generally, anyone with access to
+                    tools and knowledge of a later TL, is able to crack the
+                    encryption of an earlier TL without much effort. Divide
+                    the difficulty by 5 for each difference in TL.
+                </para>
+
+                <para>
+                    The exception will be data properly encrypted with a
+                    one time pad - such data is generally perfectly safe
+                    unless access to the pad is possible, or a mistake
+                    has been made. One time pads are difficult to manufacture
+                    for large amounts of data however, so such encryption
+                    is rare.
+                </para>
+
+                <para>
+                    An attempt to break modern encryption can be made using
+                    <e>Computer hacking</e>. Most such attempts involve
+                    brute force techniques, using software to do most of the
+                    work. If you have the <e>Encryption</e> technique, you
+                    can halve the difficulties.
+                </para>
+
+                <targetlist bold="true">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Task</valueLabel>
+
+                    <item target="20" value="Very basic encryption.">
+                        A custom encryption system for a proprietry system,
+                        written by someone with no cryptographic background.
+                        Many programs may store passwords or license keys
+                        in this form.
+                    </item>
+
+                    <item target="100" value="Standard encryption.">
+                        The sort used by common off the shelf encryption
+                        software, assuming that no major effort has been
+                        made to keep it secure.
+                    </item>
+
+                    <item target="150" value="Secure encryption.">
+                        The best commonly available encryption. This is
+                        often used for financial data or security tools.
+                    </item>
+
+                    <item target="200" value="Military encryption.">
+                        The very best levels of encryption, where cost (in
+                        time, effort and computing power) is no limit when
+                        securing data. The military will rarely use this
+                        level of encryption, especially for real time
+                        communications, since it is too expensive unless
+                        there is a dedicated mainframe at each end.
+                    </item>
+                </targetlist>
+
+                <para>
+                    The standard time to break the encryption on a document
+                    is 100 days for a desktop of the equivalent TL. If a more
+                    powerful, or less powerful, computer system is available
+                    then add the computer system's rating to the attempt.
+                    Each level of success above the required difficult reduces
+                    the time required by 90% (e.g., 10 days for a good success,
+                    1 day for excellent etc).
+                </para>
+
+                <para>
+                    If a more random approach is desired, then assume that the
+                    base time is d20 x 10 days. This makes it harder for a
+                    player to know how long it's going to take. As with
+                    intrusion, it is assumed that about half the time is
+                    waiting for scripts to complete, and half the time requires
+                    the cryptographer to be working on the problem.
+                </para>
+
+                <note title="Breaking encryption">
+                    <para>
+                        Breaking encryption can be hard, and often it can
+                        only be done by either brute force, or finding a
+                        mistake in the process. Here, it is assumed that
+                        most of the work is in trying to exploit flaws in
+                        the implementations rather than trying to break
+                        the mathematics behind the algorithm.
+                    </para>
+
+                    <para>
+                        Generally, any real encryption system is designed
+                        so that brute force methods take longer than any
+                        reasonable time to work.
+                    </para>
+                </note>
+
+                <para>
+                    If you have <e>Cryptography</e>, then you can attempt to
+                    find a shortcut to reduce the amount of computer time
+                    required. How difficult this is depends on the amount
+                    of data available, whether there are known flaws in
+                    the encryption system used, or if common mistakes have
+                    been made. Each type of shortcut can be attempted, and
+                    each level of success means that the decryption difficulty
+                    is reduced by 10 (minimum 10).
+                </para>
+
+                <targetlist bold="true">
+                    <targetLabel>Target</targetLabel>
+                    <valueLabel>Task</valueLabel>
+
+                    <item target="20" value="Known flaws.">
+                        If the encryption system has some known flaws, then
+                        it may be possible to exploit these. Will tend to
+                        apply to older software.
+                    </item>
+
+                    <item target="30" value="Type of data is known.">
+                        If the type of data being encrypted is known, then
+                        this information can be used to decrypt it. For
+                        example, if the data is a document in a common
+                        word processor format, which always has the same
+                        header information, then this can be used to help
+                        crack the protection. The cracking of the German
+                        Enigma system in WWII was helped by German weather
+                        reports always starting with the same text.
+                    </item>
+
+                    <item target="30" value="Large amount of data.">
+                        If there is a large amount of similar data, then
+                        this can help find patterns, and lead to a shortcut.
+                    </item>
+                </targetlist>
+
+                <para>
+                    All attempts stack, so if there is a large amount of
+                    data and known plain text, then it can be very easy
+                    to decrypt documents. Note that the above attempts can
+                    only be made if they are applicable.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Artificial Intelligence</title>
+
+                <para>
+                    AIs are self-aware intelligences implemented as software.
+                    There are a number of different types of AIs, and they
+                    range considerably in their capabilities.
+                </para>
+
+                <sect3>
+                    <title>Turing Personality</title>
+
+                    <para>
+                        A <e>Turing Personality</e> is simply a software
+                        program that is able to convince people that it is
+                        human. It does not have full consciousness however,
+                        and is only capable of operating in a narrow field.
+                        They are often used on support desks or in service
+                        roles such as shop assistants or performing basic
+                        servant duties. Outside of their realm of expertise,
+                        then rapidly lose competence, and have only limited
+                        learning capability.
+                    </para>
+
+                    <para>
+                        TPs become available around Tech Level 9, and by
+                        TL 10 may be commonly available as the interface to
+                        PDAs or specialist software programs.
+                    </para>
+                </sect3>
+
+                <sect3>
+                    <title>Virtuals</title>
+
+                    <para>
+                        Full virtual personalities are available from TL10
+                        (or higher, depending on the background). These are
+                        fully conscious and self-aware entities, who have
+                        all the capabilities of a human mind. At the TL that
+                        they are introduced, they are about as capable as a
+                        human, but with better recall and data retrieval.
+                        Working out answers to 'tricky' problems takes about
+                        as much time as a human does. They are assumed to
+                        run on a mainframe class of machine.
+                    </para>
+
+                    <para>
+                        Each extra TL beyond introduction, assume that they
+                        can run on a machine of one lower class with about
+                        the same level of ability, or they can run about 10
+                        times as quickly on the same level of hardware.
+                    </para>
+                </sect3>
+            </sect2>
+
+            <sect2>
+                <title>Mind Interfaces</title>
+
+                <para>
+                    Basic mind-machine interfaces become available at TL8,
+                    though it isn't until TL9 that they really start to
+                    become useful. Basic PDA functionality can be accessed
+                    (map, contact or appointment information overlayed onto
+                    the optic nerve), and it becomes possible for a mind
+                    interface to be used to operate a computer (in much the
+                    same way a keyboard or mouse is at TL8).
+                </para>
+
+                <para>
+                    At late TL9, early TL10, it is possible to record
+                    everything that a person sees.
+                </para>
+
+                <para>
+                    At TL10, it becomes possible to access enough information
+                    to allow full body immersion into virtual realities,
+                    with sound and images from surface thoughts being
+                    accessable to the machine.
+                </para>
+
+                <para>
+                    At TL11, it is possible to read some memories out of a
+                    mind, and writing is possible but flaky. The main issue
+                    is accessing the memories, since they need to be brought
+                    to the fore and read. Every mind is different, so a large
+                    amount of time must be spent adapting to an individual
+                    before there is any hope of searching memories. Trawling
+                    memories is slow, and is effectively limited to real time.
+                    Even then, false memory syndrome is a very real possibility.
+                </para>
+
+                <para>
+                    By TL12 a lot of the adaption problems have been sorted,
+                    but downloading a person's mind is slow and difficult.
+                    Brain taping is possible, but it is traumatic, and can
+                    result in lost or damaged memories. It can take about a
+                    month to fully brain tape someone.
+                </para>
+            </sect2>
+
+            <sect2>
+                <title>Cyberware</title>
+
+                <para>
+                    Most cyberware is limited to providing physical enhancements
+                    to a person - making them faster and stronger for example.
+                    Enhancements to senses tend also to be limited to doing what
+                    they say on the box and no more. As soon as cyberware is
+                    available it is possible to network such addons to each other
+                    and to external interfaces, but doing so is a security risk
+                    which most people aren't willing to take. The possible law
+                    suits that could result if someone is damage due to a cyberlimb
+                    contracting a virus means most companies are unwilling to
+                    sell them with any form of connectivity.
+                </para>
+
+                <para>
+                    As TL9 progresses, sensory devices begin to be able to store
+                    and forward data, increasing the advantages of linking them
+                    up with external interfaces. Some will require a wired
+                    interface, and tend to be secure. Those that have wireless
+                    interfaces are less secure and can be hacked as if they were
+                    a <e>Secure system</e>.
+                </para>
+            </sect2>
+        </sect1>
+    </body>
+</article>
+
+

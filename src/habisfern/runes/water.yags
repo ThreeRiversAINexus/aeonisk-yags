@@ -1,0 +1,600 @@
+<?xml version="1.0"?>
+
+<!--
+    Water Runes.
+    Version: $Revision: 1.7 $
+    Date:    $Date: 2006-05-14 14:18:24 $
+-->
+<grimoire xmlns="http://yagsbook.sourceforge.net/xml/yags/habisfern"
+          xmlns:y="http://yagsbook.sourceforge.net/xml/yags"
+          name="Water">
+
+    <!--
+        Following are the core spells. Various other threads split off from
+        this one.
+     -->
+
+
+    <spell name="Wet" level="1" type="water">
+        <range>Reach</range>
+        <duration>Natural</duration>
+        <radius>Small</radius>
+
+        <short>Covers an area in water.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Causes the area specified to be covered by a thin film of
+                water. The water is obtained from the air, so the amount
+                amount gained depends on the humidity. In dry air, this rune
+                will have less of an affect. The water created is always cold
+                (just above zero, or the ambient temperature if that is colder,
+                possibly forming a layer of ice rather than water).
+            </para>
+            <para>
+                Impermeable surfaces will be covered with droplets of water,
+                clothing will be soaked and candles will be extinguished.
+            </para>
+            <para>
+                Targets do not gain any resistance, and only surfaces which
+                are open to the air which you can see are affected
+                (e.g., the inside of a box will remain dry).
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                A thin layer of water covers all surfaces, and torches will
+                be extinguished.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Mist" level="3" type="water">
+        <range>Self</range>
+        <duration>Minutes</duration>
+        <radius>Large</radius>
+        <prerequisite>Wet</prerequisite>
+
+        <short>Create a mist around you.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Creates a mist over an area which obscures vision and
+                causes everything to become damp. Once concentration has
+                ceased, the mist will dissipate normally. Sound is also
+                muffled in the mist, often more effectively than vision.
+            </para>
+            <para>
+                There is a +1 to the TN of any <t>Perception</t>
+                checks for each metre of mist between you and the target.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The mist is particularly dense, increase the TN
+                to spot targets by +2 per metre.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Flood" level="5" type="water">
+        <range>Short</range>
+        <duration>Minutes</duration>
+        <radius>Medium</radius>
+        <prerequisite>Mist</prerequisite>
+
+        <short>Greatly increases the volume of water.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This rune affects all free flowing liquid (e.g., not water
+                in a living body or a sealed container) within the radius
+                of the invocation to double in volume. This will cause
+                rivers and pools to flood, and containers to overflow.
+            </para>
+            <para>
+                Once the water leaves the area, it will return to its
+                normal volume within a minute. Water that remains within
+                range of the invocation will not continue to increase in
+                size.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                Water affected by this invocation will triple in volume.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                Water affected by this invocation will quadruple in volume,
+                or water in a sealed container (but not a living creature)
+                can be made to burst the container, doubling in volume.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Sink" level="7" type="water">
+        <range>Medium</range>
+        <duration>Rounds</duration>
+        <area>Medium</area>
+        <prerequisite>Flood</prerequisite>
+
+        <short>Causes water to drag objects down.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A body of water can be made to suck down an object or
+                creature within it. The water in the area affected will
+                try to envelope any object on its surface, and drag them
+                down to their deaths. Creatures cannot resist the magic
+                itself, but can try to resist the drowning by making a
+                <y:strength>Swim</y:strength> check each round versus
+                your <t>Will</t>.
+            </para>
+            <para>
+                Objects with good buoyancy (boats and ships, but not logs,
+                rafts or dead bodies) have a fixed <t>Will</t> difficulty
+                of their <t>Size</t> x 3. Once it has taken significant
+                water on board, it may no longer be counted as having good
+                buoyancy.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You gain a +10 bonus to your <t>Will</t> check when opposed
+                against targets.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                You gain a +20 bonus to your <t>Will</t> check when opposed
+                against targets.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Drown" level="7" type="water">
+        <range>Short</range>
+        <duration>Natural</duration>
+        <target>Medium</target>
+        <prerequisite>Flood</prerequisite>
+
+        <short>Cause a creature to drown.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                You cause water to form in the lungs of the designated
+                creature, who will immediately begin to drown. They immediately
+                gain a level of <e>Fatigue</e> and are incapacitated, unable
+                to do anything than to try to choke up water. Each round
+                afterwards they must make a <t>Health</t> check at a target of
+                30, or gain another <e>Fatigue</e>. Each round, the difficulty
+                drops by 5. On rounds they succeed, they are able to act
+                normally and need not make any further <t>Health</t> checks.
+            </para>
+            <para>
+                If they fall unconscious, then they die.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The initial <t>Health</t> difficulty is 40.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The initial <t>Health</t> difficulty is 50.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Fog" level="9" type="water">
+        <range>Self</range>
+        <duration>Hours</duration>
+        <radius>Huge</radius>
+        <prerequisite>Sink</prerequisite>
+
+        <short>Blanket a large area in thick fog.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A thick fog spreads out from you when this rune is
+                invoked. Within about a minute, it will cover the full area
+                of effect, only dispersing once you cease concentration.
+            </para>
+            <para>
+                The fog is thick, and cold. It drops the temperature of the
+                region affected by one level, and coats everything with a
+                layer of cold water. The difficulty of any <t>Perception</t>
+                checks is increased by +2 for each metre of distance.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The temperature drops by three levels, or the fog is so thick
+                that <t>Peception</t> difficulties are increased by +5 per
+                metre of fog.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The fog is both colder and thicker.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Rain" level="5" type="water">
+        <range>Self</range>
+        <duration>Minutes</duration>
+        <radius>Huge</radius>
+        <prerequisite>Mist</prerequisite>
+
+        <short>It begins to rain.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Invoking this rune causes it to rain over the affected area.
+                You must be outdoors when the rune is invoked, and the rain
+                falls from the sky, so does not affect those indoors.
+            </para>
+            <para>
+                The amount of rain depends on the humidity. In a dry climate,
+                then the rain is not much more than a drizzle. In a temperate
+                climate it is a light rain, and in a wet climate it is a
+                moderate rain.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                Increase the level of rain by one level.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                Increase the level of rain by two levels, or cause it to
+                rain indoors. Waters appears on the ceiling above your
+                head, raining down to cover the room.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Foul" level="5" type="water">
+        <range>Reach</range>
+        <duration>Momentary</duration>
+        <target>Medium</target>
+        <prerequisite>Mist</prerequisite>
+
+        <short>Make liquid foul and undrinkable.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When invoked, this rune causes a liquid to become foul and
+                undrinkable. The liquid cannot be part of a living creature.
+                An amount of liquid up to the size of a human is affected.
+            </para>
+            <para>
+                The liquid is not poisonous, but will not provide sustenance
+                and its taste will make it undrinkable.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The liquid becomes poisonous. Make a <t>Health</t> check
+                against a TN of 25 or become violently ill for up to a
+                minute.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                The liquid becomes acidic. Take +10 damage each round
+                submersed in the liquid, or +5 damage (mixed) if splashed
+                with it.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Purify" level="5" type="water">
+        <range>Reach</range>
+        <duration>Momentary</duration>
+        <target>Medium</target>
+        <prerequisite>Mist</prerequisite>
+
+        <short>Liquid is purified.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When invoked, this rune causes a liquid to become purified and
+                drinkable. The liquid cannot be part of a living creature.
+                An amount of liquid up to the size of a human is affected.
+            </para>
+            <para>
+                The liquid becomes cool and refreshing.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You can change the property of a liquid, to change its colour
+                and taste.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                You can change the property of a liquid to make it alcoholic.
+                It can take on a strength similar to strong wine.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Desiccate" level="7" type="water">
+        <range>Short</range>
+        <duration>Momentary</duration>
+        <target>Medium</target>
+        <prerequisite>Foul</prerequisite>
+
+        <short>Desiccate a living creature.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This unpleasant rune removes water from a living creature. The
+                water drains out through their skin, leaving behind a dried
+                out creature. They immediately take two <e>wounds</e>, and
+                unless a <t>Health</t> check versus your <t>Will</t> is made,
+                they take a further one as well.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                Get a +10 bonus to your Will check. For every extra success
+                you get on this check, an extra level of <e>wounds</e> is
+                caused.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                As for <e>good</e>, but the bonus is +20.
+            </para>
+        </description>
+    </spell>
+
+    <!--
+        Gloom thread. Adds cancelling heat and light.
+    -->
+    <spell name="Gloom" level="1" type="water">
+        <range>Self</range>
+        <duration>Minutes</duration>
+        <radius>Medium</radius>
+
+        <short>Darkens the immediate area.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When invoked, causes the area around you to darken,
+                dropping one level of darkness. This rune does not
+                work when in full, bright, sunlight.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The area darkens even further, dropping two levels
+                of darkness. Alternatively, it can drop one level
+                even in bright sunlight.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Extinguish" level="3" type="water">
+        <range>Short</range>
+        <duration>Momentary</duration>
+        <target>Few</target>
+        <resist>Will</resist>
+        <prerequisite>Gloom</prerequisite>
+
+        <short>Extinguishes fires.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                All targeted fires will be extinguished by this rune.
+                Any fire up to the size of a torch can be extinguished.
+                The fire immediately goes out, as if starved of air.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                Fires up to the size of a small campfire can be
+                extinguished.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Blind" level="5" type="water">
+        <range>Short</range>
+        <duration>Rounds</duration>
+        <target>Individual</target>
+        <prerequisite>Extinguish</prerequisite>
+        <resist>Will</resist>
+
+        <short>Blinds the target.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When this rune is invoked, the eyes of the target blacken
+                and they become blind. The target gets to make an opposed
+                <t>Will</t> check to resist. The effects last for as long
+                as you concentrate.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                You gain a +10 to your Will to overcome the resistance of
+                the target.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                You gain a +20 to your Will to overcome the resistance of
+                the target.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Night" level="7" type="water">
+        <range>Self</range>
+        <duration>Minutes</duration>
+        <radius>Huge</radius>
+        <prerequisite>Blind</prerequisite>
+
+        <short>Engulfs a large area in darkness.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                By invoking this rune you summon down an unnatural night
+                on the entire area, dropping the light level by two. Light
+                given off by fires only illuminates half as far.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Good)">
+            <para>
+                The night summoned becomes utterly dark, and light given
+                off by fires only illuminates one quarter the normal
+                distance.
+            </para>
+        </description>
+        <description xmlns="http://yagsbook.sourceforge.net/xml"
+                     title="Boost (Excellent)">
+            <para>
+                Light given off by fires only illuminates to one tenth
+                their usual radius, and furthermore, cannot even be seen
+                more then twice this distance away.
+            </para>
+        </description>
+    </spell>
+
+    <!--
+        Cold/fatigue thread.
+    -->
+
+    <spell name="Chill" level="3" type="water">
+        <range>Short</range>
+        <duration>Concentration</duration>
+        <target>Individual</target>
+        <prerequisite>Gloom</prerequisite>
+
+        <short>Make a person cold.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This rune causes a single target to become colder.
+                At the very least, it will tend to make them uncomfortable,
+                at worst it can cause hypothermia if they are not properly
+                dressed for the cold.
+            </para>
+
+            <para>
+                The effective temperature for the target drops by one level
+                per success.
+            </para>
+        </description>
+    </spell>
+
+
+    <spell name="Fatigue" level="5" type="water">
+        <range>Reach</range>
+        <duration>Momentary</duration>
+        <target>Individual</target>
+        <prerequisite>Chill</prerequisite>
+
+        <short>Drains energy from the target.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When this rune is invoked upon a person, they gain one level
+                of <e>Fatigue</e>.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Frost" level="3" type="water">
+        <range>Self</range>
+        <duration>Natural</duration>
+        <radius>Large</radius>
+        <prerequisite>Chill</prerequisite>
+
+        <short>Cover an area with frost and ice.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                When invoked, this rune covers the area around you
+                with frost and ice, dropping the temperature briefly.
+                The frost is likely to ruin crops and make people
+                uncomfortable. The area will warm naturally.
+            </para>
+
+            <para>
+                A <e>moderate</e> success will cause a light covering of
+                frost, which will harm crops not used to it, but do little
+                else. A <e>good</e> success will ruin most crops and
+                an <e>excellent</e> success will create a thick layer of
+                cold frost, freeze open water and make animals and people
+                very uncomfortable.
+            </para>
+        </description>
+    </spell>
+
+    <spell name="Slow" level="7" type="water">
+        <range>Short</range>
+        <duration>Concentration</duration>
+        <target>Few</target>
+        <resist>Health</resist>
+        <prerequisite>Fatigue</prerequisite>
+
+        <short>Slows the target.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The target of this rune is affected by a sluggishness
+                that slows their movements. Each level of success causes
+                them to suffer a -1 penalty to both <t>agility</t> and
+                <t>dexterity</t>. If either is reduced to zero, then
+                they are unable to move, and collapse to the floor.
+            </para>
+
+            <para>
+                Once you end concentration, they can immediately try to
+                recover a point from both attributes by making a
+                <t>health</t> check at a target of 20. A further check can
+                be made each minute after that.
+            </para>
+        </description>
+    </spell>
+
+
+</grimoire>
+
+

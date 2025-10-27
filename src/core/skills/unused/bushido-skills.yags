@@ -1,0 +1,450 @@
+<?xml version="1.0"?>
+
+<!--
+    Bushido skills, for use in an oriental style of campaign.
+    Crosslinked with talent techniques.
+
+    Copyright (c) 2006, Samuel Penn.
+    This document can be redistributed and/or modified under the terms
+    of the GNU Public License as published by the Free Software Foundation
+    version 2.
+
+    Version: $Revision: 1.7 $
+    Author: Samuel Penn
+-->
+
+<skill-list xmlns="http://yagsbook.sourceforge.net/xml/yags"
+            xmlns:y="http://yagsbook.sourceforge.net/xml/yags"
+            xmlns:yb="http://yagsbook.sourceforge.net/xml"
+            techniques="options/techniques.yags">
+    <groups>
+        <group>Combat</group>
+        <group parent="Combat">Melee</group>
+        <group parent="Combat">Missile</group>
+        <group parent="Combat">Armed melee</group>
+        <group parent="Combat">Bugei</group>
+        <group>Social</group>
+        <group>Artistic</group>
+        <group>Craft</group>
+        <group>Lore</group>
+    </groups>
+
+    <techniques>options/techniques.yags</techniques>
+    <techniques>lowtech/lowtech-techniques.yags</techniques>
+
+
+    <!--
+        LORE skills.
+    -->
+
+    <skill name="Kenjutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed Melee</group>
+        <group>Bugei</group>
+
+        <short>Skill with Samurai weapons.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The Samurai art of fighting, with weapons such as the
+                Katana and No-dachi. This skill covers using either a
+                single one handed weapon or a two-handed weapon, as long
+                as they are those commonly used by Samurai. Commonly, this
+                includes the katana, ninja-to, no-dachi and wakizashi.
+            </para>
+
+            <para>
+                Uses <t>dexterity</t> for both attack and defence, and
+                adds the attack, defence and damage attributes of the
+                weapon to rolls.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Niten" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed Melee</group>
+        <group>Bugei</group>
+
+        <prerequisite>Kenjutsu</prerequisite>
+
+        <short>Two sword Samurai style.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The traditional swords of the Samurai are the katana and
+                wakizashi, and all Samurai carry both. However, it is
+                normal practise to fight with only one of the blades at a
+                time. Those who practise the <e>Niten</e> style are skilled
+                at using both blades at once. You may use a wakizashi and
+                either a katana or ninja-to with this style. It is highly
+                specialised, not suited to other weapons.
+            </para>
+
+            <para>
+                Uses <t>dexterity</t> for both attack and defence, and
+                adds the attack, defence and damage attributes of the
+                primary weapon, plus the full attack <e>or</e> defence
+                attribute of the secondary weapon to rolls. Choose which
+                at the start of the round.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Iajutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed Melee</group>
+        <group>Bugei</group>
+
+        <default>Kenjutsu</default>
+        <prerequisite>Kenjutsu</prerequisite>
+
+        <short>Ritualised sword duels.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of fighting a duel specialised in the fast
+                draw of a katana aiming to kill with a single blow.
+                It covers the meditative and psychological aspects
+                of the duel, as well as actually being able to land
+                a blow.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Calligraphy" type="skill">
+        <group>Artistic</group>
+
+        <short>Artistic writing.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of writing artistically. With calligraphy you
+                are able to draw beautiful letters.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Tea ceremony" type="skill">
+        <group>Artistic</group>
+        <group>Social</group>
+
+        <default>Etiquette</default>
+        <short>The skilled art of making tea.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The making and serving of tea is considered a high art
+                form, and being able to arrange a perfect tea ceremony
+                is considered of high importance.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Ikebana" type="skill">
+        <group>Artistic</group>
+
+        <short>Flower arranging.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Being able to collect and arrange flowers artistically
+                is considered a respectable skill.
+            </para>
+        </description>
+    </skill>
+
+
+    <skill name="Kyujutsu" type="skill">
+        <group>Combat</group>
+        <group>Missile</group>
+        <group>Bugei</group>
+
+        <short>Using bows</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The skill of shooting a bow. With Kyujutsu you know how
+                to use all types of bows common to a Bushido setting.
+                Kyujutsu teaches that the firing of a bow should be a
+                single fluid action, and is based on <t>agility</t>
+                rather than <t>perception</t>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="War fan" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed Melee</group>
+        <group>Bugei</group>
+
+        <short>Using a war fan in combat</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The war fan is a heavy type of metal fan used for
+                signalling in battles. It can be used as a weapon.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Shinto" type="skill">
+        <group>Lore</group>
+
+        <short>Matters of the soul.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Knowledge of religious and spiritual matters. Provides
+                knowledge of the Celestial Court, as well as the philosophy
+                of <e>Shinto</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Boxing" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Sport</group>
+
+        <default>Brawl</default>
+
+        <short>The sport of boxing.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Boxing</e> is a specialised form of <e>brawl</e>,
+                which is designed for use under particular sporting
+                conditions. Though it can be used as a combat skill,
+                it is not designed to be, and can be ineffective
+                outside of the boxing ring. Knowledge of this skill
+                grants knowledge of the rules and etiquette of the
+                game, as well as skill at fighting.
+            </para>
+
+            <para>
+                Boxing is used like brawl to attack and defend. You
+                have +1 to your agility for purposes of defence, but
+                the penalty for making multiple defences is increased
+                by 50%. You get a bonus to punching damage equal to
+                your <e>Boxing</e> skill.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Judo" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Sport</group>
+
+        <short>The sport of judo.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Judo</e> is more of a sport than a style of
+                fighting designed for the real world, however it can
+                be used in real world conditions. <e>Judo</e> emphasises
+                defence rather than attack, and is specialised in throws
+                and trips rather than punching or kicking.
+            </para>
+
+            <para>
+                <e>Judo</e> is used like <e>brawl</e> in combat, though
+                does not teach the use of weapons. If a weapon is used,
+                the usual wrong-style penalties apply, plus you only get
+                the damage bonus of the weapon.
+            </para>
+
+            <para>
+                When using <e>Judo</e>, you gain
+                a +1 bonus to agility for defence (which can affect the
+                maximum number of defences) and grab or trip attacks.
+                However, you suffer -1 to agility for all other attacks.
+                Attacks aimed to directly damage (such as a punch or kick)
+                have a -4 penalty to damage.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Jujutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Bugei</group>
+
+        <prerequisite score="2">Brawl</prerequisite>
+
+        <short>Unarmed combat specialised in throws and holds.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A particular style of unarmed combat that is designed for
+                use in real combat situations. It is specialised in making
+                throws and trips, but unlike <e>Judo</e> is also effective
+                in attack.
+            </para>
+
+            <para>
+                Jujutsu may be used in place of <e>Brawl</e> for all
+                unarmed combat manouevres. When making <t>strength</t>
+                checks for grapple and trip <e>attacks</e>, you may use
+                <t>agility</t> instead, and also gain a +1 bonus to
+                either attribute in each case.
+            </para>
+
+            <para>
+                Use of a weapon with this skill gives you the damage bonus
+                of the weapon, but not the attack or defence bonuses unless
+                it is a brawling or longshaft weapon.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Aikijutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Bugei</group>
+
+        <prerequisite score="2">Brawl</prerequisite>
+
+        <short>Unarmed combat specialised in throws.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                A style of unarmed combat which concentrates on throws and
+                locks. It is designed for real combat, and has a number of
+                techniques to get your opponent into a position ready to
+                be thrown or grabbed.
+            </para>
+
+            <para>
+                You gain a +1 to your agility for all trip attacks and
+                defences, and always use <y:agility>Aikijutsu</y:agility>
+                for such manouevres. If fighting from the prone position,
+                you suffer no penalties. It can otherwise be used in place
+                of <e>Brawl</e> for punches, kicks, dodges and other
+                unarmed combat moves.
+            </para>
+
+            <para>
+                If using a weapon, you gain the damage bonus of the weapon
+                and suffer a +1 increase in the fumble chance.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Karate" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+
+        <prerequisite score="2">Brawl</prerequisite>
+
+        <short>An aggressive unarmed combat style.</short>
+
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                <e>Karate</e> is one of the popular (or at least, well
+                known) styles of unarmed combat in the modern world. It
+                is specialised in attack rather than defence. Though it
+                is often used as a sport, it is effective in a real fight
+                as well.
+            </para>
+
+            <para>
+                It is used in the same way as <e>brawl</e> in combat,
+                though it does not teach the use of weapons. When fighting
+                unarmed, you gain a bonus to damage equal to your skill,
+                but suffer a -1 penalty to agility for defence rolls.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Kobujutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed Melee</group>
+        <group>Bugei</group>
+
+        <short>Weapon skill specialised in sticks and chains.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                This weapon skill was developed in Okinawa, and favours
+                the use of weapons such as Bo staves, Jo sticks, nunchuka
+                and the sai - basically weapons adapted from peasant tools.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Ninjutsu" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Armed Melee</group>
+        <group>Bugei</group>
+        <prerequisite score="4">Brawl</prerequisite>
+
+        <short>Attack by stealth and surprise.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                The infamous combat style taught by the Ninja, its focus
+                is on surprise and taking out the enemy quickly and quietly.
+                It does not perform well in an open battle, but most
+                practitioners seek to avoid open battles so that is not
+                often a problem. It has a mixture of armed and unarmed
+                melee, plus some ranged combat.
+            </para>
+
+            <para>
+                If the target is surprised, then you may add your
+                <e>Ninjutsu</e> skill to damage done. It also adds to all
+                <e>Stealth</e> rolls.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Wing Chun" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <group>Bugei</group>
+        <prerequisite score="2">Brawl</prerequisite>
+
+        <short>A ancient variation of kung fu.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Wing Chun is specialised in close fighting, and as well as
+                unarmed attacks makes use of the knife, longstaff and
+                butterfly sword (the latter is often used in pairs). It is
+                good at counter strikes and fast punches.
+            </para>
+
+            <para>
+                When using <e>Wing Chun</e> you use <t>agility</t> in both
+                attack and defence, and gain a +1 attribute bonus when
+                making <e>free strikes</e> or <e>counter strikes</e>.
+            </para>
+        </description>
+    </skill>
+
+    <skill name="Jeet Kune Do" type="skill">
+        <group>Combat</group>
+        <group>Melee</group>
+        <prerequisite score="4">Brawl</prerequisite>
+        <prerequisite score="4">Wing Chun</prerequisite>
+
+        <short>A modern style invented by Bruce Lee.</short>
+        <description xmlns="http://yagsbook.sourceforge.net/xml">
+            <para>
+                Jeet Kune Do is a modern style of fighting which aims to
+                take the best of many other styles. It's speciality is that
+                it has no speciality - it emphasises flexibility and
+                spontaneity.
+            </para>
+        </description>
+    </skill>
+
+</skill-list>
+
+
+

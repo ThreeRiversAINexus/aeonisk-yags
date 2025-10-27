@@ -1,0 +1,389 @@
+<?xml version="1.0"?>
+
+<!--
+    Small arms for TL 6.
+
+    Copyright 2013 Samuel Penn, www.glendale.org.uk.
+
+    Redistribution and use in source, binary and printed forms with or
+    without modification, are permitted.
+
+    Importance
+    0               Only include in complete lists.
+    1               Detail, not often needed.
+    2               Normally list.
+    3               Very important. Always list
+
+    All units are in cgs.
+
+    Prices are in USD.
+ -->
+<equipment xmlns="https://yags-rpg.net/xml">
+
+    <item name="M1903 Springfield">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>3</legality>
+        <weight>4500</weight>
+        <cost units="usd">350</cost>
+
+        <short>Bolt action rifle.</short>
+        <description>
+            <para>
+                First adopted by the American army in 1903, this is a
+                magazine fed bolt-action rifle which was widely used
+                during WW1 and WW2. Even after it fell out of use amongst
+                regular infantry, it continued to be used as a sniper
+                weapon until the 1960s due to its effectiveness up to
+                almost 1km.
+            </para>
+
+            <para>
+                It uses the .30-06 Springfield cartridge, or 7.62 x 63mm
+                metric.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+8</attack><damage>17</damage>
+                <range>
+                    <increment>25</increment>
+                    <short>550</short><medium>900</medium><long>2700</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>2</reach>
+            <capacity>5</capacity><rof>2</rof><recoil>-10</recoil>
+            <properties>
+                <missile/><firearm/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="S&amp;W Model 10">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>3</legality>
+        <weight>900</weight>
+        <cost units="usd">20</cost>
+
+        <short>Revolver firing a .38sp round.</short>
+        <description>
+            <para>
+                The Smith &amp; Wesson 'Military &amp; Police' revolver,
+                is a typical six-shooter using the .38 Special round.
+                It first went into production in 1899, and has consisted
+                of several different models. It has been described as the
+                most successful handgun of all time, and the most popular
+                centre fire revolver of the 20th century.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+4</attack><damage>8</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>60</short><medium>120</medium><long>600</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>1</load><reach>0</reach>
+            <capacity>6</capacity><rof>3</rof><recoil>-3</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="S&amp;W .357 Magnum">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>3</legality>
+        <weight>1500</weight>
+        <cost units="usd">20</cost>
+
+        <short>Revolver.</short>
+        <description>
+            <para>
+                The .357 Magnum was a more powerful revolver than the
+                model 10.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+4</attack><damage>12</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>80</short><medium>160</medium><long>800</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>1</load><reach>0</reach>
+            <capacity>6</capacity><rof>3</rof><recoil>-4</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="3"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Walter PP">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>3</legality>
+        <weight>680</weight>
+        <cost units="usd">20</cost>
+
+        <short>Semi-automatic pistol.</short>
+        <description>
+            <para>
+                Introduced in 1929, it was closely followed by the PPK
+                variant in 1931. The PPK is slightly lighter and more
+                concealable, but has its magazine capacity reduced by 1.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Pistols</category>
+            <class>pistol</class>
+            <combat>
+                <attack>+4</attack><damage>8</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>50</short><medium>100</medium><long>400</long>
+                </range>
+            </combat>
+            <strength>2</strength><load>1</load><reach>0</reach>
+            <capacity>8</capacity><rof>5</rof><recoil>-3</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="1"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Garand M1">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>3</legality>
+        <weight>4500</weight>
+        <cost units="usd">350</cost>
+
+        <short>Semi automatic infantry rifle.</short>
+        <description>
+            <para>
+                The first semi-automatic rifle to see large scale
+                distribution, it was the standard rifle of the US army
+                from 1936 to 1957.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+7</attack><damage>17</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>450</short><medium>700</medium><long>2100</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>2</reach>
+            <capacity>8</capacity><rof>5</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Karabiner 98k">
+        <category>Weapon</category>
+        <importance>1</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>3</legality>
+        <weight>4100</weight>
+        <cost units="usd">350</cost>
+
+        <short>Bolt-action rifle.</short>
+        <description>
+            <para>
+                The German made Karabiner 98k was a bolt action rifle
+                which went into general use in the German army in 1935.
+                It used a 7.92 x 57mm round, with a muzzle velocity of
+                760m/s.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+7</attack><damage>17</damage>
+                <range>
+                    <increment>25</increment>
+                    <short>800</short><medium>1600</medium><long>3500</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>2</reach>
+            <capacity>5</capacity><rof>2</rof><recoil>-10</recoil>
+            <properties>
+                <missile/><firearm/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Thompson SMG">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>2</legality>
+        <weight>4900</weight>
+        <cost units="usd">120</cost>
+
+        <short>.45 ACP sub-machine gun.</short>
+        <description>
+            <para>
+                The American light automatic weapon that entered service
+                in 1921 and found fame when it was commonly used by
+                American gangsters during the 20s. It was also used by
+                allied troops during World War II. It remained in
+                service until the early 70s.
+            </para>
+
+            <para>
+                It can take a 20 or 30 round detachable box magazine, or
+                a 50 or 100 round drum magazine. A drum adds +1 or +2
+                <e>Load</e> to the weapon, and is unreliable, jamming on
+                a roll of 1-2.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Rifles</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+5</attack><damage>10</damage>
+                <range>
+                    <increment>15</increment>
+                    <short>200</short><medium>500</medium><long>2000</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>5</load><reach>1</reach>
+            <capacity>20</capacity><rof>20</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><automatic/>
+                <reload score="2"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="Winchester Model 1897">
+        <category>Weapon</category>
+        <importance>3</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>2</legality>
+        <weight>3600</weight>
+        <cost units="usd">550</cost>
+
+        <short>Late 19th century 12G shotgun.</short>
+        <description>
+            <para>
+                One of the most famous shotguns, the Winchester 1897
+                was used in both world wars as a trench weapon. It
+                was available as both a civilian hunting weapon and
+                for military use, but the basic statistics remain
+                the same regardless of looks.
+            </para>
+
+            <para>
+                If using a solid slug rather than shot, it loses its
+                <e>Cone</e> effect, does +5 damage and triples all
+                ranges. The increment is doubled, but halve the
+                attack bonus. Also lose the <e>light</e> effect and
+                becomes <e>heavy</e>.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Shotguns</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+15</attack><damage>23</damage>
+                <range>
+                    <increment>10</increment>
+                    <short>10</short><medium>25</medium><long>50</long>
+                </range>
+            </combat>
+            <strength>3</strength><load>4</load><reach>3</reach>
+            <capacity>5</capacity><rof>5</rof><recoil>-5</recoil>
+            <properties>
+                <missile/><firearm/><semiauto/><light/><shotgun/>
+                <reload score="4"/>
+            </properties>
+        </weapon>
+    </item>
+
+    <item name="M2-2 Flamethrower">
+        <category>Weapon</category>
+        <importance>2</importance><availability>2</availability>
+        <techLevel>6</techLevel>
+        <legality>1</legality>
+        <weight>30000</weight>
+        <cost units="usd">1000</cost>
+
+        <short>World War 2 flamethrower.</short>
+        <description>
+            <para>
+                This is an American flamethrower that was used during
+                WW2. It has a man-portable backpack consisting of two
+                gasoline fuel tanks plus a nitrogen tank for propellent.
+                It has enough fuel for seven seconds of burn.
+            </para>
+        </description>
+
+        <weapon xmlns="https://yags-rpg.net/xml/yags">
+            <category>Firearms</category>
+            <category>Exotic</category>
+            <class>rifle</class>
+            <combat>
+                <attack>+12</attack><damage type="mixed">5</damage>
+                <range>
+                    <increment>20</increment>
+                    <short>20</short><medium>35</medium><long>50</long>
+                </range>
+            </combat>
+            <strength>4</strength><load>30</load><reach>3</reach>
+            <capacity>7</capacity><rof>5</rof><recoil>0</recoil>
+            <properties>
+                <missile/><automatic score="1"/><elemental type="Fire"/>
+                <reload score="24"/>
+            </properties>
+        </weapon>
+    </item>
+
+</equipment>
+
+
