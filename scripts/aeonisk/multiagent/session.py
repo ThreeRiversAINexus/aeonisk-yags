@@ -23,7 +23,6 @@ from .energy_economy import SeedType
 from .outcome_parser import (
     parse_session_end_marker,
     parse_new_clock_marker,
-    parse_pivot_scenario_marker,
     parse_advance_story_marker
 )
 from .enemy_combat import EnemyCombatManager
@@ -56,6 +55,7 @@ class SelfPlayingSession:
         self.session_data: List[Dict[str, Any]] = []
         self.running = False
         self.shared_state = SharedState()
+        self.shared_state.session_config = self.config  # Store config for agents to access flags
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
         self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
@@ -483,6 +483,26 @@ class SelfPlayingSession:
         print("\n=== Declaration Phase ===")
         self._in_declaration_phase = True
         self._declared_actions.clear()
+
+        # Assign combat IDs for free targeting mode (if enabled)
+        enemy_config = self.config.get('enemy_agent_config', {})
+        if enemy_config.get('free_targeting_mode', False):
+            logger.info("Free targeting mode enabled - assigning combat IDs")
+            combat_id_mapper = self.shared_state.get_combat_id_mapper()
+            combat_id_mapper.enable()
+
+            # Get all active enemies (empty list if enemy combat disabled)
+            active_enemies = []
+            if self.enemy_combat and self.enemy_combat.enabled:
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(self.enemy_combat.enemy_agents)
+
+            # Assign IDs to all combatants (PCs + enemies)
+            combat_id_mapper.assign_ids(
+                player_agents=self.shared_state.player_agents,
+                enemy_agents=active_enemies
+            )
+            logger.info(f"Assigned {len(combat_id_mapper.get_all_combat_ids())} combat IDs")
 
         # Log declaration phase start
         if mechanics and mechanics.jsonl_logger:
@@ -1093,7 +1113,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 void_score = getattr(agent.character_state, 'void_score', 0)
                 void_str = f"Void {void_score}/10"
 
+                # Get faction
+                faction = getattr(agent.character_state, 'faction', 'Unknown')
+
                 print(f"    [{init:2d}] {agent.character_state.name:20s} | {health_str:12s} | {position_str:15s} | {void_str}")
+                print(f"         └─ Faction: {faction}")
 
                 # Display equipped weapons (always show)
                 if hasattr(agent, 'equipped_weapons'):
@@ -1116,7 +1140,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             carried_str = " | ".join(carried_items)
                             print(f"         └─ Carried: {carried_str}")
 
-                # Display key inventory items (offerings, seeds, currency)
+                # Display full inventory (all items)
                 inventory_items = []
                 if hasattr(agent.character_state, 'inventory') and agent.character_state.inventory:
                     inv = agent.character_state.inventory
@@ -1129,9 +1153,19 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     if inv.get('crystal_focus', 0) > 0:
                         inventory_items.append(f"Crystal:{inv['crystal_focus']}")
 
-                    # Show first 3 items to keep it compact
+                    # Show any other items in inventory (besides the standard offerings)
+                    for key, value in inv.items():
+                        if key not in ['blood_offering', 'incense', 'crystal_focus'] and value:
+                            # Format the key nicely (replace underscores with spaces, capitalize)
+                            display_key = key.replace('_', ' ').title()
+                            if isinstance(value, int) and value > 0:
+                                inventory_items.append(f"{display_key}:{value}")
+                            elif isinstance(value, str):
+                                inventory_items.append(f"{display_key}:{value}")
+
+                    # Show all inventory items
                     if inventory_items:
-                        inv_str = " | ".join(inventory_items[:3])
+                        inv_str = " | ".join(inventory_items)
                         print(f"         └─ Inventory: {inv_str}")
 
                 # Display energy/seeds if available
@@ -1203,8 +1237,18 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             description = clock_data['description']
 
             # Create the new clock
-            mechanics.create_scene_clock(name, max_ticks, description)
+            clock = mechanics.create_scene_clock(name, max_ticks, description)
             print(f"\n🕐 NEW CLOCK SPAWNED: {name} (0/{max_ticks}) - {description}")
+
+            # Track clock creation in history
+            mechanics.clock_history.append({
+                'round': mechanics.current_round,
+                'event_type': 'created',
+                'clock_name': name,
+                'description': description,
+                'max': max_ticks,
+                'consequence': clock.filled_consequence if clock else ''
+            })
 
             # Log the new clock
             if mechanics.jsonl_logger:
@@ -1303,6 +1347,36 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         print(f"    Top Skills: {skills_str}")
                     else:
                         print(f"  {agent_id}: {void_info['score']}/10 ({void_info['level']})")
+
+            # Print clock timeline
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics and mechanics.clock_history:
+                print("\n--- Clock Timeline ---")
+                for event in mechanics.clock_history:
+                    round_num = event.get('round', '?')
+                    event_type = event.get('event_type', 'unknown')
+                    clock_name = event.get('clock_name', 'Unknown')
+                    description = event.get('description', '')
+
+                    if event_type == 'created':
+                        max_val = event.get('max', '?')
+                        consequence = event.get('consequence', '')
+                        print(f"  Round {round_num}: 🕐 CREATED - {clock_name} (0/{max_val})")
+                        print(f"             {description}")
+                        if consequence:
+                            print(f"             When filled: {consequence}")
+                    elif event_type == 'filled':
+                        final_val = event.get('final_value', '?')
+                        consequence = event.get('consequence', '')
+                        print(f"  Round {round_num}: ✅ FILLED - {clock_name} ({final_val})")
+                        if consequence:
+                            print(f"             Triggered: {consequence}")
+                    elif event_type == 'expired':
+                        final_val = event.get('final_value', '?')
+                        exp_type = event.get('expiration_type', 'unknown')
+                        print(f"  Round {round_num}: ⏰ EXPIRED - {clock_name} ({final_val}) - {exp_type}")
+                        print(f"             {description}")
+                print()
 
             print("=" * 40)
 
@@ -1564,6 +1638,20 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         print(f"Location: {scenario.get('location', 'Unknown')}")
         print(f"\nDM: {opening_narration}")
 
+        # Track initial scenario clocks in history
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.scene_clocks:
+                for clock_name, clock in mechanics.scene_clocks.items():
+                    mechanics.clock_history.append({
+                        'round': 1,  # Initial scenario is round 1
+                        'event_type': 'created',
+                        'clock_name': clock_name,
+                        'description': clock.description,
+                        'max': clock.maximum,
+                        'consequence': clock.filled_consequence
+                    })
+
         # Process enemy spawn markers from opening narration
         if opening_narration and self.enemy_combat.enabled:
             spawn_notifications = self.enemy_combat.process_dm_narration(opening_narration)
@@ -1729,51 +1817,6 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         new_clocks = parse_new_clock_marker(narration)
         if new_clocks:
             self._spawn_new_clocks(new_clocks)
-
-        # Check for scenario pivot marker
-        pivot_result = parse_pivot_scenario_marker(narration)
-        if pivot_result['should_pivot']:
-            logger.info(f"DM requested scenario pivot: {pivot_result['new_theme']}")
-
-            # Archive ALL filled clocks when scenario pivots
-            # The pivot itself means the DM has addressed the situation
-            mechanics = self.shared_state.mechanics_engine
-            if mechanics and mechanics.scene_clocks:
-                clocks_to_archive = []
-                for clock_name, clock in list(mechanics.scene_clocks.items()):
-                    if clock.filled:  # Archive any filled clock
-                        overflow = clock.current - clock.maximum
-                        logger.info(f"🗑️  Archiving filled clock after pivot: {clock_name} ({clock.current}/{clock.maximum}, +{overflow})")
-                        clocks_to_archive.append(clock_name)
-                        del mechanics.scene_clocks[clock_name]
-
-                if clocks_to_archive:
-                    print(f"\n🔄 SCENARIO PIVOT: '{pivot_result['new_theme']}'")
-                    print(f"   Archived {len(clocks_to_archive)} filled clocks: {', '.join(clocks_to_archive)}")
-
-            # Notify all players of the scenario pivot
-            pivot_narration = f"The situation has changed! New objective: {pivot_result['new_theme']}"
-            pivot_message = Message(
-                id=f"pivot_{datetime.now().isoformat()}",
-                type=MessageType.SCENARIO_UPDATE,
-                sender='coordinator',
-                recipient=None,  # Broadcast to all
-                payload={
-                    'new_theme': pivot_result['new_theme'],
-                    'new_situation': pivot_narration,
-                    'pivot_narration': pivot_narration
-                },
-                timestamp=datetime.now()
-            )
-            # Note: This is async context, but we can't await here in a non-async handler
-            # The message will be queued for delivery
-            import asyncio
-            asyncio.create_task(self.coordinator.message_bus._route_message(pivot_message))
-
-            # Store pivot for DM to use in next scenario generation
-            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
-            if dm_agents:
-                dm_agents[0].pending_scenario_pivot = pivot_result['new_theme']
 
 
 # Configuration example

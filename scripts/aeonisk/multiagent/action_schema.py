@@ -247,14 +247,14 @@ class ActionValidator:
     def validate_action(
         self,
         action: ActionDeclaration,
-        allow_duplicates: bool = False
+        allow_duplicates: bool = True
     ) -> tuple[bool, List[str]]:
         """
         Validate an action declaration.
 
         Args:
             action: The action to validate
-            allow_duplicates: Whether to allow duplicate intents
+            allow_duplicates: Whether to allow duplicate intents (default: True to allow repeated combat actions)
 
         Returns:
             Tuple of (is_valid, list_of_issues)
@@ -265,7 +265,7 @@ class ActionValidator:
         structural_errors = action.validate()
         issues.extend(structural_errors)
 
-        # Check for duplicates
+        # Check for duplicates (disabled by default for combat scenarios)
         if not allow_duplicates:
             if self.deduplicator.check_duplicate(action.agent_id, action.intent):
                 issues.append(

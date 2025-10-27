@@ -208,15 +208,16 @@ Use when the scenario has reached a definitive conclusion (victory, defeat, or d
 When filled clocks create new challenges or opportunities:
 `[NEW_CLOCK: Pursuit Chase | 6 | Gangs pursuing through tunnels]`
 
-**3. Pivot Scenario:**
-When the situation changes so dramatically that a new scenario emerges:
-`[PIVOT_SCENARIO: Escape from locked facility - fighting through sealed corridors]`
+**3. Advance Story:**
+When the situation progresses to a new location or the scenario changes significantly:
+`[ADVANCE_STORY: Escape Route | Fighting through sealed corridors toward the extraction point]`
+`[ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]`
 
 **When to Use These Markers:**
 - **Victory**: Key objective achieved (e.g., "Evidence Trail" filled AND team escapes)
 - **Defeat**: Multiple defeat clocks filled, or team captured/killed
 - **New Clock**: A filled clock creates a NEW challenge (not just progression)
-- **Pivot**: The scenario fundamentally transforms (e.g., from "investigation" to "escape")
+- **Advance Story**: Progress to new location or situation changes significantly
 
 **Important:** Don't end sessions prematurely. Let scenarios develop. But if clocks indicate clear victory/defeat, use these markers to provide narrative closure.
 """
@@ -260,7 +261,14 @@ You MUST try a different approach, tool, location, or angle. Repeating the same 
     # Build goal-aligned dialogue prompts
     dialogue_goal_text = ""
     if other_party_members:
-        if any('bond' in goal.lower() or 'harmony' in goal.lower() or 'community' in goal.lower() for goal in goals):
+        # Detect competitive/PVP scenarios - suppress coordination prompts if goals are competitive
+        competitive_keywords = ['before', 'only one', 'defeat', 'neutralize', 'detain', 'winner', 'vs', 'against']
+        is_competitive = any(keyword in goal.lower() for goal in goals for keyword in competitive_keywords)
+
+        if is_competitive:
+            # Competitive scenario - NO coordination prompts
+            dialogue_goal_text = ""
+        elif any('bond' in goal.lower() or 'harmony' in goal.lower() or 'community' in goal.lower() for goal in goals):
             dialogue_goal_text = f"""
 
 **🎯 HOW TO ACHIEVE YOUR GOALS:**

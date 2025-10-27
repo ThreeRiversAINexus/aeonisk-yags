@@ -192,10 +192,26 @@ class AIDMAgent(Agent):
             logger.debug("Force combat enabled - using combat scenario template")
             scenario_data = self._create_combat_scenario(config)
         else:
+            # Check for scenario constraints/hints in DM config
+            dm_config = config.get('agents', {}).get('dm', {})
+            scenario_hint = dm_config.get('_scenario_hint', '')
+
+            scenario_constraints = ""
+            if scenario_hint:
+                scenario_constraints = f"""
+⚠️⚠️⚠️ **CRITICAL SCENARIO CONSTRAINTS** ⚠️⚠️⚠️
+{scenario_hint}
+
+YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions below.
+⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
+"""
+
             # Use LLM to generate dynamic scenario
             try:
                 scenario_prompt = f"""Generate a unique Aeonisk YAGS scenario for a tabletop RPG session.
 
+{scenario_constraints}
 {party_context}
 {lore_context}
 {variety_context}
@@ -204,8 +220,7 @@ Create a scenario with:
 1. Theme (2-3 words): The type of situation
 2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
 3. Situation (1-2 sentences): What's happening
-4. Void level (0-10): Environmental void corruption. Most scenarios should be 2-4 (mild corruption). Only use 6+ for void outbreak/crisis scenarios.
-5. Three clocks/timers with CLEAR SEMANTICS:
+4. Three clocks/timers with CLEAR SEMANTICS:
    - A threat/danger that could escalate
    - Something the players are trying to accomplish
    - A complication or secondary concern
@@ -216,14 +231,13 @@ Create a scenario with:
      → Use MECHANICAL clock: FILLED should include [SPAWN_ENEMY: ...]
    - If advancing = progress on objective (evidence gathering, defenses built)
      → Name it clearly: "Evidence Collection", "Defenses Established", "Evacuation Progress"
-     → Use NARRATIVE clock: FILLED should include [PIVOT_SCENARIO: ...] or [ADVANCE_STORY: ...]
+     → Use NARRATIVE clock: FILLED should include [ADVANCE_STORY: Location | Situation] or [NEW_CLOCK: ...]
    - ALWAYS specify what happens when filled (mechanical OR narrative marker required)
 
 Format:
 THEME: [theme]
 LOCATION: [location from canonical lore]
 SITUATION: [situation]
-VOID_LEVEL: [number]
 CLOCK1: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK2: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK3: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
@@ -233,13 +247,13 @@ CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get 
 CLOCK2: Containment Failure | 4 | Void breach imminent | ADVANCE=Breach worsens | REGRESS=Containment reinforced | FILLED=Void creature emerges [SPAWN_ENEMY: Void Manifestation | boss | 1 | Near-Enemy | aggressive_melee]
 
 Example clocks (NARRATIVE - with scenario markers):
-CLOCK3: Evidence Collection | 8 | Gathering proof of corruption | ADVANCE=More evidence found | REGRESS=Evidence destroyed | FILLED=Case ready, evidence complete [PIVOT_SCENARIO: Confrontation with the corrupt magistrate]
+CLOCK3: Evidence Collection | 8 | Gathering proof of corruption | ADVANCE=More evidence found | REGRESS=Evidence destroyed | FILLED=Case ready, evidence complete [ADVANCE_STORY: Magistrate's Office | Confrontation with the corrupt magistrate]
 CLOCK4: Escape Route | 6 | Finding way out of the facility | ADVANCE=Exit path revealed | REGRESS=Path blocked | FILLED=Exit found! [ADVANCE_STORY: Maintenance Tunnels | You emerge into the tunnels. Allies are regrouping ahead]
 CLOCK5: Void Resonance | 4 | Growing instability | ADVANCE=Resonance intensifies | REGRESS=Stabilization efforts succeed | FILLED=New void rift opening [NEW_CLOCK: Rift Manifestation | 6 | Entities crossing over]
 
 **IMPORTANT**: ALL clocks MUST have consequences in their FILLED field. Use:
 - **Mechanical markers** for spawns/despawns: [SPAWN_ENEMY: ...], [DESPAWN_ENEMY: ...]
-- **Scenario markers** for narrative progression: [PIVOT_SCENARIO: ...], [ADVANCE_STORY: ...], [NEW_CLOCK: ...]
+- **Scenario markers** for narrative progression: [ADVANCE_STORY: Location | Situation], [NEW_CLOCK: ...]
 
 **ENEMY SPAWNING**: For combat/danger clocks, add enemy spawn markers to FILLED consequences:
 - Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
@@ -1408,15 +1422,15 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     if filled_consequence:
                         expired_lines.append(f"     Consequence: {filled_consequence}")
                         # Check if this is a mechanical clock (has markers) or narrative clock
-                        if any(marker in filled_consequence for marker in ['[SPAWN_ENEMY:', '[DESPAWN_ENEMY:', '[NEW_CLOCK:', '[PIVOT_SCENARIO:', '[ADVANCE_STORY:']):
+                        if any(marker in filled_consequence for marker in ['[SPAWN_ENEMY:', '[DESPAWN_ENEMY:', '[NEW_CLOCK:', '[ADVANCE_STORY:']):
                             expired_lines.append(f"     → Include the marker from the consequence in your narration")
                         else:
-                            expired_lines.append(f"     → This is a NARRATIVE clock - you MUST use a scenario marker ([PIVOT_SCENARIO]/[ADVANCE_STORY]/[NEW_CLOCK]) to change the story!")
+                            expired_lines.append(f"     → This is a NARRATIVE clock - you MUST use a scenario marker ([ADVANCE_STORY: Location | Situation] or [NEW_CLOCK: ...]) to change the story!")
                     else:
-                        expired_lines.append(f"     → This clock filled without a consequence. You MUST use [PIVOT_SCENARIO] or [ADVANCE_STORY] to advance the narrative!")
+                        expired_lines.append(f"     → This clock filled without a consequence. You MUST use [ADVANCE_STORY: Location | Situation] to advance the narrative!")
                 elif exp_type == "escalate":
                     expired_lines.append(f"  ⏰ **{clock_name}** (was {current}/{maximum}) - SITUATION ESCALATES{semantic_context}")
-                    expired_lines.append(f"     Stalemate breaks. Consider [PIVOT_SCENARIO: new theme] or [NEW_CLOCK: new pressure] to intensify/resolve.")
+                    expired_lines.append(f"     Stalemate breaks. Consider [ADVANCE_STORY: Location | new situation] or [NEW_CLOCK: new pressure] to intensify/resolve.")
 
             expired_clocks_text = "\n\n⏰ **CLOCKS EXPIRED (Auto-removed):**\n" + "\n".join(expired_lines)
             expired_clocks_text += "\n\n⚠️  You MUST narrate what happens as these clocks expire AND use scenario markers for narrative clocks!"
@@ -1473,10 +1487,11 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     filled_clocks_text += "- The marker will trigger automatically\n\n"
                     filled_clocks_text += "**For narrative clocks** (no mechanical markers):\n"
                     filled_clocks_text += "- You MUST use a DM control marker to change the scenario:\n"
-                    filled_clocks_text += "  • [PIVOT_SCENARIO: Theme] - situation fundamentally changes (same location)\n"
-                    filled_clocks_text += "    Example: Investigation clock fills → [PIVOT_SCENARIO: Confrontation with the saboteur]\n"
-                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - objective completed, advance to new scene\n"
-                    filled_clocks_text += "    Example: Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
+                    filled_clocks_text += "  • [ADVANCE_STORY: Location | Situation] - progress to new location or change situation in same location\n"
+                    filled_clocks_text += "    Examples:\n"
+                    filled_clocks_text += "      - Investigation clock fills → [ADVANCE_STORY: Magistrate's Office | Confrontation with the saboteur]\n"
+                    filled_clocks_text += "      - Escape clock fills → [ADVANCE_STORY: Safe House | You've escaped. Regrouping with wounded allies]\n"
+                    filled_clocks_text += "      - Same location → [ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]\n"
                     filled_clocks_text += "  • [NEW_CLOCK: Name | Max | Description] - new pressure/opportunity emerges\n"
                     filled_clocks_text += "    Example: Corruption clock fills → [NEW_CLOCK: Void Manifestation | 4 | Entity taking form]\n"
                     filled_clocks_text += "  • [SESSION_END: VICTORY/DEFEAT/DRAW] - mission fully complete or total failure\n\n"
@@ -1764,26 +1779,62 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     from .enemy_spawner import get_active_enemies
                     active_enemies = get_active_enemies(enemy_combat.enemy_agents)
 
-                    # Find target enemy (fuzzy match)
-                    target_enemy_name = effect.get('target', action.get('target_enemy'))
-                    target_enemy = None
-                    for enemy in active_enemies:
-                        if target_enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in target_enemy_name.lower():
-                            target_enemy = enemy
-                            break
+                    # Resolve target (combat ID or fuzzy name match)
+                    target_identifier = effect.get('target', action.get('target_enemy'))
+                    target_entity = None
+                    target_enemy_name = None  # Initialize for legacy path
+                    is_friendly_fire = False
 
-                    if target_enemy:
+                    # Check if using combat ID system (free targeting mode)
+                    if target_identifier and target_identifier.startswith('cbt_'):
+                        combat_id_mapper = self.shared_state.get_combat_id_mapper() if self.shared_state else None
+                        if combat_id_mapper and combat_id_mapper.enabled:
+                            target_entity = combat_id_mapper.resolve_target(target_identifier)
+
+                            # Check if target is a player (friendly fire!)
+                            if target_entity and combat_id_mapper.is_player(target_identifier):
+                                is_friendly_fire = True
+                                attacker_name = action.get('agent_id', 'Unknown')
+                                target_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
+                                logger.warning(f"🔥 FRIENDLY FIRE: {attacker_name} targeting PC {target_name} (ID: {target_identifier})")
+                    else:
+                        # Legacy fuzzy name matching for enemies
+                        target_enemy_name = target_identifier
+                        for enemy in active_enemies:
+                            if target_enemy_name and (target_enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in target_enemy_name.lower()):
+                                target_entity = enemy
+                                break
+
+                    if target_entity:
+                        # Extract target name once for all effect types
+                        if is_friendly_fire and hasattr(target_entity, 'character_state'):
+                            # Target is a PC
+                            target_name = target_entity.character_state.name
+                        else:
+                            # Target is an enemy
+                            target_name = target_entity.name
+
                         effect_type = effect.get('type', 'unknown')
 
                         if effect_type == 'damage':
-                            # Apply damage
+                            # Apply damage (works for both enemies and PCs)
                             damage_dealt = effect.get('final', 0)
-                            old_health = target_enemy.health
-                            wounds_dealt = damage_dealt // 5  # YAGS: every 5 damage = 1 wound
-                            target_enemy.wounds += wounds_dealt
-                            target_enemy.health -= damage_dealt
 
-                            logger.info(f"Player dealt {damage_dealt} damage to {target_enemy.name} ({old_health} → {target_enemy.health} HP, +{wounds_dealt} wounds)")
+                            # Get health/wounds from correct location (PC vs enemy)
+                            if is_friendly_fire and hasattr(target_entity, 'character_state'):
+                                # Target is a PC - health/wounds are on the agent, not character_state
+                                old_health = target_entity.health  # Health is on the agent
+                                wounds_dealt = damage_dealt // 5  # YAGS: every 5 damage = 1 wound
+                                target_entity.wounds += wounds_dealt  # Wounds on the agent
+                                target_entity.health -= damage_dealt  # Health on the agent
+                                logger.warning(f"🔥 FRIENDLY FIRE DAMAGE: {damage_dealt} to {target_name} ({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)")
+                            else:
+                                # Target is an enemy
+                                old_health = target_entity.health
+                                wounds_dealt = damage_dealt // 5  # YAGS: every 5 damage = 1 wound
+                                target_entity.wounds += wounds_dealt
+                                target_entity.health -= damage_dealt
+                                logger.info(f"Player dealt {damage_dealt} damage to {target_name} ({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)")
 
                             # Track damage for round summary
                             if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
@@ -1812,13 +1863,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                     "dealt": damage_dealt
                                 }
 
-                                # Get defender state after damage
+                                # Get defender state after damage (works for both PCs and enemies)
+                                # Health/wounds are stored directly on agent objects, not on CharacterState
                                 defender_state = {
-                                    "health": target_enemy.health,
-                                    "max_health": target_enemy.max_health,
-                                    "wounds": target_enemy.wounds,
-                                    "alive": target_enemy.health > 0,
-                                    "status": "active" if target_enemy.health > 0 else "defeated"
+                                    "health": target_entity.health,
+                                    "max_health": target_entity.max_health,
+                                    "wounds": target_entity.wounds,
+                                    "alive": target_entity.health > 0,
+                                    "status": "active" if target_entity.health > 0 else "defeated"
                                 }
 
                                 # Get weapon from action intent or default
@@ -1840,8 +1892,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                     round_num=mechanics.current_round,
                                     attacker_id=action.get('agent_id', 'unknown_player'),
                                     attacker_name=action.get('character', 'Unknown Player'),
-                                    defender_id=target_enemy.agent_id,
-                                    defender_name=target_enemy.name,
+                                    defender_id=target_entity.agent_id,
+                                    defender_name=target_name,  # Already extracted above
                                     weapon=weapon_name,
                                     attack_roll=attack_roll_data,
                                     damage_roll=damage_roll_data,
@@ -1851,76 +1903,79 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                             # Add effect notification
                             source_label = "(fallback)" if effect.get('source') == 'fallback' else ""
-                            narration += f"\n\n⚔️  **{target_enemy.name} takes {damage_dealt} damage!** {source_label}"
+                            narration += f"\n\n⚔️  **{target_name} takes {damage_dealt} damage!** {source_label}"
 
-                            # Check if enemy died
-                            if target_enemy.health <= 0:
-                                if hasattr(target_enemy, 'check_death_save'):
-                                    alive, status = target_enemy.check_death_save()
+                            # Check if target died (only enemies have death saves)
+                            if target_entity.health <= 0:
+                                if hasattr(target_entity, 'check_death_save'):
+                                    alive, status = target_entity.check_death_save()
                                     if not alive:
-                                        logger.info(f"{target_enemy.name} KILLED by player attack!")
-                                        narration += f"\n💀 **{target_enemy.name} is KILLED!**"
+                                        logger.info(f"{target_name} KILLED by player attack!")
+                                        narration += f"\n💀 **{target_name} is KILLED!**"
                                     elif status == "unconscious":
-                                        logger.info(f"{target_enemy.name} knocked unconscious!")
-                                        narration += f"\n😵 **{target_enemy.name} is knocked unconscious!**"
+                                        logger.info(f"{target_name} knocked unconscious!")
+                                        narration += f"\n😵 **{target_name} is knocked unconscious!**"
                                     else:
-                                        logger.info(f"{target_enemy.name} critically wounded but conscious!")
-                                        narration += f"\n⚠️  **{target_enemy.name} is critically wounded!**"
+                                        logger.info(f"{target_name} critically wounded but conscious!")
+                                        narration += f"\n⚠️  **{target_name} is critically wounded!**"
                                 else:
-                                    logger.info(f"{target_enemy.name} defeated!")
-                                    narration += f"\n💀 **{target_enemy.name} is defeated!**"
+                                    logger.info(f"{target_name} defeated!")
+                                    narration += f"\n💀 **{target_name} is defeated!**"
 
                         elif effect_type == 'debuff':
-                            # Apply debuff
-                            penalty = effect.get('penalty', -2)
-                            duration = effect.get('duration', 3)
-                            effect_desc = effect.get('effect', f"{penalty} to rolls")
-                            source = effect.get('source', 'player')
+                            # Apply debuff (only enemies support this)
+                            if hasattr(target_entity, 'add_debuff'):
+                                penalty = effect.get('penalty', -2)
+                                duration = effect.get('duration', 3)
+                                effect_desc = effect.get('effect', f"{penalty} to rolls")
+                                source = effect.get('source', 'player')
 
-                            target_enemy.add_debuff(effect_desc, penalty, duration, source)
+                                target_entity.add_debuff(effect_desc, penalty, duration, source)
 
-                            source_label = "(fallback)" if source == 'fallback' else ""
-                            narration += f"\n\n🔻 **{target_enemy.name} debuffed: {effect_desc}** (lasts {duration} rounds) {source_label}"
+                                source_label = "(fallback)" if source == 'fallback' else ""
+                                narration += f"\n\n🔻 **{target_name} debuffed: {effect_desc}** (lasts {duration} rounds) {source_label}"
 
                         elif effect_type == 'status':
-                            # Apply status effect
-                            status_effect = effect.get('effect', 'affected')
-                            duration = effect.get('duration', 1)
+                            # Apply status effect (only enemies support this)
+                            if hasattr(target_entity, 'add_status_effect'):
+                                status_effect = effect.get('effect', 'affected')
+                                duration = effect.get('duration', 1)
 
-                            target_enemy.add_status_effect(status_effect, duration)
+                                target_entity.add_status_effect(status_effect, duration)
 
-                            source_label = "(fallback)" if effect.get('source') == 'fallback' else ""
-                            narration += f"\n\n💫 **{target_enemy.name} status: {status_effect}** {source_label}"
+                                source_label = "(fallback)" if effect.get('source') == 'fallback' else ""
+                                narration += f"\n\n💫 **{target_name} status: {status_effect}** {source_label}"
 
                         elif effect_type == 'movement':
                             # Apply forced movement
                             movement_desc = effect.get('effect', 'forced to move')
                             new_position = effect.get('new_position')
 
-                            if new_position and hasattr(target_enemy, 'position'):
+                            if new_position and hasattr(target_entity, 'position'):
                                 from .enemy_agent import Position
                                 try:
-                                    target_enemy.position = Position.from_string(new_position)
-                                    narration += f"\n\n🚶 **{target_enemy.name} forced to {new_position}!**"
+                                    target_entity.position = Position.from_string(new_position)
+                                    narration += f"\n\n🚶 **{target_name} forced to {new_position}!**"
                                 except:
-                                    narration += f"\n\n🚶 **{target_enemy.name} disrupted: {movement_desc}!**"
+                                    narration += f"\n\n🚶 **{target_name} disrupted: {movement_desc}!**"
                             else:
-                                narration += f"\n\n🚶 **{target_enemy.name} disrupted: {movement_desc}!**"
+                                narration += f"\n\n🚶 **{target_name} disrupted: {movement_desc}!**"
 
                         elif effect_type == 'reveal':
-                            # Add revealed weakness
-                            weakness_desc = effect.get('effect', 'weakness revealed')
-                            bonus = effect.get('bonus', 2)
+                            # Add revealed weakness (only enemies support this)
+                            if hasattr(target_entity, 'add_revealed_weakness'):
+                                weakness_desc = effect.get('effect', 'weakness revealed')
+                                bonus = effect.get('bonus', 2)
 
-                            target_enemy.add_revealed_weakness(weakness_desc, bonus)
+                                target_entity.add_revealed_weakness(weakness_desc, bonus)
 
-                            narration += f"\n\n🔍 **{target_enemy.name} weakness revealed: {weakness_desc}** (+{bonus} for allies)"
+                                narration += f"\n\n🔍 **{target_name} weakness revealed: {weakness_desc}** (+{bonus} for allies)"
 
                         else:
                             logger.warning(f"Unknown effect type: {effect_type}")
 
                     else:
-                        logger.warning(f"Could not find enemy '{target_enemy_name}' to apply effect")
+                        logger.warning(f"Could not find target '{target_identifier}' to apply effect")
 
             # Parse and apply ally buffs if action targets ally
             buff = None
