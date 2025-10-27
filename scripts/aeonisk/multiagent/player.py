@@ -1172,13 +1172,18 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 - Others can see your affiliation unless you actively disguise it
 """
 
-        # Add tactical combat context (only when enemies are active)
+        # Add tactical combat context
         tactical_combat_context = ""
         logger.debug(f"Checking tactical combat context for {self.character_state.name}")
         logger.debug(f"  has shared_state: {self.shared_state is not None}")
-        if self.shared_state:
-            logger.debug(f"  has enemy_combat attr: {hasattr(self.shared_state, 'enemy_combat')}")
 
+        # Check for free targeting mode FIRST (works with or without enemies)
+        config = self.shared_state.session_config if self.shared_state else {}
+        enemy_config = config.get('enemy_agent_config', {})
+        free_targeting = enemy_config.get('free_targeting_mode', False)
+
+        # Get active enemies (empty list if enemy combat disabled)
+        active_enemies = []
         if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
             enemy_combat = self.shared_state.enemy_combat
             logger.debug(f"  enemy_combat exists: {enemy_combat is not None}")
@@ -1186,44 +1191,98 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                 logger.debug(f"  enemy_combat.enabled: {enemy_combat.enabled}")
                 logger.debug(f"  enemy_agents count: {len(enemy_combat.enemy_agents)}")
 
-            if enemy_combat and enemy_combat.enabled:
-                from .enemy_spawner import get_active_enemies
-                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
-                logger.debug(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
+                if enemy_combat.enabled:
+                    from .enemy_spawner import get_active_enemies
+                    active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+                    logger.debug(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
 
+        # Build tactical context if free_targeting OR if there are active enemies
+        if free_targeting or active_enemies:
+            # Build weapon inventory summary (for lethal/non-lethal choices)
+            weapon_inventory_text = ""
+            if hasattr(self, 'equipped_weapons') and hasattr(self, 'weapon_inventory'):
+                equipped_list = []
+                if self.equipped_weapons.get('primary'):
+                    wpn = self.equipped_weapons['primary']
+                    equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
+                if self.equipped_weapons.get('sidearm'):
+                    wpn = self.equipped_weapons['sidearm']
+                    equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
+
+                carried_list = []
+                for wpn in self.weapon_inventory:
+                    carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
+
+                if equipped_list or carried_list:
+                    weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
+                    if equipped_list:
+                        weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
+                    if carried_list:
+                        weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
+                    weapon_inventory_text += "\n**Damage Types:**\n"
+                    weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
+                    weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
+                    weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
+                    weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons if needed.\n"
+
+            if free_targeting:
+                # FREE TARGETING MODE: Unified combatant list with generic IDs
+                combat_id_mapper = self.shared_state.get_combat_id_mapper()
+                combatants = []
+
+                # Add all players (including self)
+                all_players = self.shared_state.get_all_players()
+                for pc in all_players:
+                    cbt_id = combat_id_mapper.get_combat_id(pc.agent_id)
+                    if cbt_id:
+                        pc_name = pc.character_state.name
+                        pc_position = str(getattr(pc, 'position', 'Unknown'))
+                        pc_health = pc.health  # Health is on AIPlayerAgent, not CharacterState
+                        pc_max_health = pc.max_health
+                        void_score = pc.character_state.void_score
+                        combatants.append(f"[{cbt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP | Void {void_score}/10")
+
+                # Add all active enemies
+                for enemy in active_enemies:
+                    cbt_id = combat_id_mapper.get_combat_id(enemy.agent_id)
+                    if cbt_id:
+                        unit_count = f" ({enemy.unit_count} units)" if enemy.is_group else ""
+                        combatants.append(f"[{cbt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP{unit_count}")
+
+                combatants_text = "\n  ".join(combatants)
+
+                tactical_combat_context = f"""
+
+⚔️  **COMBAT SITUATION** ⚔️
+
+⚠️  Combatants in Combat Zone:
+
+  {combatants_text}
+
+**YOUR CHARACTER**: {self.character_state.name}
+**YOUR FACTION**: {self.character_state.faction}
+
+⚠️  **CRITICAL TARGETING INSTRUCTIONS** ⚠️
+- Each combatant has a unique ID in brackets: [cbt_XXXX]
+- You MUST use the combat ID when targeting, NOT the name
+- CORRECT: TARGET_ENEMY: cbt_7a3f
+- WRONG: TARGET_ENEMY: Gang Ambushers (this will FAIL!)
+
+**How to decide who to target:**
+1. Read the names to identify faction allegiance
+2. Consider your faction relationships ({self.character_state.faction})
+3. Use the combat ID (in brackets) when declaring your target
+
+⚠️  **WARNING**: You can target ANYONE on this list, including allies or party members. Choose carefully!
+{weapon_inventory_text}"""
+
+            else:
+                # STANDARD MODE: Enemy-only list (backwards compatible)
                 if active_enemies:
-                    # Build enemy positions summary
                     enemy_positions = []
                     for enemy in active_enemies:
                         enemy_positions.append(f"{enemy.name} at {enemy.position} ({enemy.health}/{enemy.max_health} HP)")
                     enemy_positions_text = "\n  - ".join(enemy_positions)
-
-                    # Build weapon inventory summary (for lethal/non-lethal choices)
-                    weapon_inventory_text = ""
-                    if hasattr(self, 'equipped_weapons') and hasattr(self, 'weapon_inventory'):
-                        equipped_list = []
-                        if self.equipped_weapons.get('primary'):
-                            wpn = self.equipped_weapons['primary']
-                            equipped_list.append(f"Primary: {wpn.name} ({wpn.damage_type.upper()} damage)")
-                        if self.equipped_weapons.get('sidearm'):
-                            wpn = self.equipped_weapons['sidearm']
-                            equipped_list.append(f"Sidearm: {wpn.name} ({wpn.damage_type.upper()} damage)")
-
-                        carried_list = []
-                        for wpn in self.weapon_inventory:
-                            carried_list.append(f"{wpn.name} ({wpn.damage_type.upper()})")
-
-                        if equipped_list or carried_list:
-                            weapon_inventory_text = "\n\n🔫 **Your Weapons:**\n"
-                            if equipped_list:
-                                weapon_inventory_text += "**Equipped:** " + ", ".join(equipped_list) + "\n"
-                            if carried_list:
-                                weapon_inventory_text += "**Carried in inventory:** " + ", ".join(carried_list) + "\n"
-                            weapon_inventory_text += "\n**Damage Types:**\n"
-                            weapon_inventory_text += "- STUN = Non-lethal (knockout, bruising, recovers after combat)\n"
-                            weapon_inventory_text += "- MIXED = Partially lethal (some wounds, some stuns)\n"
-                            weapon_inventory_text += "- WOUND = Fully lethal (can kill)\n"
-                            weapon_inventory_text += "\n**IMPORTANT:** Specify which weapon you're using in your action! You can swap weapons if needed.\n"
 
                     tactical_combat_context = f"""
 
@@ -1335,7 +1394,7 @@ Range Penalties (same ring/same side = Melee, 0 penalty):
 - Extreme (-6): 3+ rings apart
 
 **REMEMBER:** Always include [TARGET_POSITION: ...] when moving or your position stays unchanged!
-"""
+                    """
                 else:
                     # NO active enemies - make this CRYSTAL CLEAR to prevent targeting ghosts
                     tactical_combat_context = """
@@ -1363,8 +1422,8 @@ Available non-combat actions:
 
 **DO NOT ATTACK NON-EXISTENT ENEMIES!** Only attack enemies explicitly listed with HP and position.
 """
-            else:
-                tactical_combat_context = ""
+        else:
+            tactical_combat_context = ""
 
         # Add party discoveries to reduce repetition and encourage dialogue
         party_knowledge = ""
@@ -1637,7 +1696,21 @@ Now that you have this information, declare your action using the required forma
                     # Extract enemy target if specified
                     if value.lower() != 'none':
                         data['target_enemy'] = value
-                        logger.info(f"{self.character_state.name} targeting enemy: {value}")
+
+                        # Resolve combat ID to actual name for logging
+                        target_display = value
+                        if value.startswith('cbt_') and self.shared_state:
+                            combat_id_mapper = self.shared_state.get_combat_id_mapper()
+                            if combat_id_mapper and combat_id_mapper.enabled:
+                                target_entity = combat_id_mapper.resolve_target(value)
+                                if target_entity:
+                                    # Get name from either enemy or PC
+                                    if hasattr(target_entity, 'name'):
+                                        target_display = f"{target_entity.name} ({value})"
+                                    elif hasattr(target_entity, 'character_state'):
+                                        target_display = f"{target_entity.character_state.name} ({value})"
+
+                        logger.info(f"{self.character_state.name} targeting: {target_display}")
                 elif 'target_position' in key:
                     # Extract position if specified - STORE but don't apply yet
                     value_lower = value.lower()
