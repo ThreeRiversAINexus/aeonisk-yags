@@ -1,6 +1,3 @@
 [submodule "yagsbook"]
 	path = yagsbook
 	url = https://gitlab.com/samuelpenn/yagsbook.git
-[submodule "yags"]
-	path = yags
-	url = https://gitlab.com/samuelpenn/yags.git
