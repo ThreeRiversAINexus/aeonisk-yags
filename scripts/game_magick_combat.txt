@@ -1,0 +1,769 @@
+Loaded environment from: /home/p/Coding/aeonisk-yags/scripts/aeonisk/.env
+=== Aeonisk Multi-Agent Self-Playing System ===
+Configuration: session_config_magick_combat.json
+Starting session...
+Press Ctrl+C to stop
+
+Random seed: 561618935
+Initializing mechanics systems...
+✓ Mechanics engine ready
+✓ Action validator ready
+✓ Knowledge retrieval ready
+✓ Enemy combat manager ENABLED
+[Observer]> 
+=== Aeonisk Multi-Agent Human Interface ===
+Type 'help' for available commands
+Type 'agents' to see available agents
+Type 'control <agent_name>' to take control of an agent
+
+[DM dm_01] AI Dungeon Master ready
+Type 'take_control' to switch to human control
+12:03:40 INFO  - Created aged Raw Seed (8 cycles remaining, origin: leyline_harvest)
+
+[Player Echo Resonance] Ready to play
+Type 'take_control' to switch to human control
+
+[Player Kiran Rift] Ready to play
+Type 'take_control' to switch to human control
+
+[System] Echo Resonance (player) is ready
+
+[System] Kiran Rift (player) is ready
+✓ JSONL logging enabled: multiagent_output/session_c82003c9-143b-4f89-8f67-429b2fb55beb.jsonl
+✓ LLM call logging enabled for 3 agents
+Waiting for scenario generation...
+[DM dm_01] Created clock: Tempest Installation (0/4)
+[DM dm_01] Created clock: Nexus Purge (0/4)
+[DM dm_01] Created clock: Civilian Casualties (0/4)
+
+[DM dm_01] Generated scenario: Ideological Battle
+Location: Ley Node Nexus (Aeonisk Prime)
+Situation: Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order. [SPAWN_ENEMY: Tempest Operatives | grunt | 2 | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: Nexus Enforcers | grunt | 2 | Near-Enemy | defensive_ranged]
+
+=== New Scenario ===
+Theme: Ideological Battle
+Location: Ley Node Nexus (Aeonisk Prime)
+
+DM: The party finds themselves at Ley Node Nexus (Aeonisk Prime). Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order. [SPAWN_ENEMY: Tempest Operatives | grunt | 2 | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: Nexus Enforcers | grunt | 2 | Near-Enemy | defensive_ranged].
+The air carries a distinct tension, and you sense the void's influence at level 5/10.
+
+What do you do?
+12:03:43 INFO  - Found spawn marker: Tempest Operatives (grunt × 2) at Far-Enemy, personality=None
+12:03:43 INFO  - Found spawn marker: Nexus Enforcers (grunt × 2) at Near-Enemy, personality=None
+12:03:43 INFO  - Spawned Tempest Operatives (template=grunt, count=2, health=16, position=Far-Enemy, initiative=16)
+12:03:43 INFO  - Spawned Nexus Enforcers (template=grunt, count=2, health=16, position=Near-Enemy, initiative=15)
+12:03:43 INFO  - Spawned enemy: Tempest Operatives (ID: enemy_grunt_601ed9a0)
+12:03:43 INFO  - Spawned enemy: Nexus Enforcers (ID: enemy_grunt_bb522e44)
+
+⚔️  **Tempest Operatives** spawned! (2 units, 16 HP, Far-Enemy, tactics: tactical_ranged)
+
+⚔️  **Nexus Enforcers** spawned! (2 units, 16 HP, Near-Enemy, tactics: defensive_ranged)
+Scenario ready!
+Waiting for players to process scenario...
+All agents ready to begin!
+
+=== Starting Session c82003c9-143b-4f89-8f67-429b2fb55beb ===
+Git commit: 05cf3da
+Max rounds: 5
+Human interface: Enabled
+Selected Players:
+  - Echo Resonance (Resonance Communes)
+  - Kiran Rift (Tempest Industries)
+
+
+--- Round 1 ---
+[Echo Resonance] Initiative: 31 (Near-PC)
+[Kiran Rift] Initiative: 31 (Near-PC)
+[Tempest Operatives] (ENEMY) Initiative: 15 (Far-Enemy)
+[Nexus Enforcers] (ENEMY) Initiative: 31 (Near-Enemy)
+
+=== Round Status ===
+
+  Player Characters:
+    [31] Echo Resonance       | 26/26 HP     | Near-PC         | Void 0/10
+         └─ Faction: Resonance Communes
+         └─ Equipped: Ritual Blade [MIXED]
+         └─ Inventory: Blood:3 | Incense:5 | Crystal:1 | Ritual Blade:1 | Memory Crystal:2
+    [31] Kiran Rift           | 25/25 HP     | Near-PC         | Void 4/10
+         └─ Faction: Tempest Industries
+         └─ Equipped: Void Blade [WOUND]
+         └─ Inventory: Incense:3 | Void Blade:1 | Tech Kit:1 | Neural Stimulant:2 | Memory Crystal:1
+
+  Enemies:
+    [31] Nexus Enforcers      (×2)  | 16/16 HP     | Near-Enemy     
+    [15] Tempest Operatives   (×2)  | 16/16 HP     | Far-Enemy      
+
+  Scene Clocks:
+    • Tempest Installation: 0/4
+    • Nexus Purge: 0/4
+    • Civilian Casualties: 0/4
+
+
+=== Declaration Phase ===
+
+[Tempest Operatives] declaring (initiative 15)...
+12:03:50 INFO  - Tempest Operatives declared: Shift (target: Near-Enemy, reasoning: Current position at Far-Enemy is suboptimal. Movin...)
+
+[Nexus Enforcers] declaring (initiative 31)...
+12:03:55 INFO  - Nexus Enforcers declared: Shift_2 (target: Far-Enemy, reasoning: My defensive_ranged doctrine prefers far range eng...)
+
+[Kiran Rift] declaring (initiative 31)...
+12:03:55 INFO  - PromptLoader initialized with directory: /home/p/Coding/aeonisk-yags/scripts/aeonisk/multiagent/prompts
+12:04:03 INFO  - Kiran Rift targeting enemy: Nexus Enforcers
+
+[Echo Resonance] declaring (initiative 31)...
+12:04:11 INFO  - Echo Resonance declared intent to move: Near-PC → Near-Enemy
+
+=== Resolution Phase ===
+
+[Echo Resonance] executing action...
+[Echo Resonance] Position: Near-PC → Near-Enemy
+12:04:11 INFO  - Echo Resonance moved from Near-PC to Near-Enemy
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Echo Resonance] (initiative 31)
+12:04:17 INFO  - Soulcredit: 2 → 3 (protecting civilians)
+
+**Tell allies about**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(5) = **29**
+DC: 18 | Margin: +11 | Tier: **GOOD** ✓
+Tell allies about succeeds well (margin: +11)
+
+As a member of the Resonance Communes, your astral manipulation manifests with distinctive harmonic patterns - the barrier shimmers into existence with concentric rings of blue-white energy that pulse in time with the ley node's resonance. [POSITION: Near-PC] The shield proves particularly effective, deflecting several stray shots while the void-tinged energy from the node seems to resonate sympathetically with your barrier, temporarily strengthening it. However, you notice the Nexus Enforcers giving you suspicious sideways glances - they recognize your Commune affiliation and clearly worry about divided loyalties in this ideological conflict.
+
+📊 Civilian Casualties: -1 (protective barrier deployed)
+⚖️ Soulcredit: +1 (protecting civilians)
+⚫ Void: +1 (resonance with corrupted ley energy)
+
+⚫ Void: 0 → 1/10 (resonance with corrupted ley energy)
+
+⚖️ Soulcredit: 2 → 3 (protecting civilians)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Kiran Rift] executing action...
+
+[Echo Resonance] Received resolution
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Kiran Rift] (initiative 31)
+12:04:22 INFO  - Player dealt 3 damage to Nexus Enforcers (16 → 13 HP, +0 wounds)
+12:04:22 INFO  - Applied condition to player_02: Equipment Damage (-2)
+
+**Launch void blast at Nexus Enforcers**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(6) = **30**
+DC: 18 | Margin: +12 | Tier: **GOOD** ✓
+Launch void blast at Nexus Enforcers succeeds well (margin: +12)
+
+The void energy erupts from your hands in a devastating wave, your Tempest Industries training allowing perfect control despite the Nexus's spiritual resistance. [POSITION: Near-Enemy] The blast catches both Enforcers, their protective wards shattering as reality itself unravels around them - one drops immediately while the other staggers, his armor crackling with competing energies. Damage: 15 → Soak: 12 → Final: 3
+
+Through the dissipating void energies, you glimpse the exposed ley node matrix - its crystalline structure seems oddly resonant with your void techniques, suggesting Tempest's intel about compatibility was correct. 
+
+📊 Tempest Installation: +1 (exposed node weakness)
+⚫ Void: +1 (channeled void energy)
+⚖️ Soulcredit: +0 (justified faction combat)
+
+⚔️  **Nexus Enforcers takes 3 damage!** 
+
+⚫ Void: 0 → 1/10 (channeled void energy)
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Nexus Enforcers] Nexus Enforcers moves from Near-Enemy to Far-Enemy
+
+[Tempest Operatives] Tempest Operatives moves from Far-Enemy to Near-Enemy
+
+=== Generating Round Synthesis ===
+
+[Kiran Rift] Received resolution
+
+[DM dm_01] ===== Round Synthesis =====
+In the shadowy corridors of the Tempest Installation, Echo Resonance's warning ripples through the neural-link network first, their voice carrying an urgent edge as they alert their companions about the growing void-tech signatures. The information comes just in time, as Kiran Rift channels destructive energy through their void-touched implants, launching a devastating blast at the Nexus Enforcers. The timing is perfect - Echo's warning allows Kiran to target with deadly precision, their void blast catching the Enforcers in a moment of exposed vulnerability.
+
+However, despite the coordinated assault, the team can feel the installation's void-tech systems continuing their inexorable activation sequence. The walls pulse with an otherworldly resonance, and strange geometries begin to twist in impossible ways - a sign that they're still struggling to meaningfully disrupt the facility's awakening. The Tempest Installation clock remains at 1/4, its systems slowly but steadily powering up despite their efforts. While they've managed to avoid civilian casualties and haven't triggered a full Nexus Purge response yet, there's a palpable sense that they're running out of time to prevent whatever dark purpose this facility was designed to serve.
+========================================
+
+=== Cleanup Phase ===
+
+[DM dm_01] The situation evolves...
+
+📊 Tempest Installation: 1/4 | Nexus Purge: 0/4 | Civilian Casualties: 0/4
+
+--- Round 2 ---
+[Echo Resonance] Initiative: 19 (Near-Enemy)
+[Kiran Rift] Initiative: 16 (Near-PC)
+[Tempest Operatives] (ENEMY) Initiative: 0 (Near-Enemy)
+[Nexus Enforcers] (ENEMY) Initiative: 20 (Far-Enemy)
+
+=== Round Status ===
+
+  Player Characters:
+    [19] Echo Resonance       | 26/26 HP     | Near-Enemy      | Void 1/10
+         └─ Faction: Resonance Communes
+         └─ Equipped: Ritual Blade [MIXED]
+         └─ Inventory: Blood:3 | Incense:5 | Crystal:1 | Ritual Blade:1 | Memory Crystal:2
+    [16] Kiran Rift           | 25/25 HP     | Near-PC         | Void 1/10
+         └─ Faction: Tempest Industries
+         └─ Equipped: Void Blade [WOUND]
+         └─ Inventory: Incense:3 | Void Blade:1 | Tech Kit:1 | Neural Stimulant:2 | Memory Crystal:1
+
+  Enemies:
+    [20] Nexus Enforcers      (×2)  | 13/16 HP     | Far-Enemy      
+    [ 0] Tempest Operatives   (×2)  | 16/16 HP     | Near-Enemy     
+
+  Scene Clocks:
+    • Tempest Installation: 1/4
+    • Nexus Purge: 0/4
+    • Civilian Casualties: 0/4
+
+
+=== Declaration Phase ===
+
+[Tempest Operatives] declaring (initiative 0)...
+12:04:38 INFO  - Tempest Operatives declared: Attack (target: player_01, reasoning: Target is at optimal range for pistol, not watchin...)
+
+[Kiran Rift] declaring (initiative 16)...
+12:04:46 INFO  - Kiran Rift targeting enemy: Nexus Enforcers
+12:04:46 INFO  - Kiran Rift declared intent to move: Near-PC → Near-Enemy
+
+[Echo Resonance] declaring (initiative 19)...
+12:04:54 INFO  - Echo Resonance targeting enemy: Tempest Operatives
+
+[Nexus Enforcers] declaring (initiative 20)...
+12:04:59 INFO  - Nexus Enforcers declared: Attack (target: player_01, reasoning: Maintaining Far-Enemy position aligns with defensi...)
+
+=== Resolution Phase ===
+
+[Nexus Enforcers] Nexus Enforcers attacks target with Pistol - MISS (9 vs defence 15)
+
+[Echo Resonance] executing action...
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Echo Resonance] (initiative 19)
+12:05:06 INFO  - Player dealt 3 damage to Tempest Operatives (16 → 13 HP, +0 wounds)
+12:05:06 INFO  - Applied condition to player_01: Equipment Damage (-2)
+
+**Create protective barrier and launch telekinetic attack at Tempest Operatives**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(6) = **30**
+DC: 18 | Margin: +12 | Tier: **GOOD** ✓
+Create protective barrier and launch telekinetic attack at Tempest Operatives succeeds well (margin: +12)
+
+With a resonant hum, you manifest a shimmering astral barrier while telekinetically gathering debris. [POSITION: Near-Enemy] The floating chunks of metal and concrete slam into the Tempest operatives' equipment with devastating force (Damage: 15 → Soak: 12 → Final: 3), sending void-tech components scattering and forcing them to take cover. Your Resonance Communes affiliation causes the Nexus Enforcers to briefly lower their weapons in recognition, though their expressions remain wary as reality warps subtly around the damaged void-tech installation.
+
+📊 Tempest Installation: -1 (equipment disrupted)
+⚫ Void: +1 (proximity to damaged void-tech)
+⚖️ Soulcredit: +0 (justified combat action)
+
+New Intel: Through the astral barrier's resonance, you detect an unusual harmonic pattern suggesting the void-tech installation isn't just unauthorized - it's designed to permanently alter the ley node's frequency.
+
+⚔️  **Tempest Operatives takes 3 damage!** 
+
+⚫ Void: 1 → 2/10 (proximity to damaged void-tech)
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Kiran Rift] executing action...
+[Kiran Rift] Position: Near-PC → Near-Enemy
+12:05:06 INFO  - Kiran Rift moved from Near-PC to Near-Enemy
+
+[Echo Resonance] Received resolution
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Kiran Rift] (initiative 16)
+12:05:12 INFO  - Player dealt 16 damage to Nexus Enforcers (13 → -3 HP, +3 wounds)
+12:05:12 INFO  - Nexus Enforcers defeated!
+
+**Launch void blast at Nexus Enforcers**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(20) = **42**
+DC: 18 | Margin: +24 | Tier: **EXCEPTIONAL** ✓
+Launch void blast at Nexus Enforcers achieves exceptional success (margin: +24)
+
+As a Tempest operative, your void-enhanced assault carries devastating authority - reality warps and tears as entropic energy surges through the Nexus enforcers' defensive positions. [POSITION: Near-Enemy] The blast sends them reeling, their protective wards shorting out in spectacular fashion as void corruption seeps into their gear. Damage: 28 → Soak: 12 → Final: 16
+
+One enforcer is completely consumed by the void energy, while the other staggers back, shield crackling with unstable power - you notice their gear appears to be prototype Pantheon tech, suggesting this node was already being prepped for some kind of classified operation. 📊 Tempest Installation: +1 (defenders disrupted) ⚫ Void: +1 (channeled void energy) ⚖️ Soulcredit: +0 (justified faction combat)
+
+⚔️  **Nexus Enforcers takes 16 damage!** 
+💀 **Nexus Enforcers is defeated!**
+
+⚫ Void: 1 → 2/10 (channeled void energy)
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Tempest Operatives] Tempest Operatives attacks target with Pistol - HIT! 8 damage (0 after soak)
+
+=== Generating Round Synthesis ===
+
+[Kiran Rift] Received resolution
+
+[DM dm_01] ===== Round Synthesis =====
+A pulse of void energy ripples through the installation as Echo Resonance and Kiran Rift strike simultaneously. Echo's telekinetic barrier manifests first - a shimmering wall of force that catches the Tempest Operatives off-guard, sending them tumbling backward as the telekinetic blast follows through. The protective field crackles with residual energy, creating momentary safe zones in the chaos.
+
+Mere seconds behind, Kiran's void blast tears through the space, the dark energy finding gaps in Echo's barrier to strike the Nexus Enforcers. The void energy warps and distorts around their armor, but while both attacks land successfully, the installation's void-tech systems continue their ominous activation sequence (Tempest Installation at 1/4). The combined assault creates brief tactical advantages, but the team can feel time slipping away as warning lights continue to pulse through the facility. Their attacks, while effective against the immediate threats, haven't managed to significantly disrupt the installation's primary systems - a fact that adds growing urgency to their mission as they watch the void-tech displays continue their startup sequence.
+========================================
+
+=== Cleanup Phase ===
+12:05:18 INFO  - Nexus Enforcers: Unit count reduced from 2 to 0
+12:05:18 INFO  - Nexus Enforcers morale check: 10 vs DC 15 - FAILED → flee
+12:05:18 INFO  - Nexus Enforcers is now panicked (morale broken: hp_below_25)
+12:05:18 INFO  - Auto-despawned Nexus Enforcers (health ≤ 0, round=1)
+[CLEANUP] Nexus Enforcers: 2 units lost, 0 remain
+[CLEANUP] Nexus Enforcers morale breaks! They're panicked and will attempt to flee (hp_below_25)
+[CLEANUP] Nexus Enforcers defeated! **Loot from Nexus Enforcers:** Pistol (damaged), Baton (damaged), Light Combat Armor (damaged), 1 Raw Seed (unstable, 7-cycle decay)
+
+[DM dm_01] The situation evolves...
+
+📊 Tempest Installation: 1/4 | Nexus Purge: 0/4 | Civilian Casualties: 0/4
+
+--- Round 3 ---
+[Echo Resonance] Initiative: 23 (Near-Enemy)
+[Kiran Rift] Initiative: 31 (Near-Enemy)
+[Tempest Operatives] (ENEMY) Initiative: 28 (Near-Enemy)
+
+=== Round Status ===
+
+  Player Characters:
+    [31] Kiran Rift           | 25/25 HP     | Near-Enemy      | Void 2/10
+         └─ Faction: Tempest Industries
+         └─ Equipped: Void Blade [WOUND]
+         └─ Inventory: Incense:3 | Void Blade:1 | Tech Kit:1 | Neural Stimulant:2 | Memory Crystal:1
+    [23] Echo Resonance       | 26/26 HP     | Near-Enemy      | Void 2/10
+         └─ Faction: Resonance Communes
+         └─ Equipped: Ritual Blade [MIXED]
+         └─ Inventory: Blood:3 | Incense:5 | Crystal:1 | Ritual Blade:1 | Memory Crystal:2
+
+  Enemies:
+    [28] Tempest Operatives   (×2)  | 13/16 HP     | Near-Enemy     
+
+  Scene Clocks:
+    • Tempest Installation: 1/4
+    • Nexus Purge: 0/4
+    • Civilian Casualties: 0/4
+
+
+=== Declaration Phase ===
+
+[Echo Resonance] declaring (initiative 23)...
+12:05:29 INFO  - Echo Resonance declared intent to move: Near-Enemy → Near-Enemy
+
+[Tempest Operatives] declaring (initiative 28)...
+12:05:35 INFO  - Tempest Operatives declared: Attack (target: player_01, reasoning: Maintaining Near-Enemy position aligns with tactic...)
+
+[Kiran Rift] declaring (initiative 31)...
+12:05:42 INFO  - Kiran Rift targeting enemy: Nexus Enforcers
+
+=== Resolution Phase ===
+
+[Kiran Rift] executing action...
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Kiran Rift] (initiative 31)
+12:05:48 WARNING - Could not find enemy 'Nexus Enforcers' to apply effect
+
+**Channel void energy into a devastating blast at the Nexus Enforcers**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(11) = **33**
+DC: 22 | Margin: +11 | Tier: **GOOD** ✓
+Channel void energy into a devastating blast at the Nexus Enforcers succeeds well (margin: +11)
+
+The void energy coalesces into a devastating beam that tears through reality itself, striking one of the Nexus Enforcers with brutal efficiency [POSITION: Far-PC]. The enforcer's protective wards flare and shatter as the void blast connects, their armor buckling inward (Damage: 15 → Soak: 12 → Final: 3), while the surrounding air shimmers with unstable void residue that causes nearby tech to crackle and malfunction. You notice the destabilized ley lines are actually accelerating your void-tech installation process, though the spiritual backlash is palpable.
+
+📊 Tempest Installation: +1 (void energy accelerating process)
+⚫ Void: +1 (channeling void energy)
+⚖️ Soulcredit: +0 (justified faction combat)
+
+⚫ Void: 2 → 3/10 (channeling void energy)
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Tempest Operatives] Tempest Operatives attacks target with Pistol - MISS (9 vs defence 15)
+
+[Echo Resonance] executing action...
+12:05:48 WARNING - Echo Resonance tried to move to same position: Near-Enemy. Skipping movement.
+[Echo Resonance] Position unchanged: Near-Enemy (invalid move)
+
+[Kiran Rift] Received resolution
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Echo Resonance] (initiative 23)
+12:05:53 INFO  - Soulcredit: 3 → 4 (protected civilians)
+
+**Create protective barrier between civilians and crossfire**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(3) = **25**
+DC: 18 | Margin: +7 | Tier: **MODERATE** ✓
+Create protective barrier between civilians and crossfire succeeds adequately (margin: +7)
+
+With a resonant hum, your astral barrier springs to life - a shimmering wall of translucent force tinged with the signature blue-gold of Resonance Commune energies. [POSITION: Near-PC] The civilians scramble to safety behind your shield just as void-warped rounds from the Tempest operatives splatter against it in dark ripples. Your Commune training proves crucial - the proper ritual focus keeps the void corruption at bay, though you notice subtle reality distortions at the barrier's edges where the two forces meet.
+
+📊 Civilian Casualties: -1 (protected by barrier)
+⚫ Void: +1 (void rounds impact)
+⚖️ Soulcredit: +1 (protected civilians)
+
+⚫ Void: 2 → 3/10 (void rounds impact)
+
+⚖️ Soulcredit: 3 → 4 (protected civilians)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+=== Generating Round Synthesis ===
+
+[Echo Resonance] Received resolution
+
+[DM dm_01] ===== Round Synthesis =====
+The scene unfolds in a blur of motion and void energy. Echo Resonance moves first, their hands weaving complex patterns as they pull protective energy from the surrounding quantum field. A translucent, shimmering barrier materializes between the terrified civilians and the escalating firefight - just in time.
+
+Moments later, Kiran Rift channels raw void energy, their form crackling with dark power. The devastating blast tears through space toward the Nexus Enforcers, warping reality in its wake. The void energy slams into the enforcers with catastrophic force, sending them reeling. While the attack is powerful, the Installation's void-tech systems continue their activation sequence largely unabated (Tempest Installation remains at 2/4) - the team's actions are barely keeping pace with the escalating situation. The civilians remain protected behind Echo's barrier (Civilian Casualties still 0/4), but the team can feel time running short as the Installation's systems continue their ominous startup sequence. The air crackles with residual void energy, and warning klaxons echo through the chamber - they'll need to act decisively in the next moments to turn this situation in their favor.
+========================================
+
+=== Cleanup Phase ===
+
+[DM dm_01] The situation evolves...
+
+📊 Tempest Installation: 2/4 | Nexus Purge: 0/4 | Civilian Casualties: 0/4
+
+--- Round 4 ---
+[Echo Resonance] Initiative: 30 (Near-Enemy)
+[Kiran Rift] Initiative: 15 (Near-Enemy)
+[Tempest Operatives] (ENEMY) Initiative: 20 (Near-Enemy)
+
+=== Round Status ===
+
+  Player Characters:
+    [30] Echo Resonance       | 26/26 HP     | Near-Enemy      | Void 3/10
+         └─ Faction: Resonance Communes
+         └─ Equipped: Ritual Blade [MIXED]
+         └─ Inventory: Blood:3 | Incense:5 | Crystal:1 | Ritual Blade:1 | Memory Crystal:2
+    [15] Kiran Rift           | 25/25 HP     | Near-Enemy      | Void 3/10
+         └─ Faction: Tempest Industries
+         └─ Equipped: Void Blade [WOUND]
+         └─ Inventory: Incense:3 | Void Blade:1 | Tech Kit:1 | Neural Stimulant:2 | Memory Crystal:1
+
+  Enemies:
+    [20] Tempest Operatives   (×2)  | 13/16 HP     | Near-Enemy     
+
+  Scene Clocks:
+    • Tempest Installation: 2/4
+    • Nexus Purge: 0/4
+    • Civilian Casualties: 0/4
+
+
+=== Declaration Phase ===
+
+[Kiran Rift] declaring (initiative 15)...
+12:06:11 INFO  - Kiran Rift targeting enemy: Nexus Enforcers
+
+[Tempest Operatives] declaring (initiative 20)...
+12:06:16 INFO  - Tempest Operatives declared: Attack (target: Near-Enemy, reasoning: Attacking player_02 with pistol to exploit +2 Flan...)
+
+[Echo Resonance] declaring (initiative 30)...
+12:06:24 INFO  - Echo Resonance targeting enemy: Tempest Operatives
+
+=== Resolution Phase ===
+
+[Echo Resonance] executing action...
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Echo Resonance] (initiative 30)
+12:06:31 INFO  - Player dealt 3 damage to Tempest Operatives (13 → 10 HP, +0 wounds)
+
+**Create protective barrier and launch telekinetic attack at Tempest Operatives**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(18) = **40**
+DC: 18 | Margin: +22 | Tier: **EXCEPTIONAL** ✓
+Create protective barrier and launch telekinetic attack at Tempest Operatives achieves exceptional success (margin: +22)
+
+Your resonant energy manifests as shimmering geometric patterns that coalesce into a protective barrier, while simultaneously gathering ambient void-tinged power to telekinetically hurl chunks of debris at the Tempest forces [POSITION: Far-PC]. The Tempest operatives are caught off-guard by the display of Resonance power, taking substantial damage as the debris impacts (Damage: 15 → Soak: 12 → Final: 3) while your barrier deflects their return fire in a cascade of crystalline light. Through your resonant attunement, you sense the ley node's energy patterns becoming increasingly erratic as the void-tech installation progresses, suggesting the node itself may become unstable if the installation reaches completion.
+
+📊 Tempest Installation: +1 (time passing during combat)
+⚫ Void: +1 (channeling void-tinged energy)
+⚖️ Soulcredit: +0 (justified combat against hostiles)
+
+⚔️  **Tempest Operatives takes 3 damage!** 
+
+⚫ Void: 3 → 4/10 (channeling void-tinged energy)
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Tempest Operatives] Tempest Operatives attacks but target has moved
+
+[Kiran Rift] executing action...
+
+[Echo Resonance] Received resolution
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Kiran Rift] (initiative 15)
+12:06:37 WARNING - Could not find enemy 'Nexus Enforcers' to apply effect
+
+**Launch void blast at Nexus Enforcers**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(14) = **36**
+DC: 18 | Margin: +18 | Tier: **EXCELLENT** ✓
+Launch void blast at Nexus Enforcers succeeds excellently (margin: +18)
+
+As a Tempest operative, your void manipulation manifests with practiced precision - the crackling sphere detonates among the Nexus forces with devastating effect, sending them scrambling for cover as reality warps and buckles around the impact point. [POSITION: Far-PC] The blast disrupts the ley node's energy field, causing ethereal patterns to flicker erratically across the chamber walls while also revealing a previously hidden access panel that could be useful for the installation. Damage: 20 → Soak: 12 → Final: 8 (Nexus Enforcer-1 severely wounded)
+
+📊 Tempest Installation: +1 (discovered access point)
+⚫ Void: +1 (void manipulation)
+⚖️ Soulcredit: +0 (justified faction combat)
+
+⚫ Void: 3 → 4/10 (void manipulation)
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+=== Generating Round Synthesis ===
+
+[Kiran Rift] Received resolution
+12:06:37 WARNING - 🔔 Clock Tempest Installation FILLED: 4/4 - triggering consequences and removing
+12:06:37 WARNING - ⏰ Clock Nexus Purge TIMEOUT after 4 rounds (type: crisis_averted)
+12:06:37 WARNING - ⏰ Clock Civilian Casualties TIMEOUT after 4 rounds (type: crisis_averted)
+12:06:37 INFO  - Removed clock: Tempest Installation
+12:06:37 INFO  - Removed clock: Nexus Purge
+12:06:37 INFO  - Removed clock: Civilian Casualties
+12:06:37 WARNING - Found 3 expired clocks: ['Tempest Installation', 'Nexus Purge', 'Civilian Casualties']
+
+[DM dm_01] ===== Round Synthesis =====
+As the situation reaches its crescendo, Echo Resonance's protective barrier materializes just as the installation's void-tech systems surge to life. The barrier's iridescent energy field crackles with defensive power, while their telekinetic strike sends several Tempest Operatives stumbling backward. Almost simultaneously, Kiran Rift unleashes a devastating void blast that tears through the ranks of Nexus Enforcers, their forms distorting as the dark energy rips past them.
+
+But victory is short-lived. The Tempest Installation's systems reach full activation [SPAWN_ENEMY: Void-Enhanced Troops | elite | 2 | Near-Enemy | adaptive], as shadows coalesce into humanoid shapes. Two soldiers materialize, their armor pulsing with void energy that seems to adapt and flow in response to the heroes' attacks. Their emergence marks a dramatic escalation - these aren't ordinary troops, but enhanced warriors infused with the very power the team was trying to prevent from activating. The void-tech goes live with a thunderous pulse of dark energy, though at least the immediate threats of civilian casualties and the Nexus Purge have been averted in the chaos. The situation has transformed from a prevention mission to a desperate fight against these new, formidable opponents who seem to shimmer with adaptive void energy.
+========================================
+12:06:45 INFO  - Found spawn marker: Void-Enhanced Troops (elite × 2) at Near-Enemy, personality=None
+12:06:45 INFO  - Spawned Void-Enhanced Troops (template=elite, count=2, health=28, position=Near-Enemy, initiative=24)
+12:06:45 INFO  - Spawned enemy: Void-Enhanced Troops (ID: enemy_elite_3f6508ec)
+
+⚔️  **Void-Enhanced Troops** spawned! (2 units, 28 HP, Near-Enemy, tactics: adaptive)
+
+=== Cleanup Phase ===
+12:06:45 INFO  - All clocks complete/expired - triggering story advancement
+
+⏰ All scenario objectives complete - Story will advance to new location/situation
+12:06:45 INFO  - Set needs_story_advancement=True on DM dm_01
+
+--- Round 5 ---
+[Echo Resonance] Initiative: 17 (Near-Enemy)
+[Kiran Rift] Initiative: 29 (Near-Enemy)
+[Tempest Operatives] (ENEMY) Initiative: 30 (Near-Enemy)
+[Void-Enhanced Troops] (ENEMY) Initiative: 0 (Near-Enemy)
+
+=== Round Status ===
+
+  Player Characters:
+    [29] Kiran Rift           | 25/25 HP     | Near-Enemy      | Void 4/10
+         └─ Faction: Tempest Industries
+         └─ Equipped: Void Blade [WOUND]
+         └─ Inventory: Incense:3 | Void Blade:1 | Tech Kit:1 | Neural Stimulant:2 | Memory Crystal:1
+    [17] Echo Resonance       | 26/26 HP     | Near-Enemy      | Void 4/10
+         └─ Faction: Resonance Communes
+         └─ Equipped: Ritual Blade [MIXED]
+         └─ Inventory: Blood:3 | Incense:5 | Crystal:1 | Ritual Blade:1 | Memory Crystal:2
+
+  Enemies:
+    [30] Tempest Operatives   (×2)  | 10/16 HP     | Near-Enemy     
+    [ 0] Void-Enhanced Troops (×2)  | 28/28 HP     | Near-Enemy     
+
+
+=== Declaration Phase ===
+
+[Void-Enhanced Troops] declaring (initiative 0)...
+12:06:53 INFO  - Void-Enhanced Troops declared: Attack (target: player_02, reasoning: Both PCs are in melee range and not watching us (+...)
+
+[Echo Resonance] declaring (initiative 17)...
+12:07:02 INFO  - Echo Resonance declared intent to move: Near-Enemy → Near-Enemy
+
+[Kiran Rift] declaring (initiative 29)...
+12:07:10 INFO  - Kiran Rift targeting enemy: Nexus Enforcers
+
+[Tempest Operatives] declaring (initiative 30)...
+12:07:15 INFO  - Tempest Operatives declared: Attack (target: Near-Enemy, reasoning: Multiple hostiles in melee range makes our positio...)
+
+=== Resolution Phase ===
+
+[Tempest Operatives] Tempest Operatives attacks but target has moved
+
+[Kiran Rift] executing action...
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Kiran Rift] (initiative 29)
+12:07:20 WARNING - Could not find enemy 'Nexus Enforcers' to apply effect
+
+**Channel void energy to blast Nexus Enforcers**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(13) = **35**
+DC: 22 | Margin: +13 | Tier: **GOOD** ✓
+Channel void energy to blast Nexus Enforcers succeeds well (margin: +13)
+
+The void energy coalesces between your hands with familiar precision - as a Tempest operative, you've mastered these forbidden techniques. The blast tears through reality itself, striking both Nexus Enforcers with devastating force [POSITION: Far-PC] (Damage: 15 → Soak: 12 → Final: 3), causing their protective wards to flicker and fail while the surrounding ley lines pulse erratically in response. The Tempest operatives recognize your signature void manipulation and call out "Reinforcement from Central! Press the advantage!" while shifting to provide you covering fire.
+
+🩹 Condition: Equipment Damage (-2)
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+
+[Echo Resonance] executing action...
+12:07:20 WARNING - Echo Resonance tried to move to same position: Near-Enemy. Skipping movement.
+[Echo Resonance] Position unchanged: Near-Enemy (invalid move)
+
+[Kiran Rift] Received resolution
+
+[DM dm_01] ===== Adjudicating 1 actions =====
+
+[Echo Resonance] (initiative 17)
+
+**Create protective barrier between combatants using astral energy**
+Roll: Willpower × Astral Arts
+Calculation: 4 × 6 + d20(10) = **32**
+DC: 22 | Margin: +10 | Tier: **GOOD** ✓
+Create protective barrier between combatants using astral energy succeeds well (margin: +10)
+
+Your ritual manifests a shimmering barrier of prismatic energy, its surface rippling with resonant harmonics that both sides instantly recognize as Commune magic. [POSITION: Near-PC] The fighting momentarily falters as the Tempest operatives exchange uncertain glances - your Resonance affiliation carries weight even among void-techs - while the Nexus forces begrudgingly lower weapons, though their leader barks into comms about "Commune interference in sovereign jurisdiction." The barrier holds steady despite void corruption trying to seep through its edges in writhing tendrils, buying precious moments for potential dialogue.
+
+[TACTICAL: Both enemy groups forced to reposition around barrier - Tempest Operatives shift to Far-Enemy, Nexus Enforcers to Near-Enemy]
+========================================
+
+[DM dm_01] ===== Adjudication Complete =====
+
+12:07:25 INFO  - player_02 took 3 stuns + 0 wounds (mixed)
+
+[Void-Enhanced Troops] Void-Enhanced Troops attacks target with Combat Knife - HIT! 15 damage (5 after soak)
+
+=== Generating Round Synthesis ===
+
+[Echo Resonance] Received resolution
+[Echo Resonance] Consumed offering
+12:07:25 INFO  - Story advancement triggered - adding prompt context
+12:07:33 INFO  - Story advancement synthesis generated - clearing flag
+
+[DM dm_01] ===== Round Synthesis =====
+As void energy crackles around Kiran's form, they unleash a devastating blast toward the Nexus Enforcers. Almost simultaneously, Echo's astral energies manifest, weaving a shimmering barrier that splits the battlefield. The timing proves crucial - Echo's barrier materializes just as Kiran's void blast detonates, creating an unexpected synergy. The protective field channels and amplifies the void energy, focusing it into precise streams that tear through the Enforcers' ranks with surgical precision.
+
+The combined effect is devastating and final. As the void energy dissipates and Echo's barrier fades to a subtle shimmer, the immediate threat has been neutralized. But the cost is clear - the facility's void containment systems are critically destabilized, and warning klaxons echo through the corridors. There's no time to waste.
+
+[ADVANCE_STORY: Lower Maintenance Tunnels | With the security forces neutralized, you've found an escape route through the facility's maintenance level. But void corruption is spreading rapidly through these tunnels.]
+
+[NEW_CLOCK: Void Contamination | 6 | The tunnels are becoming saturated with dangerous void energy]
+
+[NEW_CLOCK: Escape Route | 4 | Find and reach a safe exit before the tunnels become impassable]
+
+[NEW_CLOCK: System Purge | 5 | The facility's automated purge sequence is counting down]
+========================================
+12:07:33 INFO  - DM requested story advancement: Lower Maintenance Tunnels - With the security forces neutralized, you've found an escape route through the facility's maintenance level. But void corruption is spreading rapidly through these tunnels.
+
+🕐 NEW CLOCK SPAWNED: Void Contamination (0/6) - The tunnels are becoming saturated with dangerous void energy
+
+🕐 NEW CLOCK SPAWNED: Escape Route (0/4) - Find and reach a safe exit before the tunnels become impassable
+
+🕐 NEW CLOCK SPAWNED: System Purge (0/5) - The facility's automated purge sequence is counting down
+
+=== Cleanup Phase ===
+
+[DM dm_01] The situation evolves...
+
+📊 Void Contamination: 0/6 | Escape Route: 0/4 | System Purge: 0/5
+
+=== Completed 5 rounds ===
+
+============================================================
+=== MISSION DEBRIEF ===
+============================================================
+
+[Echo Resonance] *speaking in a calm, measured tone with subtle harmonic undertones*
+
+The void barriers held better than expected when we paired them with proper offerings, though I'm troubled by how quickly the corruption spread once it breached the maintenance level. Working with Kiran was... challenging - their reckless approach to void manipulation put us both at risk, even if their instincts for finding escape routes proved useful. My main concern is that we're seeing void corruption patterns that don't match our established models - we need to adapt our containment rituals before attempting anything this deep in compromised facilities again.
+
+[Kiran Rift] *adjusts scorched protective gear while speaking with barely contained intensity*
+
+Look, those "reckless" void techniques bought us critical time when the conventional barriers were failing. Echo's by-the-book approach would have seen us consumed while reciting proper containment verses. And yes, I pushed some limits, but that's exactly how we discovered that dissolution strikes can temporarily halt corruption spread - something your "established models" missed entirely. My only real concern is that Tempest will use this incident to impose even more restrictions on void research, when what we really need is to better understand how to harness and control these emerging patterns.
+
+============================================================
+
+
+=== Session c82003c9-143b-4f89-8f67-429b2fb55beb Ending ===
+
+--- Final State Summary ---
+
+Scene Clocks:
+  Void Contamination: 0/6 
+  Escape Route: 0/4 
+  System Purge: 0/5 
+
+Character Final States:
+  Echo Resonance (Resonance Communes):
+    Void: 4/10 (Shadowed)
+    Soulcredit: 4
+    Top Skills: Astral Arts 6, Attunement 5, Charm 4
+  Kiran Rift (Tempest Industries):
+    Void: 4/10 (Shadowed)
+    Soulcredit: -2
+    Top Skills: Astral Arts 6, Attunement 5, Magick Theory 5
+
+--- Clock Timeline ---
+  Round 1: 🕐 CREATED - Tempest Installation (0/4)
+             Void-tech being deployed
+             When filled: FILLED=Void-tech goes live! [SPAWN_ENEMY: Void-Enhanced Troops | elite | 2 | Near-Enemy | adaptive]
+  Round 1: 🕐 CREATED - Nexus Purge (0/4)
+             Cleansing the site by force
+  Round 1: 🕐 CREATED - Civilian Casualties (0/4)
+             Bystanders caught in ideological war
+  Round 4: ✅ FILLED - Tempest Installation (4/4)
+             Triggered: FILLED=Void-tech goes live! [SPAWN_ENEMY: Void-Enhanced Troops | elite | 2 | Near-Enemy | adaptive]
+  Round 4: ⏰ EXPIRED - Nexus Purge (0/4) - crisis_averted
+             Cleansing the site by force
+  Round 4: ⏰ EXPIRED - Civilian Casualties (0/4) - crisis_averted
+             Bystanders caught in ideological war
+  Round 5: 🕐 CREATED - Void Contamination (0/6)
+             The tunnels are becoming saturated with dangerous void energy
+  Round 5: 🕐 CREATED - Escape Route (0/4)
+             Find and reach a safe exit before the tunnels become impassable
+  Round 5: 🕐 CREATED - System Purge (0/5)
+             The facility's automated purge sequence is counting down
+
+========================================
+
+✓ JSONL log saved: multiagent_output/session_c82003c9-143b-4f89-8f67-429b2fb55beb.jsonl
+Session data saved to multiagent_output/session_c82003c9-143b-4f89-8f67-429b2fb55beb.json
+Fatal Python error: _enter_buffered_busy: could not acquire lock for <_io.BufferedReader name='<stdin>'> at interpreter shutdown, possibly due to daemon threads
+Python runtime state: finalizing (tstate=0x0000000000ba6ac8)
+
+Current thread 0x000078266d430080 (most recent call first):
+  <no Python frame>

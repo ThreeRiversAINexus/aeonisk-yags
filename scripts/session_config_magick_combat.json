@@ -1,0 +1,147 @@
+{
+  "session_name": "magick_combat_test",
+  "max_turns": 5,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "_vendor_info": "Vendors disabled for pure magic combat testing",
+  "vendor_spawn_frequency": -1,
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_focus": "=== MAGICK COMBAT FOCUS ===",
+  "_magick_info": "Testing magical combat mechanics with properly equipped ritualists",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Echo Resonance",
+      "pronouns": "they/them",
+      "faction": "Resonance Communes",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 4,
+        "voidCuriosity": 2,
+        "bondPreference": "seeks",
+        "ritualConservatism": 8
+      },
+      "goals": [
+        "Test safe ritual magic with proper offerings",
+        "Demonstrate elemental manipulation and barriers",
+        "Avoid void corruption through disciplined practice"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 3,
+        "Endurance": 3,
+        "Perception": 3,
+        "Intelligence": 4,
+        "Empathy": 4,
+        "Willpower": 4,
+        "Charisma": 3,
+        "Size": 5
+      },
+      "skills": {
+        "Astral Arts": 6,
+        "Attunement": 5,
+        "Charm": 4,
+        "Counsel": 3,
+        "Awareness": 3,
+        "Melee": 2
+      },
+      "void_score": 0,
+      "soulcredit": 2,
+      "equipped_weapons": {
+        "primary": "ritual_blade"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "ritual_blade": 1,
+        "crystal_focus": 1,
+        "incense": 5,
+        "blood_offering": 3,
+        "memory_crystal": 2
+      }
+    },
+    {
+      "name": "Kiran Rift",
+      "pronouns": "they/them",
+      "faction": "Tempest Industries",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 9,
+        "voidCuriosity": 10,
+        "bondPreference": "avoids",
+        "ritualConservatism": 1
+      },
+      "goals": [
+        "Test void magic vs safe magic tradeoffs",
+        "Push magical limits with risky techniques",
+        "Demonstrate void blast and dissolution strikes"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 3,
+        "Endurance": 2,
+        "Perception": 4,
+        "Intelligence": 5,
+        "Empathy": 2,
+        "Willpower": 4,
+        "Charisma": 2,
+        "Size": 5
+      },
+      "skills": {
+        "Astral Arts": 6,
+        "Attunement": 5,
+        "Magick Theory": 5,
+        "Systems": 3,
+        "Investigation": 3,
+        "Melee": 2
+      },
+      "void_score": 4,
+      "soulcredit": -2,
+      "equipped_weapons": {
+        "primary": "void_blade"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "void_blade": 1,
+        "tech_kit": 1,
+        "incense": 3,
+        "neural_stimulant": 2,
+        "memory_crystal": 1
+      }
+    }
+    ]
+  },
+  "notes": "Magick-focused combat test with two mages: conservative ritualist (Echo) vs risky void theorist (Kiran). Tests offering consumption, void corruption mechanics, and magical combat variety."
+}
