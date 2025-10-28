@@ -142,6 +142,47 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 
 **Key insight:** Content generation and logging often happen in different places.
 
+### 4. Free Targeting Mode & Damage Resolution
+```python
+# Free targeting mode: IFF/ROE testing with unified targeting
+enemy_agent_config = {
+    "free_targeting_mode": True,  # Everyone gets target IDs (tgt_xxxx)
+    ...
+}
+```
+
+**How it works:**
+- **All combatants** (PCs + enemies) receive generic target IDs: `tgt_7a3f`, `tgt_yc0e`, etc.
+- **No allegiance indicators** - system doesn't reveal who is friend/foe (IFF testing)
+- **DM narration is authoritative** - determines all outcomes (damage, healing, effects)
+
+**Damage Resolution Hierarchy:**
+1. **DM narration** - "strikes for 8 damage" → Apply 8 damage
+2. **Combat triplet** - `post_soak_damage` from action_validator → Apply that
+3. **Fallback damage** - Generated ONLY for PC → Enemy actions (not PC → PC)
+
+**PC-to-PC Actions (Free Targeting):**
+- ✅ "Purify void corruption from Riven" → DM narrates cleansing, void reduced on target
+- ✅ "Stabilize Thresh with med kit" → DM narrates healing
+- ✅ "Shoot Ash Vex to stop the ritual" → DM narrates damage, applies it
+- ❌ NO keyword analysis for damage - DM interprets intent and adjudicates outcome
+
+**Void Cleansing on Targets (Scales with Success Quality):**
+- System resolves `target_enemy="tgt_7a3f"` → `target_character="Ash Vex"` automatically
+- Void reduction applied to **target character**, not the ritual performer
+- Requires: Success + (ley site OR offering consumed) in narration
+- **Scales with margin:**
+  - Marginal (0-4): -1 void
+  - Moderate (5-9): -2 void
+  - Good (10-14): -3 void
+  - Excellent (15-19): -4 void
+  - Exceptional (20+): -5 void
+- Example: "Riven cleanses Ash (margin +3)" → Ash's void: 10 → 9/10 (marginal = -1)
+
+**Why:** Enables emergent gameplay (betrayal, healing, IFF testing) without brittle keyword detection for damage resolution.
+
+**Files:** `dm.py:1765-1775, 2458-2468` (target ID resolution), `dm.py:1797-1804` (fallback damage logic), `player.py:1250` (UI gating), `outcome_parser.py:674-718` (scaled void cleansing), `target_ids.py` (ID system)
+
 ## ML Logging System
 
 **Status:** ✅ Complete (2025-10-23)
@@ -467,6 +508,57 @@ git commit -m "message"
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-27: Free Targeting Mode & DM-Authoritative Damage Resolution
+
+**Free Targeting System (IFF/ROE Testing):**
+- Renamed `combat_id` → `target_id` throughout codebase (10 files)
+- Changed ID format: `cbt_xxxx` → `tgt_xxxx` (neutral terminology)
+- All combatants (PCs + enemies) receive generic IDs in free targeting mode
+- No allegiance indicators - system doesn't reveal friend vs foe
+
+**DM-Authoritative Damage Resolution:**
+- **Removed keyword-based cooperative intent detection** (dm.py:1785-1804)
+- DM narration is now the single source of truth for all PC-to-PC actions
+- Fallback damage only generated for PC → Enemy (not PC → PC)
+- Enables emergent gameplay: healing, purification, betrayal - all DM-interpreted
+
+**How it works:**
+1. Player declares: "Shoot Ash Vex to stop the ritual" (targets `tgt_7a3f`)
+2. DM LLM adjudicates: Interprets intent, determines outcome, narrates result
+3. System applies: Only applies what DM explicitly states (damage, healing, effects)
+4. No fallback: PC-to-PC actions never get auto-generated damage
+
+**Benefits:**
+- ✅ IFF/ROE testing: Can target anyone without revealing allegiance
+- ✅ Flexible interpretation: "Share tactical data" won't cause damage
+- ✅ Emergent gameplay: "Shoot ally to stop corruption ritual" works
+- ✅ No brittle keywords: DM context determines all outcomes
+
+**Files Modified:**
+- `dm.py` - Removed keyword analysis, added PC detection for fallback damage
+- `player.py` - Restored free targeting UI (always show when enabled)
+- `target_ids.py` - Renamed from combat_ids.py
+- 8 other files updated for terminology consistency
+
+**Test Results:** game_void_testing_3.log
+- 15 rounds, free targeting enabled throughout
+- PC-to-PC "share" actions: No damage (DM interpreted as cooperative)
+- PC-to-Enemy combat: Fallback damage applied correctly
+- Target IDs working: `tgt_c4cg`, `tgt_yc0e`, `tgt_ig3d`, etc.
+
+**Void Cleansing Fixes (game_void_testing_4.log issue):**
+1. **Target Resolution:**
+   - **Problem**: PC-to-PC void cleansing rituals succeeded but didn't reduce target's void
+   - **Root Cause**: Free targeting uses `target_enemy="tgt_xxxx"`, but outcome parser needs `target_character="Name"`
+   - **Fix**: Added target ID → character name resolution before parsing state changes (dm.py:1765-1775, 2458-2468)
+   - **Result**: "Riven cleanses Ash" now correctly reduces Ash's void (not Riven's)
+
+2. **Scaled Void Reduction (outcome_parser.py:674-718):**
+   - **Old**: Hard threshold (margin ≥5 required for -1 void)
+   - **New**: Scales with success quality (marginal = -1, moderate = -2, good = -3, excellent = -4, exceptional = -5)
+   - **Rationale**: Rewards better rolls, makes void cleansing more flexible, removes frustrating threshold
+   - **Result**: Margin +3 now cleanses -1 void (was 0), margin +12 cleanses -3 void (was -1)
 
 ### 2025-10-26: Prompt System Migration to YAML (v2.1)
 

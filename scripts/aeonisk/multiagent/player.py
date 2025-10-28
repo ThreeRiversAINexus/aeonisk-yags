@@ -1244,10 +1244,10 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                     active_enemies = get_active_enemies(enemy_combat.enemy_agents)
                     logger.debug(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
 
-        # Build tactical context only when enemies are actually present
-        # In free targeting mode: only show combat UI if enemies exist (prevents targeting allies in non-combat)
-        # In standard mode: show combat UI if active_enemies is truthy (backward compatible)
-        if (free_targeting and len(active_enemies) > 0) or (not free_targeting and active_enemies):
+        # Build tactical context for targeting
+        # In free targeting mode: ALWAYS show UI (IFF/ROE testing - PCs can heal/harm each other)
+        # In standard mode: only show UI when enemies present (backward compatible)
+        if free_targeting or active_enemies:
             # Build weapon inventory summary (for lethal/non-lethal choices)
             weapon_inventory_text = ""
             if hasattr(self, 'equipped_weapons') and hasattr(self, 'weapon_inventory'):

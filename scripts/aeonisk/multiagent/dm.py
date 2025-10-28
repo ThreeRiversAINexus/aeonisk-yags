@@ -1762,6 +1762,18 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
+            # CRITICAL: Resolve target IDs to character names for void cleansing
+            # In free targeting mode, actions have target_enemy="tgt_xxxx" but outcome parser needs target_character="Name"
+            if action.get('target_enemy') and action['target_enemy'].startswith('tgt_'):
+                target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                if target_id_mapper and target_id_mapper.enabled:
+                    target_entity = target_id_mapper.resolve_target(action['target_enemy'])
+                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    if target_entity and target_id_mapper.is_player(action['target_enemy']):
+                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                            action['target_character'] = target_entity.character_state.name
+                            logger.debug(f"Resolved target ID {action['target_enemy']} → character '{action['target_character']}' for void cleansing")
+
             state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
 
             # Parse combat triplet (for backwards compatibility)
@@ -1782,25 +1794,26 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         'source': 'combat_triplet'
                     }
 
-                # If still no effect, generate fallback (but check for cooperative intent first)
+                # If still no effect, generate fallback damage ONLY for actual enemies
+                # For PC-to-PC actions in free targeting mode, trust the DM's narration entirely
                 if not effect and resolution and resolution.success:
-                    # Detect cooperative vs hostile intent to prevent friendly fire damage on helpful actions
-                    intent_lower = action.get('intent', '').lower()
-                    desc_lower = action.get('description', '').lower()
+                    # Check if target is a PC or enemy
+                    target_identifier = action.get('target_enemy')
+                    is_targeting_pc = False
 
-                    cooperative_keywords = ['share', 'help', 'assist', 'protect', 'heal',
-                                           'purify', 'coordinate', 'support', 'aid', 'buff',
-                                           'cleanse', 'stabilize', 'treat', 'mend']
+                    if target_identifier and target_identifier.startswith('tgt_'):
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target_id_mapper and target_id_mapper.enabled:
+                            is_targeting_pc = target_id_mapper.is_player(target_identifier)
 
-                    is_cooperative = any(kw in intent_lower or kw in desc_lower
-                                        for kw in cooperative_keywords)
-
-                    if not is_cooperative:
+                    # Only generate fallback damage if targeting an actual enemy (not a PC)
+                    # For PC-to-PC actions: DM narration is authoritative (heal/harm/purify determined by DM)
+                    if not is_targeting_pc:
                         effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
                         if effect:
-                            logger.debug(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
+                            logger.debug(f"Generated fallback effect for enemy: {effect.get('type')} targeting {effect.get('target')}")
                     else:
-                        logger.debug(f"Skipping fallback damage for cooperative action: {intent_lower}")
+                        logger.debug(f"Targeting PC detected - trusting DM narration entirely (no fallback damage)")
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -2453,6 +2466,18 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
+
+            # CRITICAL: Resolve target IDs to character names for void cleansing
+            # In free targeting mode, actions have target_enemy="tgt_xxxx" but outcome parser needs target_character="Name"
+            if action.get('target_enemy') and action['target_enemy'].startswith('tgt_'):
+                target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                if target_id_mapper and target_id_mapper.enabled:
+                    target_entity = target_id_mapper.resolve_target(action['target_enemy'])
+                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    if target_entity and target_id_mapper.is_player(action['target_enemy']):
+                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                            action['target_character'] = target_entity.character_state.name
+                            logger.debug(f"Resolved target ID {action['target_enemy']} → character '{action['target_character']}' for void cleansing")
 
             state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
 
