@@ -662,7 +662,7 @@ def parse_state_changes(
     narration_lower = narration.lower()
     grounding_keywords = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
     purge_keywords = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
-    void_cleansing_keywords = ['cleanse void', 'purify void', 'void cleansing', 'spiritual cleansing', 'purification ritual']
+    # void_cleansing_keywords removed - now handled by DM explicit markers
 
     if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
         if any(kw in intent_lower for kw in grounding_keywords):
@@ -671,51 +671,9 @@ def parse_state_changes(
             void_reasons = ['Grounding meditation success']
             state_changes['notes'].append("Grounding: -1 Void (personal recovery)")
 
-        elif any(kw in intent_lower for kw in void_cleansing_keywords):
-            # Void Cleansing Ritual: Scales with success quality
-            # Marginal (margin 0-4): -1 void
-            # Moderate (margin 5-9): -2 void
-            # Good (margin 10-14): -3 void
-            # Excellent (margin 15-19): -4 void
-            # Exceptional (margin 20+): -5 void
-            # Canonical requirement: ritual at ley site with offering
-            # IMPORTANT: Must have explicit target_character - no keyword-based targeting
-            target_character = action.get('target_character')
-
-            if not target_character or target_character.lower() in ['none', '']:
-                # No explicit target - this is environmental purification, not personal cleansing
-                state_changes['notes'].append("Void Cleansing: Environmental purification (specify target_character for personal cleansing)")
-            else:
-                # Explicit character targeting - apply personal void cleansing
-                ley_site_present = any(phrase in narration_lower for phrase in ['ley site', 'sacred ground', 'nexus point', 'ley line', 'ley node'])
-                offering_consumed = any(phrase in narration_lower for phrase in ['offering', 'incense', 'burned', 'consumed', 'sacrifice'])
-
-                # Scale void reduction with success quality
-                success_margin = resolution.get('margin', 0)
-                if ley_site_present or offering_consumed:
-                    # Determine void reduction based on outcome tier
-                    if outcome_tier == 'marginal':
-                        void_reduction = -1
-                    elif outcome_tier == 'moderate':
-                        void_reduction = -2
-                    elif outcome_tier == 'good':
-                        void_reduction = -3
-                    elif outcome_tier == 'excellent':
-                        void_reduction = -4
-                    elif outcome_tier == 'exceptional':
-                        void_reduction = -5
-                    else:
-                        void_reduction = 0  # Should not happen for successful rituals
-
-                    if void_reduction < 0:
-                        void_change = void_reduction
-                        void_reasons = [f'Void cleansing ritual on {target_character} ({outcome_tier} success, ley site/offering)']
-                        state_changes['void_target_character'] = target_character
-                        state_changes['notes'].append(f"Void Cleansing: {void_reduction} Void for {target_character} ({outcome_tier} success)")
-                        logger.info(f"Void cleansing ritual: {action.get('character', 'Unknown')} cleansing {target_character}'s void by {void_reduction}")
-                else:
-                    # Successful ritual but missing ley site AND offering - no void reduction
-                    state_changes['notes'].append("Void Cleansing: Ritual succeeded but requires ley site or offering for purification")
+        # NOTE: Void cleansing is now handled entirely by DM explicit markers (⚫ Void: -X)
+        # The DM's narration prompt includes scaling rules based on success quality
+        # No keyword detection needed - trust the DM's judgment
 
         elif any(kw in intent_lower for kw in purge_keywords):
             # Successful purge: -scene void (handled by DM, mark as note)

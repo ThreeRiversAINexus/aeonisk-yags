@@ -167,21 +167,22 @@ enemy_agent_config = {
 - ✅ "Shoot Ash Vex to stop the ritual" → DM narrates damage, applies it
 - ❌ NO keyword analysis for damage - DM interprets intent and adjudicates outcome
 
-**Void Cleansing on Targets (Scales with Success Quality):**
+**Void Cleansing on Targets (DM-Authoritative, Scales with Success Quality):**
 - System resolves `target_enemy="tgt_7a3f"` → `target_character="Ash Vex"` automatically
 - Void reduction applied to **target character**, not the ritual performer
-- Requires: Success + (ley site OR offering consumed) in narration
-- **Scales with margin:**
-  - Marginal (0-4): -1 void
-  - Moderate (5-9): -2 void
-  - Good (10-14): -3 void
-  - Excellent (15-19): -4 void
-  - Exceptional (20+): -5 void
-- Example: "Riven cleanses Ash (margin +3)" → Ash's void: 10 → 9/10 (marginal = -1)
+- **DM generates explicit markers** based on success quality:
+  - Marginal (0-4): `⚫ Void (Target): -1`
+  - Moderate (5-9): `⚫ Void (Target): -2`
+  - Good (10-14): `⚫ Void (Target): -3`
+  - Excellent (15-19): `⚫ Void (Target): -4`
+  - Exceptional (20+): `⚫ Void (Target): -5`
+- **NO keyword detection** - DM interprets intent and generates appropriate markers
+- Requires: Success + (ley site OR offering) mentioned in DM narration
+- Example: Margin +20 → DM generates `⚫ Void (Target): -5 (transcendent purification)`
 
 **Why:** Enables emergent gameplay (betrayal, healing, IFF testing) without brittle keyword detection for damage resolution.
 
-**Files:** `dm.py:1765-1775, 2458-2468` (target ID resolution), `dm.py:1797-1804` (fallback damage logic), `player.py:1250` (UI gating), `outcome_parser.py:674-718` (scaled void cleansing), `target_ids.py` (ID system)
+**Files:** `dm.py:1765-1775, 2458-2468` (target ID resolution), `dm.py:1797-1804` (fallback damage logic), `player.py:1250` (UI gating), `prompts/claude/en/dm.yaml:274-285` (DM void cleansing rules), `outcome_parser.py:39-63` (explicit marker parsing), `target_ids.py` (ID system)
 
 ## ML Logging System
 
@@ -554,11 +555,13 @@ git commit -m "message"
    - **Fix**: Added target ID → character name resolution before parsing state changes (dm.py:1765-1775, 2458-2468)
    - **Result**: "Riven cleanses Ash" now correctly reduces Ash's void (not Riven's)
 
-2. **Scaled Void Reduction (outcome_parser.py:674-718):**
-   - **Old**: Hard threshold (margin ≥5 required for -1 void)
-   - **New**: Scales with success quality (marginal = -1, moderate = -2, good = -3, excellent = -4, exceptional = -5)
-   - **Rationale**: Rewards better rolls, makes void cleansing more flexible, removes frustrating threshold
-   - **Result**: Margin +3 now cleanses -1 void (was 0), margin +12 cleanses -3 void (was -1)
+2. **DM-Authoritative Void Cleansing:**
+   - **Old**: Keyword detection (`'cleanse void'` exact phrase required) + hard-coded scaling in Python
+   - **New**: DM generates explicit markers (`⚫ Void (Target): -5`) based on prompt instructions
+   - **Removed**: All keyword-based void cleansing detection (outcome_parser.py:674-718 deleted)
+   - **Added**: Scaling rules to DM prompt (prompts/claude/en/dm.yaml:274-285)
+   - **Rationale**: Eliminates brittle keyword matching, trusts DM's judgment and context understanding
+   - **Result**: "Channel purifying energy to help cleanse Ash's void corruption" (margin +20) → DM generates `⚫ Void: -5`
 
 ### 2025-10-26: Prompt System Migration to YAML (v2.1)
 

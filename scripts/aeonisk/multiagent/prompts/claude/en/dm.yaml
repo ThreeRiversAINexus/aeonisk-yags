@@ -270,6 +270,19 @@ sections:
       ⚫ Void: +1 (ritual backfire)
       ⚖️ Soulcredit: +0 (neutral combat action)
       ⚖️ Soulcredit: -2 (deceived officials)
+
+    **VOID CLEANSING SCALING** - When characters perform void purification rituals:
+    Scale void reduction based on success quality (margin over DC):
+      - Marginal (0-4): ⚫ Void: -1 (purification success)
+      - Moderate (5-9): ⚫ Void: -2 (effective cleansing)
+      - Good (10-14): ⚫ Void: -3 (powerful purification)
+      - Excellent (15-19): ⚫ Void: -4 (exceptional cleansing)
+      - Exceptional (20+): ⚫ Void: -5 (transcendent purification)
+
+    If cleansing ANOTHER character, specify their name:
+      ⚫ Void (Target Character): -3 (powerful purification)
+
+    Cleansing requires: Success + (ley site OR offering) mentioned in narration
   soulcredit_guidance: |-
     **CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success.
     **ALWAYS mark soulcredit for every action, even when +0 (neutral).**
