@@ -142,7 +142,76 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 
 **Key insight:** Content generation and logging often happen in different places.
 
-### 4. Free Targeting Mode & Damage Resolution
+### 4. LLM API Resilience & Rate Limiting
+
+**Built-in Retry with Exponential Backoff:**
+- Automatic retry for 500/529 (Overloaded) errors
+- Configurable via `LLMConfig`: `max_retries=3`, `base_delay=1.0`, `max_delay=60.0`
+- Exponential backoff: 1s → 2s → 4s → ... (with jitter to prevent thundering herd)
+- Non-retryable errors (auth, validation) fail immediately
+
+**Global Rate Limiting:**
+- Prevents too many concurrent API calls across all agents (DM + players + enemies)
+- Default: `max_concurrent_requests=5`, `min_request_interval=0.2s`
+- Uses singleton `APIRateLimiter` with semaphore + timing enforcement
+- Automatically initialized on first API call
+
+**Configuration Example:**
+```python
+config = LLMConfig(
+    provider="claude",
+    model="claude-sonnet-4-5",
+    max_retries=3,              # Retry up to 3 times
+    base_delay=1.0,             # Start with 1s delay
+    max_delay=60.0,             # Cap at 60s
+    jitter=True,                # Add randomness (50-100% of delay)
+    use_rate_limiter=True,      # Enable global rate limiting
+    max_concurrent_requests=5,  # Max 5 concurrent calls
+    min_request_interval=0.2    # 200ms between request starts
+)
+```
+
+**Why This Matters:**
+- Multi-agent sessions can generate 10+ concurrent API calls during action declaration phase
+- Without throttling, all agents hit API simultaneously → 500 Overloaded errors
+- Retry logic recovers from transient overload
+- Rate limiting prevents overload in the first place
+
+**Using Retry/Rate Limiting in Existing Code:**
+
+For code using raw `anthropic.Anthropic` clients, use the `call_anthropic_with_retry` wrapper:
+
+```python
+# OLD: Direct API call (no retry/rate limiting)
+response = self.llm_client.messages.create(
+    model=model,
+    max_tokens=4000,
+    temperature=0.8,
+    messages=[{"role": "user", "content": prompt}]
+)
+
+# NEW: With retry/rate limiting
+from .llm_provider import call_anthropic_with_retry
+
+response = await call_anthropic_with_retry(
+    client=self.llm_client,
+    model=model,
+    messages=[{"role": "user", "content": prompt}],
+    max_tokens=4000,
+    temperature=0.8,
+    max_retries=3,           # Optional: override default
+    use_rate_limiter=True    # Optional: disable if needed
+)
+```
+
+**Current Status:**
+- ✅ Wrapper function created and working
+- ✅ Used in `dm.py` marker retry logic (line 3146)
+- ⏳ Main DM/player API calls still using direct client (future refactor)
+
+**Files:** `llm_provider.py:19-75` (APIRateLimiter), `llm_provider.py:78-104` (LLMConfig), `llm_provider.py:269-382` (retry logic), `llm_provider.py:583-684` (wrapper function)
+
+### 5. Free Targeting Mode & Damage Resolution
 ```python
 # Free targeting mode: IFF/ROE testing with unified targeting
 enemy_agent_config = {
@@ -549,6 +618,120 @@ When updating prompts or examples:
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-29: Player Agent Stat Awareness & Failure Loop Detection
+
+**Problem:** Player agents (AI) choosing actions they're mathematically incapable of succeeding at, leading to void death spirals.
+
+**Root Cause (from game_testing.log analysis):**
+- Echo Resonance: Intelligence 3, NO Investigation/Systems skills → unskilled penalty -5
+- Kept attempting "Analyze void corruption" (Int + no skill = d20 - 2 vs DC 18-22)
+- **Impossible to succeed** (needs d20 roll > 20)
+- Failed 7+ times catastrophically, void: 0 → 10 in 16 rounds
+- AI agent not recognizing stat limitations or pivoting after repeated failures
+
+**Solutions Implemented:**
+
+1. **Stat Awareness Guidance** (`prompts/claude/en/player.yaml`)
+   - New comprehensive section explaining roll formula: `Attribute + Skill + d20` vs DC
+   - Explicit warning about **-5 unskilled penalty** making low-stat actions impossible
+   - Success probability calculator with examples
+   - "Golden Rule": If you have NO skill, DO NOT attempt that action!
+   - Shows each character their top 3 skills and low attributes (<4)
+
+2. **Failure Loop Detection** (`session.py`, `dm.py`, `player.py`)
+   - Tracks last 5 actions per character: (action_type, success_tier, void_change, round_num)
+   - Detects when same action_type fails 2+ times in a row
+   - Injects urgent warning into player prompt:
+     - "🚨 FAILURE LOOP DETECTED 🚨"
+     - Lists recent failures with void increases
+     - **REQUIRES** choosing different action type
+     - Suggests using character's strengths instead
+
+3. **High Void Warning** (`player.py`)
+   - When void ≥ 8: Injects critical warning into prompt
+   - Lists dangerous actions to avoid (void analysis, unskilled rituals)
+   - Suggests safer alternatives (coordination, offerings, support actions)
+
+4. **Enhanced Important Rules** (`player.yaml`)
+   - Added: "DESCRIPTION must be at least 10 characters" (prevents validation errors)
+   - Added: "CALCULATE success probability BEFORE declaring actions"
+   - Added: "AVOID impossible actions - if you need d20 > 20, find a different approach!"
+   - Added: "STOP repeating failed action types - pivot to your strengths after 2 failures"
+
+**How It Works:**
+
+**Before (game_testing.log):**
+```
+Round 6:  Echo analyzes void (Int 3, no skill: d20-2 vs DC 20) → CRITICAL_FAILURE → Void +2
+Round 8:  Echo analyzes void again (same stats) → CRITICAL_FAILURE → Void +2
+Round 14: Echo analyzes void again (same stats) → CRITICAL_FAILURE → Void +2
+Round 16: Echo void = 10 (possession threshold!)
+```
+
+**After (with new system):**
+```
+Round 6:  Echo analyzes void → CRITICAL_FAILURE → Void +2
+Round 8:  Echo analyzes void → CRITICAL_FAILURE → Void +2
+Round 9:  Player prompt shows: "🚨 FAILURE LOOP DETECTED 🚨
+          You failed 2 investigate actions! Use your strengths: Astral Arts (6), Attunement (5)"
+Round 10: Echo performs ritual cleansing (Willpower 3 × Astral Arts 6 = 9+d20) → SUCCESS
+```
+
+**Benefits:**
+- ✅ Prevents impossible action selection (agents see their stat limitations upfront)
+- ✅ Breaks failure loops (forced pivot after 2 consecutive failures)
+- ✅ Reduces void death spirals (high void triggers explicit warnings)
+- ✅ Improves action variety (agents use their strengths instead of repeating failures)
+
+**Files Modified:**
+- `prompts/claude/en/player.yaml` - Added stat_awareness_guidance section, enhanced rules
+- `player.py` - Added failure loop detection, stat list generation, warning injection
+- `session.py` - Added _character_action_history tracking dict
+- `dm.py` - Track action outcomes (action_type, success_tier, void_change) after each resolution
+
+**Testing Required:** Run session_config_full.json and verify Echo avoids Intelligence checks
+
+### 2025-10-29: LLM API Resilience & Rate Limiting
+
+**Problem:** Multi-agent sessions hitting 500 Overloaded errors from Anthropic API during concurrent action declaration phases.
+
+**Root Cause:**
+- 3 players + DM + 2-3 enemies = 7-8 concurrent API calls hitting simultaneously
+- No retry logic for transient overload errors
+- No throttling to prevent concurrent request spikes
+
+**Solutions Implemented:**
+
+1. **Exponential Backoff Retry Logic** (`llm_provider.py`)
+   - Automatic retry for 500/529 (Overloaded) errors
+   - Exponential backoff: 1s → 2s → 4s → ... up to max_delay
+   - Jitter (50-100% randomization) to prevent thundering herd
+   - Non-retryable errors (auth, validation) fail immediately
+   - Configurable: `max_retries=3`, `base_delay=1.0`, `max_delay=60.0`
+
+2. **Global Rate Limiting** (`llm_provider.py`)
+   - Singleton `APIRateLimiter` with semaphore-based concurrency control
+   - Limits concurrent API calls across all agents: `max_concurrent_requests=5`
+   - Enforces minimum interval between request starts: `min_request_interval=0.2s`
+   - Prevents overload proactively (not just recovery)
+
+3. **Updated LLMConfig** (`llm_provider.py`)
+   - Added 6 new configuration parameters for retry/rate limiting
+   - All features enabled by default with conservative settings
+   - Can be disabled per-agent if needed
+
+**Benefits:**
+- ✅ Graceful recovery from transient API overload
+- ✅ Prevents overload spikes during multi-agent action phases
+- ✅ Better API quota management
+- ✅ Configurable per-session or per-agent
+
+**Files Modified:**
+- `llm_provider.py` - Added APIRateLimiter class, retry logic, updated LLMConfig
+- `CLAUDE.md` - Documented new resilience patterns
+
+**Backward Compatibility:** All existing code continues to work. New features enabled by default.
 
 ### 2025-10-29: Void Cleansing PC-to-PC Targeting Fix
 

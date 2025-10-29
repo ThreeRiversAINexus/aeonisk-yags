@@ -1341,6 +1341,24 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 'resolution': resolution
             })
 
+            # Track action outcome for failure loop detection
+            if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                action_type = action.get('action_type', 'unknown')
+                success_tier = resolution.get('outcome', {}).get('success_tier', 'UNKNOWN')
+                void_change = state_changes.get('void_change', 0)
+
+                session = self.shared_state.session
+                if character_name not in session._character_action_history:
+                    session._character_action_history[character_name] = []
+
+                session._character_action_history[character_name].append(
+                    (action_type, success_tier, void_change, round_num)
+                )
+
+                # Keep only last 5 actions per character
+                if len(session._character_action_history[character_name]) > 5:
+                    session._character_action_history[character_name] = session._character_action_history[character_name][-5:]
+
         # Send individual resolutions to each player
         for res in resolutions:
             # Prepare serializable resolution data (exclude non-serializable ActionResolution object)
@@ -3137,18 +3155,25 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             )
 
         # Get LLM config
-        provider = self.llm_config.get('provider', 'openai')
         model = self.llm_config.get('model', 'gpt-4')
 
         # Call LLM with lower temperature for format compliance
-        from .llm_provider import get_provider
-        llm_client = get_provider(provider, model)
-
-        response = await llm_client.generate_async(
-            prompt=retry_prompt,
-            temperature=0.3,  # Lower temp for format compliance
-            max_tokens=300
-        )
+        # Use call_anthropic_with_retry for automatic retry/rate limiting
+        try:
+            from .llm_provider import call_anthropic_with_retry
+            llm_response = await call_anthropic_with_retry(
+                client=self.llm_client,
+                model=model,
+                messages=[{"role": "user", "content": retry_prompt}],
+                max_tokens=300,
+                temperature=0.3,  # Lower temp for format compliance
+                max_retries=3,
+                use_rate_limiter=True
+            )
+            response = llm_response.content[0].text.strip()
+        except Exception as e:
+            logger.error(f"Error in marker retry LLM call: {e}")
+            response = ""
 
         # Log retry result to JSONL
         success = len(response.strip()) > 0

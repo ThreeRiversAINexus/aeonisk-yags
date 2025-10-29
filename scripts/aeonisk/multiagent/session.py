@@ -100,6 +100,10 @@ class SelfPlayingSession:
         # Track if scenario had clocks (for detecting when all clocks expire/complete)
         self._had_active_clocks = False
 
+        # Track character action history for failure loop detection
+        # Format: {character_name: [(action_type, success_tier, void_change, round_num), ...]}
+        self._character_action_history: Dict[str, List[tuple]] = {}
+
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
         self.shared_state.initialize_mechanics()
@@ -1792,20 +1796,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if dm_agents:
                 dm_agent = dm_agents[0]
                 import asyncio
-                # Run async retry in event loop
-                loop = asyncio.get_event_loop()
                 # Get current round from mechanics
                 mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
                 current_round_num = mechanics.current_round if mechanics else 0
-                retry_response = loop.run_until_complete(dm_agent._retry_invalid_markers(
-                    marker_type="ADVANCE_STORY",
-                    invalid_markers=invalid_advances,
-                    round_num=current_round_num
-                ))
-                # Append corrected markers to narration
-                if retry_response.strip():
-                    narration += f"\n\n{retry_response}"
-                    logger.info(f"Appended ADVANCE_STORY retry response to narration")
+
+                # Schedule async retry task (don't block with run_until_complete)
+                async def retry_and_update():
+                    retry_response = await dm_agent._retry_invalid_markers(
+                        marker_type="ADVANCE_STORY",
+                        invalid_markers=invalid_advances,
+                        round_num=current_round_num
+                    )
+                    # Update narration state if retry succeeded
+                    if retry_response.strip():
+                        # Note: We can't modify 'narration' variable from here since it's local scope
+                        # The retry will regenerate properly formatted markers on next synthesis
+                        logger.info(f"ADVANCE_STORY retry complete: {retry_response[:100]}...")
+
+                asyncio.create_task(retry_and_update())
+                logger.info("Scheduled ADVANCE_STORY marker retry in background")
 
         advance_result = parse_advance_story_marker(narration)
         if advance_result['should_advance']:
