@@ -13,34 +13,35 @@
   "vendor_spawn_frequency": 3,
 
   "_comment_tactical": "=== TACTICAL MODULE ===",
+  "_tactical_info": "Free targeting enabled for IFF/ROE testing - PCs can target each other for void purification",
   "tactical_module_enabled": true,
-  "enemy_agents_enabled": true,
+  "enemy_agents_enabled": false,
   "enemy_agent_config": {
     "free_targeting_mode": true,
-    "allow_groups": true,
-    "max_enemies_per_combat": 6,
-    "shared_intel_enabled": true,
-    "auto_execute_reactions": true,
-    "loot_suggestions_enabled": true,
+    "allow_groups": false,
+    "max_enemies_per_combat": 0,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
     "void_tracking_enabled": true
   },
 
   "scenario": {
-    "theme": "Void Cleansing Pilgrimage",
-    "location": "Ancient Ley Site - The Resonant Altar",
-    "situation": "The party has traveled to a known ley site deep in the contested zones - a place where ley lines converge and create natural spiritual resonance. The ancient altar here has been used for void cleansing rituals for centuries. However, the site attracts void-curious scavengers and rogue operators who seek to disrupt or exploit the sacred ground. The party must perform their cleansing rituals while dealing with potential threats.",
+    "theme": "Temple of Purification - Collaborative Void Cleansing",
+    "location": "The Harmonic Sanctum - Sacred Purification Temple",
+    "situation": "The party has arrived at the Harmonic Sanctum, an ancient temple built at the convergence of three major ley lines. This sacred site has been used for collaborative void purification rituals for over a thousand years. The temple's resonance field amplifies cleansing energies, making it the ideal location for deep void purification work. Each character carries significant void corruption and must work together to cleanse one another - void removal is most effective when one ritually trained person purifies another, rather than self-cleansing. The temple is peaceful and protected, allowing the party to focus entirely on their purification work without external threats. Temple doctrine teaches that mutual purification strengthens bonds and demonstrates trust - to let another touch your void-tainted spirit requires absolute faith.",
     "initial_clocks": [
       {
-        "name": "Void Cleansing Complete",
+        "name": "Complete Purification Cycle",
         "current": 0,
-        "max": 6,
-        "description": "Party members successfully reduce their void scores through ritual cleansing"
+        "max": 8,
+        "description": "Each PC successfully purifies another party member's void (advance +2 per successful purification ritual)"
       },
       {
-        "name": "Ley Site Stability",
-        "current": 8,
+        "name": "Temple Resonance Harmony",
+        "current": 10,
         "max": 10,
-        "description": "The ley site remains calm and suitable for rituals (decreases if combat occurs)"
+        "description": "The temple's ley convergence remains harmonically stable, providing +2 bonus to all void cleansing rituals"
       }
     ]
   },
@@ -49,7 +50,7 @@
     "dm": {
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.7
       }
     },
@@ -60,7 +61,7 @@
         "faction": "Resonance Communes",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -88,12 +89,12 @@
           "Stealth": 3,
           "Melee": 3
         },
-        "void_score": 4,
+        "void_score": 6,
         "soulcredit": -2,
         "goals": [
-          "Cleanse accumulated void corruption from risky ritual work",
-          "Restore standing with Resonance Communes through proper purification",
-          "Learn safer void management techniques"
+          "Purify the void corruption of party members through collaborative cleansing rituals",
+          "Receive void purification from trusted companions in turn",
+          "Demonstrate the power of mutual trust and ritual cooperation"
         ],
         "equipped_weapons": {
           "primary": "combat_knife"
@@ -120,7 +121,7 @@
         "faction": "Tempest Industries",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -148,12 +149,12 @@
           "Drone Operation": 4,
           "Guns": 3
         },
-        "void_score": 5,
+        "void_score": 7,
         "soulcredit": -1,
         "goals": [
-          "Prove void can be managed through disciplined cleansing rituals",
-          "Document cleansing techniques for Tempest research archives",
-          "Avoid mandatory memory-wipe by demonstrating controlled void reduction"
+          "Reduce party void scores to safe levels through targeted purification rituals",
+          "Document collaborative cleansing effectiveness for Tempest research archives",
+          "Purify Riven's dangerous void accumulation and accept purification in return"
         ],
         "equipped_weapons": {
           "primary": "pistol"
@@ -180,7 +181,7 @@
         "faction": "Pantheon Security",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -211,12 +212,12 @@
           "Brawl": 4,
           "Astral Arts": 2
         },
-        "void_score": 3,
+        "void_score": 5,
         "soulcredit": 2,
         "goals": [
-          "Perform regulation cleansing ritual to maintain Pantheon operational standards",
-          "Return void score to 0 through proper ley site purification",
-          "Protect the ley site from void cultists or scavengers"
+          "Cleanse Ash's critical void corruption (void 7) before it causes spiritual breakdown",
+          "Assist Riven in achieving regulation-compliant void levels (below void 3)",
+          "Accept purification from party members to meet Pantheon operational standards (void 0-2)"
         ],
         "equipped_weapons": {
           "primary": "pistol",
@@ -244,17 +245,17 @@
   },
 
   "_test_checklist": [
-    "1. Characters start with void 3-5 (need cleansing)",
-    "2. Characters have offerings in inventory (incense, purification_incense, blood_offering)",
-    "3. Characters have currency to purchase more offerings from vendor",
-    "4. Scenario explicitly mentions ley site in description",
-    "5. Vendor spawns on round 3 to test purchase mechanics",
-    "6. Test void reduction via successful ritual (margin ≥5) + offering/ley site",
-    "7. Test offering consumption from inventory tracking",
-    "8. Test soulcredit gains from void cleansing (+2-3)",
-    "9. Test insufficient margin failure case",
-    "10. Test ritual without offering/ley site failure case"
+    "1. Characters start with void 5-7 (significant corruption requiring collaborative cleansing)",
+    "2. FREE TARGETING MODE: PCs can select each other as targets via TARGET field",
+    "3. Test PC→PC void purification: Riven purifies Ash (void 7→5)",
+    "4. Test PC→PC void purification: Ash purifies Thresh (void 5→3)",
+    "5. Test PC→PC void purification: Thresh purifies Riven (void 6→4)",
+    "6. Verify void reduction scaling: marginal=-1, moderate=-2, good=-3, excellent=-4",
+    "7. Verify TARGET field properly resolves to target_character for void application",
+    "8. Test offering consumption from inventory tracking",
+    "9. Test soulcredit gains from successful purification (+2-3)",
+    "10. Vendor spawns for offering resupply if needed"
   ],
 
-  "notes": "Focused void cleansing test with 3 characters (void 3-5). Scenario at ley site. All have ritual capability and offerings. Vendor enabled for purchase testing. Expected flow: perform cleansing rituals, purchase more offerings if needed, reduce void to 0-2 range."
+  "notes": "COLLABORATIVE VOID PURIFICATION TEST. Focus: PCs targeting each other (not themselves) for void cleansing rituals. Tests free targeting mode + PC-to-PC friendly ritual mechanics. Starting void: Ash=7, Riven=6, Thresh=5. Goal: reduce all to void 0-3 through mutual purification. No combat threats - pure cooperative ritual testing."
 }

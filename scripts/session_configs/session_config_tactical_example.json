@@ -26,7 +26,7 @@
     "dm": {
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.7
       }
     },
@@ -37,7 +37,7 @@
         "faction": "Unaffiliated Mercenary",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -78,7 +78,7 @@
         "faction": "Tech Collective",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -118,7 +118,7 @@
         "faction": "Void Seeker",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.9
         },
         "personality": {

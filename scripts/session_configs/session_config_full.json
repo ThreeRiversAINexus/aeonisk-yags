@@ -29,7 +29,7 @@
     "dm": {
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.7
       }
     },
@@ -40,7 +40,7 @@
         "faction": "Tempest Industries",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -84,7 +84,7 @@
         "faction": "Resonance Communes",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -133,7 +133,7 @@
         "faction": "Astral Commerce Group",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -186,7 +186,7 @@
         "faction": "Pantheon Security",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -242,7 +242,7 @@
         "faction": "Resonance Communes",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -294,7 +294,7 @@
         "faction": "Tempest Industries",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -348,7 +348,7 @@
         "faction": "Sovereign Nexus",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -400,7 +400,7 @@
         "faction": "Sovereign Nexus",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -450,7 +450,7 @@
         "faction": "Pantheon Security",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -508,7 +508,7 @@
         "faction": "Astral Commerce Group",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -562,7 +562,7 @@
         "faction": "Arcane Genetics",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -614,7 +614,7 @@
         "faction": "Arcane Genetics",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -664,7 +664,7 @@
         "faction": "House of Vox",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -718,7 +718,7 @@
         "faction": "House of Vox",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -769,7 +769,7 @@
         "faction": "Tempest Industries",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -822,7 +822,7 @@
         "faction": "Fractal Praxis",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -873,7 +873,7 @@
         "faction": "Fractal Praxis",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -924,7 +924,7 @@
         "faction": "Freeborn Loner",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -979,7 +979,7 @@
         "faction": "Freeborn Loner",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -1033,7 +1033,7 @@
         "faction": "Astral Commerce Group",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -1077,7 +1077,7 @@
         "faction": "Freeborn",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {

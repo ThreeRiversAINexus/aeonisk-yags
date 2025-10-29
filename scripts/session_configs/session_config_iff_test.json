@@ -29,7 +29,7 @@
     "dm": {
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.7
       },
       "_scenario_hint": "Generate three-way battle with Tempest vs Nexus factions. Include combatants from both factions."
@@ -42,7 +42,7 @@
         "_note": "Tempest PC - should recognize Tempest enemies as allies by name",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -94,7 +94,7 @@
         "_note": "Nexus PC - should recognize Nexus enemies as allies by name",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {

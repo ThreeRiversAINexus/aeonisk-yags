@@ -30,7 +30,7 @@
     "dm": {
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.7
       },
       "_dm_instructions": "Create an overwhelming ambush scenario where players are immediately surrounded and must fight or flee. Spawn enemies that explicitly target the player characters, not each other. Make survival require tactical movement and desperate action."
@@ -42,7 +42,7 @@
       "faction": "Pantheon Security",
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.8
       },
       "personality": {
@@ -88,7 +88,7 @@
       "faction": "Freeborn Loner",
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.8
       },
       "personality": {

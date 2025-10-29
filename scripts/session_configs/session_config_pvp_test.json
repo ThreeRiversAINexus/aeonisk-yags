@@ -25,7 +25,7 @@
     "dm": {
       "llm": {
         "provider": "anthropic",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-sonnet-4-5",
         "temperature": 0.7
       },
       "_scenario_hint": "Generate a zero-sum competitive scenario. Examples: Both bounty hunters tracking the SAME target (only one can claim the bounty), competing for unique artifact/data chip, last shuttle off-world (only one seat), contested salvage rights to valuable wreck, duel over faction honor. The key constraint: there is ONE thing they both need, and ONLY ONE can have it. They are the ONLY two people present - absolutely NO enemies, NO NPCs, NO gangs, NO civilians, NO bystanders. Just Kiran and Sable in direct opposition. DO NOT use [SPAWN_ENEMY] under any circumstances."
@@ -38,7 +38,7 @@
         "_note": "Tempest operative - hostile to Nexus",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
@@ -90,7 +90,7 @@
         "_note": "Nexus enforcer - hostile to Tempest",
         "llm": {
           "provider": "anthropic",
-          "model": "claude-3-5-sonnet-20241022",
+          "model": "claude-sonnet-4-5",
           "temperature": 0.8
         },
         "personality": {
