@@ -320,6 +320,12 @@ class SelfPlayingSession:
             # Populate player_agents in shared_state for ally buff targeting
             self.shared_state.player_agents = player_agents
             for player in player_agents:
+                # Initialize void state with character's starting value
+                initial_void = getattr(player.character_state, 'void_score', 0)
+                void_state = mechanics.get_void_state(player.agent_id)
+                void_state.score = initial_void
+                logger.debug(f"Initialized {player.character_state.name} void: {initial_void}")
+
                 # Initialize soulcredit state with character's starting value
                 initial_sc = getattr(player.character_state, 'soulcredit', 0)
                 mechanics.get_soulcredit_state(player.agent_id, initial_score=initial_sc)
@@ -1788,10 +1794,13 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 import asyncio
                 # Run async retry in event loop
                 loop = asyncio.get_event_loop()
+                # Get current round from mechanics
+                mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+                current_round_num = mechanics.current_round if mechanics else 0
                 retry_response = loop.run_until_complete(dm_agent._retry_invalid_markers(
                     marker_type="ADVANCE_STORY",
                     invalid_markers=invalid_advances,
-                    round_num=self.current_round
+                    round_num=current_round_num
                 ))
                 # Append corrected markers to narration
                 if retry_response.strip():

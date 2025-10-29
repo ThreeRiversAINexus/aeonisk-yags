@@ -499,6 +499,46 @@ git commit -m "message"
 - .venv/ (virtual environment)
 ```
 
+## User Preferences & Design Philosophy
+
+### Freeform Content Over Keyword Detection
+
+**❌ Avoid:**
+- Rigid keyword detection for intent (e.g., checking if "heal" or "cleanse" in intent string)
+- Overly specific character names in prompts (e.g., "Ash Vex", "Thresh Ireveth")
+- Hardcoded faction-specific behaviors based on name patterns
+
+**✅ Prefer:**
+- DM interprets actions based on context and narrative understanding
+- Generic placeholder names in examples: "Target Character", "Ally Name", "Enemy"
+- Freeform narrative with structured mechanical markers for effects
+
+**Philosophy:**
+"I hate keyword detection as a mechanic and want the DM to interpret it during resolution." - User
+
+**Example of correct balance:**
+```
+Narration (freeform): "The purification ritual encounters unexpected resistance
+as inverted resonance patterns fight back..."
+
+Mechanics (structured): ⚫ Void (Target Character): -1 (marginal success despite complications)
+```
+
+### DM-Authoritative Resolution
+
+- DM's narration determines outcomes, not keyword matching
+- Fallback effects only for PC→Enemy actions (damage)
+- PC→PC actions trust DM judgment (heal/harm/purify determined narratively)
+- Mechanical markers (⚫ Void, ⚖️ Soulcredit, 📊 Clock) are mandatory for effects
+
+### Prompt Design Guidelines
+
+When updating prompts or examples:
+- Use generic placeholders, not specific character names
+- Allow narrative creativity while requiring mechanical clarity
+- Examples should generalize to future gameplay scenarios
+- Balance: Freedom in storytelling + Consistency in mechanics
+
 ## Important Notes
 
 - **Multi-agent requires venv:** `cd scripts/aeonisk && source .venv/bin/activate`
@@ -509,6 +549,73 @@ git commit -m "message"
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-29: Void Cleansing PC-to-PC Targeting Fix
+
+**Branch:** `void-and-targeting-fixes`
+
+**Problem:** PC-to-PC void purification rituals weren't reducing target's void score despite successful rolls.
+
+**Root Cause:**
+- System prevented fallback effects for PC→PC actions to avoid friendly fire damage
+- DM generated creative narrative twists without mandatory void reduction markers
+- Result: No void reduction applied even when ritual succeeded
+
+**Solutions Implemented:**
+
+1. **Enhanced DM Prompt** (`prompts/claude/en/dm.yaml`)
+   - Made void reduction MANDATORY for successful void cleansing rituals
+   - Added explicit PC-to-PC void cleansing instructions with named marker format
+   - Example: `⚫ Void (Target Character): -3 (powerful purification despite complications)`
+   - Used generic placeholders to avoid overfitting to specific character names
+
+2. **Enhanced Void Marker Parser** (`outcome_parser.py`)
+   - Updated `parse_explicit_void_markers()` to extract target character name
+   - Changed return type: `Tuple[int, List[str], str]` → `Tuple[int, List[str], str, Optional[str]]`
+   - Stores `void_target_character` in `state_changes` for session to apply to correct character
+
+3. **Completed Target Field Rename** (from previous session)
+   - Renamed `target_enemy` → `target` throughout codebase (6 files)
+   - Purpose: Neutral terminology to avoid biasing AI toward hostile actions
+   - Files: action_schema.py, player.py, outcome_parser.py, dm.py, markers.yaml, docs
+
+**Testing Required:**
+- Run `session_config_void_testing.json` (collaborative purification temple scenario)
+- Verify DM includes named void markers: `⚫ Void (Target Name): -3`
+- Check void reduction applies to target character, not caster
+
+**Files Modified:**
+- prompts/claude/en/dm.yaml
+- outcome_parser.py
+- action_schema.py, player.py, dm.py (target rename)
+- LOGGING_IMPLEMENTATION.md, prompts/shared/markers.yaml
+
+**See:** `.claude/current-work/void-cleansing-fix.md` for detailed analysis
+
+### 2025-10-28: Model Migration to Claude Sonnet 4.5 + Bug Fixes
+
+**Model Update:**
+- Updated all session configs from `claude-3-5-sonnet-20241022` → `claude-sonnet-4-5`
+- Updated default model in `llm_provider.py` (line 377)
+- Applied to: DM, all players, and enemy agents (via default)
+- Reason: Claude 3.5 Sonnet discontinued by Anthropic
+
+**Bug Fixes:**
+1. **Undefined `client` variable** (dm.py:336)
+   - **Problem**: Scenario regeneration used `client.messages.create` (undefined variable)
+   - **Fix**: Changed to `self.llm_client.messages.create`
+   - **Impact**: Fixed "name 'client' is not defined" crash during scenario variety enforcement
+
+2. **Wrong `current_round` reference** (session.py:1794)
+   - **Problem**: Marker retry accessed `self.current_round` (doesn't exist on session)
+   - **Fix**: Get round from `mechanics.current_round` instead
+   - **Impact**: Fixed "'SelfPlayingSession' object has no attribute 'current_round'" crash during ADVANCE_STORY retry
+
+**Files Modified:**
+- `llm_provider.py` - Default model parameter
+- All 18 session config files in `scripts/session_configs/`
+- `dm.py` - Fixed client reference in scenario retry
+- `session.py` - Fixed current_round reference in marker retry
 
 ### 2025-10-27: Free Targeting Mode & DM-Authoritative Damage Resolution
 

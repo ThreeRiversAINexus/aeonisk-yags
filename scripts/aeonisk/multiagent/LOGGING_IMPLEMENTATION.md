@@ -679,7 +679,7 @@ Captures the corrected markers from retry LLM call. Used for validating retry su
 **Date:** 2025-10-23
 **Symptom:** `'EnemyAgent' object has no attribute 'enemy_id'`
 **Root Cause:** Incorrect attribute name in dm.py:1664
-**Fix:** Changed `target_enemy.enemy_id` to `target_enemy.agent_id`
+**Fix:** Changed `targeted_enemy.enemy_id` to `targeted_enemy.agent_id`
 **Location:** `dm.py:1664`
 
 ### Bug #2: Field Name Mismatch

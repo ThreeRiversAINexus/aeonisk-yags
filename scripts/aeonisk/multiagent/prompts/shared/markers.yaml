@@ -286,18 +286,18 @@ player_input_markers:
         - 'COMPONENTS: None'
         required_for_rituals: false
   combat_targeting:
-    description: Combat-specific targeting markers
+    description: Targeting markers (neutral - can target anyone)
     markers:
-      TARGET_ENEMY:
-        format: 'TARGET_ENEMY: [exact name]'
-        description: Which enemy to target with combat action
+      TARGET:
+        format: 'TARGET: [target ID or name]'
+        description: Which combatant to target with action (friendly, hostile, or neutral)
         examples:
-        - 'TARGET_ENEMY: [Soldier-1]'
-        - 'TARGET_ENEMY: [Cultist Leader]'
-        validation_pattern: TARGET_ENEMY:\s*\[(.+?)\]
+        - 'TARGET: [tgt_7a3f]'
+        - 'TARGET: [Soldier-1]'
+        validation_pattern: TARGET:\s*\[(.+?)\]
         required_fields:
-        - enemy_name
-        notes: Must use exact enemy name from DM narration. Use brackets.
+        - target_identifier
+        notes: Use target ID (tgt_XXXX) when available, or exact name. Intent determines if action is friendly/hostile.
       TARGET_POSITION:
         format: 'TARGET_POSITION: [far|near]'
         description: Which position to move to
@@ -403,10 +403,10 @@ common_errors:
   example_wrong: 'SKILL: Hacking'
   example_correct: 'SKILL: Tech/Craft'
   fix: Use canonical names. See skill_mapping.py for valid skills.
-- error: Missing brackets in TARGET_ENEMY
-  example_wrong: 'TARGET_ENEMY: Soldier-1'
-  example_correct: 'TARGET_ENEMY: [Soldier-1]'
-  fix: Enemy names must be in brackets
+- error: Missing brackets in TARGET
+  example_wrong: 'TARGET: Soldier-1'
+  example_correct: 'TARGET: [tgt_7a3f]'
+  fix: Target IDs or names must be in brackets
 - error: Wrong emoji for clock advancement
   example_wrong: '⚫ [Enemy Reinforcements]: +2'
   example_correct: '📊 [Enemy Reinforcements]: +2'

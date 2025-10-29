@@ -1315,13 +1315,13 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 ⚠️  **CRITICAL TARGETING INSTRUCTIONS** ⚠️
 - Each person has a unique ID in brackets: [tgt_XXXX]
 - You MUST use the target ID when targeting, NOT the name
-- CORRECT: TARGET_ENEMY: tgt_7a3f
-- WRONG: TARGET_ENEMY: Gang Ambushers (this will FAIL!)
+- CORRECT: TARGET: tgt_7a3f
+- WRONG: TARGET: Gang Ambushers (this will FAIL!)
 
 **How to decide who to target:**
 1. Read the names to identify faction allegiance
 2. Consider your faction relationships ({self.character_state.faction})
-3. Use the combat ID (in brackets) when declaring your target
+3. Use the target ID (in brackets) when declaring your target
 
 ⚠️  **WARNING**: You can target ANYONE on this list, including allies or party members. Choose carefully!
 
@@ -1462,13 +1462,13 @@ Range Penalties (same ring/same side = Melee, 0 penalty):
                     # NO active enemies - make this CRYSTAL CLEAR to prevent targeting ghosts
                     tactical_combat_context = """
 
-✅ **NO ACTIVE ENEMIES** ✅
+✅ **NO ACTIVE COMBATANTS** ✅
 
-There are currently NO enemies on the battlefield. All hostile forces have been defeated or withdrawn.
+There are currently NO combatants in the targeting list. All forces have been defeated or withdrawn.
 
-⚠️  **CRITICAL**: Do NOT target enemies that don't exist!
-⚠️  **DO NOT** use TARGET_ENEMY field - there are no enemies to target!
-⚠️  **DO NOT** attack "raiders" or any other generic enemy names from narration!
+⚠️  **CRITICAL**: Do NOT target anyone that doesn't exist!
+⚠️  **DO NOT** use TARGET field - there is no one to target!
+⚠️  **DO NOT** target names from narration that aren't in the list above!
 
 If the DM mentions enemies in narration but they're not listed above with HP/position, they are NOT targetable enemies - they may be:
 - Already defeated
@@ -1510,68 +1510,23 @@ Available non-combat actions:
 {party_knowledge}
 
 Declare your next action using the required format:
+
+```
 INTENT: [what you're doing]
 ATTRIBUTE: [which attribute]
 SKILL: [which skill or None]
 DIFFICULTY: [estimate]
 JUSTIFICATION: [why that difficulty]
 ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
-TARGET_ENEMY: [if attacking: enemy name/ID from list above, otherwise: None]
+TARGET: [tgt_XXXX from list above, or None]
 TARGET_POSITION: [if moving: Engaged/Near-PC/Far-PC/Extreme-PC/Near-Enemy/Far-Enemy/Extreme-Enemy, otherwise: None]
 DESCRIPTION: [narrative description]
-
-**COMBAT EXAMPLES:**
-
-ATTACKING (most common - do this!):
-```
-INTENT: Shoot Void Spawn with rifle
-ATTRIBUTE: Agility
-SKILL: Combat
-DIFFICULTY: 20
-JUSTIFICATION: standard combat difficulty
-ACTION_TYPE: combat
-TARGET_ENEMY: Void Spawn
-TARGET_POSITION: None
-DESCRIPTION: I aim carefully and fire controlled bursts at the Void Spawn
 ```
 
-ATTACKING WHILE MOVING:
-```
-INTENT: Advance and shoot Assault Team
-ATTRIBUTE: Agility
-SKILL: Combat
-DIFFICULTY: 22
-JUSTIFICATION: moving while shooting is slightly harder
-ACTION_TYPE: combat
-TARGET_ENEMY: Assault Team
-TARGET_POSITION: Near-Enemy
-DESCRIPTION: I move to better range while firing at the Assault Team
-```
-
-CHARGING INTO MELEE:
-```
-INTENT: Charge and attack Suppression Squad with knife
-ATTRIBUTE: Agility
-SKILL: Combat
-DIFFICULTY: 18
-JUSTIFICATION: charging gives bonus to hit
-ACTION_TYPE: combat
-TARGET_ENEMY: Suppression Squad
-TARGET_POSITION: Engaged
-DESCRIPTION: I sprint forward and engage in close combat
-```
-
-REPOSITIONING ONLY (use sparingly - only when needed):
-```
-INTENT: Fall back to cover
-ATTRIBUTE: Agility
-SKILL: Athletics
-DIFFICULTY: 18
-JUSTIFICATION: tactical movement under fire
-ACTION_TYPE: combat
-TARGET_POSITION: Far-PC
-DESCRIPTION: I retreat to better defensive position
-```"""
+**NOTE ON TARGETING:**
+- TARGET is neutral - your INTENT determines whether this is friendly, hostile, or neutral
+- You can target anyone (ally, enemy, or neutral) - the situation determines the outcome
+- If you don't need a target (exploration, investigation), use TARGET: None"""
 
         try:
             provider = self.llm_config.get('provider', 'anthropic')
@@ -1755,10 +1710,10 @@ Now that you have this information, declare your action using the required forma
                     data['difficulty_justification'] = value
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
-                elif 'target_enemy' in key:
-                    # Extract enemy target if specified (legacy - prefer target_character)
+                elif 'target' in key and 'target_character' not in key and 'target_position' not in key:
+                    # Extract target if specified (neutral - could be friendly, hostile, or neutral)
                     if value.lower() != 'none':
-                        data['target_enemy'] = value
+                        data['target'] = value
 
                         # Resolve target ID to actual name for logging
                         target_display = value
