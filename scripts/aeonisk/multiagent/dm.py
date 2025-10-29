@@ -300,7 +300,7 @@ IMPORTANT:
                 response = await asyncio.to_thread(
                     self.llm_client.messages.create,
                     model=model,
-                    max_tokens=500,
+                    max_tokens=1000,
                     temperature=0.9,
                     messages=[{"role": "user", "content": scenario_prompt}]
                 )
@@ -341,7 +341,7 @@ IMPORTANT:
                             response = await asyncio.to_thread(
                                 self.llm_client.messages.create,
                                 model=model,
-                                max_tokens=500,
+                                max_tokens=1000,
                                 temperature=1.0,  # Higher temperature for more creativity
                                 messages=[{"role": "user", "content": retry_prompt}]
                             )
@@ -670,23 +670,26 @@ IMPORTANT:
 
         for line in lines:
             line = line.strip()
-            if ':' in line or '|' in line:
-                if line.startswith('THEME:'):
-                    scenario_data['theme'] = line.split(':', 1)[1].strip()
-                elif line.startswith('LOCATION:'):
-                    scenario_data['location'] = line.split(':', 1)[1].strip()
-                elif line.startswith('SITUATION:'):
-                    scenario_data['situation'] = line.split(':', 1)[1].strip()
-                elif line.startswith('VOID_LEVEL:'):
+            # Remove markdown formatting (**, *, etc) for parsing
+            clean_line = line.lstrip('*').strip()
+
+            if ':' in clean_line or '|' in clean_line:
+                if clean_line.startswith('THEME:'):
+                    scenario_data['theme'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                elif clean_line.startswith('LOCATION:'):
+                    scenario_data['location'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                elif clean_line.startswith('SITUATION:'):
+                    scenario_data['situation'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                elif clean_line.startswith('VOID_LEVEL:'):
                     try:
-                        scenario_data['void_level'] = int(line.split(':', 1)[1].strip())
+                        scenario_data['void_level'] = int(clean_line.split(':', 1)[1].strip())
                     except:
                         pass
-                elif line.startswith('CLOCK'):
+                elif clean_line.startswith('CLOCK'):
                     # Format: CLOCK1: Name | 6 | Description | ADVANCE=... | REGRESS=... | FILLED=...
-                    parts = line.split(':', 1)[1].split('|')
+                    parts = clean_line.split(':', 1)[1].split('|')
                     if len(parts) >= 3:
-                        name = parts[0].strip()
+                        name = parts[0].strip().strip('*').strip()
                         try:
                             max_ticks = int(parts[1].strip())
                         except:
