@@ -320,6 +320,12 @@ class SelfPlayingSession:
             # Populate player_agents in shared_state for ally buff targeting
             self.shared_state.player_agents = player_agents
             for player in player_agents:
+                # Initialize void state with character's starting value
+                initial_void = getattr(player.character_state, 'void_score', 0)
+                void_state = mechanics.get_void_state(player.agent_id)
+                void_state.score = initial_void
+                logger.debug(f"Initialized {player.character_state.name} void: {initial_void}")
+
                 # Initialize soulcredit state with character's starting value
                 initial_sc = getattr(player.character_state, 'soulcredit', 0)
                 mechanics.get_soulcredit_state(player.agent_id, initial_score=initial_sc)
@@ -487,9 +493,9 @@ class SelfPlayingSession:
         # Assign combat IDs for free targeting mode (if enabled)
         enemy_config = self.config.get('enemy_agent_config', {})
         if enemy_config.get('free_targeting_mode', False):
-            logger.info("Free targeting mode enabled - assigning combat IDs")
-            combat_id_mapper = self.shared_state.get_combat_id_mapper()
-            combat_id_mapper.enable()
+            logger.info("Free targeting mode enabled - assigning target IDs")
+            target_id_mapper = self.shared_state.get_target_id_mapper()
+            target_id_mapper.enable()
 
             # Get all active enemies (empty list if enemy combat disabled)
             active_enemies = []
@@ -498,11 +504,11 @@ class SelfPlayingSession:
                 active_enemies = get_active_enemies(self.enemy_combat.enemy_agents)
 
             # Assign IDs to all combatants (PCs + enemies)
-            combat_id_mapper.assign_ids(
+            target_id_mapper.assign_ids(
                 player_agents=self.shared_state.player_agents,
                 enemy_agents=active_enemies
             )
-            logger.info(f"Assigned {len(combat_id_mapper.get_all_combat_ids())} combat IDs")
+            logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
         # Log declaration phase start
         if mechanics and mechanics.jsonl_logger:
@@ -1772,6 +1778,35 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         # Check for story advancement marker FIRST
         # (so we can clear old clocks before spawning new ones)
+
+        # Check for invalid ADVANCE_STORY markers and retry if needed
+        from .outcome_parser import extract_invalid_advance_story_markers
+        from .dm import AIDMAgent  # Import at function level to avoid scoping issues
+
+        invalid_advances = extract_invalid_advance_story_markers(narration)
+
+        if invalid_advances:
+            logger.warning(f"Found {len(invalid_advances)} invalid ADVANCE_STORY markers - requesting retry")
+            # Get DM agent to retry
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agent = dm_agents[0]
+                import asyncio
+                # Run async retry in event loop
+                loop = asyncio.get_event_loop()
+                # Get current round from mechanics
+                mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+                current_round_num = mechanics.current_round if mechanics else 0
+                retry_response = loop.run_until_complete(dm_agent._retry_invalid_markers(
+                    marker_type="ADVANCE_STORY",
+                    invalid_markers=invalid_advances,
+                    round_num=current_round_num
+                ))
+                # Append corrected markers to narration
+                if retry_response.strip():
+                    narration += f"\n\n{retry_response}"
+                    logger.info(f"Appended ADVANCE_STORY retry response to narration")
+
         advance_result = parse_advance_story_marker(narration)
         if advance_result['should_advance']:
             logger.info(f"DM requested story advancement: {advance_result['location']} - {advance_result['situation']}")

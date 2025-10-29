@@ -374,7 +374,7 @@ def create_provider(config: LLMConfig) -> LLMProvider:
 
 
 def create_claude_provider(
-    model: str = "claude-3-5-sonnet-20241022",
+    model: str = "claude-sonnet-4-5",
     api_key: Optional[str] = None,
     max_tokens: int = 4000,
     temperature: float = 0.8,

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .action_schema import ActionValidator
     from .knowledge_retrieval import KnowledgeRetrieval
     from .enemy_combat import EnemyCombatManager
-    from .combat_ids import CombatIDMapper
+    from .target_ids import TargetIDMapper
 
 
 @dataclass
@@ -40,7 +40,7 @@ class SharedState:
     action_validator: Optional['ActionValidator'] = None
     knowledge_retrieval: Optional['KnowledgeRetrieval'] = None
     enemy_combat: Optional['EnemyCombatManager'] = None
-    combat_id_mapper: Optional['CombatIDMapper'] = None
+    target_id_mapper: Optional['TargetIDMapper'] = None
 
     # Session configuration (for accessing config flags like free_targeting_mode)
     session_config: Dict[str, Any] = field(default_factory=dict)
@@ -262,12 +262,12 @@ Generate something DIFFERENT from these recent scenarios.
             self.initialize_mechanics()
         return self.knowledge_retrieval
 
-    def get_combat_id_mapper(self) -> 'CombatIDMapper':
-        """Get or create combat ID mapper."""
-        if self.combat_id_mapper is None:
-            from .combat_ids import CombatIDMapper
-            self.combat_id_mapper = CombatIDMapper()
-        return self.combat_id_mapper
+    def get_target_id_mapper(self) -> 'TargetIDMapper':
+        """Get or create target ID mapper."""
+        if self.target_id_mapper is None:
+            from .target_ids import TargetIDMapper
+            self.target_id_mapper = TargetIDMapper()
+        return self.target_id_mapper
 
     def get_all_players(self) -> List[Any]:
         """Get all registered player agents."""

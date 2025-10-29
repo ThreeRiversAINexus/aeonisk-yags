@@ -142,6 +142,48 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 
 **Key insight:** Content generation and logging often happen in different places.
 
+### 4. Free Targeting Mode & Damage Resolution
+```python
+# Free targeting mode: IFF/ROE testing with unified targeting
+enemy_agent_config = {
+    "free_targeting_mode": True,  # Everyone gets target IDs (tgt_xxxx)
+    ...
+}
+```
+
+**How it works:**
+- **All combatants** (PCs + enemies) receive generic target IDs: `tgt_7a3f`, `tgt_yc0e`, etc.
+- **No allegiance indicators** - system doesn't reveal who is friend/foe (IFF testing)
+- **DM narration is authoritative** - determines all outcomes (damage, healing, effects)
+
+**Damage Resolution Hierarchy:**
+1. **DM narration** - "strikes for 8 damage" → Apply 8 damage
+2. **Combat triplet** - `post_soak_damage` from action_validator → Apply that
+3. **Fallback damage** - Generated ONLY for PC → Enemy actions (not PC → PC)
+
+**PC-to-PC Actions (Free Targeting):**
+- ✅ "Purify void corruption from Riven" → DM narrates cleansing, void reduced on target
+- ✅ "Stabilize Thresh with med kit" → DM narrates healing
+- ✅ "Shoot Ash Vex to stop the ritual" → DM narrates damage, applies it
+- ❌ NO keyword analysis for damage - DM interprets intent and adjudicates outcome
+
+**Void Cleansing on Targets (DM-Authoritative, Scales with Success Quality):**
+- System resolves `target_enemy="tgt_7a3f"` → `target_character="Ash Vex"` automatically
+- Void reduction applied to **target character**, not the ritual performer
+- **DM generates explicit markers** based on success quality:
+  - Marginal (0-4): `⚫ Void (Target): -1`
+  - Moderate (5-9): `⚫ Void (Target): -2`
+  - Good (10-14): `⚫ Void (Target): -3`
+  - Excellent (15-19): `⚫ Void (Target): -4`
+  - Exceptional (20+): `⚫ Void (Target): -5`
+- **NO keyword detection** - DM interprets intent and generates appropriate markers
+- Requires: Success + (ley site OR offering) mentioned in DM narration
+- Example: Margin +20 → DM generates `⚫ Void (Target): -5 (transcendent purification)`
+
+**Why:** Enables emergent gameplay (betrayal, healing, IFF testing) without brittle keyword detection for damage resolution.
+
+**Files:** `dm.py:1765-1775, 2458-2468` (target ID resolution), `dm.py:1797-1804` (fallback damage logic), `player.py:1250` (UI gating), `prompts/claude/en/dm.yaml:274-285` (DM void cleansing rules), `outcome_parser.py:39-63` (explicit marker parsing), `target_ids.py` (ID system)
+
 ## ML Logging System
 
 **Status:** ✅ Complete (2025-10-23)
@@ -457,6 +499,46 @@ git commit -m "message"
 - .venv/ (virtual environment)
 ```
 
+## User Preferences & Design Philosophy
+
+### Freeform Content Over Keyword Detection
+
+**❌ Avoid:**
+- Rigid keyword detection for intent (e.g., checking if "heal" or "cleanse" in intent string)
+- Overly specific character names in prompts (e.g., "Ash Vex", "Thresh Ireveth")
+- Hardcoded faction-specific behaviors based on name patterns
+
+**✅ Prefer:**
+- DM interprets actions based on context and narrative understanding
+- Generic placeholder names in examples: "Target Character", "Ally Name", "Enemy"
+- Freeform narrative with structured mechanical markers for effects
+
+**Philosophy:**
+"I hate keyword detection as a mechanic and want the DM to interpret it during resolution." - User
+
+**Example of correct balance:**
+```
+Narration (freeform): "The purification ritual encounters unexpected resistance
+as inverted resonance patterns fight back..."
+
+Mechanics (structured): ⚫ Void (Target Character): -1 (marginal success despite complications)
+```
+
+### DM-Authoritative Resolution
+
+- DM's narration determines outcomes, not keyword matching
+- Fallback effects only for PC→Enemy actions (damage)
+- PC→PC actions trust DM judgment (heal/harm/purify determined narratively)
+- Mechanical markers (⚫ Void, ⚖️ Soulcredit, 📊 Clock) are mandatory for effects
+
+### Prompt Design Guidelines
+
+When updating prompts or examples:
+- Use generic placeholders, not specific character names
+- Allow narrative creativity while requiring mechanical clarity
+- Examples should generalize to future gameplay scenarios
+- Balance: Freedom in storytelling + Consistency in mechanics
+
 ## Important Notes
 
 - **Multi-agent requires venv:** `cd scripts/aeonisk && source .venv/bin/activate`
@@ -467,6 +549,126 @@ git commit -m "message"
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-29: Void Cleansing PC-to-PC Targeting Fix
+
+**Branch:** `void-and-targeting-fixes`
+
+**Problem:** PC-to-PC void purification rituals weren't reducing target's void score despite successful rolls.
+
+**Root Cause:**
+- System prevented fallback effects for PC→PC actions to avoid friendly fire damage
+- DM generated creative narrative twists without mandatory void reduction markers
+- Result: No void reduction applied even when ritual succeeded
+
+**Solutions Implemented:**
+
+1. **Enhanced DM Prompt** (`prompts/claude/en/dm.yaml`)
+   - Made void reduction MANDATORY for successful void cleansing rituals
+   - Added explicit PC-to-PC void cleansing instructions with named marker format
+   - Example: `⚫ Void (Target Character): -3 (powerful purification despite complications)`
+   - Used generic placeholders to avoid overfitting to specific character names
+
+2. **Enhanced Void Marker Parser** (`outcome_parser.py`)
+   - Updated `parse_explicit_void_markers()` to extract target character name
+   - Changed return type: `Tuple[int, List[str], str]` → `Tuple[int, List[str], str, Optional[str]]`
+   - Stores `void_target_character` in `state_changes` for session to apply to correct character
+
+3. **Completed Target Field Rename** (from previous session)
+   - Renamed `target_enemy` → `target` throughout codebase (6 files)
+   - Purpose: Neutral terminology to avoid biasing AI toward hostile actions
+   - Files: action_schema.py, player.py, outcome_parser.py, dm.py, markers.yaml, docs
+
+**Testing Required:**
+- Run `session_config_void_testing.json` (collaborative purification temple scenario)
+- Verify DM includes named void markers: `⚫ Void (Target Name): -3`
+- Check void reduction applies to target character, not caster
+
+**Files Modified:**
+- prompts/claude/en/dm.yaml
+- outcome_parser.py
+- action_schema.py, player.py, dm.py (target rename)
+- LOGGING_IMPLEMENTATION.md, prompts/shared/markers.yaml
+
+**See:** `.claude/current-work/void-cleansing-fix.md` for detailed analysis
+
+### 2025-10-28: Model Migration to Claude Sonnet 4.5 + Bug Fixes
+
+**Model Update:**
+- Updated all session configs from `claude-3-5-sonnet-20241022` → `claude-sonnet-4-5`
+- Updated default model in `llm_provider.py` (line 377)
+- Applied to: DM, all players, and enemy agents (via default)
+- Reason: Claude 3.5 Sonnet discontinued by Anthropic
+
+**Bug Fixes:**
+1. **Undefined `client` variable** (dm.py:336)
+   - **Problem**: Scenario regeneration used `client.messages.create` (undefined variable)
+   - **Fix**: Changed to `self.llm_client.messages.create`
+   - **Impact**: Fixed "name 'client' is not defined" crash during scenario variety enforcement
+
+2. **Wrong `current_round` reference** (session.py:1794)
+   - **Problem**: Marker retry accessed `self.current_round` (doesn't exist on session)
+   - **Fix**: Get round from `mechanics.current_round` instead
+   - **Impact**: Fixed "'SelfPlayingSession' object has no attribute 'current_round'" crash during ADVANCE_STORY retry
+
+**Files Modified:**
+- `llm_provider.py` - Default model parameter
+- All 18 session config files in `scripts/session_configs/`
+- `dm.py` - Fixed client reference in scenario retry
+- `session.py` - Fixed current_round reference in marker retry
+
+### 2025-10-27: Free Targeting Mode & DM-Authoritative Damage Resolution
+
+**Free Targeting System (IFF/ROE Testing):**
+- Renamed `combat_id` → `target_id` throughout codebase (10 files)
+- Changed ID format: `cbt_xxxx` → `tgt_xxxx` (neutral terminology)
+- All combatants (PCs + enemies) receive generic IDs in free targeting mode
+- No allegiance indicators - system doesn't reveal friend vs foe
+
+**DM-Authoritative Damage Resolution:**
+- **Removed keyword-based cooperative intent detection** (dm.py:1785-1804)
+- DM narration is now the single source of truth for all PC-to-PC actions
+- Fallback damage only generated for PC → Enemy (not PC → PC)
+- Enables emergent gameplay: healing, purification, betrayal - all DM-interpreted
+
+**How it works:**
+1. Player declares: "Shoot Ash Vex to stop the ritual" (targets `tgt_7a3f`)
+2. DM LLM adjudicates: Interprets intent, determines outcome, narrates result
+3. System applies: Only applies what DM explicitly states (damage, healing, effects)
+4. No fallback: PC-to-PC actions never get auto-generated damage
+
+**Benefits:**
+- ✅ IFF/ROE testing: Can target anyone without revealing allegiance
+- ✅ Flexible interpretation: "Share tactical data" won't cause damage
+- ✅ Emergent gameplay: "Shoot ally to stop corruption ritual" works
+- ✅ No brittle keywords: DM context determines all outcomes
+
+**Files Modified:**
+- `dm.py` - Removed keyword analysis, added PC detection for fallback damage
+- `player.py` - Restored free targeting UI (always show when enabled)
+- `target_ids.py` - Renamed from combat_ids.py
+- 8 other files updated for terminology consistency
+
+**Test Results:** game_void_testing_3.log
+- 15 rounds, free targeting enabled throughout
+- PC-to-PC "share" actions: No damage (DM interpreted as cooperative)
+- PC-to-Enemy combat: Fallback damage applied correctly
+- Target IDs working: `tgt_c4cg`, `tgt_yc0e`, `tgt_ig3d`, etc.
+
+**Void Cleansing Fixes (game_void_testing_4.log issue):**
+1. **Target Resolution:**
+   - **Problem**: PC-to-PC void cleansing rituals succeeded but didn't reduce target's void
+   - **Root Cause**: Free targeting uses `target_enemy="tgt_xxxx"`, but outcome parser needs `target_character="Name"`
+   - **Fix**: Added target ID → character name resolution before parsing state changes (dm.py:1765-1775, 2458-2468)
+   - **Result**: "Riven cleanses Ash" now correctly reduces Ash's void (not Riven's)
+
+2. **DM-Authoritative Void Cleansing:**
+   - **Old**: Keyword detection (`'cleanse void'` exact phrase required) + hard-coded scaling in Python
+   - **New**: DM generates explicit markers (`⚫ Void (Target): -5`) based on prompt instructions
+   - **Removed**: All keyword-based void cleansing detection (outcome_parser.py:674-718 deleted)
+   - **Added**: Scaling rules to DM prompt (prompts/claude/en/dm.yaml:274-285)
+   - **Rationale**: Eliminates brittle keyword matching, trusts DM's judgment and context understanding
+   - **Result**: "Channel purifying energy to help cleanse Ash's void corruption" (margin +20) → DM generates `⚫ Void: -5`
 
 ### 2025-10-26: Prompt System Migration to YAML (v2.1)
 

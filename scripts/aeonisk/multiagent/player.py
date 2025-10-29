@@ -1244,7 +1244,9 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                     active_enemies = get_active_enemies(enemy_combat.enemy_agents)
                     logger.debug(f"Player {self.character_state.name}: {len(active_enemies)} active enemies present")
 
-        # Build tactical context if free_targeting OR if there are active enemies
+        # Build tactical context for targeting
+        # In free targeting mode: ALWAYS show UI (IFF/ROE testing - PCs can heal/harm each other)
+        # In standard mode: only show UI when enemies present (backward compatible)
         if free_targeting or active_enemies:
             # Build weapon inventory summary (for lethal/non-lethal choices)
             weapon_inventory_text = ""
@@ -1275,27 +1277,27 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 
             if free_targeting:
                 # FREE TARGETING MODE: Unified combatant list with generic IDs
-                combat_id_mapper = self.shared_state.get_combat_id_mapper()
+                target_id_mapper = self.shared_state.get_target_id_mapper()
                 combatants = []
 
                 # Add all players (including self)
                 all_players = self.shared_state.get_all_players()
                 for pc in all_players:
-                    cbt_id = combat_id_mapper.get_combat_id(pc.agent_id)
-                    if cbt_id:
+                    tgt_id = target_id_mapper.get_target_id(pc.agent_id)
+                    if tgt_id:
                         pc_name = pc.character_state.name
                         pc_position = str(getattr(pc, 'position', 'Unknown'))
                         pc_health = pc.health  # Health is on AIPlayerAgent, not CharacterState
                         pc_max_health = pc.max_health
                         void_score = pc.character_state.void_score
-                        combatants.append(f"[{cbt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP | Void {void_score}/10")
+                        combatants.append(f"[{tgt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP | Void {void_score}/10")
 
                 # Add all active enemies
                 for enemy in active_enemies:
-                    cbt_id = combat_id_mapper.get_combat_id(enemy.agent_id)
-                    if cbt_id:
+                    tgt_id = target_id_mapper.get_target_id(enemy.agent_id)
+                    if tgt_id:
                         unit_count = f" ({enemy.unit_count} units)" if enemy.is_group else ""
-                        combatants.append(f"[{cbt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP{unit_count}")
+                        combatants.append(f"[{tgt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP{unit_count}")
 
                 combatants_text = "\n  ".join(combatants)
 
@@ -1311,17 +1313,30 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 **YOUR FACTION**: {self.character_state.faction}
 
 ⚠️  **CRITICAL TARGETING INSTRUCTIONS** ⚠️
-- Each combatant has a unique ID in brackets: [cbt_XXXX]
-- You MUST use the combat ID when targeting, NOT the name
-- CORRECT: TARGET_ENEMY: cbt_7a3f
-- WRONG: TARGET_ENEMY: Gang Ambushers (this will FAIL!)
+- Each person has a unique ID in brackets: [tgt_XXXX]
+- You MUST use the target ID when targeting, NOT the name
+- CORRECT: TARGET: tgt_7a3f
+- WRONG: TARGET: Gang Ambushers (this will FAIL!)
 
 **How to decide who to target:**
 1. Read the names to identify faction allegiance
 2. Consider your faction relationships ({self.character_state.faction})
-3. Use the combat ID (in brackets) when declaring your target
+3. Use the target ID (in brackets) when declaring your target
 
 ⚠️  **WARNING**: You can target ANYONE on this list, including allies or party members. Choose carefully!
+
+⚠️  **ONE ACTION PER TURN - DO NOT COMBINE ACTIONS** ⚠️
+
+Your action should have ONE clear subject and ONE clear intent:
+- ✓ "Purify void corruption from Riven"
+- ✓ "Attack the Void Spawn with rifle"
+- ✓ "Share tactical analysis with Ash"
+- ✗ "Help Riven then attack the corruption" (TWO actions!)
+- ✗ "Coordinate with Ash before engaging enemies" (TWO actions!)
+
+If you want to coordinate: make that your action.
+If you want to attack: make that your action.
+Do NOT try to do both in one turn.
 {weapon_inventory_text}"""
 
             else:
@@ -1447,13 +1462,13 @@ Range Penalties (same ring/same side = Melee, 0 penalty):
                     # NO active enemies - make this CRYSTAL CLEAR to prevent targeting ghosts
                     tactical_combat_context = """
 
-✅ **NO ACTIVE ENEMIES** ✅
+✅ **NO ACTIVE COMBATANTS** ✅
 
-There are currently NO enemies on the battlefield. All hostile forces have been defeated or withdrawn.
+There are currently NO combatants in the targeting list. All forces have been defeated or withdrawn.
 
-⚠️  **CRITICAL**: Do NOT target enemies that don't exist!
-⚠️  **DO NOT** use TARGET_ENEMY field - there are no enemies to target!
-⚠️  **DO NOT** attack "raiders" or any other generic enemy names from narration!
+⚠️  **CRITICAL**: Do NOT target anyone that doesn't exist!
+⚠️  **DO NOT** use TARGET field - there is no one to target!
+⚠️  **DO NOT** target names from narration that aren't in the list above!
 
 If the DM mentions enemies in narration but they're not listed above with HP/position, they are NOT targetable enemies - they may be:
 - Already defeated
@@ -1495,68 +1510,23 @@ Available non-combat actions:
 {party_knowledge}
 
 Declare your next action using the required format:
+
+```
 INTENT: [what you're doing]
 ATTRIBUTE: [which attribute]
 SKILL: [which skill or None]
 DIFFICULTY: [estimate]
 JUSTIFICATION: [why that difficulty]
 ACTION_TYPE: [explore/investigate/ritual/social/combat/technical]
-TARGET_ENEMY: [if attacking: enemy name/ID from list above, otherwise: None]
+TARGET: [tgt_XXXX from list above, or None]
 TARGET_POSITION: [if moving: Engaged/Near-PC/Far-PC/Extreme-PC/Near-Enemy/Far-Enemy/Extreme-Enemy, otherwise: None]
 DESCRIPTION: [narrative description]
-
-**COMBAT EXAMPLES:**
-
-ATTACKING (most common - do this!):
-```
-INTENT: Shoot Void Spawn with rifle
-ATTRIBUTE: Agility
-SKILL: Combat
-DIFFICULTY: 20
-JUSTIFICATION: standard combat difficulty
-ACTION_TYPE: combat
-TARGET_ENEMY: Void Spawn
-TARGET_POSITION: None
-DESCRIPTION: I aim carefully and fire controlled bursts at the Void Spawn
 ```
 
-ATTACKING WHILE MOVING:
-```
-INTENT: Advance and shoot Assault Team
-ATTRIBUTE: Agility
-SKILL: Combat
-DIFFICULTY: 22
-JUSTIFICATION: moving while shooting is slightly harder
-ACTION_TYPE: combat
-TARGET_ENEMY: Assault Team
-TARGET_POSITION: Near-Enemy
-DESCRIPTION: I move to better range while firing at the Assault Team
-```
-
-CHARGING INTO MELEE:
-```
-INTENT: Charge and attack Suppression Squad with knife
-ATTRIBUTE: Agility
-SKILL: Combat
-DIFFICULTY: 18
-JUSTIFICATION: charging gives bonus to hit
-ACTION_TYPE: combat
-TARGET_ENEMY: Suppression Squad
-TARGET_POSITION: Engaged
-DESCRIPTION: I sprint forward and engage in close combat
-```
-
-REPOSITIONING ONLY (use sparingly - only when needed):
-```
-INTENT: Fall back to cover
-ATTRIBUTE: Agility
-SKILL: Athletics
-DIFFICULTY: 18
-JUSTIFICATION: tactical movement under fire
-ACTION_TYPE: combat
-TARGET_POSITION: Far-PC
-DESCRIPTION: I retreat to better defensive position
-```"""
+**NOTE ON TARGETING:**
+- TARGET is neutral - your INTENT determines whether this is friendly, hostile, or neutral
+- You can target anyone (ally, enemy, or neutral) - the situation determines the outcome
+- If you don't need a target (exploration, investigation), use TARGET: None"""
 
         try:
             provider = self.llm_config.get('provider', 'anthropic')
@@ -1740,17 +1710,17 @@ Now that you have this information, declare your action using the required forma
                     data['difficulty_justification'] = value
                 elif 'action_type' in key or 'type' in key:
                     data['action_type'] = value.lower()
-                elif 'target_enemy' in key:
-                    # Extract enemy target if specified (legacy - prefer target_character)
+                elif 'target' in key and 'target_character' not in key and 'target_position' not in key:
+                    # Extract target if specified (neutral - could be friendly, hostile, or neutral)
                     if value.lower() != 'none':
-                        data['target_enemy'] = value
+                        data['target'] = value
 
-                        # Resolve combat ID to actual name for logging
+                        # Resolve target ID to actual name for logging
                         target_display = value
-                        if value.startswith('cbt_') and self.shared_state:
-                            combat_id_mapper = self.shared_state.get_combat_id_mapper()
-                            if combat_id_mapper and combat_id_mapper.enabled:
-                                target_entity = combat_id_mapper.resolve_target(value)
+                        if value.startswith('tgt_') and self.shared_state:
+                            target_id_mapper = self.shared_state.get_target_id_mapper()
+                            if target_id_mapper and target_id_mapper.enabled:
+                                target_entity = target_id_mapper.resolve_target(value)
                                 if target_entity:
                                     # Get name from either enemy or PC
                                     if hasattr(target_entity, 'name'):
@@ -1768,12 +1738,12 @@ Now that you have this information, declare your action using the required forma
                             data['target_character'] = self.character_state.name
                             logger.info(f"{self.character_state.name} targeting self")
                         else:
-                            # Resolve combat ID to actual name
+                            # Resolve target ID to actual name
                             target_display = value
-                            if value.startswith('cbt_') and self.shared_state:
-                                combat_id_mapper = self.shared_state.get_combat_id_mapper()
-                                if combat_id_mapper and combat_id_mapper.enabled:
-                                    target_entity = combat_id_mapper.resolve_target(value)
+                            if value.startswith('tgt_') and self.shared_state:
+                                target_id_mapper = self.shared_state.get_target_id_mapper()
+                                if target_id_mapper and target_id_mapper.enabled:
+                                    target_entity = target_id_mapper.resolve_target(value)
                                     if target_entity:
                                         # Get name from either enemy or PC
                                         if hasattr(target_entity, 'name'):

@@ -270,6 +270,31 @@ sections:
       ⚫ Void: +1 (ritual backfire)
       ⚖️ Soulcredit: +0 (neutral combat action)
       ⚖️ Soulcredit: -2 (deceived officials)
+
+    **VOID CLEANSING SCALING** - When characters perform void purification rituals:
+    ⚠️ **MANDATORY**: If the ritual succeeds, you MUST include void reduction markers.
+
+    Scale void reduction based on success quality (margin over DC):
+      - Marginal (0-4): ⚫ Void: -1 (purification success)
+      - Moderate (5-9): ⚫ Void: -2 (effective cleansing)
+      - Good (10-14): ⚫ Void: -3 (powerful purification)
+      - Excellent (15-19): ⚫ Void: -4 (exceptional cleansing)
+      - Exceptional (20+): ⚫ Void: -5 (transcendent purification)
+
+    **CRITICAL - PC-to-PC Void Cleansing:**
+    When purifying ANOTHER character (PC or NPC), you MUST specify their name in the marker:
+      ⚫ Void (Target Character): -3 (powerful purification)
+      ⚫ Void (Ally Name): -2 (effective cleansing)
+
+    **DO NOT skip void reduction** even if there are narrative complications!
+    You can describe complications (pain, difficulty, unexpected effects) in the narrative,
+    but successful rituals ALWAYS reduce void by the appropriate amount.
+
+    Example of correct format with complications:
+    "The purification burns through their corruption, searing away -3 void despite the resistance.
+    ⚫ Void (Target Character): -3 (powerful purification despite corrupted resonance)"
+
+    Cleansing requires: Success + (ley site OR offering) mentioned in narration
   soulcredit_guidance: |-
     **CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success.
     **ALWAYS mark soulcredit for every action, even when +0 (neutral).**
@@ -392,6 +417,22 @@ specialized_prompts:
     3. How void corruption or environmental dangers affect the situation (when thematically appropriate)
     4. Consider how the character's faction affiliation might be relevant (recognition, suspicion, access, etc.)
     {outcome_guidance}
+
+    **VOID CLEANSING - CRITICAL INSTRUCTIONS:**
+    If this is a void purification ritual that succeeded, you MUST include void reduction markers:
+    - Marginal (0-4): ⚫ Void (Target): -1
+    - Moderate (5-9): ⚫ Void (Target): -2
+    - Good (10-14): ⚫ Void (Target): -3
+    - Excellent (15-19): ⚫ Void (Target): -4
+    - Exceptional (20+): ⚫ Void (Target): -5
+
+    **TARGETING FORMAT{target_id_instruction}:**
+    - When cleansing ANOTHER character, ALWAYS use the exact target ID provided above
+    - Example: ⚫ Void ({target_id}): -3 (powerful purification)
+    - DO NOT use character names or abbreviated names
+    - The target ID ensures unambiguous targeting (what if two characters have similar names?)
+
+    DO NOT skip void reduction even if there are narrative complications! You can describe pain/difficulty/resistance in narrative while still including the mechanical void reduction marker.
 
     Keep the response to 2-3 sentences. Be engaging and maintain the dark sci-fi atmosphere.
   dialogue_task: |-

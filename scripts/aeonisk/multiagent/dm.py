@@ -127,6 +127,12 @@ class AIDMAgent(Agent):
             await self._use_forced_scenario(self.force_scenario, config)
             return
 
+        # Check if config already has a scenario defined
+        if 'scenario' in config and config['scenario']:
+            logger.info("Using scenario from config file")
+            await self._use_config_scenario(config['scenario'], config)
+            return
+
         # Check if vendor-gated or combat scenario is requested
         force_vendor_gate = config.get('force_vendor_gate', False)
         force_combat = config.get('force_combat', False)
@@ -294,7 +300,7 @@ IMPORTANT:
                 response = await asyncio.to_thread(
                     self.llm_client.messages.create,
                     model=model,
-                    max_tokens=500,
+                    max_tokens=1000,
                     temperature=0.9,
                     messages=[{"role": "user", "content": scenario_prompt}]
                 )
@@ -333,9 +339,9 @@ IMPORTANT:
                             )
 
                             response = await asyncio.to_thread(
-                                client.messages.create,
+                                self.llm_client.messages.create,
                                 model=model,
-                                max_tokens=500,
+                                max_tokens=1000,
                                 temperature=1.0,  # Higher temperature for more creativity
                                 messages=[{"role": "user", "content": retry_prompt}]
                             )
@@ -527,6 +533,76 @@ IMPORTANT:
         print(f"\n[DM {self.agent_id}] Using forced test scenario")
         print(f"Spawn marker: {spawn_marker}")
 
+    async def _use_config_scenario(self, scenario_config: Dict[str, Any], config: Dict[str, Any]):
+        """Use scenario from config file instead of generating one."""
+        # Extract scenario data from config
+        theme = scenario_config.get('theme', 'Unknown')
+        location = scenario_config.get('location', 'Unknown Location')
+        situation = scenario_config.get('situation', 'Something mysterious is happening')
+        void_level = scenario_config.get('void_level', 3)
+        initial_clocks = scenario_config.get('initial_clocks', [])
+
+        # Create scenario object
+        scenario = Scenario(
+            theme=theme,
+            location=location,
+            situation=situation,
+            active_npcs=[],
+            environmental_factors=[],
+            void_level=void_level,
+            active_vendor=None
+        )
+        self.current_scenario = scenario
+
+        # Prepare scenario data
+        scenario_data = {
+            'theme': theme,
+            'location': location,
+            'situation': situation,
+            'void_level': void_level,
+            'vendor': None
+        }
+
+        # Log scenario
+        if self.shared_state:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics and mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_scenario(scenario_data)
+
+            # Initialize clocks from config
+            if initial_clocks and mechanics:
+                for clock_config in initial_clocks:
+                    clock_name = clock_config.get('name', 'Unknown')
+                    clock_max = clock_config.get('max', 6)
+                    clock_current = clock_config.get('current', 0)
+                    clock_desc = clock_config.get('description', '')
+
+                    mechanics.create_scene_clock(clock_name, clock_max, clock_desc)
+                    if clock_current > 0:
+                        mechanics.scene_clocks[clock_name].current = clock_current
+
+                    logger.info(f"Initialized clock from config: {clock_name} ({clock_current}/{clock_max})")
+
+        # Generate opening narration based on situation
+        opening_narration = f"{situation}"
+
+        # Broadcast scenario setup
+        self.send_message_sync(
+            MessageType.SCENARIO_SETUP,
+            None,  # broadcast
+            {
+                'scenario': scenario_data,
+                'opening_narration': opening_narration,
+                'faction_conflicts': []
+            }
+        )
+
+        print(f"\n[DM {self.agent_id}] Using scenario from config file")
+        print(f"Theme: {theme}")
+        print(f"Location: {location}")
+        if initial_clocks:
+            print(f"Initialized {len(initial_clocks)} clocks from config")
+
     async def _request_human_scenario(self, config: Dict[str, Any]):
         """Request scenario from human DM."""
         print(f"\n[HUMAN DM {self.agent_id}] Please describe the opening scenario:")
@@ -594,23 +670,26 @@ IMPORTANT:
 
         for line in lines:
             line = line.strip()
-            if ':' in line or '|' in line:
-                if line.startswith('THEME:'):
-                    scenario_data['theme'] = line.split(':', 1)[1].strip()
-                elif line.startswith('LOCATION:'):
-                    scenario_data['location'] = line.split(':', 1)[1].strip()
-                elif line.startswith('SITUATION:'):
-                    scenario_data['situation'] = line.split(':', 1)[1].strip()
-                elif line.startswith('VOID_LEVEL:'):
+            # Remove markdown formatting (**, *, etc) for parsing
+            clean_line = line.lstrip('*').strip()
+
+            if ':' in clean_line or '|' in clean_line:
+                if clean_line.startswith('THEME:'):
+                    scenario_data['theme'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                elif clean_line.startswith('LOCATION:'):
+                    scenario_data['location'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                elif clean_line.startswith('SITUATION:'):
+                    scenario_data['situation'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                elif clean_line.startswith('VOID_LEVEL:'):
                     try:
-                        scenario_data['void_level'] = int(line.split(':', 1)[1].strip())
+                        scenario_data['void_level'] = int(clean_line.split(':', 1)[1].strip())
                     except:
                         pass
-                elif line.startswith('CLOCK'):
+                elif clean_line.startswith('CLOCK'):
                     # Format: CLOCK1: Name | 6 | Description | ADVANCE=... | REGRESS=... | FILLED=...
-                    parts = line.split(':', 1)[1].split('|')
+                    parts = clean_line.split(':', 1)[1].split('|')
                     if len(parts) >= 3:
-                        name = parts[0].strip()
+                        name = parts[0].strip().strip('*').strip()
                         try:
                             max_ticks = int(parts[1].strip())
                         except:
@@ -1301,7 +1380,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
                 # Check for void corruption mentioned in synthesis
                 from .outcome_parser import parse_void_triggers
-                void_change, void_reasons = parse_void_triggers(synthesis, "", "moderate")
+                void_change, void_reasons, _source, _target, _compliance = parse_void_triggers(synthesis, "", "moderate")
 
                 if void_change > 0:
                     # Apply void to ALL characters (consequence of filled clock)
@@ -1631,6 +1710,22 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 )
                 synthesis_text = response.content[0].text.strip()
 
+                # Check for invalid SPAWN_ENEMY markers and retry if needed
+                from .enemy_spawner import extract_invalid_spawn_markers
+                invalid_spawns = extract_invalid_spawn_markers(synthesis_text)
+
+                if invalid_spawns:
+                    logger.warning(f"Found {len(invalid_spawns)} invalid SPAWN_ENEMY markers in synthesis - requesting retry")
+                    retry_response = await self._retry_invalid_markers(
+                        marker_type="SPAWN_ENEMY",
+                        invalid_markers=invalid_spawns,
+                        round_num=round_num
+                    )
+                    # Append corrected markers to synthesis
+                    if retry_response.strip():
+                        synthesis_text += f"\n\n{retry_response}"
+                        logger.info(f"Appended retry response to synthesis")
+
                 # Log LLM call for replay
                 if self.llm_logger:
                     self.llm_logger._log_llm_call(
@@ -1746,14 +1841,26 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
+            # CRITICAL: Resolve target IDs to character names for void cleansing
+            # In free targeting mode, actions have target="tgt_xxxx" but outcome parser needs target_character="Name"
+            if action.get('target') and action['target'].startswith('tgt_'):
+                target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                if target_id_mapper and target_id_mapper.enabled:
+                    target_entity = target_id_mapper.resolve_target(action['target'])
+                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    if target_entity and target_id_mapper.is_player(action['target']):
+                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                            action['target_character'] = target_entity.character_state.name
+                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
+
             state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
 
             # Parse combat triplet (for backwards compatibility)
             combat_data = parse_combat_triplet(llm_narration if self.llm_config else resolution.narrative)
 
-            # Parse mechanical effects if action targets enemy
+            # Parse mechanical effects if action has target
             effect = None
-            if action.get('target_enemy'):
+            if action.get('target'):
                 # Try to parse explicit mechanical effect block
                 effect = parse_mechanical_effect(llm_narration if self.llm_config else resolution.narrative)
 
@@ -1761,16 +1868,31 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if not effect and combat_data and combat_data.get('post_soak_damage', 0) > 0:
                     effect = {
                         'type': 'damage',
-                        'target': action.get('target_enemy'),
+                        'target': action.get('target'),
                         'final': combat_data['post_soak_damage'],
                         'source': 'combat_triplet'
                     }
 
-                # If still no effect, generate fallback
+                # If still no effect, generate fallback damage ONLY for actual enemies
+                # For PC-to-PC actions in free targeting mode, trust the DM's narration entirely
                 if not effect and resolution and resolution.success:
-                    effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
-                    if effect:
-                        logger.debug(f"Generated fallback effect: {effect.get('type')} for {effect.get('target')}")
+                    # Check if target is a PC or enemy
+                    target_identifier = action.get('target')
+                    is_targeting_pc = False
+
+                    if target_identifier and target_identifier.startswith('tgt_'):
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target_id_mapper and target_id_mapper.enabled:
+                            is_targeting_pc = target_id_mapper.is_player(target_identifier)
+
+                    # Only generate fallback damage if targeting an actual enemy (not a PC)
+                    # For PC-to-PC actions: DM narration is authoritative (heal/harm/purify determined by DM)
+                    if not is_targeting_pc:
+                        effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
+                        if effect:
+                            logger.debug(f"Generated fallback effect for enemy: {effect.get('type')} targeting {effect.get('target')}")
+                    else:
+                        logger.debug(f"Targeting PC detected - trusting DM narration entirely (no fallback damage)")
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -1780,28 +1902,28 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     active_enemies = get_active_enemies(enemy_combat.enemy_agents)
 
                     # Resolve target (combat ID or fuzzy name match)
-                    target_identifier = effect.get('target', action.get('target_enemy'))
+                    target_identifier = effect.get('target', action.get('target'))
                     target_entity = None
-                    target_enemy_name = None  # Initialize for legacy path
+                    target_name = None  # Initialize for legacy path
                     is_friendly_fire = False
 
-                    # Check if using combat ID system (free targeting mode)
-                    if target_identifier and target_identifier.startswith('cbt_'):
-                        combat_id_mapper = self.shared_state.get_combat_id_mapper() if self.shared_state else None
-                        if combat_id_mapper and combat_id_mapper.enabled:
-                            target_entity = combat_id_mapper.resolve_target(target_identifier)
+                    # Check if using target ID system (free targeting mode)
+                    if target_identifier and target_identifier.startswith('tgt_'):
+                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                        if target_id_mapper and target_id_mapper.enabled:
+                            target_entity = target_id_mapper.resolve_target(target_identifier)
 
                             # Check if target is a player (friendly fire!)
-                            if target_entity and combat_id_mapper.is_player(target_identifier):
+                            if target_entity and target_id_mapper.is_player(target_identifier):
                                 is_friendly_fire = True
                                 attacker_name = action.get('agent_id', 'Unknown')
-                                target_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
-                                logger.warning(f"🔥 FRIENDLY FIRE: {attacker_name} targeting PC {target_name} (ID: {target_identifier})")
+                                pc_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
+                                logger.warning(f"🔥 FRIENDLY FIRE: {attacker_name} targeting PC {pc_name} (ID: {target_identifier})")
                     else:
                         # Legacy fuzzy name matching for enemies
-                        target_enemy_name = target_identifier
+                        target_name = target_identifier
                         for enemy in active_enemies:
-                            if target_enemy_name and (target_enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in target_enemy_name.lower()):
+                            if target_name and (target_name.lower() in enemy.name.lower() or enemy.name.lower() in target_name.lower()):
                                 target_entity = enemy
                                 break
 
@@ -2060,17 +2182,17 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             active_enemies = get_active_enemies(enemy_combat.enemy_agents)
 
                             # Find matching enemy (fuzzy match)
-                            target_enemy = None
+                            targeted_enemy = None
                             for enemy in active_enemies:
                                 if enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in enemy_name.lower():
-                                    target_enemy = enemy
+                                    targeted_enemy = enemy
                                     break
 
-                            if target_enemy:
+                            if targeted_enemy:
                                 # Mark enemy as surrendered (prisoner)
-                                target_enemy.is_active = False
-                                target_enemy.status_effects.append("prisoner")
-                                logger.info(f"Social action: {target_enemy.name} surrendered (prisoner)")
+                                targeted_enemy.is_active = False
+                                targeted_enemy.status_effects.append("prisoner")
+                                logger.info(f"Social action: {targeted_enemy.name} surrendered (prisoner)")
 
                                 # Track prisoner in session
                                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
@@ -2078,7 +2200,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                     if not hasattr(session, 'prisoners'):
                                         session.prisoners = []
                                     session.prisoners.append({
-                                        'name': target_enemy.name,
+                                        'name': targeted_enemy.name,
                                         'round': mechanics.current_round if mechanics else 0,
                                         'method': 'intimidation/persuasion'
                                     })
@@ -2097,8 +2219,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                         round_num=mechanics.current_round,
                                         player_id=player_id,
                                         player_name=action.get('character', 'Unknown'),
-                                        enemy_id=target_enemy.agent_id,
-                                        enemy_name=target_enemy.name,
+                                        enemy_id=targeted_enemy.agent_id,
+                                        enemy_name=targeted_enemy.name,
                                         action_type=action_type,
                                         skill=skill,
                                         roll_total=resolution.total if resolution else 0,
@@ -2117,22 +2239,22 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             active_enemies = get_active_enemies(enemy_combat.enemy_agents)
 
                             # Find matching enemy (fuzzy match)
-                            target_enemy = None
+                            targeted_enemy = None
                             for enemy in active_enemies:
                                 if enemy_name.lower() in enemy.name.lower() or enemy.name.lower() in enemy_name.lower():
-                                    target_enemy = enemy
+                                    targeted_enemy = enemy
                                     break
 
-                            if target_enemy:
+                            if targeted_enemy:
                                 # Trigger morale flee (uses existing flee logic)
-                                target_enemy.is_active = False
-                                logger.info(f"Social action: {target_enemy.name} fled (intimidated)")
+                                targeted_enemy.is_active = False
+                                logger.info(f"Social action: {targeted_enemy.name} fled (intimidated)")
 
                                 # Advance escape clock if it exists
                                 if mechanics and mechanics.scene_clocks:
                                     for clock_name in mechanics.scene_clocks:
                                         if 'escape' in clock_name.lower() or 'retreat' in clock_name.lower():
-                                            mechanics.queue_clock_update(clock_name, 2, f"{target_enemy.name} fled from intimidation")
+                                            mechanics.queue_clock_update(clock_name, 2, f"{targeted_enemy.name} fled from intimidation")
                                             break
 
                                 # Log social de-escalation event
@@ -2149,8 +2271,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                         round_num=mechanics.current_round,
                                         player_id=player_id,
                                         player_name=action.get('character', 'Unknown'),
-                                        enemy_id=target_enemy.agent_id,
-                                        enemy_name=target_enemy.name,
+                                        enemy_id=targeted_enemy.agent_id,
+                                        enemy_name=targeted_enemy.name,
                                         action_type=action_type,
                                         skill=skill,
                                         roll_total=resolution.total if resolution else 0,
@@ -2169,6 +2291,22 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     mechanics.queue_clock_update(clock_name, ticks, reason)
                     logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
+            # Log LLM compliance issues for training analysis
+            if state_changes.get('llm_compliance_issue'):
+                compliance_issue = state_changes['llm_compliance_issue']
+                logger.warning(f"⚠️  LLM COMPLIANCE LOGGED: {compliance_issue}")
+
+                # Log to JSONL for training analysis
+                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event({
+                        'event_type': 'llm_compliance_issue',
+                        'round': self.current_round,
+                        'player_id': player_id,
+                        'action_intent': intent,
+                        'issue': compliance_issue,
+                        'narration': llm_narration if self.llm_config else resolution.narrative
+                    })
+
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
                 # Track void change for round summary
@@ -2176,21 +2314,45 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     self.shared_state.session.track_void_change(state_changes['void_change'])
 
                 # Check if void change targets a different character (collaborative cleansing)
-                target_character_name = state_changes.get('void_target_character')
-                if target_character_name:
-                    # Find target character's player_id by character name
+                target_identifier = state_changes.get('void_target_character')
+                if target_identifier:
+                    # Resolve target - could be target ID (tgt_xxxx) or character name
                     target_player_id = None
-                    for pid, char_state in mechanics.character_states.items():
-                        if hasattr(char_state, 'name') and char_state.name == target_character_name:
-                            target_player_id = pid
-                            break
+                    target_character_name = None
+
+                    if target_identifier.startswith('tgt_'):
+                        # It's a target ID - resolve it
+                        logger.debug(f"Resolving target ID '{target_identifier}' for void change")
+                        target_id_mapper = self.shared_state.get_target_id_mapper()
+                        target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            target_player_id = target_entity.agent_id
+                            target_character_name = getattr(target_entity, 'character_state', None)
+                            if target_character_name:
+                                target_character_name = target_character_name.name
+                            logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
+                    else:
+                        # It's a character name - find by name (partial match)
+                        target_character_name = target_identifier
+                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                            for player in self.shared_state.player_agents:
+                                if hasattr(player, 'character_state'):
+                                    # Try exact match first, then partial match
+                                    char_name = player.character_state.name
+                                    if char_name == target_character_name or target_character_name in char_name:
+                                        target_player_id = player.agent_id
+                                        target_character_name = char_name  # Use full name
+                                        logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
+                                        break
 
                     if target_player_id:
                         void_state = mechanics.get_void_state(target_player_id)
                         target_name = target_character_name
+                        logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
                     else:
                         # Couldn't find target, fall back to acting character
-                        logger.warning(f"Could not find target character '{target_character_name}' for void change, applying to actor")
+                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, applying to actor")
                         void_state = mechanics.get_void_state(player_id)
                         target_name = action.get('character', player_id)
                 else:
@@ -2424,6 +2586,18 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
+            # CRITICAL: Resolve target IDs to character names for void cleansing
+            # In free targeting mode, actions have target="tgt_xxxx" but outcome parser needs target_character="Name"
+            if action.get('target') and action['target'].startswith('tgt_'):
+                target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                if target_id_mapper and target_id_mapper.enabled:
+                    target_entity = target_id_mapper.resolve_target(action['target'])
+                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    if target_entity and target_id_mapper.is_player(action['target']):
+                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                            action['target_character'] = target_entity.character_state.name
+                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
+
             state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
 
             # Merge ritual soulcredit changes into state_changes
@@ -2452,6 +2626,22 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     character_name = action.get('character', 'Unknown')
                     self.shared_state.add_discovery(discovery_text, character_name)
 
+            # Log LLM compliance issues for training analysis
+            if state_changes.get('llm_compliance_issue'):
+                compliance_issue = state_changes['llm_compliance_issue']
+                logger.warning(f"⚠️  LLM COMPLIANCE LOGGED: {compliance_issue}")
+
+                # Log to JSONL for training analysis
+                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_event({
+                        'event_type': 'llm_compliance_issue',
+                        'round': self.current_round,
+                        'player_id': player_id,
+                        'action_intent': intent,
+                        'issue': compliance_issue,
+                        'narration': llm_narration if self.llm_config else resolution.narrative
+                    })
+
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
                 # Track void change for round summary
@@ -2459,21 +2649,45 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     self.shared_state.session.track_void_change(state_changes['void_change'])
 
                 # Check if void change targets a different character (collaborative cleansing)
-                target_character_name = state_changes.get('void_target_character')
-                if target_character_name:
-                    # Find target character's player_id by character name
+                target_identifier = state_changes.get('void_target_character')
+                if target_identifier:
+                    # Resolve target - could be target ID (tgt_xxxx) or character name
                     target_player_id = None
-                    for pid, char_state in mechanics.character_states.items():
-                        if hasattr(char_state, 'name') and char_state.name == target_character_name:
-                            target_player_id = pid
-                            break
+                    target_character_name = None
+
+                    if target_identifier.startswith('tgt_'):
+                        # It's a target ID - resolve it
+                        logger.debug(f"Resolving target ID '{target_identifier}' for void change")
+                        target_id_mapper = self.shared_state.get_target_id_mapper()
+                        target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            target_player_id = target_entity.agent_id
+                            target_character_name = getattr(target_entity, 'character_state', None)
+                            if target_character_name:
+                                target_character_name = target_character_name.name
+                            logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
+                    else:
+                        # It's a character name - find by name (partial match)
+                        target_character_name = target_identifier
+                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                            for player in self.shared_state.player_agents:
+                                if hasattr(player, 'character_state'):
+                                    # Try exact match first, then partial match
+                                    char_name = player.character_state.name
+                                    if char_name == target_character_name or target_character_name in char_name:
+                                        target_player_id = player.agent_id
+                                        target_character_name = char_name  # Use full name
+                                        logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
+                                        break
 
                     if target_player_id:
                         void_state = mechanics.get_void_state(target_player_id)
                         target_name = target_character_name
+                        logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
                     else:
                         # Couldn't find target, fall back to acting character
-                        logger.warning(f"Could not find target character '{target_character_name}' for void change, applying to actor")
+                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, applying to actor")
                         void_state = mechanics.get_void_state(player_id)
                         target_name = action.get('character', player_id)
                 else:
@@ -2757,7 +2971,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
         enemy_spawn_instructions: str = "",
         party_context: str = "",
         character_name: str = "",
-        target_character: str = ""
+        target_character: str = "",
+        target_id: str = ""
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -2838,7 +3053,9 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Add narration task template with outcome guidance
             variables = {
                 "void_level": str(void_level),
-                "outcome_guidance": outcome_guidance
+                "outcome_guidance": outcome_guidance,
+                "target_id": target_id if target_id else "",
+                "target_id_instruction": f" (target ID: {target_id})" if target_id else ""
             }
 
             loaded_prompt = load_agent_prompt(
@@ -2854,6 +3071,97 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             self._last_prompt_metadata = loaded_prompt.metadata
             return "\n".join(prompt_parts)
+
+    async def _retry_invalid_markers(
+        self,
+        marker_type: str,
+        invalid_markers: List[str],
+        round_num: int
+    ) -> str:
+        """
+        Ask DM to properly format incomplete markers.
+
+        Args:
+            marker_type: "SPAWN_ENEMY" or "ADVANCE_STORY"
+            invalid_markers: List of incomplete marker contents
+            round_num: Current round number
+
+        Returns:
+            LLM response with corrected markers
+        """
+
+        if marker_type == "SPAWN_ENEMY":
+            format_spec = """
+REQUIRED FORMAT (ALL 5 FIELDS):
+[SPAWN_ENEMY: name | template | count | position | tactics]
+
+**Templates:** grunt, elite, sniper, boss, void_cultist, enforcer
+**Positions:** Near-Enemy, Far-Enemy, Engaged
+**Tactics:** aggressive_melee, aggressive_ranged, defensive, support
+**Count:** 1 or 2 only
+
+Example:
+[SPAWN_ENEMY: Freeborn Raiders | grunt | 2 | Far-Enemy | aggressive_ranged]
+"""
+        elif marker_type == "ADVANCE_STORY":
+            format_spec = """
+REQUIRED FORMAT (2 FIELDS):
+[ADVANCE_STORY: new_location | new_situation]
+
+Example:
+[ADVANCE_STORY: Abandoned Warehouse District | The team tracks the raiders to their hideout, preparing for final confrontation]
+"""
+        else:
+            logger.error(f"Unknown marker type: {marker_type}")
+            return ""
+
+        retry_prompt = f"""
+You generated incomplete {marker_type} markers. Please provide the COMPLETE format for each:
+
+INVALID MARKERS:
+{chr(10).join(f'- [{marker_type}: {m}]' for m in invalid_markers)}
+
+{format_spec}
+
+Provide ONLY the corrected markers, one per line. No narrative or explanation.
+"""
+
+        # Log retry attempt to JSONL
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_marker_retry(
+                round_num=round_num,
+                marker_type=marker_type,
+                invalid_markers=invalid_markers,
+                retry_prompt=retry_prompt
+            )
+
+        # Get LLM config
+        provider = self.llm_config.get('provider', 'openai')
+        model = self.llm_config.get('model', 'gpt-4')
+
+        # Call LLM with lower temperature for format compliance
+        from .llm_provider import get_provider
+        llm_client = get_provider(provider, model)
+
+        response = await llm_client.generate_async(
+            prompt=retry_prompt,
+            temperature=0.3,  # Lower temp for format compliance
+            max_tokens=300
+        )
+
+        # Log retry result to JSONL
+        success = len(response.strip()) > 0
+        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_marker_retry_result(
+                round_num=round_num,
+                marker_type=marker_type,
+                retry_response=response,
+                success=success
+            )
+
+        logger.info(f"Retry response for {marker_type}: {response[:200]}")
+        return response
 
     async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None, action=None) -> str:
         """Generate DM response using LLM."""
@@ -2988,7 +3296,7 @@ Available Actions:
 - **Escape (Major)**: Move beyond Extreme-PC to flee combat entirely (Athletics DC 20, only from Extreme-PC or Far-PC)
 
 **DAMAGE SYSTEM** - When players attack enemies:
-If player ACTION includes TARGET_ENEMY field and succeeds at Combat check:
+If player ACTION includes TARGET field and succeeds at Combat check:
 1. Roll weapon damage (typically 2d6+4 for rifles, 1d6+3 for pistols, 1d6+Str for melee)
 2. Enemy soaks 12 damage (base Soak for human-sized targets)
 3. Include damage triplet in your narration: `Damage: X → Soak: 12 → Final: Y`
@@ -3170,6 +3478,11 @@ When adjudicating:
                 party_context = f"\n**Party Members (ALL DIFFERENT CHARACTERS):**\n" + "\n".join([f"  - {member}" for member in party_members])
                 party_context += f"\n\n**IMPORTANT**: {character_name if action else 'The character'} and {target_character} are TWO SEPARATE people in the same party."
 
+        # Extract target_id from action if present
+        target_id = ""
+        if action and action.get('target') and action['target'].startswith('tgt_'):
+            target_id = action['target']
+
         # Build prompt using prompt_loader system
         prompt = self._build_dm_narration_prompt(
             is_dialogue=is_dialogue_with_pc and target_character is not None,
@@ -3186,7 +3499,8 @@ When adjudicating:
             enemy_spawn_instructions=enemy_spawn_instructions,
             party_context=party_context,
             character_name=character_name if action else "The character",
-            target_character=target_character if target_character else ""
+            target_character=target_character if target_character else "",
+            target_id=target_id
         )
 
         try:

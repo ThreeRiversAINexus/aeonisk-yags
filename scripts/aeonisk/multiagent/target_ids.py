@@ -1,11 +1,11 @@
 """
-Combat ID Management for Free-Form Targeting
+Target ID Management for Free-Form Targeting
 
-Generates randomized generic combat IDs that hide agent allegiance,
+Generates randomized generic target IDs that hide agent allegiance,
 enabling IFF (Identification Friend or Foe) testing.
 
 When free_targeting_mode is enabled, all combatants (PCs and enemies)
-receive randomized IDs like 'cbt_7a3f' instead of revealing IDs like
+receive randomized IDs like 'tgt_7a3f' instead of revealing IDs like
 'player_01' or 'enemy_grunt_xxx'.
 
 Author: Three Rivers AI Nexus
@@ -20,44 +20,44 @@ from typing import Dict, List, Optional, Any
 logger = logging.getLogger(__name__)
 
 
-def generate_combat_id() -> str:
+def generate_target_id() -> str:
     """
-    Generate random combat ID like 'cbt_7a3f'.
+    Generate random target ID like 'tgt_7a3f'.
 
     Uses lowercase letters and digits for readability.
-    Prefix 'cbt_' distinguishes from other ID formats.
+    Prefix 'tgt_' distinguishes from other ID formats.
 
     Returns:
-        Random combat ID string
+        Random target ID string
     """
     suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
-    return f"cbt_{suffix}"
+    return f"tgt_{suffix}"
 
 
-class CombatIDMapper:
+class TargetIDMapper:
     """
-    Maps generic combat IDs to actual agent references.
+    Maps generic target IDs to actual agent references.
 
-    Manages bidirectional mapping between randomized combat IDs
+    Manages bidirectional mapping between randomized target IDs
     and actual agent instances. IDs are assigned at combat start
     and persist for the duration of combat.
 
     Attributes:
-        combat_id_map: combat_id -> agent reference
-        reverse_map: agent_id -> combat_id
+        target_id_map: target_id -> agent reference
+        reverse_map: agent_id -> target_id
         enabled: Whether free targeting mode is active
     """
 
     def __init__(self):
-        self.combat_id_map: Dict[str, Any] = {}  # cbt_7a3f -> agent reference
-        self.reverse_map: Dict[str, str] = {}     # agent_id -> cbt_7a3f
+        self.target_id_map: Dict[str, Any] = {}  # tgt_7a3f -> agent reference
+        self.reverse_map: Dict[str, str] = {}     # agent_id -> tgt_7a3f
         self.enabled: bool = False
-        logger.debug("CombatIDMapper initialized")
+        logger.debug("TargetIDMapper initialized")
 
     def enable(self):
         """Enable free targeting mode."""
         self.enabled = True
-        logger.info("Free targeting mode ENABLED - using generic combat IDs")
+        logger.info("Free targeting mode ENABLED - using generic target IDs")
 
     def disable(self):
         """Disable free targeting mode."""
@@ -67,9 +67,9 @@ class CombatIDMapper:
 
     def clear(self):
         """Clear all ID mappings."""
-        self.combat_id_map.clear()
+        self.target_id_map.clear()
         self.reverse_map.clear()
-        logger.debug("Combat ID mappings cleared")
+        logger.debug("Target ID mappings cleared")
 
     def assign_ids(
         self,
@@ -81,14 +81,14 @@ class CombatIDMapper:
 
         Combines PCs and enemies into single pool, shuffles to
         randomize order (prevents pattern detection), then assigns
-        unique combat IDs.
+        unique target IDs.
 
         Args:
             player_agents: List of PC agents
             enemy_agents: List of enemy agents (active only)
 
         Returns:
-            Dict mapping combat_id -> agent reference
+            Dict mapping target_id -> agent reference
         """
         if not self.enabled:
             logger.debug("Free targeting disabled - skipping ID assignment")
@@ -110,7 +110,7 @@ class CombatIDMapper:
             if hasattr(enemy, 'is_active') and enemy.is_active:
                 all_combatants.append(enemy)
 
-        logger.info(f"Assigning combat IDs to {len(all_combatants)} combatants ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies)")
+        logger.info(f"Assigning target IDs to {len(all_combatants)} combatants ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies)")
 
         # Shuffle to randomize order (prevents position-based patterns)
         random.shuffle(all_combatants)
@@ -119,14 +119,14 @@ class CombatIDMapper:
         assigned_count = 0
         for agent in all_combatants:
             # Generate unique ID (retry if collision, though unlikely)
-            combat_id = generate_combat_id()
+            target_id = generate_target_id()
             attempts = 0
-            while combat_id in self.combat_id_map and attempts < 10:
-                combat_id = generate_combat_id()
+            while target_id in self.target_id_map and attempts < 10:
+                target_id = generate_target_id()
                 attempts += 1
 
             if attempts >= 10:
-                logger.error(f"Failed to generate unique combat ID after 10 attempts")
+                logger.error(f"Failed to generate unique target ID after 10 attempts")
                 continue
 
             agent_id = agent.agent_id
@@ -137,30 +137,30 @@ class CombatIDMapper:
             if not agent_name:
                 agent_name = 'Unknown'
 
-            self.combat_id_map[combat_id] = agent
-            self.reverse_map[agent_id] = combat_id
+            self.target_id_map[target_id] = agent
+            self.reverse_map[agent_id] = target_id
 
             assigned_count += 1
-            logger.debug(f"  {combat_id} -> {agent_name} ({agent_id})")
+            logger.debug(f"  {target_id} -> {agent_name} ({agent_id})")
 
-        logger.info(f"Assigned {assigned_count} combat IDs successfully")
-        return self.combat_id_map
+        logger.info(f"Assigned {assigned_count} target IDs successfully")
+        return self.target_id_map
 
-    def resolve_target(self, combat_id: str) -> Optional[Any]:
+    def resolve_target(self, target_id: str) -> Optional[Any]:
         """
-        Resolve combat ID back to actual agent.
+        Resolve target ID back to actual agent.
 
         Args:
-            combat_id: Combat ID to resolve (e.g., 'cbt_7a3f')
+            target_id: Target ID to resolve (e.g., 'tgt_7a3f')
 
         Returns:
             Agent reference or None if not found
         """
         if not self.enabled:
-            logger.debug(f"Free targeting disabled - cannot resolve {combat_id}")
+            logger.debug(f"Free targeting disabled - cannot resolve {target_id}")
             return None
 
-        agent = self.combat_id_map.get(combat_id)
+        agent = self.target_id_map.get(target_id)
 
         if agent:
             # Get agent name - handle both enemy agents (with .name) and player agents (with .character_state.name)
@@ -173,47 +173,47 @@ class CombatIDMapper:
                     agent_name = 'Unknown'
             if not agent_name:
                 agent_name = 'Unknown'
-            logger.debug(f"Resolved {combat_id} -> {agent_name}")
+            logger.debug(f"Resolved {target_id} -> {agent_name}")
         else:
-            logger.warning(f"Combat ID {combat_id} not found in mapping")
+            logger.warning(f"Target ID {target_id} not found in mapping")
 
         return agent
 
-    def get_combat_id(self, agent_id: str) -> Optional[str]:
+    def get_target_id(self, agent_id: str) -> Optional[str]:
         """
-        Get combat ID for an agent.
+        Get target ID for an agent.
 
         Args:
             agent_id: Agent's permanent ID
 
         Returns:
-            Combat ID or None if not found
+            Target ID or None if not found
         """
         if not self.enabled:
             return None
 
-        combat_id = self.reverse_map.get(agent_id)
+        target_id = self.reverse_map.get(agent_id)
 
-        if combat_id:
-            logger.debug(f"Found combat ID {combat_id} for agent {agent_id}")
+        if target_id:
+            logger.debug(f"Found target ID {target_id} for agent {agent_id}")
         else:
-            logger.debug(f"No combat ID found for agent {agent_id}")
+            logger.debug(f"No target ID found for agent {agent_id}")
 
-        return combat_id
+        return target_id
 
-    def is_player(self, combat_id: str) -> bool:
+    def is_player(self, target_id: str) -> bool:
         """
-        Check if combat ID belongs to a player character.
+        Check if target ID belongs to a player character.
 
         Useful for detecting friendly fire.
 
         Args:
-            combat_id: Combat ID to check
+            target_id: Target ID to check
 
         Returns:
             True if PC, False if enemy or not found
         """
-        agent = self.resolve_target(combat_id)
+        agent = self.resolve_target(target_id)
         if not agent:
             return False
 
@@ -221,17 +221,17 @@ class CombatIDMapper:
         is_pc = hasattr(agent, 'character_state')
         return is_pc
 
-    def is_enemy(self, combat_id: str) -> bool:
+    def is_enemy(self, target_id: str) -> bool:
         """
-        Check if combat ID belongs to an enemy.
+        Check if target ID belongs to an enemy.
 
         Args:
-            combat_id: Combat ID to check
+            target_id: Target ID to check
 
         Returns:
             True if enemy, False if PC or not found
         """
-        agent = self.resolve_target(combat_id)
+        agent = self.resolve_target(target_id)
         if not agent:
             return False
 
@@ -239,33 +239,33 @@ class CombatIDMapper:
         is_npc = hasattr(agent, 'is_active') and hasattr(agent, 'is_group')
         return is_npc
 
-    def get_all_combat_ids(self) -> List[str]:
+    def get_all_target_ids(self) -> List[str]:
         """
-        Get list of all active combat IDs.
+        Get list of all active target IDs.
 
         Returns:
-            List of combat ID strings
+            List of target ID strings
         """
-        return list(self.combat_id_map.keys())
+        return list(self.target_id_map.keys())
 
-    def get_combatant_info(self, combat_id: str) -> Optional[Dict[str, Any]]:
+    def get_combatant_info(self, target_id: str) -> Optional[Dict[str, Any]]:
         """
         Get structured info about a combatant.
 
         Args:
-            combat_id: Combat ID to query
+            target_id: Target ID to query
 
         Returns:
             Dict with name, health, position, type, etc. or None
         """
-        agent = self.resolve_target(combat_id)
+        agent = self.resolve_target(target_id)
         if not agent:
             return None
 
         info = {
-            'combat_id': combat_id,
+            'target_id': target_id,
             'agent_id': agent.agent_id,
-            'type': 'player' if self.is_player(combat_id) else 'enemy'
+            'type': 'player' if self.is_player(target_id) else 'enemy'
         }
 
         # Try to extract common attributes

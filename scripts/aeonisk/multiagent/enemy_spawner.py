@@ -55,6 +55,34 @@ DESPAWN_PATTERN = re.compile(
 # SPAWN PROCESSING
 # =============================================================================
 
+def extract_invalid_spawn_markers(text: str) -> List[str]:
+    """
+    Find malformed [SPAWN_ENEMY: ...] markers that don't have enough fields.
+
+    Used for retry mechanism - detects markers that will fail parsing.
+
+    Args:
+        text: DM narration text
+
+    Returns:
+        List of incomplete marker contents (without brackets)
+    """
+    # Match any [SPAWN_ENEMY: ...] marker
+    pattern = r'\[SPAWN_ENEMY:\s*([^\]]+)\]'
+    candidates = re.findall(pattern, text, re.IGNORECASE)
+
+    invalid = []
+    for content in candidates:
+        pipe_count = content.count('|')
+        # Need at least 4 pipes for 5 fields (name|template|count|position|tactics)
+        # Tactics is technically optional but we'll require it for clarity
+        if pipe_count < 4:
+            invalid.append(content)
+            logger.debug(f"Found invalid SPAWN_ENEMY marker with {pipe_count + 1} fields (need 5): {content[:50]}")
+
+    return invalid
+
+
 def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[str], Optional[str]]]:
     """
     Parse all spawn markers from DM narration.

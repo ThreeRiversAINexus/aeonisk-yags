@@ -36,31 +36,54 @@ def parse_soulcredit_markers(narration: str) -> Tuple[int, str, str]:
     return (0, "", "")
 
 
-def parse_explicit_void_markers(narration: str) -> Tuple[int, List[str], str]:
+def parse_explicit_void_markers(narration: str, expected_target_id: str = None) -> Tuple[int, List[str], str, Optional[str], Optional[str]]:
     """
-    Parse explicit void markers from LLM narration.
+    Parse explicit void markers from LLM narration and check compliance.
 
-    Format: ⚫ Void: +X (reason) or ⚫ Void (Character): +X (reason)
+    Format: ⚫ Void: +X (reason) or ⚫ Void (tgt_xxxx): +X (reason)
 
     Args:
         narration: DM's narrative text
+        expected_target_id: The target ID that was provided in the prompt (for compliance checking)
 
     Returns:
-        Tuple of (void_delta, reasons_list, source)
+        Tuple of (void_delta, reasons_list, source, target_identifier, compliance_issue)
         source is "dm_explicit" if marker found, "" otherwise
+        target_identifier is None if targeting self, otherwise the target ID or character name
+        compliance_issue is None if compliant, otherwise a string describing the issue
     """
     # Look for lines like: ⚫ Void: +1 (ritual backfire)
-    # or: ⚫ Void (Kael): +1 (void exposure)
-    void_pattern = r'⚫\s*[Vv]oid(?:\s*\([^)]+\))?:\s*([+-]?\d+)\s*(?:\(([^)]+)\))?'
+    # or: ⚫ Void (tgt_xxxx): -3 (powerful purification)
+    # or: ⚫ Void (Character Name): -3 (non-compliant, but we handle it)
+    void_pattern = r'⚫\s*[Vv]oid(?:\s*\(([^)]+)\))?:\s*([+-]?\d+)\s*(?:\(([^)]+)\))?'
 
     match = re.search(void_pattern, narration)
     if match:
-        delta = int(match.group(1))
-        reason = match.group(2).strip() if match.group(2) else "Void change"
-        logger.debug(f"Parsed explicit void marker: {delta:+d} ({reason})")
-        return (delta, [reason], "dm_explicit")
+        target_identifier = match.group(1).strip() if match.group(1) else None
+        delta = int(match.group(2))
+        reason = match.group(3).strip() if match.group(3) else "Void change"
 
-    return (0, [], "")
+        # Compliance checking
+        compliance_issue = None
+        if expected_target_id and target_identifier:
+            # DM was given a target ID, check if they used it
+            if not target_identifier.startswith('tgt_'):
+                # DM used character name instead of target ID - non-compliant
+                compliance_issue = f"llm_noncompliance:void_marker_used_name_not_id:expected={expected_target_id}:got={target_identifier}"
+                logger.warning(f"⚠️  LLM COMPLIANCE ISSUE: DM used character name '{target_identifier}' instead of target ID '{expected_target_id}' in void marker")
+            elif target_identifier != expected_target_id:
+                # DM used wrong target ID - serious issue
+                compliance_issue = f"llm_error:void_marker_wrong_target_id:expected={expected_target_id}:got={target_identifier}"
+                logger.error(f"❌ LLM ERROR: DM used wrong target ID '{target_identifier}' (expected '{expected_target_id}')")
+
+        if target_identifier:
+            logger.debug(f"Parsed explicit void marker for '{target_identifier}': {delta:+d} ({reason})")
+        else:
+            logger.debug(f"Parsed explicit void marker: {delta:+d} ({reason})")
+
+        return (delta, [reason], "dm_explicit", target_identifier, compliance_issue)
+
+    return (0, [], "", None, None)
 
 
 def parse_explicit_clock_markers(narration: str, active_clocks: dict = None) -> List[Tuple[str, int, str]]:
@@ -291,19 +314,29 @@ def parse_clock_triggers(narration: str, outcome_tier: str, margin: int, active_
     return triggers
 
 
-def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -> Tuple[int, List[str], str]:
+def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str, expected_target_id: str = None) -> Tuple[int, List[str], str, Optional[str], Optional[str]]:
     """
     Parse for void gains based on narration and action context.
 
+    Args:
+        narration: DM's narrative text
+        action_intent: The action's intent string
+        outcome_tier: The outcome tier (e.g., "success", "failure")
+        expected_target_id: The target ID that was provided in the prompt (for compliance checking)
+
     Returns:
-        Tuple of (void_change, list_of_reasons, source)
+        Tuple of (void_change, list_of_reasons, source, target_identifier, compliance_issue)
         source is "dm_explicit" if explicit marker found, "inferred_by_parser" otherwise
+        target_identifier is the target ID or name if targeting someone else, None if self
+        compliance_issue is None if compliant, otherwise a string describing the issue
     """
     # PRIORITY 1: Check for explicit void markers first
-    explicit_void, explicit_reasons, source = parse_explicit_void_markers(narration)
+    explicit_void, explicit_reasons, source, target_identifier, compliance_issue = parse_explicit_void_markers(narration, expected_target_id)
     if source == "dm_explicit":
         # If LLM explicitly marked void, use that and skip pattern matching
-        return (explicit_void, explicit_reasons, "dm_explicit")
+        if target_identifier:
+            logger.debug(f"Void change targets '{target_identifier}': {explicit_void:+d}")
+        return (explicit_void, explicit_reasons, "dm_explicit", target_identifier, compliance_issue)
 
     # PRIORITY 2: Keyword-based inference (fallback)
     void_change = 0
@@ -365,7 +398,7 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str) -
 
     # Return with source indicating this was inferred (or "none" if no void change)
     source = "inferred_by_parser" if void_change != 0 or reasons else ""
-    return (void_change, reasons, source)
+    return (void_change, reasons, source, None, None)  # None = no target, no compliance issue for inferred
 
 
 def parse_creative_tactics_damage(
@@ -630,11 +663,17 @@ def parse_state_changes(
     Returns:
         Dict with state changes: clocks, void, conditions, position_change, etc.
     """
+    # Extract expected_target_id from action for compliance checking
+    expected_target_id = None
+    if action and action.get('target') and action['target'].startswith('tgt_'):
+        expected_target_id = action['target']
+
     state_changes = {
         'clock_triggers': [],
         'void_change': 0,
         'void_reasons': [],
         'void_target_character': None,  # Track who receives void change (None = acting character)
+        'llm_compliance_issue': None,  # Track LLM compliance issues for training data
         'conditions': [],
         'notes': [],
         'position_change': None
@@ -654,15 +693,26 @@ def parse_state_changes(
     clock_triggers = parse_clock_triggers(narration, outcome_tier, margin, active_clocks)
     state_changes['clock_triggers'] = clock_triggers
 
-    # Parse void triggers (now returns source field)
-    void_change, void_reasons, void_source = parse_void_triggers(narration, intent, outcome_tier)
+    # Parse void triggers (now returns source field + target + compliance)
+    void_change, void_reasons, void_source, void_target, compliance_issue = parse_void_triggers(
+        narration, intent, outcome_tier, expected_target_id
+    )
+
+    # Store target character if void change targets someone else
+    if void_target:
+        state_changes['void_target_character'] = void_target
+        logger.debug(f"Void change will be applied to '{void_target}' instead of caster")
+
+    # Store compliance issue if present
+    if compliance_issue:
+        state_changes['llm_compliance_issue'] = compliance_issue
 
     # RECOVERY MOVES: Reduce void on successful grounding/purge/void cleansing
     intent_lower = intent.lower()
     narration_lower = narration.lower()
     grounding_keywords = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
     purge_keywords = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
-    void_cleansing_keywords = ['cleanse void', 'purify void', 'void cleansing', 'spiritual cleansing', 'purification ritual']
+    # void_cleansing_keywords removed - now handled by DM explicit markers
 
     if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
         if any(kw in intent_lower for kw in grounding_keywords):
@@ -671,36 +721,9 @@ def parse_state_changes(
             void_reasons = ['Grounding meditation success']
             state_changes['notes'].append("Grounding: -1 Void (personal recovery)")
 
-        elif any(kw in intent_lower for kw in void_cleansing_keywords):
-            # Void Cleansing Ritual: -1 void on Solid Success+ (margin ≥5)
-            # Canonical requirement: ritual at ley site with offering
-            # IMPORTANT: Must have explicit target_character - no keyword-based targeting
-            target_character = action.get('target_character')
-
-            if not target_character or target_character.lower() in ['none', '']:
-                # No explicit target - this is environmental purification, not personal cleansing
-                state_changes['notes'].append("Void Cleansing: Environmental purification (specify target_character for personal cleansing)")
-            else:
-                # Explicit character targeting - apply personal void cleansing
-                ley_site_present = any(phrase in narration_lower for phrase in ['ley site', 'sacred ground', 'nexus point', 'ley line', 'ley node'])
-                offering_consumed = any(phrase in narration_lower for phrase in ['offering', 'incense', 'burned', 'consumed', 'sacrifice'])
-
-                # Require at least Solid Success (margin ≥5) for void reduction
-                success_margin = resolution.get('margin', 0)
-                if success_margin >= 5:
-                    if ley_site_present or offering_consumed:
-                        # Successful void cleansing with proper ritual components
-                        void_change = -1
-                        void_reasons = [f'Void cleansing ritual on {target_character} (ley site/offering)']
-                        state_changes['void_target_character'] = target_character
-                        state_changes['notes'].append(f"Void Cleansing: -1 Void for {target_character} (ritual purification)")
-                        logger.info(f"Void cleansing ritual: {action.get('character', 'Unknown')} cleansing {target_character}'s void")
-                    else:
-                        # Successful ritual but missing ley site AND offering - no void reduction
-                        state_changes['notes'].append("Void Cleansing: Ritual succeeded but requires ley site or offering for purification")
-                else:
-                    # Insufficient margin for cleansing
-                    state_changes['notes'].append(f"Void Cleansing: Margin {success_margin} too low (need ≥5 for purification)")
+        # NOTE: Void cleansing is now handled entirely by DM explicit markers (⚫ Void: -X)
+        # The DM's narration prompt includes scaling rules based on success quality
+        # No keyword detection needed - trust the DM's judgment
 
         elif any(kw in intent_lower for kw in purge_keywords):
             # Successful purge: -scene void (handled by DM, mark as note)
@@ -804,6 +827,33 @@ def parse_new_clock_marker(narration: str) -> List[Dict[str, any]]:
     return new_clocks
 
 
+def extract_invalid_advance_story_markers(text: str) -> List[str]:
+    """
+    Find malformed [ADVANCE_STORY: ...] markers that don't have enough fields.
+
+    Used for retry mechanism - detects markers that will fail parsing.
+
+    Args:
+        text: DM narration text
+
+    Returns:
+        List of incomplete marker contents (without brackets)
+    """
+    # Match any [ADVANCE_STORY: ...] marker
+    pattern = r'\[ADVANCE_STORY:\s*([^\]]+)\]'
+    candidates = re.findall(pattern, text, re.IGNORECASE)
+
+    invalid = []
+    for content in candidates:
+        pipe_count = content.count('|')
+        # Need at least 1 pipe for 2 fields (location|situation)
+        if pipe_count < 1:
+            invalid.append(content)
+            logger.debug(f"Found invalid ADVANCE_STORY marker with {pipe_count + 1} fields (need 2): {content[:50]}")
+
+    return invalid
+
+
 def parse_advance_story_marker(narration: str) -> Dict[str, any]:
     """
     Parse story advancement markers from DM narration.
@@ -876,7 +926,7 @@ def parse_combat_triplet(narration: str) -> Dict[str, any]:
     return combat_data
 
 
-def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
+def parse_mechanical_effect(narration: str, expected_target_id: str = None, intent: str = "", outcome_tier: str = "") -> Optional[Dict[str, any]]:
     """
     Parse [MECHANICAL_EFFECT] blocks from DM narration.
 
@@ -889,6 +939,9 @@ def parse_mechanical_effect(narration: str) -> Optional[Dict[str, any]]:
 
     Args:
         narration: DM's narrative text
+        expected_target_id: The target ID that was provided in the prompt (for compliance checking)
+        intent: The action intent (for void parsing)
+        outcome_tier: The outcome tier (for void parsing)
 
     Returns:
         Dict with effect details or None if no effect block found
@@ -999,15 +1052,15 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
     Effect magnitude is based on margin of success.
 
     Args:
-        action: The action dict with skill, target_enemy, etc.
+        action: The action dict with skill, target, etc.
         resolution: Resolution dict with success, margin, etc.
 
     Returns:
         Effect dict ready for application, or None
     """
-    target_enemy = action.get('target_enemy')
-    if not target_enemy:
-        return None  # No enemy target, no effect
+    target = action.get('target')
+    if not target:
+        return None  # No target, no effect
 
     # Only generate effects for successful actions
     margin = resolution.get('margin', 0)
@@ -1042,7 +1095,7 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
 
         return {
             'type': 'damage',
-            'target': target_enemy,
+            'target': target,
             'final': base_damage,
             'source': 'fallback',
             'description': f"Fallback damage from {skill} (margin +{margin})"
@@ -1079,7 +1132,7 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
 
         return {
             'type': 'debuff',
-            'target': target_enemy,
+            'target': target,
             'effect': effect_desc,
             'penalty': penalty,
             'duration': duration,
@@ -1091,7 +1144,7 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
         # Generate movement/prone effect
         return {
             'type': 'status',
-            'target': target_enemy,
+            'target': target,
             'effect': 'knocked prone or forced movement',
             'duration': 1,
             'source': 'fallback',
@@ -1103,7 +1156,7 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
         penalty = -max(1, margin // 10)
         return {
             'type': 'debuff',
-            'target': target_enemy,
+            'target': target,
             'effect': f"{penalty} to enemy rolls",
             'penalty': penalty,
             'duration': 1,
