@@ -678,6 +678,80 @@ When updating prompts or examples:
 
 ## Recent Major Work
 
+### 2025-10-30: Structured Output for Enemy Management & De-escalation (Phase 2)
+
+**Branch:** `enemy-refactors`
+
+**Problems Fixed:**
+1. **Enemies persisted after ADVANCE_STORY** - Old combat continued in new scenes
+2. **No de-escalation mechanics** - Arrest, intimidation, persuasion didn't remove enemies
+3. **Debuff-only actions dealt no damage** - "Electrocute" applied -2 debuff but 0 damage
+
+**Solution: Extend Structured Output Schemas (Pydantic AI)**
+
+**Philosophy:** Use validated Pydantic schemas instead of brittle text marker parsing (`[NEUTRALIZE: ...]`, `[DESPAWN: ...]`).
+
+**New Schemas Added:**
+
+1. **`EnemyResolution` enum** (story_events.py):
+   - `KILLED`, `NEUTRALIZED`, `FLED`, `CONVINCED`, `SUBDUED`, `STORY_ADVANCED`
+   - Type-safe enemy removal tracking
+
+2. **`EnemyRemoval` model** (story_events.py):
+   ```python
+   EnemyRemoval(
+       enemy_name="ACG Guard Captain",
+       resolution=EnemyResolution.NEUTRALIZED,
+       reason="Arrested and restrained by Pantheon Security"
+   )
+   ```
+
+3. **`RoundSynthesis.enemy_removals` field**:
+   - DM specifies enemies removed via non-combat means
+   - Replaces `[DESPAWN_ENEMY: ...]` markers
+
+4. **`StoryAdvancement.clear_all_enemies` field** (default: `True`):
+   - Auto-clears all active enemies when story advances
+   - Prevents enemy persistence bug
+
+**Implementation:**
+
+1. **Session.py Enemy Clearing** (line 1839-1849):
+   - Despawns all active enemies when `ADVANCE_STORY` triggers
+   - Logs enemy names and count
+   - Marks enemies with `is_active=False` and `despawned_round`
+
+2. **DM Prompt Updates** (dm.yaml):
+   - **Creative Tactics Damage Rule**: ALL hostile actions must include both debuff AND damage
+     * Electrocute: `-2 debuff + 2-5 damage`
+     * Freeze: `-2 debuff + 2-4 damage`
+     * Blind: `-3 debuff + 1-2 damage`
+   - **Enemy Management Examples**: Show structured output for spawns/removals
+   - **Story Advancement Behavior**: Document auto-clear enemies default
+
+3. **Future Migration Path**:
+   - Round synthesis will use `RoundSynthesis` schema (replaces marker parsing)
+   - Enemy removals via `enemy_removals` field (replaces `[DESPAWN_ENEMY: ...]`)
+   - Action resolution via `ActionResolution` schema (Phase 1)
+
+**Benefits:**
+- ✅ No text parsing brittleness - Pydantic validates structure
+- ✅ Type-safe - Can't misspell "neutralized" or forget fields
+- ✅ Better ML training data - Structured enemy resolution tracking
+- ✅ Clearer DM guidance - Schema docstrings explain requirements
+- ✅ Aligns with Phase 1 structured output work
+
+**Files Modified:**
+- `schemas/story_events.py` - Added `EnemyResolution`, `EnemyRemoval`, updated `RoundSynthesis` and `StoryAdvancement`
+- `prompts/claude/en/dm.yaml` - Added creative tactics damage guidance, enemy management examples
+- `session.py:1839-1849` - Auto-clear enemies on story advancement
+- `CLAUDE.md` - This documentation
+
+**Testing Required:**
+- Run `session_config_full.json` and verify enemies don't persist after `ADVANCE_STORY`
+- Verify electrocute/freeze/blind actions deal damage + apply debuffs
+- Test arrest/intimidation/persuasion removes enemies via structured output
+
 ### 2025-10-29: Structured Output with Pydantic AI - Phase 1 Complete
 
 **Branch:** `revamp-structured-output`

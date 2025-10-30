@@ -9,7 +9,58 @@ validated structured output.
 
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Literal
+from enum import Enum
 from .shared_types import Position
+
+
+class EnemyResolution(str, Enum):
+    """
+    How an enemy was removed from combat.
+
+    Used in EnemyRemoval to track non-lethal and narrative enemy exits.
+    """
+    KILLED = "killed"                    # Reduced to 0 HP in combat
+    NEUTRALIZED = "neutralized"          # Arrested, captured, restrained
+    FLED = "fled"                        # Scared off, retreated, escaped
+    CONVINCED = "convinced"              # Talked down, persuaded, negotiated
+    STORY_ADVANCED = "story_advanced"    # Scene changed, no longer present
+    SUBDUED = "subdued"                  # Knocked unconscious, incapacitated
+
+
+class EnemyRemoval(BaseModel):
+    """
+    Record of an enemy removed from combat via non-combat means.
+
+    Use this for arrests, intimidation, persuasion, or scene changes.
+    DO NOT use for enemies defeated in normal combat (HP → 0).
+
+    Example:
+    ```python
+    removal = EnemyRemoval(
+        enemy_name="ACG Guard Captain",
+        resolution=EnemyResolution.NEUTRALIZED,
+        reason="Arrested and restrained by Pantheon Security"
+    )
+    ```
+    """
+    enemy_name: str = Field(
+        ...,
+        min_length=3,
+        max_length=100,
+        description="Name or ID of enemy being removed"
+    )
+
+    resolution: EnemyResolution = Field(
+        ...,
+        description="How the enemy was removed (neutralized, fled, convinced, etc.)"
+    )
+
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=300,
+        description="Narrative explanation of how/why enemy was removed"
+    )
 
 
 class NewClock(BaseModel):
@@ -89,6 +140,7 @@ class StoryAdvancement(BaseModel):
         should_advance=True,
         location="Abandoned Transit Hub - Platform 7",
         situation="Having escaped the facility, you find a wounded courier clutching a data slate with urgent intel about the Obsidian Path",
+        clear_all_enemies=True,
         new_clocks=[
             NewClock(name="Courier's Life", max_ticks=6, description="Stabilize courier before they expire"),
             NewClock(name="ACG Response", max_ticks=8, description="ACG security lockdown approaching")
@@ -114,6 +166,11 @@ class StoryAdvancement(BaseModel):
         min_length=20,
         max_length=500,
         description="New situation description (if advancing)"
+    )
+
+    clear_all_enemies: bool = Field(
+        default=True,
+        description="Remove all active enemies when story advances (default: true). Set to false only if enemies follow to new scene."
     )
 
     new_clocks: List[NewClock] = Field(
@@ -204,6 +261,13 @@ class RoundSynthesis(BaseModel):
         narration="The round concludes in controlled chaos. Ash's ritual barely holds...",
         story_advancement=StoryAdvancement(should_advance=False),
         enemy_spawns=[],
+        enemy_removals=[
+            EnemyRemoval(
+                enemy_name="ACG Guard",
+                resolution=EnemyResolution.FLED,
+                reason="Intimidated by overwhelming force, fled through maintenance corridor"
+            )
+        ],
         clocks_filled=["Void Surge"],
         clocks_expired=[]
     )
@@ -228,6 +292,11 @@ class RoundSynthesis(BaseModel):
     enemy_spawns: List[EnemySpawn] = Field(
         default_factory=list,
         description="New enemies to spawn this round"
+    )
+
+    enemy_removals: List[EnemyRemoval] = Field(
+        default_factory=list,
+        description="Enemies removed this round via non-combat means (arrested, fled, convinced, etc.)"
     )
 
     # Clock lifecycle

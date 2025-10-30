@@ -1836,9 +1836,22 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 mechanics.scene_clocks.clear()
                 logger.info(f"🗑️  Cleared all old clocks for story advancement: {', '.join(archived_clocks)}")
 
-                print(f"\n✨ STORY ADVANCES ✨")
-                print(f"   New Location: {advance_result['location']}")
-                print(f"   Situation: {advance_result['situation']}")
+            # Clear ALL active enemies when story advances (default behavior)
+            # Prevents enemies from persisting across scene changes
+            if self.enemy_combat and self.enemy_combat.enemy_agents:
+                active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
+                if active_enemies:
+                    for enemy in active_enemies:
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+                    enemy_names = [e.name for e in active_enemies]
+                    logger.info(f"🗑️  Cleared {len(active_enemies)} active enemies for story advancement: {', '.join(enemy_names)}")
+                    print(f"   Enemies removed: {', '.join(enemy_names)}")
+
+            print(f"\n✨ STORY ADVANCES ✨")
+            print(f"   New Location: {advance_result['location']}")
+            print(f"   Situation: {advance_result['situation']}")
+            if mechanics and mechanics.scene_clocks:
                 if archived_clocks:
                     print(f"   Previous clocks cleared: {', '.join(archived_clocks)}")
 
