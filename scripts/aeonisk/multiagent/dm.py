@@ -1255,20 +1255,35 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         char = player_agent.character_state
 
-        # Extract attributes
+        # Extract attributes (handle both object and dict formats)
         attributes = {}
         if hasattr(char, 'attributes'):
-            attributes = {
-                'strength': char.attributes.strength,
-                'agility': char.attributes.agility,
-                'endurance': char.attributes.endurance,
-                'perception': char.attributes.perception,
-                'intelligence': char.attributes.intelligence,
-                'empathy': char.attributes.empathy,
-                'willpower': char.attributes.willpower,
-                'charisma': char.attributes.charisma,
-                'size': char.attributes.size
-            }
+            if isinstance(char.attributes, dict):
+                # attributes is already a dict
+                attributes = {
+                    'strength': char.attributes.get('strength', 0),
+                    'agility': char.attributes.get('agility', 0),
+                    'endurance': char.attributes.get('endurance', 0),
+                    'perception': char.attributes.get('perception', 0),
+                    'intelligence': char.attributes.get('intelligence', 0),
+                    'empathy': char.attributes.get('empathy', 0),
+                    'willpower': char.attributes.get('willpower', 0),
+                    'charisma': char.attributes.get('charisma', 0),
+                    'size': char.attributes.get('size', 0)
+                }
+            else:
+                # attributes is an object
+                attributes = {
+                    'strength': getattr(char.attributes, 'strength', 0),
+                    'agility': getattr(char.attributes, 'agility', 0),
+                    'endurance': getattr(char.attributes, 'endurance', 0),
+                    'perception': getattr(char.attributes, 'perception', 0),
+                    'intelligence': getattr(char.attributes, 'intelligence', 0),
+                    'empathy': getattr(char.attributes, 'empathy', 0),
+                    'willpower': getattr(char.attributes, 'willpower', 0),
+                    'charisma': getattr(char.attributes, 'charisma', 0),
+                    'size': getattr(char.attributes, 'size', 0)
+                }
 
         # Extract skills (only non-zero)
         skills = {}
