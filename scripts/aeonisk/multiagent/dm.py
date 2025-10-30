@@ -1318,6 +1318,170 @@ The air carries a distinct tension, and you sense the void's influence at level 
             'soulcredit': soulcredit
         }
 
+    def _generate_environment_description(self, player_id: str) -> str:
+        """
+        Generate environment description for ML training.
+
+        Format: "Location, tactical positions, environmental conditions"
+        Example: "Corporate facility, PCs at Near range with cover, 2 enemies at Far-Enemy"
+        """
+        parts = []
+
+        # Add scenario location
+        if self.current_scenario:
+            parts.append(self.current_scenario.location)
+
+        # Add tactical positions if available
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            # Count PC positions
+            pc_positions = {}
+            for agent in self.shared_state.player_agents:
+                if hasattr(agent, 'position'):
+                    pos_str = str(agent.position)
+                    pc_positions[pos_str] = pc_positions.get(pos_str, 0) + 1
+
+            if pc_positions:
+                pos_desc = ", ".join([f"{count} PC{'s' if count > 1 else ''} at {pos}" for pos, count in pc_positions.items()])
+                parts.append(pos_desc)
+
+        # Add enemy count if available
+        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
+            enemy_count = len(self.shared_state.enemy_agents)
+            if enemy_count > 0:
+                parts.append(f"{enemy_count} enem{'ies' if enemy_count != 1 else 'y'}")
+
+        # Add void level if high
+        if self.current_scenario and self.current_scenario.void_level >= 5:
+            parts.append(f"void level {self.current_scenario.void_level}/10")
+
+        return ", ".join(parts) if parts else "Unknown environment"
+
+    def _generate_stakes_description(self, player_id: str) -> str:
+        """
+        Generate stakes description for ML training.
+
+        Format: "What's at risk - consequences of success/failure"
+        Example: "PC at 8/20 HP risking death, 2 clocks near completion, high void corruption (7/10)"
+        """
+        stakes = []
+
+        # Check character health/void
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            for agent in self.shared_state.player_agents:
+                if hasattr(agent, 'agent_id') and agent.agent_id == player_id:
+                    char = agent.character_state if hasattr(agent, 'character_state') else None
+                    if char:
+                        # High void risk
+                        if hasattr(char, 'void') and char.void >= 7:
+                            stakes.append(f"High void corruption ({char.void}/10, near possession)")
+
+                        # Low HP risk
+                        if hasattr(char, 'health') and hasattr(char, 'max_health'):
+                            if char.health <= char.max_health * 0.3:
+                                stakes.append(f"Low HP ({char.health}/{char.max_health}, risking incapacitation)")
+                    break
+
+        # Check clock states
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            near_complete_clocks = []
+            near_failure_clocks = []
+
+            for clock_name, clock in mechanics.scene_clocks.items():
+                progress = clock.current / clock.maximum if clock.maximum > 0 else 0
+
+                if progress >= 0.75:  # 75%+ filled
+                    near_complete_clocks.append(f"{clock_name} ({clock.current}/{clock.maximum})")
+                elif progress <= 0.25 and clock.current == 0:  # Empty and neglected
+                    near_failure_clocks.append(clock_name)
+
+            if near_complete_clocks:
+                stakes.append(f"Clocks near completion: {', '.join(near_complete_clocks)}")
+            if near_failure_clocks:
+                stakes.append(f"Neglected objectives: {', '.join(near_failure_clocks)}")
+
+        # Combat pressure
+        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
+            enemy_count = len(self.shared_state.enemy_agents)
+            if enemy_count >= 3:
+                stakes.append(f"Outnumbered ({enemy_count} enemies)")
+
+        return "; ".join(stakes) if stakes else "Standard risk scenario"
+
+    def _generate_roll_formula(self, resolution: 'ActionResolution') -> str:
+        """
+        Generate human-readable roll formula for ML training.
+
+        Format: "Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC"
+        Example: "Perception 4 × Guns 5 = 20; 20 + d20(15) = 35 vs DC 20"
+        """
+        attr_name = resolution.attribute.title() if hasattr(resolution, 'attribute') else 'Unknown'
+        attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
+        skill_name = resolution.skill.title() if hasattr(resolution, 'skill') else 'None'
+        skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
+        d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
+        total = resolution.total if hasattr(resolution, 'total') else 0
+        dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 0
+
+        if skill_val > 0:
+            ability = attr_val * skill_val
+            formula = f"{attr_name} {attr_val} × {skill_name} {skill_val} = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
+        else:
+            # Unskilled penalty
+            ability = attr_val - 5
+            formula = f"{attr_name} {attr_val} - 5 (unskilled) = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
+
+        return formula
+
+    def _generate_rationale(self, resolution: 'ActionResolution', action: Dict[str, Any]) -> str:
+        """
+        Generate DM rationale for ML training.
+
+        Format: Brief explanation of DC choice and difficulty factors
+        Example: "DC 20 (Moderate) for ranged combat; target at Far range but PC has good positioning"
+        """
+        dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 20
+        action_type = action.get('action_type', 'unknown')
+
+        # Determine DC tier
+        if dc <= 15:
+            dc_tier = "Easy"
+        elif dc <= 20:
+            dc_tier = "Moderate"
+        elif dc <= 25:
+            dc_tier = "Challenging"
+        elif dc <= 30:
+            dc_tier = "Difficult"
+        else:
+            dc_tier = "Very Difficult"
+
+        # Base rationale
+        rationale = f"DC {dc} ({dc_tier}) for {action_type} action"
+
+        # Add contextual factors
+        factors = []
+
+        # Check for ritual action
+        if action.get('is_ritual', False):
+            if not action.get('has_offering', False):
+                factors.append("no offering (+void risk)")
+            if action.get('has_altar', False):
+                factors.append("sanctified altar (+3 bonus)")
+
+        # Check for combat modifiers
+        if action_type in ['attack', 'shoot', 'fire']:
+            if 'range' in action.get('description', '').lower():
+                factors.append("range considerations")
+
+        # Check void level
+        if self.current_scenario and self.current_scenario.void_level >= 5:
+            factors.append(f"high void environment ({self.current_scenario.void_level}/10)")
+
+        if factors:
+            rationale += "; " + ", ".join(factors)
+
+        return rationale
+
     async def _handle_adjudication(self, payload: Dict[str, Any]):
         """
         Adjudicate all declared actions together.
@@ -1442,8 +1606,12 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     # Extract goal from action intent/description
                     goal = action.get('intent') or action.get('description', 'Unknown goal')
 
-                    # Environment and stakes will come from DM structured output in future
-                    # For now, leave as None (backward compatible)
+                    # Generate contextual fields for ML training
+                    environment = self._generate_environment_description(player_id)
+                    stakes = self._generate_stakes_description(player_id)
+                    roll_formula = self._generate_roll_formula(action_resolution)
+                    rationale = self._generate_rationale(action_resolution, action)
+
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
                         phase="adjudicate",
@@ -1456,7 +1624,11 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         context=context,
                         # ML training fields (dataset guidelines compliance)
                         character_data=character_data,
-                        goal=goal
+                        environment=environment,
+                        stakes=stakes,
+                        goal=goal,
+                        roll_formula=roll_formula,
+                        rationale=rationale
                     )
 
                     # Track action for round summary statistics
@@ -3087,6 +3259,12 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 # Extract goal from action intent/description
                 goal = action.get('intent') or action.get('description', 'Unknown goal')
 
+                # Generate contextual fields for ML training
+                environment = self._generate_environment_description(player_id)
+                stakes = self._generate_stakes_description(player_id)
+                roll_formula = self._generate_roll_formula(resolution)
+                rationale = self._generate_rationale(resolution, action)
+
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
                     phase="resolve",
@@ -3099,7 +3277,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     context=log_context,
                     # ML training fields (dataset guidelines compliance)
                     character_data=character_data,
-                    goal=goal
+                    environment=environment,
+                    stakes=stakes,
+                    goal=goal,
+                    roll_formula=roll_formula,
+                    rationale=rationale
                 )
 
         else:
