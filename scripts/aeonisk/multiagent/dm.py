@@ -1226,6 +1226,82 @@ The air carries a distinct tension, and you sense the void's influence at level 
             }
         )
 
+    def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract complete character sheet data for ML training logging.
+
+        Matches dataset guidelines format:
+        - attributes (all 9 attributes as dict)
+        - skills (all non-zero skills as dict)
+        - void (current corruption level)
+        - wounds (list of wound descriptions)
+        - status_effects (list of active conditions)
+        - soulcredit (current balance)
+
+        Returns None if character not found.
+        """
+        if not self.shared_state or not hasattr(self.shared_state, 'player_agents'):
+            return None
+
+        # Find the player agent
+        player_agent = None
+        for agent in self.shared_state.player_agents:
+            if hasattr(agent, 'agent_id') and agent.agent_id == player_id:
+                player_agent = agent
+                break
+
+        if not player_agent or not hasattr(player_agent, 'character_state'):
+            return None
+
+        char = player_agent.character_state
+
+        # Extract attributes
+        attributes = {}
+        if hasattr(char, 'attributes'):
+            attributes = {
+                'strength': char.attributes.strength,
+                'agility': char.attributes.agility,
+                'endurance': char.attributes.endurance,
+                'perception': char.attributes.perception,
+                'intelligence': char.attributes.intelligence,
+                'empathy': char.attributes.empathy,
+                'willpower': char.attributes.willpower,
+                'charisma': char.attributes.charisma,
+                'size': char.attributes.size
+            }
+
+        # Extract skills (only non-zero)
+        skills = {}
+        if hasattr(char, 'skills'):
+            for skill_name, skill_value in char.skills.items():
+                if skill_value > 0:
+                    # Convert to lowercase with underscores for dataset format
+                    skill_key = skill_name.lower().replace(' ', '_')
+                    skills[skill_key] = skill_value
+
+        # Extract void, wounds, status effects
+        void_score = char.void if hasattr(char, 'void') else 0
+        wounds = []
+        if hasattr(char, 'wounds'):
+            for wound in char.wounds:
+                wounds.append(f"{wound.description} (-{wound.penalty})" if hasattr(wound, 'penalty') else wound.description)
+
+        status_effects = []
+        if hasattr(char, 'status_effects'):
+            status_effects = list(char.status_effects)
+
+        soulcredit = char.soulcredit if hasattr(char, 'soulcredit') else 0
+
+        return {
+            'name': char.name if hasattr(char, 'name') else 'Unknown',
+            'attributes': attributes,
+            'skills': skills,
+            'void': void_score,
+            'wounds': wounds,
+            'status_effects': status_effects,
+            'soulcredit': soulcredit
+        }
+
     async def _handle_adjudication(self, payload: Dict[str, Any]):
         """
         Adjudicate all declared actions together.
@@ -1344,6 +1420,14 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                         context['prompt_metadata'] = self._last_prompt_metadata.to_dict()
 
+                    # Extract character data for ML training (dataset guidelines)
+                    character_data = self._extract_character_data(player_id)
+
+                    # Extract goal from action intent/description
+                    goal = action.get('intent') or action.get('description', 'Unknown goal')
+
+                    # Environment and stakes will come from DM structured output in future
+                    # For now, leave as None (backward compatible)
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
                         phase="adjudicate",
@@ -1353,7 +1437,10 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         economy_changes=economy_changes,
                         clock_states=clock_states,
                         effects=effects,
-                        context=context
+                        context=context,
+                        # ML training fields (dataset guidelines compliance)
+                        character_data=character_data,
+                        goal=goal
                     )
 
                     # Track action for round summary statistics
@@ -2978,6 +3065,12 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                     log_context["prompt_metadata"] = self._last_prompt_metadata.to_dict()
 
+                # Extract character data for ML training (dataset guidelines)
+                character_data = self._extract_character_data(player_id)
+
+                # Extract goal from action intent/description
+                goal = action.get('intent') or action.get('description', 'Unknown goal')
+
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
                     phase="resolve",
@@ -2987,7 +3080,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     economy_changes=economy_changes,
                     clock_states=clock_states,
                     effects=effects,
-                    context=log_context
+                    context=log_context,
+                    # ML training fields (dataset guidelines compliance)
+                    character_data=character_data,
+                    goal=goal
                 )
 
         else:

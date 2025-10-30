@@ -172,7 +172,15 @@ class JSONLLogger:
         economy_changes: Dict[str, Any],
         clock_states: Dict[str, str],
         effects: List[str],
-        context: Dict[str, Any] = None
+        context: Dict[str, Any] = None,
+        # New ML training fields (dataset guidelines compliance)
+        character_data: Dict[str, Any] = None,
+        environment: str = None,
+        stakes: str = None,
+        goal: str = None,
+        roll_formula: str = None,
+        rationale: str = None,
+        outcome_tiers_with_narratives: Dict[str, Dict[str, str]] = None
     ):
         """
         Log a complete action resolution event with 6-tier outcome analysis.
@@ -206,7 +214,7 @@ class JSONLLogger:
         else:
             ability = resolution.attribute_value - 5  # Unskilled penalty
 
-        # Calculate 6-tier outcomes for ML training
+        # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
 
         event = {
@@ -231,11 +239,34 @@ class JSONLLogger:
                 "tier": resolution.outcome_tier.value,
                 "success": resolution.success
             },
-            "outcome_tiers": outcome_tiers,  # NEW: 6-tier analysis for ML
+            "outcome_tiers": outcome_tiers,  # Threshold-based (backward compat)
             "economy": economy_changes,
             "clocks": clock_states,
             "effects": effects
         }
+
+        # Add ML training fields if provided (dataset guidelines compliance)
+        if character_data:
+            event["character_data"] = character_data
+
+        if environment:
+            event["environment"] = environment
+
+        if stakes:
+            event["stakes"] = stakes
+
+        if goal:
+            event["goal"] = goal
+
+        if roll_formula:
+            event["roll_formula"] = roll_formula
+
+        if rationale:
+            event["rationale"] = rationale
+
+        if outcome_tiers_with_narratives:
+            # Full outcome tiers with narrative + mechanical_effect (dataset format)
+            event["outcome_tiers_full"] = outcome_tiers_with_narratives
 
         self._write_event(event)
 
