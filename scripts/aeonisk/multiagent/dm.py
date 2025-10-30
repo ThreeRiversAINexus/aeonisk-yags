@@ -1255,34 +1255,35 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         char = player_agent.character_state
 
-        # Extract attributes (handle both object and dict formats)
+        # Extract attributes (handle both object and dict formats, and both casings)
         attributes = {}
         if hasattr(char, 'attributes'):
             if isinstance(char.attributes, dict):
-                # attributes is already a dict
+                # attributes is already a dict - try both lowercase and Title case
+                attrs_dict = char.attributes
                 attributes = {
-                    'strength': char.attributes.get('strength', 0),
-                    'agility': char.attributes.get('agility', 0),
-                    'endurance': char.attributes.get('endurance', 0),
-                    'perception': char.attributes.get('perception', 0),
-                    'intelligence': char.attributes.get('intelligence', 0),
-                    'empathy': char.attributes.get('empathy', 0),
-                    'willpower': char.attributes.get('willpower', 0),
-                    'charisma': char.attributes.get('charisma', 0),
-                    'size': char.attributes.get('size', 0)
+                    'strength': attrs_dict.get('strength') or attrs_dict.get('Strength', 0),
+                    'agility': attrs_dict.get('agility') or attrs_dict.get('Agility', 0),
+                    'endurance': attrs_dict.get('endurance') or attrs_dict.get('Endurance', 0),
+                    'perception': attrs_dict.get('perception') or attrs_dict.get('Perception', 0),
+                    'intelligence': attrs_dict.get('intelligence') or attrs_dict.get('Intelligence', 0),
+                    'empathy': attrs_dict.get('empathy') or attrs_dict.get('Empathy', 0),
+                    'willpower': attrs_dict.get('willpower') or attrs_dict.get('Willpower', 0),
+                    'charisma': attrs_dict.get('charisma') or attrs_dict.get('Charisma', 0),
+                    'size': attrs_dict.get('size') or attrs_dict.get('Size', 10)  # YAGS default size is 10
                 }
             else:
                 # attributes is an object
                 attributes = {
-                    'strength': getattr(char.attributes, 'strength', 0),
-                    'agility': getattr(char.attributes, 'agility', 0),
-                    'endurance': getattr(char.attributes, 'endurance', 0),
-                    'perception': getattr(char.attributes, 'perception', 0),
-                    'intelligence': getattr(char.attributes, 'intelligence', 0),
-                    'empathy': getattr(char.attributes, 'empathy', 0),
-                    'willpower': getattr(char.attributes, 'willpower', 0),
-                    'charisma': getattr(char.attributes, 'charisma', 0),
-                    'size': getattr(char.attributes, 'size', 0)
+                    'strength': getattr(char.attributes, 'strength', getattr(char.attributes, 'Strength', 0)),
+                    'agility': getattr(char.attributes, 'agility', getattr(char.attributes, 'Agility', 0)),
+                    'endurance': getattr(char.attributes, 'endurance', getattr(char.attributes, 'Endurance', 0)),
+                    'perception': getattr(char.attributes, 'perception', getattr(char.attributes, 'Perception', 0)),
+                    'intelligence': getattr(char.attributes, 'intelligence', getattr(char.attributes, 'Intelligence', 0)),
+                    'empathy': getattr(char.attributes, 'empathy', getattr(char.attributes, 'Empathy', 0)),
+                    'willpower': getattr(char.attributes, 'willpower', getattr(char.attributes, 'Willpower', 0)),
+                    'charisma': getattr(char.attributes, 'charisma', getattr(char.attributes, 'Charisma', 0)),
+                    'size': getattr(char.attributes, 'size', getattr(char.attributes, 'Size', 10))
                 }
 
         # Extract skills (only non-zero)
