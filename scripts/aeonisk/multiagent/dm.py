@@ -1471,6 +1471,37 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
         print(f"\n[DM {self.agent_id}] ===== Adjudication Complete =====\n")
 
+    async def _generate_round_synthesis_structured(self, prompt: str) -> Optional['RoundSynthesis']:
+        """
+        Generate round synthesis using Pydantic AI structured output (Phase 5).
+        Returns RoundSynthesis if successful, or None to fall back to legacy.
+        """
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            logger.debug("DM: No llm_provider available for synthesis, will use legacy text generation")
+            return None
+
+        try:
+            from .schemas.story_events import RoundSynthesis
+
+            logger.debug("DM: Attempting structured output for round synthesis")
+
+            # Generate structured synthesis using Pydantic AI
+            synthesis: RoundSynthesis = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=RoundSynthesis,
+                system_prompt="You are the DM for Aeonisk YAGS, synthesizing a round of actions.",
+                max_tokens=self.llm_config.get('max_tokens', 2000),
+                temperature=self.llm_config.get('temperature', 0.8)
+            )
+
+            logger.info(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+
+            return synthesis
+
+        except Exception as e:
+            logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
+            return None
+
     async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int) -> str:
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
@@ -1748,6 +1779,36 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
 {enemy_spawn_prompt}"""
 
+            # Try structured output first (Phase 5: Pydantic AI migration)
+            structured_synthesis = await self._generate_round_synthesis_structured(prompt)
+
+            if structured_synthesis:
+                # Convert structured synthesis to text format
+                synthesis_text = structured_synthesis.narration
+
+                # Handle story advancement
+                if structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance:
+                    adv = structured_synthesis.story_advancement
+                    synthesis_text += f"\n\n[ADVANCE_STORY: {adv.location} | {adv.situation}]"
+
+                    # Add new clocks
+                    for clock in adv.new_clocks:
+                        synthesis_text += f"\n[NEW_CLOCK: {clock.name} | {clock.max_ticks} | {clock.description}]"
+
+                # Handle enemy spawns
+                for spawn in structured_synthesis.enemy_spawns:
+                    # Convert structured spawn to marker format
+                    synthesis_text += f"\n[SPAWN_ENEMY: {spawn.faction} {spawn.archetype} | {spawn.template.lower()} | {spawn.count} | {spawn.initial_position.value} | adaptive]"
+
+                # Handle session end
+                if structured_synthesis.session_end:
+                    synthesis_text += f"\n[SESSION_END: {structured_synthesis.session_end.upper()}]"
+
+                logger.info(f"✓ Using structured synthesis (Phase 5)")
+                return synthesis_text
+
+            # Legacy text generation fallback
+            logger.debug("DM: Using legacy text generation for synthesis")
             try:
                 # Use rate-limited wrapper to prevent API overload
                 from .llm_provider import call_anthropic_with_retry

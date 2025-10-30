@@ -145,6 +145,24 @@ class AIPlayerAgent(Agent):
             import os
             self.llm_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 
+        # LLM Provider for structured output (Phase 3: Pydantic AI migration)
+        # Only create if not in replay mode (llm_client injected)
+        if not llm_client:
+            from .llm_provider import create_claude_provider
+            try:
+                self.llm_provider = create_claude_provider(
+                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                    max_tokens=self.llm_config.get('max_tokens', 1000),
+                    temperature=self.llm_config.get('temperature', 0.8)
+                )
+                logger.debug(f"Player {self.agent_id}: Structured output provider initialized")
+            except Exception as e:
+                logger.warning(f"Player {self.agent_id}: Failed to create structured output provider: {e}")
+                self.llm_provider = None
+        else:
+            # Replay mode - no structured output
+            self.llm_provider = None
+
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
         self.position = Position.from_string("Near-PC")  # Default starting position
@@ -1254,6 +1272,53 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
         return content
 
+    async def _generate_player_action_pydantic(self, prompt: str):
+        """
+        Generate player action using Pydantic AI structured output (Phase 3).
+        Returns ActionDeclaration if structured output succeeds, or None to fall back to legacy.
+        """
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            logger.debug(f"Player {self.character_state.name}: No llm_provider available, will use legacy text parsing")
+            return None
+
+        try:
+            from .schemas.player_action import PlayerAction
+            from .action_schema import ActionDeclaration
+
+            logger.debug(f"Player {self.character_state.name}: Attempting structured output for action declaration")
+
+            # Generate structured action using Pydantic AI
+            player_action: PlayerAction = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=PlayerAction,
+                system_prompt=f"You are {self.character_state.name}, a player character in Aeonisk YAGS.",
+                max_tokens=self.llm_config.get('max_tokens', 1000),
+                temperature=self.llm_config.get('temperature', 0.8)
+            )
+
+            logger.info(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
+
+            # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
+            action_declaration = ActionDeclaration(
+                intent=player_action.intent,
+                description=player_action.description,
+                attribute=player_action.attribute,
+                skill=player_action.skill,
+                difficulty_estimate=player_action.difficulty_estimate,
+                difficulty_justification=player_action.difficulty_justification,
+                character_name=self.character_state.name,
+                agent_id=self.agent_id,
+                action_type=player_action.action_type,
+                target=player_action.target,
+                target_position=player_action.target_position
+            )
+
+            return action_declaration
+
+        except Exception as e:
+            logger.error(f"Player {self.character_state.name}: Structured output failed: {type(e).__name__}: {e}")
+            return None
+
     async def _generate_llm_action_structured(self, recent_intents: List[str], exclude_dialogue: bool = False):
         """Generate structured action using LLM with enhanced prompts."""
         from .action_schema import ActionDeclaration
@@ -1634,6 +1699,17 @@ DESCRIPTION: [narrative description]
 - You can target anyone (ally, enemy, or neutral) - the situation determines the outcome
 - If you don't need a target (exploration, investigation), use TARGET: None"""
 
+        # Try structured output first (Phase 3: Pydantic AI migration)
+        if hasattr(self, 'llm_provider') and self.llm_provider is not None:
+            try:
+                structured_action = await self._generate_player_action_pydantic(prompt)
+                if structured_action:
+                    logger.info(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
+                    return structured_action
+            except Exception as e:
+                logger.warning(f"Player {self.character_state.name}: Structured output failed ({e}), falling back to legacy")
+
+        # Legacy text parsing fallback
         try:
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
