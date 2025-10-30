@@ -1,13 +1,109 @@
 """
 Parse narrative outcomes to extract mechanical state changes.
 Automatically advance clocks and void based on DM narration.
+
+Phase 2 Migration: Now supports both structured output (ActionResolution objects)
+and legacy text parsing for backward compatibility.
 """
 
 import re
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Union
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
+    """
+    Extract state changes from a structured ActionResolution object.
+
+    Phase 2 Migration: Converts Pydantic ActionResolution to legacy state_changes dict
+    for backward compatibility with existing code.
+
+    Args:
+        resolution_obj: ActionResolution instance from structured output
+
+    Returns:
+        Dict with state changes (same format as parse_state_changes)
+    """
+    try:
+        from .schemas.action_resolution import ActionResolution
+    except ImportError:
+        logger.error("Failed to import ActionResolution schema")
+        return {
+            'clock_triggers': [],
+            'void_change': 0,
+            'void_reasons': [],
+            'void_target_character': None,
+            'conditions': [],
+            'notes': [],
+            'position_change': None,
+            'soulcredit_change': 0,
+            'soulcredit_reasons': []
+        }
+
+    if not isinstance(resolution_obj, ActionResolution):
+        logger.warning(f"extract_from_structured_resolution called with non-ActionResolution: {type(resolution_obj)}")
+        return None
+
+    logger.debug("Extracting state changes from structured ActionResolution")
+
+    # Extract void changes
+    void_change = sum(vc.amount for vc in resolution_obj.effects.void_changes)
+    void_reasons = [vc.reason for vc in resolution_obj.effects.void_changes]
+    void_target_character = resolution_obj.effects.void_changes[0].character_name if resolution_obj.effects.void_changes else None
+
+    # Extract soulcredit changes
+    soulcredit_change = sum(sc.amount for sc in resolution_obj.effects.soulcredit_changes)
+    soulcredit_reasons = [sc.reason for sc in resolution_obj.effects.soulcredit_changes]
+
+    # Extract clock updates
+    # Note: Legacy format expects (clock_name, ticks, reason, source)
+    clock_triggers = [
+        (cu.clock_name, cu.ticks, cu.reason, 'structured_output')
+        for cu in resolution_obj.effects.clock_updates
+    ]
+
+    # Extract conditions
+    conditions = [
+        {
+            'type': cond.name,
+            'penalty': cond.penalty,
+            'duration': cond.duration,
+            'description': cond.description
+        }
+        for cond in resolution_obj.effects.conditions
+    ]
+
+    # Extract position changes
+    position_change = None
+    if resolution_obj.effects.position_changes:
+        # Take the first position change (usually only one per action)
+        pc = resolution_obj.effects.position_changes[0]
+        position_change = {
+            'character_name': pc.character_name,
+            'new_position': pc.new_position.value,
+            'reason': pc.reason
+        }
+
+    # Build state_changes dict (legacy format)
+    state_changes = {
+        'clock_triggers': clock_triggers,
+        'void_change': void_change,
+        'void_reasons': void_reasons,
+        'void_target_character': void_target_character,
+        'void_source': 'structured_output',  # Mark as coming from structured output
+        'llm_compliance_issue': None,  # Structured output is always compliant
+        'conditions': conditions,
+        'notes': resolution_obj.effects.notes,
+        'position_change': position_change,
+        'soulcredit_change': soulcredit_change,
+        'soulcredit_reasons': soulcredit_reasons
+    }
+
+    logger.debug(f"Extracted from structured: void={void_change}, clocks={len(clock_triggers)}, conditions={len(conditions)}")
+
+    return state_changes
 
 
 def parse_soulcredit_markers(narration: str) -> Tuple[int, str, str]:

@@ -80,6 +80,24 @@ class AIDMAgent(Agent):
         # Story progression flags
         self.needs_story_advancement = False  # Set by session when all clocks complete
 
+        # LLM Provider for structured output (Phase 2: Pydantic AI migration)
+        # Only create if not in replay mode (llm_client injected)
+        if not llm_client:
+            from .llm_provider import create_claude_provider
+            try:
+                self.llm_provider = create_claude_provider(
+                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                    max_tokens=self.llm_config.get('max_tokens', 2000),
+                    temperature=self.llm_config.get('temperature', 0.8)
+                )
+                logger.debug("DM: Structured output provider initialized")
+            except Exception as e:
+                logger.warning(f"DM: Failed to create structured output provider: {e}")
+                self.llm_provider = None
+        else:
+            # Replay mode - no structured output
+            self.llm_provider = None
+
         # Set up DM-specific message handlers
         self.message_handlers[MessageType.SESSION_START] = self._handle_session_start
         self.message_handlers[MessageType.ACTION_DECLARED] = self._handle_action_declared
@@ -1890,7 +1908,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             action['target_character'] = target_entity.character_state.name
                             logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
 
-            state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
+            # Phase 2 Migration: Check if we have a structured resolution
+            if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
+                from .outcome_parser import extract_from_structured_resolution
+                state_changes = extract_from_structured_resolution(self._last_structured_resolution)
+                logger.debug("Using structured resolution for state changes extraction")
+            else:
+                # Legacy text parsing
+                state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
 
             # Parse combat triplet (for backwards compatibility)
             combat_data = parse_combat_triplet(llm_narration if self.llm_config else resolution.narrative)
@@ -2635,7 +2660,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             action['target_character'] = target_entity.character_state.name
                             logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
 
-            state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
+            # Phase 2 Migration: Check if we have a structured resolution
+            if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
+                from .outcome_parser import extract_from_structured_resolution
+                state_changes = extract_from_structured_resolution(self._last_structured_resolution)
+                logger.debug("Using structured resolution for state changes extraction")
+            else:
+                # Legacy text parsing
+                state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
 
             # Merge ritual soulcredit changes into state_changes
             if action.get('is_ritual', False) and 'ritual_effects' in locals():
@@ -3207,8 +3239,151 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
         logger.info(f"Retry response for {marker_type}: {response[:200]}")
         return response
 
+    async def _generate_action_resolution_structured(
+        self,
+        player_id: str,
+        action_type: str,
+        description: str,
+        resolution=None,
+        action=None
+    ):
+        """
+        Generate DM action resolution using structured output (Pydantic AI).
+
+        Returns ActionResolution object if structured output succeeds,
+        or None if it should fall back to legacy text generation.
+
+        This is Phase 2 of the Pydantic AI migration.
+        """
+        # Only try structured output if provider is available
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            logger.debug("DM: No llm_provider available, will use legacy text generation")
+            return None
+
+        try:
+            from .structured_output_helpers import generate_dm_resolution_structured
+            from .schemas.action_resolution import ActionResolution
+
+            # Build the same prompt as legacy method
+            # (We'll refactor this to share code in future iterations)
+            prompt = await self._build_resolution_prompt(
+                player_id, action_type, description, resolution, action
+            )
+
+            # Try structured output with fallback disabled (we handle fallback ourselves)
+            logger.debug(f"DM: Attempting structured output for {action_type} action")
+
+            # Strict mode: No fallback, will raise on error (retry logic built into provider)
+            resolution_obj = await generate_dm_resolution_structured(
+                provider=self.llm_provider,
+                prompt=prompt,
+                system_prompt="You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions.",
+                max_tokens=self.llm_config.get('max_tokens', 2000),
+                temperature=self.llm_config.get('temperature', 0.8)
+                # fallback_to_text defaults to False - strict mode
+            )
+
+            if isinstance(resolution_obj, ActionResolution):
+                logger.info(f"✓ DM structured resolution: {resolution_obj.success_tier}, {len(resolution_obj.narration)} chars, {len(resolution_obj.effects.void_changes)} void changes")
+                return resolution_obj
+            else:
+                logger.warning("DM: Structured output returned text instead of ActionResolution")
+                return None
+
+        except Exception as e:
+            logger.warning(f"DM: Structured output failed ({e}), falling back to legacy")
+            return None
+
+    async def _build_resolution_prompt(
+        self,
+        player_id: str,
+        action_type: str,
+        description: str,
+        resolution=None,
+        action=None
+    ) -> str:
+        """
+        Build the action resolution prompt (shared between structured and legacy paths).
+
+        Extracted from _generate_llm_response() to avoid duplication.
+        """
+        # This is a simplified version - the full implementation would include all the context building
+        # from the original _generate_llm_response method. For now, delegating to _build_dm_narration_prompt
+
+        scenario_context = ""
+        if self.current_scenario:
+            scenario_context = f"""
+Current Scenario: {self.current_scenario.theme}
+Location: {self.current_scenario.location}
+Situation: {self.current_scenario.situation}
+Void Level: {self.current_scenario.void_level}/10
+"""
+
+        character_context = ""
+        if action:
+            character_name = action.get('character', 'Unknown')
+            faction = action.get('faction', 'Unaffiliated')
+            character_context = f"""
+Character: {character_name} ({faction})
+Note: NPCs and other characters are aware of this affiliation.
+"""
+
+        resolution_context = ""
+        if resolution:
+            outcome_text = "succeeded" if resolution.success else "failed"
+            resolution_context = f"""
+Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
+"""
+
+        # Extract target_id from action if present
+        target_id = ""
+        if action and action.get('target') and action['target'].startswith('tgt_'):
+            target_id = action['target']
+
+        # Use existing prompt builder (simplified for now)
+        prompt = self._build_dm_narration_prompt(
+            is_dialogue=False,
+            scenario_context=scenario_context,
+            character_context=character_context,
+            resolution_context=resolution_context,
+            tactical_combat_context="",  # Will be filled by full implementation
+            clock_context="",
+            void_level=self.current_scenario.void_level if self.current_scenario else 3,
+            void_impact="",
+            outcome_guidance="",
+            description=description,
+            action_type=action_type,
+            enemy_spawn_instructions="",
+            party_context="",
+            character_name=action.get('character', 'The character') if action else "The character",
+            target_character="",
+            target_id=target_id
+        )
+
+        return prompt
+
     async def _generate_llm_response(self, player_id: str, action_type: str, description: str, resolution=None, action=None) -> str:
-        """Generate DM response using LLM."""
+        """
+        Generate DM response using LLM.
+
+        Phase 2 Migration: Now tries structured output first, falls back to legacy text parsing.
+        """
+        # Try structured output first (Phase 2 migration)
+        structured_resolution = await self._generate_action_resolution_structured(
+            player_id, action_type, description, resolution, action
+        )
+
+        if structured_resolution is not None:
+            # Structured output succeeded - return the narration
+            # The caller will handle extracting effects from the structured object
+            # For now, we store it as a temp attribute so the caller can access it
+            self._last_structured_resolution = structured_resolution
+            return structured_resolution.narration
+
+        # Fall back to legacy text generation
+        logger.debug("DM: Using legacy text generation")
+        self._last_structured_resolution = None  # Clear any previous structured resolution
+
         provider = self.llm_config.get('provider', 'openai')
         model = self.llm_config.get('model', 'gpt-4')
         temperature = self.llm_config.get('temperature', 0.7)
