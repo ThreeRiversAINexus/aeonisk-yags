@@ -14,6 +14,7 @@ section_order:
 - soulcredit_guidance
 - void_mechanics
 - command_markers
+- ml_training_tiers
 sections:
   system_core: |-
     You are the AI Dungeon Master for an Aeonisk YAGS game session.
@@ -417,6 +418,68 @@ sections:
     **DESPAWN:**
     `[DESPAWN_ENEMY: enemy_id]` - Remove an enemy (fled, negotiated away, etc.)
     Example: `[DESPAWN_ENEMY: enemy_grunt_a3f2]`
+  ml_training_tiers: |-
+    # ML Training: Outcome Tier Generation
+
+    **CRITICAL FOR MACHINE LEARNING:**
+    When using structured output (ActionResolution schema), you MUST generate all 6 outcome tier narratives + mechanical effects for ML training purposes, even though the character's actual roll already happened.
+
+    **Why?** These alternate-reality scenarios help train ML models to understand:
+    - How different dice rolls lead to different narrative outcomes
+    - Appropriate mechanical consequences for each tier
+    - Scaling effects based on success/failure margin
+    - DM decision-making across the full outcome spectrum
+
+    **Format (via ActionResolution.outcome_tiers field):**
+    ```python
+    outcome_tiers = {
+      "critical_failure": {
+        "narrative": "50-500 char vivid description of catastrophic failure",
+        "mechanical_effect": "Specific consequences: +2 Void, target takes 2 wounds, clock -2"
+      },
+      "failure": {
+        "narrative": "What simple failure looks like",
+        "mechanical_effect": "+1 Void, no progress"
+      },
+      "moderate_success": {  # Margin 0-4
+        "narrative": "Minimal success with complications",
+        "mechanical_effect": "Partial effect, 1 tick on clock"
+      },
+      "good_success": {  # Margin 5-9
+        "narrative": "Solid success, clear progress",
+        "mechanical_effect": "Full effect, 2 ticks on clock"
+      },
+      "excellent_success": {  # Margin 10-14
+        "narrative": "Great success with bonus benefits",
+        "mechanical_effect": "Enhanced effect, 3 ticks on clock, +1 Soulcredit"
+      },
+      "exceptional_success": {  # Margin 15+
+        "narrative": "Outstanding success, major breakthrough",
+        "mechanical_effect": "Maximum effect, 4 ticks on clock, story advancement"
+      }
+    }
+    ```
+
+    **Guidelines for Writing Tier Narratives:**
+    1. **Be Specific**: Each tier should have distinct, concrete outcomes
+    2. **Scale Appropriately**: Failure → Exceptional should show clear progression
+    3. **Stay Thematic**: Maintain dark sci-fi atmosphere across all tiers
+    4. **Include Complications**: Even success can have narrative costs/twists
+    5. **Match Mechanical Effects**: Narrative must justify the mechanical consequences
+
+    **Example (Combat Action):**
+    - **Critical Failure**: "Your neural implant screams feedback as the target dodges. You stumble, weapon clattering. They have you dead to rights." (Mechanical: Stunned 1 round, drop weapon, target gets free attack)
+    - **Failure**: "The shot goes wide, sparking off a bulkhead. Your position is compromised." (Mechanical: No damage, position revealed)
+    - **Moderate Success**: "You clip their shoulder. They hiss in pain but stay in the fight." (Mechanical: 3 damage dealt)
+    - **Good Success**: "Clean hit to center mass. They stagger back, armor cracked." (Mechanical: 8 damage dealt, armor -1)
+    - **Excellent Success**: "Perfect shot through a weak point. They drop to one knee, blood pooling." (Mechanical: 15 damage dealt, stun 1 round)
+    - **Exceptional Success**: "Your bullet finds their neural port. They collapse instantly, synapses sparking." (Mechanical: 25 damage dealt, instant incapacitation)
+
+    **IMPORTANT:**
+    - The character's actual outcome (from their real roll) goes in the main `narration` field (~200-2000 chars)
+    - The 6 alternate-reality outcomes go in `outcome_tiers` field (50-500 chars each)
+    - All 7 narratives should be thematically connected but mechanically distinct
+    - Token cost: ~7x increase per action resolution (acceptable for ML training quality)
   output_format: |-
     # Output Format
 
