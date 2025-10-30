@@ -667,20 +667,19 @@ class AIPlayerAgent(Agent):
 
             logger.debug(f"Main action generated: {main_action.intent}")
 
-            # Apply same routing and validation
-            main_routed_attr, main_routed_skill, main_rationale = router.route_action(
-                main_action.intent,
-                main_action.action_type,
-                self.character_state.skills,
-                router.is_explicit_ritual(main_action.intent),
-                declared_skill=main_action.skill,
-                other_players=other_players  # Use same other_players list
-            )
+            # Apply same normalization as first action
+            # Only check if action intent mentions "ritual" explicitly
+            is_explicit_ritual_main = router.is_explicit_ritual(main_action.intent)
+            if is_explicit_ritual_main or main_action.action_type == 'ritual':
+                main_action.is_ritual = True
+                main_action.action_type = 'ritual'
 
-            if main_routed_attr != main_action.attribute or main_routed_skill != main_action.skill:
-                print(f"[{self.character_state.name}] Routed: {main_action.attribute}×{main_action.skill or 'None'} → {main_routed_attr}×{main_routed_skill or 'None'} ({main_rationale})")
-                main_action.attribute = main_routed_attr
-                main_action.skill = main_routed_skill
+            # Normalize skill name ONLY if it's an alias
+            if main_action.skill:
+                original_skill = main_action.skill
+                normalized_skill = normalize_skill(main_action.skill)
+                if normalized_skill != original_skill:
+                    main_action.skill = normalized_skill
 
             # Convert and send
             main_action_dict = main_action.to_dict()
