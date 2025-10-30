@@ -1296,7 +1296,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 temperature=self.llm_config.get('temperature', 0.8)
             )
 
-            logger.info(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
+            logger.debug(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
 
             # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
             action_declaration = ActionDeclaration(
@@ -1704,7 +1704,7 @@ DESCRIPTION: [narrative description]
             try:
                 structured_action = await self._generate_player_action_pydantic(prompt)
                 if structured_action:
-                    logger.info(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
+                    logger.debug(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
                     return structured_action
             except Exception as e:
                 logger.warning(f"Player {self.character_state.name}: Structured output failed ({e}), falling back to legacy")

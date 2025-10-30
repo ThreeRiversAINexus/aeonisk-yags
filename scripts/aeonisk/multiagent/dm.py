@@ -1494,7 +1494,7 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 temperature=self.llm_config.get('temperature', 0.8)
             )
 
-            logger.info(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+            logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
 
             return synthesis
 
@@ -1804,7 +1804,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if structured_synthesis.session_end:
                     synthesis_text += f"\n[SESSION_END: {structured_synthesis.session_end.upper()}]"
 
-                logger.info(f"✓ Using structured synthesis (Phase 5)")
+                logger.debug(f"✓ Using structured synthesis (Phase 5)")
                 return synthesis_text
 
             # Legacy text generation fallback
@@ -1973,7 +1973,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
-                logger.debug("Using structured resolution for state changes extraction")
+                logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
             else:
                 # Legacy text parsing
                 state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
@@ -2220,7 +2220,9 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             logger.warning(f"Unknown effect type: {effect_type}")
 
                     else:
-                        logger.warning(f"Could not find target '{target_identifier}' to apply effect")
+                        # Only warn if a real target was specified (not None/null)
+                        if target_identifier and target_identifier not in (None, "None", "null", ""):
+                            logger.warning(f"Could not find target '{target_identifier}' to apply effect")
 
             # Parse and apply ally buffs if action targets ally
             buff = None
@@ -3345,7 +3347,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             )
 
             if isinstance(resolution_obj, ActionResolution):
-                logger.info(f"✓ DM structured resolution: {resolution_obj.success_tier}, {len(resolution_obj.narration)} chars, {len(resolution_obj.effects.void_changes)} void changes")
+                logger.debug(f"✓ DM structured resolution: {resolution_obj.success_tier}, {len(resolution_obj.narration)} chars, {len(resolution_obj.effects.void_changes)} void changes")
                 return resolution_obj
             else:
                 logger.warning("DM: Structured output returned text instead of ActionResolution")
@@ -3401,6 +3403,17 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
         if action and action.get('target') and action['target'].startswith('tgt_'):
             target_id = action['target']
 
+        # Build clock context with exact clock names for structured output
+        clock_context = ""
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.scene_clocks:
+                clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
+                for clock_name, clock in mechanics.scene_clocks.items():
+                    clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
+                clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
+                clock_context = "\n".join(clock_lines)
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -3408,7 +3421,7 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             character_context=character_context,
             resolution_context=resolution_context,
             tactical_combat_context="",  # Will be filled by full implementation
-            clock_context="",
+            clock_context=clock_context,
             void_level=self.current_scenario.void_level if self.current_scenario else 3,
             void_impact="",
             outcome_guidance="",
