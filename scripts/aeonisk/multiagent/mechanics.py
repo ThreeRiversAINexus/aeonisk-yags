@@ -107,6 +107,61 @@ class JSONLLogger:
         """Public method for writing custom events (used by LLMCallLogger)."""
         self._write_event(event)
 
+    def calculate_outcome_tiers(self, resolution: 'ActionResolution') -> Dict[str, Dict[str, int]]:
+        """
+        Calculate hypothetical outcomes for all 6 tiers for ML training.
+
+        Returns dict with tier names as keys, each containing:
+        - dc_threshold: DC needed for this tier
+        - margin_needed: Margin needed from actual roll
+        - d20_needed: Minimum d20 roll needed from base ability
+
+        The 6 tiers follow Aeonisk/YAGS guidelines:
+        - critical_failure: Natural 1 or margin ≤ -10
+        - failure: Roll < DC (margin -9 to -1)
+        - moderate_success: Roll = DC (margin 0 to +4)
+        - good_success: Roll = DC+10 (margin +5 to +9)
+        - excellent_success: Roll = DC+20 (margin +10 to +14)
+        - exceptional_success: Roll = DC+30+ (margin +15+)
+        """
+        ability = resolution.attribute_value * resolution.skill_value if resolution.skill_value > 0 else resolution.attribute_value - 5
+        dc = resolution.difficulty
+
+        tiers = {
+            "critical_failure": {
+                "dc_threshold": dc - 10,
+                "margin_needed": -10,
+                "d20_needed": max(1, dc - 10 - ability)  # Natural 1 is always crit fail
+            },
+            "failure": {
+                "dc_threshold": dc - 1,
+                "margin_needed": -1,
+                "d20_needed": max(1, dc - 1 - ability)
+            },
+            "moderate_success": {
+                "dc_threshold": dc,
+                "margin_needed": 0,
+                "d20_needed": max(1, dc - ability)
+            },
+            "good_success": {
+                "dc_threshold": dc + 5,
+                "margin_needed": 5,
+                "d20_needed": max(1, dc + 5 - ability)
+            },
+            "excellent_success": {
+                "dc_threshold": dc + 10,
+                "margin_needed": 10,
+                "d20_needed": max(1, dc + 10 - ability)
+            },
+            "exceptional_success": {
+                "dc_threshold": dc + 15,
+                "margin_needed": 15,
+                "d20_needed": max(1, dc + 15 - ability)
+            }
+        }
+
+        return tiers
+
     def log_action_resolution(
         self,
         round_num: int,
@@ -117,12 +172,20 @@ class JSONLLogger:
         economy_changes: Dict[str, Any],
         clock_states: Dict[str, str],
         effects: List[str],
-        context: Dict[str, Any] = None
+        context: Dict[str, Any] = None,
+        # New ML training fields (dataset guidelines compliance)
+        character_data: Dict[str, Any] = None,
+        environment: str = None,
+        stakes: str = None,
+        goal: str = None,
+        roll_formula: str = None,
+        rationale: str = None,
+        outcome_tiers_with_narratives: Dict[str, Dict[str, str]] = None
     ):
         """
-        Log a complete action resolution event.
+        Log a complete action resolution event with 6-tier outcome analysis.
 
-        Schema matches Codex Nexum specification:
+        Schema matches Codex Nexum specification plus 6-tier outcomes for ML training:
         {
           "ts": "ISO-8601",
           "session": "uuid",
@@ -134,6 +197,11 @@ class JSONLLogger:
           "roll": {"attr": "Willpower", "attr_val": 3, "skill": "Astral Arts",
                    "skill_val": 2, "ability": 6, "d20": 12, "total": 18,
                    "dc": 20, "margin": -2, "tier": "Failure"},
+          "outcome_tiers": {
+            "critical_failure": {"dc_threshold": 10, "margin_needed": -10, "d20_needed": 4},
+            "failure": {"dc_threshold": 19, "margin_needed": -1, "d20_needed": 13},
+            ...
+          },
           "economy": {"void_delta": +1, "soulcredit_delta": 0,
                       "offering_used": false, "bonds_applied": []},
           "clocks": {"core_access": "7/8", "infection": "2/6"},
@@ -145,6 +213,9 @@ class JSONLLogger:
             ability = resolution.attribute_value * resolution.skill_value
         else:
             ability = resolution.attribute_value - 5  # Unskilled penalty
+
+        # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
+        outcome_tiers = self.calculate_outcome_tiers(resolution)
 
         event = {
             "event_type": "action_resolution",
@@ -168,10 +239,34 @@ class JSONLLogger:
                 "tier": resolution.outcome_tier.value,
                 "success": resolution.success
             },
+            "outcome_tiers": outcome_tiers,  # Threshold-based (backward compat)
             "economy": economy_changes,
             "clocks": clock_states,
             "effects": effects
         }
+
+        # Add ML training fields if provided (dataset guidelines compliance)
+        if character_data:
+            event["character_data"] = character_data
+
+        if environment:
+            event["environment"] = environment
+
+        if stakes:
+            event["stakes"] = stakes
+
+        if goal:
+            event["goal"] = goal
+
+        if roll_formula:
+            event["roll_formula"] = roll_formula
+
+        if rationale:
+            event["rationale"] = rationale
+
+        if outcome_tiers_with_narratives:
+            # Full outcome tiers with narrative + mechanical_effect (dataset format)
+            event["outcome_tiers_full"] = outcome_tiers_with_narratives
 
         self._write_event(event)
 

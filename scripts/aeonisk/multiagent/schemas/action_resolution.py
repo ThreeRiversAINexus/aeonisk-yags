@@ -12,7 +12,7 @@ while preserving narrative quality.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from .shared_types import (
     SuccessTier,
     VoidChange,
@@ -72,9 +72,37 @@ class MechanicalEffects(BaseModel):
     )
 
 
+class OutcomeTierExplanation(BaseModel):
+    """
+    ML Training: What would have happened at each success tier.
+
+    Matches aeonisk_dataset_guidelines.txt format for outcome_explanation.
+    Each tier needs vivid narrative + specific mechanical effects.
+    """
+    narrative: str = Field(
+        ...,
+        min_length=50,
+        max_length=500,
+        description="Vivid description of what this outcome looks like (50-500 chars)"
+    )
+
+    mechanical_effect: str = Field(
+        ...,
+        min_length=10,
+        max_length=300,
+        description="Specific mechanical consequences (e.g., '+2 Void', 'Target takes 3 damage', 'Clock +2')"
+    )
+
+
 class ActionResolution(BaseModel):
     """
     Complete DM action resolution: freeform narration + structured mechanics.
+
+    EXTENDED for ML training with dataset guidelines compliance:
+    - Full character sheet data (attributes, skills, status)
+    - Contextual fields (environment, stakes, goal)
+    - All 6 outcome tier narratives + mechanical effects
+    - Roll formula and DM rationale
 
     Example usage:
     ```python
@@ -89,7 +117,26 @@ class ActionResolution(BaseModel):
             clock_updates=[
                 ClockUpdate(clock_name="Void Surge", ticks=2, reason="Uncontrolled energy")
             ]
-        )
+        ),
+        # ML training fields
+        character_data={
+            "name": "Ash Vex",
+            "attributes": {"willpower": 3, "intelligence": 4, ...},
+            "skills": {"astral_arts": 6, ...},
+            "void": 3,
+            "wounds": [],
+            "status_effects": []
+        },
+        environment="Abandoned ritual chamber, ley line intersection, void-tainted",
+        stakes="Ash risks void corruption to commune with echo fragment for intel",
+        goal="Commune with echo to learn ritual's origin",
+        roll_formula="Willpower 3 x Astral Arts 6 = 18; 18 + d20(5) = 23 vs DC 25",
+        rationale="High DC (25) due to void taint and unstable ley convergence",
+        outcome_tiers={
+            "critical_failure": OutcomeTierExplanation(...),
+            "failure": OutcomeTierExplanation(...),
+            ...
+        }
     )
     ```
     """
@@ -128,6 +175,57 @@ class ActionResolution(BaseModel):
     llm_compliance_notes: Optional[str] = Field(
         default=None,
         description="Internal notes about LLM compliance issues (for ML training)"
+    )
+
+    # ========== ML Training Fields (Dataset Guidelines Compliance) ==========
+
+    # Character data (full sheet snapshot at time of action)
+    character_data: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Complete character state: attributes, skills, void, wounds, status_effects"
+    )
+
+    # Contextual fields (dynamic per action)
+    environment: Optional[str] = Field(
+        default=None,
+        min_length=10,
+        max_length=200,
+        description="One-line setting description with relevant conditions"
+    )
+
+    stakes: Optional[str] = Field(
+        default=None,
+        min_length=10,
+        max_length=300,
+        description="What's at risk - consequences of success/failure"
+    )
+
+    goal: Optional[str] = Field(
+        default=None,
+        min_length=10,
+        max_length=200,
+        description="What the character is trying to accomplish"
+    )
+
+    # Roll mechanics explanation
+    roll_formula: Optional[str] = Field(
+        default=None,
+        min_length=10,
+        max_length=200,
+        description="Human-readable roll: 'Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC'"
+    )
+
+    rationale: Optional[str] = Field(
+        default=None,
+        min_length=20,
+        max_length=500,
+        description="DM reasoning for DC, approach choice, and difficulty factors"
+    )
+
+    # All 6 outcome tiers with narratives + mechanical effects
+    outcome_tiers: Optional[Dict[str, OutcomeTierExplanation]] = Field(
+        default=None,
+        description="STRONGLY RECOMMENDED for ML training: All 6 outcome tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success) with narrative (50-500 chars) + mechanical_effect (10-300 chars) for each tier. See ml_training_tiers section in system prompt for detailed instructions and examples."
     )
 
 

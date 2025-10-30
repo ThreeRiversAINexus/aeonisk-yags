@@ -433,7 +433,7 @@ class EnemyCombatManager:
                 temperature=0.7
             )
 
-            logger.info(f"✓ Enemy {enemy.name} structured decision: {enemy_decision.major_action}, target={enemy_decision.target}")
+            logger.debug(f"✓ Enemy {enemy.name} structured decision: {enemy_decision.major_action}, target={enemy_decision.target}")
 
             # Convert EnemyDecision (Pydantic) to EnemyDeclaration (legacy format)
             enemy_declaration = EnemyDeclaration(
@@ -502,7 +502,7 @@ class EnemyCombatManager:
                 try:
                     parsed = await self._generate_enemy_decision_structured(enemy, prompt)
                     if parsed:
-                        logger.info(f"✓ Enemy {enemy.name} structured decision: {parsed.major_action}")
+                        logger.debug(f"✓ Enemy {enemy.name} structured decision: {parsed.major_action}")
                 except Exception as e:
                     logger.warning(f"Enemy {enemy.name}: Structured output failed ({e}), falling back to legacy")
 

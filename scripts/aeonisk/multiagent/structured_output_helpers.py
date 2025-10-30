@@ -121,7 +121,7 @@ async def generate_dm_resolution_structured(
                 temperature=temperature,
                 **kwargs
             )
-            logger.info(f"✓ Structured resolution: {resolution.success_tier}, {len(resolution.narration)} chars, {len(resolution.effects.void_changes)} void changes")
+            logger.debug(f"✓ Structured resolution: {resolution.success_tier}, {len(resolution.narration)} chars, {len(resolution.effects.void_changes)} void changes")
             return resolution
 
         except Exception as e:
@@ -217,7 +217,7 @@ async def generate_player_action_structured(
                 temperature=temperature,
                 **kwargs
             )
-            logger.info(f"✓ Structured action: {action.get_summary()}")
+            logger.debug(f"✓ Structured action: {action.get_summary()}")
             return action
         else:
             if not fallback_to_text:

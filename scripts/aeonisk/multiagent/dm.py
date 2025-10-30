@@ -1226,6 +1226,262 @@ The air carries a distinct tension, and you sense the void's influence at level 
             }
         )
 
+    def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract complete character sheet data for ML training logging.
+
+        Matches dataset guidelines format:
+        - attributes (all 9 attributes as dict)
+        - skills (all non-zero skills as dict)
+        - void (current corruption level)
+        - wounds (list of wound descriptions)
+        - status_effects (list of active conditions)
+        - soulcredit (current balance)
+
+        Returns None if character not found.
+        """
+        if not self.shared_state or not hasattr(self.shared_state, 'player_agents'):
+            return None
+
+        # Find the player agent
+        player_agent = None
+        for agent in self.shared_state.player_agents:
+            if hasattr(agent, 'agent_id') and agent.agent_id == player_id:
+                player_agent = agent
+                break
+
+        if not player_agent or not hasattr(player_agent, 'character_state'):
+            return None
+
+        char = player_agent.character_state
+
+        # Extract attributes (handle both object and dict formats, and both casings)
+        attributes = {}
+        if hasattr(char, 'attributes'):
+            if isinstance(char.attributes, dict):
+                # attributes is already a dict - try both lowercase and Title case
+                attrs_dict = char.attributes
+                attributes = {
+                    'strength': attrs_dict.get('strength') or attrs_dict.get('Strength', 0),
+                    'agility': attrs_dict.get('agility') or attrs_dict.get('Agility', 0),
+                    'endurance': attrs_dict.get('endurance') or attrs_dict.get('Endurance', 0),
+                    'perception': attrs_dict.get('perception') or attrs_dict.get('Perception', 0),
+                    'intelligence': attrs_dict.get('intelligence') or attrs_dict.get('Intelligence', 0),
+                    'empathy': attrs_dict.get('empathy') or attrs_dict.get('Empathy', 0),
+                    'willpower': attrs_dict.get('willpower') or attrs_dict.get('Willpower', 0),
+                    'charisma': attrs_dict.get('charisma') or attrs_dict.get('Charisma', 0),
+                    'size': attrs_dict.get('size') or attrs_dict.get('Size', 10)  # YAGS default size is 10
+                }
+            else:
+                # attributes is an object
+                attributes = {
+                    'strength': getattr(char.attributes, 'strength', getattr(char.attributes, 'Strength', 0)),
+                    'agility': getattr(char.attributes, 'agility', getattr(char.attributes, 'Agility', 0)),
+                    'endurance': getattr(char.attributes, 'endurance', getattr(char.attributes, 'Endurance', 0)),
+                    'perception': getattr(char.attributes, 'perception', getattr(char.attributes, 'Perception', 0)),
+                    'intelligence': getattr(char.attributes, 'intelligence', getattr(char.attributes, 'Intelligence', 0)),
+                    'empathy': getattr(char.attributes, 'empathy', getattr(char.attributes, 'Empathy', 0)),
+                    'willpower': getattr(char.attributes, 'willpower', getattr(char.attributes, 'Willpower', 0)),
+                    'charisma': getattr(char.attributes, 'charisma', getattr(char.attributes, 'Charisma', 0)),
+                    'size': getattr(char.attributes, 'size', getattr(char.attributes, 'Size', 10))
+                }
+
+        # Extract skills (only non-zero)
+        skills = {}
+        if hasattr(char, 'skills'):
+            for skill_name, skill_value in char.skills.items():
+                if skill_value > 0:
+                    # Convert to lowercase with underscores for dataset format
+                    skill_key = skill_name.lower().replace(' ', '_')
+                    skills[skill_key] = skill_value
+
+        # Extract void, wounds, status effects
+        void_score = char.void if hasattr(char, 'void') else 0
+        wounds = []
+        if hasattr(char, 'wounds'):
+            for wound in char.wounds:
+                wounds.append(f"{wound.description} (-{wound.penalty})" if hasattr(wound, 'penalty') else wound.description)
+
+        status_effects = []
+        if hasattr(char, 'status_effects'):
+            status_effects = list(char.status_effects)
+
+        soulcredit = char.soulcredit if hasattr(char, 'soulcredit') else 0
+
+        return {
+            'name': char.name if hasattr(char, 'name') else 'Unknown',
+            'attributes': attributes,
+            'skills': skills,
+            'void': void_score,
+            'wounds': wounds,
+            'status_effects': status_effects,
+            'soulcredit': soulcredit
+        }
+
+    def _generate_environment_description(self, player_id: str) -> str:
+        """
+        Generate environment description for ML training.
+
+        Format: "Location, tactical positions, environmental conditions"
+        Example: "Corporate facility, PCs at Near range with cover, 2 enemies at Far-Enemy"
+        """
+        parts = []
+
+        # Add scenario location
+        if self.current_scenario:
+            parts.append(self.current_scenario.location)
+
+        # Add tactical positions if available
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            # Count PC positions
+            pc_positions = {}
+            for agent in self.shared_state.player_agents:
+                if hasattr(agent, 'position'):
+                    pos_str = str(agent.position)
+                    pc_positions[pos_str] = pc_positions.get(pos_str, 0) + 1
+
+            if pc_positions:
+                pos_desc = ", ".join([f"{count} PC{'s' if count > 1 else ''} at {pos}" for pos, count in pc_positions.items()])
+                parts.append(pos_desc)
+
+        # Add enemy count if available
+        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
+            enemy_count = len(self.shared_state.enemy_agents)
+            if enemy_count > 0:
+                parts.append(f"{enemy_count} enem{'ies' if enemy_count != 1 else 'y'}")
+
+        # Add void level if high
+        if self.current_scenario and self.current_scenario.void_level >= 5:
+            parts.append(f"void level {self.current_scenario.void_level}/10")
+
+        return ", ".join(parts) if parts else "Unknown environment"
+
+    def _generate_stakes_description(self, player_id: str) -> str:
+        """
+        Generate stakes description for ML training.
+
+        Format: "What's at risk - consequences of success/failure"
+        Example: "PC at 8/20 HP risking death, 2 clocks near completion, high void corruption (7/10)"
+        """
+        stakes = []
+
+        # Check character health/void
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            for agent in self.shared_state.player_agents:
+                if hasattr(agent, 'agent_id') and agent.agent_id == player_id:
+                    char = agent.character_state if hasattr(agent, 'character_state') else None
+                    if char:
+                        # High void risk
+                        if hasattr(char, 'void') and char.void >= 7:
+                            stakes.append(f"High void corruption ({char.void}/10, near possession)")
+
+                        # Low HP risk
+                        if hasattr(char, 'health') and hasattr(char, 'max_health'):
+                            if char.health <= char.max_health * 0.3:
+                                stakes.append(f"Low HP ({char.health}/{char.max_health}, risking incapacitation)")
+                    break
+
+        # Check clock states
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            near_complete_clocks = []
+            near_failure_clocks = []
+
+            for clock_name, clock in mechanics.scene_clocks.items():
+                progress = clock.current / clock.maximum if clock.maximum > 0 else 0
+
+                if progress >= 0.75:  # 75%+ filled
+                    near_complete_clocks.append(f"{clock_name} ({clock.current}/{clock.maximum})")
+                elif progress <= 0.25 and clock.current == 0:  # Empty and neglected
+                    near_failure_clocks.append(clock_name)
+
+            if near_complete_clocks:
+                stakes.append(f"Clocks near completion: {', '.join(near_complete_clocks)}")
+            if near_failure_clocks:
+                stakes.append(f"Neglected objectives: {', '.join(near_failure_clocks)}")
+
+        # Combat pressure
+        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
+            enemy_count = len(self.shared_state.enemy_agents)
+            if enemy_count >= 3:
+                stakes.append(f"Outnumbered ({enemy_count} enemies)")
+
+        return "; ".join(stakes) if stakes else "Standard risk scenario"
+
+    def _generate_roll_formula(self, resolution: 'ActionResolution') -> str:
+        """
+        Generate human-readable roll formula for ML training.
+
+        Format: "Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC"
+        Example: "Perception 4 × Guns 5 = 20; 20 + d20(15) = 35 vs DC 20"
+        """
+        attr_name = resolution.attribute.title() if hasattr(resolution, 'attribute') else 'Unknown'
+        attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
+        skill_name = resolution.skill.title() if hasattr(resolution, 'skill') else 'None'
+        skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
+        d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
+        total = resolution.total if hasattr(resolution, 'total') else 0
+        dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 0
+
+        if skill_val > 0:
+            ability = attr_val * skill_val
+            formula = f"{attr_name} {attr_val} × {skill_name} {skill_val} = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
+        else:
+            # Unskilled penalty
+            ability = attr_val - 5
+            formula = f"{attr_name} {attr_val} - 5 (unskilled) = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
+
+        return formula
+
+    def _generate_rationale(self, resolution: 'ActionResolution', action: Dict[str, Any]) -> str:
+        """
+        Generate DM rationale for ML training.
+
+        Format: Brief explanation of DC choice and difficulty factors
+        Example: "DC 20 (Moderate) for ranged combat; target at Far range but PC has good positioning"
+        """
+        dc = resolution.difficulty if hasattr(resolution, 'difficulty') else 20
+        action_type = action.get('action_type', 'unknown')
+
+        # Determine DC tier
+        if dc <= 15:
+            dc_tier = "Easy"
+        elif dc <= 20:
+            dc_tier = "Moderate"
+        elif dc <= 25:
+            dc_tier = "Challenging"
+        elif dc <= 30:
+            dc_tier = "Difficult"
+        else:
+            dc_tier = "Very Difficult"
+
+        # Base rationale
+        rationale = f"DC {dc} ({dc_tier}) for {action_type} action"
+
+        # Add contextual factors
+        factors = []
+
+        # Check for ritual action
+        if action.get('is_ritual', False):
+            if not action.get('has_offering', False):
+                factors.append("no offering (+void risk)")
+            if action.get('has_altar', False):
+                factors.append("sanctified altar (+3 bonus)")
+
+        # Check for combat modifiers
+        if action_type in ['attack', 'shoot', 'fire']:
+            if 'range' in action.get('description', '').lower():
+                factors.append("range considerations")
+
+        # Check void level
+        if self.current_scenario and self.current_scenario.void_level >= 5:
+            factors.append(f"high void environment ({self.current_scenario.void_level}/10)")
+
+        if factors:
+            rationale += "; " + ", ".join(factors)
+
+        return rationale
+
     async def _handle_adjudication(self, payload: Dict[str, Any]):
         """
         Adjudicate all declared actions together.
@@ -1344,6 +1600,32 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                         context['prompt_metadata'] = self._last_prompt_metadata.to_dict()
 
+                    # Extract character data for ML training (dataset guidelines)
+                    character_data = self._extract_character_data(player_id)
+
+                    # Extract goal from action intent/description
+                    goal = action.get('intent') or action.get('description', 'Unknown goal')
+
+                    # Generate contextual fields for ML training
+                    environment = self._generate_environment_description(player_id)
+                    stakes = self._generate_stakes_description(player_id)
+                    roll_formula = self._generate_roll_formula(action_resolution)
+                    rationale = self._generate_rationale(action_resolution, action)
+
+                    # Extract outcome_tiers from structured output (if present)
+                    # NOTE: action_resolution is from mechanics, not structured output
+                    # We need to check self._last_structured_resolution instead
+                    outcome_tiers_with_narratives = None
+                    if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
+                        if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
+                            # Convert OutcomeTierExplanation objects to dicts for JSON serialization
+                            outcome_tiers_with_narratives = {}
+                            for tier, explanation in self._last_structured_resolution.outcome_tiers.items():
+                                outcome_tiers_with_narratives[tier] = {
+                                    'narrative': explanation.narrative,
+                                    'mechanical_effect': explanation.mechanical_effect
+                                }
+
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
                         phase="adjudicate",
@@ -1353,7 +1635,15 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         economy_changes=economy_changes,
                         clock_states=clock_states,
                         effects=effects,
-                        context=context
+                        context=context,
+                        # ML training fields (dataset guidelines compliance)
+                        character_data=character_data,
+                        environment=environment,
+                        stakes=stakes,
+                        goal=goal,
+                        roll_formula=roll_formula,
+                        rationale=rationale,
+                        outcome_tiers_with_narratives=outcome_tiers_with_narratives
                     )
 
                     # Track action for round summary statistics
@@ -1485,16 +1775,45 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
             logger.debug("DM: Attempting structured output for round synthesis")
 
+            system_prompt = "You are the DM for Aeonisk YAGS, synthesizing a round of actions."
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = self.llm_config.get('max_tokens', 2000)
+            temperature = self.llm_config.get('temperature', 0.8)
+
+            # Get current round for logging
+            current_round = None
+            if self.shared_state and self.shared_state.mechanics_engine:
+                current_round = self.shared_state.mechanics_engine.current_round
+
             # Generate structured synthesis using Pydantic AI
             synthesis: RoundSynthesis = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=RoundSynthesis,
-                system_prompt="You are the DM for Aeonisk YAGS, synthesizing a round of actions.",
-                max_tokens=self.llm_config.get('max_tokens', 2000),
-                temperature=self.llm_config.get('temperature', 0.8)
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
             )
 
-            logger.info(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+            logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+
+            # Log LLM call for replay (synthesis path)
+            if self.llm_logger:
+                estimated_input_tokens = len(prompt) // 4
+                estimated_output_tokens = len(synthesis.narration) // 4
+
+                self.llm_logger._log_llm_call(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response=synthesis.narration,
+                    model=model,
+                    temperature=temperature,
+                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                    current_round=current_round,
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
 
             return synthesis
 
@@ -1804,7 +2123,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if structured_synthesis.session_end:
                     synthesis_text += f"\n[SESSION_END: {structured_synthesis.session_end.upper()}]"
 
-                logger.info(f"✓ Using structured synthesis (Phase 5)")
+                logger.debug(f"✓ Using structured synthesis (Phase 5)")
                 return synthesis_text
 
             # Legacy text generation fallback
@@ -1973,7 +2292,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
-                logger.debug("Using structured resolution for state changes extraction")
+                logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
             else:
                 # Legacy text parsing
                 state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
@@ -2220,7 +2539,9 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             logger.warning(f"Unknown effect type: {effect_type}")
 
                     else:
-                        logger.warning(f"Could not find target '{target_identifier}' to apply effect")
+                        # Only warn if a real target was specified (not None/null)
+                        if target_identifier and target_identifier not in (None, "None", "null", ""):
+                            logger.warning(f"Could not find target '{target_identifier}' to apply effect")
 
             # Parse and apply ally buffs if action targets ally
             buff = None
@@ -2687,8 +3008,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 )
                 narration_suffix = ""
 
-            # Update clocks based on outcome
-            mechanics.update_clocks_from_action(resolution, action)
+            # NOTE: Clock updates are now deferred until synthesis phase
+            # The DM will determine final clock/status changes after reviewing all actions
+            # This prevents immediate application and allows for holistic round resolution
+            # mechanics.update_clocks_from_action(resolution, action)  # DISABLED: see note above
 
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
@@ -2945,6 +3268,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                     log_context["prompt_metadata"] = self._last_prompt_metadata.to_dict()
 
+                # Extract character data for ML training (dataset guidelines)
+                character_data = self._extract_character_data(player_id)
+
+                # Extract goal from action intent/description
+                goal = action.get('intent') or action.get('description', 'Unknown goal')
+
+                # Generate contextual fields for ML training
+                environment = self._generate_environment_description(player_id)
+                stakes = self._generate_stakes_description(player_id)
+                roll_formula = self._generate_roll_formula(resolution)
+                rationale = self._generate_rationale(resolution, action)
+
+                # Extract outcome_tiers from structured output (if present)
+                # NOTE: resolution is from mechanics, not structured output
+                # We need to check self._last_structured_resolution instead
+                outcome_tiers_with_narratives = None
+                if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
+                    if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
+                        # Convert OutcomeTierExplanation objects to dicts for JSON serialization
+                        outcome_tiers_with_narratives = {}
+                        for tier, explanation in self._last_structured_resolution.outcome_tiers.items():
+                            outcome_tiers_with_narratives[tier] = {
+                                'narrative': explanation.narrative,
+                                'mechanical_effect': explanation.mechanical_effect
+                            }
+
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
                     phase="resolve",
@@ -2954,7 +3303,15 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     economy_changes=economy_changes,
                     clock_states=clock_states,
                     effects=effects,
-                    context=log_context
+                    context=log_context,
+                    # ML training fields (dataset guidelines compliance)
+                    character_data=character_data,
+                    environment=environment,
+                    stakes=stakes,
+                    goal=goal,
+                    roll_formula=roll_formula,
+                    rationale=rationale,
+                    outcome_tiers_with_narratives=outcome_tiers_with_narratives
                 )
 
         else:
@@ -3334,18 +3691,68 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             # Try structured output with fallback disabled (we handle fallback ourselves)
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
+            # Load full DM system prompt with all sections (including ml_training_tiers)
+            from .prompt_loader import load_agent_prompt
+            try:
+                system_prompt_obj = load_agent_prompt(
+                    agent_type="dm",
+                    provider="claude",
+                    language="en",
+                    section=None,  # Load full system prompt with all sections
+                    variables={}
+                )
+                system_prompt = system_prompt_obj.content
+                logger.debug(f"DM: Loaded full system prompt ({len(system_prompt)} chars) with ml_training_tiers")
+            except Exception as e:
+                logger.error(f"DM: Failed to load full system prompt: {e}")
+                # Fallback to simple prompt
+                system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
+
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = self.llm_config.get('max_tokens', 2000)
+            temperature = self.llm_config.get('temperature', 0.8)
+
+            # Get current round for logging
+            current_round = None
+            if self.shared_state and self.shared_state.mechanics_engine:
+                current_round = self.shared_state.mechanics_engine.current_round
+
             # Strict mode: No fallback, will raise on error (retry logic built into provider)
             resolution_obj = await generate_dm_resolution_structured(
                 provider=self.llm_provider,
                 prompt=prompt,
-                system_prompt="You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions.",
-                max_tokens=self.llm_config.get('max_tokens', 2000),
-                temperature=self.llm_config.get('temperature', 0.8)
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
                 # fallback_to_text defaults to False - strict mode
             )
 
             if isinstance(resolution_obj, ActionResolution):
-                logger.info(f"✓ DM structured resolution: {resolution_obj.success_tier}, {len(resolution_obj.narration)} chars, {len(resolution_obj.effects.void_changes)} void changes")
+                has_outcome_tiers = hasattr(resolution_obj, 'outcome_tiers') and resolution_obj.outcome_tiers is not None
+                outcome_tiers_count = len(resolution_obj.outcome_tiers) if has_outcome_tiers else 0
+                logger.debug(f"✓ DM structured resolution: outcome_tiers: {outcome_tiers_count}/6 {'✓' if outcome_tiers_count == 6 else '✗ MISSING'}")
+
+                # Log LLM call for replay (structured output path)
+                if self.llm_logger:
+                    # Note: We can't get exact token counts from pydantic-ai without modifying it,
+                    # but we can approximate based on text length for now
+                    estimated_input_tokens = len(prompt) // 4  # rough estimate: 1 token ~= 4 chars
+                    estimated_output_tokens = len(resolution_obj.narration) // 4
+
+                    self.llm_logger._log_llm_call(
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        response=resolution_obj.narration,  # Log narration as response
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        current_round=current_round,
+                        call_sequence=self.llm_logger.call_count
+                    )
+                    self.llm_logger.call_count += 1
+
                 return resolution_obj
             else:
                 logger.warning("DM: Structured output returned text instead of ActionResolution")
@@ -3401,6 +3808,17 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
         if action and action.get('target') and action['target'].startswith('tgt_'):
             target_id = action['target']
 
+        # Build clock context with exact clock names for structured output
+        clock_context = ""
+        if self.shared_state and self.shared_state.mechanics_engine:
+            mechanics = self.shared_state.mechanics_engine
+            if mechanics.scene_clocks:
+                clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
+                for clock_name, clock in mechanics.scene_clocks.items():
+                    clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
+                clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
+                clock_context = "\n".join(clock_lines)
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -3408,7 +3826,7 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             character_context=character_context,
             resolution_context=resolution_context,
             tactical_combat_context="",  # Will be filled by full implementation
-            clock_context="",
+            clock_context=clock_context,
             void_level=self.current_scenario.void_level if self.current_scenario else 3,
             void_impact="",
             outcome_guidance="",

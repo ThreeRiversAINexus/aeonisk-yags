@@ -1,6 +1,6 @@
 {
   "session_name": "full_spectrum_test",
-  "max_turns": 50,
+  "max_turns": 30,
   "party_size": 3,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
