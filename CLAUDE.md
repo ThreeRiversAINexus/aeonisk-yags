@@ -142,7 +142,89 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 
 **Key insight:** Content generation and logging often happen in different places.
 
-### 4. Free Targeting Mode & Damage Resolution
+### 4. LLM API Resilience & Rate Limiting
+
+**Built-in Retry with Exponential Backoff:**
+- Automatic retry for 500/529 (Overloaded) errors
+- Configurable via `LLMConfig`: `max_retries=3`, `base_delay=2.0`, `max_delay=120.0`
+- Exponential backoff: 2s → 4s → 8s → 16s → ... (with jitter to prevent thundering herd)
+- Non-retryable errors (auth, validation) fail immediately
+
+**Global Rate Limiting:**
+- Prevents too many concurrent API calls across all agents (DM + players + enemies)
+- **Default (updated 2025-10-29):** `max_concurrent_requests=3`, `min_request_interval=0.5s`
+- Uses singleton `APIRateLimiter` with semaphore + timing enforcement
+- Automatically initialized on first API call
+- **Tuned for multi-agent sessions** (3 PCs + 2 enemies + DM = 6 agents)
+
+**Configuration Example:**
+```python
+config = LLMConfig(
+    provider="claude",
+    model="claude-sonnet-4-5",
+    max_retries=3,              # Retry up to 3 times
+    base_delay=2.0,             # Start with 2s delay (increased from 1.0)
+    max_delay=120.0,            # Cap at 120s (increased from 60.0)
+    jitter=True,                # Add randomness (50-100% of delay)
+    use_rate_limiter=True,      # Enable global rate limiting
+    max_concurrent_requests=3,  # Max 3 concurrent calls (reduced from 5)
+    min_request_interval=0.5    # 500ms between request starts (increased from 0.2s)
+)
+```
+
+**Why These Defaults?**
+- **3 concurrent requests:** Prevents overwhelming Anthropic API during action declaration phase (3 players + 2 enemies + DM)
+- **0.5s interval:** Spreads 5-action round over 2.5-3s instead of < 1s burst
+- **2s base delay:** More conservative retry to give API time to recover
+- **120s max delay:** Allows longer retries for persistent overload situations
+
+**Tuning for Your Use Case:**
+- **High API tier:** Increase `max_concurrent_requests` to 4-5 for better throughput
+- **Rate limit errors:** Decrease `max_concurrent_requests` to 2, increase `min_request_interval` to 0.75s
+- **Quick sessions:** Reduce `max_delay` to 30s to fail faster on persistent errors
+- **Long campaigns:** Keep defaults - reliability > speed
+
+**Why This Matters:**
+- Multi-agent sessions can generate 10+ concurrent API calls during action declaration phase
+- Without throttling, all agents hit API simultaneously → 500 Overloaded errors
+- Retry logic recovers from transient overload
+- Rate limiting prevents overload in the first place
+
+**Using Retry/Rate Limiting in Existing Code:**
+
+For code using raw `anthropic.Anthropic` clients, use the `call_anthropic_with_retry` wrapper:
+
+```python
+# OLD: Direct API call (no retry/rate limiting)
+response = self.llm_client.messages.create(
+    model=model,
+    max_tokens=4000,
+    temperature=0.8,
+    messages=[{"role": "user", "content": prompt}]
+)
+
+# NEW: With retry/rate limiting
+from .llm_provider import call_anthropic_with_retry
+
+response = await call_anthropic_with_retry(
+    client=self.llm_client,
+    model=model,
+    messages=[{"role": "user", "content": prompt}],
+    max_tokens=4000,
+    temperature=0.8,
+    max_retries=3,           # Optional: override default
+    use_rate_limiter=True    # Optional: disable if needed
+)
+```
+
+**Current Status:**
+- ✅ Wrapper function created and working
+- ✅ Used in `dm.py` marker retry logic (line 3146)
+- ⏳ Main DM/player API calls still using direct client (future refactor)
+
+**Files:** `llm_provider.py:19-75` (APIRateLimiter), `llm_provider.py:78-104` (LLMConfig), `llm_provider.py:269-382` (retry logic), `llm_provider.py:583-684` (wrapper function)
+
+### 5. Free Targeting Mode & Damage Resolution
 ```python
 # Free targeting mode: IFF/ROE testing with unified targeting
 enemy_agent_config = {
@@ -183,6 +265,50 @@ enemy_agent_config = {
 **Why:** Enables emergent gameplay (betrayal, healing, IFF testing) without brittle keyword detection for damage resolution.
 
 **Files:** `dm.py:1765-1775, 2458-2468` (target ID resolution), `dm.py:1797-1804` (fallback damage logic), `player.py:1250` (UI gating), `prompts/claude/en/dm.yaml:274-285` (DM void cleansing rules), `outcome_parser.py:39-63` (explicit marker parsing), `target_ids.py` (ID system)
+
+### 6. Player Agent Stat Awareness & Failure Loop Detection
+
+**Philosophy:** Let AI agents make mistakes for ML training, but prevent death spirals with awareness and warnings.
+
+**Stat Awareness System (player.yaml:88-153):**
+- Shows agents their **roll formula**: `Attribute + Skill + d20` vs DC
+- **Warns about unskilled penalty**: -5 (makes low-attribute actions nearly impossible)
+- Displays **top 3 skills** and **low attributes (<4)** for each character
+- Provides **success probability calculator** to estimate chances before acting
+- **NO automatic routing** - agents choose their own skills (mistakes logged for training)
+
+**Example Warning (for Intelligence 3, no Investigation):**
+```
+Intelligence 3 + NO Investigation skill = d20 - 2 vs DC 20 → NEED d20 = 22 (IMPOSSIBLE!)
+YOUR BEST SKILLS: Charm (5), Corporate Influence (4), Astral Arts (4)
+YOUR WORST ATTRIBUTES: Intelligence (3), Perception (3)
+```
+
+**Failure Loop Detection (dm.py:1360-1372, player.py:1072-1115):**
+- DM tracks last 5 actions per character: `(action_type, success_tier, void_change, round_num)`
+- Detects when same `action_type` fails 2+ times consecutively
+- Injects urgent warning into player prompt before next action:
+  ```
+  🚨 FAILURE LOOP DETECTED 🚨
+  You failed 2 investigate actions! Recent failures:
+  - Round 6: investigate (CRITICAL_FAILURE, Void +2)
+  - Round 8: investigate (CRITICAL_FAILURE, Void +2)
+  REQUIRED: Choose a DIFFERENT action type! Use your strengths: Charm (5), Astral Arts (4)
+  ```
+- Prevents void death spirals from repeated impossible actions
+
+**High Void Warning (player.py:1120-1145):**
+- When void ≥ 8: Injects critical warning listing dangerous actions to avoid
+- Suggests safer alternatives (coordination, offerings, support actions)
+- Reminds that void 10 = possession
+
+**Benefits:**
+- ✅ Agents learn their character's capabilities organically
+- ✅ Mistakes are logged as training data (not prevented)
+- ✅ Death spirals prevented (agents forced to pivot after 2 failures)
+- ✅ No "magic routing" - transparent skill selection
+
+**Files:** `prompts/claude/en/player.yaml:88-153` (stat awareness guidance), `dm.py:1360-1372` (action tracking), `player.py:1055-1145` (stat list generation, warning injection), `session.py:105` (action history dict)
 
 ## ML Logging System
 
@@ -549,6 +675,288 @@ When updating prompts or examples:
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-29: Disabled Keyword-Based Void Detection - DM Explicit Markers Only
+
+**Problem:** Keyword-based void detection causing false positives unrelated to void/ritual themes.
+
+**Examples of False Positives:**
+1. **"Grounding meditation" from "center mass":**
+   - Action: "Fire precise shots at ACG Debt Enforcers' center mass"
+   - Keyword match: "center" → grounding_keywords
+   - False Result: Void 2 ↓ 1 (Grounding meditation success) ❌
+   - Reality: Normal combat, no meditation occurred
+
+2. **"Psychic corruption" from tech "feedback":**
+   - Action: "Negotiate with ACG enforcers" (neural interface scan)
+   - Narration: "neural interface screams with feedback...trauma data floods synaptic buffer"
+   - Keyword match: "feedback" → psychic_keywords
+   - Result: Void +1 (Psychic/mental corruption)
+   - Debatable: Tech malfunction vs actual psychic damage
+
+3. **"Failed void manipulation" from investigation:**
+   - Action: "investigate the situation" (combat awareness check)
+   - Narration: "combat chaos...analyze tactical situation...disorienting blur"
+   - Result: Void +1 (Failed void manipulation) ❌
+   - Reality: Normal investigation failure, no void involvement
+
+**Root Cause:**
+- `outcome_parser.py` had keyword-based fallback for void changes
+- Broad keywords like "center", "feedback", "ground", "corrupt" triggered inappropriately
+- System applied void changes even when thematically irrelevant
+
+**Philosophy:**
+> "I despise keyword detection for game mechanics, I prefer tags from the LLMs"
+
+**Solution Implemented:**
+
+1. **Disabled ALL keyword-based void detection** (`outcome_parser.py:362-412, 725-753`):
+   - ✅ Commented out ritual failure keywords
+   - ✅ Commented out void manipulation keywords
+   - ✅ Commented out psychic damage keywords
+   - ✅ Commented out grounding meditation keywords
+   - ✅ Commented out purge keywords
+
+2. **Now rely ONLY on DM explicit markers:**
+   - System parses `⚫ Void: +X (reason)` from DM narration
+   - If DM doesn't include marker → no void change
+   - DM has full creative control over when void is appropriate
+
+3. **Enhanced DM Prompt Guidance** (`dm.yaml:274-298`):
+   - ✅ DO use void markers: rituals, void exposure, cosmic horror, void powers
+   - ❌ DO NOT use void markers: combat, social, investigation, technical failures
+   - Explicitly states: "NOT EVERY FAILURE NEEDS VOID CORRUPTION!"
+   - Clarifies: "Neural feedback" (tech) ≠ "Psychic backlash" (void)
+
+**Benefits:**
+- ✅ No false positives from incidental keyword matches
+- ✅ Void changes only when thematically appropriate
+- ✅ DM has full creative authority
+- ✅ Cleaner training data (void changes are intentional, not artifacts)
+- ✅ Aligns with design philosophy: trust LLM tags, not keyword detection
+
+**Testing Required:**
+- Run session, verify void changes ONLY for ritual/void-related actions
+- Check: Combat failures → no void
+- Check: Social failures → no void
+- Check: Ritual failures → DM includes ⚫ Void: +1 marker
+
+**Files Modified:**
+- `outcome_parser.py:362-412, 725-753` - Disabled keyword-based void detection
+- `prompts/claude/en/dm.yaml:274-298` - Added "When to use void markers" guidance
+- `CLAUDE.md` - Documented change
+
+### 2025-10-29: Removed Skill Routing, Rely on Stat Awareness for ML Training
+
+**Problem:** Echo-7 (Intelligence 3, no Investigation/Systems skills) kept attempting "analyze/scan/assess" actions that were mathematically impossible, leading to void death spiral (0 → 10 in 16 rounds).
+
+**Root Cause:**
+- `action_router.py` automatically routed keywords like "scan"/"analyze" → Intelligence + Investigation
+- If character lacked Investigation skill → unskilled penalty (-5), making rolls nearly impossible
+- Echo kept retrying same failed action_type despite 7+ consecutive critical failures
+- DM narrated each failure as +1-2 void → void: 0 → 1 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+
+**Example of Impossible Action:**
+```
+Intent: "Analyze void corruption"
+Routed to: Intelligence 3 + NO Investigation = d20 - 2 vs DC 20
+Needed: d20 = 22 → IMPOSSIBLE (d20 max = 20!)
+Result: CRITICAL_FAILURE → Void +2
+```
+
+**Philosophy Shift:**
+- **OLD:** Route actions to "correct" skills, prevent mistakes
+- **NEW:** Let agents choose any skills, label mistakes in logging for ML training
+- Mistakes are valuable training data showing how agents learn character capabilities
+
+**Solutions Implemented:**
+
+1. **Removed Skill Routing (player.py:668-683):**
+   - Deleted automatic routing for main actions after free actions
+   - Now only applies skill name normalization (aliases like "social" → "Charm")
+   - Agents must choose skills based on character sheet understanding
+
+2. **Stat Awareness Already Implemented (player.yaml:88-153):**
+   - Shows roll formula: `Attribute + Skill + d20` vs DC
+   - Warns about -5 unskilled penalty
+   - Lists top 3 skills and low attributes (<4) for each character
+   - Provides success probability calculator
+
+3. **Failure Loop Detection Already Implemented:**
+   - `dm.py:1360-1372` - Tracks last 5 actions: (action_type, success_tier, void_change, round)
+   - `player.py:1072-1115` - Detects 2+ consecutive failures of same action_type
+   - Injects 🚨 FAILURE LOOP DETECTED warning requiring different action type
+   - Prevents death spirals while allowing initial mistakes for training
+
+**Benefits:**
+- ✅ Agents make natural skill choice mistakes → valuable ML training data
+- ✅ Death spirals prevented by failure loop warnings after 2 failures
+- ✅ No hidden "magic routing" - transparent skill selection
+- ✅ Agents learn stat limitations organically through prompt guidance
+
+**Testing Required:**
+- Run `session_config_full.json` and verify Echo-7 uses Charm/Corporate Influence/Astral Arts instead of Intelligence-based skills
+
+**Files Modified:**
+- `player.py:668-683` - Removed routing, kept normalization
+- `CLAUDE.md` - Documented existing stat awareness system (section 6)
+
+### 2025-10-29: Enhanced LLM API Rate Limiting
+
+**Problem:** 500 Overloaded errors from Anthropic API during multi-agent sessions (3 PCs + 2 enemies + DM = 6 agents making concurrent calls).
+
+**Root Cause:**
+- Previous defaults: `max_concurrent=5`, `min_interval=0.2s`, `base_delay=1.0s`
+- During action declaration phase: 3 players + 2 enemies = 5 simultaneous API calls
+- Too aggressive for Anthropic API's current capacity
+
+**Solutions Implemented:**
+
+1. **More Aggressive Rate Limiting (llm_provider.py:88-99):**
+   - `max_concurrent_requests`: 5 → **3** (max 3 simultaneous API calls)
+   - `min_request_interval`: 0.2s → **0.5s** (500ms minimum between request starts)
+   - `base_delay`: 1.0s → **2.0s** (retry starts at 2s instead of 1s)
+   - `max_delay`: 60s → **120s** (allows longer backoff waits)
+
+2. **Session Config Documentation (session_config_combat.json:31-33):**
+   - Added comments explaining rate limiting defaults
+   - Documents tuning options for different use cases
+   - Future-ready for config passthrough (when agents refactored to use `ClaudeProvider`)
+
+**Expected Impact:**
+- Throughput: 25 req/s → **~6 req/s** maximum burst
+- For 5-action round: < 1s burst → **2.5-3s** spread (prevents API overload spike)
+- Better recovery on transient overload (exponential backoff: 2s → 4s → 8s → 16s → 32s → 64s → 120s)
+
+**Tuning Guide:**
+- **High API tier users:** Increase `max_concurrent_requests` to 4-5
+- **Still hitting rate limits:** Decrease to 2, increase `min_interval` to 0.75s
+- **Quick testing:** Reduce `max_delay` to 30s (fail faster)
+- **Production:** Keep defaults (reliability > speed)
+
+**Current Limitation:**
+- Rate limiting only applies to code using `ClaudeProvider` or `call_anthropic_with_retry` wrapper
+- Most agent API calls still use raw `self.llm_client.messages.create()` (bypass rate limiter)
+- **Future work:** Refactor agents to use `ClaudeProvider` for full rate limiting coverage
+
+**Files Modified:**
+- `llm_provider.py` - Updated LLMConfig defaults
+- `session_config_combat.json` - Added rate limiting documentation
+- `CLAUDE.md` - Updated documentation with new defaults and tuning guide
+
+### 2025-10-29: Player Agent Stat Awareness & Failure Loop Detection
+
+**Problem:** Player agents (AI) choosing actions they're mathematically incapable of succeeding at, leading to void death spirals.
+
+**Root Cause (from game_testing.log analysis):**
+- Echo Resonance: Intelligence 3, NO Investigation/Systems skills → unskilled penalty -5
+- Kept attempting "Analyze void corruption" (Int + no skill = d20 - 2 vs DC 18-22)
+- **Impossible to succeed** (needs d20 roll > 20)
+- Failed 7+ times catastrophically, void: 0 → 10 in 16 rounds
+- AI agent not recognizing stat limitations or pivoting after repeated failures
+
+**Solutions Implemented:**
+
+1. **Stat Awareness Guidance** (`prompts/claude/en/player.yaml`)
+   - New comprehensive section explaining roll formula: `Attribute + Skill + d20` vs DC
+   - Explicit warning about **-5 unskilled penalty** making low-stat actions impossible
+   - Success probability calculator with examples
+   - "Golden Rule": If you have NO skill, DO NOT attempt that action!
+   - Shows each character their top 3 skills and low attributes (<4)
+
+2. **Failure Loop Detection** (`session.py`, `dm.py`, `player.py`)
+   - Tracks last 5 actions per character: (action_type, success_tier, void_change, round_num)
+   - Detects when same action_type fails 2+ times in a row
+   - Injects urgent warning into player prompt:
+     - "🚨 FAILURE LOOP DETECTED 🚨"
+     - Lists recent failures with void increases
+     - **REQUIRES** choosing different action type
+     - Suggests using character's strengths instead
+
+3. **High Void Warning** (`player.py`)
+   - When void ≥ 8: Injects critical warning into prompt
+   - Lists dangerous actions to avoid (void analysis, unskilled rituals)
+   - Suggests safer alternatives (coordination, offerings, support actions)
+
+4. **Enhanced Important Rules** (`player.yaml`)
+   - Added: "DESCRIPTION must be at least 10 characters" (prevents validation errors)
+   - Added: "CALCULATE success probability BEFORE declaring actions"
+   - Added: "AVOID impossible actions - if you need d20 > 20, find a different approach!"
+   - Added: "STOP repeating failed action types - pivot to your strengths after 2 failures"
+
+**How It Works:**
+
+**Before (game_testing.log):**
+```
+Round 6:  Echo analyzes void (Int 3, no skill: d20-2 vs DC 20) → CRITICAL_FAILURE → Void +2
+Round 8:  Echo analyzes void again (same stats) → CRITICAL_FAILURE → Void +2
+Round 14: Echo analyzes void again (same stats) → CRITICAL_FAILURE → Void +2
+Round 16: Echo void = 10 (possession threshold!)
+```
+
+**After (with new system):**
+```
+Round 6:  Echo analyzes void → CRITICAL_FAILURE → Void +2
+Round 8:  Echo analyzes void → CRITICAL_FAILURE → Void +2
+Round 9:  Player prompt shows: "🚨 FAILURE LOOP DETECTED 🚨
+          You failed 2 investigate actions! Use your strengths: Astral Arts (6), Attunement (5)"
+Round 10: Echo performs ritual cleansing (Willpower 3 × Astral Arts 6 = 9+d20) → SUCCESS
+```
+
+**Benefits:**
+- ✅ Prevents impossible action selection (agents see their stat limitations upfront)
+- ✅ Breaks failure loops (forced pivot after 2 consecutive failures)
+- ✅ Reduces void death spirals (high void triggers explicit warnings)
+- ✅ Improves action variety (agents use their strengths instead of repeating failures)
+
+**Files Modified:**
+- `prompts/claude/en/player.yaml` - Added stat_awareness_guidance section, enhanced rules
+- `player.py` - Added failure loop detection, stat list generation, warning injection
+- `session.py` - Added _character_action_history tracking dict
+- `dm.py` - Track action outcomes (action_type, success_tier, void_change) after each resolution
+
+**Testing Required:** Run session_config_full.json and verify Echo avoids Intelligence checks
+
+### 2025-10-29: LLM API Resilience & Rate Limiting
+
+**Problem:** Multi-agent sessions hitting 500 Overloaded errors from Anthropic API during concurrent action declaration phases.
+
+**Root Cause:**
+- 3 players + DM + 2-3 enemies = 7-8 concurrent API calls hitting simultaneously
+- No retry logic for transient overload errors
+- No throttling to prevent concurrent request spikes
+
+**Solutions Implemented:**
+
+1. **Exponential Backoff Retry Logic** (`llm_provider.py`)
+   - Automatic retry for 500/529 (Overloaded) errors
+   - Exponential backoff: 1s → 2s → 4s → ... up to max_delay
+   - Jitter (50-100% randomization) to prevent thundering herd
+   - Non-retryable errors (auth, validation) fail immediately
+   - Configurable: `max_retries=3`, `base_delay=1.0`, `max_delay=60.0`
+
+2. **Global Rate Limiting** (`llm_provider.py`)
+   - Singleton `APIRateLimiter` with semaphore-based concurrency control
+   - Limits concurrent API calls across all agents: `max_concurrent_requests=5`
+   - Enforces minimum interval between request starts: `min_request_interval=0.2s`
+   - Prevents overload proactively (not just recovery)
+
+3. **Updated LLMConfig** (`llm_provider.py`)
+   - Added 6 new configuration parameters for retry/rate limiting
+   - All features enabled by default with conservative settings
+   - Can be disabled per-agent if needed
+
+**Benefits:**
+- ✅ Graceful recovery from transient API overload
+- ✅ Prevents overload spikes during multi-agent action phases
+- ✅ Better API quota management
+- ✅ Configurable per-session or per-agent
+
+**Files Modified:**
+- `llm_provider.py` - Added APIRateLimiter class, retry logic, updated LLMConfig
+- `CLAUDE.md` - Documented new resilience patterns
+
+**Backward Compatibility:** All existing code continues to work. New features enabled by default.
 
 ### 2025-10-29: Void Cleansing PC-to-PC Targeting Fix
 

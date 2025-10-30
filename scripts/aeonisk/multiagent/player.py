@@ -667,20 +667,19 @@ class AIPlayerAgent(Agent):
 
             logger.debug(f"Main action generated: {main_action.intent}")
 
-            # Apply same routing and validation
-            main_routed_attr, main_routed_skill, main_rationale = router.route_action(
-                main_action.intent,
-                main_action.action_type,
-                self.character_state.skills,
-                router.is_explicit_ritual(main_action.intent),
-                declared_skill=main_action.skill,
-                other_players=other_players  # Use same other_players list
-            )
+            # Apply same normalization as first action
+            # Only check if action intent mentions "ritual" explicitly
+            is_explicit_ritual_main = router.is_explicit_ritual(main_action.intent)
+            if is_explicit_ritual_main or main_action.action_type == 'ritual':
+                main_action.is_ritual = True
+                main_action.action_type = 'ritual'
 
-            if main_routed_attr != main_action.attribute or main_routed_skill != main_action.skill:
-                print(f"[{self.character_state.name}] Routed: {main_action.attribute}×{main_action.skill or 'None'} → {main_routed_attr}×{main_routed_skill or 'None'} ({main_rationale})")
-                main_action.attribute = main_routed_attr
-                main_action.skill = main_routed_skill
+            # Normalize skill name ONLY if it's an alias
+            if main_action.skill:
+                original_skill = main_action.skill
+                normalized_skill = normalize_skill(main_action.skill)
+                if normalized_skill != original_skill:
+                    main_action.skill = normalized_skill
 
             # Convert and send
             main_action_dict = main_action.to_dict()
@@ -1052,6 +1051,92 @@ class AIPlayerAgent(Agent):
             intents_list = "\n".join([f"- {intent}" for intent in recent_intents])
             recent_intents_section = f"**Your Recent Actions (DO NOT REPEAT):**\n{intents_list}\n\nYou MUST try a different approach, tool, location, or angle. Repeating the same action is not allowed."
 
+        # Build stat awareness lists FIRST (needed for failure loop warning)
+        # Top 3 skills
+        skills_sorted = sorted(
+            self.character_state.skills.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:3]
+        top_skills_list = ", ".join([f"{skill} ({val})" for skill, val in skills_sorted])
+
+        # Low attributes (< 4)
+        low_attrs = [
+            f"{attr} ({val})"
+            for attr, val in self.character_state.attributes.items()
+            if val < 4
+        ]
+        low_attributes_list = ", ".join(low_attrs) if low_attrs else "None (all attributes 4+)"
+
+        # Check for failure loop and build warning
+        failure_loop_warning = ""
+        high_void_warning = ""
+        if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+            session = self.shared_state.session
+            if self.character_state.name in session._character_action_history:
+                history = session._character_action_history[self.character_state.name]
+
+                # Check last 3 actions for failure pattern
+                if len(history) >= 2:
+                    last_actions = history[-3:]  # Last 3 actions
+
+                    # Count consecutive failures of same action type
+                    failure_types = {}
+                    for action_type, success_tier, void_change, _ in last_actions:
+                        # Count as failure if CRITICAL_FAILURE or FAILURE, or if void increased
+                        is_failure = success_tier in ['CRITICAL_FAILURE', 'FAILURE'] or void_change > 0
+                        if is_failure:
+                            failure_types[action_type] = failure_types.get(action_type, 0) + 1
+
+                    # If same action type failed 2+ times
+                    for action_type, count in failure_types.items():
+                        if count >= 2:
+                            # Build failure list
+                            failure_list_items = []
+                            for at, st, vc, rnd in last_actions:
+                                if at == action_type:
+                                    void_text = f", Void +{vc}" if vc > 0 else ""
+                                    failure_list_items.append(f"- Round {rnd}: {at} ({st}{void_text})")
+
+                            failures_text = "\n".join(failure_list_items)
+
+                            failure_loop_warning = f"""🚨 **FAILURE LOOP DETECTED** 🚨
+
+You have failed {count} {action_type} actions in a row!
+**Your recent failures:**
+{failures_text}
+
+**STOP and reassess:**
+1. You may lack the right skills for this approach
+2. Your stats may be too low for these DCs
+3. The situation may require a completely different strategy
+
+**REQUIRED: Choose a DIFFERENT action type this turn!**
+- Use your strengths: {top_skills_list}
+- OR coordinate with allies who have better skills for this task
+- OR pivot to a support/reconnaissance role
+
+Continuing the same failing approach will only increase your void corruption and waste rounds!"""
+                            break  # Only show one warning
+
+            # High void warning (void >= 8)
+            if self.character_state.void_score >= 8:
+                high_void_warning = f"""⚠️ **VOID CORRUPTION CRITICAL** ⚠️
+
+Your void score is {self.character_state.void_score}/10. You are dangerously close to possession!
+
+**AVOID THESE ACTIONS:**
+- Void analysis or manipulation (risk of catastrophic failure → more void!)
+- Ritual magic without offerings (adds +1 void!)
+- Any action using "unskilled" penalties near void phenomena
+
+**SAFER ALTERNATIVES:**
+- Coordinate with allies (DC 10-15, low risk)
+- Use offerings for magic (REDUCES void by -1!)
+- Support actions (buff allies, create advantages)
+- Defensive/protective actions
+- Consider emergency void cleansing ritual if you have offerings!"""
+
         # Build dialogue goal text based on character goals
         dialogue_goal_text = ""
         if other_players:
@@ -1132,7 +1217,11 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             "recent_intents_section": recent_intents_section,
             "risk_guidance": risk_guidance,
             "void_curiosity_guidance": void_curiosity_guidance,
-            "bond_guidance": bond_guidance
+            "bond_guidance": bond_guidance,
+            "top_skills_list": top_skills_list,
+            "low_attributes_list": low_attributes_list,
+            "failure_loop_warning": failure_loop_warning,
+            "high_void_warning": high_void_warning
         }
 
         # Load prompt from JSON with variable substitution
@@ -1143,10 +1232,27 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             variables=variables
         )
 
+        # Inject dynamic warnings after character sheet
+        content = loaded_prompt.content
+
+        # Find the character sheet section and inject warnings after it
+        if failure_loop_warning or high_void_warning:
+            # Insert after "# Character Sheet" section
+            char_sheet_end = content.find("# Inventory & Resources")
+            if char_sheet_end != -1:
+                warnings = []
+                if failure_loop_warning:
+                    warnings.append(failure_loop_warning)
+                if high_void_warning:
+                    warnings.append(high_void_warning)
+
+                warning_text = "\n\n" + "\n\n".join(warnings) + "\n"
+                content = content[:char_sheet_end] + warning_text + "\n" + content[char_sheet_end:]
+
         # Store prompt metadata for logging
         self._last_prompt_metadata = loaded_prompt.metadata
 
-        return loaded_prompt.content
+        return content
 
     async def _generate_llm_action_structured(self, recent_intents: List[str], exclude_dialogue: bool = False):
         """Generate structured action using LLM with enhanced prompts."""
@@ -1534,12 +1640,19 @@ DESCRIPTION: [narrative description]
             temperature = self.llm_config.get('temperature', 0.8)
 
             if provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=300,
                     temperature=temperature,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 llm_text = response.content[0].text.strip()
 
@@ -1619,12 +1732,19 @@ Now that you have this information, declare your action using the required forma
 
         try:
             if provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": followup_prompt}],
                     max_tokens=300,
                     temperature=temperature,
-                    messages=[{"role": "user", "content": followup_prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 followup_text = response.content[0].text.strip()
 

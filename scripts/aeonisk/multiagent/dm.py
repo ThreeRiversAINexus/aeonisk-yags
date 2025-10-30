@@ -297,12 +297,19 @@ IMPORTANT:
                 provider = self.llm_config.get('provider', 'anthropic')
                 model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
 
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": scenario_prompt}],
                     max_tokens=1000,
                     temperature=0.9,
-                    messages=[{"role": "user", "content": scenario_prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 llm_text = response.content[0].text.strip()
 
@@ -338,12 +345,17 @@ IMPORTANT:
                                 "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
                             )
 
-                            response = await asyncio.to_thread(
-                                self.llm_client.messages.create,
+                            # Use rate-limited wrapper (already imported above)
+                            response = await call_anthropic_with_retry(
+                                client=self.llm_client,
                                 model=model,
+                                messages=[{"role": "user", "content": retry_prompt}],
                                 max_tokens=1000,
                                 temperature=1.0,  # Higher temperature for more creativity
-                                messages=[{"role": "user", "content": retry_prompt}]
+                                max_retries=3,
+                                base_delay=2.0,
+                                max_delay=120.0,
+                                use_rate_limiter=True
                             )
                             llm_text = response.content[0].text.strip()
 
@@ -1341,6 +1353,24 @@ The air carries a distinct tension, and you sense the void's influence at level 
                 'resolution': resolution
             })
 
+            # Track action outcome for failure loop detection
+            if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                action_type = action.get('action_type', 'unknown')
+                success_tier = resolution.get('outcome', {}).get('success_tier', 'UNKNOWN')
+                void_change = state_changes.get('void_change', 0)
+
+                session = self.shared_state.session
+                if character_name not in session._character_action_history:
+                    session._character_action_history[character_name] = []
+
+                session._character_action_history[character_name].append(
+                    (action_type, success_tier, void_change, round_num)
+                )
+
+                # Keep only last 5 actions per character
+                if len(session._character_action_history[character_name]) > 5:
+                    session._character_action_history[character_name] = session._character_action_history[character_name][-5:]
+
         # Send individual resolutions to each player
         for res in resolutions:
             # Prepare serializable resolution data (exclude non-serializable ActionResolution object)
@@ -1701,12 +1731,19 @@ Generate appropriate consequences based on what makes sense for that specific cl
 {enemy_spawn_prompt}"""
 
             try:
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=500,
                     temperature=0.8,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 synthesis_text = response.content[0].text.strip()
 
@@ -3137,18 +3174,25 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             )
 
         # Get LLM config
-        provider = self.llm_config.get('provider', 'openai')
         model = self.llm_config.get('model', 'gpt-4')
 
         # Call LLM with lower temperature for format compliance
-        from .llm_provider import get_provider
-        llm_client = get_provider(provider, model)
-
-        response = await llm_client.generate_async(
-            prompt=retry_prompt,
-            temperature=0.3,  # Lower temp for format compliance
-            max_tokens=300
-        )
+        # Use call_anthropic_with_retry for automatic retry/rate limiting
+        try:
+            from .llm_provider import call_anthropic_with_retry
+            llm_response = await call_anthropic_with_retry(
+                client=self.llm_client,
+                model=model,
+                messages=[{"role": "user", "content": retry_prompt}],
+                max_tokens=300,
+                temperature=0.3,  # Lower temp for format compliance
+                max_retries=3,
+                use_rate_limiter=True
+            )
+            response = llm_response.content[0].text.strip()
+        except Exception as e:
+            logger.error(f"Error in marker retry LLM call: {e}")
+            response = ""
 
         # Log retry result to JSONL
         success = len(response.strip()) > 0
@@ -3517,12 +3561,19 @@ When adjudicating:
                 return response.choices[0].message.content.strip()
 
             elif provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=400,
                     temperature=temperature,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 narration = response.content[0].text.strip()
 
@@ -3603,12 +3654,19 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
         try:
             if provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=150,
                     temperature=0.8,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 consequence = response.content[0].text.strip()
 
@@ -3678,12 +3736,19 @@ Generate a brief (2-3 sentences) narrative describing the Eye of Breach's sudden
 Be vivid and maintain the dark sci-fi atmosphere."""
 
             try:
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=200,
                     temperature=0.85,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 event_text = response.content[0].text.strip()
 

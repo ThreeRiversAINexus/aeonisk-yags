@@ -11,6 +11,7 @@ section_order:
 - goals
 - faction_names
 - lookup_rules
+- stat_awareness_guidance
 - action_declaration_format
 - ritual_requirements
 - coordination_dialogue
@@ -84,6 +85,72 @@ sections:
     - `LOOKUP: What are the rules for void corruption?`
 
     This is an **out-of-character** request for clarification, not an in-game action. Use it when you need to understand the game world or mechanics better.
+  stat_awareness_guidance: |-
+    # 🎯 CRITICAL: KNOW YOUR STRENGTHS AND LIMITATIONS
+
+    ## Understanding Your Roll Formula
+
+    **Base Formula:** `Attribute + Skill + d20` vs DC
+    - **With Skill:** Attribute + Skill + d20 (e.g., Intelligence 3 + Systems 5 + d20 = 8 + d20)
+    - **Without Skill (Unskilled):** Attribute + d20 - 5 (e.g., Intelligence 3 + d20 - 5 = d20 - 2)
+
+    ## ⚠️ THE UNSKILLED PENALTY IS BRUTAL
+
+    If you don't have the skill, you get **-5 penalty**. This makes success nearly impossible for low attributes!
+
+    **Examples of Impossible Actions:**
+    - Intelligence 3 + NO Investigation skill = d20 - 2 vs DC 20 → **NEED d20 = 22 (IMPOSSIBLE!)**
+    - Intelligence 3 + NO Systems skill = d20 - 2 vs DC 18 → **98% failure rate**
+    - Strength 2 + NO Combat skill = d20 - 3 vs DC 20 → **NEED d20 = 23 (IMPOSSIBLE!)**
+
+    ## 🎲 Estimate Your Success Chance BEFORE Acting
+
+    **Quick Success Probability Guide:**
+    - Need to roll 15+ on d20 → **30% chance** (risky!)
+    - Need to roll 18+ on d20 → **15% chance** (very risky!)
+    - Need to roll 20+ on d20 → **IMPOSSIBLE** (d20 max = 20)
+
+    ## ✅ PLAY TO YOUR STRENGTHS
+
+    **YOUR BEST SKILLS:** {top_skills_list}
+    **YOUR WORST ATTRIBUTES:** {low_attributes_list}
+
+    **Golden Rule:** If you have NO skill in Investigation/Systems/Combat/Technical areas, DO NOT attempt those actions! Use your strengths instead.
+
+    **Better Alternatives:**
+    - **Instead of analyzing void** (Int + no skill): Try **sensing void currents** (Perception + Attunement)
+    - **Instead of hacking systems** (Int + no skill): Try **social engineering** (Charisma + Charm)
+    - **Instead of technical investigation** (Int + no skill): Try **coordinating with skilled allies**
+    - **Instead of combat without Combat skill**: Use **magic** (Willpower + Astral Arts) or **support allies**
+
+    ## 🔁 IF YOU KEEP FAILING THE SAME ACTION TYPE
+
+    **WARNING SIGNS:**
+    - Failed the same action type 2+ times in a row
+    - Void score increasing from failed ritual attempts
+    - DM narration says your approach is failing
+
+    **STOP AND PIVOT:**
+    1. Check if you have the right skills for the task
+    2. Consider a completely different approach using your strengths
+    3. Coordinate with allies who have better skills for that task
+    4. Ask yourself: "Am I the right person for this job?"
+
+    ## 📊 Action Success Calculator
+
+    **Before declaring any action, calculate:**
+    1. Find your Attribute value
+    2. Find your Skill value (or -5 if unskilled)
+    3. Add them: Attribute + Skill (or Attribute - 5)
+    4. Estimate DC: 15-20 for moderate, 25+ for challenging
+    5. Calculate needed d20 roll: DC - (Attribute + Skill)
+    6. If you need 16+, it's RISKY. If you need 20+, it's IMPOSSIBLE.
+
+    **Example for Intelligence 3, no Investigation:**
+    - Your roll: 3 + 0 - 5 + d20 = d20 - 2
+    - DC 20: Need d20 = 22 → **IMPOSSIBLE**
+    - DC 15: Need d20 = 17 → **20% success**
+    - **VERDICT: Find a different approach!**
   action_declaration_format: |-
     # How to Declare Actions
 
@@ -322,12 +389,16 @@ sections:
     2. **ALWAYS** use EXACT attribute/skill names from your character sheet
     3. **ALWAYS** use numeric difficulty values (10, 15, 20, 25, 30, 35+)
     4. **ALWAYS** use valid ACTION_TYPE values (explore, investigate, ritual, social, combat, technical)
-    5. **CONSIDER** your personality when choosing actions
-    6. **REMEMBER** void exposure increases your corruption
-    7. **COLLABORATE** with other characters when it makes sense
-    8. **ADAPT** your approach based on previous outcomes
+    5. **DESCRIPTION must be at least 10 characters** - be specific and descriptive!
+    6. **CONSIDER** your personality when choosing actions
+    7. **REMEMBER** void exposure increases your corruption
+    8. **COLLABORATE** with other characters when it makes sense
+    9. **ADAPT** your approach based on previous outcomes
+    10. **CALCULATE success probability** BEFORE declaring actions (see Stat Awareness section)
+    11. **AVOID impossible actions** - if you need d20 > 20, find a different approach!
+    12. **STOP repeating failed action types** - pivot to your strengths after 2 failures
 
-    Think mechanically: What attribute? What skill? What difficulty? Then narrate the action.
+    Think mechanically: What attribute? What skill? What difficulty? Can I actually succeed? Then narrate the action.
 
     ⚠️ **FORMAT COMPLIANCE IS CRITICAL FOR ML TRAINING** ⚠️
     Every action you declare becomes training data. Use exact formats to ensure high-quality data.
@@ -340,6 +411,40 @@ conditional_sections:
     {recent_intents_list}
 
     You MUST try a different approach, tool, location, or angle. Repeating the same action is not allowed.
+  failure_loop_warning: |-
+    🚨 **FAILURE LOOP DETECTED** 🚨
+
+    You have failed {failure_count} {action_type} actions in a row!
+    **Your recent failures:**
+    {recent_failures_list}
+
+    **STOP and reassess:**
+    1. You may lack the right skills for this approach
+    2. Your stats may be too low for these DCs
+    3. The situation may require a completely different strategy
+
+    **REQUIRED: Choose a DIFFERENT action type this turn!**
+    - Use your strengths: {top_skills_list}
+    - OR coordinate with allies who have better skills for this task
+    - OR pivot to a support/reconnaissance role
+
+    Continuing the same failing approach will only increase your void corruption and waste rounds!
+  high_void_action_warning: |-
+    ⚠️ **VOID CORRUPTION CRITICAL** ⚠️
+
+    Your void score is {void_score}/10. You are dangerously close to possession!
+
+    **AVOID THESE ACTIONS:**
+    - Void analysis or manipulation (risk of catastrophic failure → more void!)
+    - Ritual magic without offerings (adds +1 void!)
+    - Any action using "unskilled" penalties near void phenomena
+
+    **SAFER ALTERNATIVES:**
+    - Coordinate with allies (DC 10-15, low risk)
+    - Use offerings for magic (REDUCES void by -1!)
+    - Support actions (buff allies, create advantages)
+    - Defensive/protective actions
+    - Consider emergency void cleansing ritual if you have offerings!
   goal_dialogue_harmony: |-
     **🎯 HOW TO ACHIEVE YOUR GOALS:**
     Your goals involve harmony and community - this means TALKING TO YOUR COMPANIONS!

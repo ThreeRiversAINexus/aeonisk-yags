@@ -359,42 +359,57 @@ def parse_void_triggers(narration: str, action_intent: str, outcome_tier: str, e
             if reason_text not in reasons:
                 reasons.append(reason_text)
 
-    # Ritual failures
-    if 'ritual' in intent_lower and outcome_tier in ['failure', 'critical_failure']:
-        void_change += 1
-        reasons.append("Failed ritual")
+    # ============================================================================
+    # KEYWORD-BASED VOID DETECTION DISABLED (2025-10-29)
+    # ============================================================================
+    # Philosophy: "I despise keyword detection for game mechanics, I prefer tags from the LLMs"
+    #
+    # The DM LLM should explicitly include ⚫ Void: +X markers when thematically appropriate.
+    # Keyword fallback was causing false positives:
+    # - "center mass" → "center" → false "grounding meditation" match
+    # - "neural feedback" → "feedback" → false "psychic damage" match
+    # - Regular combat/investigation failures → false "void manipulation" match
+    #
+    # We now trust the DM to include explicit markers (parsed at lines 333-339 above).
+    # If void changes happen without explicit markers, it's logged as a compliance issue.
+    # ============================================================================
 
-    # Void manipulation and exposure
-    if any(phrase in narration_lower or phrase in intent_lower for phrase in [
-        'void energy', 'void manipulation', 'void-touched', 'void resonance',
-        'corrupt', 'forbidden', 'void-shield', 'tap into void',
-        'controlled void', 'void exposure', 'void-enhanced', 'void scan',
-        'attune to void', 'opening to the void', 'void channel'
-    ]):
-        # Critical failures with void get extra
-        if outcome_tier == 'critical_failure':
-            void_change += 1
-            reasons.append("Void backlash from critical failure")
-        # Failures with void manipulation also risky
-        elif outcome_tier == 'failure':
-            void_change += 1
-            reasons.append("Failed void manipulation")
+    # DISABLED: Ritual failures
+    # if 'ritual' in intent_lower and outcome_tier in ['failure', 'critical_failure']:
+    #     void_change += 1
+    #     reasons.append("Failed ritual")
 
-    # Psychic damage
-    if any(phrase in narration_lower for phrase in [
-        'psychic recoil', 'feedback', 'backlash', 'mental trauma',
-        'consciousness corrupted'
-    ]):
-        if outcome_tier in ['failure', 'critical_failure']:
-            void_change += 1
-            reasons.append("Psychic/mental corruption")
+    # DISABLED: Void manipulation and exposure
+    # if any(phrase in narration_lower or phrase in intent_lower for phrase in [
+    #     'void energy', 'void manipulation', 'void-touched', 'void resonance',
+    #     'corrupt', 'forbidden', 'void-shield', 'tap into void',
+    #     'controlled void', 'void exposure', 'void-enhanced', 'void scan',
+    #     'attune to void', 'opening to the void', 'void channel'
+    # ]):
+    #     # Critical failures with void get extra
+    #     if outcome_tier == 'critical_failure':
+    #         void_change += 1
+    #         reasons.append("Void backlash from critical failure")
+    #     # Failures with void manipulation also risky
+    #     elif outcome_tier == 'failure':
+    #         void_change += 1
+    #         reasons.append("Failed void manipulation")
 
-    # Unbound activities
-    if any(phrase in intent_lower for phrase in [
-        'without offering', 'skip offering', 'shortcut'
-    ]):
-        void_change += 1
-        reasons.append("Ritual shortcut (no offering)")
+    # DISABLED: Psychic damage
+    # if any(phrase in narration_lower for phrase in [
+    #     'psychic recoil', 'feedback', 'backlash', 'mental trauma',
+    #     'consciousness corrupted'
+    # ]):
+    #     if outcome_tier in ['failure', 'critical_failure']:
+    #         void_change += 1
+    #         reasons.append("Psychic/mental corruption")
+
+    # DISABLED: Unbound activities
+    # if any(phrase in intent_lower for phrase in [
+    #     'without offering', 'skip offering', 'shortcut'
+    # ]):
+    #     void_change += 1
+    #     reasons.append("Ritual shortcut (no offering)")
 
     # Return with source indicating this was inferred (or "none" if no void change)
     source = "inferred_by_parser" if void_change != 0 or reasons else ""
@@ -707,27 +722,35 @@ def parse_state_changes(
     if compliance_issue:
         state_changes['llm_compliance_issue'] = compliance_issue
 
-    # RECOVERY MOVES: Reduce void on successful grounding/purge/void cleansing
-    intent_lower = intent.lower()
-    narration_lower = narration.lower()
-    grounding_keywords = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
-    purge_keywords = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
-    # void_cleansing_keywords removed - now handled by DM explicit markers
+    # ============================================================================
+    # KEYWORD-BASED VOID RECOVERY DISABLED (2025-10-29)
+    # ============================================================================
+    # DISABLED: Grounding meditation keyword detection
+    # Caused false positive: "Fire precise shots at center mass" → "center" → false "grounding meditation"
+    # DM should use explicit markers for void recovery: ⚫ Void: -1 (grounding meditation success)
+    # ============================================================================
 
-    if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
-        if any(kw in intent_lower for kw in grounding_keywords):
-            # Successful grounding: -1 personal void
-            void_change = -1
-            void_reasons = ['Grounding meditation success']
-            state_changes['notes'].append("Grounding: -1 Void (personal recovery)")
+    # DISABLED: Grounding/purge keyword detection
+    # intent_lower = intent.lower()
+    # narration_lower = narration.lower()
+    # grounding_keywords = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
+    # purge_keywords = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
 
-        # NOTE: Void cleansing is now handled entirely by DM explicit markers (⚫ Void: -X)
-        # The DM's narration prompt includes scaling rules based on success quality
-        # No keyword detection needed - trust the DM's judgment
+    # if outcome_tier in ['marginal', 'moderate', 'good', 'excellent', 'exceptional']:
+    #     if any(kw in intent_lower for kw in grounding_keywords):
+    #         # Successful grounding: -1 personal void
+    #         void_change = -1
+    #         void_reasons = ['Grounding meditation success']
+    #         state_changes['notes'].append("Grounding: -1 Void (personal recovery)")
 
-        elif any(kw in intent_lower for kw in purge_keywords):
-            # Successful purge: -scene void (handled by DM, mark as note)
-            state_changes['notes'].append("Purge: -Scene Void pressure (one round)")
+    # NOTE: All void changes (positive and negative) now handled by DM explicit markers (⚫ Void: ±X)
+    # The DM's narration prompt includes scaling rules based on success quality
+    # No keyword detection needed - trust the DM's judgment
+
+    # DISABLED: Purge keyword detection
+    # elif any(kw in intent_lower for kw in purge_keywords):
+    #     # Successful purge: -scene void (handled by DM, mark as note)
+    #     state_changes['notes'].append("Purge: -Scene Void pressure (one round)")
 
     state_changes['void_change'] = void_change
     state_changes['void_reasons'] = void_reasons

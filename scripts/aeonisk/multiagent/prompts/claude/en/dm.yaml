@@ -271,6 +271,32 @@ sections:
       ⚖️ Soulcredit: +0 (neutral combat action)
       ⚖️ Soulcredit: -2 (deceived officials)
 
+    **⚠️ CRITICAL: WHEN TO USE ⚫ VOID MARKERS**
+
+    **ONLY include ⚫ Void markers when thematically appropriate:**
+    ✅ DO use void markers for:
+    - Ritual failures (failed astral arts, void manipulation)
+    - Direct void exposure (entering void breaches, touching void artifacts)
+    - Cosmic horror encounters (witnessing reality tears, void entities)
+    - Using void-powered abilities or magic
+    - Critical failures on void-related actions
+
+    ❌ DO NOT use void markers for:
+    - Regular combat failures (shooting, melee, tactics)
+    - Social failures (negotiation, intimidation, deception)
+    - Investigation failures (searching, analyzing, awareness checks)
+    - Technical failures (hacking, systems, piloting)
+    - Physical failures (athletics, stealth, acrobatics)
+
+    **NOT EVERY FAILURE NEEDS VOID CORRUPTION!**
+    Only include ⚫ Void: +X when the action directly involves void/ritual/cosmic themes.
+
+    **Sci-fi technobabble ≠ Void corruption:**
+    - "Neural feedback" from tech malfunction → NO void change
+    - "Psychic backlash" from actual void ritual → YES, +1 void
+    - "System overload" from hacking → NO void change
+    - "Void energy feedback" from manipulation → YES, +1 void
+
     **VOID CLEANSING SCALING** - When characters perform void purification rituals:
     ⚠️ **MANDATORY**: If the ritual succeeds, you MUST include void reduction markers.
 
