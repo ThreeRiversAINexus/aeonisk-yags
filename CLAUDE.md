@@ -146,15 +146,16 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 
 **Built-in Retry with Exponential Backoff:**
 - Automatic retry for 500/529 (Overloaded) errors
-- Configurable via `LLMConfig`: `max_retries=3`, `base_delay=1.0`, `max_delay=60.0`
-- Exponential backoff: 1s → 2s → 4s → ... (with jitter to prevent thundering herd)
+- Configurable via `LLMConfig`: `max_retries=3`, `base_delay=2.0`, `max_delay=120.0`
+- Exponential backoff: 2s → 4s → 8s → 16s → ... (with jitter to prevent thundering herd)
 - Non-retryable errors (auth, validation) fail immediately
 
 **Global Rate Limiting:**
 - Prevents too many concurrent API calls across all agents (DM + players + enemies)
-- Default: `max_concurrent_requests=5`, `min_request_interval=0.2s`
+- **Default (updated 2025-10-29):** `max_concurrent_requests=3`, `min_request_interval=0.5s`
 - Uses singleton `APIRateLimiter` with semaphore + timing enforcement
 - Automatically initialized on first API call
+- **Tuned for multi-agent sessions** (3 PCs + 2 enemies + DM = 6 agents)
 
 **Configuration Example:**
 ```python
@@ -162,14 +163,26 @@ config = LLMConfig(
     provider="claude",
     model="claude-sonnet-4-5",
     max_retries=3,              # Retry up to 3 times
-    base_delay=1.0,             # Start with 1s delay
-    max_delay=60.0,             # Cap at 60s
+    base_delay=2.0,             # Start with 2s delay (increased from 1.0)
+    max_delay=120.0,            # Cap at 120s (increased from 60.0)
     jitter=True,                # Add randomness (50-100% of delay)
     use_rate_limiter=True,      # Enable global rate limiting
-    max_concurrent_requests=5,  # Max 5 concurrent calls
-    min_request_interval=0.2    # 200ms between request starts
+    max_concurrent_requests=3,  # Max 3 concurrent calls (reduced from 5)
+    min_request_interval=0.5    # 500ms between request starts (increased from 0.2s)
 )
 ```
+
+**Why These Defaults?**
+- **3 concurrent requests:** Prevents overwhelming Anthropic API during action declaration phase (3 players + 2 enemies + DM)
+- **0.5s interval:** Spreads 5-action round over 2.5-3s instead of < 1s burst
+- **2s base delay:** More conservative retry to give API time to recover
+- **120s max delay:** Allows longer retries for persistent overload situations
+
+**Tuning for Your Use Case:**
+- **High API tier:** Increase `max_concurrent_requests` to 4-5 for better throughput
+- **Rate limit errors:** Decrease `max_concurrent_requests` to 2, increase `min_request_interval` to 0.75s
+- **Quick sessions:** Reduce `max_delay` to 30s to fail faster on persistent errors
+- **Long campaigns:** Keep defaults - reliability > speed
 
 **Why This Matters:**
 - Multi-agent sessions can generate 10+ concurrent API calls during action declaration phase
@@ -618,6 +631,49 @@ When updating prompts or examples:
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
 
 ## Recent Major Work
+
+### 2025-10-29: Enhanced LLM API Rate Limiting
+
+**Problem:** 500 Overloaded errors from Anthropic API during multi-agent sessions (3 PCs + 2 enemies + DM = 6 agents making concurrent calls).
+
+**Root Cause:**
+- Previous defaults: `max_concurrent=5`, `min_interval=0.2s`, `base_delay=1.0s`
+- During action declaration phase: 3 players + 2 enemies = 5 simultaneous API calls
+- Too aggressive for Anthropic API's current capacity
+
+**Solutions Implemented:**
+
+1. **More Aggressive Rate Limiting (llm_provider.py:88-99):**
+   - `max_concurrent_requests`: 5 → **3** (max 3 simultaneous API calls)
+   - `min_request_interval`: 0.2s → **0.5s** (500ms minimum between request starts)
+   - `base_delay`: 1.0s → **2.0s** (retry starts at 2s instead of 1s)
+   - `max_delay`: 60s → **120s** (allows longer backoff waits)
+
+2. **Session Config Documentation (session_config_combat.json:31-33):**
+   - Added comments explaining rate limiting defaults
+   - Documents tuning options for different use cases
+   - Future-ready for config passthrough (when agents refactored to use `ClaudeProvider`)
+
+**Expected Impact:**
+- Throughput: 25 req/s → **~6 req/s** maximum burst
+- For 5-action round: < 1s burst → **2.5-3s** spread (prevents API overload spike)
+- Better recovery on transient overload (exponential backoff: 2s → 4s → 8s → 16s → 32s → 64s → 120s)
+
+**Tuning Guide:**
+- **High API tier users:** Increase `max_concurrent_requests` to 4-5
+- **Still hitting rate limits:** Decrease to 2, increase `min_interval` to 0.75s
+- **Quick testing:** Reduce `max_delay` to 30s (fail faster)
+- **Production:** Keep defaults (reliability > speed)
+
+**Current Limitation:**
+- Rate limiting only applies to code using `ClaudeProvider` or `call_anthropic_with_retry` wrapper
+- Most agent API calls still use raw `self.llm_client.messages.create()` (bypass rate limiter)
+- **Future work:** Refactor agents to use `ClaudeProvider` for full rate limiting coverage
+
+**Files Modified:**
+- `llm_provider.py` - Updated LLMConfig defaults
+- `session_config_combat.json` - Added rate limiting documentation
+- `CLAUDE.md` - Updated documentation with new defaults and tuning guide
 
 ### 2025-10-29: Player Agent Stat Awareness & Failure Loop Detection
 

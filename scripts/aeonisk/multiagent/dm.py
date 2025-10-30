@@ -297,12 +297,19 @@ IMPORTANT:
                 provider = self.llm_config.get('provider', 'anthropic')
                 model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
 
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": scenario_prompt}],
                     max_tokens=1000,
                     temperature=0.9,
-                    messages=[{"role": "user", "content": scenario_prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 llm_text = response.content[0].text.strip()
 
@@ -338,12 +345,17 @@ IMPORTANT:
                                 "❗ CRITICAL: You MUST pick a completely different location. DO NOT use any of the locations listed above"
                             )
 
-                            response = await asyncio.to_thread(
-                                self.llm_client.messages.create,
+                            # Use rate-limited wrapper (already imported above)
+                            response = await call_anthropic_with_retry(
+                                client=self.llm_client,
                                 model=model,
+                                messages=[{"role": "user", "content": retry_prompt}],
                                 max_tokens=1000,
                                 temperature=1.0,  # Higher temperature for more creativity
-                                messages=[{"role": "user", "content": retry_prompt}]
+                                max_retries=3,
+                                base_delay=2.0,
+                                max_delay=120.0,
+                                use_rate_limiter=True
                             )
                             llm_text = response.content[0].text.strip()
 
@@ -1719,12 +1731,19 @@ Generate appropriate consequences based on what makes sense for that specific cl
 {enemy_spawn_prompt}"""
 
             try:
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=500,
                     temperature=0.8,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 synthesis_text = response.content[0].text.strip()
 
@@ -3542,12 +3561,19 @@ When adjudicating:
                 return response.choices[0].message.content.strip()
 
             elif provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=400,
                     temperature=temperature,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 narration = response.content[0].text.strip()
 
@@ -3628,12 +3654,19 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
         try:
             if provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=150,
                     temperature=0.8,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 consequence = response.content[0].text.strip()
 
@@ -3703,12 +3736,19 @@ Generate a brief (2-3 sentences) narrative describing the Eye of Breach's sudden
 Be vivid and maintain the dark sci-fi atmosphere."""
 
             try:
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=200,
                     temperature=0.85,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 event_text = response.content[0].text.strip()
 

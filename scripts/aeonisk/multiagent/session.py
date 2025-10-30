@@ -535,20 +535,29 @@ class SelfPlayingSession:
                 class DMLLMClient:
                     def __init__(self, llm_config):
                         self.llm_config = llm_config
+                        # Pre-create client for rate limiting
+                        import anthropic
+                        import os
+                        self.client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
                         provider = self.llm_config.get('provider', 'anthropic')
                         model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
 
                         if provider == 'anthropic':
-                            import anthropic
-                            import os
-                            client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
-                            response = client.messages.create(
+                            # Use rate-limited wrapper to prevent API overload
+                            from .llm_provider import call_anthropic_with_retry
+
+                            response = await call_anthropic_with_retry(
+                                client=self.client,
                                 model=model,
+                                messages=[{"role": "user", "content": prompt}],
                                 max_tokens=max_tokens,
                                 temperature=temperature,
-                                messages=[{"role": "user", "content": prompt}]
+                                max_retries=3,
+                                base_delay=2.0,
+                                max_delay=120.0,
+                                use_rate_limiter=True
                             )
                             return {"content": response.content[0].text}
                         else:

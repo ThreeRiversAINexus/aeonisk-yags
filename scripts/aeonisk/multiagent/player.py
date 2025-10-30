@@ -1641,12 +1641,19 @@ DESCRIPTION: [narrative description]
             temperature = self.llm_config.get('temperature', 0.8)
 
             if provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": prompt}],
                     max_tokens=300,
                     temperature=temperature,
-                    messages=[{"role": "user", "content": prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 llm_text = response.content[0].text.strip()
 
@@ -1726,12 +1733,19 @@ Now that you have this information, declare your action using the required forma
 
         try:
             if provider == 'anthropic':
-                response = await asyncio.to_thread(
-                    self.llm_client.messages.create,
+                # Use rate-limited wrapper to prevent API overload
+                from .llm_provider import call_anthropic_with_retry
+
+                response = await call_anthropic_with_retry(
+                    client=self.llm_client,
                     model=model,
+                    messages=[{"role": "user", "content": followup_prompt}],
                     max_tokens=300,
                     temperature=temperature,
-                    messages=[{"role": "user", "content": followup_prompt}]
+                    max_retries=3,
+                    base_delay=2.0,
+                    max_delay=120.0,
+                    use_rate_limiter=True
                 )
                 followup_text = response.content[0].text.strip()
 
