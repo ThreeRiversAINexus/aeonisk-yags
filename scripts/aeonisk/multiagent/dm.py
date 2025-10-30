@@ -1612,6 +1612,20 @@ The air carries a distinct tension, and you sense the void's influence at level 
                     roll_formula = self._generate_roll_formula(action_resolution)
                     rationale = self._generate_rationale(action_resolution, action)
 
+                    # Extract outcome_tiers from structured output (if present)
+                    # NOTE: action_resolution is from mechanics, not structured output
+                    # We need to check self._last_structured_resolution instead
+                    outcome_tiers_with_narratives = None
+                    if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
+                        if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
+                            # Convert OutcomeTierExplanation objects to dicts for JSON serialization
+                            outcome_tiers_with_narratives = {}
+                            for tier, explanation in self._last_structured_resolution.outcome_tiers.items():
+                                outcome_tiers_with_narratives[tier] = {
+                                    'narrative': explanation.narrative,
+                                    'mechanical_effect': explanation.mechanical_effect
+                                }
+
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
                         phase="adjudicate",
@@ -1628,7 +1642,8 @@ The air carries a distinct tension, and you sense the void's influence at level 
                         stakes=stakes,
                         goal=goal,
                         roll_formula=roll_formula,
-                        rationale=rationale
+                        rationale=rationale,
+                        outcome_tiers_with_narratives=outcome_tiers_with_narratives
                     )
 
                     # Track action for round summary statistics
@@ -3265,6 +3280,20 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 roll_formula = self._generate_roll_formula(resolution)
                 rationale = self._generate_rationale(resolution, action)
 
+                # Extract outcome_tiers from structured output (if present)
+                # NOTE: resolution is from mechanics, not structured output
+                # We need to check self._last_structured_resolution instead
+                outcome_tiers_with_narratives = None
+                if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
+                    if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
+                        # Convert OutcomeTierExplanation objects to dicts for JSON serialization
+                        outcome_tiers_with_narratives = {}
+                        for tier, explanation in self._last_structured_resolution.outcome_tiers.items():
+                            outcome_tiers_with_narratives[tier] = {
+                                'narrative': explanation.narrative,
+                                'mechanical_effect': explanation.mechanical_effect
+                            }
+
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
                     phase="resolve",
@@ -3281,7 +3310,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     stakes=stakes,
                     goal=goal,
                     roll_formula=roll_formula,
-                    rationale=rationale
+                    rationale=rationale,
+                    outcome_tiers_with_narratives=outcome_tiers_with_narratives
                 )
 
         else:
@@ -3661,7 +3691,23 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             # Try structured output with fallback disabled (we handle fallback ourselves)
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
-            system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
+            # Load full DM system prompt with all sections (including ml_training_tiers)
+            from .prompt_loader import load_agent_prompt
+            try:
+                system_prompt_obj = load_agent_prompt(
+                    agent_type="dm",
+                    provider="claude",
+                    language="en",
+                    section=None,  # Load full system prompt with all sections
+                    variables={}
+                )
+                system_prompt = system_prompt_obj.content
+                logger.debug(f"DM: Loaded full system prompt ({len(system_prompt)} chars) with ml_training_tiers")
+            except Exception as e:
+                logger.error(f"DM: Failed to load full system prompt: {e}")
+                # Fallback to simple prompt
+                system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
+
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
             max_tokens = self.llm_config.get('max_tokens', 2000)
             temperature = self.llm_config.get('temperature', 0.8)
@@ -3682,7 +3728,9 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             )
 
             if isinstance(resolution_obj, ActionResolution):
-                logger.debug(f"✓ DM structured resolution: {resolution_obj.success_tier}, {len(resolution_obj.narration)} chars, {len(resolution_obj.effects.void_changes)} void changes")
+                has_outcome_tiers = hasattr(resolution_obj, 'outcome_tiers') and resolution_obj.outcome_tiers is not None
+                outcome_tiers_count = len(resolution_obj.outcome_tiers) if has_outcome_tiers else 0
+                logger.debug(f"✓ DM structured resolution: outcome_tiers: {outcome_tiers_count}/6 {'✓' if outcome_tiers_count == 6 else '✗ MISSING'}")
 
                 # Log LLM call for replay (structured output path)
                 if self.llm_logger:

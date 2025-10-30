@@ -421,8 +421,8 @@ sections:
   ml_training_tiers: |-
     # ML Training: Outcome Tier Generation
 
-    **CRITICAL FOR MACHINE LEARNING:**
-    When using structured output (ActionResolution schema), you MUST generate all 6 outcome tier narratives + mechanical effects for ML training purposes, even though the character's actual roll already happened.
+    **⚠️ MANDATORY FIELD - DO NOT SKIP ⚠️**
+    When using structured output (ActionResolution schema), you MUST ALWAYS populate the `outcome_tiers` field with all 6 tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success). This is NOT optional - every ActionResolution response REQUIRES all 6 outcome tier narratives + mechanical effects for ML training purposes, even though the character's actual roll already happened.
 
     **Why?** These alternate-reality scenarios help train ML models to understand:
     - How different dice rolls lead to different narrative outcomes

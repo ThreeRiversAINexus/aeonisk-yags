@@ -225,7 +225,7 @@ class ActionResolution(BaseModel):
     # All 6 outcome tiers with narratives + mechanical effects
     outcome_tiers: Optional[Dict[str, OutcomeTierExplanation]] = Field(
         default=None,
-        description="What would have happened at each tier: critical_failure → exceptional_success"
+        description="STRONGLY RECOMMENDED for ML training: All 6 outcome tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success) with narrative (50-500 chars) + mechanical_effect (10-300 chars) for each tier. See ml_training_tiers section in system prompt for detailed instructions and examples."
     )
 
 
