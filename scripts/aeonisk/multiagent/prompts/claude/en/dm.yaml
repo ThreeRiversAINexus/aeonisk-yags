@@ -123,6 +123,18 @@ sections:
     - Enemy cornered/no escape: -3 DC (desperate)
     - Enemy is last survivor: -5 DC (isolated)
 
+    **IMPORTANT: Creative Tactics Must Include Damage**
+
+    ALL successful hostile/harmful actions (even creative tactics) must include BOTH debuff AND damage:
+    - **Electrocute**: Apply -2 debuff (shocked) + 2-5 damage (electrical burns)
+    - **Freeze**: Apply -2 debuff (slowed) + 2-4 damage (frostbite)
+    - **Blind**: Apply -3 debuff (blind) + 1-2 damage (eye trauma)
+    - **Corrode**: Apply -2 debuff (weakened armor) + 3-6 damage (acid burns)
+
+    If action succeeds, narrate both the condition AND the physical harm it causes.
+    Example: "You electrocute the wreckage elemental - electricity arcs through its frame,
+    shorting connections (-2 to rolls, 3 rounds) while superheating metal joints (4 damage)."
+
     2. **Hacking** (Systems, Engineering to override/disable tech enemies):
        - Turn against others (Margin 15+): 12 damage (enemy attacks ally)
        - Turn against others (Margin 10-14): 8 damage (brief friendly fire)
@@ -398,7 +410,67 @@ sections:
 
     **Important:** Don't end sessions prematurely. Let scenarios develop. But if clocks indicate clear victory/defeat, use these markers to provide narrative closure.
 
-    **5. Spawn/Despawn Enemies:**
+    **5. Enemy Management (Structured Output):**
+
+    **When using structured output (`RoundSynthesis` schema):**
+
+    Use `enemy_spawns` and `enemy_removals` fields instead of text markers.
+
+    **Enemy Spawns:**
+    ```python
+    enemy_spawns=[
+        EnemySpawn(
+            template="Elite",
+            faction="ACG Security",
+            archetype="Enforcer",
+            count=2,
+            spawn_reason="Alarm triggered, rapid response team deployed",
+            initial_position=Position.FAR_ENEMY
+        )
+    ]
+    ```
+
+    **Enemy Removals (for non-combat resolution):**
+    ```python
+    enemy_removals=[
+        EnemyRemoval(
+            enemy_name="ACG Guard Captain",
+            resolution=EnemyResolution.NEUTRALIZED,
+            reason="Arrested and restrained by Pantheon Security"
+        ),
+        EnemyRemoval(
+            enemy_name="Street Thugs",
+            resolution=EnemyResolution.FLED,
+            reason="Intimidated by overwhelming force, fled through maintenance corridor"
+        ),
+        EnemyRemoval(
+            enemy_name="Void Cultist",
+            resolution=EnemyResolution.CONVINCED,
+            reason="Persuaded that ritual was corrupted, agreed to stand down"
+        )
+    ]
+    ```
+
+    **Resolution types:**
+    - `NEUTRALIZED`: Arrested, captured, restrained
+    - `FLED`: Scared off, retreated, escaped
+    - `CONVINCED`: Talked down, persuaded, negotiated
+    - `SUBDUED`: Knocked unconscious, incapacitated
+
+    **IMPORTANT: Story Advancement Auto-Clears Enemies**
+    When you use `story_advancement` with `should_advance=True`, ALL active enemies are automatically removed (unless you set `clear_all_enemies=False`). This prevents enemies from persisting across scene changes.
+
+    Example:
+    ```python
+    story_advancement=StoryAdvancement(
+        should_advance=True,
+        location="Safe House - Undercity District",
+        situation="Having escaped the facility, you regroup in a secure location...",
+        clear_all_enemies=True  # Default - removes all enemies from previous scene
+    )
+    ```
+
+    **Legacy Text Markers (if NOT using structured output):**
 
     **SPAWN FORMAT (ALL 5 FIELDS REQUIRED):**
     `[SPAWN_ENEMY: name | template | count | position | tactics]`

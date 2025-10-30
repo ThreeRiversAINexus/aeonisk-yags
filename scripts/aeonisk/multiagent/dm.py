@@ -1415,9 +1415,9 @@ The air carries a distinct tension, and you sense the void's influence at level 
         Format: "Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC"
         Example: "Perception 4 × Guns 5 = 20; 20 + d20(15) = 35 vs DC 20"
         """
-        attr_name = resolution.attribute.title() if hasattr(resolution, 'attribute') else 'Unknown'
+        attr_name = resolution.attribute.title() if (hasattr(resolution, 'attribute') and resolution.attribute) else 'Unknown'
         attr_val = resolution.attribute_value if hasattr(resolution, 'attribute_value') else 0
-        skill_name = resolution.skill.title() if hasattr(resolution, 'skill') else 'None'
+        skill_name = resolution.skill.title() if (hasattr(resolution, 'skill') and resolution.skill) else 'None'
         skill_val = resolution.skill_value if hasattr(resolution, 'skill_value') else 0
         d20_roll = resolution.roll if hasattr(resolution, 'roll') else 0
         total = resolution.total if hasattr(resolution, 'total') else 0
