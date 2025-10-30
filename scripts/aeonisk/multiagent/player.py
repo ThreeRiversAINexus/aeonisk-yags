@@ -663,9 +663,9 @@ class AIPlayerAgent(Agent):
             action
         )
 
-        # Display with character voice (debug only - DM will display during adjudication)
-        logger.debug(f"[{self.character_state.name}] {action_declaration.description}")
-        logger.debug(f"   └─ {action_declaration.get_summary()}")
+        # Display character declaration in console (for visibility during declaration phase)
+        print(f"[{self.character_state.name}] {action_declaration.description}")
+        print(f"   └─ {action_declaration.get_summary()}")
 
         # If this was a free action (inter-party dialogue), generate a second action
         if is_free_action and not self.free_action_used:
@@ -726,9 +726,9 @@ class AIPlayerAgent(Agent):
                 main_action_dict
             )
 
-            # Display with character voice (debug only - DM will display during adjudication)
-            logger.debug(f"[{self.character_state.name}] **MAIN ACTION:** {main_action.description}")
-            logger.debug(f"   └─ {main_action.get_summary()}")
+            # Display main action declaration in console (for visibility during declaration phase)
+            print(f"[{self.character_state.name}] **MAIN ACTION:** {main_action.description}")
+            print(f"   └─ {main_action.get_summary()}")
             logger.info(f"{self.character_state.name} completed 2-action turn (free + main)")
         
     async def _handle_action_resolved(self, message: Message):

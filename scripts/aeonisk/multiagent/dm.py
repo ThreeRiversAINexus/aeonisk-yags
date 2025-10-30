@@ -1485,16 +1485,45 @@ The air carries a distinct tension, and you sense the void's influence at level 
 
             logger.debug("DM: Attempting structured output for round synthesis")
 
+            system_prompt = "You are the DM for Aeonisk YAGS, synthesizing a round of actions."
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = self.llm_config.get('max_tokens', 2000)
+            temperature = self.llm_config.get('temperature', 0.8)
+
+            # Get current round for logging
+            current_round = None
+            if self.shared_state and self.shared_state.mechanics_engine:
+                current_round = self.shared_state.mechanics_engine.current_round
+
             # Generate structured synthesis using Pydantic AI
             synthesis: RoundSynthesis = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=RoundSynthesis,
-                system_prompt="You are the DM for Aeonisk YAGS, synthesizing a round of actions.",
-                max_tokens=self.llm_config.get('max_tokens', 2000),
-                temperature=self.llm_config.get('temperature', 0.8)
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
             )
 
             logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+
+            # Log LLM call for replay (synthesis path)
+            if self.llm_logger:
+                estimated_input_tokens = len(prompt) // 4
+                estimated_output_tokens = len(synthesis.narration) // 4
+
+                self.llm_logger._log_llm_call(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response=synthesis.narration,
+                    model=model,
+                    temperature=temperature,
+                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                    current_round=current_round,
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
 
             return synthesis
 
@@ -2689,8 +2718,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 )
                 narration_suffix = ""
 
-            # Update clocks based on outcome
-            mechanics.update_clocks_from_action(resolution, action)
+            # NOTE: Clock updates are now deferred until synthesis phase
+            # The DM will determine final clock/status changes after reviewing all actions
+            # This prevents immediate application and allows for holistic round resolution
+            # mechanics.update_clocks_from_action(resolution, action)  # DISABLED: see note above
 
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
@@ -3336,18 +3367,50 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             # Try structured output with fallback disabled (we handle fallback ourselves)
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
+            system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = self.llm_config.get('max_tokens', 2000)
+            temperature = self.llm_config.get('temperature', 0.8)
+
+            # Get current round for logging
+            current_round = None
+            if self.shared_state and self.shared_state.mechanics_engine:
+                current_round = self.shared_state.mechanics_engine.current_round
+
             # Strict mode: No fallback, will raise on error (retry logic built into provider)
             resolution_obj = await generate_dm_resolution_structured(
                 provider=self.llm_provider,
                 prompt=prompt,
-                system_prompt="You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions.",
-                max_tokens=self.llm_config.get('max_tokens', 2000),
-                temperature=self.llm_config.get('temperature', 0.8)
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
                 # fallback_to_text defaults to False - strict mode
             )
 
             if isinstance(resolution_obj, ActionResolution):
                 logger.debug(f"✓ DM structured resolution: {resolution_obj.success_tier}, {len(resolution_obj.narration)} chars, {len(resolution_obj.effects.void_changes)} void changes")
+
+                # Log LLM call for replay (structured output path)
+                if self.llm_logger:
+                    # Note: We can't get exact token counts from pydantic-ai without modifying it,
+                    # but we can approximate based on text length for now
+                    estimated_input_tokens = len(prompt) // 4  # rough estimate: 1 token ~= 4 chars
+                    estimated_output_tokens = len(resolution_obj.narration) // 4
+
+                    self.llm_logger._log_llm_call(
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        response=resolution_obj.narration,  # Log narration as response
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        current_round=current_round,
+                        call_sequence=self.llm_logger.call_count
+                    )
+                    self.llm_logger.call_count += 1
+
                 return resolution_obj
             else:
                 logger.warning("DM: Structured output returned text instead of ActionResolution")
