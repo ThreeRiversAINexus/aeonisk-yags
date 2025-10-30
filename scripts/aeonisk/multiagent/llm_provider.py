@@ -399,6 +399,137 @@ class ClaudeProvider(LLMProvider):
         """
         return self.client
 
+    async def generate_structured(
+        self,
+        prompt: str,
+        result_type: type,
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        **kwargs
+    ):
+        """
+        Generate structured output validated against a Pydantic model.
+
+        Uses Pydantic AI for type-safe LLM responses. This eliminates keyword
+        detection and text parsing in favor of validated structured output.
+
+        Args:
+            prompt: User prompt
+            result_type: Pydantic BaseModel class to validate against
+            system_prompt: Optional system prompt
+            max_tokens: Override default max tokens
+            temperature: Override default temperature
+            **kwargs: Additional parameters
+
+        Returns:
+            Validated Pydantic model instance
+
+        Example:
+            ```python
+            from schemas.action_resolution import ActionResolution
+
+            resolution = await provider.generate_structured(
+                prompt="Resolve this action: ...",
+                result_type=ActionResolution,
+                system_prompt="You are a game master..."
+            )
+            # resolution is a validated ActionResolution instance
+            print(resolution.narration)
+            print(resolution.effects.void_changes)
+            ```
+        """
+        try:
+            from pydantic_ai import Agent
+        except ImportError:
+            raise ImportError(
+                "pydantic-ai not installed. Install with: pip install pydantic-ai"
+            )
+
+        # Use config defaults if not overridden
+        max_tokens = max_tokens or self.config.max_tokens
+        temperature = temperature or self.config.temperature
+
+        # Create Pydantic AI agent with output type
+        # Note: pydantic-ai 1.9.0+ uses 'output_type' not 'result_type'
+        agent = Agent(
+            f'anthropic:{self.config.model}',
+            output_type=result_type,
+            system_prompt=system_prompt or ""
+        )
+
+        # Initialize rate limiter if needed
+        if self.config.use_rate_limiter and not self._rate_limiter_initialized:
+            await _rate_limiter.initialize(
+                max_concurrent=self.config.max_concurrent_requests,
+                min_request_interval=self.config.min_request_interval
+            )
+            self._rate_limiter_initialized = True
+
+        # Acquire rate limiter slot if enabled
+        if self.config.use_rate_limiter:
+            await _rate_limiter.acquire()
+
+        try:
+            # Retry loop with exponential backoff
+            last_error = None
+            for attempt in range(self.config.max_retries + 1):
+                try:
+                    # Run Pydantic AI agent
+                    result = await agent.run(
+                        prompt,
+                        model_settings={
+                            'max_tokens': max_tokens,
+                            'temperature': temperature,
+                            **kwargs
+                        }
+                    )
+
+                    # Log successful retry if not first attempt
+                    if attempt > 0:
+                        logger.info(f"✓ Structured output succeeded after {attempt} retries")
+
+                    # Return validated Pydantic model instance
+                    # Note: pydantic-ai 1.9.0 uses 'output' not 'data' or 'response'
+                    # result.output contains the validated Pydantic model
+                    # result.response contains the raw ModelResponse
+                    return result.output
+
+                except Exception as e:
+                    last_error = e
+
+                    # Check if error is retryable
+                    if not self._is_retryable_error(e):
+                        # Non-retryable error, fail immediately
+                        logger.error(f"Structured output error (non-retryable): {e}")
+                        raise
+
+                    # Check if we have retries left
+                    if attempt >= self.config.max_retries:
+                        # Out of retries
+                        logger.error(f"Structured output error after {attempt} retries: {e}")
+                        raise
+
+                    # Calculate backoff delay
+                    delay = self._calculate_backoff_delay(attempt)
+
+                    # Log retry attempt
+                    logger.warning(
+                        f"Structured output failed (attempt {attempt + 1}/{self.config.max_retries + 1}), "
+                        f"retrying in {delay:.2f}s: {e}"
+                    )
+
+                    # Wait before retry
+                    await asyncio.sleep(delay)
+
+            # Should never reach here, but just in case
+            raise last_error or Exception("Unknown error in retry loop")
+
+        finally:
+            # Always release rate limiter slot
+            if self.config.use_rate_limiter:
+                _rate_limiter.release()
+
 
 class OpenAIProvider(LLMProvider):
     """

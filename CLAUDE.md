@@ -7,6 +7,8 @@ This file provides guidance to Claude Code when working with the Aeonisk YAGS pr
 - `.claude/ARCHITECTURE.md` - System architecture deep-dive
 - `.claude/current-work/` - Active development notes
 
+**Current Branch:** `revamp-structured-output` - Migrating from text parsing to Pydantic AI structured output
+
 ## Project Overview
 
 **Aeonisk YAGS** is a science-fantasy tabletop RPG system with AI-powered gameplay. The project consists of:
@@ -673,6 +675,94 @@ When updating prompts or examples:
 - **Dual combat schemas** - Enemy attacks (full), player attacks (simplified)
 - **CLAUDE.md is auto-loaded** - This file is read every session
 - **LOGGING_IMPLEMENTATION.md** - Detailed docs for ML logging system
+
+## Recent Major Work
+
+### 2025-10-29: Structured Output with Pydantic AI - Phase 1 Complete
+
+**Branch:** `revamp-structured-output`
+
+**Problem:** Text parsing + keyword detection is brittle and provider-specific.
+
+**Examples of issues:**
+- "center mass" → "center" → false "grounding meditation" match
+- Missing `⚫ Void: +1` marker → silent failure (no void change)
+- Tied to Claude's output format, can't use OpenAI/local models
+
+**Solution Implemented: Pydantic AI Structured Output**
+
+**Phase 1 Complete:**
+- ✅ Created comprehensive schema system (`scripts/aeonisk/multiagent/schemas/`)
+- ✅ Extended `llm_provider.py` with `generate_structured()` method
+- ✅ Created test suite (`test_structured_output.py`)
+- ✅ All schemas validated with Claude API
+
+**New Schemas:**
+1. `ActionResolution` - DM action resolution (freeform narration + structured mechanics)
+2. `PlayerAction` - Player action declarations
+3. `EnemyDecision` - Enemy tactical decisions
+4. `StoryEvents` - Story advancement, clocks, enemy spawns
+5. `SharedTypes` - Common models (VoidChange, DamageEffect, ClockUpdate, etc.)
+
+**Key Design:**
+```python
+class ActionResolution(BaseModel):
+    narration: str  # 200-2000 chars FREEFORM (creative storytelling)
+    success_tier: SuccessTier
+    margin: int
+    effects: MechanicalEffects  # STRUCTURED (void, damage, clocks)
+```
+
+**Philosophy:** Keep narration freeform and creative, but structure the mechanics. No more keyword detection!
+
+**Usage:**
+```python
+from llm_provider import create_claude_provider
+from schemas.action_resolution import ActionResolution
+
+provider = create_claude_provider(model="claude-sonnet-4-5")
+resolution: ActionResolution = await provider.generate_structured(
+    prompt="Resolve action: ...",
+    result_type=ActionResolution,
+    system_prompt="You are the DM..."
+)
+
+# Direct access to validated data
+print(resolution.narration)  # Freeform story
+print(resolution.effects.void_changes[0].amount)  # Structured void change
+```
+
+**Benefits:**
+- ✅ Multi-provider ready (Claude, GPT-4, local models via Pydantic AI)
+- ✅ Type-safe (Pydantic validation catches errors)
+- ✅ No keyword detection (explicit structured fields)
+- ✅ Better ML training (structured logs)
+- ✅ Backward compatible (`to_legacy_dict()` methods)
+
+**Files Created:**
+- `schemas/` directory with 7 schema files
+- `llm_provider.py` extended with `generate_structured()` method
+- `test_structured_output.py` - comprehensive test suite
+- `schemas/README.md` - full documentation
+- `.claude/current-work/structured-output-implementation.md` - implementation summary
+
+**Dependencies Added:**
+- `pydantic-ai>=0.0.13` (in `benchmark/requirements.txt`)
+
+**Testing:**
+```bash
+cd scripts/aeonisk && source .venv/bin/activate
+pip install pydantic-ai
+python3 multiagent/test_structured_output.py
+```
+
+**Next Phases:**
+- Phase 2: Migrate DM resolution to `ActionResolution`
+- Phase 3: Migrate player actions to `PlayerAction`
+- Phase 4: Migrate enemies + story events
+- Phase 5: Multi-provider testing (OpenAI, local models)
+
+**See:** `.claude/current-work/structured-output-implementation.md` for full details
 
 ## Recent Major Work
 
