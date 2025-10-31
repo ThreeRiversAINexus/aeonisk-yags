@@ -2880,9 +2880,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id = action.get('target')  # Could be tgt_xxxx or character name
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
+                should_apply_condition = True  # Flag to control whether to apply
 
-                # If action has a target, apply condition to target instead of actor
-                if target_id and target_id != 'None':
+                # Handle different targeting scenarios
+                if target_id == 'None' or target_id is None or not target_id:
+                    # Special case: target="None" (string), None (null), or missing/empty
+                    # These all mean: no specific target (area attack or narrative-only combat)
+                    # Only apply self-buffs (positive penalty) to actor
+                    # Skip debuffs (negative penalty) - they would need a real target
+                    if condition.penalty < 0:
+                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
+                        should_apply_condition = False
+                    else:
+                        # Positive penalty = buff, apply to actor (self-buff)
+                        logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
+
+                else:
+                    # Action has an explicit target - apply condition to that target
                     logger.debug(f"Condition '{condition.name}' has target: {target_id}")
 
                     # Resolve target ID to agent_id
@@ -2899,7 +2915,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, applying to actor")
+                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
                         condition_target_name = target_id
@@ -2913,11 +2930,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                         logger.debug(f"Matched condition target '{target_id}' → '{char_name}' (agent_id: {condition_target_id})")
                                         break
 
-                # Apply condition to the determined target
-                mechanics.add_condition(condition_target_id, condition)
-
-                # Show condition application (with target name)
-                narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                # Apply condition only if flag is True
+                if should_apply_condition:
+                    mechanics.add_condition(condition_target_id, condition)
+                    # Show condition application (with target name)
+                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement)
             if state_changes.get('position_change'):
@@ -3272,9 +3289,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id = action.get('target')  # Could be tgt_xxxx or character name
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
+                should_apply_condition = True  # Flag to control whether to apply
 
-                # If action has a target, apply condition to target instead of actor
-                if target_id and target_id != 'None':
+                # Handle different targeting scenarios
+                if target_id == 'None' or target_id is None or not target_id:
+                    # Special case: target="None" (string), None (null), or missing/empty
+                    # These all mean: no specific target (area attack or narrative-only combat)
+                    # Only apply self-buffs (positive penalty) to actor
+                    # Skip debuffs (negative penalty) - they would need a real target
+                    if condition.penalty < 0:
+                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
+                        should_apply_condition = False
+                    else:
+                        # Positive penalty = buff, apply to actor (self-buff)
+                        logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
+
+                else:
+                    # Action has an explicit target - apply condition to that target
                     logger.debug(f"Condition '{condition.name}' has target: {target_id}")
 
                     # Resolve target ID to agent_id
@@ -3291,7 +3324,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, applying to actor")
+                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
                         condition_target_name = target_id
@@ -3305,11 +3339,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                         logger.debug(f"Matched condition target '{target_id}' → '{char_name}' (agent_id: {condition_target_id})")
                                         break
 
-                # Apply condition to the determined target
-                mechanics.add_condition(condition_target_id, condition)
-
-                # Show condition application (with target name)
-                narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                # Apply condition only if flag is True
+                if should_apply_condition:
+                    mechanics.add_condition(condition_target_id, condition)
+                    # Show condition application (with target name)
+                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement during rituals)
             if state_changes.get('position_change'):

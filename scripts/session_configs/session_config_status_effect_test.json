@@ -1,0 +1,94 @@
+{
+  "session_name": "status_effect_targeting_test",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": true,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 5,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Test Caster",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Test telekinetic abilities against training targets",
+          "Successfully stun enemies with attacks"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 5,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Combat": 2,
+          "Awareness": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {}
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Status Effect Test Arena",
+    "location": "Training Arena with Animated Practice Targets",
+    "situation": "You stand in a training arena. Three weak practice dummies animated by minor void energy stand before you. Use your telekinetic abilities to stun them. [SPAWN_ENEMY: Practice Dummy Alpha | grunt | 1 | Near-Enemy | defensive_ranged] [SPAWN_ENEMY: Practice Dummy Beta | grunt | 1 | Near-Enemy | defensive_ranged] [SPAWN_ENEMY: Practice Dummy Gamma | grunt | 1 | Near-Enemy | defensive_ranged] DM: When the player attacks, include 'Stunned' conditions in structured output with target='None' to test the fix.",
+    "void_level": 2
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Successfully stun enemies without getting stunned yourself",
+      "type": "combat",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test status effect targeting bug fix",
+    "expected_behavior": "Player attacks → Enemies get Stunned → Player does NOT get Stunned",
+    "bug_behavior": "Player attacks → Player gets Stunned instead of enemies",
+    "verification": "grep 'Condition (Test Caster): Stunned' output.jsonl should return NOTHING",
+    "dm_instructions": "Include Stunned conditions in structured output with target='None'"
+  }
+}
