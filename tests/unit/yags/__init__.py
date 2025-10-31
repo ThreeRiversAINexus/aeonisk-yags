@@ -1,0 +1,1 @@
+"""YAGS rule compliance tests."""
