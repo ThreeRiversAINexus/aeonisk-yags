@@ -2476,15 +2476,24 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                     if not alive:
                                         logger.info(f"{target_name} KILLED by player attack!")
                                         narration += f"\n💀 **{target_name} is KILLED!**"
+                                        # Mark enemy as defeated (no longer targetable)
+                                        if hasattr(target_entity, 'is_active'):
+                                            target_entity.is_active = False
                                     elif status == "unconscious":
                                         logger.info(f"{target_name} knocked unconscious!")
                                         narration += f"\n😵 **{target_name} is knocked unconscious!**"
+                                        # Mark enemy as defeated (no longer targetable)
+                                        if hasattr(target_entity, 'is_active'):
+                                            target_entity.is_active = False
                                     else:
                                         logger.info(f"{target_name} critically wounded but conscious!")
                                         narration += f"\n⚠️  **{target_name} is critically wounded!**"
                                 else:
                                     logger.info(f"{target_name} defeated!")
                                     narration += f"\n💀 **{target_name} is defeated!**"
+                                    # Mark enemy as defeated (no longer targetable)
+                                    if hasattr(target_entity, 'is_active'):
+                                        target_entity.is_active = False
 
                         elif effect_type == 'debuff':
                             # Apply debuff (only enemies support this)
