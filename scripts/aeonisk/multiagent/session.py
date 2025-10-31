@@ -2162,11 +2162,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 )
 
         # Check for structured synthesis (Phase 5: Pydantic AI migration)
-        structured_synthesis = message.payload.get('structured_synthesis')
+        structured_synthesis_data = message.payload.get('structured_synthesis')
 
-        if structured_synthesis:
+        if structured_synthesis_data:
+            # Deserialize dict back to Pydantic model
+            from .schemas.story_events import RoundSynthesis
+            synthesis = RoundSynthesis(**structured_synthesis_data)
             # Process structured synthesis (no marker parsing!)
-            self._process_structured_synthesis(structured_synthesis)
+            self._process_structured_synthesis(synthesis)
         else:
             # Legacy marker parsing path
             self._process_legacy_markers(narration)

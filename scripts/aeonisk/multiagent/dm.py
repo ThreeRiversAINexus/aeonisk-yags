@@ -1248,7 +1248,8 @@ IMPORTANT:
         }
 
         if is_structured:
-            payload_data['structured_synthesis'] = synthesis
+            # Serialize Pydantic model to dict for JSON transmission
+            payload_data['structured_synthesis'] = synthesis.model_dump()
 
         self.send_message_sync(
             MessageType.DM_NARRATION,
