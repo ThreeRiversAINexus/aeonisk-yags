@@ -262,6 +262,132 @@ class EnemyCombatManager:
 
         return notifications
 
+    def spawn_from_structured(self, enemy_spawns: List['EnemySpawn']) -> List[str]:
+        """
+        Spawn enemies from structured output (Phase 5: Pydantic AI migration).
+
+        Args:
+            enemy_spawns: List of EnemySpawn objects from RoundSynthesis
+
+        Returns:
+            List of spawn notification messages
+        """
+        from .schemas.story_events import EnemySpawn
+        from .enemy_spawner import spawn_enemy_from_template
+
+        if not self.enabled:
+            return []
+
+        notifications = []
+
+        for spawn in enemy_spawns:
+            # Spawn each enemy from the structured data
+            for i in range(spawn.count):
+                # Generate unique name for each unit
+                if spawn.count > 1:
+                    enemy_name = f"{spawn.faction} {spawn.archetype} #{i+1}"
+                else:
+                    enemy_name = f"{spawn.faction} {spawn.archetype}"
+
+                # Use the template-based spawner
+                enemy = spawn_enemy_from_template(
+                    template=spawn.template.lower(),
+                    name=enemy_name,
+                    position=spawn.initial_position,
+                    tactics=spawn.custom_traits or "adaptive",
+                    spawned_round=self.current_round
+                )
+
+                if enemy:
+                    self.enemy_agents.append(enemy)
+                    notifications.append(
+                        f"⚔️  **{enemy.name}** spawned! "
+                        f"({spawn.spawn_reason}) "
+                        f"[{enemy.health} HP, {enemy.position}, tactics: {enemy.tactics}]"
+                    )
+                    logger.info(f"Spawned enemy (structured): {enemy.name} (ID: {enemy.agent_id}) - {spawn.spawn_reason}")
+
+                    # Log enemy spawn to JSONL for ML training
+                    if self.shared_state:
+                        mechanics = self.shared_state.get_mechanics_engine()
+                        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            # Build stats dict
+                            stats = {
+                                "health": enemy.health,
+                                "max_health": enemy.max_health,
+                                "soak": enemy.soak,
+                                "attributes": enemy.attributes,
+                                "skills": enemy.skills,
+                                "weapons": [{"name": w.name, "attack": w.attack, "damage": w.damage, "skill": w.skill} for w in enemy.weapons],
+                                "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None,
+                                "is_group": enemy.is_group,
+                                "unit_count": enemy.unit_count if enemy.is_group else 1
+                            }
+
+                            mechanics.jsonl_logger.log_enemy_spawn(
+                                round_num=self.current_round,
+                                enemy_id=enemy.agent_id,
+                                enemy_name=enemy.name,
+                                template=spawn.template,
+                                stats=stats,
+                                position=str(enemy.position),
+                                tactics=enemy.tactics
+                            )
+
+        return notifications
+
+    def remove_from_structured(self, enemy_removals: List['EnemyRemoval']) -> List[str]:
+        """
+        Remove enemies from structured output (Phase 5: Pydantic AI migration).
+
+        Args:
+            enemy_removals: List of EnemyRemoval objects from RoundSynthesis
+
+        Returns:
+            List of removal notification messages
+        """
+        from .schemas.story_events import EnemyRemoval
+
+        if not self.enabled:
+            return []
+
+        notifications = []
+
+        for removal in enemy_removals:
+            # Find matching enemies by name (partial match)
+            matching_enemies = [
+                e for e in self.enemy_agents
+                if e.is_active and removal.enemy_name.lower() in e.name.lower()
+            ]
+
+            if not matching_enemies:
+                logger.warning(f"No active enemy found matching '{removal.enemy_name}' for removal")
+                continue
+
+            for enemy in matching_enemies:
+                enemy.is_active = False
+                enemy.despawned_round = self.current_round
+
+                notifications.append(
+                    f"💀 **{enemy.name}** removed ({removal.resolution.value}): {removal.reason}"
+                )
+                logger.info(f"Removed enemy (structured): {enemy.name} - {removal.resolution.value}: {removal.reason}")
+
+                # Log enemy defeat to JSONL for ML training
+                if self.shared_state:
+                    mechanics = self.shared_state.get_mechanics_engine()
+                    if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        rounds_survived = enemy.despawned_round - enemy.spawned_round
+                        mechanics.jsonl_logger.log_enemy_defeat(
+                            round_num=self.current_round,
+                            enemy_id=enemy.agent_id,
+                            enemy_name=enemy.name,
+                            defeat_reason=removal.resolution.value,
+                            rounds_survived=rounds_survived
+                        )
+
+        return notifications
+
     def get_initiative_entries(self) -> List[Tuple[int, EnemyAgent]]:
         """
         Get enemy initiative entries for combat round.
@@ -342,7 +468,7 @@ class EnemyCombatManager:
         # Check if free targeting mode is enabled
         config = self.shared_state.session_config if self.shared_state else {}
         enemy_config = config.get('enemy_agent_config', {})
-        free_targeting = enemy_config.get('free_targeting_mode', False)
+        free_targeting = enemy_config.get('free_targeting_mode', True)  # Default: enabled
 
         # Get target ID mapper if in free targeting mode
         target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state and free_targeting else None

@@ -163,6 +163,13 @@ class AIPlayerAgent(Agent):
             # Replay mode - no structured output
             self.llm_provider = None
 
+        # Narrative context tracking (for player awareness of story progression)
+        self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
+        self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
+        # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
+        # {character_name: (intent, initiative_score)}
+        self.declared_actions_this_round: Dict[str, Tuple[str, int]] = {}
+
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
         self.position = Position.from_string("Near-PC")  # Default starting position
@@ -453,7 +460,7 @@ class AIPlayerAgent(Agent):
                 print(f"    {pivot_narration}")
 
     async def _handle_action_declared(self, message: Message):
-        """Handle action declarations from other players - show character voice."""
+        """Handle action declarations from other combatants - store for tactical awareness."""
         action = message.payload
 
         # Don't show our own actions (we already printed them)
@@ -463,15 +470,22 @@ class AIPlayerAgent(Agent):
         character_name = action.get('character_name', 'Unknown')
         description = action.get('description', '')
         intent = action.get('intent', '')
+        initiative = action.get('initiative', 0)
 
-        # Show the character voice description (debug only - DM will display during adjudication)
-        if description:
-            logger.debug(f"[{character_name}] {description}")
-        else:
-            logger.debug(f"[{character_name}] {intent}")
+        # Store ALL combatant actions for tactical awareness (neutral - no ally/enemy distinction)
+        # Store both description (full narrative) and intent (tactical summary) for AI context
+        if intent or description:
+            self.declared_actions_this_round[character_name] = (description, intent, initiative)
+            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative})")
 
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
+        # Reset free action flag each round (prevents bug where main action is skipped in Round 2+)
+        self.free_action_used = False
+
+        # Clear declared actions from previous round
+        self.declared_actions_this_round.clear()
+
         if self.human_controlled:
             await self._human_player_turn()
         else:
@@ -733,13 +747,30 @@ class AIPlayerAgent(Agent):
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
-        # Only process resolutions for this specific agent (filter out broadcasts meant for others)
-        resolved_agent_id = message.payload.get('agent_id')
-        if resolved_agent_id != self.agent_id:
-            return  # This resolution is for another agent
-
         outcome = message.payload.get('outcome', {})
         narration = message.payload.get('narration', '')
+        resolved_agent_id = message.payload.get('agent_id')
+
+        # Store ALL action resolution narrations (for tactical awareness)
+        # This includes other players' actions and enemy actions
+        if narration and resolved_agent_id != 'adjudication':  # Skip adjudication complete signal
+            # Get character name for context
+            original_action = message.payload.get('original_action', {})
+            acting_character = original_action.get('character_name', original_action.get('character', 'Unknown'))
+
+            # Prefix narration with character name for clarity
+            prefixed_narration = f"[{acting_character}] {narration}"
+            self.recent_narrations.append(prefixed_narration)
+
+            # Keep only last 5 narrations (FIFO rolling window)
+            if len(self.recent_narrations) > 5:
+                self.recent_narrations.pop(0)
+
+            logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character}")
+
+        # Only update OWN character state for resolutions targeting this agent
+        if resolved_agent_id != self.agent_id:
+            return  # Don't process state updates for other agents
 
         print(f"\n[{self.character_state.name}] Received resolution")
 
@@ -964,8 +995,14 @@ class AIPlayerAgent(Agent):
         # Don't echo DM narration - users can see it from DM's output directly
         # This prevents duplicate display of synthesis and other DM messages
 
-        # Still prompt human-controlled characters for response
+        # Store round synthesis for narrative context
         narration = message.payload.get('narration', '')
+        is_round_synthesis = message.payload.get('is_round_synthesis', False)
+        if is_round_synthesis and narration:
+            self.last_round_synthesis = narration
+            logger.debug(f"Player {self.character_state.name}: Stored round synthesis ({len(narration)} chars)")
+
+        # Still prompt human-controlled characters for response
         if narration and self.human_controlled:
             print(f"[HUMAN - {self.character_state.name}] How do you respond?")
 
@@ -1399,7 +1436,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
         # Check for free targeting mode FIRST (works with or without enemies)
         config = self.shared_state.session_config if self.shared_state else {}
         enemy_config = config.get('enemy_agent_config', {})
-        free_targeting = enemy_config.get('free_targeting_mode', False)
+        free_targeting = enemy_config.get('free_targeting_mode', True)  # Default: enabled
 
         # Get active enemies (empty list if enemy combat disabled)
         active_enemies = []
@@ -1530,6 +1567,13 @@ need to charge into melee, etc.), your action should be ATTACKING an enemy.
 
 🎯 **Enemy Targets:**
   {enemy_positions_text}
+
+⚠️  **TARGETING FORMAT** ⚠️
+When declaring combat actions, use the enemy NAME exactly as listed above:
+- CORRECT: target: "Tempest Operatives"
+- WRONG: target: "tgt_tempest_operatives" (don't invent IDs!)
+- WRONG: target: "the enemies" (be specific!)
+
 {weapon_inventory_text}
 💬 **SOCIAL DE-ESCALATION OPTIONS** 💬
 Combat doesn't always require killing! Consider non-violent neutralization:
@@ -1674,9 +1718,53 @@ Available non-combat actions:
                 party_knowledge += "- Talk to your companions about what they found\n"
                 party_knowledge += "- Explore a completely different angle\n"
 
+        # Build narrative context section (what's been happening in the story)
+        narrative_context = ""
+
+        # Add round synthesis (overall story progression)
+        if self.last_round_synthesis:
+            narrative_context += "\n# 📖 Recent Story Events\n\n"
+            narrative_context += "## What Just Happened (Last Round Summary):\n"
+            narrative_context += f"{self.last_round_synthesis}\n\n"
+
+        # Add recent action resolution narrations (specific outcomes)
+        if self.recent_narrations:
+            if not narrative_context:
+                narrative_context += "\n# 📖 Recent Story Events\n\n"
+            narrative_context += "## Recent Action Outcomes:\n"
+            for i, narration in enumerate(self.recent_narrations[-3:], 1):  # Last 3 narrations
+                # Truncate long narrations to keep prompt manageable
+                truncated = narration[:400] + "..." if len(narration) > 400 else narration
+                narrative_context += f"{i}. {truncated}\n\n"
+
+        # Add declared actions this round (all combatants in initiative order)
+        if self.declared_actions_this_round:
+            if not narrative_context:
+                narrative_context += "\n# 📖 Recent Story Events\n\n"
+
+            # Sort by initiative (slowest first, matching declaration order)
+            sorted_declarations = sorted(
+                self.declared_actions_this_round.items(),
+                key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]  # Initiative is at index 2 in new format, index 1 in old
+            )
+
+            narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+            narrative_context += "*You see what slower combatants declared before you. React accordingly!*\n\n"
+            for char_name, action_data in sorted_declarations:
+                # Handle both old format (intent, initiative) and new format (description, intent, initiative)
+                if len(action_data) == 3:
+                    description, intent, initiative = action_data
+                    narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
+                else:
+                    # Legacy format
+                    intent, initiative = action_data
+                    narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
+            narrative_context += "\n"
+
         prompt = f"""{system_prompt}
 
 {scenario_context}
+{narrative_context}
 {tactical_combat_context}
 {party_knowledge}
 

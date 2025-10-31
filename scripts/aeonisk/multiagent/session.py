@@ -104,6 +104,10 @@ class SelfPlayingSession:
         # Format: {character_name: [(action_type, success_tier, void_change, round_num), ...]}
         self._character_action_history: Dict[str, List[tuple]] = {}
 
+        # Track current round's initiative order for logging
+        # Format: {agent_id: initiative_score}
+        self._current_initiative: Dict[str, int] = {}
+
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
         self.shared_state.initialize_mechanics()
@@ -466,11 +470,26 @@ class SelfPlayingSession:
         initiative_order = []
         mechanics = self.shared_state.get_mechanics_engine()
 
+        # Capture clock state at round start for delta tracking
+        clock_state_start = {}
+        if mechanics and mechanics.scene_clocks:
+            for clock_name, clock in mechanics.scene_clocks.items():
+                clock_state_start[clock_name] = {
+                    'current': clock.current,
+                    'filled': clock.filled
+                }
+
+        # Clear previous round's initiative
+        self._current_initiative.clear()
+
         for player_agent in player_agents:
             # Get player's Agility attribute
             agility = player_agent.character_state.attributes.get('Agility', 3)
             initiative = mechanics.calculate_initiative(agility)
             initiative_order.append((initiative, 'player', player_agent))
+
+            # Store initiative for logging
+            self._current_initiative[player_agent.agent_id] = initiative
 
             # Display with position if available
             position_str = f" ({player_agent.position})" if hasattr(player_agent, 'position') else ""
@@ -481,6 +500,8 @@ class SelfPlayingSession:
             enemy_entries = self.enemy_combat.get_initiative_entries()
             for init, enemy in enemy_entries:
                 initiative_order.append((init, 'enemy', enemy))
+                # Store enemy initiative for logging
+                self._current_initiative[enemy.agent_id] = init
                 print(f"[{enemy.name}] (ENEMY) Initiative: {init} ({enemy.position})")
 
         # Sort by initiative (highest first)
@@ -494,9 +515,9 @@ class SelfPlayingSession:
         self._in_declaration_phase = True
         self._declared_actions.clear()
 
-        # Assign combat IDs for free targeting mode (if enabled)
+        # Assign combat IDs for free targeting mode (enabled by default)
         enemy_config = self.config.get('enemy_agent_config', {})
-        if enemy_config.get('free_targeting_mode', False):
+        if enemy_config.get('free_targeting_mode', True):
             logger.info("Free targeting mode enabled - assigning target IDs")
             target_id_mapper = self.shared_state.get_target_id_mapper()
             target_id_mapper.enable()
@@ -533,8 +554,17 @@ class SelfPlayingSession:
 
                 # Create a simple wrapper for the DM's LLM functionality
                 class DMLLMClient:
-                    def __init__(self, llm_config):
+                    """
+                    Wrapper for enemy LLM calls with logging support.
+                    Each enemy gets its own instance to track call_sequence per agent.
+                    """
+                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None):
                         self.llm_config = llm_config
+                        self.jsonl_logger = jsonl_logger
+                        self.agent_id = agent_id
+                        self.session_id = session_id
+                        self.call_sequence = 0  # Track LLM call ordering for replay
+
                         # Pre-create client for rate limiting
                         import anthropic
                         import os
@@ -542,16 +572,19 @@ class SelfPlayingSession:
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
                         provider = self.llm_config.get('provider', 'anthropic')
-                        model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+                        model = self.llm_config.get('model', 'claude-sonnet-4-5')
 
                         if provider == 'anthropic':
                             # Use rate-limited wrapper to prevent API overload
                             from .llm_provider import call_anthropic_with_retry
+                            from datetime import datetime
+
+                            messages = [{"role": "user", "content": prompt}]
 
                             response = await call_anthropic_with_retry(
                                 client=self.client,
                                 model=model,
-                                messages=[{"role": "user", "content": prompt}],
+                                messages=messages,
                                 max_tokens=max_tokens,
                                 temperature=temperature,
                                 max_retries=3,
@@ -559,11 +592,45 @@ class SelfPlayingSession:
                                 max_delay=120.0,
                                 use_rate_limiter=True
                             )
-                            return {"content": response.content[0].text}
+
+                            response_text = response.content[0].text
+
+                            # Log LLM call if logger is available
+                            if self.jsonl_logger:
+                                try:
+                                    self.jsonl_logger.write_event({
+                                        'event_type': 'llm_call',
+                                        'ts': datetime.utcnow().isoformat(),
+                                        'session': self.session_id or 'unknown',
+                                        'round': None,  # Enemy calls don't have round context here
+                                        'agent_id': self.agent_id,
+                                        'agent_type': 'enemy',
+                                        'call_sequence': self.call_sequence,
+                                        'prompt': messages,
+                                        'response': response_text,
+                                        'model': model,
+                                        'temperature': temperature,
+                                        'tokens': {
+                                            'input': response.usage.input_tokens,
+                                            'output': response.usage.output_tokens
+                                        }
+                                    })
+                                    self.call_sequence += 1
+                                except Exception as e:
+                                    import logging
+                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
+
+                            return {"content": response_text}
                         else:
                             raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
 
-                llm_client = DMLLMClient(dm_agent.llm_config)
+                # Create per-enemy LLM clients for proper logging
+                llm_client = DMLLMClient(
+                    dm_agent.llm_config,
+                    jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                    agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
+                    session_id=self.session_id
+                )
 
         # Declaration loop (slowest → fastest, reversed initiative order)
         for initiative_score, agent_type, agent in reversed(initiative_order):
@@ -603,11 +670,19 @@ class SelfPlayingSession:
                 if llm_client:
                     print(f"\n[{agent.name}] declaring (initiative {initiative_score})...")
 
+                    # Create per-enemy LLM client for proper logging
+                    enemy_llm_client = DMLLMClient(
+                        dm_agent.llm_config,
+                        jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                        agent_id=agent.agent_id,
+                        session_id=self.session_id
+                    )
+
                     declaration = await self.enemy_combat.declare_single_enemy(
                         enemy=agent,
                         player_agents=player_agents,
                         available_tokens=available_tokens,
-                        llm_client=llm_client
+                        llm_client=enemy_llm_client
                     )
 
                     # Log enemy declaration
@@ -619,6 +694,25 @@ class SelfPlayingSession:
                             action={'major_action': declaration['major_action'], 'target': declaration.get('target')},
                             round_num=mechanics.current_round
                         )
+
+                    # Broadcast enemy declaration to all players (for tactical awareness)
+                    # Note: sender must be agent_id for proper buffering in _handle_action_declared
+                    if declaration:
+                        broadcast_message = Message(
+                            id=f"enemy_declared_{datetime.now().isoformat()}_{agent.agent_id}",
+                            type=MessageType.ACTION_DECLARED,
+                            sender=declaration['agent_id'],  # Use enemy agent_id, not 'coordinator'
+                            recipient=None,  # Broadcast to all
+                            payload={
+                                'agent_id': declaration['agent_id'],
+                                'character_name': declaration['character_name'],
+                                'intent': declaration.get('major_action', 'Unknown action'),
+                                'initiative': declaration['initiative'],
+                                'agent_type': 'enemy'
+                            },
+                            timestamp=datetime.now()
+                        )
+                        await self.coordinator.message_bus._route_message(broadcast_message)
 
         self._in_declaration_phase = False
 
@@ -802,18 +896,36 @@ class SelfPlayingSession:
                         )
 
                 # Log round summary for balance analysis
-                active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.health > 0]) if self.enemy_combat.enabled else 0
+                active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.is_active]) if self.enemy_combat.enabled else 0
                 player_wounds_total = sum(player.wounds for player in player_agents if hasattr(player, 'wounds'))
 
-                # Compute clocks advanced/filled from clock states
+                # Compute clocks advanced/filled THIS ROUND (delta tracking)
                 clocks_advanced = 0
+                clocks_regressed = 0
                 clocks_filled = 0
-                if mechanics.scene_clocks:
-                    for clock in mechanics.scene_clocks.values():
-                        if clock.current > 0:
-                            clocks_advanced += 1
-                        if clock.filled:
-                            clocks_filled += 1
+                total_ticks_advanced = 0
+                total_ticks_regressed = 0
+
+                if mechanics.scene_clocks and clock_state_start:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        # Compare with starting state
+                        if clock_name in clock_state_start:
+                            start_current = clock_state_start[clock_name]['current']
+                            end_current = clock.current
+
+                            # Calculate delta
+                            delta = end_current - start_current
+
+                            if delta > 0:
+                                clocks_advanced += 1
+                                total_ticks_advanced += delta
+                            elif delta < 0:
+                                clocks_regressed += 1
+                                total_ticks_regressed += abs(delta)
+
+                            # Check if filled THIS ROUND
+                            if clock.filled and not clock_state_start[clock_name]['filled']:
+                                clocks_filled += 1
 
                 round_summary = {
                     'actions_attempted': self._round_stats['actions_attempted'],
@@ -824,8 +936,11 @@ class SelfPlayingSession:
                     'damage_taken_by_players': self._round_stats['damage_taken_by_players'],
                     'void_gained': self._round_stats['void_gained'],
                     'void_lost': self._round_stats['void_lost'],
-                    'clocks_advanced': clocks_advanced,
-                    'clocks_filled': clocks_filled,
+                    'clocks_advanced': clocks_advanced,  # Number of clocks that advanced THIS ROUND
+                    'clocks_regressed': clocks_regressed,  # Number of clocks that regressed THIS ROUND
+                    'clocks_filled': clocks_filled,  # Number of clocks that FILLED THIS ROUND
+                    'total_ticks_advanced': total_ticks_advanced,  # Total ticks advanced across all clocks THIS ROUND
+                    'total_ticks_regressed': total_ticks_regressed,  # Total ticks regressed across all clocks THIS ROUND
                     'active_enemies': active_enemy_count,
                     'player_wounds_total': player_wounds_total
                 }
@@ -1244,7 +1359,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         print()
 
     def _spawn_new_clocks(self, new_clocks: List[Dict[str, any]]):
-        """Spawn new clocks from DM markers."""
+        """Spawn new clocks from DM markers (legacy)."""
         if not self.shared_state or not self.shared_state.mechanics_engine:
             return
 
@@ -1272,6 +1387,45 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Log the new clock
             if mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_clock_spawn(name, max_ticks, description)
+
+    def _spawn_new_clocks_structured(self, new_clocks: List['NewClock']):
+        """Spawn new clocks from structured output (Phase 5: Pydantic AI migration)."""
+        from .schemas.story_events import NewClock
+
+        if not self.shared_state or not self.shared_state.mechanics_engine:
+            return
+
+        mechanics = self.shared_state.mechanics_engine
+
+        for clock in new_clocks:
+            # Create the new clock with semantic meaning
+            scene_clock = mechanics.create_scene_clock(
+                clock.name,
+                clock.max_ticks,
+                clock.description,
+                advance_means=clock.advance_meaning,
+                regress_means=clock.regress_meaning
+            )
+
+            # Set initial ticks if specified
+            if clock.current_ticks > 0:
+                scene_clock.current = clock.current_ticks
+
+            print(f"\n🕐 NEW CLOCK SPAWNED: {clock.name} (0/{clock.max_ticks}) - {clock.description}")
+
+            # Track clock creation in history
+            mechanics.clock_history.append({
+                'round': mechanics.current_round,
+                'event_type': 'created',
+                'clock_name': clock.name,
+                'description': clock.description,
+                'max': clock.max_ticks,
+                'consequence': scene_clock.filled_consequence if scene_clock else ''
+            })
+
+            # Log the new clock
+            if mechanics.jsonl_logger:
+                mechanics.jsonl_logger.log_clock_spawn(clock.name, clock.max_ticks, clock.description)
 
     async def _check_and_trigger_story_advancement(self):
         """Check if all clocks are complete and trigger DM to advance the story."""
@@ -1712,8 +1866,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
                 if player_agent:
                     character_name = player_agent.character_state.name
-                    # Get initiative from the payload if available, otherwise 0
-                    initiative = message.payload.get('initiative', 0)
+                    # Get initiative from stored value (rolled at round start)
+                    initiative = self._current_initiative.get(agent_id, 0)
                     mechanics.jsonl_logger.log_action_declaration(
                         player_id=agent_id,
                         character_name=character_name,
@@ -1723,9 +1877,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     )
 
         # Signal that this agent's declaration is complete
+        # Note: Enemies don't have pending events (they declare inline), so only signal for players
         if agent_id in self._pending_declarations:
             self._pending_declarations[agent_id].set()
-        else:
+        elif not agent_id.startswith('enemy_'):
+            # Only warn if it's not an enemy (enemies declare inline, no pending event expected)
             logger.warning(f"No pending declaration event for {agent_id}")
 
     def _handle_action_resolved(self, message: Message):
@@ -1754,8 +1910,237 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             event.set()
             logger.debug(f"Resolution complete for {agent_id} (legacy)")
 
+    def _process_structured_synthesis(self, synthesis: 'RoundSynthesis'):
+        """
+        Process structured round synthesis (Phase 5: Pydantic AI migration).
+
+        This method handles:
+        - Story advancement with conditional enemy clearing
+        - Enemy spawns
+        - Enemy removals (fled, convinced, neutralized)
+        - New clock spawning
+        - Session end
+        """
+        from .schemas.story_events import RoundSynthesis
+        from .dm import AIDMAgent
+
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+
+        logger.info("Processing structured synthesis (Phase 5)")
+
+        # 1. Handle story advancement FIRST (before enemy spawning)
+        if synthesis.story_advancement and synthesis.story_advancement.should_advance:
+            adv = synthesis.story_advancement
+            logger.info(f"Story advancement: {adv.location} - {adv.situation}")
+
+            # Clear clocks (always happens on story advancement)
+            if mechanics and mechanics.scene_clocks:
+                archived_clocks = list(mechanics.scene_clocks.keys())
+                mechanics.scene_clocks.clear()
+                logger.info(f"🗑️  Cleared {len(archived_clocks)} clocks for story advancement")
+
+            # Clear enemies (conditional on clear_all_enemies flag)
+            if adv.clear_all_enemies:
+                if self.enemy_combat and self.enemy_combat.enemy_agents:
+                    active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
+                    if active_enemies:
+                        for enemy in active_enemies:
+                            enemy.is_active = False
+                            enemy.despawned_round = mechanics.current_round if mechanics else 0
+                        enemy_names = [e.name for e in active_enemies]
+                        logger.info(f"🗑️  Cleared {len(active_enemies)} enemies (clear_all_enemies=True)")
+                        print(f"   Enemies removed: {', '.join(enemy_names)}")
+            else:
+                logger.info("✓ Preserving active enemies (clear_all_enemies=False)")
+
+            # Display and notify
+            print(f"\n✨ STORY ADVANCES ✨")
+            print(f"   New Location: {adv.location}")
+            print(f"   Situation: {adv.situation}")
+
+            # Notify all players of the story advancement
+            advance_narration = f"Story advances to: {adv.location}\n{adv.situation}"
+            advance_message = Message(
+                id=f"advance_{datetime.now().isoformat()}",
+                type=MessageType.SCENARIO_UPDATE,
+                sender='coordinator',
+                recipient=None,  # Broadcast to all
+                payload={
+                    'new_location': adv.location,
+                    'new_situation': adv.situation,
+                    'advance_narration': advance_narration,
+                    'story_advanced': True
+                },
+                timestamp=datetime.now()
+            )
+            import asyncio
+            asyncio.create_task(self.coordinator.message_bus._route_message(advance_message))
+
+            # Store advancement for DM
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agents[0].current_location = adv.location
+                dm_agents[0].pending_scenario_pivot = adv.situation
+
+            # Spawn new clocks from story advancement
+            if adv.new_clocks:
+                self._spawn_new_clocks_structured(adv.new_clocks)
+
+        # 2. Handle enemy spawns (AFTER story advancement)
+        if synthesis.enemy_spawns and self.enemy_combat.enabled:
+            spawn_notifications = self.enemy_combat.spawn_from_structured(synthesis.enemy_spawns)
+            for notification in spawn_notifications:
+                print(f"\n{notification}")
+
+        # 3. Handle enemy removals (non-combat exits)
+        if synthesis.enemy_removals and self.enemy_combat.enabled:
+            removal_notifications = self.enemy_combat.remove_from_structured(synthesis.enemy_removals)
+            for notification in removal_notifications:
+                print(f"\n{notification}")
+
+        # 4. Handle scene pivot (minor room transitions)
+        if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:
+            pivot = synthesis.scene_pivot
+            logger.info(f"Scene pivot: {pivot.new_room}")
+
+            # Clear specific clocks if requested
+            if pivot.clear_specific_clocks and mechanics:
+                for clock_name in pivot.clear_specific_clocks:
+                    if clock_name in mechanics.scene_clocks:
+                        del mechanics.scene_clocks[clock_name]
+                        logger.info(f"Cleared clock: {clock_name}")
+
+            # Spawn new clocks
+            if pivot.new_clocks:
+                self._spawn_new_clocks_structured(pivot.new_clocks)
+
+            print(f"\n🔄 SCENE PIVOT")
+            print(f"   New Area: {pivot.new_room}")
+            print(f"   Situation: {pivot.situation_change}")
+
+        # 5. Handle session end
+        if synthesis.session_end:
+            self._session_end_status = synthesis.session_end
+            logger.info(f"Session ended: {synthesis.session_end} - {synthesis.session_end_reason}")
+
+    def _process_legacy_markers(self, narration: str):
+        """
+        Process legacy text markers (fallback for non-structured synthesis).
+
+        This method handles:
+        - [SPAWN_ENEMY: ...] markers
+        - [DESPAWN_ENEMY: ...] markers
+        - [ADVANCE_STORY: ...] markers
+        - [NEW_CLOCK: ...] markers
+        - [SESSION_END: ...] markers
+        """
+        from .outcome_parser import (
+            parse_advance_story_marker,
+            parse_new_clock_marker,
+            parse_session_end_marker,
+            extract_invalid_advance_story_markers
+        )
+        from .dm import AIDMAgent
+
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+
+        logger.debug("Processing legacy markers (fallback)")
+
+        # Process enemy spawn/despawn markers
+        if self.enemy_combat.enabled:
+            spawn_notifications = self.enemy_combat.process_dm_narration(narration)
+            for notification in spawn_notifications:
+                print(f"\n{notification}")
+
+        # Check for session end marker
+        end_result = parse_session_end_marker(narration)
+        if end_result['status'] != 'none':
+            self._session_end_status = end_result['status']
+            logger.info(f"DM declared session end: {end_result['status']}" +
+                       (f" - {end_result['reason']}" if end_result['reason'] else ""))
+
+        # Check for invalid ADVANCE_STORY markers and retry if needed
+        invalid_advances = extract_invalid_advance_story_markers(narration)
+
+        if invalid_advances:
+            logger.warning(f"Found {len(invalid_advances)} invalid ADVANCE_STORY markers - requesting retry")
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agent = dm_agents[0]
+                import asyncio
+                current_round_num = mechanics.current_round if mechanics else 0
+
+                async def retry_and_update():
+                    retry_response = await dm_agent._retry_invalid_markers(
+                        marker_type="ADVANCE_STORY",
+                        invalid_markers=invalid_advances,
+                        round_num=current_round_num
+                    )
+                    if retry_response.strip():
+                        logger.info(f"ADVANCE_STORY retry complete: {retry_response[:100]}...")
+
+                asyncio.create_task(retry_and_update())
+                logger.info("Scheduled ADVANCE_STORY marker retry in background")
+
+        # Process story advancement marker
+        advance_result = parse_advance_story_marker(narration)
+        if advance_result['should_advance']:
+            logger.info(f"DM requested story advancement: {advance_result['location']} - {advance_result['situation']}")
+
+            # Clear ALL old clocks
+            if mechanics and mechanics.scene_clocks:
+                archived_clocks = list(mechanics.scene_clocks.keys())
+                mechanics.scene_clocks.clear()
+                logger.info(f"🗑️  Cleared all old clocks for story advancement: {', '.join(archived_clocks)}")
+
+            # Clear ALL active enemies (legacy behavior: always clear)
+            if self.enemy_combat and self.enemy_combat.enemy_agents:
+                active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
+                if active_enemies:
+                    for enemy in active_enemies:
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+                    enemy_names = [e.name for e in active_enemies]
+                    logger.info(f"🗑️  Cleared {len(active_enemies)} active enemies for story advancement: {', '.join(enemy_names)}")
+                    print(f"   Enemies removed: {', '.join(enemy_names)}")
+
+            print(f"\n✨ STORY ADVANCES ✨")
+            print(f"   New Location: {advance_result['location']}")
+            print(f"   Situation: {advance_result['situation']}")
+            if mechanics and mechanics.scene_clocks and archived_clocks:
+                print(f"   Previous clocks cleared: {', '.join(archived_clocks)}")
+
+            # Notify all players of the story advancement
+            advance_narration = f"Story advances to: {advance_result['location']}\n{advance_result['situation']}"
+            advance_message = Message(
+                id=f"advance_{datetime.now().isoformat()}",
+                type=MessageType.SCENARIO_UPDATE,
+                sender='coordinator',
+                recipient=None,  # Broadcast to all
+                payload={
+                    'new_location': advance_result['location'],
+                    'new_situation': advance_result['situation'],
+                    'advance_narration': advance_narration,
+                    'story_advanced': True
+                },
+                timestamp=datetime.now()
+            )
+            import asyncio
+            asyncio.create_task(self.coordinator.message_bus._route_message(advance_message))
+
+            # Store advancement for DM
+            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+            if dm_agents:
+                dm_agents[0].current_location = advance_result['location']
+                dm_agents[0].pending_scenario_pivot = advance_result['situation']
+
+        # Check for new clock markers (spawned AFTER clearing for story advancement)
+        new_clocks = parse_new_clock_marker(narration)
+        if new_clocks:
+            self._spawn_new_clocks(new_clocks)
+
     def _handle_dm_narration(self, message: Message):
-        """Handle DM narration and check for control markers."""
+        """Handle DM narration and check for control markers (structured or legacy)."""
         if message.type != MessageType.DM_NARRATION:
             return
 
@@ -1776,113 +2161,18 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     synthesis=narration
                 )
 
-        # Process enemy spawn/despawn markers
-        if self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.process_dm_narration(narration)
-            for notification in spawn_notifications:
-                print(f"\n{notification}")
+        # Check for structured synthesis (Phase 5: Pydantic AI migration)
+        structured_synthesis_data = message.payload.get('structured_synthesis')
 
-        # Check for session end marker
-        end_result = parse_session_end_marker(narration)
-        if end_result['status'] != 'none':
-            self._session_end_status = end_result['status']
-            logger.info(f"DM declared session end: {end_result['status']}" +
-                       (f" - {end_result['reason']}" if end_result['reason'] else ""))
-
-        # Check for story advancement marker FIRST
-        # (so we can clear old clocks before spawning new ones)
-
-        # Check for invalid ADVANCE_STORY markers and retry if needed
-        from .outcome_parser import extract_invalid_advance_story_markers
-        from .dm import AIDMAgent  # Import at function level to avoid scoping issues
-
-        invalid_advances = extract_invalid_advance_story_markers(narration)
-
-        if invalid_advances:
-            logger.warning(f"Found {len(invalid_advances)} invalid ADVANCE_STORY markers - requesting retry")
-            # Get DM agent to retry
-            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
-            if dm_agents:
-                dm_agent = dm_agents[0]
-                import asyncio
-                # Get current round from mechanics
-                mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
-                current_round_num = mechanics.current_round if mechanics else 0
-
-                # Schedule async retry task (don't block with run_until_complete)
-                async def retry_and_update():
-                    retry_response = await dm_agent._retry_invalid_markers(
-                        marker_type="ADVANCE_STORY",
-                        invalid_markers=invalid_advances,
-                        round_num=current_round_num
-                    )
-                    # Update narration state if retry succeeded
-                    if retry_response.strip():
-                        # Note: We can't modify 'narration' variable from here since it's local scope
-                        # The retry will regenerate properly formatted markers on next synthesis
-                        logger.info(f"ADVANCE_STORY retry complete: {retry_response[:100]}...")
-
-                asyncio.create_task(retry_and_update())
-                logger.info("Scheduled ADVANCE_STORY marker retry in background")
-
-        advance_result = parse_advance_story_marker(narration)
-        if advance_result['should_advance']:
-            logger.info(f"DM requested story advancement: {advance_result['location']} - {advance_result['situation']}")
-
-            # Clear ALL old clocks when story advances (fresh start)
-            mechanics = self.shared_state.mechanics_engine
-            if mechanics and mechanics.scene_clocks:
-                archived_clocks = list(mechanics.scene_clocks.keys())
-                mechanics.scene_clocks.clear()
-                logger.info(f"🗑️  Cleared all old clocks for story advancement: {', '.join(archived_clocks)}")
-
-            # Clear ALL active enemies when story advances (default behavior)
-            # Prevents enemies from persisting across scene changes
-            if self.enemy_combat and self.enemy_combat.enemy_agents:
-                active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
-                if active_enemies:
-                    for enemy in active_enemies:
-                        enemy.is_active = False
-                        enemy.despawned_round = mechanics.current_round if mechanics else 0
-                    enemy_names = [e.name for e in active_enemies]
-                    logger.info(f"🗑️  Cleared {len(active_enemies)} active enemies for story advancement: {', '.join(enemy_names)}")
-                    print(f"   Enemies removed: {', '.join(enemy_names)}")
-
-            print(f"\n✨ STORY ADVANCES ✨")
-            print(f"   New Location: {advance_result['location']}")
-            print(f"   Situation: {advance_result['situation']}")
-            if mechanics and mechanics.scene_clocks:
-                if archived_clocks:
-                    print(f"   Previous clocks cleared: {', '.join(archived_clocks)}")
-
-            # Notify all players of the story advancement
-            advance_narration = f"Story advances to: {advance_result['location']}\n{advance_result['situation']}"
-            advance_message = Message(
-                id=f"advance_{datetime.now().isoformat()}",
-                type=MessageType.SCENARIO_UPDATE,
-                sender='coordinator',
-                recipient=None,  # Broadcast to all
-                payload={
-                    'new_location': advance_result['location'],
-                    'new_situation': advance_result['situation'],
-                    'advance_narration': advance_narration,
-                    'story_advanced': True
-                },
-                timestamp=datetime.now()
-            )
-            import asyncio
-            asyncio.create_task(self.coordinator.message_bus._route_message(advance_message))
-
-            # Store advancement for DM to use in generating next scenario
-            dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
-            if dm_agents:
-                dm_agents[0].current_location = advance_result['location']
-                dm_agents[0].pending_scenario_pivot = advance_result['situation']
-
-        # Check for new clock markers (spawned AFTER clearing for story advancement)
-        new_clocks = parse_new_clock_marker(narration)
-        if new_clocks:
-            self._spawn_new_clocks(new_clocks)
+        if structured_synthesis_data:
+            # Deserialize dict back to Pydantic model
+            from .schemas.story_events import RoundSynthesis
+            synthesis = RoundSynthesis(**structured_synthesis_data)
+            # Process structured synthesis (no marker parsing!)
+            self._process_structured_synthesis(synthesis)
+        else:
+            # Legacy marker parsing path
+            self._process_legacy_markers(narration)
 
 
 # Configuration example

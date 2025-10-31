@@ -87,16 +87,16 @@ class LLMConfig:
 
     # Retry/backoff configuration
     max_retries: int = 3  # Number of retry attempts for overloaded/rate limit errors
-    base_delay: float = 2.0  # Base delay in seconds for exponential backoff (increased from 1.0)
+    base_delay: float = 5.0  # Base delay in seconds for exponential backoff (increased from 2.0)
     max_delay: float = 120.0  # Maximum delay between retries (increased from 60.0)
     jitter: bool = True  # Add randomness to prevent thundering herd
 
     # Rate limiting (global across all agents)
     # Tuned for multi-agent sessions (3 PCs + 2 enemies + DM = 6 agents)
-    # More aggressive to prevent Anthropic API 500 Overloaded errors
+    # Very aggressive to prevent Anthropic API 500 Overloaded errors
     use_rate_limiter: bool = True  # Enable global rate limiting
-    max_concurrent_requests: int = 3  # Max concurrent API calls across all agents (reduced from 5)
-    min_request_interval: float = 0.5  # Minimum seconds between request starts (increased from 0.2)
+    max_concurrent_requests: int = 2  # Max concurrent API calls across all agents (reduced from 3)
+    min_request_interval: float = 1.0  # Minimum seconds between request starts (increased from 0.5)
 
     # Provider-specific kwargs
     extra_params: Dict[str, Any] = None

@@ -14,6 +14,7 @@ section_order:
 - shared_intel
 - retreat_assessment
 - declaration_requirements
+- structured_output_format
 - footer
 sections:
   header: |-
@@ -160,6 +161,112 @@ sections:
     TACTICAL_REASONING: Morale broken, attempting escape. Will roll Agility × Athletics vs DC 15 to escape successfully.
     SHARE_INTEL: Morale broken, withdrawing from engagement
     ```
+  structured_output_format: |-
+    ## ⚙️ STRUCTURED OUTPUT FORMAT
+
+    **YOU ARE USING PYDANTIC AI STRUCTURED OUTPUT - NOT PLAIN TEXT**
+
+    Your tactical decisions MUST conform to the `EnemyDecision` schema with these REQUIRED fields:
+
+    ```python
+    EnemyDecision(
+        agent_id: str,              # Your agent ID
+        character_name: str,        # Your unit name
+        initiative: int,            # Your initiative value
+        major_action: str,          # Attack|Shift|Charge|Suppress|Retreat|FLEE|etc.
+        target: Optional[str],      # Target agent_id or position
+        weapon: Optional[str],      # Weapon name if attacking
+        defence_token: Optional[str],  # PC agent_id you're watching
+        minor_action: Optional[str],   # Shift|Claim_Token|Reload|None
+        token_target: Optional[str],   # Token name if claiming
+        tactical_reasoning: str,    # 20-500 chars - explain your decision
+        shared_intel: Optional[str]    # Info to share with allies
+    )
+    ```
+
+    ## 🚨 MANDATORY FIELD RULES 🚨
+
+    **1. MAJOR_ACTION - Must be valid tactical option**
+    - ✅ VALID: Attack, Shift, Shift_2, Charge, Suppress, Push_Through, Throw_Grenade, Retreat, FLEE
+    - ❌ INVALID: "shoot", "move", "run away" (use proper action names!)
+
+    **2. TARGET - Must be appropriate for action**
+    - For Attack/Charge: Must be PC agent_id (e.g., "pc_ash_001")
+    - For Shift/Shift_2: Must be position (e.g., "Near-PC", "Far-Enemy")
+    - For grenades: Must be ring-side location (e.g., "Near-Enemy-Right")
+
+    **3. DEFENCE_TOKEN - Must be PC agent_id you're watching**
+    - ✅ CORRECT: "pc_sable_001" (watching PC to reduce their flanking bonus)
+    - ❌ WRONG: "None" when PCs exist (you MUST watch someone!)
+
+    **4. TACTICAL_REASONING - Must explain your decision (20-500 chars)**
+    - ✅ CORRECT: "Targeting Echo (low health, 15 HP) with rifle. Watching Sable for defence to prevent flanking. Claiming High Ground for +2 ranged."
+    - ❌ WRONG: "Attacking" (too vague - explain WHY!)
+
+    ## 📊 STRUCTURED OUTPUT EXAMPLES
+
+    **Example 1: Tactical Attack with Flanking**
+    ```python
+    EnemyDecision(
+        agent_id="enemy_grunt_7a3f",
+        character_name="ACG Enforcer Alpha",
+        initiative=14,
+        major_action="Attack",
+        target="pc_echo_002",
+        weapon="Kinetic Rifle",
+        defence_token="pc_sable_001",
+        minor_action="Claim_Token",
+        token_target="High Ground",
+        tactical_reasoning="Targeting Echo (low HP, not watching me for +2 flanking). Watching Sable to mitigate melee threat. Claiming High Ground for sustained ranged advantage.",
+        shared_intel="Echo at 15 HP, prioritize target"
+    )
+    ```
+
+    **Example 2: Repositioning for Cover**
+    ```python
+    EnemyDecision(
+        agent_id="enemy_sniper_b2e1",
+        character_name="Void Sniper",
+        initiative=18,
+        major_action="Shift_2",
+        target="Far-Enemy",
+        weapon=None,
+        defence_token="pc_riven_003",
+        minor_action="None",
+        tactical_reasoning="Shifting to Far-Enemy for maximum range advantage. Current position exposed to Riven's melee threat. Prioritizing survival over immediate damage.",
+        shared_intel="Moving to far position, provide suppressing fire"
+    )
+    ```
+
+    **Example 3: Morale Break - Fleeing**
+    ```python
+    EnemyDecision(
+        agent_id="enemy_grunt_9c4d",
+        character_name="Street Thug",
+        initiative=9,
+        major_action="FLEE",
+        target=None,
+        weapon=None,
+        defence_token=None,
+        minor_action=None,
+        tactical_reasoning="Morale broken (HP < 25%, last ally down). Attempting escape via Athletics check DC 15. Self-preservation overrides combat objectives.",
+        shared_intel="Morale broken, withdrawing from engagement"
+    )
+    ```
+
+    ## ✅ VALIDATION CHECKLIST
+
+    Before declaring your tactical decision, verify:
+    - ☑ Agent_id and character_name match your unit
+    - ☑ Major_action is valid combat action
+    - ☑ Target is appropriate for action type
+    - ☑ Defence_token is PC agent_id (not None unless no PCs exist)
+    - ☑ Tactical_reasoning is 20+ chars and explains decision
+    - ☑ If claiming token, token_target is specified
+    - ☑ Shared_intel communicates useful info to allies (optional)
+
+    **REMEMBER:** Clear, structured tactical decisions = better AI enemy behavior = more challenging gameplay!
+
   footer: |-
     ---
 

@@ -243,7 +243,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 Create a scenario with:
 1. Theme (2-3 words): The type of situation
 2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
-3. Situation (1-2 sentences): What's happening
+3. Situation (3-6 sentences): Vivid, atmospheric opening narration that drops players directly into the action. Paint the scene with sensory details, immediate tension, environmental atmosphere, NPCs present, and what's at stake. Show don't tell. This becomes the opening narration players will hear.
 4. Three clocks/timers with CLEAR SEMANTICS:
    - A threat/danger that could escalate
    - Something the players are trying to accomplish
@@ -261,10 +261,13 @@ Create a scenario with:
 Format:
 THEME: [theme]
 LOCATION: [location from canonical lore]
-SITUATION: [situation]
+SITUATION: [vivid 3-6 sentence atmospheric opening]
 CLOCK1: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK2: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
 CLOCK3: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
+
+Example situation (VIVID, ATMOSPHERIC):
+SITUATION: The Resonance Spire's transmission array crackles with stolen signals - House of Vox feeds hijacked mid-broadcast, replaced with manifesto scrolls denouncing the Nexus. Below, Pantheon Security cordons spiral upward through the cloudbreak, boots hammering on glass walkways. The hijackers are still inside, somewhere in the 200 floors of offices and studios. You have maybe ten minutes before the building locks down completely.
 
 Example clocks (MECHANICAL - with spawn markers):
 CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get closer to finding the team | REGRESS=Team evades or misleads pursuit | FILLED=Hunter team arrives [SPAWN_ENEMY: Corporate Hunters | elite | 2 | Far-Enemy | tactical_ranged]
@@ -698,6 +701,8 @@ IMPORTANT:
             'clocks': []
         }
 
+        logger.debug(f"Parsing scenario from LLM output ({len(llm_text)} chars, {len(lines)} lines)")
+
         for line in lines:
             line = line.strip()
             # Remove markdown formatting (**, *, etc) for parsing
@@ -706,10 +711,13 @@ IMPORTANT:
             if ':' in clean_line or '|' in clean_line:
                 if clean_line.startswith('THEME:'):
                     scenario_data['theme'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                    logger.debug(f"  Parsed THEME: {scenario_data['theme']}")
                 elif clean_line.startswith('LOCATION:'):
                     scenario_data['location'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                    logger.debug(f"  Parsed LOCATION: {scenario_data['location']}")
                 elif clean_line.startswith('SITUATION:'):
                     scenario_data['situation'] = clean_line.split(':', 1)[1].strip().strip('*').strip()
+                    logger.debug(f"  Parsed SITUATION: {scenario_data['situation']}")
                 elif clean_line.startswith('VOID_LEVEL:'):
                     try:
                         scenario_data['void_level'] = int(clean_line.split(':', 1)[1].strip())
@@ -747,8 +755,10 @@ IMPORTANT:
 
         # Ensure we have at least 2 clocks
         if len(scenario_data['clocks']) < 2:
-            scenario_data['clocks'].append(('Danger Escalation', 6, 'The situation worsens'))
-            scenario_data['clocks'].append(('Player Progress', 6, 'Investigating the mystery'))
+            scenario_data['clocks'].append(('Danger Escalation', 6, 'The situation worsens', '', '', ''))
+            scenario_data['clocks'].append(('Player Progress', 6, 'Investigating the mystery', '', '', ''))
+
+        logger.debug(f"Parsed scenario: theme='{scenario_data['theme']}', location='{scenario_data['location']}', situation='{scenario_data['situation']}' ({len(scenario_data['situation'])} chars), clocks={len(scenario_data['clocks'])}")
 
         return scenario_data
 
@@ -1129,9 +1139,11 @@ IMPORTANT:
 
     def _generate_opening_narration(self, scenario: Scenario, faction_conflicts: List[Dict] = None) -> str:
         """Generate opening narration for scenario."""
-        narration = f"""
-The party finds themselves at {scenario.location}. {scenario.situation}.
-The air carries a distinct tension, and you sense the void's influence at level {scenario.void_level}/10."""
+        # Just use the situation directly - it should be self-contained
+        if scenario.situation:
+            narration = scenario.situation
+        else:
+            narration = f"The party finds themselves at {scenario.location}."
 
         # Add faction conflict warnings
         if faction_conflicts:
@@ -1209,21 +1221,40 @@ The air carries a distinct tension, and you sense the void's influence at level 
         if not resolutions:
             return
 
-        # Generate synthesis
+        # Generate synthesis (can be RoundSynthesis object or str)
         synthesis = await self._synthesize_round_outcome(resolutions, round_num)
+
+        # Import RoundSynthesis for type checking
+        from .schemas.story_events import RoundSynthesis
+
+        # Prepare narration text for display and payload
+        if isinstance(synthesis, RoundSynthesis):
+            narration_text = synthesis.narration
+            is_structured = True
+        else:
+            narration_text = synthesis
+            is_structured = False
+
         print(f"\n[DM {self.agent_id}] ===== Round Synthesis =====")
-        print(synthesis)
+        print(narration_text)
         print("=" * 40)
 
         # Broadcast the round synthesis to all players
+        # If structured, include the full object; otherwise just text
+        payload_data = {
+            'narration': narration_text,
+            'is_round_synthesis': True,
+            'round': round_num
+        }
+
+        if is_structured:
+            # Serialize Pydantic model to dict for JSON transmission
+            payload_data['structured_synthesis'] = synthesis.model_dump()
+
         self.send_message_sync(
             MessageType.DM_NARRATION,
             None,  # Broadcast
-            {
-                'narration': synthesis,
-                'is_round_synthesis': True,
-                'round': round_num
-            }
+            payload_data
         )
 
     def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
@@ -1821,10 +1852,13 @@ The air carries a distinct tension, and you sense the void's influence at level 
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int) -> str:
+    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
         This is where conflicts are detected and described.
+
+        Returns:
+            Either a RoundSynthesis object (structured) or str (legacy fallback)
         """
         if not resolutions:
             return "The moment passes without incident."
@@ -2102,29 +2136,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
             structured_synthesis = await self._generate_round_synthesis_structured(prompt)
 
             if structured_synthesis:
-                # Convert structured synthesis to text format
-                synthesis_text = structured_synthesis.narration
-
-                # Handle story advancement
-                if structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance:
-                    adv = structured_synthesis.story_advancement
-                    synthesis_text += f"\n\n[ADVANCE_STORY: {adv.location} | {adv.situation}]"
-
-                    # Add new clocks
-                    for clock in adv.new_clocks:
-                        synthesis_text += f"\n[NEW_CLOCK: {clock.name} | {clock.max_ticks} | {clock.description}]"
-
-                # Handle enemy spawns
-                for spawn in structured_synthesis.enemy_spawns:
-                    # Convert structured spawn to marker format
-                    synthesis_text += f"\n[SPAWN_ENEMY: {spawn.faction} {spawn.archetype} | {spawn.template.lower()} | {spawn.count} | {spawn.initial_position.value} | adaptive]"
-
-                # Handle session end
-                if structured_synthesis.session_end:
-                    synthesis_text += f"\n[SESSION_END: {structured_synthesis.session_end.upper()}]"
-
-                logger.debug(f"✓ Using structured synthesis (Phase 5)")
-                return synthesis_text
+                # Return structured object directly (no marker conversion)
+                logger.debug(f"✓ Using structured synthesis: {len(structured_synthesis.narration)} chars, "
+                           f"{len(structured_synthesis.enemy_spawns)} spawns, "
+                           f"story_advance={structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance}")
+                return structured_synthesis
 
             # Legacy text generation fallback
             logger.debug("DM: Using legacy text generation for synthesis")
@@ -2282,11 +2298,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    # If targeting a PC, populate target_character for PC-to-PC action handling
                     if target_entity and target_id_mapper.is_player(action['target']):
                         if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
                             action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
+                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
@@ -2315,26 +2331,13 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         'source': 'combat_triplet'
                     }
 
-                # If still no effect, generate fallback damage ONLY for actual enemies
-                # For PC-to-PC actions in free targeting mode, trust the DM's narration entirely
-                if not effect and resolution and resolution.success:
-                    # Check if target is a PC or enemy
-                    target_identifier = action.get('target')
-                    is_targeting_pc = False
-
-                    if target_identifier and target_identifier.startswith('tgt_'):
-                        target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
-                        if target_id_mapper and target_id_mapper.enabled:
-                            is_targeting_pc = target_id_mapper.is_player(target_identifier)
-
-                    # Only generate fallback damage if targeting an actual enemy (not a PC)
-                    # For PC-to-PC actions: DM narration is authoritative (heal/harm/purify determined by DM)
-                    if not is_targeting_pc:
-                        effect = generate_fallback_effect(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
-                        if effect:
-                            logger.debug(f"Generated fallback effect for enemy: {effect.get('type')} targeting {effect.get('target')}")
-                    else:
-                        logger.debug(f"Targeting PC detected - trusting DM narration entirely (no fallback damage)")
+                # Fallback COMPLETELY DISABLED for structured output.
+                # Philosophy: Trust the DM's structured output completely.
+                # If DM didn't populate effects, that's intentional (e.g., scouting, failed action, narrative-only).
+                #
+                # Legacy fallback code removed - structured output from PydanticAI is now authoritative.
+                # The DM must explicitly populate damage/conditions/void via the Pydantic schema.
+                pass  # Fallback disabled
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -2476,15 +2479,24 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                     if not alive:
                                         logger.info(f"{target_name} KILLED by player attack!")
                                         narration += f"\n💀 **{target_name} is KILLED!**"
+                                        # Mark enemy as defeated (no longer targetable)
+                                        if hasattr(target_entity, 'is_active'):
+                                            target_entity.is_active = False
                                     elif status == "unconscious":
                                         logger.info(f"{target_name} knocked unconscious!")
                                         narration += f"\n😵 **{target_name} is knocked unconscious!**"
+                                        # Mark enemy as defeated (no longer targetable)
+                                        if hasattr(target_entity, 'is_active'):
+                                            target_entity.is_active = False
                                     else:
                                         logger.info(f"{target_name} critically wounded but conscious!")
                                         narration += f"\n⚠️  **{target_name} is critically wounded!**"
                                 else:
                                     logger.info(f"{target_name} defeated!")
                                     narration += f"\n💀 **{target_name} is defeated!**"
+                                    # Mark enemy as defeated (no longer targetable)
+                                    if hasattr(target_entity, 'is_active'):
+                                        target_entity.is_active = False
 
                         elif effect_type == 'debuff':
                             # Apply debuff (only enemies support this)
@@ -2833,17 +2845,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     narration += f"\n\n{eye_of_breach_event}"
 
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
-            if state_changes.get('soulcredit_change', 0) != 0:
-                sc_state = mechanics.get_soulcredit_state(player_id)
-                old_sc = sc_state.score
-                reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
-                sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
-                # Show SC change to the affected player only (private knowledge)
-                # Other players do NOT see each other's soulcredit (asymmetric information)
-                if sc_state.score != old_sc:
-                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.score} ({reasons_text})"
+            # Always show soulcredit line (even if +0) for consistency, UNLESS DM already included one
+            sc_state = mechanics.get_soulcredit_state(player_id)
+            old_sc = sc_state.score
+            sc_change = state_changes.get('soulcredit_change', 0)
+            reasons_text = ', '.join(state_changes.get('soulcredit_reasons', [])) if state_changes.get('soulcredit_reasons') else 'no change'
+            sc_source = state_changes.get('soulcredit_source', '')
 
-            # Apply conditions
+            if sc_change != 0:
+                sc_state.adjust(sc_change, reasons_text)
+
+            # Show SC change to the affected player only (private knowledge)
+            # Other players do NOT see each other's soulcredit (asymmetric information)
+            # Only skip adding line if DM explicitly included one in narration text
+            if sc_source != 'dm_explicit':
+                # Add soulcredit line for clarity (from structured output or default)
+                # Always show, even +0, unless DM already wrote it in narration
+                narration += f"\n\n⚖️ Soulcredit: {sc_change:+d} ({reasons_text})"
+
+            # Apply conditions (with targeting support - apply to target, not actor)
             from .mechanics import Condition
             for condition_data in state_changes.get('conditions', []):
                 condition = Condition(
@@ -2854,10 +2874,50 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     duration=3,  # Default duration
                     affects=[]  # Affects all by default
                 )
-                mechanics.add_condition(player_id, condition)
 
-                # Show condition application
-                narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
+                # Determine who receives the condition (default: actor, but can be target)
+                # Check if action has a target (for damage-dealing/debuff actions)
+                target_id = action.get('target')  # Could be tgt_xxxx or character name
+                condition_target_id = player_id  # Default: apply to actor
+                condition_target_name = action.get('character', player_id)
+
+                # If action has a target, apply condition to target instead of actor
+                if target_id and target_id != 'None':
+                    logger.debug(f"Condition '{condition.name}' has target: {target_id}")
+
+                    # Resolve target ID to agent_id
+                    if target_id.startswith('tgt_'):
+                        # It's a target ID - resolve it
+                        target_id_mapper = self.shared_state.get_target_id_mapper()
+                        target_entity = target_id_mapper.resolve_target(target_id)
+
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            condition_target_id = target_entity.agent_id
+                            if hasattr(target_entity, 'character_state'):
+                                condition_target_name = target_entity.character_state.name
+                            elif hasattr(target_entity, 'name'):
+                                condition_target_name = target_entity.name
+                            logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
+                        else:
+                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, applying to actor")
+                    else:
+                        # It's a character name - try to find by name
+                        condition_target_name = target_id
+                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                            for player in self.shared_state.player_agents:
+                                if hasattr(player, 'character_state'):
+                                    char_name = player.character_state.name
+                                    if char_name == target_id or target_id in char_name:
+                                        condition_target_id = player.agent_id
+                                        condition_target_name = char_name
+                                        logger.debug(f"Matched condition target '{target_id}' → '{char_name}' (agent_id: {condition_target_id})")
+                                        break
+
+                # Apply condition to the determined target
+                mechanics.add_condition(condition_target_id, condition)
+
+                # Show condition application (with target name)
+                narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement)
             if state_changes.get('position_change'):
@@ -3038,11 +3098,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    # If targeting a PC, populate target_character for PC-to-PC action handling
                     if target_entity and target_id_mapper.is_player(action['target']):
                         if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
                             action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
+                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
@@ -3177,17 +3237,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     narration += f"\n\n{eye_of_breach_event}"
 
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
-            if state_changes.get('soulcredit_change', 0) != 0:
-                sc_state = mechanics.get_soulcredit_state(player_id)
-                old_sc = sc_state.score
-                reasons_text = ', '.join(state_changes.get('soulcredit_reasons', []))
-                sc_state.adjust(state_changes['soulcredit_change'], reasons_text)
-                # Show SC change to the affected player only (private knowledge)
-                # Other players do NOT see each other's soulcredit (asymmetric information)
-                if sc_state.score != old_sc:
-                    narration += f"\n\n⚖️ Soulcredit: {old_sc} → {sc_state.score} ({reasons_text})"
+            # Always show soulcredit line (even if +0) for consistency, UNLESS DM already included one
+            sc_state = mechanics.get_soulcredit_state(player_id)
+            old_sc = sc_state.score
+            sc_change = state_changes.get('soulcredit_change', 0)
+            reasons_text = ', '.join(state_changes.get('soulcredit_reasons', [])) if state_changes.get('soulcredit_reasons') else 'no change'
+            sc_source = state_changes.get('soulcredit_source', '')
 
-            # Apply conditions
+            if sc_change != 0:
+                sc_state.adjust(sc_change, reasons_text)
+
+            # Show SC change to the affected player only (private knowledge)
+            # Other players do NOT see each other's soulcredit (asymmetric information)
+            # Only skip adding line if DM explicitly included one in narration text
+            if sc_source != 'dm_explicit':
+                # Add soulcredit line for clarity (from structured output or default)
+                # Always show, even +0, unless DM already wrote it in narration
+                narration += f"\n\n⚖️ Soulcredit: {sc_change:+d} ({reasons_text})"
+
+            # Apply conditions (with targeting support - apply to target, not actor)
             from .mechanics import Condition
             for condition_data in state_changes.get('conditions', []):
                 condition = Condition(
@@ -3198,10 +3266,50 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     duration=3,  # Default duration
                     affects=[]  # Affects all by default
                 )
-                mechanics.add_condition(player_id, condition)
 
-                # Show condition application
-                narration += f"\n\n🩹 Condition: {condition.name} ({condition.penalty:+d})"
+                # Determine who receives the condition (default: actor, but can be target)
+                # Check if action has a target (for damage-dealing/debuff actions)
+                target_id = action.get('target')  # Could be tgt_xxxx or character name
+                condition_target_id = player_id  # Default: apply to actor
+                condition_target_name = action.get('character', player_id)
+
+                # If action has a target, apply condition to target instead of actor
+                if target_id and target_id != 'None':
+                    logger.debug(f"Condition '{condition.name}' has target: {target_id}")
+
+                    # Resolve target ID to agent_id
+                    if target_id.startswith('tgt_'):
+                        # It's a target ID - resolve it
+                        target_id_mapper = self.shared_state.get_target_id_mapper()
+                        target_entity = target_id_mapper.resolve_target(target_id)
+
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            condition_target_id = target_entity.agent_id
+                            if hasattr(target_entity, 'character_state'):
+                                condition_target_name = target_entity.character_state.name
+                            elif hasattr(target_entity, 'name'):
+                                condition_target_name = target_entity.name
+                            logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
+                        else:
+                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, applying to actor")
+                    else:
+                        # It's a character name - try to find by name
+                        condition_target_name = target_id
+                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                            for player in self.shared_state.player_agents:
+                                if hasattr(player, 'character_state'):
+                                    char_name = player.character_state.name
+                                    if char_name == target_id or target_id in char_name:
+                                        condition_target_id = player.agent_id
+                                        condition_target_name = char_name
+                                        logger.debug(f"Matched condition target '{target_id}' → '{char_name}' (agent_id: {condition_target_id})")
+                                        break
+
+                # Apply condition to the determined target
+                mechanics.add_condition(condition_target_id, condition)
+
+                # Show condition application (with target name)
+                narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement during rituals)
             if state_changes.get('position_change'):
@@ -3731,6 +3839,47 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 has_outcome_tiers = hasattr(resolution_obj, 'outcome_tiers') and resolution_obj.outcome_tiers is not None
                 outcome_tiers_count = len(resolution_obj.outcome_tiers) if has_outcome_tiers else 0
                 logger.debug(f"✓ DM structured resolution: outcome_tiers: {outcome_tiers_count}/6 {'✓' if outcome_tiers_count == 6 else '✗ MISSING'}")
+
+                # Validate structured output completeness
+                from .structured_output_helpers import validate_resolution_completeness
+                validation_warnings = validate_resolution_completeness(resolution_obj, action)
+                if validation_warnings:
+                    logger.warning(f"🔍 Structured output validation found {len(validation_warnings)} issue(s):")
+                    for warning in validation_warnings:
+                        logger.warning(f"   - {warning}")
+                else:
+                    logger.debug("✓ Structured output validation passed (all expected fields populated)")
+
+                # Log structured output metrics (for ML analysis)
+                if self.shared_state and self.shared_state.mechanics_engine:
+                    mechanics = self.shared_state.mechanics_engine
+                    if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                        # Calculate completeness score (0.0-1.0)
+                        expected_fields = 7  # narration, success_tier, margin, effects, soulcredit_changes, etc.
+                        populated_fields = 0
+                        if len(resolution_obj.narration) >= 200:
+                            populated_fields += 1
+                        if resolution_obj.effects:
+                            if resolution_obj.effects.soulcredit_changes:
+                                populated_fields += 1
+                            # Add points for optional fields that are populated when expected
+                            if resolution_obj.effects.damage or resolution_obj.effects.void_changes:
+                                populated_fields += 1
+                            if resolution_obj.effects.clock_updates:
+                                populated_fields += 1
+                            if resolution_obj.effects.conditions:
+                                populated_fields += 1
+                        completeness_score = populated_fields / expected_fields
+
+                        mechanics.jsonl_logger.log_structured_output_metrics(
+                            round_num=current_round if current_round else 0,
+                            agent_type='dm',
+                            agent_id=self.agent_id,
+                            success=True,  # Got structured output
+                            fallback_triggered=False,  # Didn't fall back to text
+                            validation_warnings=validation_warnings,
+                            completeness_score=completeness_score
+                        )
 
                 # Log LLM call for replay (structured output path)
                 if self.llm_logger:

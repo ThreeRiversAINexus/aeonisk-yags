@@ -36,7 +36,7 @@ class ActionDeclaration:
 
     # Tactical positioning (for combat)
     target_position: Optional[str] = None  # Engaged/Near-PC/Far-PC/etc. - applied during execution
-    target: Optional[str] = None  # Target ID (tgt_xxxx) for actions directed at someone/something
+    target: Optional[str] = None  # Target reference: use enemy NAME in standard mode, or random ID (tgt_xxxx) in free_targeting_mode
     target_character: Optional[str] = None  # Universal targeting: PC or enemy ID/name (for IFF ambiguity)
 
     # Optional ritual-specific fields

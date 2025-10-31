@@ -130,9 +130,81 @@ class NewClock(BaseModel):
         return v
 
 
+class ScenePivot(BaseModel):
+    """
+    Scene transition within the same story chapter (lighter than StoryAdvancement).
+
+    Use for:
+    - Moving to adjacent room/area within same location
+    - Tactical repositioning (hallway → control room)
+    - Minor environmental shifts (power goes out, doors open)
+
+    DO NOT use for:
+    - Major story beats (use StoryAdvancement instead)
+    - Completely different locations (facility → transit hub = StoryAdvancement)
+
+    Example:
+    ```python
+    pivot = ScenePivot(
+        should_pivot=True,
+        new_room="Security Control Room",
+        situation_change="Alarms blaring, blast doors sealing the exits",
+        clear_specific_clocks=["Breach Containment"],  # Optional selective clock clearing
+        new_clocks=[
+            NewClock(name="Override Lockdown", max_ticks=6, description="Hack security terminal")
+        ]
+    )
+    ```
+    """
+
+    should_pivot: bool = Field(
+        ...,
+        description="Should the scene pivot to a new room/area?"
+    )
+
+    new_room: Optional[str] = Field(
+        default=None,
+        min_length=5,
+        max_length=100,
+        description="New room/area name (e.g., 'Control Room', 'Upper Catwalk')"
+    )
+
+    situation_change: Optional[str] = Field(
+        default=None,
+        min_length=20,
+        max_length=500,
+        description="How the situation has changed (tactical shift, environment change)"
+    )
+
+    clear_specific_clocks: List[str] = Field(
+        default_factory=list,
+        description="Specific clock names to clear (selective). Empty = keep all clocks."
+    )
+
+    new_clocks: List[NewClock] = Field(
+        default_factory=list,
+        description="New clocks for this scene"
+    )
+
+    @field_validator('new_room', 'situation_change')
+    @classmethod
+    def validate_pivot_fields(cls, v: Optional[str], info) -> Optional[str]:
+        """If should_pivot=True, require new_room and situation_change."""
+        should_pivot = info.data.get('should_pivot', False)
+        if should_pivot and not v:
+            field_name = info.field_name
+            raise ValueError(f"{field_name} required when should_pivot=True")
+        return v
+
+
 class StoryAdvancement(BaseModel):
     """
-    Story/scenario progression with new location and situation.
+    Major story/scenario progression with new location and situation (heavier than ScenePivot).
+
+    Use for:
+    - Major chapter transitions (facility escape → transit hub pursuit)
+    - Complete location changes (underground → rooftop)
+    - Resolution of major story beats
 
     Example:
     ```python
@@ -253,9 +325,31 @@ class EnemySpawn(BaseModel):
 
 class RoundSynthesis(BaseModel):
     """
-    DM's round summary with potential story advancement and enemy spawns.
+    DM's round summary with potential scene pivots, story advancement, and enemy spawns.
 
-    Example:
+    Use scene_pivot for minor transitions (adjacent rooms, tactical repositioning).
+    Use story_advancement for major chapter changes (complete location changes).
+    Cannot use both in the same round.
+
+    Example (Scene Pivot):
+    ```python
+    synthesis = RoundSynthesis(
+        narration="As the blast doors seal, you rush into the control room...",
+        scene_pivot=ScenePivot(
+            should_pivot=True,
+            new_room="Security Control Room",
+            situation_change="Emergency lockdown engaged, blast doors sealing all exits",
+            clear_specific_clocks=["Breach Containment"],
+            new_clocks=[NewClock(name="Override Lockdown", max_ticks=6, description="Hack security terminal")]
+        ),
+        enemy_spawns=[],
+        enemy_removals=[],
+        clocks_filled=[],
+        clocks_expired=[]
+    )
+    ```
+
+    Example (Story Advancement):
     ```python
     synthesis = RoundSynthesis(
         narration="The round concludes in controlled chaos. Ash's ritual barely holds...",
@@ -283,9 +377,14 @@ class RoundSynthesis(BaseModel):
     )
 
     # Story progression
+    scene_pivot: Optional[ScenePivot] = Field(
+        default=None,
+        description="Scene pivot (minor room/area transition within same chapter). Use for tactical repositioning, adjacent rooms, environmental shifts. Lighter than story_advancement."
+    )
+
     story_advancement: Optional[StoryAdvancement] = Field(
         default=None,
-        description="Story advancement (if clocks filled/expired or scenario complete)"
+        description="Story advancement (major chapter transition with new location). Use for major story beats, complete location changes. Heavier than scene_pivot."
     )
 
     # Enemy management
@@ -328,6 +427,15 @@ class RoundSynthesis(BaseModel):
         session_end = info.data.get('session_end')
         if session_end and not v:
             raise ValueError("session_end_reason required when session_end is set")
+        return v
+
+    @field_validator('story_advancement')
+    @classmethod
+    def validate_story_progression_mutual_exclusion(cls, v: Optional[StoryAdvancement], info) -> Optional[StoryAdvancement]:
+        """Ensure only one of scene_pivot or story_advancement is used."""
+        scene_pivot = info.data.get('scene_pivot')
+        if v and scene_pivot and (v.should_advance and scene_pivot.should_pivot):
+            raise ValueError("Cannot use both scene_pivot and story_advancement in the same round. Choose one: scene_pivot for minor transitions, story_advancement for major chapter changes.")
         return v
 
 

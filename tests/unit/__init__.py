@@ -1,3 +1,1 @@
-"""
-Unit tests for the Aeonisk YAGS toolkit.
-"""
+"""Unit tests for multi-agent system components."""

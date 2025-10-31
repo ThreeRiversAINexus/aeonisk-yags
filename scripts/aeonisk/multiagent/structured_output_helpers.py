@@ -23,7 +23,7 @@ Date: 2025-10-29
 """
 
 import logging
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict, Any, List
 from .llm_provider import ClaudeProvider, LLMProvider, LLMConfig, create_claude_provider
 from .schemas.action_resolution import ActionResolution, MechanicalEffects, create_combat_resolution, SuccessTier
 from .schemas.player_action import PlayerAction, FreeAction
@@ -430,3 +430,91 @@ def set_structured_output_enabled(enabled: bool):
 def is_structured_output_enabled() -> bool:
     """Check if structured output is enabled globally."""
     return _USE_STRUCTURED_OUTPUT
+
+
+def validate_resolution_completeness(
+    resolution: 'ActionResolution',
+    action: Dict[str, Any]
+) -> List[str]:
+    """
+    Validate that structured output is complete for the given action type.
+
+    Checks if expected mechanical effects are populated based on action context.
+    Returns list of warning messages if fields are missing or incomplete.
+
+    Args:
+        resolution: ActionResolution from DM
+        action: Player action dict (intent, description, skill, target, etc.)
+
+    Returns:
+        List of warning strings (empty list = no issues)
+
+    Example:
+        ```python
+        warnings = validate_resolution_completeness(resolution, action)
+        if warnings:
+            for warning in warnings:
+                logger.warning(f"Incomplete structured output: {warning}")
+        ```
+    """
+    from .schemas.action_resolution import ActionResolution
+    warnings = []
+
+    # Extract action context
+    intent = action.get('intent', '').lower()
+    description = action.get('description', '').lower()
+    skill = action.get('skill', '').lower() if action.get('skill') else ''
+    target = action.get('target')
+    action_type = action.get('action_type', '').lower()
+
+    # 1. Check narration length (should be substantial)
+    narration_len = len(resolution.narration)
+    if narration_len < 200:
+        warnings.append(f"Narration too short ({narration_len} chars, expected 200-2000)")
+    elif narration_len > 2000:
+        warnings.append(f"Narration too long ({narration_len} chars, expected 200-2000)")
+
+    # 2. Soulcredit is ALWAYS required
+    if not resolution.effects.soulcredit_changes:
+        warnings.append(f"Missing `soulcredit_changes` field (REQUIRED for ALL actions, even neutral +0)")
+
+    # 3. Check margin field is reasonable (sanity check)
+    if abs(resolution.margin) > 50:
+        warnings.append(f"Margin seems unrealistic: {resolution.margin} (expected -30 to +30)")
+
+    # 4. Check if successful action with target might be missing damage
+    # This is a SOFT check - not all actions with targets need damage (healing, buffs, etc.)
+    # But it helps catch forgotten combat resolutions
+    if resolution.margin > 0 and target and not resolution.effects.damage:
+        # Only warn if action seems combat-oriented based on skill
+        combat_skills = ['guns', 'melee', 'brawl', 'rifles', 'pistols', 'heavy weapons']
+        if skill and skill.lower() in combat_skills:
+            warnings.append(f"Successful {skill} action with target but no damage populated (might be intentional for suppressing fire/intimidation)")
+
+    # 5. Check if conditions have meaningful penalties
+    # Conditions with penalty=0 are valid (narrative-only) but worth flagging in case it was forgotten
+    for condition in resolution.effects.conditions:
+        if condition.penalty == 0:
+            warnings.append(f"Condition '{condition.name}' has penalty=0 (narrative-only, or did you forget to set the penalty?)")
+
+    # 6. Check if damage was dealt but no target specified
+    if resolution.effects.damage and not resolution.effects.damage.target:
+        warnings.append(f"Damage effect populated but target field is empty (damage won't apply!)")
+
+    # 7. Check if void changes were applied to wrong character
+    # Common mistake: applying void to the wrong person in PC-to-PC actions
+    if resolution.effects.void_changes and action:
+        action_character = action.get('character_name', '')
+        for void_change in resolution.effects.void_changes:
+            # Just log who got void changes for review - don't assume it's wrong
+            if void_change.character_name != action_character:
+                warnings.append(f"Void change applied to '{void_change.character_name}' (action by '{action_character}') - verify this is intentional")
+
+    # 8. Check clock updates reference valid clocks (if we have access to mechanics)
+    # This is informational - helps catch typos in clock names
+    if resolution.effects.clock_updates:
+        for clock_update in resolution.effects.clock_updates:
+            if not clock_update.clock_name:
+                warnings.append(f"Clock update has empty clock_name")
+
+    return warnings

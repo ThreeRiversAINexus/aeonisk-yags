@@ -13,6 +13,7 @@ section_order:
 - lookup_rules
 - stat_awareness_guidance
 - action_declaration_format
+- structured_output_format
 - ritual_requirements
 - coordination_dialogue
 - vendor_interaction
@@ -232,6 +233,112 @@ sections:
     ❌ WRONG: `ATTRIBUTE: intelligence` → ✅ CORRECT: `ATTRIBUTE: Intelligence`
     ❌ WRONG: `DIFFICULTY: hard` → ✅ CORRECT: `DIFFICULTY: 25`
     ❌ WRONG: `ACTION_TYPE: attack` → ✅ CORRECT: `ACTION_TYPE: combat`
+  structured_output_format: |-
+    # ⚙️ STRUCTURED OUTPUT FORMAT
+
+    **YOU ARE USING PYDANTIC AI STRUCTURED OUTPUT - NOT PLAIN TEXT**
+
+    Your action declarations MUST conform to the `PlayerAction` schema with these REQUIRED fields:
+
+    ```python
+    PlayerAction(
+        intent: str,                # 10-200 chars - brief action summary
+        description: str,           # 50-800 chars - detailed narrative
+        attribute: str,             # EXACT attribute from your sheet
+        skill: Optional[str],       # EXACT skill or None
+        difficulty_estimate: int,   # 5-50 (your estimate of DC)
+        difficulty_justification: str,  # Why that difficulty?
+        action_type: ActionType,    # explore|investigate|ritual|social|combat|technical
+        target: Optional[str],      # Target ID (tgt_xxxx) if targeting someone
+        # ... other fields for rituals, positioning, etc.
+    )
+    ```
+
+    ## 🚨 MANDATORY FIELD RULES 🚨
+
+    **1. INTENT - Must be different from recent actions**
+    - ✅ CORRECT: Clear, specific intent ("Hack security terminal to disable alarms")
+    - ❌ WRONG: Vague intent ("Do something"), repeating same action 3 rounds in a row
+
+    **2. DESCRIPTION - Must be substantial (50+ chars)**
+    - ✅ CORRECT: "I jack my neural interface into the security terminal and send recursive queries to overflow the alarm subroutines."
+    - ❌ WRONG: "I hack it" (too short, validation will fail!)
+
+    **3. ATTRIBUTE + SKILL - Must match your character sheet EXACTLY**
+    - ✅ CORRECT: `attribute="Intelligence", skill="Systems"`
+    - ❌ WRONG: `attribute="int", skill="hacking"` (not on your sheet!)
+    - ✅ CORRECT: `skill=None` for unskilled checks (don't forget -5 penalty!)
+
+    **4. DIFFICULTY_ESTIMATE - Must be reasonable (5-50)**
+    - ✅ CORRECT: 20 (moderate challenge), 25 (challenging), 30 (difficult)
+    - ❌ WRONG: 5 (too easy for anything), 100 (unrealistic)
+
+    **5. DIFFICULTY_JUSTIFICATION - Must explain your estimate**
+    - ✅ CORRECT: "DC 25 because terminal is military-grade, encrypted, and I'm under time pressure"
+    - ❌ WRONG: "It's hard" (too vague - explain WHY!)
+
+    ## 📊 STRUCTURED OUTPUT EXAMPLES
+
+    **Example 1: Combat Action**
+    ```python
+    PlayerAction(
+        intent="Fire at hostile operative's weapon arm to disarm",
+        description="I aim carefully at the enforcer's gun arm and squeeze off two precise shots from my kinetic pistol, hoping to force them to drop their weapon.",
+        attribute="Agility",
+        skill="Guns",
+        difficulty_estimate=22,
+        difficulty_justification="DC 22: Called shot (weapon arm) in combat, moving target, but I have good position",
+        action_type=ActionType.COMBAT,
+        target="tgt_7a3f",
+        situational_modifiers={"called_shot": -2, "good_position": +1}
+    )
+    ```
+
+    **Example 2: Ritual Action**
+    ```python
+    PlayerAction(
+        intent="Perform void cleansing ritual on Riven to reduce corruption",
+        description="I channel purifying energy through my astral focus, targeting Riven's void corruption. I burn incense as an offering and focus my will on cleansing their spiritual contamination.",
+        attribute="Willpower",
+        skill="Astral Arts",
+        difficulty_estimate=25,
+        difficulty_justification="DC 25: High void target (8/10), chaotic environment, but I have proper tools and offering",
+        action_type=ActionType.RITUAL,
+        target="Riven Shard",
+        is_ritual=True,
+        has_primary_tool=True,
+        has_offering=True,
+        ritual_components="Astral focus, incense offering"
+    )
+    ```
+
+    **Example 3: Investigation**
+    ```python
+    PlayerAction(
+        intent="Analyze security logs for unauthorized access patterns",
+        description="I jack into the facility's security subnet and run pattern analysis on access logs from the past 72 hours, looking for entries that don't match normal staff behavior or clearance levels.",
+        attribute="Intelligence",
+        skill="Systems",
+        difficulty_estimate=20,
+        difficulty_justification="DC 20: Corporate security system (moderate encryption), but I have direct terminal access",
+        action_type=ActionType.INVESTIGATE
+    )
+    ```
+
+    ## ✅ VALIDATION CHECKLIST
+
+    Before declaring your action, verify:
+    - ☑ Intent is different from last 2 actions
+    - ☑ Description is 50+ characters (detailed, not vague)
+    - ☑ Attribute matches your character sheet EXACTLY
+    - ☑ Skill matches your character sheet EXACTLY (or is None)
+    - ☑ Difficulty estimate is reasonable (10-35 for most actions)
+    - ☑ Difficulty justification explains modifiers/context
+    - ☑ Action type is one of 6 valid types
+    - ☑ If targeting, target ID is correct (tgt_xxxx or character name)
+
+    **REMEMBER:** Structured output helps train better AI models. Complete, accurate declarations = better gameplay for everyone!
+
   ritual_requirements: |-
     **⚠️ IMPORTANT: Magic Combat vs Rituals**
 

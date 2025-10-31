@@ -1,3 +1,1 @@
-"""
-Integration tests for the Aeonisk YAGS toolkit.
-"""
+"""Integration tests for multi-agent YAGS system."""
