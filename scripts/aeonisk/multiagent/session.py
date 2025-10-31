@@ -554,8 +554,17 @@ class SelfPlayingSession:
 
                 # Create a simple wrapper for the DM's LLM functionality
                 class DMLLMClient:
-                    def __init__(self, llm_config):
+                    """
+                    Wrapper for enemy LLM calls with logging support.
+                    Each enemy gets its own instance to track call_sequence per agent.
+                    """
+                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None):
                         self.llm_config = llm_config
+                        self.jsonl_logger = jsonl_logger
+                        self.agent_id = agent_id
+                        self.session_id = session_id
+                        self.call_sequence = 0  # Track LLM call ordering for replay
+
                         # Pre-create client for rate limiting
                         import anthropic
                         import os
@@ -563,16 +572,19 @@ class SelfPlayingSession:
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
                         provider = self.llm_config.get('provider', 'anthropic')
-                        model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+                        model = self.llm_config.get('model', 'claude-sonnet-4-5')
 
                         if provider == 'anthropic':
                             # Use rate-limited wrapper to prevent API overload
                             from .llm_provider import call_anthropic_with_retry
+                            from datetime import datetime
+
+                            messages = [{"role": "user", "content": prompt}]
 
                             response = await call_anthropic_with_retry(
                                 client=self.client,
                                 model=model,
-                                messages=[{"role": "user", "content": prompt}],
+                                messages=messages,
                                 max_tokens=max_tokens,
                                 temperature=temperature,
                                 max_retries=3,
@@ -580,11 +592,45 @@ class SelfPlayingSession:
                                 max_delay=120.0,
                                 use_rate_limiter=True
                             )
-                            return {"content": response.content[0].text}
+
+                            response_text = response.content[0].text
+
+                            # Log LLM call if logger is available
+                            if self.jsonl_logger:
+                                try:
+                                    self.jsonl_logger.write_event({
+                                        'event_type': 'llm_call',
+                                        'ts': datetime.utcnow().isoformat(),
+                                        'session': self.session_id or 'unknown',
+                                        'round': None,  # Enemy calls don't have round context here
+                                        'agent_id': self.agent_id,
+                                        'agent_type': 'enemy',
+                                        'call_sequence': self.call_sequence,
+                                        'prompt': messages,
+                                        'response': response_text,
+                                        'model': model,
+                                        'temperature': temperature,
+                                        'tokens': {
+                                            'input': response.usage.input_tokens,
+                                            'output': response.usage.output_tokens
+                                        }
+                                    })
+                                    self.call_sequence += 1
+                                except Exception as e:
+                                    import logging
+                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
+
+                            return {"content": response_text}
                         else:
                             raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
 
-                llm_client = DMLLMClient(dm_agent.llm_config)
+                # Create per-enemy LLM clients for proper logging
+                llm_client = DMLLMClient(
+                    dm_agent.llm_config,
+                    jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                    agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
+                    session_id=self.session_id
+                )
 
         # Declaration loop (slowest → fastest, reversed initiative order)
         for initiative_score, agent_type, agent in reversed(initiative_order):
@@ -624,11 +670,19 @@ class SelfPlayingSession:
                 if llm_client:
                     print(f"\n[{agent.name}] declaring (initiative {initiative_score})...")
 
+                    # Create per-enemy LLM client for proper logging
+                    enemy_llm_client = DMLLMClient(
+                        dm_agent.llm_config,
+                        jsonl_logger=mechanics.jsonl_logger if mechanics else None,
+                        agent_id=agent.agent_id,
+                        session_id=self.session_id
+                    )
+
                     declaration = await self.enemy_combat.declare_single_enemy(
                         enemy=agent,
                         player_agents=player_agents,
                         available_tokens=available_tokens,
-                        llm_client=llm_client
+                        llm_client=enemy_llm_client
                     )
 
                     # Log enemy declaration
@@ -640,6 +694,24 @@ class SelfPlayingSession:
                             action={'major_action': declaration['major_action'], 'target': declaration.get('target')},
                             round_num=mechanics.current_round
                         )
+
+                    # Broadcast enemy declaration to all players (for tactical awareness)
+                    if declaration:
+                        broadcast_message = Message(
+                            id=f"enemy_declared_{datetime.now().isoformat()}_{agent.agent_id}",
+                            type=MessageType.ACTION_DECLARED,
+                            sender='coordinator',
+                            recipient=None,  # Broadcast to all
+                            payload={
+                                'agent_id': declaration['agent_id'],
+                                'character_name': declaration['character_name'],
+                                'intent': declaration.get('major_action', 'Unknown action'),
+                                'initiative': declaration['initiative'],
+                                'agent_type': 'enemy'
+                            },
+                            timestamp=datetime.now()
+                        )
+                        await self.coordinator.message_bus._route_message(broadcast_message)
 
         self._in_declaration_phase = False
 

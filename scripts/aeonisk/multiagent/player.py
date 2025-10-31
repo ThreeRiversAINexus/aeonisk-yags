@@ -166,7 +166,9 @@ class AIPlayerAgent(Agent):
         # Narrative context tracking (for player awareness of story progression)
         self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
         self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
-        self.other_player_actions: Dict[str, str] = {}  # {character_name: intent} for this round
+        # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
+        # {character_name: (intent, initiative_score)}
+        self.declared_actions_this_round: Dict[str, Tuple[str, int]] = {}
 
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
@@ -458,7 +460,7 @@ class AIPlayerAgent(Agent):
                 print(f"    {pivot_narration}")
 
     async def _handle_action_declared(self, message: Message):
-        """Handle action declarations from other players - show character voice."""
+        """Handle action declarations from other combatants - store for tactical awareness."""
         action = message.payload
 
         # Don't show our own actions (we already printed them)
@@ -468,11 +470,12 @@ class AIPlayerAgent(Agent):
         character_name = action.get('character_name', 'Unknown')
         description = action.get('description', '')
         intent = action.get('intent', '')
+        initiative = action.get('initiative', 0)
 
-        # Store other player actions for narrative context
+        # Store ALL combatant actions for tactical awareness (neutral - no ally/enemy distinction)
         if intent:
-            self.other_player_actions[character_name] = intent
-            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name}")
+            self.declared_actions_this_round[character_name] = (intent, initiative)
+            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative})")
 
         # Show the character voice description (debug only - DM will display during adjudication)
         if description:
@@ -485,8 +488,8 @@ class AIPlayerAgent(Agent):
         # Reset free action flag each round (prevents bug where main action is skipped in Round 2+)
         self.free_action_used = False
 
-        # Clear other player actions from previous round
-        self.other_player_actions.clear()
+        # Clear declared actions from previous round
+        self.declared_actions_this_round.clear()
 
         if self.human_controlled:
             await self._human_player_turn()
@@ -1739,13 +1742,21 @@ Available non-combat actions:
                 truncated = narration[:400] + "..." if len(narration) > 400 else narration
                 narrative_context += f"{i}. {truncated}\n\n"
 
-        # Add other players' declared actions this round (what allies are doing)
-        if self.other_player_actions:
+        # Add declared actions this round (all combatants in initiative order)
+        if self.declared_actions_this_round:
             if not narrative_context:
                 narrative_context += "\n# 📖 Recent Story Events\n\n"
-            narrative_context += "## Allies' Declared Actions This Turn:\n"
-            for char_name, intent in self.other_player_actions.items():
-                narrative_context += f"- **{char_name}**: {intent}\n"
+
+            # Sort by initiative (slowest first, matching declaration order)
+            sorted_declarations = sorted(
+                self.declared_actions_this_round.items(),
+                key=lambda x: x[1][1]  # Sort by initiative score (index 1 in tuple)
+            )
+
+            narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+            narrative_context += "*You see what slower combatants declared before you. React accordingly!*\n\n"
+            for char_name, (intent, initiative) in sorted_declarations:
+                narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
             narrative_context += "\n"
 
         prompt = f"""{system_prompt}
