@@ -2282,11 +2282,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    # If targeting a PC, populate target_character for PC-to-PC action handling
                     if target_entity and target_id_mapper.is_player(action['target']):
                         if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
                             action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
+                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
@@ -3047,11 +3047,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for void cleansing mechanics
+                    # If targeting a PC, populate target_character for PC-to-PC action handling
                     if target_entity and target_id_mapper.is_player(action['target']):
                         if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
                             action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for void cleansing")
+                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:

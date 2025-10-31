@@ -163,6 +163,11 @@ class AIPlayerAgent(Agent):
             # Replay mode - no structured output
             self.llm_provider = None
 
+        # Narrative context tracking (for player awareness of story progression)
+        self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
+        self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
+        self.other_player_actions: Dict[str, str] = {}  # {character_name: intent} for this round
+
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
         self.position = Position.from_string("Near-PC")  # Default starting position
@@ -464,6 +469,11 @@ class AIPlayerAgent(Agent):
         description = action.get('description', '')
         intent = action.get('intent', '')
 
+        # Store other player actions for narrative context
+        if intent:
+            self.other_player_actions[character_name] = intent
+            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name}")
+
         # Show the character voice description (debug only - DM will display during adjudication)
         if description:
             logger.debug(f"[{character_name}] {description}")
@@ -472,6 +482,12 @@ class AIPlayerAgent(Agent):
 
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
+        # Reset free action flag each round (prevents bug where main action is skipped in Round 2+)
+        self.free_action_used = False
+
+        # Clear other player actions from previous round
+        self.other_player_actions.clear()
+
         if self.human_controlled:
             await self._human_player_turn()
         else:
@@ -743,6 +759,13 @@ class AIPlayerAgent(Agent):
 
         print(f"\n[{self.character_state.name}] Received resolution")
 
+        # Store narration for narrative context (helps player understand what's happening)
+        if narration:
+            self.recent_narrations.append(narration)
+            # Keep only last 5 narrations (FIFO rolling window)
+            if len(self.recent_narrations) > 5:
+                self.recent_narrations.pop(0)
+
         # Consume offering if it was used in the action
         original_action = message.payload.get('original_action', {})
         if original_action.get('has_offering', False):
@@ -964,8 +987,14 @@ class AIPlayerAgent(Agent):
         # Don't echo DM narration - users can see it from DM's output directly
         # This prevents duplicate display of synthesis and other DM messages
 
-        # Still prompt human-controlled characters for response
+        # Store round synthesis for narrative context
         narration = message.payload.get('narration', '')
+        is_round_synthesis = message.payload.get('is_round_synthesis', False)
+        if is_round_synthesis and narration:
+            self.last_round_synthesis = narration
+            logger.debug(f"Player {self.character_state.name}: Stored round synthesis ({len(narration)} chars)")
+
+        # Still prompt human-controlled characters for response
         if narration and self.human_controlled:
             print(f"[HUMAN - {self.character_state.name}] How do you respond?")
 
@@ -1681,9 +1710,38 @@ Available non-combat actions:
                 party_knowledge += "- Talk to your companions about what they found\n"
                 party_knowledge += "- Explore a completely different angle\n"
 
+        # Build narrative context section (what's been happening in the story)
+        narrative_context = ""
+
+        # Add round synthesis (overall story progression)
+        if self.last_round_synthesis:
+            narrative_context += "\n# 📖 Recent Story Events\n\n"
+            narrative_context += "## What Just Happened (Last Round Summary):\n"
+            narrative_context += f"{self.last_round_synthesis}\n\n"
+
+        # Add recent action resolution narrations (specific outcomes)
+        if self.recent_narrations:
+            if not narrative_context:
+                narrative_context += "\n# 📖 Recent Story Events\n\n"
+            narrative_context += "## Recent Action Outcomes:\n"
+            for i, narration in enumerate(self.recent_narrations[-3:], 1):  # Last 3 narrations
+                # Truncate long narrations to keep prompt manageable
+                truncated = narration[:400] + "..." if len(narration) > 400 else narration
+                narrative_context += f"{i}. {truncated}\n\n"
+
+        # Add other players' declared actions this round (what allies are doing)
+        if self.other_player_actions:
+            if not narrative_context:
+                narrative_context += "\n# 📖 Recent Story Events\n\n"
+            narrative_context += "## Allies' Declared Actions This Turn:\n"
+            for char_name, intent in self.other_player_actions.items():
+                narrative_context += f"- **{char_name}**: {intent}\n"
+            narrative_context += "\n"
+
         prompt = f"""{system_prompt}
 
 {scenario_context}
+{narrative_context}
 {tactical_combat_context}
 {party_knowledge}
 
