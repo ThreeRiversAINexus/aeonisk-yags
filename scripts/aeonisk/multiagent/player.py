@@ -749,22 +749,32 @@ class AIPlayerAgent(Agent):
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
-        # Only process resolutions for this specific agent (filter out broadcasts meant for others)
-        resolved_agent_id = message.payload.get('agent_id')
-        if resolved_agent_id != self.agent_id:
-            return  # This resolution is for another agent
-
         outcome = message.payload.get('outcome', {})
         narration = message.payload.get('narration', '')
+        resolved_agent_id = message.payload.get('agent_id')
 
-        print(f"\n[{self.character_state.name}] Received resolution")
+        # Store ALL action resolution narrations (for tactical awareness)
+        # This includes other players' actions and enemy actions
+        if narration and resolved_agent_id != 'adjudication':  # Skip adjudication complete signal
+            # Get character name for context
+            original_action = message.payload.get('original_action', {})
+            acting_character = original_action.get('character_name', original_action.get('character', 'Unknown'))
 
-        # Store narration for narrative context (helps player understand what's happening)
-        if narration:
-            self.recent_narrations.append(narration)
+            # Prefix narration with character name for clarity
+            prefixed_narration = f"[{acting_character}] {narration}"
+            self.recent_narrations.append(prefixed_narration)
+
             # Keep only last 5 narrations (FIFO rolling window)
             if len(self.recent_narrations) > 5:
                 self.recent_narrations.pop(0)
+
+            logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character}")
+
+        # Only update OWN character state for resolutions targeting this agent
+        if resolved_agent_id != self.agent_id:
+            return  # Don't process state updates for other agents
+
+        print(f"\n[{self.character_state.name}] Received resolution")
 
         # Consume offering if it was used in the action
         original_action = message.payload.get('original_action', {})
