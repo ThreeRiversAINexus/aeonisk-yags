@@ -28,14 +28,18 @@ class MechanicalEffects(BaseModel):
     """
     Structured mechanical outcomes of an action.
 
-    All fields are optional - only include what actually happened.
-    Empty lists mean nothing of that type occurred.
+    CRITICAL REQUIREMENTS:
+    1. soulcredit_changes: MANDATORY for EVERY action (even if amount=0)
+    2. damage: REQUIRED for combat actions that hit targets
+    3. void_changes: REQUIRED for rituals, void manipulation, cosmic horror
+    4. clock_updates: REQUIRED when actions advance/regress scene clocks
+    5. conditions: REQUIRED when applying status effects (stunned, inspired, etc.)
 
-    CRITICAL: Populate clock_updates for actions that advance/regress scene clocks!
-    Use exact clock names provided in the prompt. Examples:
+    Examples:
     - Investigation succeeds → ClockUpdate(clock_name="Evidence Collection", ticks=2, reason="Found crucial documents")
-    - Smuggler intimidated → ClockUpdate(clock_name="Hostage Execution", ticks=-1, reason="Smugglers calmed by negotiation")
-    - Alarm triggered → ClockUpdate(clock_name="Security Response", ticks=3, reason="Multiple alarms activated")
+    - Combat action → damage=DamageEffect(...) AND soulcredit_changes=[SoulcreditChange(amount=0, reason="justified combat")]
+    - Neutral exploration → soulcredit_changes=[SoulcreditChange(amount=0, reason="no moral choice")]
+    - Failed ritual → void_changes=[VoidChange(amount=1, ...)] AND soulcredit_changes=[...]
     """
     # Combat
     damage: Optional[DamageEffect] = Field(
@@ -51,7 +55,7 @@ class MechanicalEffects(BaseModel):
 
     soulcredit_changes: List[SoulcreditChange] = Field(
         default_factory=list,
-        description="Soulcredit economy changes"
+        description="Soulcredit economy changes - MANDATORY FOR EVERY ACTION. Even neutral/justified actions must have amount=0 entry to show intentional moral assessment. Example: [SoulcreditChange(character_name='Ash', amount=0, reason='justified combat')] for neutral combat."
     )
 
     clock_updates: List[ClockUpdate] = Field(
@@ -110,39 +114,75 @@ class ActionResolution(BaseModel):
     - All 6 outcome tier narratives + mechanical effects
     - Roll formula and DM rationale
 
-    Example usage:
+    Example 1 - Failed Ritual (void + soulcredit):
     ```python
-    resolution = ActionResolution(
-        narration="Ash's ritual shatters against inverted resonance patterns...",
+    ActionResolution(
+        narration="Ash's ritual shatters against inverted resonance patterns. Pain sears through neural pathways as void corruption floods in...",
         success_tier=SuccessTier.CRITICAL_FAILURE,
         margin=-8,
         effects=MechanicalEffects(
             void_changes=[
                 VoidChange(character_name="Ash Vex", amount=2, reason="Ritual backfire")
             ],
+            soulcredit_changes=[
+                SoulcreditChange(character_name="Ash Vex", amount=0, reason="Attempted beneficial ritual despite failure")
+            ],
             clock_updates=[
                 ClockUpdate(clock_name="Void Surge", ticks=2, reason="Uncontrolled energy")
             ]
-        ),
-        # ML training fields
-        character_data={
-            "name": "Ash Vex",
-            "attributes": {"willpower": 3, "intelligence": 4, ...},
-            "skills": {"astral_arts": 6, ...},
-            "void": 3,
-            "wounds": [],
-            "status_effects": []
-        },
-        environment="Abandoned ritual chamber, ley line intersection, void-tainted",
-        stakes="Ash risks void corruption to commune with echo fragment for intel",
-        goal="Commune with echo to learn ritual's origin",
-        roll_formula="Willpower 3 x Astral Arts 6 = 18; 18 + d20(5) = 23 vs DC 25",
-        rationale="High DC (25) due to void taint and unstable ley convergence",
-        outcome_tiers={
-            "critical_failure": OutcomeTierExplanation(...),
-            "failure": OutcomeTierExplanation(...),
-            ...
-        }
+        )
+    )
+    ```
+
+    Example 2 - Successful Combat (damage + soulcredit):
+    ```python
+    ActionResolution(
+        narration="Your kinetic round punches through their shoulder guard, spinning them sideways. They stagger back, weapon clattering to the deck.",
+        success_tier=SuccessTier.GOOD,
+        margin=12,
+        effects=MechanicalEffects(
+            damage=DamageEffect(target="tgt_7a3f", base_damage=15, soak=7, dealt=8, damage_type="kinetic"),
+            conditions=[
+                Condition(name="Off-Balance", penalty=-2, duration=1, description="next attack at -2")
+            ],
+            soulcredit_changes=[
+                SoulcreditChange(character_name="Riven", amount=0, reason="Justified combat against hostile enemy")
+            ]
+        )
+    )
+    ```
+
+    Example 3 - Neutral Investigation (minimal effects, but soulcredit still required):
+    ```python
+    ActionResolution(
+        narration="Your neural interface decrypts the access logs. Twelve unauthorized entries, all from Internal Security subnet.",
+        success_tier=SuccessTier.GOOD,
+        margin=11,
+        effects=MechanicalEffects(
+            clock_updates=[
+                ClockUpdate(clock_name="Evidence Trail", ticks=3, reason="Discovered internal security conspiracy")
+            ],
+            soulcredit_changes=[
+                SoulcreditChange(character_name="Echo", amount=0, reason="Neutral investigation, no moral choice")
+            ]
+        )
+    )
+    ```
+
+    Example 4 - Social Action with Target (NO damage, but soulcredit required):
+    ```python
+    ActionResolution(
+        narration="You broadcast legal seizure authority through facility comms. The hijackers' leader hesitates, weapon lowering. 'Stand down,' he rasps. 'It's over.'",
+        success_tier=SuccessTier.EXCELLENT,
+        margin=20,
+        effects=MechanicalEffects(
+            conditions=[
+                Condition(name="Demoralized", penalty=-3, duration=2, description="Surrendered, will not fight")
+            ],
+            soulcredit_changes=[
+                SoulcreditChange(character_name="Kress", amount=1, reason="Resolved conflict without bloodshed")
+            ]
+        )
     )
     ```
     """

@@ -5,8 +5,10 @@ language: en
 description: Dungeon Master prompts for Aeonisk YAGS multi-agent system
 section_order:
 - system_core
+- structured_output_requirements
 - mechanical_guidance
 - faction_names
+- invalid_target_handling
 - combat_rules
 - movement_system
 - social_mechanics
@@ -36,6 +38,188 @@ sections:
     5. **Update** scene clocks and void scores based on outcomes
     6. **Provide** new information, clues, or complications
     7. **Never** let players repeat the same action - if they try, have environmental changes or NPC reactions
+  structured_output_requirements: |-
+    # ⚙️ STRUCTURED OUTPUT FORMAT (CRITICAL)
+
+    **YOU ARE USING PYDANTIC AI STRUCTURED OUTPUT - NOT TEXT MARKERS**
+
+    Your responses MUST conform to the `ActionResolution` schema with these REQUIRED fields:
+
+    ```python
+    ActionResolution(
+        narration: str,        # 200-2000 chars - FREEFORM creative storytelling
+        success_tier: SuccessTier,  # CRITICAL_FAILURE → EXCEPTIONAL
+        margin: int,           # Success/failure margin
+        effects: MechanicalEffects {  # ⚠️ STRUCTURE ALL MECHANICS HERE ⚠️
+            void_changes: List[VoidChange],      # REQUIRED for void-related actions
+            damage: Optional[DamageEffect],      # REQUIRED for combat actions
+            clock_updates: List[ClockUpdate],    # REQUIRED when clocks advance/regress
+            conditions: List[Condition],         # REQUIRED for status effects
+            soulcredit_changes: List[SoulcreditChange],  # REQUIRED for moral choices
+            position_changes: List[PositionChange],      # REQUIRED for movement
+            notes: List[str]                     # Optional additional effects
+        }
+    )
+    ```
+
+    ## 🚨 MANDATORY COMPLETENESS RULES 🚨
+
+    **1. COMBAT ACTIONS → MUST POPULATE `damage` FIELD**
+    - ❌ WRONG: Narrate "You shoot them for 8 damage" without `damage` field
+    - ✅ CORRECT: Populate `damage=DamageEffect(target="tgt_abc", base=12, soak=4, dealt=8)`
+    - **If you omit `damage` field**, fallback system will guess damage from keywords (BAD for ML training!)
+
+    **2. VOID-RELATED ACTIONS → MUST POPULATE `void_changes` FIELD**
+    - ❌ WRONG: Narrate "void corruption +1" without `void_changes` field
+    - ✅ CORRECT: Populate `void_changes=[VoidChange(character_name="Ash", amount=1, reason="ritual failure")]`
+    - **When to use**: Rituals, void exposure, cosmic horror, void powers, critical failures with void theme
+    - **If you omit `void_changes`**, no void will be applied (BAD for gameplay!)
+
+    **3. CLOCK UPDATES → POPULATE `clock_updates` WHEN ADVANCING/REGRESSING CLOCKS**
+    - ❌ WRONG: Say "clock advances by 2" in narration without `clock_updates` field
+    - ✅ CORRECT: Populate `clock_updates=[ClockUpdate(clock_name="Investigation", ticks=2, reason="discovered enemy positions")]`
+    - **When to use**: When actions should advance/regress active scene clocks (investigation progress, danger escalation, etc.)
+    - **Optional but recommended**: Track progress on investigation/exploration actions when major clues are discovered
+    - **If you omit `clock_updates`**, clocks won't advance (but that's OK if action doesn't warrant clock movement)
+
+    **4. CONDITIONS → MUST POPULATE `conditions` FIELD**
+    - ❌ WRONG: Narrate "stunned for 2 rounds" without `conditions` field
+    - ✅ CORRECT: Populate `conditions=[Condition(name="Stunned", penalty=-5, duration=2, description="cannot act")]`
+    - **If you omit `conditions`**, status effects won't apply (BAD for tactics!)
+
+    **5. SOULCREDIT CHANGES → MANDATORY FOR EVERY SINGLE ACTION**
+    - ❌ WRONG: Skip `soulcredit_changes` for "justified combat" or "neutral exploration"
+    - ✅ CORRECT: ALWAYS populate `soulcredit_changes=[SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")]`
+    - **CRITICAL:** `soulcredit_changes` is REQUIRED for EVERY action resolution - even if the amount is +0
+    - **Even neutral/justified actions need +0 logged** (shows intentional moral assessment, not accidental omission!)
+    - **If you forget this field, validation will fail and log warnings!**
+
+    ## 📊 STRUCTURED OUTPUT EXAMPLES
+
+    **Example 1: Combat Action (ALL fields populated)**
+    ```python
+    ActionResolution(
+        narration="Your bullet punches through their shoulder guard, spinning them sideways. Blood sprays across corroded metal as they stagger back, weapon clattering.",
+        success_tier=SuccessTier.GOOD,
+        margin=12,
+        effects=MechanicalEffects(
+            damage=DamageEffect(
+                target="tgt_7a3f",
+                base_damage=15,
+                soak=7,
+                dealt=8,
+                weapon="Kinetic Pistol"
+            ),
+            conditions=[
+                Condition(
+                    name="Off-Balance",
+                    penalty=-2,
+                    duration=1,
+                    description="next attack at -2"
+                )
+            ],
+            soulcredit_changes=[
+                SoulcreditChange(
+                    character_name="Ash Vex",
+                    amount=0,
+                    reason="justified combat against hostile enemy"
+                )
+            ],
+            clock_updates=[
+                ClockUpdate(
+                    clock_name="Enemy Morale",
+                    ticks=-1,
+                    reason="visible casualties shaking confidence"
+                )
+            ]
+        )
+    )
+    ```
+
+    **Example 2: Void Ritual (void_changes REQUIRED)**
+    ```python
+    ActionResolution(
+        narration="You channel purifying energy through your astral focus, but inverted resonance patterns fight back. Pain sears through your neural pathways as corruption resists cleansing.",
+        success_tier=SuccessTier.MARGINAL,
+        margin=2,
+        effects=MechanicalEffects(
+            void_changes=[
+                VoidChange(
+                    character_name="Riven Shard",  # Target being cleansed
+                    amount=-1,
+                    reason="marginal purification success despite resistance"
+                ),
+                VoidChange(
+                    character_name="Ash Vex",  # Ritual performer
+                    amount=1,
+                    reason="neural feedback from corrupted resonance"
+                )
+            ],
+            conditions=[
+                Condition(
+                    name="Psychic Strain",
+                    penalty=-1,
+                    duration=3,
+                    description="mental fatigue from ritual backlash"
+                )
+            ],
+            soulcredit_changes=[
+                SoulcreditChange(
+                    character_name="Ash Vex",
+                    amount=1,
+                    reason="selfless ritual to help ally"
+                )
+            ]
+        )
+    )
+    ```
+
+    **Example 3: Investigation (minimal effects)**
+    ```python
+    ActionResolution(
+        narration="Your neural interface decrypts the access logs. Twelve unauthorized entries, all from Internal Security subnet. Someone with high clearance has been covering tracks.",
+        success_tier=SuccessTier.GOOD,
+        margin=11,
+        effects=MechanicalEffects(
+            clock_updates=[
+                ClockUpdate(
+                    clock_name="Evidence Trail",
+                    ticks=3,
+                    reason="discovered internal security conspiracy"
+                )
+            ],
+            soulcredit_changes=[
+                SoulcreditChange(
+                    character_name="Echo Resonance",
+                    amount=0,
+                    reason="neutral investigation, no moral choice"
+                )
+            ],
+            notes=["Discovered: Internal Security subnet traces", "New clue: 12 unauthorized access attempts"]
+        )
+    )
+    ```
+
+    ## ⚠️ WHAT HAPPENS IF YOU SKIP FIELDS? ⚠️
+
+    1. **Skip `damage` on combat** → Fallback generates keyword-based damage (inaccurate, brittle, BAD ML training data)
+    2. **Skip `void_changes` on ritual** → NO void change applied (game state corrupted!)
+    3. **Skip `clock_updates`** → Clocks don't progress (story stalls!)
+    4. **Skip `conditions`** → Status effects ignored (tactics broken!)
+    5. **Skip `soulcredit_changes`** → Moral tracking incomplete (character progression broken!)
+
+    **RESULT: Fallback systems trigger, log warnings, and generate inferior data.**
+
+    ## ✅ BEST PRACTICES
+
+    1. **Narration = Creative Storytelling** (200-2000 chars, freeform, vivid, atmospheric)
+    2. **Effects = Structured Mechanics** (explicit fields, no guessing, no parsing)
+    3. **Always Populate Relevant Fields** (don't skip damage/void/clocks/soulcredit!)
+    4. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)
+    5. **Be Explicit About Neutrality** (e.g., `soulcredit_changes=[...amount=0...]` for neutral actions)
+
+    **REMEMBER:** Your creativity goes in `narration`. Your mechanics go in `effects`. BOTH are essential!
+
   faction_names: |-
     # Faction Names (CANONICAL - DO NOT CHANGE)
     - **ACG** = Astral Commerce Group (NOT "Artificial Commerce Group")
@@ -45,6 +229,39 @@ sections:
     - **Tempest Industries** = Anti-Nexus rebels (void research)
     - **House of Vox** = Media/broadcast
     - **Freeborn** = Natural-born, outside the pod system
+  invalid_target_handling: |-
+    # Handling Invalid Targets (CRITICAL)
+
+    **IF A PLAYER TARGETS AN ENEMY THAT DOESN'T EXIST:**
+
+    ❌ **DO NOT** narrate imaginary enemies into existence
+    ❌ **DO NOT** create combat with non-existent opponents
+    ❌ **DO NOT** apply damage/conditions to non-existent targets
+
+    ✅ **INSTEAD:** Narrate that the target doesn't exist or isn't present yet:
+    - "You scan for Tempest operatives, but none have arrived yet. The area is clear."
+    - "The enemy you're looking for hasn't shown up - perhaps they're still en route?"
+    - "You prepare to engage, but realize there's no one there to fight."
+
+    **Player is warned explicitly if no combatants exist**. If they still declare combat:
+    - Treat as AUTOMATIC SUCCESS for positioning/preparation
+    - Apply ⚖️ Soulcredit: +0 (no moral consequences - no combat occurred)
+    - Narrate them taking defensive position or scanning for threats
+    - DO NOT create enemies just because player mentioned them
+
+    **ONLY narrate enemies if:**
+    1. They exist in the active combatant list provided to you
+    2. You're spawning them via **[SPAWN_ENEMY:...]** marker
+    3. Scenario description explicitly places them in scene
+
+    **If player tries to shoot imaginary "guards":**
+    - "You sweep the corridor with your pistol, but find no guards - yet. You take cover and wait."
+    - **NOT**: "You fire at the guard, wounding their arm!" (don't create targets!)
+
+    **This prevents:**
+    - Imaginary combat with hallucinated enemies
+    - Applying damage/conditions to wrong characters
+    - Players getting mechanical outcomes for targeting fiction
   mechanical_guidance: |-
     # Mechanical Guidelines
 

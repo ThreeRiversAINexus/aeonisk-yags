@@ -98,7 +98,8 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
         'notes': resolution_obj.effects.notes,
         'position_change': position_change,
         'soulcredit_change': soulcredit_change,
-        'soulcredit_reasons': soulcredit_reasons
+        'soulcredit_reasons': soulcredit_reasons,
+        'soulcredit_source': 'structured_output'  # Mark as coming from structured output (not narration)
     }
 
     logger.debug(f"Extracted from structured: void={void_change}, clocks={len(clock_triggers)}, conditions={len(conditions)}")
@@ -1189,6 +1190,15 @@ def generate_fallback_effect(action: Dict[str, any], resolution: Dict[str, any])
     skill = action.get('skill', '').lower() if action.get('skill') else ''
     description = action.get('description', '').lower()
 
+    # Log fallback invocation (CRITICAL - indicates incomplete structured output)
+    intent = action.get('intent', 'Unknown action')
+    character = action.get('character_name', 'Unknown')
+    logger.warning(f"⚠️ FALLBACK TRIGGERED: DM omitted mechanical effects for action")
+    logger.warning(f"   Character: {character}")
+    logger.warning(f"   Intent: {intent[:100]}")
+    logger.warning(f"   Skill: {skill}, Margin: {margin}")
+    logger.warning(f"   This indicates incomplete structured output - DM should include effects explicitly!")
+
     # Determine effect type based on skill and narrative
     damage_keywords = ['attack', 'strike', 'blast', 'damage', 'hit', 'shoot', 'fire', 'slash', 'stab']
     debuff_keywords = ['disrupt', 'weaken', 'impair', 'jam', 'hack', 'interfere', 'destabilize']
@@ -1309,6 +1319,14 @@ def generate_fallback_buff(action: Dict[str, any], resolution: Dict[str, any]) -
     skill = action.get('skill', '').lower() if action.get('skill') else ''
     description = action.get('description', '').lower()
     intent = action.get('intent', '').lower()
+
+    # Log fallback invocation (CRITICAL - indicates incomplete structured output)
+    character = action.get('character_name', 'Unknown')
+    logger.warning(f"⚠️ FALLBACK BUFF TRIGGERED: DM omitted mechanical buff/healing effects")
+    logger.warning(f"   Character: {character}")
+    logger.warning(f"   Intent: {intent[:100]}")
+    logger.warning(f"   Skill: {skill}, Margin: {margin}, Target: {target_ally}")
+    logger.warning(f"   This indicates incomplete structured output - DM should include buff/healing explicitly!")
 
     # Support skill categories
     support_skills = ['charm', 'counsel', 'medicine', 'first aid', 'leadership']

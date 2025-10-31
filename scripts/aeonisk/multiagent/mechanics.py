@@ -742,6 +742,60 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_structured_output_metrics(
+        self,
+        round_num: int,
+        agent_type: str,
+        agent_id: str,
+        success: bool,
+        fallback_triggered: bool,
+        validation_warnings: List[str],
+        completeness_score: Optional[float] = None
+    ):
+        """
+        Log structured output quality metrics for ML analysis.
+
+        Tracks how well agents are using Pydantic AI structured output vs
+        falling back to text parsing or generating incomplete outputs.
+
+        Args:
+            round_num: Current round number
+            agent_type: 'dm', 'player', or 'enemy'
+            agent_id: Specific agent identifier
+            success: Whether structured output was generated successfully
+            fallback_triggered: Whether fallback system was invoked
+            validation_warnings: List of validation warning messages
+            completeness_score: Optional 0.0-1.0 score (1.0 = all expected fields populated)
+
+        Example:
+            ```python
+            logger.log_structured_output_metrics(
+                round_num=5,
+                agent_type='dm',
+                agent_id='dm_narrator',
+                success=True,
+                fallback_triggered=False,
+                validation_warnings=["Missing soulcredit_changes field"],
+                completeness_score=0.85
+            )
+            ```
+        """
+        event = {
+            "event_type": "structured_output_metrics",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_type": agent_type,
+            "agent_id": agent_id,
+            "structured_output_success": success,
+            "fallback_triggered": fallback_triggered,
+            "validation_warnings": validation_warnings,
+            "validation_issues_count": len(validation_warnings),
+            "completeness_score": completeness_score,
+            "is_complete": len(validation_warnings) == 0 and not fallback_triggered
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:

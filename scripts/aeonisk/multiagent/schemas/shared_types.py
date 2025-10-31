@@ -6,7 +6,7 @@ These models represent common game mechanics that appear in multiple contexts
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from enum import Enum
 
 
@@ -60,15 +60,20 @@ class VoidChange(BaseModel):
 
 class SoulcreditChange(BaseModel):
     """
-    Soulcredit economy change.
+    Soulcredit economy change - REQUIRED FOR EVERY SINGLE ACTION.
+
+    Soulcredit tracks trustworthiness and moral choices. Even neutral actions
+    must explicitly log amount=0 to show intentional moral assessment.
 
     Examples:
     - SoulcreditChange(character_name="Echo", amount=-2, reason="Created Hollow Seed")
     - SoulcreditChange(character_name="Thresh", amount=1, reason="Void creature defeated")
+    - SoulcreditChange(character_name="Ash", amount=0, reason="Justified combat, morally neutral")
+    - SoulcreditChange(character_name="Riven", amount=0, reason="Normal investigation, no moral choice")
     """
     character_name: str = Field(..., description="Name of character affected")
-    amount: int = Field(..., description="Soulcredit change: +X gain, -X cost")
-    reason: str = Field(..., min_length=5, description="Why this change occurred")
+    amount: int = Field(..., description="Soulcredit change: +X gain, -X cost, or 0 for neutral")
+    reason: str = Field(..., min_length=5, description="Why this change occurred (even if +0)")
 
 
 class ClockUpdate(BaseModel):
@@ -88,12 +93,18 @@ class Condition(BaseModel):
     """
     Status effect or condition applied to character.
 
+    IMPORTANT: Always specify the penalty value explicitly!
+    - Negative penalties are DEBUFFS (e.g., penalty=-3 for Stunned = -3 to rolls)
+    - Positive penalties are BUFFS (e.g., penalty=2 for Inspired = +2 to rolls)
+    - Use penalty=0 ONLY for purely narrative conditions with no mechanical effect
+
     Examples:
-    - Condition(name="Stunned", penalty=-3, duration=2, description="Cannot act next round")
-    - Condition(name="Inspired", penalty=-2, duration=3, description="+2 to next attack (negative penalty = bonus)")
+    - Condition(name="Stunned", penalty=-3, duration=2, description="Cannot act next round, -3 to all rolls")
+    - Condition(name="Inspired", penalty=2, duration=3, description="+2 to next attack")
+    - Condition(name="Marked", penalty=0, duration=5, description="Target tracked by scanner, no mechanical penalty")
     """
     name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired)")
-    penalty: int = Field(default=0, description="Penalty to rolls (negative = bonus)")
+    penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only")
     duration: int = Field(default=1, ge=1, description="Rounds this condition lasts")
     description: str = Field(..., min_length=5, description="What this condition does")
 
