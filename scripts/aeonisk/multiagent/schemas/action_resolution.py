@@ -30,6 +30,12 @@ class MechanicalEffects(BaseModel):
 
     All fields are optional - only include what actually happened.
     Empty lists mean nothing of that type occurred.
+
+    CRITICAL: Populate clock_updates for actions that advance/regress scene clocks!
+    Use exact clock names provided in the prompt. Examples:
+    - Investigation succeeds → ClockUpdate(clock_name="Evidence Collection", ticks=2, reason="Found crucial documents")
+    - Smuggler intimidated → ClockUpdate(clock_name="Hostage Execution", ticks=-1, reason="Smugglers calmed by negotiation")
+    - Alarm triggered → ClockUpdate(clock_name="Security Response", ticks=3, reason="Multiple alarms activated")
     """
     # Combat
     damage: Optional[DamageEffect] = Field(
@@ -50,7 +56,7 @@ class MechanicalEffects(BaseModel):
 
     clock_updates: List[ClockUpdate] = Field(
         default_factory=list,
-        description="Progress clock advancements/regressions"
+        description="Progress clock advancements/regressions. IMPORTANT: If action advances/regresses ANY scene clock, populate this field! Use exact clock names from prompt. Example: ClockUpdate(clock_name='Hostage Execution', ticks=1, reason='Tension escalating')"
     )
 
     # Status effects

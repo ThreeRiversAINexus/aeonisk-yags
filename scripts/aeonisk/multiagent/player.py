@@ -1399,7 +1399,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
         # Check for free targeting mode FIRST (works with or without enemies)
         config = self.shared_state.session_config if self.shared_state else {}
         enemy_config = config.get('enemy_agent_config', {})
-        free_targeting = enemy_config.get('free_targeting_mode', False)
+        free_targeting = enemy_config.get('free_targeting_mode', True)  # Default: enabled
 
         # Get active enemies (empty list if enemy combat disabled)
         active_enemies = []
@@ -1530,6 +1530,13 @@ need to charge into melee, etc.), your action should be ATTACKING an enemy.
 
 🎯 **Enemy Targets:**
   {enemy_positions_text}
+
+⚠️  **TARGETING FORMAT** ⚠️
+When declaring combat actions, use the enemy NAME exactly as listed above:
+- CORRECT: target: "Tempest Operatives"
+- WRONG: target: "tgt_tempest_operatives" (don't invent IDs!)
+- WRONG: target: "the enemies" (be specific!)
+
 {weapon_inventory_text}
 💬 **SOCIAL DE-ESCALATION OPTIONS** 💬
 Combat doesn't always require killing! Consider non-violent neutralization:

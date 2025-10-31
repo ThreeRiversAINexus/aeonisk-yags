@@ -228,9 +228,9 @@ response = await call_anthropic_with_retry(
 
 ### 5. Free Targeting Mode & Damage Resolution
 ```python
-# Free targeting mode: IFF/ROE testing with unified targeting
+# Free targeting mode: IFF/ROE testing with unified targeting (ENABLED BY DEFAULT)
 enemy_agent_config = {
-    "free_targeting_mode": True,  # Everyone gets target IDs (tgt_xxxx)
+    "free_targeting_mode": True,  # Default: True (set to False to disable)
     ...
 }
 ```

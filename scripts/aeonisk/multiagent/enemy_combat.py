@@ -342,7 +342,7 @@ class EnemyCombatManager:
         # Check if free targeting mode is enabled
         config = self.shared_state.session_config if self.shared_state else {}
         enemy_config = config.get('enemy_agent_config', {})
-        free_targeting = enemy_config.get('free_targeting_mode', False)
+        free_targeting = enemy_config.get('free_targeting_mode', True)  # Default: enabled
 
         # Get target ID mapper if in free targeting mode
         target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state and free_targeting else None

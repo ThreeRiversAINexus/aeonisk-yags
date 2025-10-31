@@ -104,6 +104,10 @@ class SelfPlayingSession:
         # Format: {character_name: [(action_type, success_tier, void_change, round_num), ...]}
         self._character_action_history: Dict[str, List[tuple]] = {}
 
+        # Track current round's initiative order for logging
+        # Format: {agent_id: initiative_score}
+        self._current_initiative: Dict[str, int] = {}
+
         # Initialize mechanics systems
         print("Initializing mechanics systems...")
         self.shared_state.initialize_mechanics()
@@ -466,11 +470,26 @@ class SelfPlayingSession:
         initiative_order = []
         mechanics = self.shared_state.get_mechanics_engine()
 
+        # Capture clock state at round start for delta tracking
+        clock_state_start = {}
+        if mechanics and mechanics.scene_clocks:
+            for clock_name, clock in mechanics.scene_clocks.items():
+                clock_state_start[clock_name] = {
+                    'current': clock.current,
+                    'filled': clock.filled
+                }
+
+        # Clear previous round's initiative
+        self._current_initiative.clear()
+
         for player_agent in player_agents:
             # Get player's Agility attribute
             agility = player_agent.character_state.attributes.get('Agility', 3)
             initiative = mechanics.calculate_initiative(agility)
             initiative_order.append((initiative, 'player', player_agent))
+
+            # Store initiative for logging
+            self._current_initiative[player_agent.agent_id] = initiative
 
             # Display with position if available
             position_str = f" ({player_agent.position})" if hasattr(player_agent, 'position') else ""
@@ -481,6 +500,8 @@ class SelfPlayingSession:
             enemy_entries = self.enemy_combat.get_initiative_entries()
             for init, enemy in enemy_entries:
                 initiative_order.append((init, 'enemy', enemy))
+                # Store enemy initiative for logging
+                self._current_initiative[enemy.agent_id] = init
                 print(f"[{enemy.name}] (ENEMY) Initiative: {init} ({enemy.position})")
 
         # Sort by initiative (highest first)
@@ -494,9 +515,9 @@ class SelfPlayingSession:
         self._in_declaration_phase = True
         self._declared_actions.clear()
 
-        # Assign combat IDs for free targeting mode (if enabled)
+        # Assign combat IDs for free targeting mode (enabled by default)
         enemy_config = self.config.get('enemy_agent_config', {})
-        if enemy_config.get('free_targeting_mode', False):
+        if enemy_config.get('free_targeting_mode', True):
             logger.info("Free targeting mode enabled - assigning target IDs")
             target_id_mapper = self.shared_state.get_target_id_mapper()
             target_id_mapper.enable()
@@ -802,18 +823,36 @@ class SelfPlayingSession:
                         )
 
                 # Log round summary for balance analysis
-                active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.health > 0]) if self.enemy_combat.enabled else 0
+                active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.is_active]) if self.enemy_combat.enabled else 0
                 player_wounds_total = sum(player.wounds for player in player_agents if hasattr(player, 'wounds'))
 
-                # Compute clocks advanced/filled from clock states
+                # Compute clocks advanced/filled THIS ROUND (delta tracking)
                 clocks_advanced = 0
+                clocks_regressed = 0
                 clocks_filled = 0
-                if mechanics.scene_clocks:
-                    for clock in mechanics.scene_clocks.values():
-                        if clock.current > 0:
-                            clocks_advanced += 1
-                        if clock.filled:
-                            clocks_filled += 1
+                total_ticks_advanced = 0
+                total_ticks_regressed = 0
+
+                if mechanics.scene_clocks and clock_state_start:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        # Compare with starting state
+                        if clock_name in clock_state_start:
+                            start_current = clock_state_start[clock_name]['current']
+                            end_current = clock.current
+
+                            # Calculate delta
+                            delta = end_current - start_current
+
+                            if delta > 0:
+                                clocks_advanced += 1
+                                total_ticks_advanced += delta
+                            elif delta < 0:
+                                clocks_regressed += 1
+                                total_ticks_regressed += abs(delta)
+
+                            # Check if filled THIS ROUND
+                            if clock.filled and not clock_state_start[clock_name]['filled']:
+                                clocks_filled += 1
 
                 round_summary = {
                     'actions_attempted': self._round_stats['actions_attempted'],
@@ -824,8 +863,11 @@ class SelfPlayingSession:
                     'damage_taken_by_players': self._round_stats['damage_taken_by_players'],
                     'void_gained': self._round_stats['void_gained'],
                     'void_lost': self._round_stats['void_lost'],
-                    'clocks_advanced': clocks_advanced,
-                    'clocks_filled': clocks_filled,
+                    'clocks_advanced': clocks_advanced,  # Number of clocks that advanced THIS ROUND
+                    'clocks_regressed': clocks_regressed,  # Number of clocks that regressed THIS ROUND
+                    'clocks_filled': clocks_filled,  # Number of clocks that FILLED THIS ROUND
+                    'total_ticks_advanced': total_ticks_advanced,  # Total ticks advanced across all clocks THIS ROUND
+                    'total_ticks_regressed': total_ticks_regressed,  # Total ticks regressed across all clocks THIS ROUND
                     'active_enemies': active_enemy_count,
                     'player_wounds_total': player_wounds_total
                 }
@@ -1712,8 +1754,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
                 if player_agent:
                     character_name = player_agent.character_state.name
-                    # Get initiative from the payload if available, otherwise 0
-                    initiative = message.payload.get('initiative', 0)
+                    # Get initiative from stored value (rolled at round start)
+                    initiative = self._current_initiative.get(agent_id, 0)
                     mechanics.jsonl_logger.log_action_declaration(
                         player_id=agent_id,
                         character_name=character_name,
