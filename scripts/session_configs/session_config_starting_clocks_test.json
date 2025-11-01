@@ -1,0 +1,119 @@
+{
+  "session_name": "starting_clocks_test",
+  "max_turns": 3,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Test Agent",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Complete the investigation before time runs out"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Investigation": 4,
+          "Awareness": 3,
+          "Systems": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Data Slate": 1,
+          "Scanner": 1
+        },
+        "void": 2
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Simple Investigation",
+    "location": "Corporate Archive",
+    "situation": "You're investigating corporate records. You have limited time before security sweeps the area. Work quickly and methodically.",
+    "void_level": 2
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Investigation Progress",
+      "max_ticks": 1,
+      "current_ticks": 0,
+      "description": "Gathering evidence from corporate records",
+      "advance_meaning": "more evidence collected",
+      "regress_meaning": "evidence trail goes cold"
+    },
+    {
+      "name": "Security Response",
+      "max_ticks": 4,
+      "current_ticks": 1,
+      "description": "Corporate security closing in on your position",
+      "advance_meaning": "security gets closer",
+      "regress_meaning": "security delayed"
+    }
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Gather evidence from corporate archives",
+      "type": "investigation",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test starting_clocks config feature",
+    "expected_behavior": [
+      "Session starts with 'Investigation Progress' clock (0/4)",
+      "Session starts with 'Security Response' clock (2/4) - pre-advanced",
+      "Clocks appear in DM context and can be updated",
+      "No story advancement needed - just verify clocks load"
+    ],
+    "verification": {
+      "console_output": "Should see '✓ Loaded 2 starting clock(s)' at startup",
+      "logs": "Check game.log for 'Loaded starting clock' messages",
+      "dm_context": "DM should see both clocks in active clocks list"
+    },
+    "success_criteria": [
+      "Both clocks loaded successfully",
+      "Clocks appear with correct current_ticks values",
+      "DM can advance/regress clocks during round",
+      "No errors during clock loading"
+    ]
+  }
+}

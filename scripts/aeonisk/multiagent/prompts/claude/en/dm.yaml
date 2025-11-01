@@ -619,10 +619,29 @@ sections:
     When objectives complete or situation dramatically changes, advance to next scene:
     `[ADVANCE_STORY: Location Name | Situation description]`
 
+    **With Structured Output (`StoryAdvancement` schema):**
+    Use the `new_void_level` field to update environmental void when story beats justify it.
+
+    **When to REDUCE void_level:**
+    - Purification clocks completed (e.g., 8 → 3 after major cleansing ritual)
+    - Area successfully cleansed or sanctified
+    - Void breach contained or sealed
+    - Moving from corrupted zone to safer area
+
+    **When to INCREASE void_level:**
+    - Containment failure, corruption spreading (e.g., 3 → 7)
+    - Moving deeper into void-saturated zones
+    - Major void events unleashed by player actions
+    - Environmental degradation progressing
+
     **Examples:**
     - Major location change: `[ADVANCE_STORY: Extraction Point | Having escaped, the team regroups at the safe house]`
+    - Purification complete: `new_void_level=3` (down from 8) when advancing after cleansing ritual
+    - Corruption spreading: `new_void_level=7` (up from 4) when breach containment fails
     - Same location, new situation: `[ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]`
-    - Objective complete: `[ADVANCE_STORY: Underground Market | With evidence secured, you seek a buyer for the stolen data]`
+    - Moving to safer zone: `new_void_level=2` (down from 6) when evacuating to sanctified area
+
+    **Note:** `new_void_level` is optional. Only update when story justifies environmental void change. Leave None to keep current void_level.
 
     **When to Use These Markers:**
     - **Victory**: Key objective achieved (e.g., "Evidence Trail" filled AND team escapes)

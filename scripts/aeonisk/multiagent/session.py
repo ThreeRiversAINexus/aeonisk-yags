@@ -201,6 +201,31 @@ class SelfPlayingSession:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
 
+        # Load starting_clocks from config if present
+        if 'starting_clocks' in self.config and self.config['starting_clocks']:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                from .schemas.story_events import NewClock
+                for clock_config in self.config['starting_clocks']:
+                    try:
+                        # Validate clock using NewClock schema
+                        clock = NewClock(**clock_config)
+                        # Add to mechanics.scene_clocks
+                        from .mechanics import SceneClock
+                        scene_clock = SceneClock(
+                            name=clock.name,
+                            current=clock.current_ticks,
+                            maximum=clock.max_ticks,
+                            description=clock.description,
+                            advance_means=clock.advance_meaning,
+                            regress_means=clock.regress_meaning
+                        )
+                        mechanics.scene_clocks[clock.name] = scene_clock
+                        logger.info(f"Loaded starting clock: {clock.name} ({clock.current_ticks}/{clock.max_ticks})")
+                    except Exception as e:
+                        logger.warning(f"Failed to load starting clock {clock_config.get('name', 'unknown')}: {e}")
+                print(f"✓ Loaded {len(self.config['starting_clocks'])} starting clock(s)")
+
         # Create and attach LLMCallLogger instances to all agents for replay functionality
         from .llm_logger import LLMCallLogger
         for agent in self.agents:
@@ -1938,6 +1963,28 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
                 logger.info(f"🗑️  Cleared {len(archived_clocks)} clocks for story advancement")
+
+            # Update environmental void_level if specified
+            if adv.new_void_level is not None:
+                dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+                if dm_agents and dm_agents[0].current_scenario:
+                    old_void = dm_agents[0].current_scenario.void_level
+                    dm_agents[0].current_scenario.void_level = adv.new_void_level
+                    logger.info(f"🌫️  Environmental void updated: {old_void} → {adv.new_void_level}")
+                    print(f"   Void Level: {old_void} → {adv.new_void_level}")
+
+                    # Log to JSONL
+                    if mechanics and mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event(
+                            event_type="void_level_update",
+                            data={
+                                "old_void_level": old_void,
+                                "new_void_level": adv.new_void_level,
+                                "location": adv.location,
+                                "reason": "story_advancement"
+                            },
+                            round_num=mechanics.current_round
+                        )
 
             # Clear enemies (conditional on clear_all_enemies flag)
             if adv.clear_all_enemies:

@@ -139,3 +139,20 @@ python3 multiagent/validate_logging.py ../../multiagent_output/session_*.jsonl
 2. `.claude/README.md` - AI orientation
 3. `.claude/ARCHITECTURE.md` - System architecture
 4. `LOGGING_IMPLEMENTATION.md` - ML logging details
+5. `scripts/session_config_README.md` - Session configuration guide
+
+## Session Testing & Configuration
+
+**Division of Labor:**
+- **Human runs:** Multi-agent sessions (`python3 scripts/run_multiagent_session.py <config>`)
+- **Claude runs:** Unit tests (`python -m pytest tests/unit/<test_file>.py -v`)
+
+**Session Config Features:**
+- `starting_clocks` - Load pre-configured scene clocks at session start
+- Environmental void_level updates via `StoryAdvancement.new_void_level`
+- See `scripts/session_config_README.md` for full configuration guide
+
+**Test Configs:**
+- `session_config_void_story_advancement_test.json` - Tests void_level updates
+- `session_config_starting_clocks_test.json` - Tests clock loading
+- All test configs use contrived scenarios (max_turns=1-2) for rapid validation

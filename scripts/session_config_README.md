@@ -406,5 +406,107 @@ When `force_vendor_gate: true`, DM generates scenarios like:
 
 ---
 
-**Version:** 1.0.0 (2025-10-26)
+## Story & Scene Clock Configuration
+
+### `starting_clocks` (Array) **NEW**
+
+Load pre-configured scene clocks at session start.
+
+**Structure:**
+```json
+"starting_clocks": [
+  {
+    "name": "Investigation Progress",
+    "max_ticks": 4,
+    "current_ticks": 0,
+    "description": "Gathering evidence from corporate records",
+    "advance_meaning": "more evidence collected",
+    "regress_meaning": "evidence trail goes cold"
+  }
+]
+```
+
+**Fields:**
+- `name` (required): Clock name (3-50 chars)
+- `max_ticks` (required): Maximum ticks (4-12 recommended)
+- `current_ticks` (optional, default: 0): Starting tick count
+- `description` (required): What the clock represents
+- `advance_meaning` (required): What it means when clock advances
+- `regress_meaning` (required): What it means when clock regresses
+
+**Example - Pre-Advanced Clock:**
+```json
+{
+  "name": "Security Response",
+  "max_ticks": 6,
+  "current_ticks": 3,
+  "description": "Corporate security closing in",
+  "advance_meaning": "security gets closer",
+  "regress_meaning": "security delayed"
+}
+```
+
+**Use Cases:**
+- **Timed scenarios**: Start with urgency clock already ticking
+- **Ongoing situations**: Players arrive mid-crisis
+- **Test scenarios**: Set up specific clock states for validation
+
+### Environmental Void Level Updates **NEW**
+
+DM can now update `scenario.void_level` during story advancement.
+
+**Schema Field:** `StoryAdvancement.new_void_level` (Optional[int], 0-10)
+
+**When DM Advances Story:**
+```python
+StoryAdvancement(
+    should_advance=True,
+    location="Research Station - Cleansed Wing",
+    situation="The purification ritual succeeded...",
+    new_void_level=3  # Down from 8
+)
+```
+
+**Console Output:**
+```
+🌫️  Environmental void updated: 8 → 3
+   Void Level: 8 → 3
+```
+
+**When to Reduce:**
+- Purification clocks completed
+- Area successfully cleansed
+- Moving to safer zone
+
+**When to Increase:**
+- Containment failure
+- Moving deeper into corrupted zones
+- Void breach spreading
+
+**Philosophy:**
+- Environmental void is **setting**, not player currency
+- Players affect it via **scene clocks**
+- DM updates during **story advancement**
+- Field is optional (None = unchanged)
+
+---
+
+## Test Configurations
+
+### Testing & Validation Configs
+
+- **`session_config_void_story_advancement_test.json`** - Tests void_level updates
+- **`session_config_starting_clocks_test.json`** - Tests clock loading
+- **`session_config_void_self_cleanse.json`** - Tests self-targeted void cleansing
+- **`session_config_void_change_test.json`** - Tests environmental void targeting
+
+**Note:** Test configs use contrived scenarios with max_turns=1-2 for rapid validation.
+
+---
+
+**Version:** 1.1.0 (2025-10-31)
 **Compatibility:** Tactical Module v1.2.3+
+
+**Changelog:**
+- **v1.1.0 (2025-10-31)**: Added `starting_clocks` config + environmental void_level updates
+- **v1.0.0 (2025-10-26)**: Initial version with vendor/enemy configuration

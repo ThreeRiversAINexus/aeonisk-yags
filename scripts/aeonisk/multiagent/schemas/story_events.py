@@ -88,9 +88,9 @@ class NewClock(BaseModel):
 
     max_ticks: int = Field(
         ...,
-        ge=4,
+        ge=1,
         le=12,
-        description="Maximum ticks before clock fills (4-12 recommended)"
+        description="Maximum ticks before clock fills (1-12, 4-8 recommended)"
     )
 
     description: str = Field(
@@ -212,6 +212,7 @@ class StoryAdvancement(BaseModel):
         should_advance=True,
         location="Abandoned Transit Hub - Platform 7",
         situation="Having escaped the facility, you find a wounded courier clutching a data slate with urgent intel about the Obsidian Path",
+        new_void_level=3,  # Optional: reduce void from 8→3 after purification
         clear_all_enemies=True,
         new_clocks=[
             NewClock(name="Courier's Life", max_ticks=6, description="Stabilize courier before they expire"),
@@ -238,6 +239,13 @@ class StoryAdvancement(BaseModel):
         min_length=20,
         max_length=500,
         description="New situation description (if advancing)"
+    )
+
+    new_void_level: Optional[int] = Field(
+        default=None,
+        ge=0,
+        le=10,
+        description="New environmental void level (0-10), if changed. Leave None to keep current void_level unchanged."
     )
 
     clear_all_enemies: bool = Field(
