@@ -2004,6 +2004,26 @@ class MechanicsEngine:
 
         # Remove all marked clocks
         for clock_name in clocks_to_remove:
+            # Find the expired clock data for this clock
+            expired_data = next(e for e in expired_clocks if e['clock_name'] == clock_name)
+
+            # JSONL logging for clock removal
+            if self.jsonl_logger:
+                self.jsonl_logger.log_event(
+                    event_type="clock_removal",
+                    data={
+                        "clock_name": clock_name,
+                        "current_ticks": expired_data['current'],
+                        "maximum_ticks": expired_data['maximum'],
+                        "description": expired_data['description'],
+                        "removal_reason": expired_data['removal_reason'],
+                        "expiration_type": expired_data['expiration_type'],
+                        "filled": (expired_data['removal_reason'] == 'filled'),
+                        "consequence_triggered": (expired_data['removal_reason'] == 'filled')
+                    },
+                    round_num=self.current_round
+                )
+
             del self.scene_clocks[clock_name]
             logger.info(f"Removed clock: {clock_name}")
 

@@ -328,6 +328,9 @@ class SessionAnalyzer:
             'enemy_defeat': ['round', 'context.enemy_name'],
             'session_start': ['config.session_name', 'config.git_commit'],
             'session_end': ['session'],
+            'clock_advancement': ['round', 'data.clock_name', 'data.before_ticks', 'data.after_ticks', 'data.maximum_ticks', 'data.delta', 'data.filled'],
+            'clock_completion': ['round', 'data.clock_name', 'data.final_ticks', 'data.maximum_ticks'],
+            'clock_removal': ['round', 'data.clock_name', 'data.current_ticks', 'data.maximum_ticks', 'data.removal_reason', 'data.expiration_type', 'data.filled'],
         }
         return defaults.get(event_type, ['event_type', 'round'])
 

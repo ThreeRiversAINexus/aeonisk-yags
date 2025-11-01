@@ -58,6 +58,14 @@ EVENT_SCHEMAS = {
     "void_change": {
         "required": ["event_type", "ts", "session", "round", "agent", "old_void", "new_void", "delta", "reason"],
         "optional": ["capped"]
+    },
+    "clock_completion": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": []
+    },
+    "clock_removal": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": []
     }
 }
 

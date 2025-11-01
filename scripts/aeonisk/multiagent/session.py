@@ -1497,6 +1497,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
                 if mechanics.jsonl_logger:
+                    # Log any remaining clocks before session ends
+                    if mechanics.scene_clocks:
+                        for clock_name, clock in mechanics.scene_clocks.items():
+                            mechanics.jsonl_logger.log_event(
+                                event_type="clock_removal",
+                                data={
+                                    "clock_name": clock_name,
+                                    "current_ticks": clock.current,
+                                    "maximum_ticks": clock.maximum,
+                                    "description": clock.description,
+                                    "removal_reason": "session_end",
+                                    "expiration_type": None,
+                                    "filled": clock.filled,
+                                    "consequence_triggered": False
+                                },
+                                round_num=mechanics.current_round
+                            )
+
                     # Get current state for logging
                     final_state = mechanics.get_state_summary()
                     final_state['session_end_status'] = self._session_end_status
@@ -1960,6 +1978,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Clear clocks (always happens on story advancement)
             if mechanics and mechanics.scene_clocks:
+                # Log each clock removal before clearing
+                if mechanics.jsonl_logger:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "story_advancement",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
                 logger.info(f"🗑️  Cleared {len(archived_clocks)} clocks for story advancement")
@@ -2054,6 +2090,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if pivot.clear_specific_clocks and mechanics:
                 for clock_name in pivot.clear_specific_clocks:
                     if clock_name in mechanics.scene_clocks:
+                        clock = mechanics.scene_clocks[clock_name]
+
+                        # Log clock removal
+                        if mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                event_type="clock_removal",
+                                data={
+                                    "clock_name": clock_name,
+                                    "current_ticks": clock.current,
+                                    "maximum_ticks": clock.maximum,
+                                    "description": clock.description,
+                                    "removal_reason": "scene_pivot",
+                                    "expiration_type": None,
+                                    "filled": clock.filled,
+                                    "consequence_triggered": False
+                                },
+                                round_num=mechanics.current_round
+                            )
+
                         del mechanics.scene_clocks[clock_name]
                         logger.info(f"Cleared clock: {clock_name}")
 
@@ -2136,6 +2191,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Clear ALL old clocks
             if mechanics and mechanics.scene_clocks:
+                # Log each clock removal before clearing
+                if mechanics.jsonl_logger:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "story_advancement",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
                 logger.info(f"🗑️  Cleared all old clocks for story advancement: {', '.join(archived_clocks)}")
