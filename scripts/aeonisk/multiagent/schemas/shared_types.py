@@ -5,7 +5,7 @@ These models represent common game mechanics that appear in multiple contexts
 (DM resolutions, player actions, enemy decisions, etc.).
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal, List
 from enum import Enum
 
@@ -52,10 +52,28 @@ class VoidChange(BaseModel):
     Examples:
     - VoidChange(character_name="Ash Vex", amount=2, reason="Failed ritual without offering")
     - VoidChange(character_name="Riven", amount=-3, reason="Powerful purification ritual")
+
+    IMPORTANT: character_name must be a specific player character name.
+    For environmental/area void effects, use scene clocks instead of VoidChange.
     """
-    character_name: str = Field(..., description="Name of character affected")
+    character_name: str = Field(..., description="Name of specific character affected (NOT 'Environmental Void' or abstract targets - use scene clocks for those)")
     amount: int = Field(..., description="Void change: +X corruption, -X cleansing")
     reason: str = Field(..., min_length=5, description="Why this void change occurred")
+
+    @field_validator('character_name')
+    @classmethod
+    def validate_not_environmental(cls, v: str) -> str:
+        """Prevent environmental/abstract targets in character void changes."""
+        environmental_keywords = ['environmental', 'environment', 'area', 'ambient', 'scene', 'location']
+        v_lower = v.lower()
+
+        if any(keyword in v_lower for keyword in environmental_keywords):
+            raise ValueError(
+                f"Invalid character name '{v}' - environmental void effects should be tracked "
+                f"via scene clocks, not character void. Use specific character names only."
+            )
+
+        return v
 
 
 class SoulcreditChange(BaseModel):

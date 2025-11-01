@@ -2771,78 +2771,89 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Check if void change targets a different character (collaborative cleansing)
                 target_identifier = state_changes.get('void_target_character')
+                should_apply_void_change = True  # Flag to control whether to apply the void change
+                void_state = None
+                target_name = None
+
                 if target_identifier:
-                    # Resolve target - could be target ID (tgt_xxxx) or character name
-                    target_player_id = None
-                    target_character_name = None
-
-                    if target_identifier.startswith('tgt_'):
-                        # It's a target ID - resolve it
-                        logger.debug(f"Resolving target ID '{target_identifier}' for void change")
-                        target_id_mapper = self.shared_state.get_target_id_mapper()
-                        target_entity = target_id_mapper.resolve_target(target_identifier)
-
-                        if target_entity and hasattr(target_entity, 'agent_id'):
-                            target_player_id = target_entity.agent_id
-                            target_character_name = getattr(target_entity, 'character_state', None)
-                            if target_character_name:
-                                target_character_name = target_character_name.name
-                            logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
+                    # Check for environmental/abstract targets that shouldn't apply to characters
+                    # These should be tracked via scene clocks instead of character void
+                    if target_identifier in ('Environmental Void', 'environment', 'area', 'Environmental'):
+                        logger.debug(f"Skipping character void change for environmental target '{target_identifier}' - use scene clocks for area effects")
+                        should_apply_void_change = False
                     else:
-                        # It's a character name - find by name (partial match)
-                        target_character_name = target_identifier
-                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
-                            for player in self.shared_state.player_agents:
-                                if hasattr(player, 'character_state'):
-                                    # Try exact match first, then partial match
-                                    char_name = player.character_state.name
-                                    if char_name == target_character_name or target_character_name in char_name:
-                                        target_player_id = player.agent_id
-                                        target_character_name = char_name  # Use full name
-                                        logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
-                                        break
+                        # Resolve target - could be target ID (tgt_xxxx) or character name
+                        target_player_id = None
+                        target_character_name = None
 
-                    if target_player_id:
-                        void_state = mechanics.get_void_state(target_player_id)
-                        target_name = target_character_name
-                        logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
-                    else:
-                        # Couldn't find target, fall back to acting character
-                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, applying to actor")
-                        void_state = mechanics.get_void_state(player_id)
-                        target_name = action.get('character', player_id)
+                        if target_identifier.startswith('tgt_'):
+                            # It's a target ID - resolve it
+                            logger.debug(f"Resolving target ID '{target_identifier}' for void change")
+                            target_id_mapper = self.shared_state.get_target_id_mapper()
+                            target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                            if target_entity and hasattr(target_entity, 'agent_id'):
+                                target_player_id = target_entity.agent_id
+                                target_character_name = getattr(target_entity, 'character_state', None)
+                                if target_character_name:
+                                    target_character_name = target_character_name.name
+                                logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
+                        else:
+                            # It's a character name - find by name (partial match)
+                            target_character_name = target_identifier
+                            if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                                for player in self.shared_state.player_agents:
+                                    if hasattr(player, 'character_state'):
+                                        # Try exact match first, then partial match
+                                        char_name = player.character_state.name
+                                        if char_name == target_character_name or target_character_name in char_name:
+                                            target_player_id = player.agent_id
+                                            target_character_name = char_name  # Use full name
+                                            logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
+                                            break
+
+                        if target_player_id:
+                            void_state = mechanics.get_void_state(target_player_id)
+                            target_name = target_character_name
+                            logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
+                        else:
+                            # Couldn't find target - skip instead of falling back to actor
+                            logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
+                            should_apply_void_change = False
                 else:
-                    # Default: apply to acting character
+                    # Default: apply to acting character (self-inflicted void)
                     void_state = mechanics.get_void_state(player_id)
                     target_name = action.get('character', player_id)
 
-                old_void = void_state.score
+                # Only apply void change if we have a valid target
+                if should_apply_void_change and void_state:
+                    old_void = void_state.score
 
-                if state_changes['void_change'] > 0:
-                    # Void gain (corruption increasing)
-                    action_id = f"{player_id}_{intent}_{resolution.total}"
-                    void_state.add_void(
-                        state_changes['void_change'],
-                        ", ".join(state_changes['void_reasons']),
-                        action_id=action_id
-                    )
-                    # Show void increase if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
-                else:
-                    # Void reduction (recovery moves)
-                    void_state.reduce_void(
-                        abs(state_changes['void_change']),
-                        ", ".join(state_changes['void_reasons'])
-                    )
-                    # Show void decrease if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    if state_changes['void_change'] > 0:
+                        # Void gain (corruption increasing)
+                        action_id = f"{player_id}_{intent}_{resolution.total}"
+                        void_state.add_void(
+                            state_changes['void_change'],
+                            ", ".join(state_changes['void_reasons']),
+                            action_id=action_id
+                        )
+                        # Show void increase if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    else:
+                        # Void reduction (recovery moves)
+                        void_state.reduce_void(
+                            abs(state_changes['void_change']),
+                            ", ".join(state_changes['void_reasons'])
+                        )
+                        # Show void decrease if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
-                # Check for Eye of Breach appearance on high void
-                eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
-                if eye_of_breach_event:
-                    narration += f"\n\n{eye_of_breach_event}"
+                    # Check for Eye of Breach appearance on high void
+                    eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
+                    if eye_of_breach_event:
+                        narration += f"\n\n{eye_of_breach_event}"
 
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             # Always show soulcredit line (even if +0) for consistency, UNLESS DM already included one
@@ -3180,78 +3191,89 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Check if void change targets a different character (collaborative cleansing)
                 target_identifier = state_changes.get('void_target_character')
+                should_apply_void_change = True  # Flag to control whether to apply the void change
+                void_state = None
+                target_name = None
+
                 if target_identifier:
-                    # Resolve target - could be target ID (tgt_xxxx) or character name
-                    target_player_id = None
-                    target_character_name = None
-
-                    if target_identifier.startswith('tgt_'):
-                        # It's a target ID - resolve it
-                        logger.debug(f"Resolving target ID '{target_identifier}' for void change")
-                        target_id_mapper = self.shared_state.get_target_id_mapper()
-                        target_entity = target_id_mapper.resolve_target(target_identifier)
-
-                        if target_entity and hasattr(target_entity, 'agent_id'):
-                            target_player_id = target_entity.agent_id
-                            target_character_name = getattr(target_entity, 'character_state', None)
-                            if target_character_name:
-                                target_character_name = target_character_name.name
-                            logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
+                    # Check for environmental/abstract targets that shouldn't apply to characters
+                    # These should be tracked via scene clocks instead of character void
+                    if target_identifier in ('Environmental Void', 'environment', 'area', 'Environmental'):
+                        logger.debug(f"Skipping character void change for environmental target '{target_identifier}' - use scene clocks for area effects")
+                        should_apply_void_change = False
                     else:
-                        # It's a character name - find by name (partial match)
-                        target_character_name = target_identifier
-                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
-                            for player in self.shared_state.player_agents:
-                                if hasattr(player, 'character_state'):
-                                    # Try exact match first, then partial match
-                                    char_name = player.character_state.name
-                                    if char_name == target_character_name or target_character_name in char_name:
-                                        target_player_id = player.agent_id
-                                        target_character_name = char_name  # Use full name
-                                        logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
-                                        break
+                        # Resolve target - could be target ID (tgt_xxxx) or character name
+                        target_player_id = None
+                        target_character_name = None
 
-                    if target_player_id:
-                        void_state = mechanics.get_void_state(target_player_id)
-                        target_name = target_character_name
-                        logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
-                    else:
-                        # Couldn't find target, fall back to acting character
-                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, applying to actor")
-                        void_state = mechanics.get_void_state(player_id)
-                        target_name = action.get('character', player_id)
+                        if target_identifier.startswith('tgt_'):
+                            # It's a target ID - resolve it
+                            logger.debug(f"Resolving target ID '{target_identifier}' for void change")
+                            target_id_mapper = self.shared_state.get_target_id_mapper()
+                            target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                            if target_entity and hasattr(target_entity, 'agent_id'):
+                                target_player_id = target_entity.agent_id
+                                target_character_name = getattr(target_entity, 'character_state', None)
+                                if target_character_name:
+                                    target_character_name = target_character_name.name
+                                logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
+                        else:
+                            # It's a character name - find by name (partial match)
+                            target_character_name = target_identifier
+                            if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                                for player in self.shared_state.player_agents:
+                                    if hasattr(player, 'character_state'):
+                                        # Try exact match first, then partial match
+                                        char_name = player.character_state.name
+                                        if char_name == target_character_name or target_character_name in char_name:
+                                            target_player_id = player.agent_id
+                                            target_character_name = char_name  # Use full name
+                                            logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
+                                            break
+
+                        if target_player_id:
+                            void_state = mechanics.get_void_state(target_player_id)
+                            target_name = target_character_name
+                            logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
+                        else:
+                            # Couldn't find target - skip instead of falling back to actor
+                            logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
+                            should_apply_void_change = False
                 else:
-                    # Default: apply to acting character
+                    # Default: apply to acting character (self-inflicted void)
                     void_state = mechanics.get_void_state(player_id)
                     target_name = action.get('character', player_id)
 
-                old_void = void_state.score
+                # Only apply void change if we have a valid target
+                if should_apply_void_change and void_state:
+                    old_void = void_state.score
 
-                if state_changes['void_change'] > 0:
-                    # Void gain (corruption increasing)
-                    action_id = f"{player_id}_{intent}_{resolution.total}"
-                    void_state.add_void(
-                        state_changes['void_change'],
-                        ", ".join(state_changes['void_reasons']),
-                        action_id=action_id
-                    )
-                    # Show void increase if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
-                else:
-                    # Void reduction (recovery moves)
-                    void_state.reduce_void(
-                        abs(state_changes['void_change']),
-                        ", ".join(state_changes['void_reasons'])
-                    )
-                    # Show void decrease if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    if state_changes['void_change'] > 0:
+                        # Void gain (corruption increasing)
+                        action_id = f"{player_id}_{intent}_{resolution.total}"
+                        void_state.add_void(
+                            state_changes['void_change'],
+                            ", ".join(state_changes['void_reasons']),
+                            action_id=action_id
+                        )
+                        # Show void increase if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    else:
+                        # Void reduction (recovery moves)
+                        void_state.reduce_void(
+                            abs(state_changes['void_change']),
+                            ", ".join(state_changes['void_reasons'])
+                        )
+                        # Show void decrease if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
-                # Check for Eye of Breach appearance on high void
-                eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
-                if eye_of_breach_event:
-                    narration += f"\n\n{eye_of_breach_event}"
+                    # Check for Eye of Breach appearance on high void
+                    eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
+                    if eye_of_breach_event:
+                        narration += f"\n\n{eye_of_breach_event}"
 
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             # Always show soulcredit line (even if +0) for consistency, UNLESS DM already included one
