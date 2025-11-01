@@ -175,41 +175,26 @@ python scripts/analyze_session.py session.jsonl --search event_type=action_resol
 - ❌ NO hardcoded faction behaviors based on name patterns
 - ❌ NO text parsing of narration for mechanical effects
 
-## Recent Work (See `.claude/current-work/` for details)
+## Recent Work
 
-### 2025-10-31: Keyword Detection Cleanup (Bug #2 Follow-up)
-- Removed runtime keyword detection from void targeting code (`dm.py`)
-- Now rely solely on Pydantic schema validation + name resolution failure
-- Enhanced DM prompt with explicit environmental void guidance
-- Void targeting: Schema validators = good, runtime keywords = bad
-- Philosophy: Trust structured output, not text parsing
+Check `git log --oneline -10` for latest changes.
 
-### 2025-10-30: Structured Output Phase 2
-- Added Pydantic schemas for enemy removal/de-escalation (`EnemyResolution`, `EnemyRemoval`)
-- Auto-clear enemies on `ADVANCE_STORY` (fixes persistence bug)
-- All debuff actions now deal damage + debuff
-
-### 2025-10-29: Structured Output Phase 1
-- Created Pydantic schema system (`schemas/`: ActionResolution, PlayerAction, EnemyDecision, StoryEvents)
-- Extended `llm_provider.py` with `generate_structured()` method
-- Philosophy: Freeform narration + structured mechanics (NO keyword detection)
-- Multi-provider ready (Claude, GPT-4, local models)
-
-### 2025-10-29: Keyword Detection Removal
-- Disabled ALL keyword-based void detection (false positives from "center", "feedback", etc.)
-- Now rely ONLY on DM explicit markers: `⚫ Void: +X (reason)`
-- Removed skill routing - agents choose skills (mistakes = ML training data)
+### Key Features Completed
+- **Structured Output System** - Pydantic schemas for all LLM responses (ActionResolution, PlayerAction, etc.)
+- **Free Targeting Mode** - Generic IDs (`tgt_xxx`) to test IFF/ROE capabilities
+- **Enemy Agent System** - Autonomous tactical enemy AI agents
+- **ML Logging** - Comprehensive JSONL logging for training datasets
+- **Scene Clocks** - Bidirectional clocks for dynamic storytelling
+- **Environmental Void** - Location-based void tracking separate from character void
 
 
 ---
-
-**For detailed work history and active development context, see `.claude/current-work/`**
 
 **Start here when joining:**
 1. This file (CLAUDE.md) - Essential patterns
 2. `.claude/README.md` - AI orientation
 3. `.claude/ARCHITECTURE.md` - System architecture
-4. `LOGGING_IMPLEMENTATION.md` - ML logging details
+4. `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` - ML logging details
 5. `scripts/session_config_README.md` - Session configuration guide
 
 ## Session Testing & Configuration
