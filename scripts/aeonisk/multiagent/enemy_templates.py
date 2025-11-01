@@ -50,7 +50,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         },
 
         # Combat Stats
-        "health": 12,  # Base health (before group scaling) - reduced for balance
+        "health": 30,  # Base health (buffed 12→30 to survive 1-2 hits)
         "soak": 0,  # Will be calculated: base + armor
         "void_score": 1,
         "size": 5,
@@ -94,7 +94,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Stealth": 3
         },
 
-        "health": 20,
+        "health": 50,  # Buffed 20→50 to survive 2-4 hits from skilled PCs
         "soak": 0,
         "void_score": 2,
         "size": 5,
@@ -134,7 +134,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Brawl": 1
         },
 
-        "health": 12,
+        "health": 25,  # Buffed 12→25 glass cannon (fragile but deadly)
         "soak": 0,
         "void_score": 1,
         "size": 5,
@@ -216,7 +216,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Magick Theory": 4
         },
 
-        "health": 15,
+        "health": 40,  # Buffed 15→40 ritual specialist (moderate durability)
         "soak": 0,
         "void_score": 5,  # Already corrupted
         "size": 5,
@@ -256,7 +256,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Awareness": 2
         },
 
-        "health": 22,
+        "health": 55,  # Buffed 22→55 melee tank (heavy durability)
         "soak": 0,
         "void_score": 2,
         "size": 5,
@@ -296,7 +296,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Stealth": 3
         },
 
-        "health": 15,
+        "health": 35,  # Buffed 15→35 tactical support (moderate durability)
         "soak": 0,
         "void_score": 1,
         "size": 5,
@@ -337,7 +337,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Athletics": 3
         },
 
-        "health": 14,
+        "health": 25,  # Buffed 14→25 glass cannon (fragile hit-and-run)
         "soak": 0,
         "void_score": 1,
         "size": 5,

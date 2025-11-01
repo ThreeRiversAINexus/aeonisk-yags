@@ -138,11 +138,27 @@ class DamageEffect(BaseModel):
     - DamageEffect(target="Thresh Ireveth", base_damage=14, soak=10, dealt=4)
     - DamageEffect(target="tgt_7a3f", base_damage=12, dealt=12)  # Enemy (soak unknown)
     """
-    target: str = Field(..., description="Target character name or target ID (tgt_xxxx)")
+    target: str = Field(..., description="Target character name or target ID (tgt_xxxx format: tgt_ followed by exactly 4 lowercase alphanumeric characters)")
     base_damage: int = Field(..., ge=0, description="Damage before soak")
     soak: Optional[int] = Field(default=None, ge=0, description="Damage soaked (if known)")
     dealt: int = Field(..., ge=0, description="Final damage dealt after soak")
     damage_type: Optional[str] = Field(default=None, description="Type of damage (kinetic, void, psychic, etc.)")
+
+    @field_validator('target')
+    @classmethod
+    def validate_target_id_format(cls, v: str) -> str:
+        """Validate target ID format in free targeting mode."""
+        # If target starts with tgt_, enforce proper format
+        if v.startswith('tgt_'):
+            import re
+            # Pattern: tgt_ followed by exactly 4 lowercase alphanumeric chars
+            if not re.match(r'^tgt_[a-z0-9]{4}$', v):
+                raise ValueError(
+                    f"Invalid target ID format: '{v}'. "
+                    f"Target IDs must be 'tgt_' followed by exactly 4 lowercase alphanumeric characters (e.g., 'tgt_7a3f'). "
+                    f"Do NOT use enemy names like 'tgt_heavy_gunners' - use the assigned ID from the combatant list instead."
+                )
+        return v
 
 
 class PositionChange(BaseModel):

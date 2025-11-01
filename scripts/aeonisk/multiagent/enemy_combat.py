@@ -916,7 +916,9 @@ class EnemyCombatManager:
                         result['stuns_dealt'] = damage_result['stuns_dealt']
                     elif damage_type == "wound":
                         damage_result = apply_wound_damage(target, damage_dealt)
-                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
+                        # Only log if actual wounds were dealt (not just HP damage)
+                        if damage_result['wounds_dealt'] > 0:
+                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
                         result['damage_type'] = 'wound'
                         result['wounds_dealt'] = damage_result['wounds_dealt']
                     elif damage_type == "mixed":

@@ -109,7 +109,7 @@ sections:
         margin=12,
         effects=MechanicalEffects(
             damage=DamageEffect(
-                target="tgt_7a3f",  # Target the ENTIRE unit (works for both individuals and groups)
+                target="tgt_7a3f",  # ✅ Use exact ID from combatant list (e.g., [tgt_7a3f] Heavy Gunners)
                 base_damage=15,
                 soak=7,
                 dealt=8,
@@ -140,6 +140,33 @@ sections:
         )
     )
     ```
+
+    ## ⚠️ CRITICAL: FREE TARGETING MODE TARGET IDS ⚠️
+
+    When free targeting mode is enabled, you will see combatants listed like:
+    - [tgt_3yp8] Enforcer Kael Dren
+    - [tgt_grpq] Heavy Gunners
+    - [tgt_xe1g] Sniper Team
+
+    **MANDATORY TARGET ID RULES:**
+
+    ❌ **NEVER** construct target IDs from enemy names:
+    - WRONG: `target="tgt_heavy_gunners"` (name-based - WILL FAIL!)
+    - WRONG: `target="tgt_sniper_team"` (name-based - WILL FAIL!)
+    - WRONG: `target="tgt_elite_assault_squad"` (name-based - WILL FAIL!)
+
+    ✅ **ALWAYS** copy the exact ID from the combatant list:
+    - CORRECT: `target="tgt_grpq"` (for Heavy Gunners in example above)
+    - CORRECT: `target="tgt_xe1g"` (for Sniper Team in example above)
+    - CORRECT: `target="tgt_3yp8"` (for Enforcer Kael Dren in example above)
+
+    **Why?** Target IDs are randomly assigned each round. Using enemy names will fail validation.
+
+    **How to find the correct ID:**
+    1. Player says "I shoot the Heavy Gunners"
+    2. Look at combatant list above in your prompt
+    3. Find: [tgt_grpq] Heavy Gunners
+    4. Copy EXACTLY: `target="tgt_grpq"` in your DamageEffect
 
     **Example 2: Void Ritual (void_changes REQUIRED)**
     ```python

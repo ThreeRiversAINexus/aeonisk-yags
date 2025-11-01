@@ -7,8 +7,8 @@
   "force_combat": true,
   "vendor_spawn_frequency": 0,
 
-  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 - IMPOSSIBLE MODE ===",
-  "_comment_scenario": "Overwhelming odds - players surrounded by hostile forces. Tests combat/movement/defeat mechanics.",
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 - COMBAT BALANCE TEST ===",
+  "_comment_scenario": "Balanced combat test - validates HP scaling and damage system. With buffed enemy HP (elite: 20→50), PCs should need 2-4 hits to defeat enemies instead of one-shotting them.",
   "combat_scenario_index": 0,
   "_comment_combat_index": "Forces 'Overwhelming Ambush' template (index 0) - all enemies target players, no faction infighting",
   "tactical_module_enabled": true,
@@ -141,5 +141,5 @@
     }
     ]
   },
-  "notes": "IMPOSSIBLE MODE - Players surrounded by overwhelming hostile forces. Should force combat, movement, damage, and defeat mechanics testing. Enemies explicitly target players to test Size/Soak fixes and death save system."
+  "notes": "COMBAT BALANCE TEST - Tests HP scaling fix (elite: 20→50 HP). Should validate: (1) PCs need 2-4 hits to defeat elites, (2) No one-shot kills except on exceptional success vs. weak enemies, (3) No '0 → 0 wounds' display bug. Expected: Multi-round combat with enemies surviving initial exchanges."
 }
