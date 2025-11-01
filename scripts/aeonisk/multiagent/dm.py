@@ -2776,50 +2776,48 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_name = None
 
                 if target_identifier:
-                    # Check for environmental/abstract targets that shouldn't apply to characters
-                    # These should be tracked via scene clocks instead of character void
-                    if target_identifier in ('Environmental Void', 'environment', 'area', 'Environmental'):
-                        logger.debug(f"Skipping character void change for environmental target '{target_identifier}' - use scene clocks for area effects")
-                        should_apply_void_change = False
+                    # Resolve target - could be target ID (tgt_xxxx) or character name
+                    # NOTE: Relies on Pydantic schema validation to reject environmental keywords
+                    # Schema validator prevents: "Environmental Void", "environment", "area", etc.
+                    # Unresolvable names (environmental or typos) naturally skip via name resolution failure
+                    target_player_id = None
+                    target_character_name = None
+
+                    if target_identifier.startswith('tgt_'):
+                        # It's a target ID - resolve it
+                        logger.debug(f"Resolving target ID '{target_identifier}' for void change")
+                        target_id_mapper = self.shared_state.get_target_id_mapper()
+                        target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            target_player_id = target_entity.agent_id
+                            target_character_name = getattr(target_entity, 'character_state', None)
+                            if target_character_name:
+                                target_character_name = target_character_name.name
+                            logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
                     else:
-                        # Resolve target - could be target ID (tgt_xxxx) or character name
-                        target_player_id = None
-                        target_character_name = None
+                        # It's a character name - find by name (partial match)
+                        target_character_name = target_identifier
+                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                            for player in self.shared_state.player_agents:
+                                if hasattr(player, 'character_state'):
+                                    # Try exact match first, then partial match
+                                    char_name = player.character_state.name
+                                    if char_name == target_character_name or target_character_name in char_name:
+                                        target_player_id = player.agent_id
+                                        target_character_name = char_name  # Use full name
+                                        logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
+                                        break
 
-                        if target_identifier.startswith('tgt_'):
-                            # It's a target ID - resolve it
-                            logger.debug(f"Resolving target ID '{target_identifier}' for void change")
-                            target_id_mapper = self.shared_state.get_target_id_mapper()
-                            target_entity = target_id_mapper.resolve_target(target_identifier)
-
-                            if target_entity and hasattr(target_entity, 'agent_id'):
-                                target_player_id = target_entity.agent_id
-                                target_character_name = getattr(target_entity, 'character_state', None)
-                                if target_character_name:
-                                    target_character_name = target_character_name.name
-                                logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
-                        else:
-                            # It's a character name - find by name (partial match)
-                            target_character_name = target_identifier
-                            if self.shared_state and hasattr(self.shared_state, 'player_agents'):
-                                for player in self.shared_state.player_agents:
-                                    if hasattr(player, 'character_state'):
-                                        # Try exact match first, then partial match
-                                        char_name = player.character_state.name
-                                        if char_name == target_character_name or target_character_name in char_name:
-                                            target_player_id = player.agent_id
-                                            target_character_name = char_name  # Use full name
-                                            logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
-                                            break
-
-                        if target_player_id:
-                            void_state = mechanics.get_void_state(target_player_id)
-                            target_name = target_character_name
-                            logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
-                        else:
-                            # Couldn't find target - skip instead of falling back to actor
-                            logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
-                            should_apply_void_change = False
+                    if target_player_id:
+                        void_state = mechanics.get_void_state(target_player_id)
+                        target_name = target_character_name
+                        logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
+                    else:
+                        # Couldn't find target - skip instead of falling back to actor
+                        # This handles environmental targets, typos, and non-existent characters
+                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
+                        should_apply_void_change = False
                 else:
                     # Default: apply to acting character (self-inflicted void)
                     void_state = mechanics.get_void_state(player_id)
@@ -3196,50 +3194,48 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_name = None
 
                 if target_identifier:
-                    # Check for environmental/abstract targets that shouldn't apply to characters
-                    # These should be tracked via scene clocks instead of character void
-                    if target_identifier in ('Environmental Void', 'environment', 'area', 'Environmental'):
-                        logger.debug(f"Skipping character void change for environmental target '{target_identifier}' - use scene clocks for area effects")
-                        should_apply_void_change = False
+                    # Resolve target - could be target ID (tgt_xxxx) or character name
+                    # NOTE: Relies on Pydantic schema validation to reject environmental keywords
+                    # Schema validator prevents: "Environmental Void", "environment", "area", etc.
+                    # Unresolvable names (environmental or typos) naturally skip via name resolution failure
+                    target_player_id = None
+                    target_character_name = None
+
+                    if target_identifier.startswith('tgt_'):
+                        # It's a target ID - resolve it
+                        logger.debug(f"Resolving target ID '{target_identifier}' for void change")
+                        target_id_mapper = self.shared_state.get_target_id_mapper()
+                        target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            target_player_id = target_entity.agent_id
+                            target_character_name = getattr(target_entity, 'character_state', None)
+                            if target_character_name:
+                                target_character_name = target_character_name.name
+                            logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
                     else:
-                        # Resolve target - could be target ID (tgt_xxxx) or character name
-                        target_player_id = None
-                        target_character_name = None
+                        # It's a character name - find by name (partial match)
+                        target_character_name = target_identifier
+                        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+                            for player in self.shared_state.player_agents:
+                                if hasattr(player, 'character_state'):
+                                    # Try exact match first, then partial match
+                                    char_name = player.character_state.name
+                                    if char_name == target_character_name or target_character_name in char_name:
+                                        target_player_id = player.agent_id
+                                        target_character_name = char_name  # Use full name
+                                        logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
+                                        break
 
-                        if target_identifier.startswith('tgt_'):
-                            # It's a target ID - resolve it
-                            logger.debug(f"Resolving target ID '{target_identifier}' for void change")
-                            target_id_mapper = self.shared_state.get_target_id_mapper()
-                            target_entity = target_id_mapper.resolve_target(target_identifier)
-
-                            if target_entity and hasattr(target_entity, 'agent_id'):
-                                target_player_id = target_entity.agent_id
-                                target_character_name = getattr(target_entity, 'character_state', None)
-                                if target_character_name:
-                                    target_character_name = target_character_name.name
-                                logger.debug(f"Resolved target ID {target_identifier} → '{target_character_name}' (player_id: {target_player_id})")
-                        else:
-                            # It's a character name - find by name (partial match)
-                            target_character_name = target_identifier
-                            if self.shared_state and hasattr(self.shared_state, 'player_agents'):
-                                for player in self.shared_state.player_agents:
-                                    if hasattr(player, 'character_state'):
-                                        # Try exact match first, then partial match
-                                        char_name = player.character_state.name
-                                        if char_name == target_character_name or target_character_name in char_name:
-                                            target_player_id = player.agent_id
-                                            target_character_name = char_name  # Use full name
-                                            logger.debug(f"Matched character name '{target_identifier}' → '{char_name}' (player_id: {target_player_id})")
-                                            break
-
-                        if target_player_id:
-                            void_state = mechanics.get_void_state(target_player_id)
-                            target_name = target_character_name
-                            logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
-                        else:
-                            # Couldn't find target - skip instead of falling back to actor
-                            logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
-                            should_apply_void_change = False
+                    if target_player_id:
+                        void_state = mechanics.get_void_state(target_player_id)
+                        target_name = target_character_name
+                        logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
+                    else:
+                        # Couldn't find target - skip instead of falling back to actor
+                        # This handles environmental targets, typos, and non-existent characters
+                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
+                        should_apply_void_change = False
                 else:
                     # Default: apply to acting character (self-inflicted void)
                     void_state = mechanics.get_void_state(player_id)

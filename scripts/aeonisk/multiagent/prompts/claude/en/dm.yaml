@@ -74,6 +74,11 @@ sections:
     - ✅ CORRECT: Populate `void_changes=[VoidChange(character_name="Ash", amount=1, reason="ritual failure")]`
     - **When to use**: Rituals, void exposure, cosmic horror, void powers, critical failures with void theme
     - **If you omit `void_changes`**, no void will be applied (BAD for gameplay!)
+    - **⚠️ ENVIRONMENTAL VOID EFFECTS:**
+      * ❌ NEVER use `VoidChange` for environmental/area void effects (e.g., "Environmental Void", "ambient corruption", "chamber void")
+      * ✅ ALWAYS use `ClockUpdate` for environmental corruption: `clock_updates=[ClockUpdate(clock_name="Environmental Corruption", ticks=2, reason="void breach spreading")]`
+      * `character_name` must be a SPECIFIC player character name, not abstract/environmental targets
+      * Schema validation will reject environmental keywords - use scene clocks instead!
 
     **3. CLOCK UPDATES → POPULATE `clock_updates` WHEN ADVANCING/REGRESSING CLOCKS**
     - ❌ WRONG: Say "clock advances by 2" in narration without `clock_updates` field

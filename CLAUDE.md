@@ -81,15 +81,37 @@ python3 multiagent/validate_logging.py ../../multiagent_output/session_*.jsonl
 
 ## Design Philosophy
 
-**Core Principle:** DM interprets actions via context, NOT keyword detection.
+**Core Principle:** Mechanics emerge from LLM-generated structured output, NOT keyword detection or text parsing.
+
+**Structured Output Over Keyword Detection:**
+- ✅ **Preferred:** LLMs generate Pydantic-validated structured output (`ActionResolution`, `VoidChange`, `DamageEffect`)
+- ✅ **Acceptable:** Pydantic schema validators (enforce contracts during generation)
+- ❌ **Avoid:** Runtime keyword detection in game logic code
+- ❌ **Avoid:** Text parsing for mechanical effects ("if 'stun' in narration...")
+
+**Why we hate keyword detection:**
+- False positives ("center", "feedback" triggering void mechanics)
+- Brittle (breaks when LLM changes wording)
+- Poor ML training data (mechanics implied from keywords, not explicit)
+- Doesn't scale (would need keywords in every language)
+- Goes against emergent gameplay philosophy
 
 **Guidelines:**
-- ✅ Freeform narration + structured mechanical markers (`⚫ Void`, `📊 Clock`)
+- ✅ Freeform narration + structured mechanical fields (separate concerns)
 - ✅ Generic placeholders in examples, not specific character names
-- ❌ NO keyword detection for game mechanics
+- ✅ Trust LLM structured output, validate via schemas
+- ❌ NO keyword detection for game mechanics in runtime code
 - ❌ NO hardcoded faction behaviors based on name patterns
+- ❌ NO text parsing of narration for mechanical effects
 
 ## Recent Work (See `.claude/current-work/` for details)
+
+### 2025-10-31: Keyword Detection Cleanup (Bug #2 Follow-up)
+- Removed runtime keyword detection from void targeting code (`dm.py`)
+- Now rely solely on Pydantic schema validation + name resolution failure
+- Enhanced DM prompt with explicit environmental void guidance
+- Void targeting: Schema validators = good, runtime keywords = bad
+- Philosophy: Trust structured output, not text parsing
 
 ### 2025-10-30: Structured Output Phase 2
 - Added Pydantic schemas for enemy removal/de-escalation (`EnemyResolution`, `EnemyRemoval`)
