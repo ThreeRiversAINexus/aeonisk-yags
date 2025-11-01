@@ -1599,6 +1599,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Log session end event
             mechanics = self.shared_state.mechanics_engine
             if mechanics.jsonl_logger:
+                # Log any remaining clocks before session ends (timeout path)
+                if mechanics.scene_clocks:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "session_end",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+
                 mechanics.jsonl_logger.log_session_end(state_summary)
                 print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
 
