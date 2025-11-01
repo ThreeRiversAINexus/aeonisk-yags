@@ -1,0 +1,99 @@
+{
+  "session_name": "void_change_targeting_test",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Test Ritualist",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 7,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Test void cleansing ritual targeting environmental void",
+          "Verify void changes apply to correct targets"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 6,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Astral Arts": 7,
+          "Ritual Lore": 6,
+          "Awareness": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Ritual Components": 1,
+          "Void Crystals": 2
+        },
+        "void": 6
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Void Cleansing Test Chamber",
+    "location": "Sanctified Ritual Chamber with Void Contamination",
+    "situation": "You're in a ritual chamber with environmental void contamination (ambient corruption in the air and walls). Your own void score is 6/10. Perform a cleansing ritual - you can target either yourself (self-cleansing) OR the environmental void. DM: Please test BOTH cases: (1) If player targets environmental void, use void_target_character='Environmental Void' with negative void_change to test the fix (should be SKIPPED, not applied to player). (2) If player targets themselves, use void_target_character=null with negative void_change (should apply to player correctly).",
+    "void_level": 7
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Perform void cleansing ritual and verify correct targeting",
+      "type": "ritual",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test void change targeting bug fix for environmental targets",
+    "test_case_1": {
+      "scenario": "Player performs ritual targeting environmental void",
+      "dm_output": "void_target_character='Environmental Void', amount=-2",
+      "expected_behavior": "Void change is SKIPPED (not applied to character)",
+      "bug_behavior": "Player gets -2 void reduction (unearned benefit)",
+      "verification": "Player void should remain 6/10, NOT decrease to 4/10"
+    },
+    "test_case_2": {
+      "scenario": "Player performs self-cleansing ritual",
+      "dm_output": "void_target_character=null or missing, amount=-2",
+      "expected_behavior": "Void change applied to player (6 → 4)",
+      "verification": "Player void should decrease from 6 to 4"
+    },
+    "note": "Run twice to test both cases, or DM might naturally do both in narration"
+  }
+}
