@@ -235,8 +235,8 @@ class TargetIDMapper:
         if not agent:
             return False
 
-        # Enemy agents have is_active and is_group attributes
-        is_npc = hasattr(agent, 'is_active') and hasattr(agent, 'is_group')
+        # Enemy agents have is_active and tactics attributes
+        is_npc = hasattr(agent, 'is_active') and hasattr(agent, 'tactics')
         return is_npc
 
     def get_all_target_ids(self) -> List[str]:
@@ -283,7 +283,6 @@ class TargetIDMapper:
             info['health'] = agent.health
             info['max_health'] = agent.max_health
             info['position'] = str(agent.position)
-            info['unit_count'] = agent.unit_count if agent.is_group else 1
 
         return info
 

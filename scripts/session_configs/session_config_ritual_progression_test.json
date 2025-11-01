@@ -1,0 +1,120 @@
+{
+  "session_name": "ritual_progression_void_accumulation_test",
+  "max_turns": 4,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "_comment_test": "=== RITUAL PROGRESSION TEST - VOID ACCUMULATION FIXTURE ===",
+  "_comment_goal": "Generate fixture showing void accumulation across multiple rituals for integration testing",
+  "_comment_flow": "4 rounds of escalating rituals: minor (DC 15) → standard (DC 18) → major (DC 22) → forbidden (DC 26)",
+  "_comment_expected": "Character void increases from 0 → 1-2 → 3-4 → 6-8 across rounds",
+  "_comment_events": "JSONL should show action_resolution with void_changes, character_data with void progression",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Void Researcher Nova",
+        "pronouns": "she/her",
+        "faction": "Independent Scholar",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 9,
+          "bondPreference": "neutral",
+          "ritualConservatism": 1
+        },
+        "goals": [
+          "Test ritual void accumulation from minor to forbidden rituals",
+          "Round 1: Minor scrying ritual (DC 15) - expect +0-1 void",
+          "Round 2: Standard divination ritual (DC 18) - expect +1-2 void total",
+          "Round 3: Major void channeling ritual (DC 22) - expect +2-3 void total",
+          "Round 4: Forbidden communion ritual (DC 26) - expect +3-4 void total",
+          "Track void accumulation and offering consumption"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 5,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Ritual Lore": 5,
+          "Void Lore": 5,
+          "Astral Arts": 4,
+          "Investigation": 4,
+          "Awareness": 3,
+          "Occult": 4
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Ritual Components": 8,
+          "Void Crystals": 4,
+          "Scrying Mirror": 1,
+          "Forbidden Tome": 1,
+          "Purification Crystals": 2,
+          "Channeling Rod": 1,
+          "Blood Offering": 2
+        },
+        "void": 0
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Ritual Research Expedition",
+    "location": "Isolated Research Sanctum",
+    "situation": "You've secured a quiet research space to conduct ritual experiments. Your goal is to test a sequence of escalating rituals to understand void accumulation mechanics. You have all the necessary components and offerings. The sanctum is stable (void_level 2/10), providing a controlled environment for your research.\n\nPlan:\n- Round 1: Minor scrying ritual (simple void peek, DC ~15)\n- Round 2: Standard divination ritual (deeper void contact, DC ~18)\n- Round 3: Major void channeling ritual (significant void manipulation, DC ~22)\n- Round 4: Forbidden communion ritual (dangerous void communion, DC ~26)\n\nCarefully observe how your personal void level changes after each ritual.",
+    "void_level": 2
+  },
+
+  "_test_notes": {
+    "purpose": "Generate fixture for ritual flow integration tests showing void progression",
+    "expected_flow": [
+      "Round 1: Minor ritual → +0-1 void (on failure/marginal), offering consumed",
+      "Round 2: Standard ritual → cumulative void 1-2, offering consumed",
+      "Round 3: Major ritual → cumulative void 3-5, offering consumed",
+      "Round 4: Forbidden ritual → cumulative void 6-8+, significant offering consumed"
+    ],
+    "verification": {
+      "jsonl_events": [
+        "action_resolution: void_changes array shows void_delta for each ritual",
+        "character_data: void field increases across rounds",
+        "action_resolution: offerings_consumed field shows ritual costs"
+      ],
+      "integration_test_focus": [
+        "Verify offering consumption in character inventory",
+        "Verify void accumulation (monotonically increasing)",
+        "Verify ritual difficulty scaling (DC increases)",
+        "Verify higher rituals = higher void risk"
+      ]
+    },
+    "success_criteria": [
+      "4 ritual action_resolution events logged",
+      "Each resolution shows offerings_consumed",
+      "Each resolution shows void_changes (some may be 0 on success)",
+      "Character void field increases by end of session",
+      "Inventory shows consumed offerings removed"
+    ]
+  }
+}

@@ -40,13 +40,12 @@ Logs complete combat action with attack roll, damage roll, and results.
   "damage": {
     "strength": 3,
     "weapon_dmg": 12,
-    "group_bonus": 2,
     "d20": 8,
-    "base_damage": 25,
+    "base_damage": 23,
     "combat_balance_modifier": 0.85,
-    "total": 21,
+    "total": 19,
     "soak": 10,
-    "dealt": 11
+    "dealt": 9
   },
   "wounds_dealt": 2,
   "defender_state_after": {

@@ -2337,7 +2337,19 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 #
                 # Legacy fallback code removed - structured output from PydanticAI is now authoritative.
                 # The DM must explicitly populate damage/conditions/void via the Pydantic schema.
-                pass  # Fallback disabled
+
+                # Extract damage from structured output if available
+                if not effect and state_changes.get('damage_effects'):
+                    # Use first damage effect (single-target for now)
+                    # Multi-target damage would require schema change or multiple resolutions
+                    damage_data = state_changes['damage_effects'][0]
+                    effect = {
+                        'type': 'damage',
+                        'target': damage_data['target'],
+                        'final': damage_data['dealt'],
+                        'source': 'structured_output'
+                    }
+                    logger.debug(f"Extracted damage from structured output: {damage_data['dealt']} to {damage_data['target']}")
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):

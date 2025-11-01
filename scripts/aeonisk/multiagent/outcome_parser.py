@@ -86,6 +86,19 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
             'reason': pc.reason
         }
 
+    # Extract damage effects
+    damage_effects = []
+    if resolution_obj.effects.damage:
+        damage_effects.append({
+            'type': 'damage',
+            'target': resolution_obj.effects.damage.target,
+            'base_damage': resolution_obj.effects.damage.base_damage,
+            'soak': resolution_obj.effects.damage.soak,
+            'dealt': resolution_obj.effects.damage.dealt,
+            'damage_type': resolution_obj.effects.damage.damage_type,
+            'source': 'structured_output'
+        })
+
     # Build state_changes dict (legacy format)
     state_changes = {
         'clock_triggers': clock_triggers,
@@ -97,12 +110,13 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
         'conditions': conditions,
         'notes': resolution_obj.effects.notes,
         'position_change': position_change,
+        'damage_effects': damage_effects,  # Damage from structured output
         'soulcredit_change': soulcredit_change,
         'soulcredit_reasons': soulcredit_reasons,
         'soulcredit_source': 'structured_output'  # Mark as coming from structured output (not narration)
     }
 
-    logger.debug(f"Extracted from structured: void={void_change}, clocks={len(clock_triggers)}, conditions={len(conditions)}")
+    logger.debug(f"Extracted from structured: void={void_change}, clocks={len(clock_triggers)}, conditions={len(conditions)}, damage={len(damage_effects)}")
 
     return state_changes
 

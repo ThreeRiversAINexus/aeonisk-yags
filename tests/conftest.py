@@ -386,3 +386,168 @@ def full_session_fixture(test_data_dir, load_jsonl_fixture):
     """
     fixture_path = test_data_dir / "sessions" / "session_debt_auction_ambush.jsonl"
     return load_jsonl_fixture(fixture_path)
+
+
+# ============================================================================
+# Mocked Session Fixtures
+# ============================================================================
+
+@pytest.fixture
+def mock_action_resolution_hit():
+    """Create a deterministic ActionResolution for successful combat hit."""
+    from aeonisk.multiagent.schemas.action_resolution import ActionResolution, MechanicalEffects
+    from aeonisk.multiagent.schemas.shared_types import SuccessTier, DamageEffect, Condition
+
+    return ActionResolution(
+        narration="Kael's shock baton connects with the thug's torso. Electricity arcs across their chest, locking up their muscles. They cry out and stagger backward, momentarily stunned.",
+        success_tier=SuccessTier.GOOD,
+        margin=8,
+        effects=MechanicalEffects(
+            damage=DamageEffect(
+                target="thug_1",
+                base_damage=0,
+                dealt=0,
+                damage_type="electric"
+            ),
+            conditions=[
+                Condition(
+                    name="Stunned",
+                    penalty=-3,
+                    duration=2,
+                    description="Muscles locked from electric shock, -3 to all rolls for 2 rounds"
+                )
+            ]
+        )
+    )
+
+
+@pytest.fixture
+def mock_action_resolution_kill():
+    """Create a deterministic ActionResolution for lethal combat kill."""
+    from aeonisk.multiagent.schemas.action_resolution import ActionResolution, MechanicalEffects
+    from aeonisk.multiagent.schemas.shared_types import SuccessTier, DamageEffect
+
+    return ActionResolution(
+        narration="Sable's pistol barks twice. The first round punches through the thug's chest plate, the second catches them in the throat. They drop instantly, blood pooling on the deck.",
+        success_tier=SuccessTier.EXCELLENT,
+        margin=15,
+        effects=MechanicalEffects(
+            damage=DamageEffect(
+                target="thug_2",
+                base_damage=18,
+                soak=3,
+                dealt=15,
+                damage_type="kinetic"
+            )
+        )
+    )
+
+
+@pytest.fixture
+def mock_action_resolution_pc_to_pc():
+    """Create a deterministic ActionResolution for PC→PC friendly fire (no fallback damage)."""
+    from aeonisk.multiagent.schemas.action_resolution import ActionResolution, MechanicalEffects
+    from aeonisk.multiagent.schemas.shared_types import SuccessTier
+
+    return ActionResolution(
+        narration="Kael restrains Sable, pinning their arms. 'Stand down!' he barks. Sable struggles but doesn't escalate to lethal force.",
+        success_tier=SuccessTier.MODERATE,
+        margin=3,
+        effects=MechanicalEffects(
+            conditions=[]  # No damage, DM narration determines everything
+        )
+    )
+
+
+@pytest.fixture
+async def minimal_combat_session(tmp_path, mock_anthropic_client):
+    """
+    Create minimal 2 PC + 2 enemy session with mocked LLM for deterministic unit tests.
+
+    Provides:
+    - 2 PCs: Enforcer Kael Dren, Drifter Sable
+    - 2 enemies: Thug grunt × 2 (flee_when_broken)
+    - Mocked LLM client returning deterministic ActionResolution responses
+    - Temp JSONL logging for validation
+    - Fast execution suitable for unit tests
+
+    Usage:
+        async def test_something(minimal_combat_session):
+            session = minimal_combat_session
+            # Session is initialized and ready for combat round execution
+    """
+    from aeonisk.multiagent.session import Session
+    from aeonisk.multiagent.shared_state import SharedState
+    from pathlib import Path
+    import json
+
+    # Create minimal session config
+    config = {
+        "session_name": "minimal_combat_test",
+        "max_turns": 1,
+        "party_size": 2,
+        "output_dir": str(tmp_path),
+        "enable_human_interface": False,
+        "force_combat": True,
+        "vendor_spawn_frequency": 0,
+        "tactical_module_enabled": True,
+        "enemy_agents_enabled": True,
+        "enemy_agent_config": {
+            "allow_groups": True,
+            "max_enemies_per_combat": 2,
+            "shared_intel_enabled": False,
+            "auto_execute_reactions": True,
+            "loot_suggestions_enabled": False,
+            "void_tracking_enabled": False
+        },
+        "force_scenario": "[SPAWN_ENEMY: Thugs | grunt | 2 | Near-Enemy | aggressive_melee | personality:flee_when_broken]",
+        "agents": {
+            "dm": {
+                "llm": {
+                    "provider": "mock",
+                    "model": "claude-sonnet-4-5",
+                    "temperature": 0.7
+                }
+            },
+            "players": [
+                {
+                    "name": "Enforcer Kael Dren",
+                    "pronouns": "he/him",
+                    "faction": "Pantheon Security",
+                    "llm": {"provider": "mock", "model": "claude-sonnet-4-5", "temperature": 0.8},
+                    "personality": {"riskTolerance": 6, "voidCuriosity": 1, "bondPreference": "neutral", "ritualConservatism": 9},
+                    "goals": ["Test combat mechanics"],
+                    "attributes": {"Strength": 4, "Agility": 4, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Empathy": 3, "Willpower": 4, "Charisma": 3, "Size": 5},
+                    "skills": {"Combat": 5, "Brawl": 4, "Guns": 5, "Athletics": 4, "Awareness": 5},
+                    "equipped_weapons": {"primary": "shock_baton", "sidearm": "pistol"},
+                    "inventory": {"shock_baton": 1, "pistol": 1, "med_kit": 1}
+                },
+                {
+                    "name": "Drifter Sable",
+                    "pronouns": "they/them",
+                    "faction": "Freeborn",
+                    "llm": {"provider": "mock", "model": "claude-sonnet-4-5", "temperature": 0.8},
+                    "personality": {"riskTolerance": 8, "voidCuriosity": 5, "bondPreference": "avoids", "ritualConservatism": 3},
+                    "goals": ["Survive combat efficiently"],
+                    "attributes": {"Strength": 3, "Agility": 5, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Empathy": 2, "Willpower": 3, "Charisma": 2, "Size": 5},
+                    "skills": {"Combat": 5, "Guns": 6, "Stealth": 5, "Athletics": 4, "Awareness": 5},
+                    "equipped_weapons": {"primary": "pistol", "sidearm": "combat_knife"},
+                    "inventory": {"pistol": 1, "combat_knife": 1, "void_cloak": 1}
+                }
+            ]
+        }
+    }
+
+    # Initialize session with mocked LLM
+    session = Session(config)
+    session.llm_client = mock_anthropic_client
+
+    # Initialize combat state
+    session.shared_state.enemies = [
+        {"id": "thug_1", "name": "Thug 1", "template": "grunt", "hp": 15, "max_hp": 15, "active": True},
+        {"id": "thug_2", "name": "Thug 2", "template": "grunt", "hp": 15, "max_hp": 15, "active": True}
+    ]
+    session.shared_state.round_number = 1
+    session.shared_state.in_combat = True
+
+    return session

@@ -1504,8 +1504,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                 for enemy in active_enemies:
                     tgt_id = target_id_mapper.get_target_id(enemy.agent_id)
                     if tgt_id:
-                        unit_count = f" ({enemy.unit_count} units)" if enemy.is_group else ""
-                        combatants.append(f"[{tgt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP{unit_count}")
+                        combatants.append(f"[{tgt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP")
 
                 combatants_text = "\n  ".join(combatants)
 

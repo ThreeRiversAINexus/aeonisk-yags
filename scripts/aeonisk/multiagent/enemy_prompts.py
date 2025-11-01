@@ -140,12 +140,6 @@ def _format_status(enemy: EnemyAgent) -> str:
     status = f"""## YOUR STATUS
 {"=" * 60}
 Unit Type: {enemy.template.upper()}
-Unit Count: {enemy.unit_count} {"units" if enemy.unit_count > 1 else "unit"}"""
-
-    if enemy.is_group and enemy.unit_count < enemy.original_unit_count:
-        status += f" (started with {enemy.original_unit_count})"
-
-    status += f"""
 Health: {enemy.health}/{enemy.max_health} ({health_pct}%) - {health_status}
 Wounds: {enemy.wounds} {wound_status}
 Stuns: {enemy.stuns}
@@ -226,8 +220,7 @@ def _format_battlefield(
             if other_enemy.is_active:
                 tgt_id = target_id_mapper.get_target_id(other_enemy.agent_id)
                 if tgt_id:
-                    unit_count = f" ({other_enemy.unit_count} units)" if other_enemy.is_group else ""
-                    combatants.append(f"- [{tgt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP{unit_count}")
+                    combatants.append(f"- [{tgt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP")
 
         section += "\n" + "\n".join(combatants)
 
@@ -431,16 +424,11 @@ def _format_hostile_enemy(observer: EnemyAgent, hostile: EnemyAgent) -> str:
     else:
         health_str = f"~{health_pct}% (CRITICAL)"
 
-    unit_str = f"{hostile.unit_count} units" if hostile.is_group else "1 unit"
-    if hostile.is_group and hostile.unit_count < hostile.original_unit_count:
-        unit_str += f" (down from {hostile.original_unit_count})"
-
     from .faction_utils import get_faction_stance
     faction_stance = get_faction_stance(hostile.faction)
 
     return f"""- {hostile.name} (HOSTILE {faction_stance})
   Position: {hostile.position} (Range: {range_name}, Penalty: {range_penalty})
-  Unit Count: {unit_str}
   Health: {health_str}
   Tactics: {hostile.tactics}
   **You can target this enemy agent_id for attacks!**"""
@@ -459,13 +447,8 @@ def _format_allied_enemy(ally: EnemyAgent) -> str:
     else:
         health_str = f"~{health_pct}% (CRITICAL)"
 
-    unit_str = f"{ally.unit_count} units" if ally.is_group else "1 unit"
-    if ally.is_group and ally.unit_count < ally.original_unit_count:
-        unit_str += f" (down from {ally.original_unit_count})"
-
     return f"""- {ally.name} [{ally.agent_id}]
   Position: {ally.position}
-  Unit Count: {unit_str}
   Health: {health_str}
   Tactics: {ally.tactics}"""
 
@@ -529,9 +512,7 @@ def _format_weapon_option(weapon, enemy: EnemyAgent) -> str:
     # Calculate damage
     strength = enemy.attributes.get('Strength', 3)
     base_damage = strength + weapon.damage
-    group_bonus = enemy.get_group_damage_bonus()
-
-    total_damage = base_damage + group_bonus
+    total_damage = base_damage
 
     # Effective ranges
     if weapon.is_ranged:
@@ -554,7 +535,7 @@ def _format_weapon_option(weapon, enemy: EnemyAgent) -> str:
 
     return f"""- **{weapon.name}** ({weapon.skill})
    Range: {ranges}
-   Damage: {total_damage} + d20 (Str {strength} + Weapon {weapon.damage} + Group {group_bonus})
+   Damage: {total_damage} + d20 (Str {strength} + Weapon {weapon.damage})
    Attack Bonus: {weapon.attack:+d}
    Damage Type: {weapon.damage_type}{ammo_str}{special_str}"""
 

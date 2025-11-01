@@ -4,10 +4,13 @@ Enemy Spawner for Aeonisk Tactical Combat
 Handles parsing spawn markers from DM narration and creating enemy agents.
 
 Spawn Syntax:
-    [SPAWN_ENEMY: name | template | count | position | tactics]
+    [SPAWN_ENEMY: name | template | position | tactics]
 
 Example:
-    [SPAWN_ENEMY: Syndicate Grunts | grunt | 3 | Near-Enemy | aggressive_melee]
+    [SPAWN_ENEMY: Syndicate Enforcers | elite | Near-Enemy | aggressive_melee]
+
+Each enemy is a single combat unit. Groups (e.g., "Heavy Gunners Squad")
+are single units with one HP pool. DM narrates casualties based on HP percentage.
 
 Design Document: /content/experimental/Enemy Agent System - Design Document.md
 
@@ -37,10 +40,10 @@ logger = logging.getLogger(__name__)
 # SPAWN MARKER REGEX
 # =============================================================================
 
-# Pattern: [SPAWN_ENEMY: name | template | count | position | tactics (optional) | personality:TYPE (optional)]
-# Example: [SPAWN_ENEMY: Debt Collectors | grunt | 4 | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]
+# Pattern: [SPAWN_ENEMY: name | template | position | tactics (optional) | personality:TYPE (optional)]
+# Example: [SPAWN_ENEMY: Debt Collectors | elite | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]
 SPAWN_PATTERN = re.compile(
-    r'\[SPAWN_ENEMY:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*(\d+)\s*\|\s*([^|\]]+)(?:\s*\|\s*([^|\]]+))?(?:\s*\|\s*([^|\]]+))?\]',
+    r'\[SPAWN_ENEMY:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|\]]+)(?:\s*\|\s*([^|\]]+))?(?:\s*\|\s*([^|\]]+))?\]',
     re.IGNORECASE
 )
 
@@ -74,16 +77,16 @@ def extract_invalid_spawn_markers(text: str) -> List[str]:
     invalid = []
     for content in candidates:
         pipe_count = content.count('|')
-        # Need at least 4 pipes for 5 fields (name|template|count|position|tactics)
-        # Tactics is technically optional but we'll require it for clarity
-        if pipe_count < 4:
+        # Need at least 2 pipes for 3 required fields (name|template|position)
+        # Tactics and personality are optional
+        if pipe_count < 2:
             invalid.append(content)
             logger.debug(f"Found invalid SPAWN_ENEMY marker with {pipe_count + 1} fields (need 5): {content[:50]}")
 
     return invalid
 
 
-def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[str], Optional[str]]]:
+def parse_spawn_markers(text: str) -> List[Tuple[str, str, str, Optional[str], Optional[str]]]:
     """
     Parse all spawn markers from DM narration.
 
@@ -91,8 +94,8 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
         text: DM narration text
 
     Returns:
-        List of (name, template, count, position, tactics, personality) tuples
-        - personality will be extracted from "personality:TYPE" format in 6th field
+        List of (name, template, position, tactics, personality) tuples
+        - personality will be extracted from "personality:TYPE" format in 5th field
     """
     # Check for incomplete spawn markers and provide helpful error messages
     incomplete_pattern = re.compile(r'\[SPAWN_ENEMY:\s*([^\]]+)\]', re.IGNORECASE)
@@ -102,12 +105,12 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
         for incomplete in incomplete_matches:
             # Count how many pipe characters are present
             pipe_count = incomplete.count('|')
-            if pipe_count < 3:  # Need at least 4 fields (name|template|count|position)
+            if pipe_count < 2:  # Need at least 3 fields (name|template|position)
                 logger.error(
                     f"❌ INVALID SPAWN_ENEMY MARKER: '[SPAWN_ENEMY: {incomplete}]'\n"
-                    f"   Missing required fields! Found {pipe_count + 1} fields, need at least 4.\n"
-                    f"   Correct format: [SPAWN_ENEMY: name | template | count | position | tactics]\n"
-                    f"   Example: [SPAWN_ENEMY: Corporate Soldiers | grunt | 2 | Far-Enemy | aggressive_ranged]"
+                    f"   Missing required fields! Found {pipe_count + 1} fields, need at least 3.\n"
+                    f"   Correct format: [SPAWN_ENEMY: name | template | position | tactics]\n"
+                    f"   Example: [SPAWN_ENEMY: Corporate Soldiers | elite | Far-Enemy | aggressive_ranged]"
                 )
 
     matches = SPAWN_PATTERN.findall(text)
@@ -116,25 +119,19 @@ def parse_spawn_markers(text: str) -> List[Tuple[str, str, int, str, Optional[st
     for match in matches:
         name = match[0].strip()
         template = match[1].strip()
-        count = int(match[2].strip())
-        position = match[3].strip()
-        tactics = match[4].strip() if match[4] else None
+        position = match[2].strip()
+        tactics = match[3].strip() if len(match) > 3 and match[3] else None
 
-        # Parse personality from 6th field if present (format: "personality:TYPE")
+        # Parse personality from 5th field if present (format: "personality:TYPE")
         personality = None
-        if len(match) > 5 and match[5]:
-            sixth_field = match[5].strip()
-            if sixth_field.startswith('personality:'):
-                personality = sixth_field.split(':', 1)[1].strip()
+        if len(match) > 4 and match[4]:
+            fifth_field = match[4].strip()
+            if fifth_field.startswith('personality:'):
+                personality = fifth_field.split(':', 1)[1].strip()
                 logger.info(f"Found personality override: {personality}")
 
-        # Hard cap spawns at 2 units max (combat balance)
-        if count > 2:
-            logger.warning(f"Spawn count {count} exceeds max (2) - capping to 2 units for {name}")
-            count = 2
-
-        parsed.append((name, template, count, position, tactics, personality))
-        logger.info(f"Found spawn marker: {name} ({template} × {count}) at {position}, personality={personality}")
+        parsed.append((name, template, position, tactics, personality))
+        logger.info(f"Found spawn marker: {name} ({template}) at {position}, tactics={tactics}, personality={personality}")
 
     return parsed
 
@@ -165,7 +162,6 @@ def parse_despawn_markers(text: str) -> List[Tuple[str, str]]:
 def spawn_enemy(
     name: str,
     template_key: str,
-    count: int,
     position_str: str,
     tactics_override: Optional[str] = None,
     personality_override: Optional[str] = None,
@@ -174,10 +170,13 @@ def spawn_enemy(
     """
     Create an enemy agent from spawn parameters.
 
+    Each enemy is a single combat unit regardless of narrative description.
+    Groups (e.g., "Heavy Gunners Squad") are treated as individual units with
+    one HP pool. The DM can narrate casualties based on HP percentage.
+
     Args:
-        name: Display name for the agent/group
+        name: Display name for the unit (e.g., "Elite Squad", "Heavy Gunners")
         template_key: Template to load (e.g., "grunt", "elite")
-        count: Number of enemies (>1 creates group)
         position_str: Initial position (e.g., "Near-Enemy")
         tactics_override: Override template's default tactics
         personality_override: Override default personality (flee_when_broken | surrender_if_cornered | fight_to_death)
@@ -190,9 +189,6 @@ def spawn_enemy(
         KeyError: If template not found
         ValueError: If invalid parameters
     """
-    # Validate count
-    if count < 1:
-        raise ValueError(f"Invalid enemy count: {count} (must be ≥ 1)")
 
     # Load template
     try:
@@ -214,19 +210,8 @@ def spawn_enemy(
     import uuid
     agent_id = f"enemy_{template_key}_{uuid.uuid4().hex[:8]}"
 
-    # Determine if group
-    is_group = count > 1
-
-    # Calculate health (with group scaling)
-    base_health = template["health"]
-    if is_group:
-        # Group health = base × count × 0.7
-        max_health = int(base_health * count * 0.7)
-        logger.debug(
-            f"Group health scaling: {base_health} × {count} × 0.7 = {max_health}"
-        )
-    else:
-        max_health = base_health
+    # Use template health as-is (no scaling)
+    max_health = template["health"]
 
     # Load weapons
     weapon_keys = template["weapons"]
@@ -258,9 +243,6 @@ def spawn_enemy(
         name=name,
         template=template_key,
         faction=faction,
-        is_group=is_group,
-        unit_count=count,
-        original_unit_count=count,
         attributes=template["attributes"].copy(),
         skills=template["skills"].copy(),
         health=max_health,
@@ -289,7 +271,6 @@ def spawn_enemy(
     logger.info(
         f"Spawned {agent.name} "
         f"(template={template_key}, "
-        f"count={count}, "
         f"health={max_health}, "
         f"position={position}, "
         f"initiative={agent.initiative})"
@@ -315,12 +296,11 @@ def spawn_from_marker(
     markers = parse_spawn_markers(marker_text)
 
     agents = []
-    for name, template, count, position, tactics, personality in markers:
+    for name, template, position, tactics, personality in markers:
         try:
             agent = spawn_enemy(
                 name=name,
                 template_key=template,
-                count=count,
                 position_str=position,
                 tactics_override=tactics,
                 personality_override=personality,
@@ -439,7 +419,7 @@ def auto_despawn_defeated(
     current_round: int = 0
 ) -> List[EnemyAgent]:
     """
-    Automatically despawn enemies with health ≤ 0 or unit_count = 0.
+    Automatically despawn enemies with health ≤ 0.
 
     Args:
         agents: List of all enemy agents
@@ -461,16 +441,6 @@ def auto_despawn_defeated(
             despawned.append(agent)
             logger.info(
                 f"Auto-despawned {agent.name} (health ≤ 0, round={current_round})"
-            )
-            continue
-
-        # Check group attrition
-        if agent.is_group and agent.unit_count <= 0:
-            agent.is_active = False
-            agent.despawned_round = current_round
-            despawned.append(agent)
-            logger.info(
-                f"Auto-despawned {agent.name} (unit count = 0, round={current_round})"
             )
             continue
 
@@ -588,12 +558,6 @@ def suggest_loot(agent: EnemyAgent) -> str:
         drip += random.randint(0, 5)
         breath += random.randint(10, 20)
 
-    # Scale by unit count
-    breath *= agent.unit_count
-    drip *= agent.unit_count
-    grain *= agent.unit_count
-    spark *= agent.unit_count
-
     # Build currency loot string
     currency_parts = []
     if breath > 0:
@@ -649,7 +613,7 @@ def suggest_loot(agent: EnemyAgent) -> str:
     # SPECIAL ITEMS (10% chance per unit)
     # =========================================================================
 
-    special_chance = 0.1 * agent.unit_count
+    special_chance = 0.1
     if random.random() < special_chance:
         special_items = [
             "encrypted datapad",
@@ -687,8 +651,8 @@ def get_enemies_by_position(
 
 
 def count_active_units(agents: List[EnemyAgent]) -> int:
-    """Count total active enemy units (accounting for groups)."""
-    return sum(a.unit_count for a in agents if a.is_active)
+    """Count total active enemy units."""
+    return sum(1 for a in agents if a.is_active)
 
 
 def validate_spawn_syntax(marker_text: str) -> Tuple[bool, Optional[str]]:
@@ -706,15 +670,11 @@ def validate_spawn_syntax(marker_text: str) -> Tuple[bool, Optional[str]]:
     if not markers:
         return False, "No spawn markers found"
 
-    for name, template, count, position, tactics in markers:
+    for name, template, position, tactics, personality in markers:
         # Validate template
         available = get_available_templates()
         if template not in available:
             return False, f"Unknown template '{template}'. Available: {', '.join(available)}"
-
-        # Validate count
-        if count < 1:
-            return False, f"Invalid count {count} (must be ≥ 1)"
 
         # Validate position
         try:

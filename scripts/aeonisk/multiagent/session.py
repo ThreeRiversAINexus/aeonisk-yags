@@ -1367,11 +1367,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 position = getattr(agent, 'position', 'Unknown')
                 position_str = str(position) if position != 'Unknown' else 'Unknown'
 
-                # Get group count if available
-                unit_count = getattr(agent, 'unit_count', 1)
-                count_str = f" (×{unit_count})" if unit_count > 1 else ""
-
-                print(f"    [{init:2d}] {agent.name:20s}{count_str:6s} | {health_str:12s} | {position_str:15s}")
+                print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s} | {position_str:15s}")
 
         # Display clock states if available
         if mechanics and mechanics.scene_clocks:

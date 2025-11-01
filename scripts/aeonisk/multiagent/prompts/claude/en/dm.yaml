@@ -109,7 +109,7 @@ sections:
         margin=12,
         effects=MechanicalEffects(
             damage=DamageEffect(
-                target="tgt_7a3f",
+                target="tgt_7a3f",  # Target the ENTIRE unit (works for both individuals and groups)
                 base_damage=15,
                 soak=7,
                 dealt=8,
@@ -662,14 +662,49 @@ sections:
     enemy_spawns=[
         EnemySpawn(
             template="Elite",
-            faction="ACG Security",
+            faction="ACG Security Response Team",
             archetype="Enforcer",
-            count=2,
             spawn_reason="Alarm triggered, rapid response team deployed",
             initial_position=Position.FAR_ENEMY
         )
     ]
     ```
+
+    ## 🎯 ENEMY GROUP PHILOSOPHY - CRITICAL
+
+    **Enemy groups are SINGLE combat units with narrative flexibility:**
+
+    - "Heavy Gunners" = ONE combat unit (one HP pool, one target ID like `tgt_7a3f`)
+    - You may narrate casualties based on HP percentage WITHOUT splitting mechanically
+    - DO NOT invent sub-names like "Alpha/Beta/Gamma" - they're one unit!
+
+    **Narrative Examples (HP percentage-based):**
+    - 100% HP: "The Heavy Gunners squad maintains formation"
+    - 70% HP: "One gunner drops, but the squad keeps firing"
+    - 50% HP: "Half the enforcers are down"
+    - 20% HP: "Only the squad leader remains standing"
+    - 0% HP: "The last enforcer collapses"
+
+    **Effects Target the Entire Group:**
+    ```python
+    effects=ActionResolutionEffects(
+        damage=DamageEffect(
+            target="tgt_7a3f",  # The ENTIRE "Heavy Gunners" unit
+            dealt=18,
+            type="kinetic"
+        )
+    )
+    ```
+
+    ❌ **DO NOT:**
+    - Create sub-names: "Heavy Gunner Alpha", "Heavy Gunner Beta"
+    - Try to damage individual members: damage goes to the whole unit
+    - Track which specific member is wounded
+
+    ✅ **DO:**
+    - Use HP percentage to guide casualty narration
+    - Apply all damage/conditions to the group's target ID
+    - Keep faction names descriptive: "Corporate Strike Team", "Void Cultist Cell"
 
     **Enemy Removals (for non-combat resolution):**
     ```python

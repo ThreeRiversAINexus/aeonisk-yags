@@ -205,8 +205,7 @@ class EnemyCombatManager:
             self.enemy_agents.append(enemy)
             notifications.append(
                 f"⚔️  **{enemy.name}** spawned! "
-                f"({enemy.unit_count} {'units' if enemy.is_group else 'unit'}, "
-                f"{enemy.health} HP, {enemy.position}, "
+                f"({enemy.health} HP, {enemy.position}, "
                 f"tactics: {enemy.tactics})"
             )
             logger.info(f"Spawned enemy: {enemy.name} (ID: {enemy.agent_id})")
@@ -223,9 +222,7 @@ class EnemyCombatManager:
                         "attributes": enemy.attributes,
                         "skills": enemy.skills,
                         "weapons": [{"name": w.name, "attack": w.attack, "damage": w.damage, "skill": w.skill} for w in enemy.weapons],
-                        "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None,
-                        "is_group": enemy.is_group,
-                        "unit_count": enemy.unit_count if enemy.is_group else 1
+                        "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None
                     }
 
                     mechanics.jsonl_logger.log_enemy_spawn(
@@ -319,9 +316,7 @@ class EnemyCombatManager:
                                 "attributes": enemy.attributes,
                                 "skills": enemy.skills,
                                 "weapons": [{"name": w.name, "attack": w.attack, "damage": w.damage, "skill": w.skill} for w in enemy.weapons],
-                                "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None,
-                                "is_group": enemy.is_group,
-                                "unit_count": enemy.unit_count if enemy.is_group else 1
+                                "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None
                             }
 
                             mechanics.jsonl_logger.log_enemy_spawn(
@@ -768,8 +763,30 @@ class EnemyCombatManager:
         target_id = declaration.target
         weapon_name = declaration.weapon
 
-        # Find target PC
-        target = next((p for p in player_agents if p.agent_id == target_id), None)
+        # Resolve target ID (free targeting mode support)
+        target = None
+        if target_id and target_id.startswith('tgt_'):
+            # Free targeting mode - resolve through target mapper
+            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_id)
+
+                # Verify target is a PC (enemies can't attack other enemies with this action)
+                if target_entity and target_id_mapper.is_player(target_id):
+                    target = target_entity
+                elif target_entity and target_id_mapper.is_enemy(target_id):
+                    logger.warning(f"{enemy.name} attempted to attack enemy {target_id} - not supported")
+                    return {
+                        'enemy_id': enemy.agent_id,
+                        'character_name': enemy.name,
+                        'action': 'attack',
+                        'result': 'invalid target',
+                        'narration': f"{enemy.name} cannot attack another enemy"
+                    }
+        else:
+            # Legacy mode - direct agent_id match
+            target = next((p for p in player_agents if p.agent_id == target_id), None)
+
         if not target:
             return {
                 'enemy_id': enemy.agent_id,
@@ -867,9 +884,8 @@ class EnemyCombatManager:
         if hit:
             # Roll damage
             strength = enemy.attributes.get('Strength', 3)
-            group_bonus = enemy.get_group_damage_bonus()
             damage_roll = random.randint(1, 20)
-            base_damage = strength + weapon.damage + damage_roll + group_bonus
+            base_damage = strength + weapon.damage + damage_roll
 
             # Combat balance: Reduce enemy damage by 15% to prevent one-shots while avoiding stalemate
             total_damage = int(base_damage * 0.85)
@@ -968,7 +984,6 @@ class EnemyCombatManager:
                 damage_roll_data = {
                     "strength": strength,
                     "weapon_dmg": weapon.damage,
-                    "group_bonus": group_bonus,
                     "d20": damage_roll,
                     "base_damage": base_damage,
                     "combat_balance_modifier": 0.85,
@@ -1028,8 +1043,30 @@ class EnemyCombatManager:
         target_id = declaration.target
         weapon_name = declaration.weapon
 
-        # Find target PC
-        target = next((p for p in player_agents if p.agent_id == target_id), None)
+        # Resolve target ID (free targeting mode support)
+        target = None
+        if target_id and target_id.startswith('tgt_'):
+            # Free targeting mode - resolve through target mapper
+            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_id)
+
+                # Verify target is a PC
+                if target_entity and target_id_mapper.is_player(target_id):
+                    target = target_entity
+                elif target_entity and target_id_mapper.is_enemy(target_id):
+                    logger.warning(f"{enemy.name} attempted to suppress enemy {target_id} - not supported")
+                    return {
+                        'enemy_id': enemy.agent_id,
+                        'character_name': enemy.name,
+                        'action': 'suppress',
+                        'result': 'invalid target',
+                        'narration': f"{enemy.name} cannot suppress another enemy"
+                    }
+        else:
+            # Legacy mode - direct agent_id match
+            target = next((p for p in player_agents if p.agent_id == target_id), None)
+
         if not target:
             return {
                 'enemy_id': enemy.agent_id,
@@ -1409,7 +1446,24 @@ class EnemyCombatManager:
 
         # Move to engaged/melee with target
         old_position = str(enemy.position)
-        target = next((p for p in player_agents if p.agent_id == declaration.target), None)
+
+        # Resolve target ID (free targeting mode support)
+        target = None
+        target_id = declaration.target
+        if target_id and target_id.startswith('tgt_'):
+            # Free targeting mode - resolve through target mapper
+            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_id)
+
+                # Verify target is a PC
+                if target_entity and target_id_mapper.is_player(target_id):
+                    target = target_entity
+                elif target_entity and target_id_mapper.is_enemy(target_id):
+                    logger.warning(f"{enemy.name} attempted to charge enemy {target_id} - not supported")
+        else:
+            # Legacy mode - direct agent_id match
+            target = next((p for p in player_agents if p.agent_id == target_id), None)
 
         if target:
             try:
@@ -1613,22 +1667,6 @@ class EnemyCombatManager:
 
         events = []
 
-        # Apply attrition to groups
-        for enemy in get_active_enemies(self.enemy_agents):
-            if enemy.is_group:
-                old_count = enemy.unit_count
-                enemy.apply_group_attrition()
-
-                if enemy.unit_count < old_count:
-                    events.append({
-                        'type': 'attrition',
-                        'enemy_id': enemy.agent_id,
-                        'character_name': enemy.name,
-                        'old_count': old_count,
-                        'new_count': enemy.unit_count,
-                        'narration': f"{enemy.name}: {old_count - enemy.unit_count} units lost, {enemy.unit_count} remain"
-                    })
-
         # Check morale for active enemies (skip if already panicked)
         active_enemies = list(get_active_enemies(self.enemy_agents))
         for enemy in active_enemies:
@@ -1738,7 +1776,7 @@ class EnemyCombatManager:
 
     def get_active_enemy_count(self) -> int:
         """Get count of active enemy units."""
-        return sum(e.unit_count for e in get_active_enemies(self.enemy_agents))
+        return len(get_active_enemies(self.enemy_agents))
 
     def is_combat_active(self) -> bool:
         """Check if any enemies are still active."""

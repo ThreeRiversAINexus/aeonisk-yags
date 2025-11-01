@@ -268,7 +268,10 @@ THREAT_PRIORITIES = {
 @dataclass
 class EnemyAgent:
     """
-    Represents an enemy or group of enemies in tactical combat.
+    Represents an enemy combat unit in tactical combat.
+
+    Each enemy is a single combat unit with one HP pool and one set of actions.
+    Groups (e.g., "Heavy Gunners Squad") are treated as single units narratively.
 
     Autonomous AI participant with LLM-driven decision making.
     Integrates with Tactical Module v1.2.3 and YAGS core combat.
@@ -280,13 +283,6 @@ class EnemyAgent:
     agent_id: str  # Unique ID, e.g., "enemy_grunt_squad_1"
     name: str  # Display name, e.g., "Syndicate Enforcers"
     template: str  # Template key, e.g., "grunt", "elite", "boss"
-
-    # =========================================================================
-    # GROUP MECHANICS
-    # =========================================================================
-    is_group: bool  # True if representing multiple enemies
-    unit_count: int  # How many individuals (1 if solo)
-    original_unit_count: int  # Starting count for attrition tracking
 
     # =========================================================================
     # COMBAT STATS (YAGS-compatible)
@@ -492,39 +488,6 @@ class EnemyAgent:
 
         return wounds_inflicted
 
-    def apply_group_attrition(self):
-        """
-        Reduce unit count based on health loss.
-
-        Formula:
-            Units Lost = floor((Max Health - Current Health) / (Max Health / Original Unit Count))
-            Current Unit Count = Original Unit Count - Units Lost
-        """
-        if not self.is_group or self.original_unit_count <= 1:
-            return
-
-        health_lost = self.max_health - self.health
-        health_per_unit = self.max_health / self.original_unit_count
-
-        units_lost = int(health_lost / health_per_unit)
-        new_unit_count = max(0, self.original_unit_count - units_lost)
-
-        if new_unit_count != self.unit_count:
-            logger.info(f"{self.name}: Unit count reduced from {self.unit_count} to {new_unit_count}")
-            self.unit_count = new_unit_count
-
-    def get_group_damage_bonus(self) -> int:
-        """
-        Calculate damage bonus for groups.
-
-        +2 per additional unit (max +6)
-        """
-        if not self.is_group:
-            return 0
-
-        bonus = (self.unit_count - 1) * 2
-        return min(bonus, 6)
-
     def roll_initiative(self) -> int:
         """
         Roll initiative for this enemy.
@@ -681,8 +644,6 @@ class EnemyAgent:
             "agent_id": self.agent_id,
             "name": self.name,
             "template": self.template,
-            "is_group": self.is_group,
-            "unit_count": self.unit_count,
             "health": self.health,
             "max_health": self.max_health,
             "wounds": self.wounds,
