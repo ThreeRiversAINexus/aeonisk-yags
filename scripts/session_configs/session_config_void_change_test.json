@@ -65,35 +65,32 @@
   },
 
   "scenario": {
-    "theme": "Void Cleansing Test Chamber",
-    "location": "Sanctified Ritual Chamber with Void Contamination",
-    "situation": "You're in a ritual chamber with environmental void contamination (ambient corruption in the air and walls). Your own void score is 6/10. Perform a cleansing ritual - you can target either yourself (self-cleansing) OR the environmental void. DM: Please test BOTH cases: (1) If player targets environmental void, use void_target_character='Environmental Void' with negative void_change to test the fix (should be SKIPPED, not applied to player). (2) If player targets themselves, use void_target_character=null with negative void_change (should apply to player correctly).",
-    "void_level": 7
+    "theme": "Abandoned Purification Shrine",
+    "location": "Ancient Ritual Chamber in Derelict Station",
+    "situation": "You discover a forgotten purification shrine in the abandoned station's core. The chamber itself radiates void corruption - walls blackened with reality tears, air thick with ambient void energy. Your own void corruption has been climbing (currently 6/10) from exposure during your investigation. The shrine still functions, its purification matrices humming faintly. You could attempt to cleanse yourself using the shrine's power, or perhaps try to purify the chamber's environmental contamination to make this area safe again.",
+    "void_level": 8
   },
 
   "mission_objectives": [
     {
-      "description": "Perform void cleansing ritual and verify correct targeting",
+      "description": "Use the purification shrine to cleanse corruption",
       "type": "ritual",
       "required": true
     }
   ],
 
   "_test_notes": {
-    "purpose": "Test void change targeting bug fix for environmental targets",
-    "test_case_1": {
-      "scenario": "Player performs ritual targeting environmental void",
-      "dm_output": "void_target_character='Environmental Void', amount=-2",
-      "expected_behavior": "Void change is SKIPPED (not applied to character)",
-      "bug_behavior": "Player gets -2 void reduction (unearned benefit)",
-      "verification": "Player void should remain 6/10, NOT decrease to 4/10"
+    "purpose": "Test void change targeting bug fix (subtle version - DM not aware of test)",
+    "expected_player_behavior": "Player will likely choose to either cleanse themselves OR cleanse the environment",
+    "dm_likely_outputs": [
+      "If player targets environment: void_target_character='Environmental Void' or 'environment' or 'chamber'",
+      "If player targets self: void_target_character=null or missing or 'Test Ritualist'"
+    ],
+    "verification": {
+      "environmental_targeting": "If DM uses environmental target, player void should stay at 6/10 (not decrease)",
+      "self_targeting": "If DM uses self-target, player void should decrease (e.g., 6 → 4 or lower)"
     },
-    "test_case_2": {
-      "scenario": "Player performs self-cleansing ritual",
-      "dm_output": "void_target_character=null or missing, amount=-2",
-      "expected_behavior": "Void change applied to player (6 → 4)",
-      "verification": "Player void should decrease from 6 to 4"
-    },
-    "note": "Run twice to test both cases, or DM might naturally do both in narration"
+    "why_subtle": "Removed explicit test instructions from scenario so DM behaves naturally",
+    "note": "May need to run multiple times to get environmental targeting case"
   }
 }
