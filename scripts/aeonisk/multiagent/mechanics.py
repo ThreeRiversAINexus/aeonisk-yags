@@ -1862,6 +1862,36 @@ class MechanicsEngine:
                 # Log clock advancement
                 logger.debug(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} (aggregated: {', '.join(reasons)})")
 
+                # JSONL logging for clock advancement (if any change occurred)
+                if self.jsonl_logger and before != after:
+                    self.jsonl_logger.log_event(
+                        event_type="clock_advancement",
+                        data={
+                            "clock_name": clock_name,
+                            "before_ticks": before,
+                            "after_ticks": after,
+                            "maximum_ticks": maximum,
+                            "delta": after - before,
+                            "filled": after >= maximum,
+                            "reasons": reasons,
+                            "direction": direction
+                        },
+                        round_num=self.current_round
+                    )
+
+                # JSONL logging for clock completion (if filled)
+                if self.jsonl_logger and after >= maximum:
+                    self.jsonl_logger.log_event(
+                        event_type="clock_completion",
+                        data={
+                            "clock_name": clock_name,
+                            "final_ticks": after,
+                            "maximum_ticks": maximum,
+                            "reasons": reasons
+                        },
+                        round_num=self.current_round
+                    )
+
         # Clear the queue
         self.clock_update_queue = []
 

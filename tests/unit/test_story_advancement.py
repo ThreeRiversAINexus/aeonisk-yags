@@ -17,7 +17,6 @@ Example:
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
 from scripts.aeonisk.multiagent.schemas.story_events import StoryAdvancement, NewClock
 from pydantic import ValidationError
 import json
@@ -122,10 +121,10 @@ class TestStoryAdvancementHandler:
         """
         When StoryAdvancement includes new_void_level, handler updates scenario.void_level.
         """
-        # Mock DM agent with scenario
         from scripts.aeonisk.multiagent.dm import Scenario
 
-        mock_scenario = Scenario(
+        # Create real Scenario object with initial void_level
+        scenario = Scenario(
             theme="Test Theme",
             location="Corrupted Research Station",
             situation="High void corruption",
@@ -134,10 +133,7 @@ class TestStoryAdvancementHandler:
             void_level=8  # Initial void level
         )
 
-        mock_dm_agent = Mock()
-        mock_dm_agent.current_scenario = mock_scenario
-
-        # Simulate story advancement with void_level update
+        # Create StoryAdvancement with void_level update
         advancement = StoryAdvancement(
             should_advance=True,
             location="Research Station - Cleansed Wing",
@@ -146,14 +142,13 @@ class TestStoryAdvancementHandler:
             clear_all_enemies=True
         )
 
-        # Simulate handler logic
+        # Capture old value and apply update (simulates handler logic)
+        old_void = scenario.void_level
         if advancement.new_void_level is not None:
-            if mock_dm_agent.current_scenario:
-                old_void = mock_dm_agent.current_scenario.void_level
-                mock_dm_agent.current_scenario.void_level = advancement.new_void_level
+            scenario.void_level = advancement.new_void_level
 
         # Verify update
-        assert mock_dm_agent.current_scenario.void_level == 3
+        assert scenario.void_level == 3
         assert old_void == 8
 
     def test_handler_preserves_void_level_when_none(self):
@@ -162,7 +157,8 @@ class TestStoryAdvancementHandler:
         """
         from scripts.aeonisk.multiagent.dm import Scenario
 
-        mock_scenario = Scenario(
+        # Create real Scenario object with initial void_level
+        scenario = Scenario(
             theme="Test Theme",
             location="Warehouse Level 1",
             situation="Same corruption level",
@@ -171,10 +167,7 @@ class TestStoryAdvancementHandler:
             void_level=6  # Initial void level
         )
 
-        mock_dm_agent = Mock()
-        mock_dm_agent.current_scenario = mock_scenario
-
-        # Story advancement WITHOUT void_level update
+        # Create StoryAdvancement WITHOUT void_level update
         advancement = StoryAdvancement(
             should_advance=True,
             location="Warehouse Level 2",
@@ -183,21 +176,21 @@ class TestStoryAdvancementHandler:
             clear_all_enemies=True
         )
 
-        # Simulate handler logic
+        # Apply update logic (should skip because new_void_level is None)
         if advancement.new_void_level is not None:
-            if mock_dm_agent.current_scenario:
-                mock_dm_agent.current_scenario.void_level = advancement.new_void_level
+            scenario.void_level = advancement.new_void_level
 
         # Verify void_level unchanged
-        assert mock_dm_agent.current_scenario.void_level == 6
+        assert scenario.void_level == 6
 
     def test_handler_skips_update_if_no_scenario(self):
         """
         Handler safely skips void_level update if DM has no scenario.
         """
-        mock_dm_agent = Mock()
-        mock_dm_agent.current_scenario = None  # No scenario
+        # No scenario exists
+        scenario = None
 
+        # Create StoryAdvancement with void_level update
         advancement = StoryAdvancement(
             should_advance=True,
             location="Test Location Name",
@@ -206,13 +199,13 @@ class TestStoryAdvancementHandler:
             clear_all_enemies=True
         )
 
-        # Simulate handler logic (should not crash)
+        # Apply update logic (should safely skip because scenario is None)
         if advancement.new_void_level is not None:
-            if mock_dm_agent.current_scenario:
-                mock_dm_agent.current_scenario.void_level = advancement.new_void_level
+            if scenario is not None:
+                scenario.void_level = advancement.new_void_level
 
         # Should not crash, scenario remains None
-        assert mock_dm_agent.current_scenario is None
+        assert scenario is None
 
 
 class TestVoidLevelStoryProgression:

@@ -191,33 +191,26 @@ class TestVoidChangeTargeting:
         Test that negative void changes correctly reduce void score.
 
         This verifies that void cleansing (negative changes) work as expected
-        when properly targeted.
+        when properly targeted using the real VoidState class.
         """
-        player_id = "test_player"
-        void_change = -2
+        from scripts.aeonisk.multiagent.mechanics import VoidState
 
-        # Mock mechanics
-        mock_mechanics = Mock()
-        mock_void_state = Mock()
-        mock_void_state.score = 5
-        mock_mechanics.get_void_state.return_value = mock_void_state
+        # Create real VoidState with initial score of 5
+        void_state = VoidState(score=5)
 
-        # Simulate void reduction logic
-        void_state = mock_mechanics.get_void_state(player_id)
-        old_void = void_state.score
+        # Apply void reduction using the real reduce_void() method
+        new_void = void_state.reduce_void(amount=2, reason="test reduction")
 
-        # Apply reduction (this is how dm.py does it)
-        if void_change < 0:
-            # Void reduction
-            reduction_amount = abs(void_change)
-            new_void = max(0, old_void - reduction_amount)
-        else:
-            # Void gain
-            new_void = old_void + void_change
-
-        # Verify: void score should decrease
+        # Verify: void score should decrease from 5 to 3
         assert new_void == 3, \
-            f"Void should reduce from {old_void} to 3, got {new_void}"
+            f"Void should reduce from 5 to 3, got {new_void}"
+        assert void_state.score == 3
+
+        # Verify history was tracked
+        assert len(void_state.history) == 1
+        assert void_state.history[0]['change'] == -2
+        assert void_state.history[0]['old_score'] == 5
+        assert void_state.history[0]['new_score'] == 3
 
     def test_debt_auction_ambush_environmental_void(self):
         """
