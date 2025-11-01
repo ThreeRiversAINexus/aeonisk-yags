@@ -550,15 +550,22 @@ def _format_ability_option(ability: str, enemy: EnemyAgent) -> str:
    Effect: +4 damage, auto-Shock on hit, +1 Stun to you, +1 Void
    Current Void: {enemy.void_score}/10"""
 
-    elif ability == "grenade":
-        has_grenade = enemy.ammo.get("Frag Grenade", 0) > 0
-        status = "AVAILABLE" if has_grenade else "NONE REMAINING"
-
-        return f"""- **Grenade** - Status: {status}
-   Type: Area Effect (targets ring-side location)
-   Damage: DC 20 Agility save, 2d6 damage
-   WARNING: Friendly fire if allies in blast zone
-   Example targets: Near-Enemy, Far-PC, etc."""
+    # TODO: Implement AoE grenade mechanics
+    # Grenades require:
+    # - Area-of-effect damage calculation
+    # - Friendly fire detection (combatants in blast zone)
+    # - Ring-side location targeting system
+    # - Agility save vs DC mechanic for affected combatants
+    # - Integration with DM narration for blast description
+    # elif ability == "grenade":
+    #     has_grenade = enemy.ammo.get("Frag Grenade", 0) > 0
+    #     status = "AVAILABLE" if has_grenade else "NONE REMAINING"
+    #
+    #     return f"""- **Grenade** - Status: {status}
+    #    Type: Area Effect (targets ring-side location)
+    #    Damage: DC 20 Agility save, 2d6 damage
+    #    WARNING: Friendly fire if allies in blast zone
+    #    Example targets: Near-Enemy, Far-PC, etc."""
 
     elif ability == "suppress":
         return """- **Suppress** (Major, requires RoF ≥ 3)
@@ -681,15 +688,20 @@ Status: """
 
 
 def _format_declaration_requirements() -> str:
-    """Format declaration output requirements."""
+    """
+    Format declaration output requirements.
+
+    NOTE: Throw_Grenade action removed until AoE mechanics are implemented.
+    See _format_ability_option() for grenade implementation requirements.
+    """
     return """## YOUR DECLARATION
 {"=" * 60}
 
 Provide your tactical decision in this EXACT format:
 
 DEFENCE_TOKEN: [PC agent_id you're watching - REQUIRED]
-MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Throw_Grenade / Retreat]
-TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position (Near-PC/Far-PC/Near-Enemy/etc) | For grenades: ring-side location]
+MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Retreat]
+TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position (Near-PC/Far-PC/Near-Enemy/etc)]
 WEAPON: [weapon name if attacking]
 MINOR_ACTION: [Shift / Claim_Token / Reload / Disengage / None]
 TOKEN_TARGET: [token name if claiming]
@@ -707,17 +719,6 @@ WEAPON: Rifle
 MINOR_ACTION: None
 TACTICAL_REASONING: Targeting Echo because they're not watching me (+2 Flanking bonus). Defence token on Sable to mitigate their melee threat.
 SHARE_INTEL: Echo has grenade, recommend spreading out
-```
-
-**Grenade with Friendly Fire:**
-```
-DEFENCE_TOKEN: pc_sable_001
-MAJOR_ACTION: Throw_Grenade
-TARGET: Near-Enemy
-WEAPON: Grenade
-MINOR_ACTION: Shift
-TACTICAL_REASONING: Throwing grenade at Near-Enemy to hit Sable even though Grunt Squad 2 will take friendly fire - Sable is too dangerous to leave active. Shifting away from blast zone.
-SHARE_INTEL: Grenade incoming at Near-Enemy, allied units clear zone
 ```
 
 **Tactical Movement:**
