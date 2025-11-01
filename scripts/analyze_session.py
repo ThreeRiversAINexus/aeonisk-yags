@@ -54,10 +54,10 @@ class SessionAnalyzer:
                 self.stats['total_events'] += 1
 
                 event_type = event.get('event_type')
-                round_num = event.get('round', 0)
+                round_num = event.get('round') or 0  # Handle None explicitly
 
                 # Track max round
-                if round_num > self.stats['rounds']:
+                if round_num and round_num > self.stats['rounds']:
                     self.stats['rounds'] = round_num
 
                 # Session metadata
