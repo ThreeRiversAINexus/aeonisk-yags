@@ -151,9 +151,8 @@ class TestRangeBasedCombat:
                 action = res.get('action', '')
                 print(f"INFO: Combat action without clear position context: {action[:50]}")
 
-    @pytest.mark.xfail(reason="Known bug: Range modifiers may not be consistently applied")
     def test_extreme_range_has_penalty(self, combat_events):
-        """Extreme range attacks should have difficulty penalties (known gaps)."""
+        """Extreme range attacks should have difficulty penalties."""
         resolutions = [e for e in combat_events
                       if e['event_type'] == 'action_resolution'
                       and e.get('roll')]

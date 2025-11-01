@@ -273,9 +273,8 @@ class TestEconomyTracking:
                 assert 'soulcredit_reasons' in economy or 'soulcredit_source' in economy, \
                     "Soulcredit change should have reason or source"
 
-    @pytest.mark.xfail(reason="Known bug: Void tracking may not always capture all void changes")
     def test_void_tracking_completeness(self, combat_events):
-        """All void-related actions should update void_delta (known to have gaps)."""
+        """All void-related actions should update void_delta."""
         resolutions = [e for e in combat_events if e['event_type'] == 'action_resolution']
 
         for res in resolutions:

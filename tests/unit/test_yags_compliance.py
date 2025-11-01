@@ -204,7 +204,6 @@ class TestVoidProgression:
                 if not has_context:
                     print(f"INFO: Void delta {void_delta} without context")
 
-    @pytest.mark.xfail(reason="Known bug: Void ceiling at 8 may not be enforced consistently")
     def test_void_ceiling_enforced(self, combat_events):
         """Void should not exceed 8 during normal gameplay (ceiling rule)."""
         resolutions = [e for e in combat_events if e['event_type'] == 'action_resolution']
@@ -357,9 +356,8 @@ class TestActionEconomy:
                     if not is_plausible_free:
                         print(f"INFO: Action marked as free but may be main: {action_text[:50]}")
 
-    @pytest.mark.xfail(reason="Known bug: Action economy tracking may have gaps")
     def test_one_main_action_per_round(self, combat_events):
-        """Each character should have at most one main action per round (known gaps)."""
+        """Each character should have at most one main action per round."""
         rounds = parse_into_rounds(combat_events)
 
         for round_num, events in rounds.items():
