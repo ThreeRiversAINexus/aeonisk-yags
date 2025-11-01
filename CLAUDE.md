@@ -67,6 +67,7 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 **Tools:**
 - `validate_logging.py` - Schema validation
 - `reconstruct_narrative.py` - Rebuild story from logs
+- `analyze_session.py` - **Quick session analysis (use this instead of reading huge JSONL files!)**
 
 ## Debugging
 
@@ -78,6 +79,76 @@ grep ERROR game.log | tail -20
 # Validate JSONL
 python3 multiagent/validate_logging.py ../../multiagent_output/session_*.jsonl
 ```
+
+### Session Analysis Tool (CRITICAL FOR DEVELOPMENT)
+
+**Problem:** JSONL session files are often too large to read directly (>50k tokens)
+
+**Solution:** Use `analyze_session.py` for targeted event extraction with smart defaults
+
+#### Quick Summaries (Human-Readable)
+
+```bash
+# Session overview - ~30-40 lines
+python scripts/analyze_session.py session.jsonl
+
+# Clock progression - ~5-30 lines
+python scripts/analyze_session.py session.jsonl --mode=clocks
+
+# Void trajectory - ~10-20 lines
+python scripts/analyze_session.py session.jsonl --mode=void
+```
+
+#### Targeted Event Extraction (Machine-Readable)
+
+```bash
+# Search with smart defaults (shows line, round, agent, action, success, margin)
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution
+# Output: {"_line":9,"round":1,"agent":"Ash","action":"Search terminal...","roll.success":false,"roll.margin":-5}
+
+# Multiple filters
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution round=2
+
+# Custom field selection
+python scripts/analyze_session.py session.jsonl --search event_type=scenario --fields scenario.void_level,scenario.location
+# Output: {"_line":2,"scenario.void_level":8,"scenario.location":"Corrupted Station"}
+
+# Count matches (no JSON output)
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --count
+# Output: Found 47 matching events
+
+# Show line numbers (for targeting specific events)
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --index
+# Output: Matching events at lines: 5, 12, 18, 25... (47 total)
+
+# Get full event at specific line
+python scripts/analyze_session.py session.jsonl --line 12
+# Output: Full pretty-printed JSON
+
+# See available fields for event type
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --schema
+# Output: Available fields: event_type, round, agent, action, roll.success, ...
+```
+
+**Smart defaults per event type:**
+- `action_resolution` → line, round, agent, action (truncated), success, margin
+- `scenario` → line, theme, location, void_level
+- `enemy_spawn` → line, round, template, count
+- Others → line, event_type, round
+
+**Default limit:** Shows first 5 matches with total count (e.g., "Found 47 events, showing first 5")
+
+**When to use:**
+- ✅ Quick "what happened?" → summary mode
+- ✅ Find specific events → `--search` with filters
+- ✅ Extract data for tests → `--search` + `--fields`
+- ✅ Count event types → `--search` + `--count`
+- ✅ Locate then inspect → `--index` then `--line N`
+- ✅ Complex queries → `--search` to find events, then pipe to `jq` for advanced processing
+
+**Other tools:**
+- Full story narrative → `reconstruct_narrative.py`
+- Schema validation → `validate_logging.py`
 
 ## Design Philosophy
 
