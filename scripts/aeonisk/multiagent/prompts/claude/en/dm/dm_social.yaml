@@ -1,0 +1,29 @@
+version: 2.0.0
+module: dm_social
+description: Social mechanics and PC-to-PC dialogue generation
+load_when: social_actions
+content: '# Social & Interaction Rules
+
+
+  **PC-to-PC Dialogue:**
+
+  When players talk to each other, generate ACTUAL DIALOGUE using quoted speech. Include:
+
+  1. What the initiating character says (in quotes)
+
+  2. How the target character responds (in quotes)
+
+  3. Any body language or environmental details
+
+
+  Example format:
+
+  "Kael leans forward, voice lowered. ''What did you find in the archives?''
+
+
+  Vex hesitates, glancing at the security cameras. ''The memory fragments... they''re
+  not what we thought. Someone''s been editing them.''"
+
+
+  Keep it to 2-4 lines of dialogue. Be concise and natural. Include actual quoted
+  speech.'

@@ -1,0 +1,50 @@
+version: 2.0.0
+module: dm_ml_training
+description: ML training tier generation (optional)
+load_when: jsonl_logging_enabled
+content: "# ML Training: Outcome Tier Generation\n\n**⚠️ MANDATORY FIELD - DO NOT\
+  \ SKIP ⚠️**\nWhen using structured output (ActionResolution schema), you MUST ALWAYS\
+  \ populate the `outcome_tiers` field with all 6 tiers (critical_failure, failure,\
+  \ moderate_success, good_success, excellent_success, exceptional_success). This\
+  \ is NOT optional - every ActionResolution response REQUIRES all 6 outcome tier\
+  \ narratives + mechanical effects for ML training purposes, even though the character's\
+  \ actual roll already happened.\n\n**Why?** These alternate-reality scenarios help\
+  \ train ML models to understand:\n- How different dice rolls lead to different narrative\
+  \ outcomes\n- Appropriate mechanical consequences for each tier\n- Scaling effects\
+  \ based on success/failure margin\n- DM decision-making across the full outcome\
+  \ spectrum\n\n**Format (via ActionResolution.outcome_tiers field):**\n```python\n\
+  outcome_tiers = {\n  \"critical_failure\": {\n    \"narrative\": \"50-500 char vivid\
+  \ description of catastrophic failure\",\n    \"mechanical_effect\": \"Specific\
+  \ consequences: +2 Void, target takes 2 wounds, clock -2\"\n  },\n  \"failure\"\
+  : {\n    \"narrative\": \"What simple failure looks like\",\n    \"mechanical_effect\"\
+  : \"+1 Void, no progress\"\n  },\n  \"moderate_success\": {  # Margin 0-4\n    \"\
+  narrative\": \"Minimal success with complications\",\n    \"mechanical_effect\"\
+  : \"Partial effect, 1 tick on clock\"\n  },\n  \"good_success\": {  # Margin 5-9\n\
+  \    \"narrative\": \"Solid success, clear progress\",\n    \"mechanical_effect\"\
+  : \"Full effect, 2 ticks on clock\"\n  },\n  \"excellent_success\": {  # Margin\
+  \ 10-14\n    \"narrative\": \"Great success with bonus benefits\",\n    \"mechanical_effect\"\
+  : \"Enhanced effect, 3 ticks on clock, +1 Soulcredit\"\n  },\n  \"exceptional_success\"\
+  : {  # Margin 15+\n    \"narrative\": \"Outstanding success, major breakthrough\"\
+  ,\n    \"mechanical_effect\": \"Maximum effect, 4 ticks on clock, story advancement\"\
+  \n  }\n}\n```\n\n**Guidelines for Writing Tier Narratives:**\n1. **Be Specific**:\
+  \ Each tier should have distinct, concrete outcomes\n2. **Scale Appropriately**:\
+  \ Failure → Exceptional should show clear progression\n3. **Stay Thematic**: Maintain\
+  \ dark sci-fi atmosphere across all tiers\n4. **Include Complications**: Even success\
+  \ can have narrative costs/twists\n5. **Match Mechanical Effects**: Narrative must\
+  \ justify the mechanical consequences\n\n**Example (Combat Action):**\n- **Critical\
+  \ Failure**: \"Your neural implant screams feedback as the target dodges. You stumble,\
+  \ weapon clattering. They have you dead to rights.\" (Mechanical: Stunned 1 round,\
+  \ drop weapon, target gets free attack)\n- **Failure**: \"The shot goes wide, sparking\
+  \ off a bulkhead. Your position is compromised.\" (Mechanical: No damage, position\
+  \ revealed)\n- **Moderate Success**: \"You clip their shoulder. They hiss in pain\
+  \ but stay in the fight.\" (Mechanical: 3 damage dealt)\n- **Good Success**: \"\
+  Clean hit to center mass. They stagger back, armor cracked.\" (Mechanical: 8 damage\
+  \ dealt, armor -1)\n- **Excellent Success**: \"Perfect shot through a weak point.\
+  \ They drop to one knee, blood pooling.\" (Mechanical: 15 damage dealt, stun 1 round)\n\
+  - **Exceptional Success**: \"Your bullet finds their neural port. They collapse\
+  \ instantly, synapses sparking.\" (Mechanical: 25 damage dealt, instant incapacitation)\n\
+  \n**IMPORTANT:**\n- The character's actual outcome (from their real roll) goes in\
+  \ the main `narration` field (~200-2000 chars)\n- The 6 alternate-reality outcomes\
+  \ go in `outcome_tiers` field (50-500 chars each)\n- All 7 narratives should be\
+  \ thematically connected but mechanically distinct\n- Token cost: ~7x increase per\
+  \ action resolution (acceptable for ML training quality)"

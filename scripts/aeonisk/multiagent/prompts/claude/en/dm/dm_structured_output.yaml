@@ -1,0 +1,119 @@
+version: 2.0.0
+module: dm_structured_output
+description: ActionResolution schema requirements (optimized for compliance)
+always_load: true
+content: |-
+  # ⚙️ STRUCTURED OUTPUT FORMAT (CRITICAL)
+
+  **YOU ARE USING PYDANTIC AI STRUCTURED OUTPUT - NOT TEXT MARKERS**
+
+  Your responses MUST conform to the `ActionResolution` schema with these REQUIRED fields:
+
+  ```python
+  ActionResolution(
+      narration: str,        # 200-2000 chars - FREEFORM creative storytelling
+      success_tier: SuccessTier,  # CRITICAL_FAILURE → EXCEPTIONAL
+      margin: int,           # Success/failure margin
+      effects: MechanicalEffects {  # ⚠️ STRUCTURE ALL MECHANICS HERE ⚠️
+          void_changes: List[VoidChange],      # REQUIRED for void-related actions
+          damage: Optional[DamageEffect],      # REQUIRED for combat actions
+          clock_updates: List[ClockUpdate],    # REQUIRED when clocks advance/regress
+          conditions: List[Condition],         # REQUIRED for status effects
+          soulcredit_changes: List[SoulcreditChange],  # REQUIRED for EVERY action
+          position_changes: List[PositionChange],      # REQUIRED for movement
+          notes: List[str]                     # Optional additional effects
+      }
+  )
+  ```
+
+  ## 🚨 MANDATORY COMPLETENESS RULES 🚨
+
+  **1. COMBAT → Must populate `damage` field**
+  ```python
+  damage=DamageEffect(target="tgt_abc", base=12, soak=4, dealt=8, weapon="Kinetic Pistol")
+  ```
+
+  **2. VOID/RITUALS → Must populate `void_changes` field**
+  - Ritual failures, missing offerings/tools → `amount=+1` (corruption)
+  - Cleansing rituals → `amount=-2 to -5` (purification)
+  - Proper ritual with offering → `void_changes=[]` (empty list OK)
+  - Environmental void → Use `ClockUpdate`, NOT VoidChange
+  ```python
+  void_changes=[VoidChange(character_name="Ash", amount=1, reason="ritual without offering")]
+  ```
+
+  **3. CLOCKS → Populate `clock_updates` when advancing/regressing**
+  ```python
+  clock_updates=[ClockUpdate(clock_name="Investigation", ticks=2, reason="discovered evidence")]
+  ```
+
+  **4. STATUS EFFECTS → Must populate `conditions` field**
+  ```python
+  conditions=[Condition(name="Stunned", penalty=-5, duration=2, description="cannot act")]
+  ```
+
+  **5. SOULCREDIT → REQUIRED FOR EVERY ACTION (even if amount=0)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")]
+  ```
+
+  ⚠️ **FREE TARGETING IDS:** Copy exact IDs from combatant list (e.g., `[tgt_grpq] Heavy Gunners` → use `target="tgt_grpq"`). NEVER construct IDs from enemy names!
+
+  ## 📊 STRUCTURED OUTPUT EXAMPLES
+
+  **Example 1: Combat Action**
+  ```python
+  ActionResolution(
+      narration="Your bullet punches through their shoulder guard, spinning them sideways. Blood sprays across corroded metal as they stagger back.",
+      success_tier=SuccessTier.GOOD,
+      margin=12,
+      effects=MechanicalEffects(
+          damage=DamageEffect(
+              target="tgt_7a3f",  # ✅ Exact ID from combatant list
+              base_damage=15,
+              soak=7,
+              dealt=8,
+              weapon="Kinetic Pistol"
+          ),
+          conditions=[
+              Condition(name="Off-Balance", penalty=-2, duration=1, description="next attack at -2")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")
+          ],
+          clock_updates=[
+              ClockUpdate(clock_name="Enemy Morale", ticks=-1, reason="casualties")
+          ]
+      )
+  )
+  ```
+
+  **Example 2: Void Ritual**
+  ```python
+  ActionResolution(
+      narration="You channel purifying energy, but inverted resonance fights back. Pain sears through your neural pathways as corruption resists.",
+      success_tier=SuccessTier.MARGINAL,
+      margin=2,
+      effects=MechanicalEffects(
+          void_changes=[
+              VoidChange(character_name="Riven", amount=-1, reason="marginal purification"),
+              VoidChange(character_name="Ash", amount=1, reason="feedback from corrupted resonance")
+          ],
+          conditions=[
+              Condition(name="Psychic Strain", penalty=-1, duration=3, description="mental fatigue")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Ash", amount=1, reason="selfless ritual to help ally")
+          ]
+      )
+  )
+  ```
+
+  ## ✅ BEST PRACTICES
+
+  1. **Narration = Creative Storytelling** (freeform, vivid, atmospheric)
+  2. **Effects = Structured Mechanics** (explicit fields, no guessing)
+  3. **Always Populate Relevant Fields** (omitting fields triggers fallback parsing - bad for ML!)
+  4. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)
+
+  **CRITICAL:** If you skip required fields (damage, void_changes, soulcredit_changes), fallback systems generate inferior data from keyword detection. Always use structured fields!
