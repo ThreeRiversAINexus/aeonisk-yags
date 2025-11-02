@@ -1,0 +1,155 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2025-11-02",
+  "fixtures": {
+    "replay_test_fresh.jsonl": {
+      "created": "2025-11-01",
+      "created_by_commit": "af21c82",
+      "purpose": "Golden fixture for replay system integration tests. Created after player LLM logging fix to include complete LLM call data.",
+      "scenario": "Gang Ambush (combat) @ Undercity Maintenance Tunnels",
+      "rounds": 2,
+      "players": 2,
+      "enemies": 1,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "golden",
+      "used_by_tests": [
+        "tests/integration/test_replay_system.py::TestReplaySystem::test_full_deterministic_replay",
+        "tests/integration/test_replay_system.py::TestReplaySystem::test_hybrid_mode_cache_until_round",
+        "tests/integration/test_replay_system.py::TestReplaySystem::test_replay_completes_without_hanging"
+      ],
+      "notes": "Current standard fixture - verified working with all replay modes"
+    },
+    "action_type_investigate_bug.jsonl": {
+      "created": "2024-10-20",
+      "created_by_commit": "unknown",
+      "purpose": "Regression test for action type misclassification bug where combat actions were incorrectly classified as 'investigate'",
+      "scenario": "Test Scenario (combat) @ Test Location",
+      "rounds": 4,
+      "players": 1,
+      "enemies": 1,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "regression",
+      "used_by_tests": [],
+      "notes": "Pre-player-LLM-logging fixture. May need regeneration if used for replay tests."
+    },
+    "session_status_effect_tactical_test.jsonl": {
+      "created": "2024-09-15",
+      "created_by_commit": "unknown",
+      "purpose": "Test status effect mechanics in tactical combat scenarios",
+      "scenario": "Status Effect Test Arena (combat) @ Training Arena",
+      "rounds": 1,
+      "players": 1,
+      "enemies": 1,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [],
+      "notes": "Short single-round test. Pre-player-LLM-logging fixture."
+    },
+    "session_status_effect_narrative_test.jsonl": {
+      "created": "2024-09-15",
+      "created_by_commit": "unknown",
+      "purpose": "Test status effect integration with enemy narrative generation",
+      "scenario": "Narrative Enemy Test (combat) @ Dark Back Alley",
+      "rounds": 1,
+      "players": 1,
+      "enemies": 1,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [],
+      "notes": "Short single-round test. Pre-player-LLM-logging fixture."
+    },
+    "session_void_story_advancement_partial.jsonl": {
+      "created": "2024-10-05",
+      "created_by_commit": "unknown",
+      "purpose": "Test environmental void_level updates via StoryAdvancement events",
+      "scenario": "Void Cleansing Mission (investigation) @ Corrupted Research Station",
+      "rounds": 2,
+      "players": 1,
+      "enemies": 0,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [],
+      "notes": "Tests void_level mechanic changes. Pre-player-LLM-logging fixture."
+    },
+    "session_starting_clocks.jsonl": {
+      "created": "2024-09-20",
+      "created_by_commit": "unknown",
+      "purpose": "Test loading scene clocks from session config at session start",
+      "scenario": "Simple Investigation (investigation) @ Corporate Archive",
+      "rounds": 3,
+      "players": 1,
+      "enemies": 0,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [],
+      "notes": "Tests starting_clocks feature. Pre-player-LLM-logging fixture."
+    },
+    "session_multi_clock.jsonl": {
+      "created": "2024-09-20",
+      "created_by_commit": "unknown",
+      "purpose": "Test multiple bidirectional clock scenarios",
+      "scenario": "Simple Investigation (investigation) @ Corporate Archive",
+      "rounds": 3,
+      "players": 1,
+      "enemies": 0,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [],
+      "notes": "Tests multi-clock mechanics. Pre-player-LLM-logging fixture."
+    },
+    "session_starting_clocks_with_removal.jsonl": {
+      "created": "2024-09-20",
+      "created_by_commit": "unknown",
+      "purpose": "Test clock removal mechanics via StoryAdvancement",
+      "scenario": "Simple Investigation (investigation) @ Corporate Archive",
+      "rounds": 3,
+      "players": 1,
+      "enemies": 0,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [],
+      "notes": "Tests clock removal. Pre-player-LLM-logging fixture."
+    },
+    "regression_combat_cultist_spawn_bug.jsonl": {
+      "created": "2025-11-02",
+      "created_by_commit": "b8b4e3e",
+      "purpose": "Regression fixture documenting spawn_enemy_from_template import crash. Cultist Reinforcements clock fills in round 12, triggering enemy spawn attempt that would crash with old import bug.",
+      "scenario": "Void Convergence Investigation (mixed) @ Abandoned Nexus Research Station - Sublevel 7",
+      "rounds": 12,
+      "rounds_range": "0-12",
+      "players": 4,
+      "enemies": 0,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "regression",
+      "used_by_tests": [
+        "tests/unit/test_enemy_spawn_structured.py"
+      ],
+      "notes": "Re-extracted from round 0 for replay compatibility (LLM call_sequence starts at 0). Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
+    }
+  },
+  "statistics": {
+    "total_fixtures": 9,
+    "active": 9,
+    "deprecated": 0,
+    "with_player_llm_calls": 2,
+    "categories": {
+      "golden": 1,
+      "regression": 2,
+      "test": 6
+    }
+  },
+  "notes": [
+    "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
+    "Only replay_test_fresh.jsonl and regression_combat_cultist_spawn_bug.jsonl have complete player LLM call data",
+    "Comprehensive golden fixture planned to replace legacy test fixtures"
+  ]
+}

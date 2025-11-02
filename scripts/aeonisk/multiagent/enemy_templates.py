@@ -50,7 +50,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         },
 
         # Combat Stats
-        "health": 12,  # Base health (before group scaling) - reduced for balance
+        "health": 30,  # Base health (buffed 12→30 to survive 1-2 hits)
         "soak": 0,  # Will be calculated: base + armor
         "void_score": 1,
         "size": 5,
@@ -94,7 +94,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Stealth": 3
         },
 
-        "health": 20,
+        "health": 50,  # Buffed 20→50 to survive 2-4 hits from skilled PCs
         "soak": 0,
         "void_score": 2,
         "size": 5,
@@ -134,7 +134,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Brawl": 1
         },
 
-        "health": 12,
+        "health": 25,  # Buffed 12→25 glass cannon (fragile but deadly)
         "soak": 0,
         "void_score": 1,
         "size": 5,
@@ -216,7 +216,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Magick Theory": 4
         },
 
-        "health": 15,
+        "health": 40,  # Buffed 15→40 ritual specialist (moderate durability)
         "soak": 0,
         "void_score": 5,  # Already corrupted
         "size": 5,
@@ -256,7 +256,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Awareness": 2
         },
 
-        "health": 22,
+        "health": 55,  # Buffed 22→55 melee tank (heavy durability)
         "soak": 0,
         "void_score": 2,
         "size": 5,
@@ -296,7 +296,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Stealth": 3
         },
 
-        "health": 15,
+        "health": 35,  # Buffed 15→35 tactical support (moderate durability)
         "soak": 0,
         "void_score": 1,
         "size": 5,
@@ -337,7 +337,7 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
             "Athletics": 3
         },
 
-        "health": 14,
+        "health": 25,  # Buffed 14→25 glass cannon (fragile hit-and-run)
         "soak": 0,
         "void_score": 1,
         "size": 5,
@@ -464,6 +464,118 @@ ENEMY_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "retreat_threshold": 0.0,  # Never retreats
 
         "special_abilities": []
+    },
+
+    # =========================================================================
+    # ROBOTIC ENEMIES (from Gear & Tech Reference v1.2.2)
+    # =========================================================================
+    "security_drone": {
+        "description": "Flying surveillance and attack drone - fragile but evasive",
+
+        "attributes": {
+            "Agility": 5,  # Flying, evasive
+            "Strength": 1,  # Weak physical strength
+            "Perception": 5,  # Sensors
+            "Intelligence": 2,  # Basic AI
+            "Empathy": 0,  # Robot
+            "Willpower": 3,
+            "Health": 2  # Fragile construction
+        },
+
+        "skills": {
+            "Guns": 4,
+            "Awareness": 5,
+            "Athletics": 3,  # Aerial maneuvers
+            "Brawl": 1
+        },
+
+        "health": 20,  # Low HP - drones are fragile
+        "soak": 0,
+        "void_score": 0,
+        "size": 3,  # Small drone
+        "move": 15,  # Fast flying movement
+
+        "weapons": ["stun_gun", "pistol"],  # Non-lethal + backup lethal
+        "armor": "none",
+
+        "default_tactics": "extreme_range",
+        "threat_priority": "closest_threat",
+        "retreat_threshold": 0.6,  # Retreats easily
+
+        "special_abilities": ["flying", "evasive"]
+    },
+
+    "seedwalker_heavy": {
+        "description": "Heavy utility robot repurposed for combat - slow but durable",
+
+        "attributes": {
+            "Agility": 2,  # Slow, heavy
+            "Strength": 6,  # Very strong
+            "Perception": 3,
+            "Intelligence": 2,
+            "Empathy": 0,  # Robot
+            "Willpower": 4,
+            "Health": 5  # Robust construction
+        },
+
+        "skills": {
+            "Brawl": 4,
+            "Melee": 3,
+            "Athletics": 2,
+            "Awareness": 3
+        },
+
+        "health": 60,  # High HP - heavy walker
+        "soak": 2,  # Armored plating
+        "void_score": 0,
+        "size": 7,  # Large robot
+        "move": 8,  # Slow
+
+        "weapons": ["baton", "fists"],  # Melee-focused
+        "armor": "medium_armor",
+
+        "default_tactics": "aggressive_melee",
+        "threat_priority": "closest_threat",
+        "retreat_threshold": 0.1,  # Almost never retreats
+
+        "special_abilities": ["heavy", "strong_melee"]
+    },
+
+    "voidcradle_antibot": {
+        "description": "Illegal anti-ritual bot - disrupts tech and void-corrupted",
+
+        "attributes": {
+            "Agility": 4,
+            "Strength": 3,
+            "Perception": 4,
+            "Intelligence": 3,
+            "Empathy": 0,  # Robot
+            "Willpower": 4,
+            "Health": 3
+        },
+
+        "skills": {
+            "Guns": 4,
+            "Brawl": 3,
+            "Awareness": 4,
+            "Systems": 4,  # Tech disruption
+            "Hacking": 3
+        },
+
+        "health": 35,  # Medium HP
+        "soak": 1,
+        "void_score": 2,  # Void-corrupted technology
+        "size": 5,
+        "move": 12,
+
+        "weapons": ["pistol", "shock_baton"],
+        "armor": "light_armor",
+
+        "default_tactics": "tactical_ranged",
+        "threat_priority": "optimal_target",
+        "retreat_threshold": 0.3,
+
+        "special_abilities": ["disables_tech", "void_corrupted"]
     },
 }
 

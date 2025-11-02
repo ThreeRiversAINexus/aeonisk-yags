@@ -24,6 +24,32 @@ from .shared_types import (
 )
 
 
+class InventoryChange(BaseModel):
+    """
+    Represents a change to character inventory (item gained/consumed).
+
+    Used for tracking offering consumption, item pickups, resource depletion, etc.
+    """
+    item: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Item name (e.g., 'Purification Incense', 'blood_offering', 'crystals')"
+    )
+
+    delta: int = Field(
+        ...,
+        description="Quantity change: negative for consumption (e.g., -1), positive for gain (e.g., +3)"
+    )
+
+    reason: str = Field(
+        ...,
+        min_length=5,
+        max_length=200,
+        description="Why inventory changed (e.g., 'Consumed as ritual offering', 'Looted from enemy', 'Purchased from vendor')"
+    )
+
+
 class MechanicalEffects(BaseModel):
     """
     Structured mechanical outcomes of an action.
@@ -50,7 +76,7 @@ class MechanicalEffects(BaseModel):
     # State changes
     void_changes: List[VoidChange] = Field(
         default_factory=list,
-        description="Void corruption/cleansing changes"
+        description="Void corruption/cleansing changes. CRITICAL: Populate when void-triggering events occur (ritual failures, missing offerings/tools, void exposure, corrupted tech). Empty list = no void events (explicit choice). Examples: [VoidChange(character_name='Kade', amount=2, reason='Failed ritual without offering')] for corruption, [VoidChange(character_name='Ash', amount=-2, reason='Cleansing ritual success')] for cleansing."
     )
 
     soulcredit_changes: List[SoulcreditChange] = Field(
@@ -73,6 +99,12 @@ class MechanicalEffects(BaseModel):
     position_changes: List[PositionChange] = Field(
         default_factory=list,
         description="Tactical position changes (for characters that moved)"
+    )
+
+    # Inventory tracking
+    inventory_changes: List[InventoryChange] = Field(
+        default_factory=list,
+        description="Inventory changes (offerings consumed, items gained/lost). Populated by mechanics layer when offerings are consumed before DM narration."
     )
 
     # Additional metadata

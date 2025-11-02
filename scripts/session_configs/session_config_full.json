@@ -1,4 +1,7 @@
 {
+  "_role": "character_library_source",
+  "_purpose": "Canonical pool of 21 pre-built characters across 10 factions. Use this file as a reference when creating new configs or reusing character definitions.",
+
   "session_name": "full_spectrum_test",
   "max_turns": 5,
   "party_size": 3,
@@ -66,7 +69,7 @@
           "Awareness": 4,
           "Guns": 3
         },
-        "void_score": 2,
+        "void": 2,
         "soulcredit": 0,
         "goals": [
           "Explore void manipulation",
@@ -109,7 +112,7 @@
           "Charm": 5,
           "Counsel": 4
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 1,
         "goals": [
           "Form meaningful bonds",
@@ -161,7 +164,7 @@
           "Debt Law": 4,
           "Guns": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 4,
         "goals": [
           "Collect outstanding debts and maximize commission",
@@ -215,7 +218,7 @@
           "Melee": 4,
           "Brawl": 4
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 2,
         "goals": [
           "Contain void threats and maintain Nexus order",
@@ -269,7 +272,7 @@
           "Stealth": 3,
           "Melee": 3
         },
-        "void_score": 3,
+        "void": 3,
         "soulcredit": -4,
         "goals": [
           "Pay off crushing debt to ACG",
@@ -321,7 +324,7 @@
           "Drone Operation": 4,
           "Guns": 3
         },
-        "void_score": 4,
+        "void": 4,
         "soulcredit": -1,
         "goals": [
           "Study void phenomena for Tempest research",
@@ -375,7 +378,7 @@
           "Charm": 3,
           "Awareness": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 6,
         "goals": [
           "Uphold Codex regulations and spiritual bureaucracy",
@@ -425,7 +428,7 @@
           "Intimacy Ritual": 4,
           "Charm": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 8,
         "goals": [
           "Oversee pod gestation protocols",
@@ -479,7 +482,7 @@
           "Brawl": 4,
           "Melee": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 3,
         "goals": [
           "Investigate void-related crimes",
@@ -536,7 +539,7 @@
           "Awareness": 3,
           "Guns": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 5,
         "goals": [
           "Enforce contract compliance and debt collection",
@@ -588,7 +591,7 @@
           "Magick Theory": 3,
           "Awareness": 3
         },
-        "void_score": 1,
+        "void": 1,
         "soulcredit": 2,
         "goals": [
           "Perfect bio-ascension gene sequences",
@@ -639,7 +642,7 @@
           "Awareness": 4,
           "Astral Arts": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 3,
         "goals": [
           "Maintain pod gestation systems",
@@ -691,7 +694,7 @@
           "Systems": 3,
           "Guns": 2
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 4,
         "goals": [
           "Control narrative and public perception",
@@ -744,7 +747,7 @@
           "Astral Arts": 4,
           "Intimacy Ritual": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 6,
         "goals": [
           "Craft pro-Nexus narratives and spiritual messaging",
@@ -796,7 +799,7 @@
           "Investigation": 4,
           "Melee": 2
         },
-        "void_score": 5,
+        "void": 5,
         "soulcredit": -3,
         "goals": [
           "Prove dissolution is natural spiritual evolution",
@@ -848,7 +851,7 @@
           "Magick Theory": 4,
           "Awareness": 4
         },
-        "void_score": 2,
+        "void": 2,
         "soulcredit": 0,
         "goals": [
           "Discover self-similar truths in spiritual patterns",
@@ -899,7 +902,7 @@
           "Systems": 4,
           "Awareness": 3
         },
-        "void_score": 3,
+        "void": 3,
         "soulcredit": -1,
         "goals": [
           "Study nested reality loops and soul recursion",
@@ -952,7 +955,7 @@
           "Guns": 4,
           "Melee": 4
         },
-        "void_score": 2,
+        "void": 2,
         "soulcredit": -2,
         "goals": [
           "Stay off the Nexus grid and avoid ledger tracking",
@@ -1006,7 +1009,7 @@
           "Stealth": 3,
           "Guns": 3
         },
-        "void_score": 1,
+        "void": 1,
         "soulcredit": 0,
         "goals": [
           "Fly independent courier runs between planets",

@@ -312,7 +312,7 @@ WEAPON_LIBRARY: Dict[str, Weapon] = {
         increment=5,
         rof=1,
         capacity=1,
-        special=["aoe", "one_use"]
+        special=["aoe", "one_use"]  # NOTE: AoE multi-target mechanics not yet implemented
     ),
 
     "stun_grenade": Weapon(
@@ -332,6 +332,186 @@ WEAPON_LIBRARY: Dict[str, Weapon] = {
         rof=1,
         capacity=1,
         special=["aoe", "one_use", "stun", "flashbang"]
+    ),
+
+    # =========================================================================
+    # TECH/EXPERIMENTAL WEAPONS
+    # =========================================================================
+    "hacking_toolkit": Weapon(
+        name="Hacking Toolkit",
+        skill="Guns",  # Electrical discharge weapon mode
+        attack=-1,  # Not designed for combat
+        defence=0,
+        damage=3,
+        damage_type="stun",
+        reach=0,
+        load=1,
+        is_ranged=True,
+        short_range=3,
+        medium_range=6,
+        long_range=10,
+        increment=2,
+        rof=1,
+        recoil=0,
+        capacity=20,  # Battery charges
+        special=["electric", "stun", "tech"]
+    ),
+
+    "custom_energy_weapon": Weapon(
+        name="Custom Energy Weapon",
+        skill="Guns",
+        attack=1,
+        defence=0,
+        damage=5,
+        damage_type="wound",
+        reach=0,
+        load=2,
+        is_ranged=True,
+        short_range=10,
+        medium_range=30,
+        long_range=60,
+        increment=8,
+        rof=2,
+        recoil=-1,
+        capacity=30,
+        special=["experimental", "energy"]
+    ),
+
+    # =========================================================================
+    # GLYPH/BONDED WEAPONS (from Gear & Tech Reference v1.2.2)
+    # =========================================================================
+    "shrike_cannon": Weapon(
+        name="Shrike Cannon",
+        skill="Guns",
+        attack=1,
+        defence=0,
+        damage=6,  # +6 DMG from lore
+        damage_type="wound",
+        reach=0,
+        load=4,
+        is_ranged=True,
+        short_range=20,
+        medium_range=60,
+        long_range=150,
+        increment=12,
+        rof=2,
+        recoil=-2,
+        capacity=20,
+        special=["glyph_encoded", "ignores_ritual_shields"]
+    ),
+
+    "mnemonic_blade": Weapon(
+        name="Mnemonic Blade",
+        skill="Melee",
+        attack=4,
+        defence=3,
+        damage=5,  # +5 DMG from lore
+        damage_type="wound",
+        reach=1,
+        load=2,
+        special=["bonded", "trauma_powered"]  # +2 DMG when trauma invoked
+    ),
+
+    "spark_pulse_rifle": Weapon(
+        name="Spark-Bound Pulse Rifle",
+        skill="Guns",
+        attack=2,
+        defence=0,
+        damage=6,  # High damage, bonded weapon
+        damage_type="wound",
+        reach=0,
+        load=3,
+        is_ranged=True,
+        short_range=15,
+        medium_range=50,
+        long_range=120,
+        increment=10,
+        rof=3,
+        recoil=-1,
+        capacity=40,
+        special=["bonded", "radiant_burst", "anti_armor"]
+    ),
+
+    # =========================================================================
+    # VOID WEAPONS (from Gear & Tech Reference v1.2.2)
+    # =========================================================================
+    "ash_pulse_pike": Weapon(
+        name="Ash Pulse Pike",
+        skill="Melee",
+        attack=3,
+        defence=2,
+        damage=4,  # +4 DMG from lore
+        damage_type="wound",
+        reach=2,  # Polearm has reach
+        load=3,
+        special=["void_infused", "stuns_astral"]  # Stuns astral 1 rnd, +2 Void on crit
+    ),
+
+    "hollowed_repeater": Weapon(
+        name="Hollowed Repeater",
+        skill="Guns",
+        attack=0,
+        defence=0,
+        damage=4,  # Scales with void score (not implemented yet)
+        damage_type="wound",
+        reach=0,
+        load=1,
+        is_ranged=True,
+        short_range=5,
+        medium_range=15,
+        long_range=30,
+        increment=5,
+        rof=3,
+        recoil=0,
+        capacity=12,
+        special=["void_corrupted", "damage_scales_void"]  # Accuracy ↓ if Bonds > 0
+    ),
+
+    # =========================================================================
+    # STANDARD STREET GEAR (from Gear & Tech Reference v1.2.2)
+    # =========================================================================
+    "union_heavy_pistol": Weapon(
+        name="Union Heavy Pistol",
+        skill="Guns",
+        attack=0,
+        defence=0,
+        damage=4,  # +4 DMG from lore, ubiquitous street sidearm
+        damage_type="wound",
+        reach=0,
+        load=1,
+        is_ranged=True,
+        short_range=6,
+        medium_range=12,
+        long_range=25,
+        increment=6,
+        rof=2,
+        recoil=0,
+        capacity=15,
+        special=["ubiquitous", "legal_most_zones"]
+    ),
+
+    "breach_hammer": Weapon(
+        name="Breach Hammer",
+        skill="Melee",
+        attack=1,
+        defence=0,
+        damage=7,  # +7 DMG from lore, 2-handed weapon
+        damage_type="wound",
+        reach=1,
+        load=5,  # Heavy weapon
+        special=["two_handed", "breaks_bonded_tech"]  # Breaks bonded tech (Will 15)
+    ),
+
+    "dripshock_baton": Weapon(
+        name="Dripshock Baton",
+        skill="Brawl",
+        attack=2,
+        defence=1,
+        damage=2,  # Non-lethal crowd control
+        damage_type="stun",
+        reach=1,
+        load=1,
+        special=["stun", "electric", "crowd_control", "amplifies_emotion"]
     ),
 }
 

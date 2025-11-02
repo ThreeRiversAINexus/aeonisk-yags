@@ -201,6 +201,31 @@ class SelfPlayingSession:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
 
+        # Load starting_clocks from config if present
+        if 'starting_clocks' in self.config and self.config['starting_clocks']:
+            mechanics = self.shared_state.get_mechanics_engine()
+            if mechanics:
+                from .schemas.story_events import NewClock
+                for clock_config in self.config['starting_clocks']:
+                    try:
+                        # Validate clock using NewClock schema
+                        clock = NewClock(**clock_config)
+                        # Add to mechanics.scene_clocks
+                        from .mechanics import SceneClock
+                        scene_clock = SceneClock(
+                            name=clock.name,
+                            current=clock.current_ticks,
+                            maximum=clock.max_ticks,
+                            description=clock.description,
+                            advance_means=clock.advance_meaning,
+                            regress_means=clock.regress_meaning
+                        )
+                        mechanics.scene_clocks[clock.name] = scene_clock
+                        logger.info(f"Loaded starting clock: {clock.name} ({clock.current_ticks}/{clock.max_ticks})")
+                    except Exception as e:
+                        logger.warning(f"Failed to load starting clock {clock_config.get('name', 'unknown')}: {e}")
+                print(f"✓ Loaded {len(self.config['starting_clocks'])} starting clock(s)")
+
         # Create and attach LLMCallLogger instances to all agents for replay functionality
         from .llm_logger import LLMCallLogger
         for agent in self.agents:
@@ -1342,11 +1367,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 position = getattr(agent, 'position', 'Unknown')
                 position_str = str(position) if position != 'Unknown' else 'Unknown'
 
-                # Get group count if available
-                unit_count = getattr(agent, 'unit_count', 1)
-                count_str = f" (×{unit_count})" if unit_count > 1 else ""
-
-                print(f"    [{init:2d}] {agent.name:20s}{count_str:6s} | {health_str:12s} | {position_str:15s}")
+                print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s} | {position_str:15s}")
 
         # Display clock states if available
         if mechanics and mechanics.scene_clocks:
@@ -1472,6 +1493,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
                 if mechanics.jsonl_logger:
+                    # Log any remaining clocks before session ends
+                    if mechanics.scene_clocks:
+                        for clock_name, clock in mechanics.scene_clocks.items():
+                            mechanics.jsonl_logger.log_event(
+                                event_type="clock_removal",
+                                data={
+                                    "clock_name": clock_name,
+                                    "current_ticks": clock.current,
+                                    "maximum_ticks": clock.maximum,
+                                    "description": clock.description,
+                                    "removal_reason": "session_end",
+                                    "expiration_type": None,
+                                    "filled": clock.filled,
+                                    "consequence_triggered": False
+                                },
+                                round_num=mechanics.current_round
+                            )
+
                     # Get current state for logging
                     final_state = mechanics.get_state_summary()
                     final_state['session_end_status'] = self._session_end_status
@@ -1556,6 +1595,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Log session end event
             mechanics = self.shared_state.mechanics_engine
             if mechanics.jsonl_logger:
+                # Log any remaining clocks before session ends (timeout path)
+                if mechanics.scene_clocks:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "session_end",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+
                 mechanics.jsonl_logger.log_session_end(state_summary)
                 print(f"\n✓ JSONL log saved: {mechanics.jsonl_logger.log_file}")
 
@@ -1831,6 +1888,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             for notification in spawn_notifications:
                 print(f"\n{notification}")
 
+        # Process initial_enemies from ScenarioSetup structured output
+        scenario_setup = message.payload.get('scenario_setup', None)
+        if scenario_setup and hasattr(scenario_setup, 'initial_enemies'):
+            if scenario_setup.initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
+                spawn_notifications = self.enemy_combat.spawn_from_structured(
+                    scenario_setup.initial_enemies
+                )
+                for notification in spawn_notifications:
+                    print(f"\n{notification}")
+
         self._scenario_ready.set()
 
     def _handle_action_declared(self, message: Message):
@@ -1935,9 +2002,49 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Clear clocks (always happens on story advancement)
             if mechanics and mechanics.scene_clocks:
+                # Log each clock removal before clearing
+                if mechanics.jsonl_logger:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "story_advancement",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
                 logger.info(f"🗑️  Cleared {len(archived_clocks)} clocks for story advancement")
+
+            # Update environmental void_level if specified
+            if adv.new_void_level is not None:
+                dm_agents = [agent for agent in self.agents if isinstance(agent, AIDMAgent)]
+                if dm_agents and dm_agents[0].current_scenario:
+                    old_void = dm_agents[0].current_scenario.void_level
+                    dm_agents[0].current_scenario.void_level = adv.new_void_level
+                    logger.info(f"🌫️  Environmental void updated: {old_void} → {adv.new_void_level}")
+                    print(f"   Void Level: {old_void} → {adv.new_void_level}")
+
+                    # Log to JSONL
+                    if mechanics and mechanics.jsonl_logger:
+                        mechanics.jsonl_logger.log_event(
+                            event_type="void_level_update",
+                            data={
+                                "old_void_level": old_void,
+                                "new_void_level": adv.new_void_level,
+                                "location": adv.location,
+                                "reason": "story_advancement"
+                            },
+                            round_num=mechanics.current_round
+                        )
 
             # Clear enemies (conditional on clear_all_enemies flag)
             if adv.clear_all_enemies:
@@ -2007,6 +2114,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if pivot.clear_specific_clocks and mechanics:
                 for clock_name in pivot.clear_specific_clocks:
                     if clock_name in mechanics.scene_clocks:
+                        clock = mechanics.scene_clocks[clock_name]
+
+                        # Log clock removal
+                        if mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                event_type="clock_removal",
+                                data={
+                                    "clock_name": clock_name,
+                                    "current_ticks": clock.current,
+                                    "maximum_ticks": clock.maximum,
+                                    "description": clock.description,
+                                    "removal_reason": "scene_pivot",
+                                    "expiration_type": None,
+                                    "filled": clock.filled,
+                                    "consequence_triggered": False
+                                },
+                                round_num=mechanics.current_round
+                            )
+
                         del mechanics.scene_clocks[clock_name]
                         logger.info(f"Cleared clock: {clock_name}")
 
@@ -2089,6 +2215,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Clear ALL old clocks
             if mechanics and mechanics.scene_clocks:
+                # Log each clock removal before clearing
+                if mechanics.jsonl_logger:
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        mechanics.jsonl_logger.log_event(
+                            event_type="clock_removal",
+                            data={
+                                "clock_name": clock_name,
+                                "current_ticks": clock.current,
+                                "maximum_ticks": clock.maximum,
+                                "description": clock.description,
+                                "removal_reason": "story_advancement",
+                                "expiration_type": None,
+                                "filled": clock.filled,
+                                "consequence_triggered": False
+                            },
+                            round_num=mechanics.current_round
+                        )
+
                 archived_clocks = list(mechanics.scene_clocks.keys())
                 mechanics.scene_clocks.clear()
                 logger.info(f"🗑️  Cleared all old clocks for story advancement: {', '.join(archived_clocks)}")
@@ -2152,27 +2296,29 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             self._synthesis_complete.set()
             logger.debug("Round synthesis received, signaling completion")
 
-            # Log round synthesis for narrative reconstruction
+            # Check for structured synthesis (Phase 5: Pydantic AI migration)
+            structured_synthesis_data = message.payload.get('structured_synthesis')
+            structured_synthesis = None
+
+            if structured_synthesis_data:
+                # Deserialize dict back to Pydantic model
+                from .schemas.story_events import RoundSynthesis
+                structured_synthesis = RoundSynthesis(**structured_synthesis_data)
+                # Process structured synthesis (no marker parsing!)
+                self._process_structured_synthesis(structured_synthesis)
+            else:
+                # Legacy marker parsing path
+                self._process_legacy_markers(narration)
+
+            # Log round synthesis for narrative reconstruction (with structured data if available)
             mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
             round_num = message.payload.get('round', mechanics.current_round if mechanics else 0)
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_synthesis(
                     round_num=round_num,
-                    synthesis=narration
+                    synthesis=narration,
+                    structured_synthesis=structured_synthesis
                 )
-
-        # Check for structured synthesis (Phase 5: Pydantic AI migration)
-        structured_synthesis_data = message.payload.get('structured_synthesis')
-
-        if structured_synthesis_data:
-            # Deserialize dict back to Pydantic model
-            from .schemas.story_events import RoundSynthesis
-            synthesis = RoundSynthesis(**structured_synthesis_data)
-            # Process structured synthesis (no marker parsing!)
-            self._process_structured_synthesis(synthesis)
-        else:
-            # Legacy marker parsing path
-            self._process_legacy_markers(narration)
 
 
 # Configuration example

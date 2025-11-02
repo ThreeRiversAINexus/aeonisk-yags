@@ -164,21 +164,21 @@ class TestSharedTypes:
     def test_damage_effect_valid(self):
         """Test valid DamageEffect creation."""
         damage = DamageEffect(
-            target="tgt_001",
+            target="tgt_a001",
             base_damage=15,
             soak=7,
             dealt=8,
             damage_type="kinetic"
         )
 
-        assert damage.target == "tgt_001"
+        assert damage.target == "tgt_a001"
         assert damage.base_damage == 15
         assert damage.dealt == 8
 
     def test_damage_effect_with_soak(self):
         """Test DamageEffect with explicit dealt value."""
         damage = DamageEffect(
-            target="tgt_001",
+            target="tgt_b002",
             base_damage=15,
             soak=7,
             dealt=8  # dealt is required, not auto-calculated
@@ -219,7 +219,7 @@ class TestActionResolution:
         """Test MechanicalEffects with damage."""
         effects = MechanicalEffects(
             damage=DamageEffect(
-                target="tgt_001",
+                target="tgt_c003",
                 base_damage=12,
                 soak=4,
                 dealt=8

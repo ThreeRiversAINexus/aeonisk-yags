@@ -1,0 +1,118 @@
+{
+  "session_name": "void_story_advancement_test",
+  "max_turns": 2,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Ash Vex",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Purify the corrupted research station",
+          "Make the area safe for habitation again"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Void Lore": 5,
+          "Ritual Lore": 4,
+          "Investigation": 3,
+          "Astral Arts": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Purification Crystals": 3,
+          "Ritual Components": 2,
+          "Void Detection Scanner": 1
+        },
+        "void": 4
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Void Cleansing Mission",
+    "location": "Corrupted Research Station - Central Core",
+    "situation": "The research station is saturated with void corruption (8/10). Reality distortions shimmer in the corners, and the air feels thick and oppressive. Your mission is to purify this sector and make it safe again. You have the knowledge and tools to perform a large-scale purification ritual. The station's containment matrices are still functional - if you can complete the ritual and advance the purification clock, you might cleanse this entire area.",
+    "void_level": 8
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Purification Progress",
+      "max_ticks": 4,
+      "current_ticks": 0,
+      "description": "Progress toward cleansing the station's void corruption through ritual work",
+      "advance_meaning": "purification ritual progresses",
+      "regress_meaning": "void corruption interferes with ritual"
+    }
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Purify the station's void corruption",
+      "type": "ritual",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test environmental void_level updates during story advancement",
+    "expected_flow": [
+      "Round 1: Player performs purification ritual, advances 'Purification Progress' clock (0→2 or 0→3)",
+      "Round 2: Clock completes (4/4), DM advances story with new_void_level=3 (down from 8)",
+      "Verify: scenario.void_level actually updates from 8 → 3"
+    ],
+    "implementation_notes": [
+      "Implemented starting_clocks config feature in session.py",
+      "Clocks now load from config at session start",
+      "Reduced max_ticks from 10→4 so clock can complete in 2 rounds"
+    ],
+    "verification": {
+      "console_output": "Should see 'Void Level: 8 → 3' in console",
+      "logs": "Check game.log for void_level update message",
+      "dm_behavior": "DM should use new_void_level field in StoryAdvancement when purification completes"
+    },
+    "success_criteria": [
+      "DM completes purification clock",
+      "DM advances story to new location (e.g., 'Research Station - Cleansed Wing')",
+      "DM includes new_void_level=3 (or similar reduction) in StoryAdvancement",
+      "Handler updates scenario.void_level successfully"
+    ]
+  }
+}

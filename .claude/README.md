@@ -25,11 +25,10 @@ The `.claude/` directory provides:
 
 **Main project documentation** (in root directory):
 - **`CLAUDE.md`** - Primary guide, critical patterns, common pitfalls (AUTO-LOADED)
-- **`QUICK_START_MECHANICS.md`** - Practical examples for running sessions
-- **`AEONISK_BENCHMARK_SYSTEM_SUMMARY.md`** - ML benchmarking system
 
 **Multi-agent specific** (in `scripts/aeonisk/multiagent/`):
 - **`LOGGING_IMPLEMENTATION.md`** - Detailed ML logging system documentation
+- **`schemas/README.md`** - Pydantic schema documentation
 
 **Game content** (authoritative source):
 - **`content/`** - Aeonisk game rules and lore (Markdown)
@@ -64,13 +63,14 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 **Before starting work:**
 1. Read `CLAUDE.md` (auto-loaded)
 2. Read `ARCHITECTURE.md` (this directory)
-3. Check `current-work/` for active development
+3. Check recent git commits for context
 4. Review `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` if working on logging
 
 **During work:**
-- Document complex changes in `current-work/`
+- Document complex features in `current-work/` as needed
+- Delete completed feature docs when done
 - Update CLAUDE.md if you find critical patterns
-- Test with: `cd scripts/aeonisk && source .venv/bin/activate && python3 ../run_multiagent_session.py ../session_config_combat.json`
+- Test with: `source .venv/bin/activate && python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_combat.json`
 
 **Best practices:**
 - No frontend (it's CLI only)

@@ -74,7 +74,7 @@
         "Awareness": 3,
         "Melee": 2
       },
-      "void_score": 0,
+      "void": 0,
       "soulcredit": 2,
       "equipped_weapons": {
         "primary": "ritual_blade"
@@ -127,7 +127,7 @@
         "Investigation": 3,
         "Melee": 2
       },
-      "void_score": 4,
+      "void": 4,
       "soulcredit": -2,
       "equipped_weapons": {
         "primary": "void_blade"

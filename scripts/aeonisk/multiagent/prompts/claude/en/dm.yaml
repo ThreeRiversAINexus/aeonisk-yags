@@ -72,8 +72,45 @@ sections:
     **2. VOID-RELATED ACTIONS → MUST POPULATE `void_changes` FIELD**
     - ❌ WRONG: Narrate "void corruption +1" without `void_changes` field
     - ✅ CORRECT: Populate `void_changes=[VoidChange(character_name="Ash", amount=1, reason="ritual failure")]`
-    - **When to use**: Rituals, void exposure, cosmic horror, void powers, critical failures with void theme
-    - **If you omit `void_changes`**, no void will be applied (BAD for gameplay!)
+
+    **⚠️ CRITICAL: WHEN TO POPULATE void_changes (DO NOT SKIP!):**
+    - **Ritual failures** (failed astral arts/void manipulation) → `amount=1` (corruption increase)
+    - **Missing offerings** (ritual without consumed offering) → `amount=1` automatically
+    - **Missing tools** (ritual without primary focus/tool) → `amount=1` automatically
+    - **Void exposure** (breaches, corrupted areas, void artifacts) → `amount=1`
+    - **Corrupted technology** interaction → `amount=1`
+    - **Cosmic horror** encounters (reality tears, void entities) → `amount=1+`
+    - **Cleansing rituals** (purification success) → `amount=-2 to -5` (negative = cleansing)
+    - **Proper ritual execution** (with offerings consumed) → `void_changes=[]` (empty list = no void events)
+
+    **Examples of correct void_changes:**
+    ```python
+    # Ritual without offering - automatic +1 void
+    void_changes=[VoidChange(character_name="Kade", amount=1, reason="performed ritual without offering")]
+
+    # Ritual without tool - automatic +1 void
+    void_changes=[VoidChange(character_name="Kade", amount=1, reason="attempted ritual without primary focus")]
+
+    # Both missing - +2 void total
+    void_changes=[
+        VoidChange(character_name="Kade", amount=1, reason="missing offering"),
+        VoidChange(character_name="Kade", amount=1, reason="missing ritual tool")
+    ]
+
+    # Cleansing ritual success - negative amount
+    void_changes=[VoidChange(character_name="Ash", amount=-3, reason="powerful purification ritual")]
+
+    # Proper ritual - empty list (explicit no void events)
+    void_changes=[]  # Player has offerings, proper execution, no corruption
+    ```
+
+    **If you omit `void_changes`** for void-triggering events, character void scores won't update (CRITICAL BUG!)
+
+    **⚠️ ENVIRONMENTAL VOID EFFECTS:**
+      * ❌ NEVER use `VoidChange` for environmental/area void effects (e.g., "Environmental Void", "ambient corruption", "chamber void")
+      * ✅ ALWAYS use `ClockUpdate` for environmental corruption: `clock_updates=[ClockUpdate(clock_name="Environmental Corruption", ticks=2, reason="void breach spreading")]`
+      * `character_name` must be a SPECIFIC player character name, not abstract/environmental targets
+      * Schema validation will reject environmental keywords - use scene clocks instead!
 
     **3. CLOCK UPDATES → POPULATE `clock_updates` WHEN ADVANCING/REGRESSING CLOCKS**
     - ❌ WRONG: Say "clock advances by 2" in narration without `clock_updates` field
@@ -104,7 +141,7 @@ sections:
         margin=12,
         effects=MechanicalEffects(
             damage=DamageEffect(
-                target="tgt_7a3f",
+                target="tgt_7a3f",  # ✅ Use exact ID from combatant list (e.g., [tgt_7a3f] Heavy Gunners)
                 base_damage=15,
                 soak=7,
                 dealt=8,
@@ -135,6 +172,33 @@ sections:
         )
     )
     ```
+
+    ## ⚠️ CRITICAL: FREE TARGETING MODE TARGET IDS ⚠️
+
+    When free targeting mode is enabled, you will see combatants listed like:
+    - [tgt_3yp8] Enforcer Kael Dren
+    - [tgt_grpq] Heavy Gunners
+    - [tgt_xe1g] Sniper Team
+
+    **MANDATORY TARGET ID RULES:**
+
+    ❌ **NEVER** construct target IDs from enemy names:
+    - WRONG: `target="tgt_heavy_gunners"` (name-based - WILL FAIL!)
+    - WRONG: `target="tgt_sniper_team"` (name-based - WILL FAIL!)
+    - WRONG: `target="tgt_elite_assault_squad"` (name-based - WILL FAIL!)
+
+    ✅ **ALWAYS** copy the exact ID from the combatant list:
+    - CORRECT: `target="tgt_grpq"` (for Heavy Gunners in example above)
+    - CORRECT: `target="tgt_xe1g"` (for Sniper Team in example above)
+    - CORRECT: `target="tgt_3yp8"` (for Enforcer Kael Dren in example above)
+
+    **Why?** Target IDs are randomly assigned each round. Using enemy names will fail validation.
+
+    **How to find the correct ID:**
+    1. Player says "I shoot the Heavy Gunners"
+    2. Look at combatant list above in your prompt
+    3. Find: [tgt_grpq] Heavy Gunners
+    4. Copy EXACTLY: `target="tgt_grpq"` in your DamageEffect
 
     **Example 2: Void Ritual (void_changes REQUIRED)**
     ```python
@@ -614,10 +678,29 @@ sections:
     When objectives complete or situation dramatically changes, advance to next scene:
     `[ADVANCE_STORY: Location Name | Situation description]`
 
+    **With Structured Output (`StoryAdvancement` schema):**
+    Use the `new_void_level` field to update environmental void when story beats justify it.
+
+    **When to REDUCE void_level:**
+    - Purification clocks completed (e.g., 8 → 3 after major cleansing ritual)
+    - Area successfully cleansed or sanctified
+    - Void breach contained or sealed
+    - Moving from corrupted zone to safer area
+
+    **When to INCREASE void_level:**
+    - Containment failure, corruption spreading (e.g., 3 → 7)
+    - Moving deeper into void-saturated zones
+    - Major void events unleashed by player actions
+    - Environmental degradation progressing
+
     **Examples:**
     - Major location change: `[ADVANCE_STORY: Extraction Point | Having escaped, the team regroups at the safe house]`
+    - Purification complete: `new_void_level=3` (down from 8) when advancing after cleansing ritual
+    - Corruption spreading: `new_void_level=7` (up from 4) when breach containment fails
     - Same location, new situation: `[ADVANCE_STORY: Corporate Facility - Lockdown | Alarms blare as security seals all exits]`
-    - Objective complete: `[ADVANCE_STORY: Underground Market | With evidence secured, you seek a buyer for the stolen data]`
+    - Moving to safer zone: `new_void_level=2` (down from 6) when evacuating to sanctified area
+
+    **Note:** `new_void_level` is optional. Only update when story justifies environmental void change. Leave None to keep current void_level.
 
     **When to Use These Markers:**
     - **Victory**: Key objective achieved (e.g., "Evidence Trail" filled AND team escapes)
@@ -638,14 +721,49 @@ sections:
     enemy_spawns=[
         EnemySpawn(
             template="Elite",
-            faction="ACG Security",
+            faction="ACG Security Response Team",
             archetype="Enforcer",
-            count=2,
             spawn_reason="Alarm triggered, rapid response team deployed",
             initial_position=Position.FAR_ENEMY
         )
     ]
     ```
+
+    ## 🎯 ENEMY GROUP PHILOSOPHY - CRITICAL
+
+    **Enemy groups are SINGLE combat units with narrative flexibility:**
+
+    - "Heavy Gunners" = ONE combat unit (one HP pool, one target ID like `tgt_7a3f`)
+    - You may narrate casualties based on HP percentage WITHOUT splitting mechanically
+    - DO NOT invent sub-names like "Alpha/Beta/Gamma" - they're one unit!
+
+    **Narrative Examples (HP percentage-based):**
+    - 100% HP: "The Heavy Gunners squad maintains formation"
+    - 70% HP: "One gunner drops, but the squad keeps firing"
+    - 50% HP: "Half the enforcers are down"
+    - 20% HP: "Only the squad leader remains standing"
+    - 0% HP: "The last enforcer collapses"
+
+    **Effects Target the Entire Group:**
+    ```python
+    effects=ActionResolutionEffects(
+        damage=DamageEffect(
+            target="tgt_7a3f",  # The ENTIRE "Heavy Gunners" unit
+            dealt=18,
+            type="kinetic"
+        )
+    )
+    ```
+
+    ❌ **DO NOT:**
+    - Create sub-names: "Heavy Gunner Alpha", "Heavy Gunner Beta"
+    - Try to damage individual members: damage goes to the whole unit
+    - Track which specific member is wounded
+
+    ✅ **DO:**
+    - Use HP percentage to guide casualty narration
+    - Apply all damage/conditions to the group's target ID
+    - Keep faction names descriptive: "Corporate Strike Team", "Void Cultist Cell"
 
     **Enemy Removals (for non-combat resolution):**
     ```python

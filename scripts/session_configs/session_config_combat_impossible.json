@@ -1,14 +1,14 @@
 {
   "session_name": "impossible_combat_test",
-  "max_turns": 5,
+  "max_turns": 2,
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "enable_human_interface": true,
   "force_combat": true,
   "vendor_spawn_frequency": 0,
 
-  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 - IMPOSSIBLE MODE ===",
-  "_comment_scenario": "Overwhelming odds - players surrounded by hostile forces. Tests combat/movement/defeat mechanics.",
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 - COMBAT BALANCE TEST ===",
+  "_comment_scenario": "Balanced combat test - validates HP scaling and damage system. With buffed enemy HP (elite: 20→50), PCs should need 2-4 hits to defeat enemies instead of one-shotting them.",
   "combat_scenario_index": 0,
   "_comment_combat_index": "Forces 'Overwhelming Ambush' template (index 0) - all enemies target players, no faction infighting",
   "tactical_module_enabled": true,
@@ -23,8 +23,7 @@
     "void_tracking_enabled": true
   },
 
-  "_comment_spawn_strategy": "Multiple enemy groups at close range, explicitly targeting players",
-  "_spawn_guidance": "DM should spawn: [SPAWN_ENEMY: Assault Squad | elite | 3 | Engaged | aggressive_melee] [SPAWN_ENEMY: Sniper Team | sniper | 2 | Far-Enemy | extreme_range] [SPAWN_ENEMY: Heavy Support | grunt | 4 | Near-Enemy | tactical_ranged]",
+  "force_scenario": "[SPAWN_ENEMY: Elite Assault Squad | elite | Engaged | aggressive_melee | personality:fight_to_death]\n[SPAWN_ENEMY: Sniper Team | elite | Far-Enemy | extreme_range | personality:fight_to_death]\n[SPAWN_ENEMY: Heavy Gunners | elite | Near-Enemy | ranged_support | personality:fight_to_death]\n[SPAWN_ENEMY: Grenadiers | elite | Far-Enemy | area_denial | personality:fight_to_death]",
 
   "agents": {
     "dm": {
@@ -69,15 +68,22 @@
       },
       "skills": {
         "Combat": 5,
+        "Guns": 5,
+        "Brawl": 4,
+        "Melee": 4,
         "Investigation": 4,
         "Awareness": 5,
         "Athletics": 4,
         "Intimidation": 4
       },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
       "inventory": {
-        "union_issue_pistol": 1,
+        "pistol": 1,
+        "combat_knife": 1,
         "riot_carapace": 1,
-        "breach_hammer": 1,
         "restraint_cuffs": 2,
         "med_kit": 1
       }
@@ -115,19 +121,25 @@
       },
       "skills": {
         "Combat": 5,
+        "Guns": 6,
+        "Melee": 4,
         "Stealth": 5,
         "Awareness": 5,
         "Athletics": 4,
         "Pilot": 3
       },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
       "inventory": {
-        "smuggler_pistol": 1,
-        "conventional_blade": 1,
+        "pistol": 1,
+        "combat_knife": 1,
         "void_cloak": 1,
         "med_kit": 1
       }
     }
     ]
   },
-  "notes": "IMPOSSIBLE MODE - Players surrounded by overwhelming hostile forces. Should force combat, movement, damage, and defeat mechanics testing. Enemies explicitly target players to test Size/Soak fixes and death save system."
+  "notes": "COMBAT BALANCE TEST - Tests HP scaling fix (elite: 20→50 HP). Should validate: (1) PCs need 2-4 hits to defeat elites, (2) No one-shot kills except on exceptional success vs. weak enemies, (3) No '0 → 0 wounds' display bug. Expected: Multi-round combat with enemies surviving initial exchanges."
 }

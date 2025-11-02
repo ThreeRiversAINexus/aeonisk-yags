@@ -217,7 +217,7 @@ class AIPlayerAgent(Agent):
             faction=self.character_config.get('faction', 'Unaffiliated'),
             attributes=self.character_config.get('attributes', {}),
             skills=self.character_config.get('skills', {}),
-            void_score=self.character_config.get('void_score', 0),
+            void_score=self.character_config.get('void', 0),  # Standardized on "void" key
             soulcredit=self.character_config.get('soulcredit', random.randint(4, 7)),  # Lower, varied starting soulcredit
             bonds=self.character_config.get('bonds', []),
             goals=self.character_config.get('goals', []),
@@ -277,8 +277,11 @@ class AIPlayerAgent(Agent):
             logger.debug(f"Player {self.character_state.name} equipped: {self.equipped_weapons}, carried: {[w.name for w in self.weapon_inventory]}")
         except KeyError as e:
             logger.error(f"Failed to load weapon for {self.character_state.name}: {e}")
-            # Fall back to fists if weapon loading fails
-            self.equipped_weapons["primary"] = get_weapon("fists")
+            # Crash on missing weapon - this is a config error that must be fixed
+            raise ValueError(
+                f"Character '{self.character_state.name}' configured with invalid weapon. "
+                f"Check session config and WEAPON_LIBRARY. Error: {e}"
+            ) from e
 
         logger.debug(f"Player {self.agent_id} ({self.character_state.name}) started")
 
@@ -774,11 +777,8 @@ class AIPlayerAgent(Agent):
 
         print(f"\n[{self.character_state.name}] Received resolution")
 
-        # Consume offering if it was used in the action
-        original_action = message.payload.get('original_action', {})
-        if original_action.get('has_offering', False):
-            if self.character_state.consume_offering():
-                print(f"[{self.character_state.name}] Consumed offering")
+        # NOTE: Offering consumption now happens BEFORE DM narration in dm.py (mechanics-first architecture)
+        # No need to consume here anymore - mechanics layer handles it pre-narration
 
         # Update void state from mechanics engine
         if self.shared_state:
@@ -1335,6 +1335,24 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
             logger.debug(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
 
+            # Log LLM call for replay (CRITICAL: without this, replay cache is empty!)
+            if self.llm_logger:
+                # Serialize PlayerAction to JSON for the response field
+                import json
+                response_text = player_action.model_dump_json(indent=2)
+
+                self.llm_logger._log_llm_call(
+                    messages=[{"role": "user", "content": prompt}],
+                    response=response_text,
+                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                    temperature=self.llm_config.get('temperature', 0.8),
+                    tokens={'input': 0, 'output': 0},  # Pydantic AI doesn't expose token counts easily
+                    current_round=getattr(self, 'current_round', None),
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
+                logger.debug(f"✓ Logged player LLM call for replay (sequence {self.llm_logger.call_count - 1})")
+
             # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
             action_declaration = ActionDeclaration(
                 intent=player_action.intent,
@@ -1504,8 +1522,7 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                 for enemy in active_enemies:
                     tgt_id = target_id_mapper.get_target_id(enemy.agent_id)
                     if tgt_id:
-                        unit_count = f" ({enemy.unit_count} units)" if enemy.is_group else ""
-                        combatants.append(f"[{tgt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP{unit_count}")
+                        combatants.append(f"[{tgt_id}] {enemy.name:20s} | {str(enemy.position):12s} | {enemy.health}/{enemy.max_health} HP")
 
                 combatants_text = "\n  ".join(combatants)
 

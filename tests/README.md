@@ -91,7 +91,24 @@ Fast, deterministic tests with no external dependencies:
 
 ### Integration Tests (`tests/integration/`)
 
-End-to-end tests with mocked LLM clients:
+End-to-end tests with real session JSONL fixtures:
+
+- **✅ Clock Lifecycle** (`session/test_clock_lifecycle.py`) - **NEW**
+  - Config-loaded clocks (starting_clocks)
+  - Clock progression during gameplay
+  - Clock removal events (filled, session_end)
+  - Multi-clock scenarios
+  - **Status:** 8 passing, 10 xfailed (need newer fixtures with clock_spawn/clock_completion events)
+
+- **✅ Combat Flow** (`flows/test_combat_flow.py`)
+  - Round structure (declarations → resolutions → synthesis)
+  - Event sequencing validation
+
+- **✅ Ritual Flow** (`flows/test_ritual_flow.py`)
+  - Ritual action validation
+
+- **✅ Social Flow** (`flows/test_social_flow.py`)
+  - Social interaction validation
 
 - **TODO: Session Flow** (`test_session_flow.py`)
   - Scenario generation → Player declarations → DM resolution cycle

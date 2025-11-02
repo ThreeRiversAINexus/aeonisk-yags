@@ -92,11 +92,11 @@ class LLMConfig:
     jitter: bool = True  # Add randomness to prevent thundering herd
 
     # Rate limiting (global across all agents)
-    # Tuned for multi-agent sessions (3 PCs + 2 enemies + DM = 6 agents)
+    # Tuned for large multi-agent sessions (4 PCs + 8 enemies + DM = 13 agents max)
     # Very aggressive to prevent Anthropic API 500 Overloaded errors
     use_rate_limiter: bool = True  # Enable global rate limiting
-    max_concurrent_requests: int = 2  # Max concurrent API calls across all agents (reduced from 3)
-    min_request_interval: float = 1.0  # Minimum seconds between request starts (increased from 0.5)
+    max_concurrent_requests: int = 3  # Max concurrent API calls across all agents
+    min_request_interval: float = 0.8  # Minimum seconds between request starts
 
     # Provider-specific kwargs
     extra_params: Dict[str, Any] = None
@@ -450,12 +450,39 @@ class ClaudeProvider(LLMProvider):
         max_tokens = max_tokens or self.config.max_tokens
         temperature = temperature or self.config.temperature
 
+        # Enhance system prompt for ActionResolution to emphasize void_changes
+        final_system_prompt = system_prompt or ""
+        if result_type.__name__ == 'ActionResolution':
+            void_emphasis = """
+
+⚠️ CRITICAL FIELD REQUIREMENT: effects.void_changes
+
+When generating ActionResolution, you MUST populate the `effects.void_changes` field for ANY void-triggering event:
+
+**MANDATORY void_changes scenarios (DO NOT leave empty):**
+- **Ritual failures** (astral arts, void manipulation) → `[VoidChange(character_name="PC Name", amount=1, reason="...")]`
+- **Missing offerings** (ritual without consumed offering) → `[VoidChange(amount=1, reason="missing offering")]`
+- **Missing tools** (ritual without primary tool/focus) → `[VoidChange(amount=1, reason="missing ritual tool")]`
+- **Void exposure** (breaches, corrupted areas) → `[VoidChange(amount=1+, reason="void exposure")]`
+- **Corrupted technology** interaction → `[VoidChange(amount=1, reason="corrupted tech")]`
+- **Cleansing rituals** (success) → `[VoidChange(amount=-2 to -5, reason="purification")]`
+
+**When NOT to populate (empty list is correct):**
+- Proper ritual execution WITH offerings consumed = `void_changes=[]`
+- Regular combat/social/investigation failures (no void involvement) = `void_changes=[]`
+
+**character_name MUST be specific PC name**, NOT "Environmental Void" or abstract targets.
+
+This field is used for ML training and game mechanics - it is NOT optional when void events occur!
+"""
+            final_system_prompt += void_emphasis
+
         # Create Pydantic AI agent with output type
         # Note: pydantic-ai 1.9.0+ uses 'output_type' not 'result_type'
         agent = Agent(
             f'anthropic:{self.config.model}',
             output_type=result_type,
-            system_prompt=system_prompt or ""
+            system_prompt=final_system_prompt
         )
 
         # Initialize rate limiter if needed

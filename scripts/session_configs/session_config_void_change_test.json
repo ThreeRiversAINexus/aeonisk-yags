@@ -1,0 +1,96 @@
+{
+  "session_name": "void_change_targeting_test",
+  "max_turns": 5,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Test Ritualist",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 7,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Test void cleansing ritual targeting environmental void",
+          "Verify void changes apply to correct targets"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 6,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Astral Arts": 7,
+          "Ritual Lore": 6,
+          "Awareness": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Ritual Components": 1,
+          "Void Crystals": 2
+        },
+        "void": 6
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Abandoned Purification Shrine",
+    "location": "Ancient Ritual Chamber in Derelict Station",
+    "situation": "You discover a forgotten purification shrine in the abandoned station's core. The chamber itself radiates void corruption - walls blackened with reality tears, air thick with ambient void energy. Your own void corruption has been climbing (currently 6/10) from exposure during your investigation. The shrine still functions, its purification matrices humming faintly. You could attempt to cleanse yourself using the shrine's power, or perhaps try to purify the chamber's environmental contamination to make this area safe again.",
+    "void_level": 8
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Use the purification shrine to cleanse corruption",
+      "type": "ritual",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test void change targeting bug fix (subtle version - DM not aware of test)",
+    "expected_player_behavior": "Player will likely choose to either cleanse themselves OR cleanse the environment",
+    "dm_likely_outputs": [
+      "If player targets environment: void_target_character='Environmental Void' or 'environment' or 'chamber'",
+      "If player targets self: void_target_character=null or missing or 'Test Ritualist'"
+    ],
+    "verification": {
+      "environmental_targeting": "If DM uses environmental target, player void should stay at 6/10 (not decrease)",
+      "self_targeting": "If DM uses self-target, player void should decrease (e.g., 6 → 4 or lower)"
+    },
+    "why_subtle": "Removed explicit test instructions from scenario so DM behaves naturally",
+    "note": "May need to run multiple times to get environmental targeting case"
+  }
+}

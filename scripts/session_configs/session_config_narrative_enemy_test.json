@@ -1,0 +1,94 @@
+{
+  "session_name": "narrative_enemy_targeting_test",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": true,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "_comment": "tactical_module_enabled=false means enemies are NARRATIVE ONLY (no tgt_xxx IDs)",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Test Striker",
+        "pronouns": "she/her",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Test combat against narrative enemies",
+          "Verify stunning attacks don't self-apply"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Brawl": 4,
+          "Melee": 4,
+          "Awareness": 3
+        },
+        "equipped_weapons": {
+          "primary": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "shock_baton": 1,
+          "combat_knife": 1
+        }
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Narrative Enemy Test - Back Alley Confrontation",
+    "location": "Dark Back Alley, Arcadia Undercity",
+    "situation": "Two street thugs block your path, demanding payment for passage. You draw your shock baton, which can stun enemies with a good hit. [SPAWN_ENEMY: Street Thug Alpha | grunt | 1 | Near-Enemy | aggressive_melee] [SPAWN_ENEMY: Street Thug Beta | grunt | 1 | Near-Enemy | aggressive_melee] Since this is narrative-only combat (tactical_module_enabled=false), focus on descriptive combat. DM: When the player hits, include 'Stunned' or 'Dazed' conditions in the structured output. The action will have NO target field (or target=null), testing the edge case.",
+    "void_level": 1
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Stun enemies without stunning yourself (narrative combat mode)",
+      "type": "combat",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test status effect targeting with NARRATIVE-ONLY enemies (no tactical IDs)",
+    "key_difference": "tactical_module_enabled=false means NO tgt_xxx IDs at all",
+    "expected_behavior": "Player attacks thugs → Thugs get Stunned → Player does NOT get Stunned",
+    "bug_behavior": "Player attacks → Player gets Stunned (because action has no target field)",
+    "verification": "grep 'Condition (Test Striker): Stunned' output.jsonl should return NOTHING",
+    "what_this_tests": "The case where action.get('target') returns None (not the string 'None')",
+    "edge_case": "DM may not populate target field at all in narrative mode"
+  }
+}

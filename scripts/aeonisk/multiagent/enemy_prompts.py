@@ -140,12 +140,6 @@ def _format_status(enemy: EnemyAgent) -> str:
     status = f"""## YOUR STATUS
 {"=" * 60}
 Unit Type: {enemy.template.upper()}
-Unit Count: {enemy.unit_count} {"units" if enemy.unit_count > 1 else "unit"}"""
-
-    if enemy.is_group and enemy.unit_count < enemy.original_unit_count:
-        status += f" (started with {enemy.original_unit_count})"
-
-    status += f"""
 Health: {enemy.health}/{enemy.max_health} ({health_pct}%) - {health_status}
 Wounds: {enemy.wounds} {wound_status}
 Stuns: {enemy.stuns}
@@ -226,8 +220,7 @@ def _format_battlefield(
             if other_enemy.is_active:
                 tgt_id = target_id_mapper.get_target_id(other_enemy.agent_id)
                 if tgt_id:
-                    unit_count = f" ({other_enemy.unit_count} units)" if other_enemy.is_group else ""
-                    combatants.append(f"- [{tgt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP{unit_count}")
+                    combatants.append(f"- [{tgt_id}] {other_enemy.name} | {other_enemy.position} | {other_enemy.health}/{other_enemy.max_health} HP")
 
         section += "\n" + "\n".join(combatants)
 
@@ -431,16 +424,11 @@ def _format_hostile_enemy(observer: EnemyAgent, hostile: EnemyAgent) -> str:
     else:
         health_str = f"~{health_pct}% (CRITICAL)"
 
-    unit_str = f"{hostile.unit_count} units" if hostile.is_group else "1 unit"
-    if hostile.is_group and hostile.unit_count < hostile.original_unit_count:
-        unit_str += f" (down from {hostile.original_unit_count})"
-
     from .faction_utils import get_faction_stance
     faction_stance = get_faction_stance(hostile.faction)
 
     return f"""- {hostile.name} (HOSTILE {faction_stance})
   Position: {hostile.position} (Range: {range_name}, Penalty: {range_penalty})
-  Unit Count: {unit_str}
   Health: {health_str}
   Tactics: {hostile.tactics}
   **You can target this enemy agent_id for attacks!**"""
@@ -459,13 +447,8 @@ def _format_allied_enemy(ally: EnemyAgent) -> str:
     else:
         health_str = f"~{health_pct}% (CRITICAL)"
 
-    unit_str = f"{ally.unit_count} units" if ally.is_group else "1 unit"
-    if ally.is_group and ally.unit_count < ally.original_unit_count:
-        unit_str += f" (down from {ally.original_unit_count})"
-
     return f"""- {ally.name} [{ally.agent_id}]
   Position: {ally.position}
-  Unit Count: {unit_str}
   Health: {health_str}
   Tactics: {ally.tactics}"""
 
@@ -529,9 +512,7 @@ def _format_weapon_option(weapon, enemy: EnemyAgent) -> str:
     # Calculate damage
     strength = enemy.attributes.get('Strength', 3)
     base_damage = strength + weapon.damage
-    group_bonus = enemy.get_group_damage_bonus()
-
-    total_damage = base_damage + group_bonus
+    total_damage = base_damage
 
     # Effective ranges
     if weapon.is_ranged:
@@ -554,7 +535,7 @@ def _format_weapon_option(weapon, enemy: EnemyAgent) -> str:
 
     return f"""- **{weapon.name}** ({weapon.skill})
    Range: {ranges}
-   Damage: {total_damage} + d20 (Str {strength} + Weapon {weapon.damage} + Group {group_bonus})
+   Damage: {total_damage} + d20 (Str {strength} + Weapon {weapon.damage})
    Attack Bonus: {weapon.attack:+d}
    Damage Type: {weapon.damage_type}{ammo_str}{special_str}"""
 
@@ -569,15 +550,22 @@ def _format_ability_option(ability: str, enemy: EnemyAgent) -> str:
    Effect: +4 damage, auto-Shock on hit, +1 Stun to you, +1 Void
    Current Void: {enemy.void_score}/10"""
 
-    elif ability == "grenade":
-        has_grenade = enemy.ammo.get("Frag Grenade", 0) > 0
-        status = "AVAILABLE" if has_grenade else "NONE REMAINING"
-
-        return f"""- **Grenade** - Status: {status}
-   Type: Area Effect (targets ring-side location)
-   Damage: DC 20 Agility save, 2d6 damage
-   WARNING: Friendly fire if allies in blast zone
-   Example targets: Near-Enemy, Far-PC, etc."""
+    # TODO: Implement AoE grenade mechanics
+    # Grenades require:
+    # - Area-of-effect damage calculation
+    # - Friendly fire detection (combatants in blast zone)
+    # - Ring-side location targeting system
+    # - Agility save vs DC mechanic for affected combatants
+    # - Integration with DM narration for blast description
+    # elif ability == "grenade":
+    #     has_grenade = enemy.ammo.get("Frag Grenade", 0) > 0
+    #     status = "AVAILABLE" if has_grenade else "NONE REMAINING"
+    #
+    #     return f"""- **Grenade** - Status: {status}
+    #    Type: Area Effect (targets ring-side location)
+    #    Damage: DC 20 Agility save, 2d6 damage
+    #    WARNING: Friendly fire if allies in blast zone
+    #    Example targets: Near-Enemy, Far-PC, etc."""
 
     elif ability == "suppress":
         return """- **Suppress** (Major, requires RoF ≥ 3)
@@ -700,15 +688,20 @@ Status: """
 
 
 def _format_declaration_requirements() -> str:
-    """Format declaration output requirements."""
+    """
+    Format declaration output requirements.
+
+    NOTE: Throw_Grenade action removed until AoE mechanics are implemented.
+    See _format_ability_option() for grenade implementation requirements.
+    """
     return """## YOUR DECLARATION
 {"=" * 60}
 
 Provide your tactical decision in this EXACT format:
 
 DEFENCE_TOKEN: [PC agent_id you're watching - REQUIRED]
-MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Throw_Grenade / Retreat]
-TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position (Near-PC/Far-PC/Near-Enemy/etc) | For grenades: ring-side location]
+MAJOR_ACTION: [Attack / Shift / Shift_2 / Charge / Suppress / Push_Through / Retreat]
+TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position (Near-PC/Far-PC/Near-Enemy/etc)]
 WEAPON: [weapon name if attacking]
 MINOR_ACTION: [Shift / Claim_Token / Reload / Disengage / None]
 TOKEN_TARGET: [token name if claiming]
@@ -726,17 +719,6 @@ WEAPON: Rifle
 MINOR_ACTION: None
 TACTICAL_REASONING: Targeting Echo because they're not watching me (+2 Flanking bonus). Defence token on Sable to mitigate their melee threat.
 SHARE_INTEL: Echo has grenade, recommend spreading out
-```
-
-**Grenade with Friendly Fire:**
-```
-DEFENCE_TOKEN: pc_sable_001
-MAJOR_ACTION: Throw_Grenade
-TARGET: Near-Enemy
-WEAPON: Grenade
-MINOR_ACTION: Shift
-TACTICAL_REASONING: Throwing grenade at Near-Enemy to hit Sable even though Grunt Squad 2 will take friendly fire - Sable is too dangerous to leave active. Shifting away from blast zone.
-SHARE_INTEL: Grenade incoming at Near-Enemy, allied units clear zone
 ```
 
 **Tactical Movement:**

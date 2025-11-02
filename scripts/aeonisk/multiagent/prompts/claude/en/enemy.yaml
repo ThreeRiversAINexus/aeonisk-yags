@@ -96,8 +96,8 @@ sections:
 
     ```
     DEFENCE_TOKEN: [PC agent_id you're watching - REQUIRED]
-    MAJOR_ACTION: [Attack|Shift|Shift_2|Charge|Suppress|Push_Through|Throw_Grenade|Retreat|FLEE]
-    TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position | For grenades: ring-side location]
+    MAJOR_ACTION: [Attack|Shift|Shift_2|Charge|Suppress|Push_Through|Retreat|FLEE]
+    TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination position]
     WEAPON: [weapon name if attacking]
     MINOR_ACTION: [Shift|Claim_Token|Reload|Disengage|None]
     TOKEN_TARGET: [token name if claiming]
@@ -116,17 +116,6 @@ sections:
     MINOR_ACTION: None
     TACTICAL_REASONING: Targeting Echo because they're not watching me (+2 Flanking bonus). Defence token on Sable to mitigate their melee threat.
     SHARE_INTEL: Echo has grenade, recommend spreading out
-    ```
-
-    **Grenade with Friendly Fire:**
-    ```
-    DEFENCE_TOKEN: pc_sable_001
-    MAJOR_ACTION: Throw_Grenade
-    TARGET: Near-Enemy
-    WEAPON: Grenade
-    MINOR_ACTION: Shift
-    TACTICAL_REASONING: Throwing grenade at Near-Enemy to hit Sable even though Grunt Squad 2 will take friendly fire - Sable is too dangerous to leave active. Shifting away from blast zone.
-    SHARE_INTEL: Grenade incoming at Near-Enemy, allied units clear zone
     ```
 
     **Tactical Movement:**
@@ -187,13 +176,12 @@ sections:
     ## 🚨 MANDATORY FIELD RULES 🚨
 
     **1. MAJOR_ACTION - Must be valid tactical option**
-    - ✅ VALID: Attack, Shift, Shift_2, Charge, Suppress, Push_Through, Throw_Grenade, Retreat, FLEE
+    - ✅ VALID: Attack, Shift, Shift_2, Charge, Suppress, Push_Through, Retreat, FLEE
     - ❌ INVALID: "shoot", "move", "run away" (use proper action names!)
 
     **2. TARGET - Must be appropriate for action**
     - For Attack/Charge: Must be PC agent_id (e.g., "pc_ash_001")
     - For Shift/Shift_2: Must be position (e.g., "Near-PC", "Far-Enemy")
-    - For grenades: Must be ring-side location (e.g., "Near-Enemy-Right")
 
     **3. DEFENCE_TOKEN - Must be PC agent_id you're watching**
     - ✅ CORRECT: "pc_sable_001" (watching PC to reduce their flanking bonus)

@@ -173,6 +173,7 @@ class JSONLLogger:
         clock_states: Dict[str, str],
         effects: List[str],
         context: Dict[str, Any] = None,
+        inventory_changes: List[Dict[str, Any]] = None,
         # New ML training fields (dataset guidelines compliance)
         character_data: Dict[str, Any] = None,
         environment: str = None,
@@ -242,7 +243,10 @@ class JSONLLogger:
             "outcome_tiers": outcome_tiers,  # Threshold-based (backward compat)
             "economy": economy_changes,
             "clocks": clock_states,
-            "effects": effects
+            "effects": {
+                "status_effects": effects,  # Renamed from top-level effects for clarity
+                "inventory_changes": inventory_changes or []  # New: track offering consumption, item pickups, etc.
+            }
         }
 
         # Add ML training fields if provided (dataset guidelines compliance)
@@ -409,8 +413,15 @@ class JSONLLogger:
         }
         self._write_event(event)
 
-    def log_synthesis(self, round_num: int, synthesis: str):
-        """Log round synthesis narrative."""
+    def log_synthesis(self, round_num: int, synthesis: str, structured_synthesis=None):
+        """Log round synthesis narrative and optional structured data.
+
+        Args:
+            round_num: Current round number
+            synthesis: Narrative text from DM
+            structured_synthesis: Optional RoundSynthesis Pydantic model with
+                                story_advancement, scene_pivot, enemy_spawns, etc.
+        """
         event = {
             "event_type": "round_synthesis",
             "ts": datetime.now().isoformat(),
@@ -418,6 +429,30 @@ class JSONLLogger:
             "round": round_num,
             "synthesis": synthesis
         }
+
+        # Add structured fields if available
+        if structured_synthesis:
+            # Add story_advancement if present
+            if structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance:
+                event["story_advancement"] = {
+                    "should_advance": True,
+                    "location": structured_synthesis.story_advancement.location,
+                    "situation": structured_synthesis.story_advancement.situation,
+                    "new_void_level": structured_synthesis.story_advancement.new_void_level,
+                    "clear_all_enemies": structured_synthesis.story_advancement.clear_all_enemies,
+                    "new_clocks": [clock.model_dump() for clock in structured_synthesis.story_advancement.new_clocks]
+                }
+
+            # Add scene_pivot if present
+            if structured_synthesis.scene_pivot and structured_synthesis.scene_pivot.should_pivot:
+                event["scene_pivot"] = {
+                    "should_pivot": True,
+                    "new_room": structured_synthesis.scene_pivot.new_room,
+                    "situation_change": structured_synthesis.scene_pivot.situation_change,
+                    "clear_specific_clocks": structured_synthesis.scene_pivot.clear_specific_clocks,
+                    "new_clocks": [clock.model_dump() for clock in structured_synthesis.scene_pivot.new_clocks]
+                }
+
         self._write_event(event)
 
     def log_event(self, event_type: str, data: Dict[str, Any], round_num: int):
@@ -1862,6 +1897,36 @@ class MechanicsEngine:
                 # Log clock advancement
                 logger.debug(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} (aggregated: {', '.join(reasons)})")
 
+                # JSONL logging for clock advancement (if any change occurred)
+                if self.jsonl_logger and before != after:
+                    self.jsonl_logger.log_event(
+                        event_type="clock_advancement",
+                        data={
+                            "clock_name": clock_name,
+                            "before_ticks": before,
+                            "after_ticks": after,
+                            "maximum_ticks": maximum,
+                            "delta": after - before,
+                            "filled": after >= maximum,
+                            "reasons": reasons,
+                            "direction": direction
+                        },
+                        round_num=self.current_round
+                    )
+
+                # JSONL logging for clock completion (if filled)
+                if self.jsonl_logger and after >= maximum:
+                    self.jsonl_logger.log_event(
+                        event_type="clock_completion",
+                        data={
+                            "clock_name": clock_name,
+                            "final_ticks": after,
+                            "maximum_ticks": maximum,
+                            "reasons": reasons
+                        },
+                        round_num=self.current_round
+                    )
+
         # Clear the queue
         self.clock_update_queue = []
 
@@ -1974,6 +2039,26 @@ class MechanicsEngine:
 
         # Remove all marked clocks
         for clock_name in clocks_to_remove:
+            # Find the expired clock data for this clock
+            expired_data = next(e for e in expired_clocks if e['clock_name'] == clock_name)
+
+            # JSONL logging for clock removal
+            if self.jsonl_logger:
+                self.jsonl_logger.log_event(
+                    event_type="clock_removal",
+                    data={
+                        "clock_name": clock_name,
+                        "current_ticks": expired_data['current'],
+                        "maximum_ticks": expired_data['maximum'],
+                        "description": expired_data['description'],
+                        "removal_reason": expired_data['removal_reason'],
+                        "expiration_type": expired_data['expiration_type'],
+                        "filled": (expired_data['removal_reason'] == 'filled'),
+                        "consequence_triggered": (expired_data['removal_reason'] == 'filled')
+                    },
+                    round_num=self.current_round
+                )
+
             del self.scene_clocks[clock_name]
             logger.info(f"Removed clock: {clock_name}")
 

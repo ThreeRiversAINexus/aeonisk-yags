@@ -1572,6 +1572,7 @@ IMPORTANT:
                 state_changes = resolution.get('state_changes', {})
                 clock_deltas = resolution.get('clock_deltas', [])
                 combat_data = resolution.get('combat_data', {})
+                inventory_changes = resolution.get('inventory_changes', [])
 
                 if action_resolution:
                     # Build economy changes dict with void and soulcredit deltas
@@ -1620,7 +1621,8 @@ IMPORTANT:
                         context['ritual'] = True
                         # Extract ritual details from action
                         context['altar'] = action.get('has_altar', False)
-                        context['offering'] = action.get('has_offering', False)
+                        context['offering'] = action.get('offering_consumed', False)  # Use actual consumption result
+                        context['offering_item'] = action.get('offering_item')  # Which item was consumed
                         context['echo_calibrator'] = action.get('has_echo_calibrator', False)
 
                     # Add combat triplet if present
@@ -1667,6 +1669,7 @@ IMPORTANT:
                         clock_states=clock_states,
                         effects=effects,
                         context=context,
+                        inventory_changes=inventory_changes,  # Pass offering consumption tracking
                         # ML training fields (dataset guidelines compliance)
                         character_data=character_data,
                         environment=environment,
@@ -2020,33 +2023,46 @@ IMPORTANT:
         if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
-**SPAWN ENEMIES - CLOCK FILLS ONLY:**
-⚠️  **CRITICAL RESTRICTION**: You may ONLY spawn enemies when a clock with [SPAWN_ENEMY: ...] in its filled_consequence actually fills!
+**ENEMY SPAWNING (Structured Output):**
 
-❌ **FORBIDDEN**: Do NOT spawn enemies in general narration
-❌ **FORBIDDEN**: Do NOT add [SPAWN_ENEMY: ...] to dramatic descriptions
-❌ **FORBIDDEN**: Do NOT spawn "because it feels dramatic"
+You can spawn enemies using the `enemy_spawns` field in RoundSynthesis. Spawn enemies when narratively appropriate:
 
-✅ **ALLOWED**: ONLY when you see "🎯 When filled: [SPAWN_ENEMY: ...]" in the clock list above
+✅ **Common spawn triggers:**
+- Clock with spawn consequence fills (e.g., "Security Alarms" → guards respond)
+- Void corruption spreads → void creatures emerge
+- Investigation reveals threats → ambush/reinforcements
+- Story escalation → enemies join the fight
+- Environmental events → creatures/guards appear
 
-Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
-Example from filled clock: [SPAWN_ENEMY: Security Team | grunt | 2 | Far-Enemy | tactical_ranged]
+**How to spawn:**
+Use the `enemy_spawns` field in your RoundSynthesis response. Each EnemySpawn needs:
+- `template`: "Grunt", "Elite", or "Boss" (determines HP/stats)
+- `faction`: Who they work for (e.g., "ACG Security", "Void Cultists")
+- `archetype`: Their role (e.g., "Enforcer", "Ritualist", "Heavy Gunner")
+- `count`: How many (1-5)
+- `spawn_reason`: Why they appeared (10+ chars, e.g., "Reinforcements arrive via transit tunnel")
+- `initial_position`: Where they start (FAR_ENEMY, NEAR_ENEMY, etc.)
+- `custom_traits` (optional): Special tactics/behavior
 
-Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
-Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
-Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
+**Example:**
+```python
+enemy_spawns=[
+    EnemySpawn(
+        template="Grunt",
+        faction="ACG Security",
+        archetype="Enforcer",
+        count=2,
+        spawn_reason="Alarm triggered, security team responds",
+        initial_position=Position.FAR_ENEMY,
+        custom_traits="tactical_ranged"
+    )
+]
+```
 
-**WHY THIS RESTRICTION**: Mid-round spawns bypass clock-based pacing and overwhelm players. Spawns must be predictable and tied to clock advancement.
+**Templates:** Grunt (~12 HP), Elite (~20 HP), Boss (~40 HP)
+**Positions:** FAR_ENEMY, NEAR_ENEMY, ENGAGED, EXTREME_ENEMY
 
-**DESPAWN ENEMIES - AUTOMATIC MECHANIC:**
-When a clock with [DESPAWN_ENEMY: ...] in its filled_consequence fills, that enemy is automatically removed from combat.
-
-Syntax: [DESPAWN_ENEMY: enemy_name | reason]
-Example from filled clock: [DESPAWN_ENEMY: Freeborn Pirates | escaped]
-
-Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
-
-**IMPORTANT**: You still narrate the escape/withdrawal, but the [DESPAWN_ENEMY: ...] marker is already in the clock's filled_consequence. Just copy the consequence text including the marker when you describe what happens."""
+**Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism."""
 
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
@@ -2054,41 +2070,49 @@ Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
             logger.info("Story advancement triggered - adding prompt context")
             story_advancement_prompt = """
 
-🎬 **STORY ADVANCEMENT REQUIRED - ALL CLOCKS COMPLETE**
+🎬 **STORY ADVANCEMENT - MAJOR NARRATIVE SHIFT**
 
-⚠️  **CRITICAL**: All scenario clocks have been resolved! The current situation has concluded.
+⚠️  **Scenario clocks are complete or a major story beat has occurred.** Time to advance the narrative!
 
-**YOU MUST** use the [ADVANCE_STORY: location | situation] marker to move the narrative forward:
+**Use the `story_advancement` field in RoundSynthesis:**
 
-**Format:** [ADVANCE_STORY: New Location | New Situation Description]
+Set `should_advance=True` and provide:
+- `location`: New location name (e.g., "Rebel Safe House", "Void Nexus Archive")
+- `situation`: Brief description of the new scenario (e.g., "You've escaped the ambush. Time to regroup.")
+- `new_void_level` (optional): Update if environmental void changes (0-10)
+- `clear_all_enemies`: Usually True (default) - enemies don't follow to new location
+- `new_clocks`: List of 2-4 NewClock objects for the fresh scenario
 
-**Examples:**
-- [ADVANCE_STORY: Rebel Safe House | You've escaped the ambush. Time to regroup and plan your next move]
-- [ADVANCE_STORY: The Void Nexus | The corruption has spread. You must investigate the source]
-- [ADVANCE_STORY: Corporate Trading Hub | With intel gathered, you head to sell information and resupply]
+**Example:**
+```python
+story_advancement=StoryAdvancement(
+    should_advance=True,
+    location="Abandoned Transit Hub",
+    situation="The security alarms have brought you here. You must find an escape route before reinforcements arrive.",
+    new_void_level=4,
+    clear_all_enemies=True,
+    new_clocks=[
+        NewClock(
+            name="Escape Route",
+            max_ticks=6,
+            description="Find a working transit tunnel before lockdown completes"
+        ),
+        NewClock(
+            name="Security Response",
+            max_ticks=8,
+            description="Heavy ACG forces converge on your position"
+        )
+    ]
+)
+```
 
-**What happens when you use [ADVANCE_STORY: ...]:**
-1. All remaining clocks are cleared
-2. Players are notified of the new location and situation
-3. A fresh scenario with new clocks will be generated for the next round
+**When to advance:**
+- All clocks complete (current trigger)
+- Major story beat completes (investigation reveals villain identity, ritual completed, etc.)
+- Critical single clock fills that changes everything
+- Players achieve/fail primary objective
 
-**After the [ADVANCE_STORY: ...] marker, you MUST create 2-3 new clocks using [NEW_CLOCK: ...] markers:**
-
-**Format:** [NEW_CLOCK: Clock Name | Max Ticks | Description]
-
-**Examples:**
-- [NEW_CLOCK: Security Override | 6 | Bypass the archive's automated defenses]
-- [NEW_CLOCK: Void Spread | 6 | The archive's corruption grows stronger]
-- [NEW_CLOCK: Data Decay | 4 | Critical information is being lost]
-
-**CRITICAL:** You must include BOTH markers:
-1. [ADVANCE_STORY: location | situation] - Moves to new location
-2. [NEW_CLOCK: name | max | desc] - Creates new objectives (2-3 clocks)
-
-Without [NEW_CLOCK:...] markers, the new scenario will have NO objectives and the session will stall!
-
-⚠️  **DO NOT** write clock names in prose - use the [NEW_CLOCK:...] marker format!
-⚠️  **DO NOT** continue in the current location with no clocks - the story will stall!
+**What happens:** Clocks clear, location updates, enemies despawn (unless `clear_all_enemies=False`), new clocks spawn.
 """
 
         # Use LLM to generate synthesis if available
@@ -2252,6 +2276,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 is_inter_party=is_inter_party
             )
 
+            # MECHANICS-FIRST: Consume offering BEFORE DM narration (if ritual with offering)
+            offering_consumed = False
+            consumed_item = None
+            inventory_changes = []
+
+            if action.get('has_offering', False) and is_ritual_action:
+                character_state = self.shared_state.get_agent_state(player_id)
+                if character_state:
+                    offering_type = action.get('offering_type')  # Optional specific item
+                    consumed_item = mechanics.consume_offering(character_state, offering_type)
+
+                    if consumed_item:
+                        offering_consumed = True
+                        inventory_changes.append({
+                            "item": consumed_item,
+                            "delta": -1,
+                            "reason": "Consumed as ritual offering"
+                        })
+                        logger.info(f"Offering consumed BEFORE narration: {consumed_item} from {character_name}")
+                    else:
+                        logger.warning(f"Player declared offering but none available for {character_name} - mechanics will apply +1 void penalty")
+
+            # Pass consumption result to action context for DM narration
+            action['offering_consumed'] = offering_consumed
+            action['offering_item'] = consumed_item
+
             # Perform resolution (apply coordination bonus via modifiers)
             modifiers = {}
             if coordination_bonus > 0:
@@ -2309,6 +2359,18 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
+
+                # Validate void changes were populated when narration contains void markers
+                narration_text = llm_narration if self.llm_config else resolution.narrative
+                has_void_in_narrative = '⚫ Void' in narration_text or 'Void (' in narration_text
+
+                if state_changes['void_change'] == 0 and has_void_in_narrative:
+                    logger.warning(
+                        f"STRUCTURED OUTPUT FAILURE: LLM put void changes in narrative text instead of "
+                        f"populating effects.void_changes field for {action.get('agent')} action. "
+                        f"Void changes will NOT be applied. This indicates prompt guidance is being ignored."
+                    )
+                    # TODO: Log to JSONL as structured_output_warning event for ML analysis
             else:
                 # Legacy text parsing
                 state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
@@ -2337,7 +2399,19 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 #
                 # Legacy fallback code removed - structured output from PydanticAI is now authoritative.
                 # The DM must explicitly populate damage/conditions/void via the Pydantic schema.
-                pass  # Fallback disabled
+
+                # Extract damage from structured output if available
+                if not effect and state_changes.get('damage_effects'):
+                    # Use first damage effect (single-target for now)
+                    # Multi-target damage would require schema change or multiple resolutions
+                    damage_data = state_changes['damage_effects'][0]
+                    effect = {
+                        'type': 'damage',
+                        'target': damage_data['target'],
+                        'final': damage_data['dealt'],
+                        'source': 'structured_output'
+                    }
+                    logger.debug(f"Extracted damage from structured output: {damage_data['dealt']} to {damage_data['target']}")
 
             # Apply effect to enemy if we have one
             if effect and self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -2771,8 +2845,15 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Check if void change targets a different character (collaborative cleansing)
                 target_identifier = state_changes.get('void_target_character')
+                should_apply_void_change = True  # Flag to control whether to apply the void change
+                void_state = None
+                target_name = None
+
                 if target_identifier:
                     # Resolve target - could be target ID (tgt_xxxx) or character name
+                    # NOTE: Relies on Pydantic schema validation to reject environmental keywords
+                    # Schema validator prevents: "Environmental Void", "environment", "area", etc.
+                    # Unresolvable names (environmental or typos) naturally skip via name resolution failure
                     target_player_id = None
                     target_character_name = None
 
@@ -2807,42 +2888,44 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         target_name = target_character_name
                         logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
                     else:
-                        # Couldn't find target, fall back to acting character
-                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, applying to actor")
-                        void_state = mechanics.get_void_state(player_id)
-                        target_name = action.get('character', player_id)
+                        # Couldn't find target - skip instead of falling back to actor
+                        # This handles environmental targets, typos, and non-existent characters
+                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
+                        should_apply_void_change = False
                 else:
-                    # Default: apply to acting character
+                    # Default: apply to acting character (self-inflicted void)
                     void_state = mechanics.get_void_state(player_id)
                     target_name = action.get('character', player_id)
 
-                old_void = void_state.score
+                # Only apply void change if we have a valid target
+                if should_apply_void_change and void_state:
+                    old_void = void_state.score
 
-                if state_changes['void_change'] > 0:
-                    # Void gain (corruption increasing)
-                    action_id = f"{player_id}_{intent}_{resolution.total}"
-                    void_state.add_void(
-                        state_changes['void_change'],
-                        ", ".join(state_changes['void_reasons']),
-                        action_id=action_id
-                    )
-                    # Show void increase if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
-                else:
-                    # Void reduction (recovery moves)
-                    void_state.reduce_void(
-                        abs(state_changes['void_change']),
-                        ", ".join(state_changes['void_reasons'])
-                    )
-                    # Show void decrease if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    if state_changes['void_change'] > 0:
+                        # Void gain (corruption increasing)
+                        action_id = f"{player_id}_{intent}_{resolution.total}"
+                        void_state.add_void(
+                            state_changes['void_change'],
+                            ", ".join(state_changes['void_reasons']),
+                            action_id=action_id
+                        )
+                        # Show void increase if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    else:
+                        # Void reduction (recovery moves)
+                        void_state.reduce_void(
+                            abs(state_changes['void_change']),
+                            ", ".join(state_changes['void_reasons'])
+                        )
+                        # Show void decrease if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
-                # Check for Eye of Breach appearance on high void
-                eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
-                if eye_of_breach_event:
-                    narration += f"\n\n{eye_of_breach_event}"
+                    # Check for Eye of Breach appearance on high void
+                    eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
+                    if eye_of_breach_event:
+                        narration += f"\n\n{eye_of_breach_event}"
 
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             # Always show soulcredit line (even if +0) for consistency, UNLESS DM already included one
@@ -2880,9 +2963,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id = action.get('target')  # Could be tgt_xxxx or character name
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
+                should_apply_condition = True  # Flag to control whether to apply
 
-                # If action has a target, apply condition to target instead of actor
-                if target_id and target_id != 'None':
+                # Handle different targeting scenarios
+                if target_id == 'None' or target_id is None or not target_id:
+                    # Special case: target="None" (string), None (null), or missing/empty
+                    # These all mean: no specific target (area attack or narrative-only combat)
+                    # Only apply self-buffs (positive penalty) to actor
+                    # Skip debuffs (negative penalty) - they would need a real target
+                    if condition.penalty < 0:
+                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
+                        should_apply_condition = False
+                    else:
+                        # Positive penalty = buff, apply to actor (self-buff)
+                        logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
+
+                else:
+                    # Action has an explicit target - apply condition to that target
                     logger.debug(f"Condition '{condition.name}' has target: {target_id}")
 
                     # Resolve target ID to agent_id
@@ -2899,7 +2998,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, applying to actor")
+                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
                         condition_target_name = target_id
@@ -2913,11 +3013,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                         logger.debug(f"Matched condition target '{target_id}' → '{char_name}' (agent_id: {condition_target_id})")
                                         break
 
-                # Apply condition to the determined target
-                mechanics.add_condition(condition_target_id, condition)
-
-                # Show condition application (with target name)
-                narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                # Apply condition only if flag is True
+                if should_apply_condition:
+                    mechanics.add_condition(condition_target_id, condition)
+                    # Show condition application (with target name)
+                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement)
             if state_changes.get('position_change'):
@@ -2943,6 +3043,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
             'narration': narration,
             'state_changes': state_changes,  # Include state_changes for logging
             'combat_data': combat_data,  # Include combat triplet if present
+            'inventory_changes': inventory_changes,  # Include offering consumption tracking
             'outcome': {
                 'dm_response': narration,
                 'success': resolution.success if resolution else True,
@@ -3023,6 +3124,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 is_multi_stage=action.get('is_multi_stage', False)
             )
 
+            # MECHANICS-FIRST: Consume offering BEFORE DM narration (if ritual with offering)
+            offering_consumed = False
+            consumed_item = None
+            inventory_changes = []
+
+            if action.get('has_offering', False) and is_ritual_action:
+                character_state = self.shared_state.get_agent_state(action.get('agent_id'))
+                if character_state:
+                    offering_type = action.get('offering_type')  # Optional specific item
+                    consumed_item = mechanics.consume_offering(character_state, offering_type)
+
+                    if consumed_item:
+                        offering_consumed = True
+                        inventory_changes.append({
+                            "item": consumed_item,
+                            "delta": -1,
+                            "reason": "Consumed as ritual offering"
+                        })
+                        logger.info(f"Offering consumed BEFORE narration: {consumed_item} from {action.get('character_name')}")
+                    else:
+                        logger.warning(f"Player declared offering but none available for {action.get('character_name')} - mechanics will apply +1 void penalty")
+
+            # Pass consumption result to action context for DM narration
+            action['offering_consumed'] = offering_consumed
+            action['offering_item'] = consumed_item
+
             # CRITICAL: Re-validate ritual mechanics at DM resolution time
             # (Player may have sent corrected values, but we enforce anyway)
             from .skill_mapping import validate_ritual_mechanics, RITUAL_ATTRIBUTE, RITUAL_SKILL
@@ -3039,14 +3166,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Resolve mechanically
             if action.get('is_ritual', False):
-                # Ritual resolution
+                # Ritual resolution (use actual consumption result, not player declaration)
                 resolution, ritual_effects = mechanics.resolve_ritual(
                     intent=intent,
                     willpower=attribute_value if attribute == 'Willpower' else 3,
                     astral_arts=skill_value if skill == 'Astral Arts' else 0,
                     difficulty=difficulty,
                     has_primary_tool=action.get('has_primary_tool', False),
-                    has_offering=action.get('has_offering', False),
+                    has_offering=offering_consumed,  # Use actual consumption result
                     sanctified_altar=action.get('at_altar', False),
                     agent_id=player_id,
                     faction=action.get('faction', None)
@@ -3109,6 +3236,17 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug("Using structured resolution for state changes extraction")
+
+                # Validate void changes were populated when narration contains void markers
+                has_void_in_narrative = '⚫ Void' in llm_narration or 'Void (' in llm_narration
+
+                if state_changes['void_change'] == 0 and has_void_in_narrative:
+                    logger.warning(
+                        f"STRUCTURED OUTPUT FAILURE: LLM put void changes in narrative text instead of "
+                        f"populating effects.void_changes field for {action.get('agent')} action. "
+                        f"Void changes will NOT be applied. This indicates prompt guidance is being ignored."
+                    )
+                    # TODO: Log to JSONL as structured_output_warning event for ML analysis
             else:
                 # Legacy text parsing
                 state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
@@ -3163,8 +3301,15 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
                 # Check if void change targets a different character (collaborative cleansing)
                 target_identifier = state_changes.get('void_target_character')
+                should_apply_void_change = True  # Flag to control whether to apply the void change
+                void_state = None
+                target_name = None
+
                 if target_identifier:
                     # Resolve target - could be target ID (tgt_xxxx) or character name
+                    # NOTE: Relies on Pydantic schema validation to reject environmental keywords
+                    # Schema validator prevents: "Environmental Void", "environment", "area", etc.
+                    # Unresolvable names (environmental or typos) naturally skip via name resolution failure
                     target_player_id = None
                     target_character_name = None
 
@@ -3199,42 +3344,44 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         target_name = target_character_name
                         logger.debug(f"Void change targeting '{target_character_name}' (player_id: {target_player_id})")
                     else:
-                        # Couldn't find target, fall back to acting character
-                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, applying to actor")
-                        void_state = mechanics.get_void_state(player_id)
-                        target_name = action.get('character', player_id)
+                        # Couldn't find target - skip instead of falling back to actor
+                        # This handles environmental targets, typos, and non-existent characters
+                        logger.warning(f"Could not resolve target '{target_identifier}' for void change, skipping application")
+                        should_apply_void_change = False
                 else:
-                    # Default: apply to acting character
+                    # Default: apply to acting character (self-inflicted void)
                     void_state = mechanics.get_void_state(player_id)
                     target_name = action.get('character', player_id)
 
-                old_void = void_state.score
+                # Only apply void change if we have a valid target
+                if should_apply_void_change and void_state:
+                    old_void = void_state.score
 
-                if state_changes['void_change'] > 0:
-                    # Void gain (corruption increasing)
-                    action_id = f"{player_id}_{intent}_{resolution.total}"
-                    void_state.add_void(
-                        state_changes['void_change'],
-                        ", ".join(state_changes['void_reasons']),
-                        action_id=action_id
-                    )
-                    # Show void increase if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
-                else:
-                    # Void reduction (recovery moves)
-                    void_state.reduce_void(
-                        abs(state_changes['void_change']),
-                        ", ".join(state_changes['void_reasons'])
-                    )
-                    # Show void decrease if it actually changed
-                    if void_state.score != old_void:
-                        narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    if state_changes['void_change'] > 0:
+                        # Void gain (corruption increasing)
+                        action_id = f"{player_id}_{intent}_{resolution.total}"
+                        void_state.add_void(
+                            state_changes['void_change'],
+                            ", ".join(state_changes['void_reasons']),
+                            action_id=action_id
+                        )
+                        # Show void increase if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} → {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
+                    else:
+                        # Void reduction (recovery moves)
+                        void_state.reduce_void(
+                            abs(state_changes['void_change']),
+                            ", ".join(state_changes['void_reasons'])
+                        )
+                        # Show void decrease if it actually changed
+                        if void_state.score != old_void:
+                            narration += f"\n\n⚫ Void ({target_name}): {old_void} ↓ {void_state.score}/10 ({', '.join(state_changes['void_reasons'])})"
 
-                # Check for Eye of Breach appearance on high void
-                eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
-                if eye_of_breach_event:
-                    narration += f"\n\n{eye_of_breach_event}"
+                    # Check for Eye of Breach appearance on high void
+                    eye_of_breach_event = await self._check_eye_of_breach(void_state.score, mechanics, player_id)
+                    if eye_of_breach_event:
+                        narration += f"\n\n{eye_of_breach_event}"
 
             # Apply soulcredit changes (private knowledge - each player sees their own SC)
             # Always show soulcredit line (even if +0) for consistency, UNLESS DM already included one
@@ -3272,9 +3419,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 target_id = action.get('target')  # Could be tgt_xxxx or character name
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
+                should_apply_condition = True  # Flag to control whether to apply
 
-                # If action has a target, apply condition to target instead of actor
-                if target_id and target_id != 'None':
+                # Handle different targeting scenarios
+                if target_id == 'None' or target_id is None or not target_id:
+                    # Special case: target="None" (string), None (null), or missing/empty
+                    # These all mean: no specific target (area attack or narrative-only combat)
+                    # Only apply self-buffs (positive penalty) to actor
+                    # Skip debuffs (negative penalty) - they would need a real target
+                    if condition.penalty < 0:
+                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
+                        should_apply_condition = False
+                    else:
+                        # Positive penalty = buff, apply to actor (self-buff)
+                        logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
+
+                else:
+                    # Action has an explicit target - apply condition to that target
                     logger.debug(f"Condition '{condition.name}' has target: {target_id}")
 
                     # Resolve target ID to agent_id
@@ -3291,7 +3454,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, applying to actor")
+                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
                         condition_target_name = target_id
@@ -3305,11 +3469,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                         logger.debug(f"Matched condition target '{target_id}' → '{char_name}' (agent_id: {condition_target_id})")
                                         break
 
-                # Apply condition to the determined target
-                mechanics.add_condition(condition_target_id, condition)
-
-                # Show condition application (with target name)
-                narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                # Apply condition only if flag is True
+                if should_apply_condition:
+                    mechanics.add_condition(condition_target_id, condition)
+                    # Show condition application (with target name)
+                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement during rituals)
             if state_changes.get('position_change'):
@@ -3412,6 +3576,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     clock_states=clock_states,
                     effects=effects,
                     context=log_context,
+                    inventory_changes=inventory_changes,  # Pass offering consumption tracking
                     # ML training fields (dataset guidelines compliance)
                     character_data=character_data,
                     environment=environment,

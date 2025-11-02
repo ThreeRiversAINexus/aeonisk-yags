@@ -260,6 +260,47 @@ class TestSceneClocks:
         filled_again = mechanics_engine.get_and_clear_filled_clocks()
         assert len(filled_again) == 0
 
+    def test_clock_removal_logging(self, mechanics_engine):
+        """Test that clock removal events are logged correctly."""
+        from unittest.mock import Mock
+
+        # Set up mock JSONL logger
+        mock_logger = Mock()
+        mechanics_engine.jsonl_logger = mock_logger
+
+        # Create and fill a clock
+        mechanics_engine.create_scene_clock("Test Clock", maximum=3, description="Test description")
+        mechanics_engine.queue_clock_update("Test Clock", ticks=3, reason="completed")
+        mechanics_engine.apply_queued_clock_updates()
+
+        # Check and expire the filled clock
+        expired = mechanics_engine.check_and_expire_clocks()
+
+        # Verify clock was expired
+        assert len(expired) == 1
+        assert expired[0]['clock_name'] == "Test Clock"
+        assert expired[0]['removal_reason'] == 'filled'
+
+        # Verify JSONL logging was called
+        assert mock_logger.log_event.called
+
+        # Find the clock_removal event call
+        removal_calls = [call for call in mock_logger.log_event.call_args_list
+                        if call[1]['event_type'] == 'clock_removal']
+
+        assert len(removal_calls) == 1
+        removal_event = removal_calls[0][1]
+
+        # Verify event structure
+        assert removal_event['event_type'] == 'clock_removal'
+        assert removal_event['data']['clock_name'] == "Test Clock"
+        assert removal_event['data']['current_ticks'] == 3
+        assert removal_event['data']['maximum_ticks'] == 3
+        assert removal_event['data']['description'] == "Test description"
+        assert removal_event['data']['removal_reason'] == 'filled'
+        assert removal_event['data']['filled'] == True
+        assert removal_event['data']['consequence_triggered'] == True
+
 
 # ============================================================================
 # Condition/Status Effect Tests
