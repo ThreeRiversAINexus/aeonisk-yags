@@ -91,7 +91,7 @@
           "Protect civilians"
         ],
         "equipped_weapons": {
-          "primary": "assault_rifle",
+          "primary": "spark_pulse_rifle",
           "sidearm": "pistol"
         },
         "carried_weapons": []
@@ -136,7 +136,7 @@
           "Maintain independence"
         ],
         "equipped_weapons": {
-          "primary": "silenced_pistol",
+          "primary": "pistol",
           "sidearm": "combat_knife"
         },
         "carried_weapons": []
@@ -181,7 +181,7 @@
           "Maintain technical superiority"
         ],
         "equipped_weapons": {
-          "primary": "tech_kit",
+          "primary": "hacking_toolkit",
           "sidearm": "pistol"
         },
         "carried_weapons": []
@@ -226,8 +226,8 @@
           "Build trust and cooperation"
         ],
         "equipped_weapons": {
-          "primary": "medical_kit",
-          "sidearm": "pistol"
+          "primary": "tranq_gun",
+          "sidearm": "dripshock_baton"
         },
         "carried_weapons": []
       }

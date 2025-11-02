@@ -91,8 +91,8 @@
           "Advance Tempest research"
         ],
         "equipped_weapons": {
-          "primary": "crystal_focus",
-          "sidearm": "pistol"
+          "primary": "fists",
+          "sidearm": "fists"
         },
         "carried_weapons": []
       },
@@ -181,8 +181,8 @@
           "Use magic responsibly"
         ],
         "equipped_weapons": {
-          "primary": "crystal_focus",
-          "sidearm": null
+          "primary": "fists",
+          "sidearm": "fists"
         },
         "carried_weapons": []
       },

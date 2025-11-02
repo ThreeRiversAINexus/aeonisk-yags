@@ -1620,9 +1620,9 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
 - [x] Implement {import:...} directive system in prompt_loader.py
 - [x] Implement conditional ritual loading (Astral Arts only)
 - [x] Test import resolution and conditional loading
-- [ ] Run milestone test (full session with mixed party)
-- [ ] Document test results and decision
-- [x] **Status:** ✅ COMPLETE - Testing pending (2025-11-02)
+- [x] Run milestone test (full session with mixed party)
+- [x] Document test results and decision
+- [x] **Status:** ✅ COMPLETE - TESTED AND VALIDATED (2025-11-02)
 - [ ] **Blockers:** None
 - [x] **Notes:**
   - **Optimizations completed:**
@@ -1648,7 +1648,23 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
     ✅ Ritual section present for Astral Arts characters (4,324 tokens)
     ✅ Ritual section absent for non-magic characters (3,801 tokens)
     ✅ Faction content appears correctly
-  - **Next:** Run mixed party session (2 magic + 2 non-magic) to validate in real gameplay
+  - **Test results (2 sessions run):**
+    - **Session 1 (Mixed Party):** session_989aaad1-3dc4-432d-b161-d1b390feaf3c.jsonl
+      - 2 magic characters (Riven Shard, Mira Seln) + 2 non-magic (Kress Vohl, Jax Torren)
+      - 3 rounds, 12 actions, 83% success rate, 0 fallbacks
+      - ✅ Conditional loading: "Loading ritual_requirements (Astral Arts X)" for magic, "Skipping ritual_requirements" for non-magic
+      - ✅ Import system: No "[IMPORT ERROR]" messages, faction names resolved correctly
+      - ✅ Astral Arts usage: Riven used Astral Arts 3x (telekinesis combat magic)
+      - ✅ Schema compliance: 0 critical validation errors
+      - Fixture extracted: tests/fixtures/sessions/golden_prompt_test_mixed.jsonl
+    - **Session 2 (All Non-Magic):** session_6cecd16d-e85a-483d-85bb-715d8def9d27.jsonl
+      - 4 non-magic characters (Marcus Steel, Nova Shadow, Cipher Vex, Dr. Ash Kaine)
+      - 3 rounds, 12 actions, 92% success rate, 0 fallbacks
+      - ✅ All 4 characters: "Skipping ritual_requirements (no Astral Arts skill)"
+      - ✅ Maximum token savings: 3,801 tokens/player × 4 = 15,204 tokens (vs 20,516 baseline = 25.9% savings!)
+      - ✅ No ritual-related confusion in player actions
+      - Fixture extracted: tests/fixtures/sessions/golden_prompt_test_nonmagic.jsonl
+  - **Decision:** VALIDATED AND APPROVED - Proceed to Phase 4
 
 ### Phase 4: Cross-Prompt Deduplication
 - [ ] Create shared prompt library (3 files)
