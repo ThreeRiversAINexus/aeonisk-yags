@@ -92,11 +92,11 @@ class LLMConfig:
     jitter: bool = True  # Add randomness to prevent thundering herd
 
     # Rate limiting (global across all agents)
-    # Tuned for multi-agent sessions (3 PCs + 2 enemies + DM = 6 agents)
+    # Tuned for large multi-agent sessions (4 PCs + 8 enemies + DM = 13 agents max)
     # Very aggressive to prevent Anthropic API 500 Overloaded errors
     use_rate_limiter: bool = True  # Enable global rate limiting
-    max_concurrent_requests: int = 2  # Max concurrent API calls across all agents (reduced from 3)
-    min_request_interval: float = 1.0  # Minimum seconds between request starts (increased from 0.5)
+    max_concurrent_requests: int = 2  # Max concurrent API calls across all agents
+    min_request_interval: float = 1.5  # Minimum seconds between request starts
 
     # Provider-specific kwargs
     extra_params: Dict[str, Any] = None
