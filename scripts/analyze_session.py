@@ -4,11 +4,13 @@ Session Analyzer - Lightweight tool for analyzing JSONL session logs.
 
 Usage:
     python scripts/analyze_session.py <session.jsonl> [--mode=summary|clocks|void|actions|timeline]
+    python scripts/analyze_session.py <session.jsonl> --validate-fixture
 
 Modes:
     summary (default) - Quick overview (~30-40 lines)
     clocks           - Clock progression detail (~5-30 lines)
     void             - Void trajectory (~10-20 lines)
+    validate-fixture - Validate schema and replay-readiness (exit 0=pass, 1=fail)
 
 Output is designed to be concise (<2000 tokens) for use in development/debugging
 without blowing up context windows.
@@ -18,7 +20,285 @@ import json
 import argparse
 from pathlib import Path
 from collections import defaultdict, Counter
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Set, Tuple
+
+
+# Event type schemas - define required fields for each event type
+EVENT_SCHEMAS = {
+    "session_start": {
+        "required": ["event_type", "ts", "session", "config", "version"],
+        "optional": []
+    },
+    "scenario": {
+        "required": ["event_type", "ts", "session", "scenario"],
+        "optional": []
+    },
+    "round_start": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": []
+    },
+    "action_resolution": {
+        "required": ["event_type", "ts", "session", "round", "phase", "agent", "action", "roll", "economy", "clocks", "effects"],
+        "optional": ["context"]
+    },
+    "combat_action": {
+        "required": ["event_type", "ts", "session", "round", "attacker", "defender", "weapon", "attack"],
+        "optional": ["damage", "wounds_dealt", "defender_state_after"]
+    },
+    "character_state": {
+        "required": ["event_type", "ts", "session", "round", "character_id", "character_name", "health", "max_health", "wounds", "void_score", "soulcredit", "position", "conditions", "is_defeated"],
+        "optional": []
+    },
+    "enemy_spawn": {
+        "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "template", "stats", "position", "tactics"],
+        "optional": []
+    },
+    "enemy_defeat": {
+        "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "defeat_reason", "rounds_survived"],
+        "optional": []
+    },
+    "round_summary": {
+        "required": ["event_type", "ts", "session", "round", "actions_attempted", "success_count", "success_rate", "average_margin"],
+        "optional": ["damage_dealt_by_players", "damage_taken_by_players", "void_gained", "void_lost", "clocks_advanced", "clocks_filled", "active_enemies", "player_wounds_total"]
+    },
+    "clock_advancement": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": []
+    },
+    "void_change": {
+        "required": ["event_type", "ts", "session", "round", "agent", "old_void", "new_void", "delta", "reason"],
+        "optional": ["capped"]
+    },
+    "clock_completion": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": []
+    },
+    "clock_removal": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": []
+    },
+    "llm_call": {
+        "required": ["event_type", "ts", "session", "agent_id", "agent_type", "call_sequence", "prompt", "response", "model", "temperature", "tokens"],
+        "optional": ["round"]
+    }
+}
+
+
+class FixtureValidator:
+    """Validate JSONL fixtures for schema compliance and replay-readiness."""
+
+    def __init__(self, jsonl_path: Path):
+        self.jsonl_path = jsonl_path
+        self.errors: List[str] = []
+        self.warnings: List[str] = []
+        self.stats = {
+            'total_events': 0,
+            'valid_events': 0,
+            'invalid_events': 0,
+            'event_type_counts': Counter(),
+            'player_llm_calls': 0,
+            'dm_llm_calls': 0,
+            'enemy_llm_calls': 0,
+            'has_random_seed': False,
+            'has_session_start': False,
+            'has_scenario': False,
+            'rounds': set(),
+            'agent_ids': set(),
+        }
+
+    def validate_event_schema(self, event: Dict[str, Any], line_num: int) -> bool:
+        """Validate a single event against its schema. Returns True if valid."""
+        # Check event_type exists
+        if "event_type" not in event:
+            self.errors.append(f"Line {line_num}: Missing 'event_type' field")
+            return False
+
+        event_type = event["event_type"]
+
+        # Check if event type has a schema
+        if event_type not in EVENT_SCHEMAS:
+            # Generic events are allowed but not validated
+            if event_type not in ["action_declaration", "adjudication_start", "declaration_phase_start",
+                                   "clock_spawn", "round_synthesis", "mission_debrief", "session_end",
+                                   "attrition", "structured_output_metrics"]:
+                self.warnings.append(f"Line {line_num}: Unknown event_type '{event_type}' (may be legacy or generic)")
+            return True
+
+        schema = EVENT_SCHEMAS[event_type]
+
+        # Check required fields
+        valid = True
+        for field in schema["required"]:
+            if field not in event:
+                self.errors.append(f"Line {line_num}: Event '{event_type}' missing required field '{field}'")
+                valid = False
+
+        # Validate specific field structures
+        if event_type == "combat_action" and "attack" in event:
+            attack = event["attack"]
+            required_attack_fields = ["attr", "attr_val", "skill", "skill_val", "d20", "total", "dc", "hit", "margin"]
+            for field in required_attack_fields:
+                if field not in attack:
+                    self.errors.append(f"Line {line_num}: combat_action.attack missing field '{field}'")
+                    valid = False
+
+            # Validate damage structure if present
+            if "damage" in event and event["damage"] is not None:
+                damage = event["damage"]
+                core_damage_fields = ["soak", "dealt"]
+                for field in core_damage_fields:
+                    if field not in damage:
+                        self.errors.append(f"Line {line_num}: combat_action.damage missing field '{field}'")
+                        valid = False
+
+        elif event_type == "character_state":
+            # Validate numeric fields
+            for field in ["health", "max_health", "wounds", "void_score", "soulcredit"]:
+                if field in event and not isinstance(event[field], (int, float)):
+                    self.errors.append(f"Line {line_num}: character_state.{field} should be numeric, got {type(event[field])}")
+                    valid = False
+
+        elif event_type == "enemy_spawn" and "stats" in event:
+            stats = event["stats"]
+            required_stats_fields = ["health", "max_health", "soak", "attributes", "skills"]
+            for field in required_stats_fields:
+                if field not in stats:
+                    self.errors.append(f"Line {line_num}: enemy_spawn.stats missing field '{field}'")
+                    valid = False
+
+        return valid
+
+    def validate_replay_readiness(self):
+        """Check if fixture is ready for replay (has player LLM calls, etc.)."""
+        # Check for player LLM calls
+        if self.stats['player_llm_calls'] == 0:
+            self.errors.append("No player LLM calls found - fixture cannot be replayed (created before commit 55ad4a0?)")
+
+        # Check for essential events
+        if not self.stats['has_session_start']:
+            self.errors.append("Missing session_start event")
+
+        if not self.stats['has_scenario']:
+            self.errors.append("Missing scenario event")
+
+        # Check for random seed in config
+        if not self.stats['has_random_seed']:
+            self.warnings.append("No random_seed in session config - replay may not be deterministic")
+
+    def validate(self) -> Tuple[bool, int]:
+        """
+        Validate the entire fixture.
+
+        Returns:
+            (is_valid, exit_code) where exit_code is 0 for pass, 1 for fail
+        """
+        with open(self.jsonl_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+
+                try:
+                    event = json.loads(line)
+                    self.stats['total_events'] += 1
+
+                    # Validate schema
+                    is_valid = self.validate_event_schema(event, line_num)
+                    if is_valid:
+                        self.stats['valid_events'] += 1
+                    else:
+                        self.stats['invalid_events'] += 1
+
+                    # Track event types
+                    event_type = event.get("event_type", "unknown")
+                    self.stats['event_type_counts'][event_type] += 1
+
+                    # Track specific events for replay-readiness
+                    if event_type == "session_start":
+                        self.stats['has_session_start'] = True
+                        config = event.get('config', {})
+                        if 'random_seed' in config:
+                            self.stats['has_random_seed'] = True
+
+                    elif event_type == "scenario":
+                        self.stats['has_scenario'] = True
+
+                    elif event_type == "llm_call":
+                        agent_type = event.get('agent_type', '')
+                        if agent_type == 'player':
+                            self.stats['player_llm_calls'] += 1
+                        elif agent_type == 'enemy':
+                            self.stats['enemy_llm_calls'] += 1
+                        elif agent_type == 'dm':
+                            self.stats['dm_llm_calls'] += 1
+
+                        # Track agent IDs
+                        if 'agent_id' in event:
+                            self.stats['agent_ids'].add(event['agent_id'])
+
+                    # Track rounds
+                    if 'round' in event and event['round'] is not None:
+                        self.stats['rounds'].add(event['round'])
+
+                except json.JSONDecodeError as e:
+                    self.stats['invalid_events'] += 1
+                    self.errors.append(f"Line {line_num}: JSON parse error: {e}")
+
+        # Run replay-readiness checks
+        self.validate_replay_readiness()
+
+        # Determine overall validity
+        has_errors = len(self.errors) > 0
+        exit_code = 1 if has_errors else 0
+
+        return (not has_errors, exit_code)
+
+    def print_report(self):
+        """Print validation report to stdout."""
+        print("\n" + "=" * 80)
+        print("FIXTURE VALIDATION REPORT")
+        print("=" * 80)
+        print(f"\nFile: {self.jsonl_path}")
+        print(f"Total Events: {self.stats['total_events']}")
+        print(f"Valid Events: {self.stats['valid_events']} ({self.stats['valid_events']/self.stats['total_events']*100 if self.stats['total_events'] > 0 else 0:.1f}%)")
+        print(f"Invalid Events: {self.stats['invalid_events']}")
+
+        print("\n--- Event Type Distribution ---")
+        for event_type, count in self.stats['event_type_counts'].most_common(15):
+            print(f"  {event_type:30s}: {count:4d}")
+
+        print(f"\n--- Replay Readiness ---")
+        print(f"Session Start: {'✓' if self.stats['has_session_start'] else '✗'}")
+        print(f"Scenario: {'✓' if self.stats['has_scenario'] else '✗'}")
+        print(f"Random Seed: {'✓' if self.stats['has_random_seed'] else '✗'}")
+        print(f"Rounds: {len(self.stats['rounds'])}")
+        print(f"Player LLM Calls: {self.stats['player_llm_calls']}")
+        print(f"DM LLM Calls: {self.stats['dm_llm_calls']}")
+        print(f"Enemy LLM Calls: {self.stats['enemy_llm_calls']}")
+        print(f"Unique Agent IDs: {len(self.stats['agent_ids'])}")
+
+        if self.errors:
+            print(f"\n--- Validation Errors ({len(self.errors)}) ---")
+            for error in self.errors[:20]:
+                print(f"  ✗ {error}")
+            if len(self.errors) > 20:
+                print(f"  ... and {len(self.errors) - 20} more errors")
+
+        if self.warnings:
+            print(f"\n--- Warnings ({len(self.warnings)}) ---")
+            for warning in self.warnings:
+                print(f"  ⚠ {warning}")
+
+        print("\n" + "=" * 80)
+
+        if self.errors:
+            print("\n✗ VALIDATION FAILED")
+        elif self.warnings:
+            print("\n⚠ VALIDATION PASSED WITH WARNINGS")
+        else:
+            print("\n✓ VALIDATION PASSED")
+
+        print()
 
 
 class SessionAnalyzer:
@@ -533,12 +813,24 @@ Examples:
         metavar='N',
         help='Get specific event at line N (1-indexed)'
     )
+    parser.add_argument(
+        '--validate-fixture',
+        action='store_true',
+        help='Validate fixture schema and replay-readiness (exit 0=pass, 1=fail)'
+    )
 
     args = parser.parse_args()
 
     if not args.jsonl_file.exists():
         print(f"Error: File not found: {args.jsonl_file}")
         return 1
+
+    # Handle --validate-fixture (runs before SessionAnalyzer to avoid parsing overhead)
+    if args.validate_fixture:
+        validator = FixtureValidator(args.jsonl_file)
+        is_valid, exit_code = validator.validate()
+        validator.print_report()
+        return exit_code
 
     analyzer = SessionAnalyzer(args.jsonl_file)
 

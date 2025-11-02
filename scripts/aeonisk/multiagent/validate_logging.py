@@ -2,6 +2,14 @@
 """
 Validation script for JSONL logging system.
 
+⚠️  DEPRECATED: This script is deprecated as of 2025-11-02.
+Use `python scripts/analyze_session.py <file.jsonl> --validate-fixture` instead.
+
+The validation logic has been merged into analyze_session.py for better
+maintainability and to avoid code duplication.
+
+This file is kept temporarily for reference but will be removed in a future commit.
+
 Validates that all logged events conform to expected schemas and that
 required fields are present for ML training and balance analysis.
 """
