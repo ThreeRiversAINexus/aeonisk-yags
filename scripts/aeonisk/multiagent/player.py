@@ -13,7 +13,7 @@ from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import EnergyInventory, Seed, SeedType, Element, create_raw_seed
-from .prompt_loader import load_agent_prompt
+from .prompt_loader import load_agent_prompt, compose_sections
 
 logger = logging.getLogger(__name__)
 
@@ -1064,6 +1064,44 @@ class AIPlayerAgent(Agent):
             print("Available commands: explore, interact, ritual, combat, status, release_control")
             print("Or type any freeform action description")
 
+    def _get_required_player_sections(self) -> List[str]:
+        """
+        Determine which player prompt sections to load based on character skills.
+
+        Returns:
+            List of section names to load
+        """
+        # Always load core sections (in order from player.yaml section_order)
+        sections = [
+            'character_introduction',
+            'character_sheet',
+            'inventory_resources',
+            'personality_traits',
+            'goals',
+            'faction_names_import',
+            'lookup_rules',
+            'stat_awareness_guidance',
+            'action_declaration_unified',
+            # 'ritual_requirements_conditional' - CONDITIONAL, added below
+            'coordination_dialogue',
+            'vendor_interaction',
+            'currency_transfers',
+            'action_guidelines',
+            'bond_mechanics',
+            'important_rules'
+        ]
+
+        # Conditional: Load ritual requirements only if character has Astral Arts skill
+        if self.character_state.skills.get("Astral Arts", 0) > 0:
+            # Insert after action_declaration_unified
+            insert_index = sections.index('action_declaration_unified') + 1
+            sections.insert(insert_index, 'ritual_requirements_conditional')
+            logger.debug(f"Player {self.character_state.name}: Loading ritual_requirements (Astral Arts {self.character_state.skills['Astral Arts']})")
+        else:
+            logger.debug(f"Player {self.character_state.name}: Skipping ritual_requirements (no Astral Arts skill)")
+
+        return sections
+
     def _build_player_system_prompt_new(self, recent_intents: List[str], other_players: List[str]) -> str:
         """Build player system prompt using new prompt_loader system."""
         from .enhanced_prompts import _format_tiered_skills
@@ -1279,9 +1317,13 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             "high_void_warning": high_void_warning
         }
 
-        # Load prompt from JSON with variable substitution
-        loaded_prompt = load_agent_prompt(
+        # Determine which sections to load (conditional loading based on skills)
+        required_sections = self._get_required_player_sections()
+
+        # Load prompt from YAML with conditional sections and variable substitution
+        loaded_prompt = compose_sections(
             agent_type="player",
+            section_names=required_sections,
             provider="claude",
             language="en",  # TODO: Make this configurable
             variables=variables
