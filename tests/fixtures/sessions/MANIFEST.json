@@ -34,20 +34,6 @@
       "used_by_tests": [],
       "notes": "Pre-player-LLM-logging fixture. May need regeneration if used for replay tests."
     },
-    "player_llm_logging_baseline.jsonl": {
-      "created": "2024-10-25",
-      "created_by_commit": "unknown",
-      "purpose": "Baseline for player LLM logging tests",
-      "scenario": "Test Scenario (mixed) @ Test Location",
-      "rounds": 2,
-      "players": 1,
-      "enemies": 0,
-      "has_player_llm_calls": false,
-      "status": "deprecated",
-      "category": "baseline",
-      "used_by_tests": [],
-      "notes": "Created before player LLM logging fix (commit 55ad4a0). Superseded by replay_test_fresh.jsonl. Candidate for deletion."
-    },
     "session_status_effect_tactical_test.jsonl": {
       "created": "2024-09-15",
       "created_by_commit": "unknown",
@@ -134,20 +120,19 @@
     }
   },
   "statistics": {
-    "total_fixtures": 9,
+    "total_fixtures": 8,
     "active": 8,
-    "deprecated": 1,
+    "deprecated": 0,
     "with_player_llm_calls": 1,
     "categories": {
       "golden": 1,
       "regression": 1,
-      "test": 6,
-      "baseline": 1
+      "test": 6
     }
   },
   "notes": [
-    "8 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
+    "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
     "Only replay_test_fresh.jsonl is verified to have complete player LLM call data",
-    "player_llm_logging_baseline.jsonl marked deprecated - can be deleted after verifying no external references"
+    "Comprehensive golden fixture planned to replace legacy test fixtures"
   ]
 }
