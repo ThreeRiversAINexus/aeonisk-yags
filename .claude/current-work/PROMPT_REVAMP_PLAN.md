@@ -1504,13 +1504,17 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
 ## Progress Tracking
 
 ### Phase 1: Baseline & Infrastructure
-- [ ] Extract 3 baseline fixtures (combat, investigation, mixed)
-- [ ] Document baseline metrics (validation rates, token usage)
-- [ ] Build prompt testing framework (`test_prompt_variant.py`)
-- [ ] Build token profiling tool (`analyze_prompt_tokens.py`)
-- [ ] **Status:** Not started
+- [x] ~~Extract 3 baseline fixtures (combat, investigation, mixed)~~ - Using existing fixtures
+- [x] Document baseline metrics (validation rates, token usage) - Actual measurements complete
+- [x] Build prompt testing framework (`test_prompt_variant.py`) - Complete with diff, validation, token analysis
+- [x] Build token profiling tool (`analyze_prompt_tokens.py`) - Complete, using fallback token counting
+- [x] **Status:** ✅ COMPLETE (2025-11-02)
 - [ ] **Blockers:** None
-- [ ] **Notes:**
+- [x] **Notes:**
+  - DM: 871 lines, 10,258 tokens (26.6% in structured_output)
+  - Player: 484 lines, 5,129 tokens (25% in structured_output)
+  - Testing framework supports modular prompts, diff, validation, and token comparison
+  - Ready to proceed to Phase 2
 
 ### Phase 2: DM Prompt Modularization
 - [ ] Split dm.yaml into 6 modules
