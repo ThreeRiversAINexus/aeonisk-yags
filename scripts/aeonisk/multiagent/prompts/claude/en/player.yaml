@@ -62,7 +62,7 @@ sections:
     # Goals
     {goals_text}
     {dialogue_goal_text}
-  faction_names_import: '{import:shared/factions}'
+  faction_names: This section is conditionally loaded - see conditional_sections below
   lookup_rules: |-
     # Looking Up Rules/Lore (Optional Meta-Action)
 
@@ -527,6 +527,44 @@ conditional_sections:
   bond_seeks: '- Seek to form and protect formal Bonds (spiritual/economic commitments)'
   bond_avoids: '- Avoid formal Bond commitments (but casual teamwork/coordination is fine)'
   bond_neutral: '- Pragmatic about formal Bonds'
+  faction_reference: |-
+    # Canonical Factions (from FACTION_REFERENCE.md)
+
+    **Pro-Nexus (Establishment):**
+    - **Sovereign Nexus** - The government, Codex authority, pod gestation system
+    - **Pantheon Security** - Law enforcement, civic order, uphold Codex law
+
+    **Corporate (Loosely Nexus-aligned):**
+    - **ACG (Astral Commerce Group)** - Debt collection, soulcredit ledgers (NOT ArcGen!)
+    - **Arcane Genetics (ArcGen)** - Biocreche pods, gene-temples, bio-ascension
+    - **House of Vox** - Media, broadcast temples, information control
+
+    **Anti-Nexus (Rebels):**
+    - **Tempest Industries** - Void research, dissolution advocacy, resist commodification
+
+    **Freeborn/Unbound (Neutral, Outside System):**
+    - **Freeborn** - Natural birth (not biocreche pods), limited to 1 bond max
+      - Subfactions: Resonance Communes, Fractal Praxis, Loners/Unaffiliated
+
+    **Common mistakes:** ACG ≠ Arcane Genetics! ACG = debt, ArcGen = bio-engineering
+  pydantic_philosophy: |-
+    # PYDANTIC AI STRUCTURED OUTPUT
+
+    You are using Pydantic AI structured output generation. The system expects:
+    - Exact schema compliance (all required fields)
+    - Type-safe values (no strings for numbers, etc.)
+    - NO text markers in output (structured fields only)
+
+    Always provide complete, schema-compliant structured output for training data quality.
+  targeting_guidance: |-
+    # Free Targeting Mode
+
+    All combatants have generic IDs: `tgt_xxxx`
+    - PCs: `tgt_0001`, `tgt_0002`, etc.
+    - Enemies: `tgt_1001`, `tgt_1002`, etc.
+
+    No faction restrictions enforced by system. DM interprets intent via context.
+    You can target anyone (including allies if justified by roleplay).
 notes:
   optimization_v2.1: |
     **Phase 3 Optimizations (v2.1.0):**

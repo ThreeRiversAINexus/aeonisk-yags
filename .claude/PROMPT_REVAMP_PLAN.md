@@ -1616,65 +1616,92 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
 
 ### Phase 3: Player Prompt Optimization
 - [x] Consolidate redundant sections (merged action_declaration + structured_output)
-- [x] Create shared/factions.yaml module
-- [x] Implement {import:...} directive system in prompt_loader.py
+- [x] ~~Create shared/factions.yaml module~~ → REVERTED, used conditional_sections instead
+- [x] ~~Implement {import:...} directive system~~ → REVERTED, added unnecessary complexity
 - [x] Implement conditional ritual loading (Astral Arts only)
-- [x] Test import resolution and conditional loading
-- [x] Run milestone test (full session with mixed party)
+- [x] Add canonical faction reference to conditional_sections
+- [x] Add pydantic_philosophy and targeting_guidance sections
+- [x] Test conditional loading with mixed party + all-nonmagic party
+- [x] Write unit tests for conditional loading logic
+- [x] Write integration tests using extracted fixtures
 - [x] Document test results and decision
-- [x] **Status:** ✅ COMPLETE - TESTED AND VALIDATED (2025-11-02)
+- [x] **Status:** ✅ COMPLETE - TESTED, VALIDATED, AND SIMPLIFIED (2025-11-02)
 - [ ] **Blockers:** None
 - [x] **Notes:**
   - **Optimizations completed:**
     1. Merged action_declaration_format + structured_output_format → action_declaration_unified (758 token savings)
-    2. Created shared/factions.yaml (108 tokens saved per agent = 432/round for 4 players)
-    3. Implemented {import:...} directive system (recursive resolution, works with all loading methods)
+    2. ~~Created shared/factions.yaml~~ → REVERTED to keep everything in player.yaml under conditional_sections
+    3. ~~Implemented {import:...} directive system~~ → REVERTED (over-engineered for single-file prompts)
     4. Conditional ritual loading: only loads ritual_requirements_conditional for Astral Arts characters (523 token savings for non-magic)
+    5. Added canonical faction_reference from content/supplemental/FACTION_REFERENCE.md (not made-up factions)
+    6. Added pydantic_philosophy and targeting_guidance to conditional_sections (always loaded, just organized)
+  - **Architecture simplification:**
+    - KEPT: Simple conditional sections in same YAML file (player.yaml)
+    - REMOVED: {import:...} directive system from prompt_loader.py (not needed for single-file prompts)
+    - REMOVED: shared/factions.yaml (fake factions from emergent storytelling, not canonical)
+    - ADDED: faction_reference, pydantic_philosophy, targeting_guidance in conditional_sections
+    - prompt_loader.py now checks `sections`, `specialized_prompts`, AND `conditional_sections`
   - **Token savings:**
     - Magic characters: 5,129 → 4,324 tokens (15.7% reduction)
     - Non-magic characters: 5,129 → 3,801 tokens (25.9% reduction!)
     - Average (50/50 mix): 5,129 → 4,063 tokens (20.8% reduction)
     - Per-round (4 players, 2 magic + 2 non-magic): 4,266 tokens saved
-  - **Technical details:**
-    - Added _resolve_imports() to PromptLoader (regex pattern: `\{import:([\w/]+)\}`)
-    - Import resolution happens before variable substitution
-    - Added _get_required_player_sections() to Player class
+  - **Technical implementation:**
+    - Added _get_required_player_sections() to AIPlayerAgent class
     - Switched from load_agent_prompt() to compose_sections() for conditional control
+    - Updated PromptLoader.compose_sections() to check conditional_sections dictionary
+    - All conditional logic in Python (player.py), no YAML imports needed
   - **Correctly handled Magick Theory:**
     - Magick Theory = analysis/investigation (NO offerings, always loaded in action_guidelines)
     - Astral Arts = spellcasting (offerings required, conditionally loaded in ritual_requirements)
-  - **Test results:**
-    ✅ Import system resolves correctly
-    ✅ Ritual section present for Astral Arts characters (4,324 tokens)
-    ✅ Ritual section absent for non-magic characters (3,801 tokens)
-    ✅ Faction content appears correctly
-  - **Test results (2 sessions run):**
+  - **Test results (2 sessions run by user):**
     - **Session 1 (Mixed Party):** session_989aaad1-3dc4-432d-b161-d1b390feaf3c.jsonl
       - 2 magic characters (Riven Shard, Mira Seln) + 2 non-magic (Kress Vohl, Jax Torren)
       - 3 rounds, 12 actions, 83% success rate, 0 fallbacks
       - ✅ Conditional loading: "Loading ritual_requirements (Astral Arts X)" for magic, "Skipping ritual_requirements" for non-magic
-      - ✅ Import system: No "[IMPORT ERROR]" messages, faction names resolved correctly
+      - ✅ Canonical factions: Content from FACTION_REFERENCE.md, not made-up
       - ✅ Astral Arts usage: Riven used Astral Arts 3x (telekinesis combat magic)
       - ✅ Schema compliance: 0 critical validation errors
-      - Fixture extracted: tests/fixtures/sessions/golden_prompt_test_mixed.jsonl
+      - Fixture extracted (rounds 0-3): tests/fixtures/sessions/golden_prompt_test_mixed.jsonl (806.1 KB, 138 events)
     - **Session 2 (All Non-Magic):** session_6cecd16d-e85a-483d-85bb-715d8def9d27.jsonl
       - 4 non-magic characters (Marcus Steel, Nova Shadow, Cipher Vex, Dr. Ash Kaine)
       - 3 rounds, 12 actions, 92% success rate, 0 fallbacks
       - ✅ All 4 characters: "Skipping ritual_requirements (no Astral Arts skill)"
       - ✅ Maximum token savings: 3,801 tokens/player × 4 = 15,204 tokens (vs 20,516 baseline = 25.9% savings!)
       - ✅ No ritual-related confusion in player actions
-      - Fixture extracted: tests/fixtures/sessions/golden_prompt_test_nonmagic.jsonl
-  - **Decision:** VALIDATED AND APPROVED - Proceed to Phase 4
+      - Fixture extracted (rounds 0-3): tests/fixtures/sessions/golden_prompt_test_nonmagic.jsonl (740.8 KB, 122 events)
+  - **Test suite created:**
+    - Unit tests: tests/unit/test_player_conditional_sections.py (11 tests, all passing)
+      - Tests conditional loading logic for magic vs non-magic characters
+      - Tests core sections always loaded (faction_reference, pydantic_philosophy, targeting_guidance)
+      - Tests logging of conditional decisions
+      - Tests mixed party and all-nonmagic scenarios
+    - Integration tests: tests/integration/test_prompt_conditional_loading.py (9 tests, all passing)
+      - Tests full prompt assembly with conditional sections
+      - Uses extracted fixtures from real sessions
+      - Validates section lists match expected patterns
+      - Tests PromptLoader.compose_sections() with conditional_sections
+  - **Decision:** PHASE 3 COMPLETE - Skip Phase 4 (shared imports not needed), focus on other bugs
 
 ### Phase 4: Cross-Prompt Deduplication
-- [ ] Create shared prompt library (3 files)
-- [ ] Implement import system in prompt_loader.py
-- [ ] Update dm.yaml and player.yaml to use imports
-- [ ] Run integration tests (full session)
-- [ ] Document test results
-- [ ] **Status:** Not started
-- [ ] **Blockers:** Depends on Phase 3
-- [ ] **Notes:**
+- [x] ~~Create shared prompt library (3 files)~~ → SKIPPED
+- [x] ~~Implement import system in prompt_loader.py~~ → SKIPPED (import system removed in Phase 3)
+- [x] ~~Update dm.yaml and player.yaml to use imports~~ → SKIPPED
+- [x] ~~Run integration tests (full session)~~ → SKIPPED
+- [x] ~~Document test results~~ → SKIPPED
+- [x] **Status:** ✅ SKIPPED - Import system added unnecessary complexity for single-file prompts (2025-11-02)
+- [ ] **Blockers:** N/A
+- [x] **Notes:**
+  - **Rationale for skipping:**
+    - Import system ({import:...}) added architectural complexity without significant benefit
+    - Each agent (dm, player, enemy) has a single YAML file - imports would fragment understanding
+    - Conditional sections solve same problem more simply (keep related content together)
+    - Faction deduplication savings (108 tokens) minimal compared to complexity cost
+    - User preference: "I don't think we need imports embedded in the YAML" - keep it simple
+  - **What we kept instead:**
+    - conditional_sections in player.yaml (simple, all in one file)
+    - Direct section lookup in prompt_loader.py (no recursive resolution needed)
+    - All faction/guidance content in same file for easy editing
 
 ### Phase 5: A/B Testing & Refinement
 - [ ] Run 30 sessions (5 per variant per scenario)

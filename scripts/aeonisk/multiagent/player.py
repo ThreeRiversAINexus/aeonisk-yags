@@ -1078,11 +1078,10 @@ class AIPlayerAgent(Agent):
             'inventory_resources',
             'personality_traits',
             'goals',
-            'faction_names_import',
             'lookup_rules',
             'stat_awareness_guidance',
             'action_declaration_unified',
-            # 'ritual_requirements_conditional' - CONDITIONAL, added below
+            # Conditional sections added below based on character/context
             'coordination_dialogue',
             'vendor_interaction',
             'currency_transfers',
@@ -1099,6 +1098,12 @@ class AIPlayerAgent(Agent):
             logger.debug(f"Player {self.character_state.name}: Loading ritual_requirements (Astral Arts {self.character_state.skills['Astral Arts']})")
         else:
             logger.debug(f"Player {self.character_state.name}: Skipping ritual_requirements (no Astral Arts skill)")
+
+        # Always load faction reference, pydantic philosophy, and targeting guidance from conditional_sections
+        # (These are in conditional_sections but always loaded - just organized that way in YAML)
+        sections.append('faction_reference')
+        sections.append('pydantic_philosophy')
+        sections.append('targeting_guidance')
 
         return sections
 
