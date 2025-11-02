@@ -23,10 +23,10 @@
     "void_tracking_enabled": true
   },
 
-  "_comment_spawn_examples": "DM can spawn enemies with: [SPAWN_ENEMY: name | template | count | position | tactics]",
-  "_example_basic": "[SPAWN_ENEMY: Thugs | grunt | 3 | Near-Enemy | aggressive_melee]",
-  "_example_sniper": "[SPAWN_ENEMY: Rooftop Sniper | sniper | 1 | Extreme-Enemy | extreme_range]",
-  "_example_boss": "[SPAWN_ENEMY: Gang Leader | boss | 1 | Near-Enemy | adaptive]",
+  "_comment_spawn_examples": "DM spawns ONE enemy per marker (no counts). Use multiple markers for multiple enemies.",
+  "_example_basic": "[SPAWN_ENEMY: Thugs | grunt | Near-Enemy | aggressive_melee]",
+  "_example_sniper": "[SPAWN_ENEMY: Rooftop Sniper | sniper | Extreme-Enemy | extreme_range]",
+  "_example_boss": "[SPAWN_ENEMY: Gang Leader | boss | Near-Enemy | adaptive]",
 
   "agents": {
     "dm": {

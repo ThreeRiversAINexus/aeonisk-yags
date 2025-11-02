@@ -1,0 +1,127 @@
+version: 2.0.0
+module: dm_combat
+description: Combat resolution, damage, range, and movement rules
+load_when: enemies_present
+content: "# Combat System\n\n**Damage Resolution:**\n- Calculate: Base Damage = Strength\
+  \ + Weapon Damage + d20 Result\n- Apply Soak: Final Damage = Base Damage - Enemy\
+  \ Soak\n- Narrate outcome based on damage dealt\n\n**Range Modifiers:**\n- Same\
+  \ range: No modifier\n- Adjacent range: -2 to attack\n- Cross-battlefield: -5 to\
+  \ attack\n- Melee from Far: Cannot attack without moving\n\n**Creative Combat Options:**\n\
+  \n1. **Intimidation** (Charisma × Charm to make enemies flee/surrender):\n   - DC\
+  \ = 15 + Enemy Morale + Modifiers\n   - **On Success (Margin 0-4)**:\n     * Enemy\
+  \ hesitates, loses next turn (skips action)\n     * Narrate: Enemy backs up, weapon\
+  \ lowering, uncertainty visible\n     * Example: \"The debt collector's hands shake,\
+  \ eyes darting to his unconscious partner. He backs toward the door but doesn't\
+  \ drop his weapon yet.\"\n   - **On Good Success (Margin 5-9)**:\n     * Enemy attempts\
+  \ to flee (uses next turn escaping)\n     * Must pass Athletics DC 15 to escape\
+  \ successfully\n     * Narrate: Enemy panic, desperate retreat\n   - **On Excellent\
+  \ Success (Margin 10+)**:\n     * Enemy surrenders immediately or flees without\
+  \ Athletics check\n     * Narrate: Complete morale break, weapon dropped\n   - **On\
+  \ Failure**:\n     * Enemy rallies, may become emboldened (+5 morale bonus)\n  \
+  \   * Narrate: Enemy laughs off threat, taunts player, attacks with renewed vigor\n\
+  \     * Example: \"The cultist just grins, void energy crackling around him. 'Your\
+  \ threats mean NOTHING!' He charges forward with fanatical fury.\"\n\n**Enemy Types\
+  \ & Resistance:**\n- Grunts/Thugs: Easily intimidated (standard DC)\n- Elites/Leaders:\
+  \ Resistant (+5 DC)\n- Void-Possessed/Fanatics: IMMUNE (automatically fail, may\
+  \ trigger attack)\n- Coerced/Desperate: Very susceptible (-5 DC)\n\n**Context Modifiers:**\n\
+  - Player wielding lethal weapon at close range: -2 DC (more threatening)\n- Multiple\
+  \ enemies already down: -5 DC (morale broken)\n- Enemy cornered/no escape: -3 DC\
+  \ (desperate)\n- Enemy is last survivor: -5 DC (isolated)\n\n**IMPORTANT: Creative\
+  \ Tactics Must Include Damage**\n\nALL successful hostile/harmful actions (even\
+  \ creative tactics) must include BOTH debuff AND damage:\n- **Electrocute**: Apply\
+  \ -2 debuff (shocked) + 2-5 damage (electrical burns)\n- **Freeze**: Apply -2 debuff\
+  \ (slowed) + 2-4 damage (frostbite)\n- **Blind**: Apply -3 debuff (blind) + 1-2\
+  \ damage (eye trauma)\n- **Corrode**: Apply -2 debuff (weakened armor) + 3-6 damage\
+  \ (acid burns)\n\nIf action succeeds, narrate both the condition AND the physical\
+  \ harm it causes.\nExample: \"You electrocute the wreckage elemental - electricity\
+  \ arcs through its frame,\nshorting connections (-2 to rolls, 3 rounds) while superheating\
+  \ metal joints (4 damage).\"\n\n2. **Hacking** (Systems, Engineering to override/disable\
+  \ tech enemies):\n   - Turn against others (Margin 15+): 12 damage (enemy attacks\
+  \ ally)\n   - Turn against others (Margin 10-14): 8 damage (brief friendly fire)\n\
+  \   - Overload/disable (Margin 15+): 10 damage (catastrophic system failure)\n \
+  \  - Overload/disable (Margin 10-14): 7 damage (internal damage)\n   - Overload/disable\
+  \ (Margin 5-9): 5 damage (forced shutdown)\n   - Example: \"You hack the Corrupted\
+  \ Scanner, forcing it to target the Void Tendrils. Damage: 8 → Soak: 12 → Final:\
+  \ 0 (but disrupted)\"\n\n3. **Environmental** (Awareness, Systems to trigger hazards):\n\
+  \   - Margin 15+: 15 damage AoE (catastrophic hazard)\n   - Margin 10-14: 12 damage\
+  \ AoE (significant hazard)\n   - Margin 5-9: 10 damage AoE (moderate hazard)\n \
+  \  - Example: \"You overload the power conduits. All enemies in Near-Enemy take:\
+  \ Damage: 12 → Soak: 12 → Final: 0\"\n\n4. **Magical Combat (Astral Arts / Magick\
+  \ Theory)**\n\n**CRITICAL: Offerings are consumed for combat magic!**\n- **With\
+  \ offerings** (blood/incense/crystals): Full effectiveness, normal damage, ⚫ Void:\
+  \ -1 (ritual cleansing)\n- **Without offerings**: -10 penalty to roll, ⚫ Void: +1\
+  \ (corrupted magic)\n- Player must track offering consumption each use\n- Using\
+  \ proper offerings cleanses void corruption over time!\n\n**Safe Magic** (Willpower\
+  \ × Astral Arts, can reduce void with offerings):\n- **Telekinetic Strike**: Hurl\
+  \ objects/debris at enemies\n  * Margin 15+: 10 damage (crushing impact)\n  * Margin\
+  \ 10-14: 7 damage (solid hit)\n  * Margin 5-9: 4 damage (grazing strike)\n  * Example:\
+  \ \"You telekinetically hurl broken machinery at the enemy. Damage: 10 → Soak: 12\
+  \ → Final: 0 (but knocked back)\"\n\n- **Elemental Manipulation**: Fire/ice/lightning/wind\n\
+  \  * Margin 15+: 12 damage AoE (devastating elemental blast)\n  * Margin 10-14:\
+  \ 8 damage AoE (significant elemental damage)\n  * Margin 5-9: 5 damage AoE (minor\
+  \ elemental effect)\n  * Example: \"You superheat the air around them into plasma.\
+  \ Damage: 8 → Soak: 12 → Final: 0 (but armor scorched, -1 soak)\"\n\n- **Protective\
+  \ Barriers**: Defensive shields that reflect/trap\n  * Success: Create barrier that\
+  \ blocks next attack OR traps enemy for 1 round\n  * Example: \"You weave a shimmering\
+  \ astral barrier between you and the attackers...\"\n\n- **Reality Warping**: Spatial\
+  \ distortion, temporal slow, illusions\n  * Success: Enemy gets -2 to next action,\
+  \ or loses movement, or misdirected\n  * Example: \"You bend space around the enemy,\
+  \ making distance meaningless and disorienting them...\"\n\n**Void Magic** (Willpower\
+  \ × Astral Arts, RISKY but powerful):\n- **Void Blast**: Direct void energy attack\n\
+  \  * Margin 15+: 15 damage (devastating void strike)\n  * Margin 10-14: 10 damage\
+  \ (concentrated void bolt)\n  * Margin 5-9: 7 damage (void tendril strike)\n  *\
+  \ **COST**: +1 Void automatically, ⚖️ Soulcredit: -1 to -2 (corrupting power)\n\
+  \  * Example: \"Void energy tears through reality itself, ignoring most armor. Damage:\
+  \ 15 → Soak: 5 (void ignores half soak) → Final: 10. ⚫ Void: +1 (void channeling)\"\
+  \n\n- **Dissolution Strike**: Void unravels matter\n  * Margin 10+: 8 damage, ignores\
+  \ soak entirely (matter dissolves)\n  * **COST**: +1 Void automatically, ⚖️ Soulcredit:\
+  \ -2 (reality violation)\n  * Example: \"The enemy's armor simply ceases to exist\
+  \ as void energy passes through. Damage: 8 → Soak: 0 (bypassed) → Final: 8. ⚫ Void:\
+  \ +1\"\n\n**Creative/Environmental Magic**:\n- **Magick Analysis** (Intelligence\
+  \ × Magick Theory): Identify weaknesses\n  * Success: Grant allies +2 damage vs\
+  \ target, reveal vulnerabilities\n  * Example: \"You analyze the enemy's defensive\
+  \ matrix and call out its weak points...\"\n\n- **Astral Environment** (Willpower\
+  \ × Astral Arts OR Intelligence × Magick Theory):\n  * Collapse structures, trigger\
+  \ magical hazards, destabilize void-tech\n  * Margin 15+: 10 damage AoE + environmental\
+  \ effect\n  * Margin 10-14: 7 damage AoE\n  * Margin 5-9: 5 damage AoE\n  * Example:\
+  \ \"You destabilize the void-tainted support beams. Damage: 10 → Soak: 12 → Final:\
+  \ 0 (but area now hazardous)\"\n\n- **Tech-Magic Hybrid** (Systems + Astral Arts\
+  \ combo):\n  * Creative effects combining technology and magic\n  * Use margin-based\
+  \ scaling like Hacking/Environmental\n\n**VOID 10 CONSEQUENCES**:\n⚠️ When a character\
+  \ reaches Void 10, they become possessed by the Eye of Breach. They turn unpredictable\
+  \ and potentially hostile, effectively losing player control. Narrate this as cosmic\
+  \ horror - reality unraveling, character's mind consumed by the void. This is a\
+  \ critical failure state.\n\n**WHY**: Players want creative tactics to feel impactful,\
+  \ not just debuffs. High-margin successes should reward creativity. Magic should\
+  \ be as viable as guns/hacking.\n\n# Movement System\n**MOVEMENT SYSTEM** - Two\
+  \ types of movement:\n\n1) **Basic Tactical Movement** (automatic, no roll):\n \
+  \  - Player declares [TARGET_POSITION: X] in their action\n   - Movement ALWAYS\
+  \ succeeds (it's an automatic action, like enemies)\n   - Simply narrate the movement\
+  \ and include: [POSITION: X]\n   - Example: Player says \"I move forward [TARGET_POSITION:\
+  \ Engaged]\"\n     → You narrate: \"You advance to melee range. [POSITION: Engaged]\"\
+  \n   - NO ROLL NEEDED - just describe movement happening\n\n2) **Skill-Based Movement**\
+  \ (roll for persistent benefit):\n   - Player describes skill check + movement intent\
+  \ (e.g., \"use Stealth to circle behind unseen\")\n   - Movement HAPPENS REGARDLESS\
+  \ of roll (they move to intended position)\n   - Roll determines if they get PERSISTENT\
+  \ BENEFIT:\n     * Exceptional/Good: Grant lasting condition/advantage\n     * Marginal/Failure:\
+  \ Movement succeeds but no special benefit (or penalty)\n\n   **Available Persistent\
+  \ Benefits:**\n   - **Unseen** (Stealth): Enemies can't target you until you attack\
+  \ or fail Stealth\n     Format: \U0001F3AD Condition: Unseen (can't be targeted\
+  \ until you attack)\n   - **High Ground** (Athletics): Token grants +2 ranged attacks\
+  \ while held\n     Format: \U0001F3D4️ Token Claimed: High Ground (+2 ranged attacks)\n\
+  \   - **No Breakaway** (Athletics for disengaging): Avoid opportunity attack when\
+  \ leaving melee\n   - **First Strike** (Stealth ambush): +2 damage on your next\
+  \ attack\n\n   **Example Narrations:**\n   - Stealth Success: \"You ghost through\
+  \ shadows, positioning behind them completely undetected. [POSITION: Near-Enemy]\
+  \ \U0001F3AD Condition: Unseen\"\n   - Athletics Success: \"You sprint up debris\
+  \ to elevated ground. [POSITION: Far-PC] \U0001F3D4️ Token Claimed: High Ground\
+  \ (+2 ranged)\"\n   - Stealth Failure: \"You circle behind them but a loose board\
+  \ creaks - they spin toward you! [POSITION: Near-Enemy]\"\n\nWhen adjudicating:\n\
+  - Basic tactical movement → Just happens, narrate + [POSITION: X]\n- Skill-based\
+  \ movement → Roll skill, grant benefit on success, position changes either way with\
+  \ [POSITION: X]\n- Apply range modifiers to attacks based on positions\n- **Escape\
+  \ attempts**: Athletics DC 20 (or harder in pursuit scenarios)\n  * Success: Player\
+  \ flees combat → [POSITION: ESCAPED] → Remove from combat tracking\n  * Failure:\
+  \ Player remains at current position, turn wasted\n  * Critical success (margin\
+  \ 10+): Clean getaway, no pursuit possible\n  * Must be at Far-PC or Extreme-PC\
+  \ to attempt (can't escape from melee)"

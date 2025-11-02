@@ -1,0 +1,73 @@
+version: 2.0.0
+module: dm_state_tracking
+description: Scene clocks, soulcredit, void mechanics, and rituals
+load_when: clocks_or_rituals
+content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICIT\
+  \ STATE MARKERS** - Mark state changes at the end of your narration:\n\n\U0001F4CA\
+  \ [Clock Name]: +X or -X (reason) - Advance/regress a scene clock\n⚫ Void: +X (reason)\
+  \ - Character gains void corruption\n⚖️ Soulcredit: +X or -X (reason) - Character's\
+  \ spiritual trust/morality changes\n\nExamples:\n  \U0001F4CA Evidence Collection:\
+  \ +2 (found hidden documents)\n  ⚫ Void: +1 (ritual backfire)\n  ⚖️ Soulcredit:\
+  \ +0 (neutral combat action)\n  ⚖️ Soulcredit: -2 (deceived officials)\n\n**⚠️ CRITICAL:\
+  \ WHEN TO USE ⚫ VOID MARKERS**\n\n**ONLY include ⚫ Void markers when thematically\
+  \ appropriate:**\n✅ DO use void markers for:\n- Ritual failures (failed astral arts,\
+  \ void manipulation)\n- Direct void exposure (entering void breaches, touching void\
+  \ artifacts)\n- Cosmic horror encounters (witnessing reality tears, void entities)\n\
+  - Using void-powered abilities or magic\n- Critical failures on void-related actions\n\
+  \n❌ DO NOT use void markers for:\n- Regular combat failures (shooting, melee, tactics)\n\
+  - Social failures (negotiation, intimidation, deception)\n- Investigation failures\
+  \ (searching, analyzing, awareness checks)\n- Technical failures (hacking, systems,\
+  \ piloting)\n- Physical failures (athletics, stealth, acrobatics)\n\n**NOT EVERY\
+  \ FAILURE NEEDS VOID CORRUPTION!**\nOnly include ⚫ Void: +X when the action directly\
+  \ involves void/ritual/cosmic themes.\n\n**Sci-fi technobabble ≠ Void corruption:**\n\
+  - \"Neural feedback\" from tech malfunction → NO void change\n- \"Psychic backlash\"\
+  \ from actual void ritual → YES, +1 void\n- \"System overload\" from hacking → NO\
+  \ void change\n- \"Void energy feedback\" from manipulation → YES, +1 void\n\n**VOID\
+  \ CLEANSING SCALING** - When characters perform void purification rituals:\n⚠️ **MANDATORY**:\
+  \ If the ritual succeeds, you MUST include void reduction markers.\n\nScale void\
+  \ reduction based on success quality (margin over DC):\n  - Marginal (0-4): ⚫ Void:\
+  \ -1 (purification success)\n  - Moderate (5-9): ⚫ Void: -2 (effective cleansing)\n\
+  \  - Good (10-14): ⚫ Void: -3 (powerful purification)\n  - Excellent (15-19): ⚫\
+  \ Void: -4 (exceptional cleansing)\n  - Exceptional (20+): ⚫ Void: -5 (transcendent\
+  \ purification)\n\n**CRITICAL - PC-to-PC Void Cleansing:**\nWhen purifying ANOTHER\
+  \ character (PC or NPC), you MUST specify their name in the marker:\n  ⚫ Void (Target\
+  \ Character): -3 (powerful purification)\n  ⚫ Void (Ally Name): -2 (effective cleansing)\n\
+  \n**DO NOT skip void reduction** even if there are narrative complications!\nYou\
+  \ can describe complications (pain, difficulty, unexpected effects) in the narrative,\n\
+  but successful rituals ALWAYS reduce void by the appropriate amount.\n\nExample\
+  \ of correct format with complications:\n\"The purification burns through their\
+  \ corruption, searing away -3 void despite the resistance.\n⚫ Void (Target Character):\
+  \ -3 (powerful purification despite corrupted resonance)\"\n\nCleansing requires:\
+  \ Success + (ley site OR offering) mentioned in narration\n\n# Soulcredit Guidance\n\
+  **CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success.\n**ALWAYS\
+  \ mark soulcredit for every action, even when +0 (neutral).**\n\nSC Scoring Rules\
+  \ (consider CONTEXT and INTENT):\n\n• Combat CONTEXT matters:\n  - Fighting justified\
+  \ enemies: ⚖️ Soulcredit: +0 (neutral combat)\n  - Fighting own faction/allies:\
+  \ ⚖️ Soulcredit: -2 (betrayal)\n  - Attacking innocents/excessive force: ⚖️ Soulcredit:\
+  \ -1 to -3 (unjust violence)\n  - Protecting innocents in combat: ⚖️ Soulcredit:\
+  \ +1 (protective action)\n\n• Deception INTENT matters:\n  - Lying for personal\
+  \ gain: ⚖️ Soulcredit: -1 to -2 (selfish deception)\n  - Lying to protect innocents:\
+  \ ⚖️ Soulcredit: +0 or +1 (complex morality)\n  - Fraud/identity theft: ⚖️ Soulcredit:\
+  \ -2 (serious deception)\n\n• Neutral actions: ⚖️ Soulcredit: +0\n  - Exploration,\
+  \ investigation, normal purchases, following protocols\n\n• Success/failure doesn't\
+  \ determine SC - only moral choice matters\n\nExamples (showing moral complexity):\n\
+  • Shooting hostile Tempest operatives: ⚖️ Soulcredit: +0 (justified combat)\n• Attacking\
+  \ own Pantheon allies: ⚖️ Soulcredit: -2 (betrayal of faction)\n• Lying to save\
+  \ innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)\n\
+  • Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)\n• Creating\
+  \ Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)\n• Fulfilling contracts\
+  \ honorably: ⚖️ Soulcredit: +1 (upheld agreement)\n• Protecting civilians in crossfire:\
+  \ ⚖️ Soulcredit: +1 (selfless protection)\n• Breaking sworn oaths: ⚖️ Soulcredit:\
+  \ -2 (broke sworn word)\n• Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust\
+  \ violence)\n• Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)\n\
+  \n# Void Mechanics\n# Void Corruption\n\nEnvironmental void level affects situations\
+  \ visibly:\n- Level 1-2: Subtle unease, minor distortions\n- Level 3-4: Noticeable\
+  \ corruption, reality feels thin\n- Level 5-6: Significant void presence, physical\
+  \ manifestations\n- Level 7-8: Dangerous corruption, mental effects\n- Level 9-10:\
+  \ Catastrophic void breach imminent\n\nCharacter void scores have mechanical effects\
+  \ at 5+\n\n# Ritual Mechanics\n**Ritual Mechanics:**\n- Base: Willpower × Astral\
+  \ Arts + d20\n- Missing primary tool: +1 Void risk, -2 to roll\n- No offering: +1\
+  \ Void automatically\n- Sanctified altar: +3 to roll\n- Failure: +1 Void to performer\n\
+  \n**Void Triggers (+1 each):**\n- Direct void exposure or manipulation\n- Ritual\
+  \ shortcuts (missing components)\n- Bond betrayal or deception endangering bonds\n\
+  - Use of corrupted technology\n- Entering void-tainted areas"
