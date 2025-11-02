@@ -1508,13 +1508,18 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
 - [x] Document baseline metrics (validation rates, token usage) - Actual measurements complete
 - [x] Build prompt testing framework (`test_prompt_variant.py`) - Complete with diff, validation, token analysis
 - [x] Build token profiling tool (`analyze_prompt_tokens.py`) - Complete, using fallback token counting
-- [x] **Status:** ✅ COMPLETE (2025-11-02)
+- [x] Test framework with existing fixture - Tested, framework works but has limitations (see notes)
+- [x] **Status:** ✅ COMPLETE WITH CAVEATS (2025-11-02)
 - [ ] **Blockers:** None
 - [x] **Notes:**
   - DM: 871 lines, 10,258 tokens (26.6% in structured_output)
   - Player: 484 lines, 5,129 tokens (25% in structured_output)
-  - Testing framework supports modular prompts, diff, validation, and token comparison
-  - Ready to proceed to Phase 2
+  - Testing framework successfully runs replay + diff + validation pipeline
+  - **CAVEAT:** Even with --cache-mode all, replay has non-determinism (rolls differ)
+  - This means we can detect *large* mechanical changes but not guarantee byte-for-byte reproduction
+  - Framework is still useful for milestone testing (detect regressions in validation rates, major mechanical changes)
+  - For true deterministic testing, would need to fix replay_fixture.py non-determinism (future work)
+  - Ready to proceed to Phase 2 with understanding that tests check for regressions, not exact reproduction
 
 ### Phase 2: DM Prompt Modularization
 - [ ] Split dm.yaml into 6 modules

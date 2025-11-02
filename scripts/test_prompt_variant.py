@@ -410,12 +410,15 @@ def print_report(report: Dict[str, Any]):
     print(f"  Schema Success Rate: {results['schema_success_rate']*100:.1f}%")
     print()
 
-    token_usage = report['token_usage']
-    print("TOKEN USAGE:")
-    print(f"  Total: {token_usage['total_tokens']:,}")
-    print(f"  Avg per round: {token_usage['avg_tokens_per_round']:,.0f}")
-    print(f"  DM: {token_usage['dm_tokens']:,}")
-    print(f"  Players: {token_usage['player_tokens']:,}")
+    token_usage = report.get('token_usage', {})
+    if token_usage and token_usage.get('total_tokens', 0) > 0:
+        print("TOKEN USAGE:")
+        print(f"  Total: {token_usage['total_tokens']:,}")
+        print(f"  Avg per round: {token_usage['avg_tokens_per_round']:,.0f}")
+        print(f"  DM: {token_usage['dm_tokens']:,}")
+        print(f"  Players: {token_usage['player_tokens']:,}")
+    else:
+        print("TOKEN USAGE: (not analyzed)")
 
     if report['token_comparison']:
         comp = report['token_comparison']
