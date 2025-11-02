@@ -123,8 +123,8 @@
       "created_by_commit": "b8b4e3e",
       "purpose": "Regression fixture documenting spawn_enemy_from_template import crash. Cultist Reinforcements clock fills in round 12, triggering enemy spawn attempt that would crash with old import bug.",
       "scenario": "Void Convergence Investigation (mixed) @ Abandoned Nexus Research Station - Sublevel 7",
-      "rounds": 5,
-      "rounds_range": "8-12",
+      "rounds": 12,
+      "rounds_range": "0-12",
       "players": 4,
       "enemies": 0,
       "has_player_llm_calls": true,
@@ -133,7 +133,7 @@
       "used_by_tests": [
         "tests/unit/test_enemy_spawn_structured.py"
       ],
-      "notes": "Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
+      "notes": "Re-extracted from round 0 for replay compatibility (LLM call_sequence starts at 0). Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
     }
   },
   "statistics": {

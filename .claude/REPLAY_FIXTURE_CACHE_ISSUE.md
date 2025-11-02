@@ -118,12 +118,25 @@ The enemy spawn fix is already verified by comprehensive unit tests in `test_ene
 - Unit tests: `tests/unit/test_enemy_spawn_structured.py`
 - MANIFEST: `tests/fixtures/sessions/MANIFEST.json`
 
-## Next Steps
+## Resolution (2025-11-02)
 
-1. Implement Option 3 (fixture transformation tool) or add `--remap-llm-indices` flag to `extract_fixture.py`
-2. Test replay with remapped indices
-3. Update `MANIFEST.json` to document which fixtures use relative vs absolute indices
-4. Add replay integration test to CI to catch future regressions
+**Root Cause:** Fixture was extracted from rounds 8-12 (mid-session), causing LLM `call_sequence` to start from 7+ instead of 0.
+
+**Solution:** Re-extracted fixture from rounds 0-12 using:
+```bash
+python scripts/extract_fixture.py \
+  multiagent_output/session_2f34635a-24ee-4bf7-8c01-1faab6d42d25.jsonl \
+  --rounds 0-12 \
+  --output tests/fixtures/sessions/regression_combat_cultist_spawn_bug.jsonl \
+  --overwrite
+```
+
+**Result:**
+- ✅ LLM call_sequence now starts from 0
+- ✅ Replay with --all-cached works successfully (114 LLM calls cached, no cache misses)
+- ✅ Updated MANIFEST.json to reflect rounds 0-12
+
+**Key Insight:** When extracting fixtures for replay testing, always extract from round 0 to ensure call_sequence indices are sequential from 0. This avoids cache key misalignment without requiring complex remapping logic.
 
 ---
 

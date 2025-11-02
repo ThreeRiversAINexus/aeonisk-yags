@@ -409,8 +409,15 @@ class JSONLLogger:
         }
         self._write_event(event)
 
-    def log_synthesis(self, round_num: int, synthesis: str):
-        """Log round synthesis narrative."""
+    def log_synthesis(self, round_num: int, synthesis: str, structured_synthesis=None):
+        """Log round synthesis narrative and optional structured data.
+
+        Args:
+            round_num: Current round number
+            synthesis: Narrative text from DM
+            structured_synthesis: Optional RoundSynthesis Pydantic model with
+                                story_advancement, scene_pivot, enemy_spawns, etc.
+        """
         event = {
             "event_type": "round_synthesis",
             "ts": datetime.now().isoformat(),
@@ -418,6 +425,30 @@ class JSONLLogger:
             "round": round_num,
             "synthesis": synthesis
         }
+
+        # Add structured fields if available
+        if structured_synthesis:
+            # Add story_advancement if present
+            if structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance:
+                event["story_advancement"] = {
+                    "should_advance": True,
+                    "location": structured_synthesis.story_advancement.location,
+                    "situation": structured_synthesis.story_advancement.situation,
+                    "new_void_level": structured_synthesis.story_advancement.new_void_level,
+                    "clear_all_enemies": structured_synthesis.story_advancement.clear_all_enemies,
+                    "new_clocks": [clock.model_dump() for clock in structured_synthesis.story_advancement.new_clocks]
+                }
+
+            # Add scene_pivot if present
+            if structured_synthesis.scene_pivot and structured_synthesis.scene_pivot.should_pivot:
+                event["scene_pivot"] = {
+                    "should_pivot": True,
+                    "new_room": structured_synthesis.scene_pivot.new_room,
+                    "situation_change": structured_synthesis.scene_pivot.situation_change,
+                    "clear_specific_clocks": structured_synthesis.scene_pivot.clear_specific_clocks,
+                    "new_clocks": [clock.model_dump() for clock in structured_synthesis.scene_pivot.new_clocks]
+                }
+
         self._write_event(event)
 
     def log_event(self, event_type: str, data: Dict[str, Any], round_num: int):

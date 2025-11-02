@@ -278,15 +278,21 @@ class HybridMessages:
             logger.debug(f"HybridMessages: Round {self.current_round} <= {self.continue_from_round}, using MOCK")
             return self.mock_messages.create(model, messages, temperature, max_tokens, **kwargs)
         else:
-            # Make real API call
-            logger.info(f"HybridMessages: Round {self.current_round} > {self.continue_from_round}, using REAL LLM")
-            return self.real_client.messages.create(
+            # Make real API call with rate limiting
+            logger.info(f"HybridMessages: Round {self.current_round} > {self.continue_from_round}, using REAL LLM (rate-limited)")
+            from .llm_provider import call_anthropic_with_retry
+            import asyncio
+
+            # call_anthropic_with_retry is async, need to run it
+            response = asyncio.run(call_anthropic_with_retry(
+                client=self.real_client,
                 model=model,
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 **kwargs
-            )
+            ))
+            return response
 
 
 class HybridLLMClient:

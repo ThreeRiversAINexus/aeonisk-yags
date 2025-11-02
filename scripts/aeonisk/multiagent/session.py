@@ -2296,27 +2296,29 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             self._synthesis_complete.set()
             logger.debug("Round synthesis received, signaling completion")
 
-            # Log round synthesis for narrative reconstruction
+            # Check for structured synthesis (Phase 5: Pydantic AI migration)
+            structured_synthesis_data = message.payload.get('structured_synthesis')
+            structured_synthesis = None
+
+            if structured_synthesis_data:
+                # Deserialize dict back to Pydantic model
+                from .schemas.story_events import RoundSynthesis
+                structured_synthesis = RoundSynthesis(**structured_synthesis_data)
+                # Process structured synthesis (no marker parsing!)
+                self._process_structured_synthesis(structured_synthesis)
+            else:
+                # Legacy marker parsing path
+                self._process_legacy_markers(narration)
+
+            # Log round synthesis for narrative reconstruction (with structured data if available)
             mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
             round_num = message.payload.get('round', mechanics.current_round if mechanics else 0)
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_synthesis(
                     round_num=round_num,
-                    synthesis=narration
+                    synthesis=narration,
+                    structured_synthesis=structured_synthesis
                 )
-
-        # Check for structured synthesis (Phase 5: Pydantic AI migration)
-        structured_synthesis_data = message.payload.get('structured_synthesis')
-
-        if structured_synthesis_data:
-            # Deserialize dict back to Pydantic model
-            from .schemas.story_events import RoundSynthesis
-            synthesis = RoundSynthesis(**structured_synthesis_data)
-            # Process structured synthesis (no marker parsing!)
-            self._process_structured_synthesis(synthesis)
-        else:
-            # Legacy marker parsing path
-            self._process_legacy_markers(narration)
 
 
 # Configuration example
