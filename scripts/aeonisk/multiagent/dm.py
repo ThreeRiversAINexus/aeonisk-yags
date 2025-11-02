@@ -339,12 +339,12 @@ CLOCK5: Void Resonance | 4 | Growing instability | ADVANCE=Resonance intensifies
 - **Scenario markers** for narrative progression: [ADVANCE_STORY: Location | Situation], [NEW_CLOCK: ...]
 
 **ENEMY SPAWNING**: For combat/danger clocks, add enemy spawn markers to FILLED consequences:
-- Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
+- Syntax: [SPAWN_ENEMY: name | template | position | tactics]
 - Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
 - Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
 - Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
 - Use for: Security teams, void creatures, gang members, hostile factions, corrupted entities
-- Example: [SPAWN_ENEMY: Security Team | grunt | 2 | Far-Enemy | tactical_ranged]
+- Example: [SPAWN_ENEMY: Security Team | grunt | Far-Enemy | tactical_ranged]
 
 **ENEMY DESPAWNING**: For escape/retreat clocks, add despawn markers:
 - Syntax: [DESPAWN_ENEMY: enemy_name | reason]
@@ -939,21 +939,21 @@ IMPORTANT:
             {
                 'theme': 'Overwhelming Ambush',
                 'location': 'Kill Zone - Abandoned Transit Hub (Arcadia)',
-                'situation': 'You\'ve been lured into a trap. A hostile assault team rushes you from close range while covering fire comes from above. You need to break through or take them down fast. [SPAWN_ENEMY: Assault Team | grunt | 2 | Near-Enemy | aggressive_melee]',
+                'situation': 'You\'ve been lured into a trap. A hostile assault team rushes you from close range while covering fire comes from above. You need to break through or take them down fast. [SPAWN_ENEMY: Assault Team | grunt | Near-Enemy | aggressive_melee]',
                 'void_level': 4,
                 'clocks': [
                     ('Tactical Withdrawal', 6, 'Finding a way to escape the kill zone', 'ADVANCE=Spotting escape routes', 'REGRESS=Enemies cutting off exits', 'FILLED=You find an escape route!'),
-                    ('Enemy Reinforcements', 10, 'Backup being called in', 'ADVANCE=Enemies calling for backup', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Enemy Reinforcements', 10, 'Backup being called in', 'ADVANCE=Enemies calling for backup', 'REGRESS=Delaying reinforcements', 'FILLED=Second wave arrives! [SPAWN_ENEMY: Reserve Forces | grunt | Far-Enemy | tactical_ranged]'),
                     ('Critical Wounds', 4, 'Party members taking severe injuries')
                 ]
             },
             {
                 'theme': 'Gang Ambush',
                 'location': 'Undercity Maintenance Tunnels (Arcadia)',
-                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions. [SPAWN_ENEMY: Gang Ambushers | grunt | 2 | Near-Enemy | aggressive_melee]',
+                'situation': 'A Freeborn gang has set up an ambush - they think you\'re rival dealers. Muzzle flashes illuminate the darkness as they open fire from concealed positions. [SPAWN_ENEMY: Gang Ambushers | grunt | Near-Enemy | aggressive_melee]',
                 'void_level': 3,
                 'clocks': [
-                    ('Reinforcements Arriving', 10, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Far-Enemy | defensive_ranged]'),
+                    ('Reinforcements Arriving', 10, 'More gang members responding to gunfire', 'ADVANCE=More gang members hear the firefight', 'REGRESS=Silencing the gang', 'FILLED=Gang backup arrives! [SPAWN_ENEMY: Gang Reinforcements | grunt | Far-Enemy | defensive_ranged]'),
                     ('Escape Route', 4, 'Tunnel collapse blocking exit'),
                     ('Civilian Panic', 4, 'Nearby residents calling Pantheon Security')
                 ]
@@ -961,43 +961,43 @@ IMPORTANT:
             {
                 'theme': 'Hostile Extraction',
                 'location': 'Pantheon Detention Facility (Aeonisk Prime)',
-                'situation': 'Security forces have been alerted to your presence. Riot carapace troops are advancing down the corridor, shock batons crackling. You need to fight your way out. [SPAWN_ENEMY: Riot Troops | grunt | 2 | Near-Enemy | defensive_ranged]',
+                'situation': 'Security forces have been alerted to your presence. Riot carapace troops are advancing down the corridor, shock batons crackling. You need to fight your way out. [SPAWN_ENEMY: Riot Troops | grunt | Near-Enemy | defensive_ranged]',
                 'void_level': 2,
                 'clocks': [
                     ('Lockdown Protocol', 4, 'Facility sealing all exits'),
-                    ('Security Reinforcements', 10, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | grunt | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Security Reinforcements', 10, 'Tactical teams deploying', 'ADVANCE=More security responding', 'REGRESS=Evading security', 'FILLED=Tactical team arrives! [SPAWN_ENEMY: Security Tacticals | grunt | Far-Enemy | tactical_ranged]'),
                     ('Asset Extraction', 4, 'Getting your contact out before they\'re moved')
                 ]
             },
             {
                 'theme': 'Void Creature Attack',
                 'location': 'Collapsed Ley Nexus (Nimbus)',
-                'situation': 'Void-touched creatures emerge from a breach in reality - warped humanoid forms with too many limbs, their bodies flickering between states. They\'re hostile and closing fast. [SPAWN_ENEMY: Void Spawn | grunt | 2 | Near-Enemy | aggressive_melee]',
+                'situation': 'Void-touched creatures emerge from a breach in reality - warped humanoid forms with too many limbs, their bodies flickering between states. They\'re hostile and closing fast. [SPAWN_ENEMY: Void Spawn | grunt | Near-Enemy | aggressive_melee]',
                 'void_level': 7,
                 'clocks': [
                     ('Breach Expansion', 4, 'Reality tear growing larger'),
-                    ('Creature Swarm', 5, 'More entities emerging from void', 'ADVANCE=Breach widening, more creatures', 'REGRESS=Sealing the breach', 'FILLED=Void swarm pours through! [SPAWN_ENEMY: Void Horrors | grunt | 2 | Engaged | aggressive_melee]'),
+                    ('Creature Swarm', 5, 'More entities emerging from void', 'ADVANCE=Breach widening, more creatures', 'REGRESS=Sealing the breach', 'FILLED=Void swarm pours through! [SPAWN_ENEMY: Void Horrors | grunt | Engaged | aggressive_melee]'),
                     ('Void Exposure', 4, 'Environmental corruption affecting party')
                 ]
             },
             {
                 'theme': 'Faction Firefight',
                 'location': 'Contested Transit Hub (Floating Exchange)',
-                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy. You\'re caught in the crossfire - the pirates open fire thinking you\'re ACG backup. [SPAWN_ENEMY: Freeborn Pirates | grunt | 2 | Near-Enemy | tactical_ranged]',
+                'situation': 'Freeborn pirates are raiding an ACG debt collection convoy. You\'re caught in the crossfire - the pirates open fire thinking you\'re ACG backup. [SPAWN_ENEMY: Freeborn Pirates | grunt | Near-Enemy | tactical_ranged]',
                 'void_level': 3,
                 'clocks': [
                     ('Freeborn Escape', 4, 'Pirates fighting their way to ships', 'ADVANCE=Pirates advancing toward escape route', 'REGRESS=Blocking pirate escape', 'FILLED=Pirates successfully disengage and escape! [DESPAWN_ENEMY: Freeborn Pirates | escaped]'),
                     ('ACG Asset Seizure', 4, 'ACG trying to secure cargo'),
-                    ('Pantheon Response', 5, 'Security arriving', 'ADVANCE=Pantheon forces mobilizing', 'REGRESS=Delaying security', 'FILLED=Pantheon tactical team arrives! [SPAWN_ENEMY: Pantheon Squad | grunt | 2 | Extreme-Enemy | tactical_ranged]')
+                    ('Pantheon Response', 5, 'Security arriving', 'ADVANCE=Pantheon forces mobilizing', 'REGRESS=Delaying security', 'FILLED=Pantheon tactical team arrives! [SPAWN_ENEMY: Pantheon Squad | grunt | Extreme-Enemy | tactical_ranged]')
                 ]
             },
             {
                 'theme': 'Defense Stand',
                 'location': 'Resonance Commune Sanctuary (Nimbus)',
-                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls. [SPAWN_ENEMY: Initial Raiders | grunt | 2 | Near-Enemy | aggressive_melee]',
+                'situation': 'The sanctuary is under assault by void-corrupted raiders. You must hold the perimeter while civilians evacuate through the back routes. They\'re breaking through the outer walls. [SPAWN_ENEMY: Initial Raiders | grunt | Near-Enemy | aggressive_melee]',
                 'void_level': 5,
                 'clocks': [
-                    ('Raider Reinforcements', 10, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | 2 | Near-Enemy | aggressive_melee]'),
+                    ('Raider Reinforcements', 10, 'Second wave incoming', 'ADVANCE=More raiders arriving', 'REGRESS=Slowing reinforcements', 'FILLED=Second wave breaches! [SPAWN_ENEMY: Void Raiders | grunt | Near-Enemy | aggressive_melee]'),
                     ('Civilian Evacuation', 5, 'Getting non-combatants to safety'),
                     ('Void Corruption', 4, 'Raiders spreading corruption')
                 ]
@@ -1005,10 +1005,10 @@ IMPORTANT:
             {
                 'theme': 'Assassination Attempt',
                 'location': 'ACG Executive Tower (Aeonisk Prime)',
-                'situation': 'Hostile operatives have breached the building - they\'re here to kill someone you\'re protecting. Professional killers with military-grade weapons, moving through the floors toward your position. [SPAWN_ENEMY: Advance Scouts | grunt | 2 | Far-Enemy | tactical_ranged]',
+                'situation': 'Hostile operatives have breached the building - they\'re here to kill someone you\'re protecting. Professional killers with military-grade weapons, moving through the floors toward your position. [SPAWN_ENEMY: Advance Scouts | grunt | Far-Enemy | tactical_ranged]',
                 'void_level': 2,
                 'clocks': [
-                    ('Assassin Reinforcements', 10, 'More killers deploying', 'ADVANCE=Backup team getting closer', 'REGRESS=Delaying reinforcements', 'FILLED=Elite hit team arrives! [SPAWN_ENEMY: Professional Hit Team | elite | 2 | Far-Enemy | tactical_ranged]'),
+                    ('Assassin Reinforcements', 10, 'More killers deploying', 'ADVANCE=Backup team getting closer', 'REGRESS=Delaying reinforcements', 'FILLED=Elite hit team arrives! [SPAWN_ENEMY: Professional Hit Team | elite | Far-Enemy | tactical_ranged]'),
                     ('Building Lockdown', 4, 'Security systems being hacked'),
                     ('Extraction Window', 4, 'Opportunity to escape closing')
                 ]
@@ -1016,10 +1016,10 @@ IMPORTANT:
             {
                 'theme': 'Siege Breakout',
                 'location': 'Surrounded Safe House (Arcadia)',
-                'situation': 'You\'re pinned down in a safe house. Pantheon Security has the building surrounded with riot teams, drones, and heavy weapons. They\'re demanding surrender, but you know too much to be taken alive. [SPAWN_ENEMY: Siege Perimeter | grunt | 3 | Far-Enemy | defensive_ranged]',
+                'situation': 'You\'re pinned down in a safe house. Pantheon Security has the building surrounded with riot teams, drones, and heavy weapons. They\'re demanding surrender, but you know too much to be taken alive. [SPAWN_ENEMY: Siege Perimeter | grunt | Far-Enemy | defensive_ranged]',
                 'void_level': 3,
                 'clocks': [
-                    ('Breach Attempt', 3, 'Security forces preparing assault', 'ADVANCE=Preparing to storm the building', 'REGRESS=Fortifying defenses', 'FILLED=Breach team storms in! [SPAWN_ENEMY: Breach Squad | elite | 2 | Near-Enemy | aggressive_melee]'),
+                    ('Breach Attempt', 3, 'Security forces preparing assault', 'ADVANCE=Preparing to storm the building', 'REGRESS=Fortifying defenses', 'FILLED=Breach team storms in! [SPAWN_ENEMY: Breach Squad | elite | Near-Enemy | aggressive_melee]'),
                     ('Supply Depletion', 4, 'Running out of ammo and medical supplies'),
                     ('Negotiation Window', 4, 'Opportunity for peaceful resolution fading')
                 ]
@@ -1027,10 +1027,10 @@ IMPORTANT:
             {
                 'theme': 'Combat Rescue',
                 'location': 'Crashed Transport Ship (Nimbus Wastes)',
-                'situation': 'A transport went down in hostile territory. Survivors are pinned in the wreckage by scavenger gangs and void-touched wildlife. You need to extract them under fire. [SPAWN_ENEMY: Scavenger Scouts | grunt | 3 | Far-Enemy | defensive_ranged]',
+                'situation': 'A transport went down in hostile territory. Survivors are pinned in the wreckage by scavenger gangs and void-touched wildlife. You need to extract them under fire. [SPAWN_ENEMY: Scavenger Scouts | grunt | Far-Enemy | defensive_ranged]',
                 'void_level': 6,
                 'clocks': [
-                    ('Scavenger Reinforcements', 10, 'Main gang arriving', 'ADVANCE=More scavengers coming', 'REGRESS=Driving scavengers away', 'FILLED=Full gang attacks! [SPAWN_ENEMY: Scavenger Gang | grunt | 2 | Near-Enemy | aggressive_melee]'),
+                    ('Scavenger Reinforcements', 10, 'Main gang arriving', 'ADVANCE=More scavengers coming', 'REGRESS=Driving scavengers away', 'FILLED=Full gang attacks! [SPAWN_ENEMY: Scavenger Gang | grunt | Near-Enemy | aggressive_melee]'),
                     ('Void Creatures', 4, 'Corrupted wildlife drawn to the crash'),
                     ('Survivor Casualties', 5, 'Wounded dying without immediate help')
                 ]
@@ -1038,10 +1038,10 @@ IMPORTANT:
             {
                 'theme': 'Turf War',
                 'location': 'Black Market District (Floating Exchange)',
-                'situation': 'Two rival gangs are going to war over Hollow Seed territory, and you\'re in the kill zone. Automatic weapons fire tears through the market stalls as both sides fight for control. [SPAWN_ENEMY: Red Coil Gang | grunt | 2 | Near-Enemy | aggressive_melee] [SPAWN_ENEMY: Void Saints | grunt | 2 | Far-Enemy | tactical_ranged]',
+                'situation': 'Two rival gangs are going to war over Hollow Seed territory, and you\'re in the kill zone. Automatic weapons fire tears through the market stalls as both sides fight for control. [SPAWN_ENEMY: Red Coil Gang | grunt | Near-Enemy | aggressive_melee] [SPAWN_ENEMY: Void Saints | grunt | Far-Enemy | tactical_ranged]',
                 'void_level': 4,
                 'clocks': [
-                    ('Gang Escalation', 10, 'Both sides calling reinforcements', 'ADVANCE=More gang members arriving', 'REGRESS=Dispersing the gangs', 'FILLED=Full gang war erupts! [SPAWN_ENEMY: Gang Reinforcements | grunt | 2 | Engaged | aggressive_melee]'),
+                    ('Gang Escalation', 10, 'Both sides calling reinforcements', 'ADVANCE=More gang members arriving', 'REGRESS=Dispersing the gangs', 'FILLED=Full gang war erupts! [SPAWN_ENEMY: Gang Reinforcements | grunt | Engaged | aggressive_melee]'),
                     ('Civilian Casualties', 4, 'Bystanders caught in crossfire'),
                     ('Pantheon Response', 4, 'Security forces mobilizing')
                 ]
@@ -1049,21 +1049,21 @@ IMPORTANT:
             {
                 'theme': 'Facility Assault',
                 'location': 'Tempest Research Station (Orbital)',
-                'situation': 'You\'re leading an assault on a Tempest black site. Automated defenses are active - combat drones, turrets, and security systems. Eye of Breach may be controlling the facility. [SPAWN_ENEMY: Security Drones | grunt | 3 | Far-Enemy | extreme_range]',
+                'situation': 'You\'re leading an assault on a Tempest black site. Automated defenses are active - combat drones, turrets, and security systems. Eye of Breach may be controlling the facility. [SPAWN_ENEMY: Security Drones | grunt | Far-Enemy | extreme_range]',
                 'void_level': 8,
                 'clocks': [
                     ('Defense Systems', 4, 'Automated weapons engaging'),
-                    ('Eye of Breach Activation', 3, 'Rogue AI taking direct control', 'ADVANCE=AI systems coming online', 'REGRESS=Disrupting AI control', 'FILLED=Eye of Breach fully awakens! [SPAWN_ENEMY: AI Combat Units | elite | 2 | Extreme-Enemy | tactical_ranged]'),
+                    ('Eye of Breach Activation', 3, 'Rogue AI taking direct control', 'ADVANCE=AI systems coming online', 'REGRESS=Disrupting AI control', 'FILLED=Eye of Breach fully awakens! [SPAWN_ENEMY: AI Combat Units | elite | Extreme-Enemy | tactical_ranged]'),
                     ('Mission Objective', 5, 'Reaching critical data before destruction')
                 ]
             },
             {
                 'theme': 'Ideological Battle',
                 'location': 'Ley Node Nexus (Aeonisk Prime)',
-                'situation': 'Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order. [SPAWN_ENEMY: Tempest Operatives | grunt | 2 | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: Nexus Enforcers | grunt | 2 | Near-Enemy | defensive_ranged]',
+                'situation': 'Tempest Industries forces are attempting to install unauthorized void-tech at a Sovereign Nexus ley node. Nexus enforcers and Pantheon Security have engaged them in a firefight. Both sides believe their cause justifies violence - void freedom vs spiritual order. [SPAWN_ENEMY: Tempest Operatives | grunt | Far-Enemy | tactical_ranged] [SPAWN_ENEMY: Nexus Enforcers | grunt | Near-Enemy | defensive_ranged]',
                 'void_level': 5,
                 'clocks': [
-                    ('Tempest Installation', 4, 'Void-tech being deployed', 'ADVANCE=Void-tech systems activating', 'REGRESS=Disrupting installation', 'FILLED=Void-tech goes live! [SPAWN_ENEMY: Void-Enhanced Troops | elite | 2 | Near-Enemy | adaptive]'),
+                    ('Tempest Installation', 4, 'Void-tech being deployed', 'ADVANCE=Void-tech systems activating', 'REGRESS=Disrupting installation', 'FILLED=Void-tech goes live! [SPAWN_ENEMY: Void-Enhanced Troops | elite | Near-Enemy | adaptive]'),
                     ('Nexus Purge', 4, 'Cleansing the site by force'),
                     ('Civilian Casualties', 4, 'Bystanders caught in ideological war')
                 ]
@@ -3908,16 +3908,15 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
         if marker_type == "SPAWN_ENEMY":
             format_spec = """
-REQUIRED FORMAT (ALL 5 FIELDS):
-[SPAWN_ENEMY: name | template | count | position | tactics]
+REQUIRED FORMAT (ALL 4 FIELDS):
+[SPAWN_ENEMY: name | template | position | tactics]
 
 **Templates:** grunt, elite, sniper, boss, void_cultist, enforcer
-**Positions:** Near-Enemy, Far-Enemy, Engaged
-**Tactics:** aggressive_melee, aggressive_ranged, defensive, support
-**Count:** 1 or 2 only
+**Positions:** Near-Enemy, Far-Enemy, Engaged, Extreme-Enemy
+**Tactics:** aggressive_melee, aggressive_ranged, defensive, support, tactical_ranged, extreme_range, adaptive
 
 Example:
-[SPAWN_ENEMY: Freeborn Raiders | grunt | 2 | Far-Enemy | aggressive_ranged]
+[SPAWN_ENEMY: Freeborn Raiders | grunt | Far-Enemy | aggressive_ranged]
 """
         elif marker_type == "ADVANCE_STORY":
             format_spec = """
