@@ -1,0 +1,374 @@
+{
+  "session_name": "golden_comprehensive_mixed",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds). Vendors offer equipment, ritual supplies, seeds, and services.",
+  "vendor_spawn_frequency": 8,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "_tactical_note": "Combat enabled but not central - should emerge naturally around turns 10-14",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Cipher",
+        "pronouns": "they/them",
+        "faction": "Void Archive Researcher",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 9,
+          "bondPreference": "neutral",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Document void phenomena for the Archive",
+          "Understand forbidden patterns and their implications",
+          "Preserve knowledge even if it's dangerous"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Investigation": 5,
+          "Observation": 5,
+          "Insight": 4,
+          "Systems": 4,
+          "Science": 4,
+          "Hacking": 3,
+          "Awareness": 3
+        },
+        "equipped_weapons": {
+          "primary": "data_slate"
+        },
+        "carried_weapons": ["pistol"],
+        "inventory": {
+          "data_slate": 1,
+          "pistol": 1,
+          "scanner": 1,
+          "void_resonance_detector": 1,
+          "research_notes": 1
+        },
+        "void": 3
+      },
+      {
+        "name": "Mercy",
+        "pronouns": "she/her",
+        "faction": "Independent Mediator",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Negotiate peaceful resolutions when possible",
+          "Build trust and gather intelligence through conversation",
+          "Understand all parties' motivations before acting"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Charisma": 5,
+          "Size": 5
+        },
+        "skills": {
+          "Persuasion": 5,
+          "Deception": 4,
+          "Empathy": 5,
+          "Insight": 4,
+          "Investigation": 3,
+          "Combat": 3,
+          "Guns": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "stun_baton"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "stun_baton": 1,
+          "light_armor": 1,
+          "med_kit": 1,
+          "diplomatic_credentials": 1
+        },
+        "void": 2
+      },
+      {
+        "name": "Raze",
+        "pronouns": "he/him",
+        "faction": "Ex-Corporate Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "goals": [
+          "Protect the team through tactical superiority",
+          "Eliminate threats efficiently and decisively",
+          "Keep void corruption at arm's length"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 5,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2,
+          "Size": 6
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 5,
+          "Tactics": 5,
+          "Athletics": 4,
+          "Awareness": 4,
+          "Intimidation": 4,
+          "Brawl": 4,
+          "Melee": 3
+        },
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": ["combat_knife", "shock_baton"],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "shock_baton": 1,
+          "tactical_armor": 1,
+          "med_kit": 2,
+          "frag_grenade": 2
+        },
+        "void": 1
+      },
+      {
+        "name": "Spark",
+        "pronouns": "she/her",
+        "faction": "Freeborn Technologist",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 7,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Acquire forbidden tech and reverse-engineer it",
+          "Push boundaries of what's considered 'safe' innovation",
+          "Stay ahead of corporate patent enforcers"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Engineering": 5,
+          "Hacking": 5,
+          "Science": 4,
+          "Systems": 4,
+          "Pilot": 3,
+          "Investigation": 3,
+          "Combat": 3,
+          "Guns": 3
+        },
+        "equipped_weapons": {
+          "primary": "custom_energy_weapon",
+          "sidearm": "hacking_toolkit"
+        },
+        "carried_weapons": ["pistol"],
+        "inventory": {
+          "custom_energy_weapon": 1,
+          "hacking_toolkit": 1,
+          "pistol": 1,
+          "engineering_tools": 1,
+          "drone": 1,
+          "void_capacitor": 1,
+          "prototype_shield": 1
+        },
+        "void": 4
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Void Convergence Investigation",
+    "location": "Abandoned Nexus Research Station - Sublevel 7",
+    "situation": "Your team has been hired to investigate strange void readings emanating from a decommissioned research station. Corporate records show the facility was studying 'harmonic dissolution patterns' before it was mysteriously shut down 3 years ago. Recent sensor sweeps detected active power signatures and what might be human activity. Your objectives: locate the source of the void disturbance, determine if anyone is still operating in the facility, and recover any research data that could explain the anomaly. The station's environmental void levels are elevated but manageable - for now.",
+    "void_level": 5
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Investigation Progress",
+      "max_ticks": 6,
+      "current_ticks": 0,
+      "description": "Uncovering clues about the void disturbance and facility secrets",
+      "advance_meaning": "discover crucial evidence",
+      "regress_meaning": "false leads or destroyed data"
+    },
+    {
+      "name": "Void Corruption Spread",
+      "max_ticks": 8,
+      "current_ticks": 2,
+      "description": "The void anomaly is slowly destabilizing the station",
+      "advance_meaning": "void corruption intensifies",
+      "regress_meaning": "containment measures effective"
+    },
+    {
+      "name": "Unknown Party Activity",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "Someone else is operating in this facility - their agenda unclear",
+      "advance_meaning": "rivals get closer to their goal",
+      "regress_meaning": "rivals delayed or misdirected"
+    },
+    {
+      "name": "Station Integrity",
+      "max_ticks": 6,
+      "current_ticks": 4,
+      "description": "Structural damage and void corruption threaten catastrophic failure",
+      "advance_meaning": "systems fail, environment deteriorates",
+      "regress_meaning": "repairs stabilize sections"
+    }
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Locate the source of the void anomaly readings",
+      "type": "investigation",
+      "required": true
+    },
+    {
+      "description": "Recover research data from the facility archives",
+      "type": "investigation",
+      "required": false
+    },
+    {
+      "description": "Determine the identity and intentions of any active parties in the station",
+      "type": "social",
+      "required": false
+    },
+    {
+      "description": "Contain or neutralize the void threat before it spreads",
+      "type": "ritual",
+      "required": true
+    }
+  ],
+
+  "_design_notes": {
+    "purpose": "Comprehensive golden fixture capturing diverse gameplay mechanics",
+    "player_archetypes": {
+      "Cipher": "Investigator - High Observation/Insight/Science, low Combat, high void tolerance",
+      "Mercy": "Diplomat - High Persuasion/Empathy, mid Combat, seeks bonds",
+      "Raze": "Combat Specialist - High Combat/Tactics/Guns, low social, void-averse",
+      "Spark": "Tech Expert - High Engineering/Hacking, mid everything, high risk-taking"
+    },
+    "expected_scenario_flow": {
+      "turns_1_6": "Investigation phase - exploring station, finding clues, discovering corpses/logs, environmental hazards. Cipher and Spark shine here.",
+      "turns_7_10": "Social encounter - meet rival faction (cultists? corporate cleaners? rogue AIs?). Mercy takes lead, others provide backup. Moral dilemma emerges.",
+      "turns_11_15": "Combat erupts - rivals turn hostile OR void entities spawn. Raze leads tactical response. Environmental hazards (void zones, collapsing sections). Status effects likely.",
+      "turns_16_20": "Climax - ritual/containment of void source. High stakes decisions about destroying data vs preserving it. Void mechanics heavily featured. Team must decide: escape, contain, or weaponize?"
+    },
+    "mechanics_coverage": {
+      "diverse_skills": "Investigation, Persuasion, Combat, Engineering, Hacking, Science, Tactics, Empathy, Insight",
+      "void_mechanics": "Starting void_level 5, character void varies (1-4), void changes throughout, environmental zones, void-triggering tech",
+      "clocks": "4 bidirectional clocks - investigation, corruption, rivals, structural integrity",
+      "combat": "Expected around turns 11-15, tactical environment with cover/hazards, enemy AI",
+      "social": "Negotiation opportunities, faction interactions, moral choices",
+      "status_effects": "Stunned (combat), Corrupted (void exposure), Inspired (discoveries)",
+      "environmental_hazards": "Void zones, structural collapses, radiation leaks, security systems"
+    },
+    "success_criteria_for_fixture": [
+      "Session completes 20 turns",
+      "All 4 player archetypes get meaningful spotlight moments",
+      "Multiple mechanics featured (not just combat)",
+      "Player LLM calls logged correctly (for replay compatibility)",
+      "DM LLM calls logged correctly",
+      "Event sequence is valid (session_start, scenario, rounds, actions)",
+      "File size reasonable (<2MB ideal, <5MB acceptable)"
+    ],
+    "edge_cases_to_capture": [
+      "High void player (Spark) using dangerous tech",
+      "Low void player (Raze) avoiding void-tainted items",
+      "Bond-seeking player (Mercy) trying to connect with rivals",
+      "Risk-averse investigator (Cipher) making calculated dangerous choices",
+      "Multiple clocks advancing/regressing in same round",
+      "Status effects persisting across rounds",
+      "Environmental void level changes via story advancement",
+      "Clock completion triggering narrative changes",
+      "Enemy spawn mid-investigation (not at session start)",
+      "Tactical retreat from overwhelming combat",
+      "Mixed success/failure outcomes"
+    ]
+  },
+
+  "notes": "Golden comprehensive fixture - 20 turns, 4 diverse players, mixed scenario covering investigation → social → combat → ritual. Designed to capture maximum variety of mechanics and player archetypes for ML training and test fixture use."
+}
