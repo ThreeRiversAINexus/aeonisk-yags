@@ -378,6 +378,99 @@ class PromptLoader:
         self._file_cache.clear()
         logger.debug("Prompt file cache cleared")
 
+    def load_modular_prompt(
+        self,
+        agent_type: str,
+        module_names: List[str],
+        provider: str = "claude",
+        language: str = "en",
+        variables: Optional[Dict[str, Any]] = None,
+        separator: str = "\n\n"
+    ) -> LoadedPrompt:
+        """
+        Load and compose prompt from separate module files.
+
+        For modular prompt architectures (e.g., dm/ directory with multiple .yaml files).
+
+        Args:
+            agent_type: Type of agent (dm, player, enemy)
+            module_names: List of module names to load (e.g., ['dm_core', 'dm_combat'])
+            provider: LLM provider
+            language: Language code
+            variables: Optional variables for template substitution
+            separator: String to join modules with (default: double newline)
+
+        Returns:
+            LoadedPrompt with composed content and metadata
+
+        Example:
+            >>> loader.load_modular_prompt('dm', ['dm_core', 'dm_combat'])
+            # Loads dm/dm_core.yaml and dm/dm_combat.yaml, concatenates content
+        """
+        module_dir = self.prompts_dir / provider / language / agent_type
+
+        if not module_dir.exists():
+            raise FileNotFoundError(
+                f"Modular prompt directory not found: {module_dir}"
+            )
+
+        content_parts = []
+        versions = set()
+
+        for module_name in module_names:
+            # Try with .yaml extension
+            module_file = module_dir / f"{module_name}.yaml"
+
+            if not module_file.exists():
+                logger.warning(
+                    f"Module '{module_name}' not found at {module_file}, skipping"
+                )
+                continue
+
+            # Load module YAML
+            module_data = self._load_yaml_file(module_file)
+
+            # Extract content field
+            module_content = module_data.get('content', '')
+            if not module_content:
+                logger.warning(f"Module '{module_name}' has no content field, skipping")
+                continue
+
+            content_parts.append(module_content)
+
+            # Track version for metadata
+            if 'version' in module_data:
+                versions.add(module_data['version'])
+
+        if not content_parts:
+            raise ValueError(
+                f"No valid modules loaded for {agent_type} from {module_names}"
+            )
+
+        # Join module contents
+        content = separator.join(content_parts)
+
+        # Apply variable substitution
+        if variables:
+            content = self._substitute_variables(content, variables)
+
+        # Create metadata
+        version = ','.join(sorted(versions)) if versions else 'unknown'
+        metadata = PromptMetadata(
+            version=version,
+            agent_type=agent_type,
+            provider=provider,
+            language=language,
+            template_name=f"{agent_type}/modular[{len(module_names)}]"
+        )
+
+        logger.debug(
+            f"Loaded modular prompt: {agent_type} with {len(module_names)} modules "
+            f"({len(content)} chars)"
+        )
+
+        return LoadedPrompt(content=content, metadata=metadata)
+
 
 # Singleton instance for convenience
 _default_loader: Optional[PromptLoader] = None
@@ -428,6 +521,25 @@ def compose_sections(
     loader = get_default_loader()
     return loader.compose_sections(
         agent_type, section_names, provider, language, variables, separator
+    )
+
+
+def load_modular_prompt(
+    agent_type: str,
+    module_names: List[str],
+    provider: str = "claude",
+    language: str = "en",
+    variables: Optional[Dict[str, Any]] = None,
+    separator: str = "\n\n"
+) -> LoadedPrompt:
+    """
+    Convenience function to load modular prompts using the default loader.
+
+    See PromptLoader.load_modular_prompt() for argument details.
+    """
+    loader = get_default_loader()
+    return loader.load_modular_prompt(
+        agent_type, module_names, provider, language, variables, separator
     )
 
 

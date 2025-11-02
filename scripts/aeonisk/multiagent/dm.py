@@ -13,7 +13,7 @@ from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import Vendor, VendorType, create_standard_vendors
-from .prompt_loader import load_agent_prompt, compose_sections
+from .prompt_loader import load_agent_prompt, compose_sections, load_modular_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,63 @@ class AIDMAgent(Agent):
     async def on_shutdown(self):
         """Cleanup on shutdown."""
         logger.debug(f"AI DM {self.agent_id} shutting down")
-        
+
+    def _get_required_dm_modules(self) -> List[str]:
+        """
+        Determine which DM prompt modules to load based on current game state.
+
+        Returns:
+            List of module names to load (e.g., ['dm_core', 'dm_combat'])
+        """
+        modules = []
+
+        # Always load core modules
+        modules.append('dm_core')
+        modules.append('dm_structured_output')
+
+        # Conditional: Load combat module if enemies present
+        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
+            if len(self.shared_state.enemy_agents) > 0:
+                modules.append('dm_combat')
+                logger.debug("DM: Loading dm_combat module (enemies present)")
+
+        # Conditional: Load state tracking if clocks or rituals expected
+        if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
+            mechanics = self.shared_state.mechanics_engine
+            has_clocks = mechanics and len(mechanics.scene_clocks) > 0
+            # For now, always load state_tracking (safe default)
+            # TODO: Detect ritual actions to conditionally load
+            if has_clocks or True:  # Always load for now
+                modules.append('dm_state_tracking')
+                if has_clocks:
+                    logger.debug(f"DM: Loading dm_state_tracking module ({len(mechanics.scene_clocks)} clocks)")
+
+        # Conditional: Load commands module at session start/end
+        if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
+            mechanics = self.shared_state.mechanics_engine
+            current_round = mechanics.current_round if mechanics else 0
+            max_turns = getattr(self.shared_state, 'max_turns', 10)
+
+            # Load at session start (round 0) or near end
+            if current_round == 0 or current_round >= max_turns - 2:
+                modules.append('dm_commands')
+                logger.debug(f"DM: Loading dm_commands module (round {current_round})")
+
+        # Conditional: Load ML training module if JSONL logging enabled
+        if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
+            mechanics = self.shared_state.mechanics_engine
+            has_jsonl = mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger
+            if has_jsonl:
+                modules.append('dm_ml_training')
+                logger.debug("DM: Loading dm_ml_training module (JSONL logging enabled)")
+
+        # Conditional: Load social module if recent player dialogue
+        # For now, always skip (rarely needed)
+        # TODO: Detect PC-to-PC dialogue to conditionally load
+
+        logger.debug(f"DM: Selected {len(modules)} modules: {', '.join(modules)}")
+        return modules
+
     async def _handle_session_start(self, message: Message):
         """Handle session start - generate initial scenario."""
         config = message.payload.get('config', {})
@@ -3964,20 +4020,26 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             # Try structured output with fallback disabled (we handle fallback ourselves)
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
-            # Load full DM system prompt with all sections (including ml_training_tiers)
-            from .prompt_loader import load_agent_prompt
+            # Load DM system prompt with conditional modules
             try:
-                system_prompt_obj = load_agent_prompt(
+                # Determine which modules to load based on game state
+                required_modules = self._get_required_dm_modules()
+
+                # Load modular prompt
+                system_prompt_obj = load_modular_prompt(
                     agent_type="dm",
+                    module_names=required_modules,
                     provider="claude",
                     language="en",
-                    section=None,  # Load full system prompt with all sections
                     variables={}
                 )
                 system_prompt = system_prompt_obj.content
-                logger.debug(f"DM: Loaded full system prompt ({len(system_prompt)} chars) with ml_training_tiers")
+                logger.debug(
+                    f"DM: Loaded modular prompt with {len(required_modules)} modules "
+                    f"({len(system_prompt)} chars): {', '.join(required_modules)}"
+                )
             except Exception as e:
-                logger.error(f"DM: Failed to load full system prompt: {e}")
+                logger.error(f"DM: Failed to load modular prompt: {e}")
                 # Fallback to simple prompt
                 system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
 
