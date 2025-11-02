@@ -1,0 +1,252 @@
+{
+  "_purpose": "Test Phase 3 player prompt optimization - Mixed party with 2 magic + 2 non-magic characters",
+  "_test_objectives": [
+    "Verify ritual section loads for Astral Arts characters only",
+    "Verify import system resolves shared/factions correctly",
+    "Validate no schema validation failures",
+    "Confirm action declaration format compliance"
+  ],
+
+  "session_name": "prompt_test_mixed_party",
+  "max_turns": 3,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+
+  "_comment_vendors": "Vendors disabled for focused testing",
+  "vendor_spawn_frequency": -1,
+
+  "_comment_tactical": "Tactical combat enabled to test all action types",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "Force combat to test ritual + combat actions",
+  "force_combat": true,
+
+  "initial_enemies": [
+    {
+      "name": "Hostile Operatives",
+      "template": "grunt",
+      "count": 2,
+      "position": "Medium-Enemy",
+      "tactics": "aggressive_melee"
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "_role": "MAGIC CHARACTER #1 - Should load ritual_requirements_conditional",
+        "name": "Riven Shard",
+        "pronouns": "she/her",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2
+        },
+        "skills": {
+          "Astral Arts": 8,
+          "Attunement": 6,
+          "Magick Theory": 5,
+          "Systems": 3,
+          "Awareness": 4
+        },
+        "void": 3,
+        "soulcredit": 0,
+        "goals": [
+          "Explore void manipulation safely",
+          "Advance Tempest research"
+        ],
+        "equipped_weapons": {
+          "primary": "crystal_focus",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": []
+      },
+      {
+        "_role": "NON-MAGIC CHARACTER #1 - Should skip ritual_requirements_conditional",
+        "name": "Kress Vohl",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 2,
+          "Charisma": 2
+        },
+        "skills": {
+          "Combat": 8,
+          "Guns": 7,
+          "Athletics": 5,
+          "Awareness": 4,
+          "Stealth": 3
+        },
+        "void": 1,
+        "soulcredit": 0,
+        "goals": [
+          "Protect the team",
+          "Maintain independence"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": []
+      },
+      {
+        "_role": "MAGIC CHARACTER #2 - Should load ritual_requirements_conditional",
+        "name": "Mira Seln",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 5,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 7,
+          "Charm": 5,
+          "Awareness": 4,
+          "Counsel": 3
+        },
+        "void": 2,
+        "soulcredit": 0,
+        "goals": [
+          "Build harmony with team",
+          "Use magic responsibly"
+        ],
+        "equipped_weapons": {
+          "primary": "crystal_focus",
+          "sidearm": null
+        },
+        "carried_weapons": []
+      },
+      {
+        "_role": "NON-MAGIC CHARACTER #2 - Should skip ritual_requirements_conditional",
+        "name": "Jax Torren",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 2,
+          "Charisma": 3
+        },
+        "skills": {
+          "Guns": 7,
+          "Combat": 6,
+          "Awareness": 5,
+          "Systems": 4,
+          "Stealth": 3
+        },
+        "void": 0,
+        "soulcredit": 0,
+        "goals": [
+          "Maintain order",
+          "Complete mission objectives"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": []
+      }
+    ]
+  },
+
+  "_test_validation": {
+    "expected_log_lines": [
+      "Player Riven Shard: Loading ritual_requirements (Astral Arts 8)",
+      "Player Kress Vohl: Skipping ritual_requirements (no Astral Arts skill)",
+      "Player Mira Seln: Loading ritual_requirements (Astral Arts 6)",
+      "Player Jax Torren: Skipping ritual_requirements (no Astral Arts skill)"
+    ],
+    "expected_token_usage": {
+      "Riven Shard": "~4,324 tokens",
+      "Kress Vohl": "~3,801 tokens",
+      "Mira Seln": "~4,324 tokens",
+      "Jax Torren": "~3,801 tokens",
+      "total_per_round": "~16,250 tokens (vs 20,516 baseline = 20.8% savings)"
+    }
+  }
+}
