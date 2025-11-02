@@ -277,8 +277,11 @@ class AIPlayerAgent(Agent):
             logger.debug(f"Player {self.character_state.name} equipped: {self.equipped_weapons}, carried: {[w.name for w in self.weapon_inventory]}")
         except KeyError as e:
             logger.error(f"Failed to load weapon for {self.character_state.name}: {e}")
-            # Fall back to fists if weapon loading fails
-            self.equipped_weapons["primary"] = get_weapon("fists")
+            # Crash on missing weapon - this is a config error that must be fixed
+            raise ValueError(
+                f"Character '{self.character_state.name}' configured with invalid weapon. "
+                f"Check session config and WEAPON_LIBRARY. Error: {e}"
+            ) from e
 
         logger.debug(f"Player {self.agent_id} ({self.character_state.name}) started")
 
