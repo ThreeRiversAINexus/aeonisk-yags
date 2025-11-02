@@ -1615,14 +1615,40 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
   - **Decision:** PROCEED TO PHASE 3 - System works, minor issue doesn't affect functionality
 
 ### Phase 3: Player Prompt Optimization
-- [ ] Consolidate redundant sections (65 lines savings)
-- [ ] Enhance conditional section loading (4 new sections)
-- [ ] Port enhanced_prompts.py functions to YAML
-- [ ] Run milestone tests (replay baselines)
+- [x] Consolidate redundant sections (merged action_declaration + structured_output)
+- [x] Create shared/factions.yaml module
+- [x] Implement {import:...} directive system in prompt_loader.py
+- [x] Implement conditional ritual loading (Astral Arts only)
+- [x] Test import resolution and conditional loading
+- [ ] Run milestone test (full session with mixed party)
 - [ ] Document test results and decision
-- [ ] **Status:** Not started
-- [ ] **Blockers:** Depends on Phase 2
-- [ ] **Notes:**
+- [x] **Status:** ✅ COMPLETE - Testing pending (2025-11-02)
+- [ ] **Blockers:** None
+- [x] **Notes:**
+  - **Optimizations completed:**
+    1. Merged action_declaration_format + structured_output_format → action_declaration_unified (758 token savings)
+    2. Created shared/factions.yaml (108 tokens saved per agent = 432/round for 4 players)
+    3. Implemented {import:...} directive system (recursive resolution, works with all loading methods)
+    4. Conditional ritual loading: only loads ritual_requirements_conditional for Astral Arts characters (523 token savings for non-magic)
+  - **Token savings:**
+    - Magic characters: 5,129 → 4,324 tokens (15.7% reduction)
+    - Non-magic characters: 5,129 → 3,801 tokens (25.9% reduction!)
+    - Average (50/50 mix): 5,129 → 4,063 tokens (20.8% reduction)
+    - Per-round (4 players, 2 magic + 2 non-magic): 4,266 tokens saved
+  - **Technical details:**
+    - Added _resolve_imports() to PromptLoader (regex pattern: `\{import:([\w/]+)\}`)
+    - Import resolution happens before variable substitution
+    - Added _get_required_player_sections() to Player class
+    - Switched from load_agent_prompt() to compose_sections() for conditional control
+  - **Correctly handled Magick Theory:**
+    - Magick Theory = analysis/investigation (NO offerings, always loaded in action_guidelines)
+    - Astral Arts = spellcasting (offerings required, conditionally loaded in ritual_requirements)
+  - **Test results:**
+    ✅ Import system resolves correctly
+    ✅ Ritual section present for Astral Arts characters (4,324 tokens)
+    ✅ Ritual section absent for non-magic characters (3,801 tokens)
+    ✅ Faction content appears correctly
+  - **Next:** Run mixed party session (2 magic + 2 non-magic) to validate in real gameplay
 
 ### Phase 4: Cross-Prompt Deduplication
 - [ ] Create shared prompt library (3 files)
