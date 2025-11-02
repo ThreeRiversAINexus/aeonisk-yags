@@ -197,7 +197,12 @@ class MockMessages:
 
         # Look up cached response
         cache_key = (self.agent_id, call_seq)
+
+        # REPLAY DEBUG: Log cache lookup attempt
+        logger.info(f"🔍 MockLLM: {self.agent_id} requesting call #{call_seq}, cache_key={cache_key}")
+
         if cache_key not in self.cache:
+            logger.error(f"❌ MockLLM: Cache miss for {cache_key}. Available keys: {list(self.cache.keys())[:5]}...")
             raise KeyError(
                 f"No cached response for {self.agent_id} call #{call_seq}. "
                 f"Replay has diverged from original session."
@@ -207,10 +212,11 @@ class MockMessages:
         response_text = cached['response']
         tokens = cached.get('tokens', {'input': 0, 'output': 0})
 
+        # REPLAY DEBUG: Log successful cache hit
+        logger.info(f"✓ MockLLM: Cache hit for {self.agent_id} call #{call_seq}, returning {len(response_text)} chars")
+
         # Increment call counter
         self.call_index[self.agent_id] = call_seq + 1
-
-        logger.debug(f"Replay: Returning cached response for {self.agent_id} call #{call_seq}")
 
         # Return response in Anthropic API format
         return MockLLMResponse(response_text, tokens['input'], tokens['output'])

@@ -1335,6 +1335,24 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
             logger.debug(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
 
+            # Log LLM call for replay (CRITICAL: without this, replay cache is empty!)
+            if self.llm_logger:
+                # Serialize PlayerAction to JSON for the response field
+                import json
+                response_text = player_action.model_dump_json(indent=2)
+
+                self.llm_logger._log_llm_call(
+                    messages=[{"role": "user", "content": prompt}],
+                    response=response_text,
+                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                    temperature=self.llm_config.get('temperature', 0.8),
+                    tokens={'input': 0, 'output': 0},  # Pydantic AI doesn't expose token counts easily
+                    current_round=getattr(self, 'current_round', None),
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
+                logger.debug(f"✓ Logged player LLM call for replay (sequence {self.llm_logger.call_count - 1})")
+
             # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
             action_declaration = ActionDeclaration(
                 intent=player_action.intent,
