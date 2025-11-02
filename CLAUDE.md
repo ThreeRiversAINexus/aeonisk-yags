@@ -65,9 +65,12 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 10 event types logged to JSONL: scenario, action_declaration/resolution, round_synthesis/summary, character_state, combat_action, enemy_spawn/defeat, mission_debrief. See `LOGGING_IMPLEMENTATION.md` for details.
 
 **Tools:**
+- `analyze_session.py` - **Quick session analysis (use this instead of reading huge JSONL files!)**
+- `extract_fixture.py` - Extract round ranges from sessions for testing
+- `diff_fixtures.py` - Compare fixtures to verify bug fixes
+- `replay_fixture.py` - Replay fixtures with selective LLM caching (⚠️ debugging in progress)
 - `validate_logging.py` - Schema validation
 - `reconstruct_narrative.py` - Rebuild story from logs
-- `analyze_session.py` - **Quick session analysis (use this instead of reading huge JSONL files!)**
 
 ## Debugging
 
@@ -149,6 +152,234 @@ python scripts/analyze_session.py session.jsonl --search event_type=action_resol
 **Other tools:**
 - Full story narrative → `reconstruct_narrative.py`
 - Schema validation → `validate_logging.py`
+
+### Fixture Tools (Test Regression & Code Verification)
+
+**Problem:** When fixing bugs, how do you verify the fix actually changed behavior?
+
+**Solution:** Extract-Replay-Diff workflow using real gameplay sessions as test cases
+
+#### Workflow: Verify Code Fixes
+
+```bash
+# 1. Extract buggy session rounds
+python scripts/extract_fixture.py \
+  multiagent_output/session_void_bug.jsonl \
+  --rounds 0-3 \
+  --output tests/golden/void_bug_before.jsonl
+
+# 2. Fix bug in code (edit mechanics.py, dm.py, etc.)
+
+# 3. Replay with fix (players cached, DM uses live LLM with new code)
+python scripts/replay_fixture.py \
+  tests/golden/void_bug_before.jsonl \
+  --cache-player-actions \
+  --output tests/golden/void_bug_after.jsonl
+
+# 4. Compare results
+python scripts/diff_fixtures.py \
+  tests/golden/void_bug_before.jsonl \
+  tests/golden/void_bug_after.jsonl \
+  --focus effects.void_changes
+
+# Output shows exactly what changed due to your fix
+```
+
+#### Tool 1: extract_fixture.py ✅ Production Ready
+
+**Purpose:** Extract round ranges from production sessions → test fixtures
+
+```bash
+# Extract rounds 0-3 (includes all dependencies: session_start, llm_calls, enemies)
+python scripts/extract_fixture.py \
+  multiagent_output/session_bug.jsonl \
+  --rounds 0-3 \
+  --output tests/fixtures/sessions/bug_baseline.jsonl
+
+# Extract single round
+python scripts/extract_fixture.py session.jsonl --rounds 2 --output round2.jsonl
+
+# Validate without writing
+python scripts/extract_fixture.py session.jsonl --rounds 0-3 --validate-only
+```
+
+**What it does:**
+- Extracts specified round range with all dependencies
+- **Smart LLM call inclusion:** Captures player/enemy declaration LLM calls even though they have `round: null` (occur before round starts)
+- Validates completeness (random_seed, required events, LLM cache)
+- Outputs standard JSONL fixture ready for replay or tests
+
+**Recent fixes:**
+- Now correctly includes player/enemy LLM calls (was only including DM calls)
+- Handles `None` round values in validation
+
+#### Tool 2: replay_fixture.py ✅ Production Ready
+
+**Purpose:** Replay fixture scenario with NEW code, selective LLM caching
+
+```bash
+# All cached (verify deterministic replay - should match original exactly)
+python scripts/replay_fixture.py \
+  tests/fixtures/sessions/baseline.jsonl \
+  --all-cached \
+  --output /tmp/replay_check.jsonl
+
+# Players cached, DM live (test mechanics fixes)
+python scripts/replay_fixture.py \
+  tests/fixtures/sessions/baseline.jsonl \
+  --cache-player-actions \
+  --output tests/fixtures/sessions/after_fix.jsonl
+
+# Hybrid mode: Cache rounds 0-1, generate round 2 live, stop after round 2
+python scripts/replay_fixture.py \
+  tests/fixtures/sessions/baseline.jsonl \
+  --all-cached \
+  --cache-until-round 1 \
+  --max-rounds 2 \
+  --output /tmp/round2_live.jsonl
+
+# No caching (all live LLM - expensive!)
+python scripts/replay_fixture.py \
+  tests/fixtures/sessions/baseline.jsonl \
+  --no-cache \
+  --output /tmp/all_live.jsonl
+```
+
+**Key features:**
+- `--cache-player-actions`: Cache players/enemies, DM uses live LLM (test mechanics fixes)
+- `--cache-until-round N`: Cache all agents until round N, then switch to live (hybrid mode)
+- `--max-rounds N`: Stop after N rounds (useful for testing specific rounds)
+- `--all-cached`: Full deterministic replay (should match original exactly)
+- `--no-cache`: All live LLM calls (expensive)
+
+**Key insight:** Players do same actions (cached), DM adjudicates with new mechanics (live LLM)
+
+**Requires:** Anthropic API key (for live DM calls)
+
+**Known issues:**
+- ✅ Pydantic AI API updated (fixed RunResult → AgentRunResult, .data → .output)
+- ✅ Anthropic import error fixed (lazy initialization in DMLLMClient)
+- ✅ Hybrid mode works (--cache-until-round tested and functional)
+- ⚠️ Replay takes 5-10 minutes even with --max-rounds 1 (use appropriate timeouts)
+- ⚠️ Live LLM generation may misclassify combat actions as 'investigate' (see test_action_type_classification.py)
+
+#### Tool 3: diff_fixtures.py ✅ Production Ready
+
+**Purpose:** Compare before/after fixtures, highlight mechanical changes
+
+```bash
+# Compare all mechanical fields
+python scripts/diff_fixtures.py before.jsonl after.jsonl
+
+# Focus on specific fields
+python scripts/diff_fixtures.py before.jsonl after.jsonl --focus effects.void_changes
+
+# Multiple focus fields
+python scripts/diff_fixtures.py before.jsonl after.jsonl \
+  --focus effects.damage.dealt effects.void_changes roll.success
+
+# JSON output for scripting
+python scripts/diff_fixtures.py before.jsonl after.jsonl --json
+```
+
+**What it compares:**
+- Mechanical fields: damage, void, rolls, health, clocks
+- **Ignores:** DM narration flavor text (expected to differ)
+- Exit code: 0 if identical, 1 if differences (useful for CI/scripting)
+
+**Default focus fields:**
+- `roll.success`, `roll.total`, `roll.margin`, `roll.tier`
+- `effects.damage.dealt`, `effects.void_changes`, `effects.soulcredit_changes`
+- `health`, `void_score`, `wounds`, `is_defeated`
+
+**Verified working:**
+- ✅ Correctly identifies identical fixtures (exit 0)
+- ✅ Detects mechanical differences between fixtures (exit 1)
+- ✅ Event alignment works for comparing different round ranges
+
+#### Use Cases
+
+**Verify bug fix:**
+```bash
+# Bug: Void changes doubled when void_level > 5
+extract_fixture.py session_void8.jsonl --rounds 0-3 --output before.jsonl
+# (fix bug in mechanics.py)
+replay_fixture.py before.jsonl --cache-player-actions --output after.jsonl
+diff_fixtures.py before.jsonl after.jsonl --focus effects.void_changes
+# Shows: void +6 → +3 ✓ FIXED
+```
+
+**Create minimal test fixture:**
+```bash
+# Extract just the rounds that reproduce a bug
+extract_fixture.py huge_session.jsonl --rounds 7-9 --output bug_reproduction.jsonl
+# Use in tests/integration/ for regression test
+```
+
+**Validate deterministic replay:**
+```bash
+replay_fixture.py fixture.jsonl --all-cached --output replay.jsonl
+diff_fixtures.py fixture.jsonl replay.jsonl
+# Should show: "✅ Fixtures are identical"
+```
+
+#### Commentary: Is This Approach Valuable?
+
+**TL;DR:** Yes for extract+diff, mixed on replay. The core insight is solid but execution complexity is high.
+
+**What works well:**
+
+1. **extract_fixture.py is genuinely useful** - Being able to isolate "the 3 rounds where the bug happens" from a 20-round session is valuable. Much better than "go read this 500KB JSONL file."
+
+2. **diff_fixtures.py solves a real problem** - Before this, verifying a mechanics fix meant:
+   - Run full session manually
+   - Read through narrative looking for differences
+   - Try to spot if damage/void/etc changed
+
+   Now: `diff_fixtures.py --focus effects.damage.dealt` shows exactly what changed. This is huge.
+
+3. **Real gameplay as test data** - Using actual LLM-generated scenarios as test cases is clever. You get edge cases you wouldn't think to write manually.
+
+**What's harder than expected:**
+
+1. **Replay complexity** - The replay tool is fighting against the architecture. Sessions weren't designed to be replayed with selective caching. The hang issue suggests deep assumptions about LLM client lifecycle.
+
+2. **LLM call timing** - Player/enemy LLM calls having `round: null` reveals architectural assumptions (declaration happens "between" rounds). Had to add smart detection logic.
+
+3. **Determinism challenges** - Even with caching, achieving byte-for-byte identical replay is hard. Random seeds, timestamps, async timing all matter.
+
+**Practical workflow (without replay):**
+
+Even without replay working, extract+diff is useful:
+```bash
+# Extract buggy session
+extract_fixture.py session_bug.jsonl --rounds 2-4 --output before.jsonl
+
+# Fix bug, run NEW session with same scenario
+run_multiagent_session.py same_scenario_config.json
+
+# Extract same rounds from new session
+extract_fixture.py session_fixed.jsonl --rounds 2-4 --output after.jsonl
+
+# Compare mechanical outcomes
+diff_fixtures.py before.jsonl after.jsonl --focus effects.damage.dealt
+```
+
+This works because you can manually re-create similar scenarios, even if not byte-identical replay.
+
+**Alternative: Unit tests with mocked LLM**
+
+The fixture approach is expensive (real LLM calls). Could mock LLM responses for unit tests:
+```python
+def test_damage_extraction():
+    mock_dm_response = "shoots enemy for 12 damage"
+    result = parse_dm_response(mock_dm_response)
+    assert result.damage.dealt == 12
+```
+
+But this misses emergent behavior from real LLM variance.
+
+**Verdict:** Keep extract+diff, they're production-ready and solve real problems. Replay is architecturally interesting but may not be worth the debugging cost vs. just running new sessions.
 
 ## Design Philosophy
 

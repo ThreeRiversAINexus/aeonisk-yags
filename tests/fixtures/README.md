@@ -17,7 +17,37 @@ fixtures/
 
 ## Generating Test Fixtures
 
-### 1. Capture JSONL Session Logs
+### Automated Fixture Generation (Recommended)
+
+**Use the fixture tools** for extracting, replaying, and comparing fixtures:
+
+```bash
+# 1. Run a session and find interesting moments
+python scripts/run_multiagent_session.py scripts/session_configs/session_config_combat.json
+# Output: multiagent_output/session_20250131_combat.jsonl
+
+# 2. Extract specific rounds as fixture
+python scripts/extract_fixture.py \
+  multiagent_output/session_20250131_combat.jsonl \
+  --rounds 0-3 \
+  --output tests/fixtures/sessions/combat_rounds_0_3.jsonl
+
+# 3. Verify code fixes (after making changes)
+python scripts/replay_fixture.py \
+  tests/fixtures/sessions/combat_rounds_0_3.jsonl \
+  --cache-player-actions \
+  --output tests/fixtures/sessions/combat_after_fix.jsonl
+
+# 4. Compare before/after
+python scripts/diff_fixtures.py \
+  tests/fixtures/sessions/combat_rounds_0_3.jsonl \
+  tests/fixtures/sessions/combat_after_fix.jsonl \
+  --focus effects.damage.dealt
+```
+
+**See CLAUDE.md → "Fixture Tools" section for complete documentation**
+
+### 1. Capture JSONL Session Logs (Manual Method)
 
 Run a multiagent session and capture the JSONL output:
 
@@ -29,9 +59,12 @@ python3 ../run_multiagent_session.py ../session_configs/session_config_combat.js
 
 **Output location:** `multiagent_output/session_<session_id>.jsonl`
 
-**Copy to fixtures:**
+**Extract to fixtures using extract_fixture.py:**
 ```bash
-cp multiagent_output/session_<session_id>.jsonl ../../tests/fixtures/sample_logs/
+python scripts/extract_fixture.py \
+  multiagent_output/session_<session_id>.jsonl \
+  --rounds 0-5 \
+  --output tests/fixtures/sessions/session_descriptive_name.jsonl
 ```
 
 ### 2. Create Scenario-Specific Sessions
@@ -207,11 +240,12 @@ From a typical combat session:
 
 ## Fixture Naming Conventions
 
-### JSONL Session Logs
+### JSONL Session Logs (`fixtures/sessions/`)
 - `combat_session_<descriptor>.jsonl` - Combat scenarios
 - `social_session_<descriptor>.jsonl` - Social/investigation
 - `ritual_session_<descriptor>.jsonl` - Ritual/void mechanics
 - `mixed_session_<descriptor>.jsonl` - Mixed gameplay
+- `<bug_name>_bug.jsonl` - Regression test fixtures documenting specific bugs
 
 ### LLM Response Fixtures (Future)
 - `dm_scenario_<type>.json` - Scenario generation
@@ -237,10 +271,26 @@ From a typical combat session:
 
 When game mechanics change:
 
-1. **Regenerate sessions** with new code
-2. **Compare with old fixtures** to verify backward compatibility
-3. **Update or add new fixtures** as needed
-4. **Document changes** in commit messages
+1. **Replay existing fixture** with new code:
+   ```bash
+   python scripts/replay_fixture.py \
+     tests/fixtures/sessions/old_fixture.jsonl \
+     --all-cached \
+     --output tests/fixtures/sessions/new_fixture.jsonl
+   ```
+
+2. **Compare with old fixture** to verify changes:
+   ```bash
+   python scripts/diff_fixtures.py \
+     tests/fixtures/sessions/old_fixture.jsonl \
+     tests/fixtures/sessions/new_fixture.jsonl
+   ```
+
+3. **Review mechanical differences** - verify they match expected code changes
+
+4. **Update fixture** - Replace old with new if changes are correct
+
+5. **Document changes** in commit messages
 
 ## Fixture Stability
 
