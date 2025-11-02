@@ -510,6 +510,25 @@ def validate_resolution_completeness(
             if void_change.character_name != action_character:
                 warnings.append(f"Void change applied to '{void_change.character_name}' (action by '{action_character}') - verify this is intentional")
 
+    # 7b. Check for missing void_changes in ritual/void-related actions
+    # Detect if action involves rituals but void_changes is empty (might be missing)
+    is_ritual = action.get('is_ritual', False)
+    has_offering = action.get('has_offering', False)
+    has_primary_tool = action.get('has_primary_tool', False)
+    skill_lower = skill.lower() if skill else ''
+    is_void_skill = 'astral' in skill_lower or 'ritual' in skill_lower or 'void' in skill_lower
+
+    # Ritual without offering/tool should have void corruption
+    if is_ritual and not resolution.effects.void_changes:
+        if not has_offering:
+            warnings.append(f"Ritual action WITHOUT offering but void_changes is empty (expected +1 void for missing offering)")
+        if not has_primary_tool:
+            warnings.append(f"Ritual action WITHOUT tool but void_changes is empty (expected +1 void for missing tool)")
+
+    # Failed void-related skill checks might be missing void corruption
+    if is_void_skill and resolution.margin < 0 and not resolution.effects.void_changes:
+        warnings.append(f"Failed {skill} action but void_changes is empty (might need +1 void for ritual failure)")
+
     # 8. Check clock updates reference valid clocks (if we have access to mechanics)
     # This is informational - helps catch typos in clock names
     if resolution.effects.clock_updates:

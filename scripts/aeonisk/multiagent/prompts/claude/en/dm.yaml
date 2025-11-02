@@ -72,9 +72,41 @@ sections:
     **2. VOID-RELATED ACTIONS → MUST POPULATE `void_changes` FIELD**
     - ❌ WRONG: Narrate "void corruption +1" without `void_changes` field
     - ✅ CORRECT: Populate `void_changes=[VoidChange(character_name="Ash", amount=1, reason="ritual failure")]`
-    - **When to use**: Rituals, void exposure, cosmic horror, void powers, critical failures with void theme
-    - **If you omit `void_changes`**, no void will be applied (BAD for gameplay!)
-    - **⚠️ ENVIRONMENTAL VOID EFFECTS:**
+
+    **⚠️ CRITICAL: WHEN TO POPULATE void_changes (DO NOT SKIP!):**
+    - **Ritual failures** (failed astral arts/void manipulation) → `amount=1` (corruption increase)
+    - **Missing offerings** (ritual without consumed offering) → `amount=1` automatically
+    - **Missing tools** (ritual without primary focus/tool) → `amount=1` automatically
+    - **Void exposure** (breaches, corrupted areas, void artifacts) → `amount=1`
+    - **Corrupted technology** interaction → `amount=1`
+    - **Cosmic horror** encounters (reality tears, void entities) → `amount=1+`
+    - **Cleansing rituals** (purification success) → `amount=-2 to -5` (negative = cleansing)
+    - **Proper ritual execution** (with offerings consumed) → `void_changes=[]` (empty list = no void events)
+
+    **Examples of correct void_changes:**
+    ```python
+    # Ritual without offering - automatic +1 void
+    void_changes=[VoidChange(character_name="Kade", amount=1, reason="performed ritual without offering")]
+
+    # Ritual without tool - automatic +1 void
+    void_changes=[VoidChange(character_name="Kade", amount=1, reason="attempted ritual without primary focus")]
+
+    # Both missing - +2 void total
+    void_changes=[
+        VoidChange(character_name="Kade", amount=1, reason="missing offering"),
+        VoidChange(character_name="Kade", amount=1, reason="missing ritual tool")
+    ]
+
+    # Cleansing ritual success - negative amount
+    void_changes=[VoidChange(character_name="Ash", amount=-3, reason="powerful purification ritual")]
+
+    # Proper ritual - empty list (explicit no void events)
+    void_changes=[]  # Player has offerings, proper execution, no corruption
+    ```
+
+    **If you omit `void_changes`** for void-triggering events, character void scores won't update (CRITICAL BUG!)
+
+    **⚠️ ENVIRONMENTAL VOID EFFECTS:**
       * ❌ NEVER use `VoidChange` for environmental/area void effects (e.g., "Environmental Void", "ambient corruption", "chamber void")
       * ✅ ALWAYS use `ClockUpdate` for environmental corruption: `clock_updates=[ClockUpdate(clock_name="Environmental Corruption", ticks=2, reason="void breach spreading")]`
       * `character_name` must be a SPECIFIC player character name, not abstract/environmental targets

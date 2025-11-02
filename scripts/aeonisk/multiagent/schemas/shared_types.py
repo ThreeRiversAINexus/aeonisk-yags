@@ -47,11 +47,30 @@ class Position(str, Enum):
 
 class VoidChange(BaseModel):
     """
-    Void corruption change (positive = corruption, negative = cleansing).
+    Void corruption change to a specific character (positive = corruption, negative = cleansing).
+
+    **CRITICAL: This field must be populated when void-triggering events occur.**
+
+    **When to populate void_changes:**
+    - Ritual failures (missing offerings, missing tools, critical failure)
+    - Void exposure (breaches, corrupted areas, cosmic horror encounters)
+    - Corrupted technology interaction
+    - Void manipulation without proper safeguards
+    - Cleansing rituals (negative amounts)
+
+    **When NOT to populate (leave empty list):**
+    - Regular combat failures (shooting, melee)
+    - Social failures (negotiation, intimidation)
+    - Investigation failures (unless void-related)
+    - Technical failures (unless corrupted tech)
+    - Proper rituals with offerings consumed
+
+    **Empty list means NO void changes occurred (explicit choice, not unspecified).**
 
     Examples:
     - VoidChange(character_name="Ash Vex", amount=2, reason="Failed ritual without offering")
     - VoidChange(character_name="Riven", amount=-3, reason="Powerful purification ritual")
+    - VoidChange(character_name="Kade", amount=1, reason="Touched void breach without protection")
 
     IMPORTANT: character_name must be a specific player character name.
     For environmental/area void effects, use scene clocks instead of VoidChange.

@@ -75,7 +75,7 @@
           "Athletics": 3,
           "Astral Arts": 3
         },
-        "void_score": 2,
+        "void": 2,
         "soulcredit": 0,
         "equipped_weapons": {
           "primary": "rifle"
@@ -127,7 +127,7 @@
           "Stealth": 3,
           "Intimidation": 3
         },
-        "void_score": 0,
+        "void": 0,
         "soulcredit": 3,
         "equipped_weapons": {
           "primary": "pistol"
@@ -179,7 +179,7 @@
           "Athletics": 4,
           "Streetwise": 4
         },
-        "void_score": 1,
+        "void": 1,
         "soulcredit": 2,
         "equipped_weapons": {
           "primary": "pistol"

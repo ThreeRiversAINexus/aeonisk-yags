@@ -120,6 +120,33 @@ class TestCharacterFormat:
                 )
 
     @pytest.mark.parametrize("config_path", get_all_session_configs())
+    def test_void_field_standardization(self, config_path):
+        """Players must use 'void' key, not deprecated 'void_score'."""
+        config = load_config(config_path)
+
+        for idx, player in enumerate(config["agents"]["players"]):
+            # Skip character_ref
+            if "character_ref" in player:
+                continue
+
+            # Fail if deprecated void_score is used
+            if "void_score" in player:
+                pytest.fail(
+                    f"{config_path.name}: Player {idx} ({player.get('name', 'unnamed')}) "
+                    "uses deprecated 'void_score' key. Use 'void' instead."
+                )
+
+            # Void field is optional (defaults to 0), but if present must be valid
+            if "void" in player:
+                void_value = player["void"]
+                assert isinstance(void_value, int), (
+                    f"{config_path.name}: Player {idx} 'void' must be integer"
+                )
+                assert 0 <= void_value <= 10, (
+                    f"{config_path.name}: Player {idx} 'void' must be 0-10, got {void_value}"
+                )
+
+    @pytest.mark.parametrize("config_path", get_all_session_configs())
     def test_player_llm_structure(self, config_path):
         """Each player's LLM config must have provider and model."""
         config = load_config(config_path)

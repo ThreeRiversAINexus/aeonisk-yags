@@ -277,6 +277,13 @@ sections:
     - ✅ CORRECT: "DC 25 because terminal is military-grade, encrypted, and I'm under time pressure"
     - ❌ WRONG: "It's hard" (too vague - explain WHY!)
 
+    **6. RITUAL OFFERINGS - Match narrative to boolean fields**
+    - If your DESCRIPTION mentions using offerings/incense/blood → set `has_offering=True`
+    - If you DON'T mention offerings → set `has_offering=False`
+    - ✅ CORRECT: description="I burn incense as an offering" + `has_offering=True`
+    - ❌ WRONG: description="I burn incense as an offering" + `has_offering=False` (CONTRADICTORY!)
+    - Optional: Specify `offering_type="incense"` to choose which offering to use
+
     ## 📊 STRUCTURED OUTPUT EXAMPLES
 
     **Example 1: Combat Action**
@@ -307,7 +314,8 @@ sections:
         target="Riven Shard",
         is_ritual=True,
         has_primary_tool=True,
-        has_offering=True,
+        has_offering=True,  # ← CRITICAL: Set True because description mentions "burn incense as an offering"
+        offering_type="incense",  # ← Optional: Specify which offering to use
         ritual_components="Astral focus, incense offering"
     )
     ```
@@ -358,11 +366,17 @@ sections:
     **⚠️ OFFERING REQUIREMENTS - CHECK YOUR INVENTORY:**
     - **Primary Tool**: crystal_focus OR tech_kit (NOT consumed, you keep it)
     - **Offering**: blood_offering OR incense OR crystals (CONSUMED on use!)
+    - **Specify offering type** (optional): OFFERING_TYPE: incense
     - **With offerings**: ⚫ Void: -1 (proper ritual use cleanses corruption!)
     - **Without offerings**: -10 penalty to roll, ⚫ Void: +1 (corrupted magic)
 
     **💡 IMPORTANT: Using magic WITH offerings reduces your void score!**
     This lets you manage void corruption by doing magic properly. Stock up on offerings!
+
+    **Selecting specific offerings:**
+    - You can specify which offering to use: blood_offering, incense, or crystals
+    - If not specified, system uses first available from inventory
+    - Offerings are consumed automatically by mechanics (before DM narration)
 
     **Track your offerings carefully!** If you're LOW:
     - Purchase more from vendors (blood offerings and incense are commonly sold)

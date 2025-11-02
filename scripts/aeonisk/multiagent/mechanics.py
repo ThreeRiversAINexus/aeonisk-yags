@@ -173,6 +173,7 @@ class JSONLLogger:
         clock_states: Dict[str, str],
         effects: List[str],
         context: Dict[str, Any] = None,
+        inventory_changes: List[Dict[str, Any]] = None,
         # New ML training fields (dataset guidelines compliance)
         character_data: Dict[str, Any] = None,
         environment: str = None,
@@ -242,7 +243,10 @@ class JSONLLogger:
             "outcome_tiers": outcome_tiers,  # Threshold-based (backward compat)
             "economy": economy_changes,
             "clocks": clock_states,
-            "effects": effects
+            "effects": {
+                "status_effects": effects,  # Renamed from top-level effects for clarity
+                "inventory_changes": inventory_changes or []  # New: track offering consumption, item pickups, etc.
+            }
         }
 
         # Add ML training fields if provided (dataset guidelines compliance)

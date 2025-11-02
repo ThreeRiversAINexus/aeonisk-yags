@@ -217,7 +217,7 @@ class AIPlayerAgent(Agent):
             faction=self.character_config.get('faction', 'Unaffiliated'),
             attributes=self.character_config.get('attributes', {}),
             skills=self.character_config.get('skills', {}),
-            void_score=self.character_config.get('void_score', 0),
+            void_score=self.character_config.get('void', 0),  # Standardized on "void" key
             soulcredit=self.character_config.get('soulcredit', random.randint(4, 7)),  # Lower, varied starting soulcredit
             bonds=self.character_config.get('bonds', []),
             goals=self.character_config.get('goals', []),
@@ -777,11 +777,8 @@ class AIPlayerAgent(Agent):
 
         print(f"\n[{self.character_state.name}] Received resolution")
 
-        # Consume offering if it was used in the action
-        original_action = message.payload.get('original_action', {})
-        if original_action.get('has_offering', False):
-            if self.character_state.consume_offering():
-                print(f"[{self.character_state.name}] Consumed offering")
+        # NOTE: Offering consumption now happens BEFORE DM narration in dm.py (mechanics-first architecture)
+        # No need to consume here anymore - mechanics layer handles it pre-narration
 
         # Update void state from mechanics engine
         if self.shared_state:

@@ -1,0 +1,102 @@
+{
+  "session_name": "void_increase_risky_test",
+  "max_turns": 2,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": false,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Reckless Kade",
+        "pronouns": "he/him",
+        "faction": "Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 9,
+          "bondPreference": "independent",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Harness the void breach's power for a dangerous ritual",
+          "Push limits despite lacking proper tools and offerings",
+          "Gain power regardless of personal risk"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 5,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Astral Arts": 3,
+          "Ritual Lore": 4,
+          "Awareness": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Void Scanner": 1,
+          "Emergency Rations": 1
+        },
+        "void": 3
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Unstable Void Breach - Reckless Ritual",
+    "location": "Corrupted Experimental Chamber",
+    "situation": "You discover an active void breach crackling with dangerous energy in the abandoned research lab. The reality tears pulse with raw power, and your void scanner screams warnings (void level 7/10). Despite having NO proper ritual components, NO offerings, and minimal training, you're determined to attempt a void manipulation ritual to harness this power. The breach responds unpredictably to your amateur attempts, corruption seeping into you with each reckless action.",
+    "void_level": 7
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Attempt to harness the void breach's power",
+      "type": "ritual",
+      "required": true
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test void score INCREASE from worst-case ritual conditions",
+    "expected_void_changes": [
+      "Round 1: Attempt ritual without offerings/tools → +2 void minimum (missing offering + missing tool)",
+      "Round 2: Continue dangerous void manipulation → +1 to +2 void (exposure, continued recklessness)"
+    ],
+    "verification": {
+      "player_void_should_increase": "Player should end at void 5-7/10 (increased from 3)",
+      "void_changes_should_be_positive": "effects.void_changes should have positive amounts (corruption increase)",
+      "reasons_should_include": [
+        "missing offering",
+        "missing tool",
+        "ritual failure",
+        "void exposure",
+        "reckless void manipulation"
+      ]
+    },
+    "character_design": "Low skills (3-4), high risk tolerance, no proper equipment → maximizes failure chance"
+  }
+}

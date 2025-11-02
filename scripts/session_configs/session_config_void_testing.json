@@ -90,7 +90,7 @@
           "Stealth": 3,
           "Melee": 3
         },
-        "void_score": 6,
+        "void": 6,
         "soulcredit": -2,
         "goals": [
           "Purify the void corruption of party members through collaborative cleansing rituals",
@@ -150,7 +150,7 @@
           "Drone Operation": 4,
           "Guns": 3
         },
-        "void_score": 7,
+        "void": 7,
         "soulcredit": -1,
         "goals": [
           "Reduce party void scores to safe levels through targeted purification rituals",
@@ -213,7 +213,7 @@
           "Brawl": 4,
           "Astral Arts": 2
         },
-        "void_score": 5,
+        "void": 5,
         "soulcredit": 2,
         "goals": [
           "Cleanse Ash's critical void corruption (void 7) before it causes spiritual breakdown",

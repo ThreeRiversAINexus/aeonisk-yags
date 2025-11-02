@@ -1572,6 +1572,7 @@ IMPORTANT:
                 state_changes = resolution.get('state_changes', {})
                 clock_deltas = resolution.get('clock_deltas', [])
                 combat_data = resolution.get('combat_data', {})
+                inventory_changes = resolution.get('inventory_changes', [])
 
                 if action_resolution:
                     # Build economy changes dict with void and soulcredit deltas
@@ -1620,7 +1621,8 @@ IMPORTANT:
                         context['ritual'] = True
                         # Extract ritual details from action
                         context['altar'] = action.get('has_altar', False)
-                        context['offering'] = action.get('has_offering', False)
+                        context['offering'] = action.get('offering_consumed', False)  # Use actual consumption result
+                        context['offering_item'] = action.get('offering_item')  # Which item was consumed
                         context['echo_calibrator'] = action.get('has_echo_calibrator', False)
 
                     # Add combat triplet if present
@@ -1667,6 +1669,7 @@ IMPORTANT:
                         clock_states=clock_states,
                         effects=effects,
                         context=context,
+                        inventory_changes=inventory_changes,  # Pass offering consumption tracking
                         # ML training fields (dataset guidelines compliance)
                         character_data=character_data,
                         environment=environment,
@@ -2273,6 +2276,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 is_inter_party=is_inter_party
             )
 
+            # MECHANICS-FIRST: Consume offering BEFORE DM narration (if ritual with offering)
+            offering_consumed = False
+            consumed_item = None
+            inventory_changes = []
+
+            if action.get('has_offering', False) and is_ritual_action:
+                character_state = self.shared_state.get_agent_state(player_id)
+                if character_state:
+                    offering_type = action.get('offering_type')  # Optional specific item
+                    consumed_item = mechanics.consume_offering(character_state, offering_type)
+
+                    if consumed_item:
+                        offering_consumed = True
+                        inventory_changes.append({
+                            "item": consumed_item,
+                            "delta": -1,
+                            "reason": "Consumed as ritual offering"
+                        })
+                        logger.info(f"Offering consumed BEFORE narration: {consumed_item} from {character_name}")
+                    else:
+                        logger.warning(f"Player declared offering but none available for {character_name} - mechanics will apply +1 void penalty")
+
+            # Pass consumption result to action context for DM narration
+            action['offering_consumed'] = offering_consumed
+            action['offering_item'] = consumed_item
+
             # Perform resolution (apply coordination bonus via modifiers)
             modifiers = {}
             if coordination_bonus > 0:
@@ -2330,6 +2359,18 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
+
+                # Validate void changes were populated when narration contains void markers
+                narration_text = llm_narration if self.llm_config else resolution.narrative
+                has_void_in_narrative = '⚫ Void' in narration_text or 'Void (' in narration_text
+
+                if state_changes['void_change'] == 0 and has_void_in_narrative:
+                    logger.warning(
+                        f"STRUCTURED OUTPUT FAILURE: LLM put void changes in narrative text instead of "
+                        f"populating effects.void_changes field for {action.get('agent')} action. "
+                        f"Void changes will NOT be applied. This indicates prompt guidance is being ignored."
+                    )
+                    # TODO: Log to JSONL as structured_output_warning event for ML analysis
             else:
                 # Legacy text parsing
                 state_changes = parse_state_changes(llm_narration if self.llm_config else resolution.narrative, action, resolution.__dict__, active_clocks)
@@ -3002,6 +3043,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
             'narration': narration,
             'state_changes': state_changes,  # Include state_changes for logging
             'combat_data': combat_data,  # Include combat triplet if present
+            'inventory_changes': inventory_changes,  # Include offering consumption tracking
             'outcome': {
                 'dm_response': narration,
                 'success': resolution.success if resolution else True,
@@ -3082,6 +3124,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 is_multi_stage=action.get('is_multi_stage', False)
             )
 
+            # MECHANICS-FIRST: Consume offering BEFORE DM narration (if ritual with offering)
+            offering_consumed = False
+            consumed_item = None
+            inventory_changes = []
+
+            if action.get('has_offering', False) and is_ritual_action:
+                character_state = self.shared_state.get_agent_state(action.get('agent_id'))
+                if character_state:
+                    offering_type = action.get('offering_type')  # Optional specific item
+                    consumed_item = mechanics.consume_offering(character_state, offering_type)
+
+                    if consumed_item:
+                        offering_consumed = True
+                        inventory_changes.append({
+                            "item": consumed_item,
+                            "delta": -1,
+                            "reason": "Consumed as ritual offering"
+                        })
+                        logger.info(f"Offering consumed BEFORE narration: {consumed_item} from {action.get('character_name')}")
+                    else:
+                        logger.warning(f"Player declared offering but none available for {action.get('character_name')} - mechanics will apply +1 void penalty")
+
+            # Pass consumption result to action context for DM narration
+            action['offering_consumed'] = offering_consumed
+            action['offering_item'] = consumed_item
+
             # CRITICAL: Re-validate ritual mechanics at DM resolution time
             # (Player may have sent corrected values, but we enforce anyway)
             from .skill_mapping import validate_ritual_mechanics, RITUAL_ATTRIBUTE, RITUAL_SKILL
@@ -3098,14 +3166,14 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Resolve mechanically
             if action.get('is_ritual', False):
-                # Ritual resolution
+                # Ritual resolution (use actual consumption result, not player declaration)
                 resolution, ritual_effects = mechanics.resolve_ritual(
                     intent=intent,
                     willpower=attribute_value if attribute == 'Willpower' else 3,
                     astral_arts=skill_value if skill == 'Astral Arts' else 0,
                     difficulty=difficulty,
                     has_primary_tool=action.get('has_primary_tool', False),
-                    has_offering=action.get('has_offering', False),
+                    has_offering=offering_consumed,  # Use actual consumption result
                     sanctified_altar=action.get('at_altar', False),
                     agent_id=player_id,
                     faction=action.get('faction', None)
@@ -3168,6 +3236,17 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug("Using structured resolution for state changes extraction")
+
+                # Validate void changes were populated when narration contains void markers
+                has_void_in_narrative = '⚫ Void' in llm_narration or 'Void (' in llm_narration
+
+                if state_changes['void_change'] == 0 and has_void_in_narrative:
+                    logger.warning(
+                        f"STRUCTURED OUTPUT FAILURE: LLM put void changes in narrative text instead of "
+                        f"populating effects.void_changes field for {action.get('agent')} action. "
+                        f"Void changes will NOT be applied. This indicates prompt guidance is being ignored."
+                    )
+                    # TODO: Log to JSONL as structured_output_warning event for ML analysis
             else:
                 # Legacy text parsing
                 state_changes = parse_state_changes(llm_narration, action, resolution.__dict__, active_clocks)
@@ -3497,6 +3576,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     clock_states=clock_states,
                     effects=effects,
                     context=log_context,
+                    inventory_changes=inventory_changes,  # Pass offering consumption tracking
                     # ML training fields (dataset guidelines compliance)
                     character_data=character_data,
                     environment=environment,

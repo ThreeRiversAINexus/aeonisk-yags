@@ -581,10 +581,46 @@ Check `git log --oneline -10` for latest changes.
 - **Human runs:** Multi-agent sessions (`python3 scripts/run_multiagent_session.py <config>`)
 - **Claude runs:** Unit tests (`python -m pytest tests/unit/<test_file>.py -v`)
 
+### Session Config Validation (TDD)
+
+Session configs are automatically validated via `tests/unit/test_session_config_validation.py`:
+
+```bash
+# Run all session config validation tests
+python -m pytest tests/unit/test_session_config_validation.py -v
+```
+
+**What's validated:**
+- Required fields (session_name, max_turns, agents, party_size)
+- Deprecated patterns (`scenario.initial_clocks` → `starting_clocks`)
+- Tactical module dependencies (both `tactical_module_enabled` + `enemy_agents_enabled` required)
+- Character schema compliance (name, faction, llm config)
+- Clock format (supports both `current/max` and `current_ticks/max_ticks`)
+
+**TDD workflow for configs:**
+1. Tests written FIRST to define expected structure
+2. Configs validated against tests
+3. Failing tests indicate config issues (red → green)
+
+### Character Library
+
+**Pre-built characters:**
+- `session_config_full.json` - 21 characters across 10 factions (canonical pool)
+- `session_config_golden_comprehensive.json` - 4 archetype characters (Investigator, Diplomat, Combat, Tech)
+- `datasets/aeonisk_character_examples.yaml` - Full YAGS character sheets (archival reference, not used in sessions)
+
+**Character referencing (future):**
+- Planned: `{"character_ref": "Character Name"}` to load from shared library
+- Current: Inline character definitions only
+
 **Session Config Features:**
 - `starting_clocks` - Load pre-configured scene clocks at session start
+- `initial_enemies` - Spawn enemies at session start without DM prompting
 - Environmental void_level updates via `StoryAdvancement.new_void_level`
-- See `scripts/session_config_README.md` for full configuration guide
+- `force_combat` + `combat_scenario_index` - Force specific combat scenarios
+- `_scenario_hint` - Guidance for DM scenario generation
+- `_design_notes` - Document complex config intent (golden configs only)
+- See `scripts/session_config_README.md` for full configuration guide (v1.2.0+)
 
 **Test Configs:**
 - `session_config_void_story_advancement_test.json` - Tests void_level updates

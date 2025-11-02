@@ -450,12 +450,39 @@ class ClaudeProvider(LLMProvider):
         max_tokens = max_tokens or self.config.max_tokens
         temperature = temperature or self.config.temperature
 
+        # Enhance system prompt for ActionResolution to emphasize void_changes
+        final_system_prompt = system_prompt or ""
+        if result_type.__name__ == 'ActionResolution':
+            void_emphasis = """
+
+⚠️ CRITICAL FIELD REQUIREMENT: effects.void_changes
+
+When generating ActionResolution, you MUST populate the `effects.void_changes` field for ANY void-triggering event:
+
+**MANDATORY void_changes scenarios (DO NOT leave empty):**
+- **Ritual failures** (astral arts, void manipulation) → `[VoidChange(character_name="PC Name", amount=1, reason="...")]`
+- **Missing offerings** (ritual without consumed offering) → `[VoidChange(amount=1, reason="missing offering")]`
+- **Missing tools** (ritual without primary tool/focus) → `[VoidChange(amount=1, reason="missing ritual tool")]`
+- **Void exposure** (breaches, corrupted areas) → `[VoidChange(amount=1+, reason="void exposure")]`
+- **Corrupted technology** interaction → `[VoidChange(amount=1, reason="corrupted tech")]`
+- **Cleansing rituals** (success) → `[VoidChange(amount=-2 to -5, reason="purification")]`
+
+**When NOT to populate (empty list is correct):**
+- Proper ritual execution WITH offerings consumed = `void_changes=[]`
+- Regular combat/social/investigation failures (no void involvement) = `void_changes=[]`
+
+**character_name MUST be specific PC name**, NOT "Environmental Void" or abstract targets.
+
+This field is used for ML training and game mechanics - it is NOT optional when void events occur!
+"""
+            final_system_prompt += void_emphasis
+
         # Create Pydantic AI agent with output type
         # Note: pydantic-ai 1.9.0+ uses 'output_type' not 'result_type'
         agent = Agent(
             f'anthropic:{self.config.model}',
             output_type=result_type,
-            system_prompt=system_prompt or ""
+            system_prompt=final_system_prompt
         )
 
         # Initialize rate limiter if needed

@@ -8,7 +8,7 @@ Player agents must provide complete mechanical information with each action.
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Dict
+from typing import Optional, Dict, Literal
 from .shared_types import ActionType, Position
 
 
@@ -116,7 +116,12 @@ class PlayerAction(BaseModel):
 
     has_offering: bool = Field(
         default=False,
-        description="Are you making an offering to reduce void risk?"
+        description="Set to True if you're using an offering (incense, blood, crystals) in this ritual. Offerings reduce void risk and are consumed. Set to False if not using offerings (you'll get -10 penalty and +1 void)."
+    )
+
+    offering_type: Optional[Literal["blood_offering", "incense", "crystals"]] = Field(
+        default=None,
+        description="IMPORTANT: If has_offering=True, optionally specify which offering type. Valid: 'blood_offering', 'incense', 'crystals'. If not specified, first available offering will be used automatically."
     )
 
     ritual_components: Optional[str] = Field(
