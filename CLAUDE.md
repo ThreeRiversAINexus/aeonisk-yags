@@ -102,7 +102,9 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 - `analyze_session.py` - **Quick session analysis (use this instead of reading huge JSONL files!)**
 - `extract_fixture.py` - Extract round ranges from sessions for testing
 - `diff_fixtures.py` - Compare fixtures to verify bug fixes
-- `replay_fixture.py` - Replay fixtures with selective LLM caching (⚠️ debugging in progress)
+- `replay_fixture.py` - Replay fixtures with selective LLM caching ✅ **Production Ready**
+  - **Timing:** Intentionally slow (300-600s for 1-2 rounds) due to API rate limiting (0.5s/request, max 3 concurrent)
+  - Use long timeouts in tests to avoid false failures
 - `validate_logging.py` - Schema validation
 - `reconstruct_narrative.py` - Rebuild story from logs
 
