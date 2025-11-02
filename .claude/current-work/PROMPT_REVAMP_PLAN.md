@@ -1523,15 +1523,21 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
   - Ready to proceed to Phase 2 (DM modularization), will generate fresh baseline fixtures later
 
 ### Phase 2: DM Prompt Modularization
-- [ ] Split dm.yaml into 6 modules
-- [ ] Optimize structured output section (244 lines → 120 lines)
-- [ ] Implement conditional loading in dm.py
-- [ ] Extend prompt_loader.py for section composition
-- [ ] Run milestone tests (replay 3 baselines)
+- [x] Split dm.yaml into 7 modules (added dm_ml_training)
+- [x] Optimize structured output section (244 lines, 2,733 tokens → 114 lines, 1,141 tokens = 58% reduction!)
+- [x] Implement conditional loading in dm.py (_get_required_dm_modules method)
+- [x] Extend prompt_loader.py for module composition (load_modular_prompt function)
+- [ ] Run milestone test (fresh session with modular prompts)
 - [ ] Document test results and decision
-- [ ] **Status:** Not started
-- [ ] **Blockers:** Depends on Phase 1
-- [ ] **Notes:**
+- [x] **Status:** ✅ IMPLEMENTATION COMPLETE - Testing pending (2025-11-02)
+- [ ] **Blockers:** None
+- [x] **Notes:**
+  - **Modules created:** dm_core (930 tokens), dm_structured_output (1,141), dm_combat (2,438), dm_state_tracking (1,372), dm_commands (1,641), dm_ml_training (899), dm_social (149)
+  - **Immediate savings:** 1,688 tokens (16.5%) from optimization alone
+  - **Conditional loading savings:**
+    - Combat session: 6,780 tokens (34% savings vs 10,258 original)
+    - Investigation: 4,342 tokens (58% savings!)
+  - **Next:** Run actual session to verify loading logic and measure real impact
 
 ### Phase 3: Player Prompt Optimization
 - [ ] Consolidate redundant sections (65 lines savings)
