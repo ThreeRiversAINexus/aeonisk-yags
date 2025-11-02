@@ -220,7 +220,7 @@ class TestStructuredOutputExtraction:
             margin=15,
             effects=MechanicalEffects(
                 damage=DamageEffect(
-                    target="tgt_abc123",
+                    target="tgt_d004",
                     base_damage=18,
                     soak=3,
                     dealt=15,
@@ -236,7 +236,7 @@ class TestStructuredOutputExtraction:
 
         damage = state_changes['damage_effects'][0]
         assert damage['type'] == 'damage'
-        assert damage['target'] == 'tgt_abc123'
+        assert damage['target'] == 'tgt_d004'
         assert damage['base_damage'] == 18
         assert damage['soak'] == 3
         assert damage['dealt'] == 15
