@@ -157,6 +157,9 @@ class PromptLoader:
             content = "\n\n".join(content_parts)
             template_name = agent_type
 
+        # Resolve imports first (before variable substitution)
+        content = self._resolve_imports(content, provider, language)
+
         # Apply variable substitution if provided
         if variables:
             content = self._substitute_variables(content, variables)
@@ -218,6 +221,9 @@ class PromptLoader:
 
         content = separator.join(content_parts)
 
+        # Resolve imports first (before variable substitution)
+        content = self._resolve_imports(content, provider, language)
+
         # Apply variable substitution
         if variables:
             content = self._substitute_variables(content, variables)
@@ -263,6 +269,43 @@ class PromptLoader:
         self._file_cache[file_key] = data
         logger.debug(f"Loaded prompt file: {file_path}")
         return data
+
+    def _resolve_imports(self, content: str, provider: str, language: str) -> str:
+        """
+        Recursively resolve {import:path/to/section} directives.
+
+        Example:
+            {import:shared/factions} → loads prompts/claude/en/shared/factions.yaml
+            {import:dm/combat} → loads prompts/claude/en/dm/dm_combat.yaml
+
+        Args:
+            content: Template string with import directives
+            provider: LLM provider (claude, openai, etc.)
+            language: Language code (en, es, zh)
+
+        Returns:
+            Content with imports resolved
+        """
+        import_pattern = re.compile(r'\{import:([\w/]+)\}')
+
+        def replace_import(match):
+            import_path = match.group(1)
+
+            # Resolve relative to prompts root
+            import_file = self.prompts_dir / provider / language / f"{import_path}.yaml"
+
+            if not import_file.exists():
+                logger.warning(f"Import not found: {import_file}")
+                return f"[IMPORT ERROR: {import_path}]"
+
+            # Load imported section
+            import_data = self._load_yaml_file(import_file)
+            import_content = import_data.get("content", "")
+
+            # Recursively resolve imports in imported content
+            return self._resolve_imports(import_content, provider, language)
+
+        return import_pattern.sub(replace_import, content)
 
     def _substitute_variables(self, content: str, variables: Dict[str, Any]) -> str:
         """
@@ -449,6 +492,9 @@ class PromptLoader:
 
         # Join module contents
         content = separator.join(content_parts)
+
+        # Resolve imports first (before variable substitution)
+        content = self._resolve_imports(content, provider, language)
 
         # Apply variable substitution
         if variables:
