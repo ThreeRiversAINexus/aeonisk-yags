@@ -117,22 +117,39 @@
       "category": "test",
       "used_by_tests": [],
       "notes": "Tests clock removal. Pre-player-LLM-logging fixture."
+    },
+    "regression_combat_cultist_spawn_bug.jsonl": {
+      "created": "2025-11-02",
+      "created_by_commit": "b8b4e3e",
+      "purpose": "Regression fixture documenting spawn_enemy_from_template import crash. Cultist Reinforcements clock fills in round 12, triggering enemy spawn attempt that would crash with old import bug.",
+      "scenario": "Void Convergence Investigation (mixed) @ Abandoned Nexus Research Station - Sublevel 7",
+      "rounds": 5,
+      "rounds_range": "8-12",
+      "players": 4,
+      "enemies": 0,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "regression",
+      "used_by_tests": [
+        "tests/unit/test_enemy_spawn_structured.py"
+      ],
+      "notes": "Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
     }
   },
   "statistics": {
-    "total_fixtures": 8,
-    "active": 8,
+    "total_fixtures": 9,
+    "active": 9,
     "deprecated": 0,
-    "with_player_llm_calls": 1,
+    "with_player_llm_calls": 2,
     "categories": {
       "golden": 1,
-      "regression": 1,
+      "regression": 2,
       "test": 6
     }
   },
   "notes": [
     "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
-    "Only replay_test_fresh.jsonl is verified to have complete player LLM call data",
+    "Only replay_test_fresh.jsonl and regression_combat_cultist_spawn_bug.jsonl have complete player LLM call data",
     "Comprehensive golden fixture planned to replace legacy test fixtures"
   ]
 }

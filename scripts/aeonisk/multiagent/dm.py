@@ -2020,33 +2020,46 @@ IMPORTANT:
         if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
-**SPAWN ENEMIES - CLOCK FILLS ONLY:**
-⚠️  **CRITICAL RESTRICTION**: You may ONLY spawn enemies when a clock with [SPAWN_ENEMY: ...] in its filled_consequence actually fills!
+**ENEMY SPAWNING (Structured Output):**
 
-❌ **FORBIDDEN**: Do NOT spawn enemies in general narration
-❌ **FORBIDDEN**: Do NOT add [SPAWN_ENEMY: ...] to dramatic descriptions
-❌ **FORBIDDEN**: Do NOT spawn "because it feels dramatic"
+You can spawn enemies using the `enemy_spawns` field in RoundSynthesis. Spawn enemies when narratively appropriate:
 
-✅ **ALLOWED**: ONLY when you see "🎯 When filled: [SPAWN_ENEMY: ...]" in the clock list above
+✅ **Common spawn triggers:**
+- Clock with spawn consequence fills (e.g., "Security Alarms" → guards respond)
+- Void corruption spreads → void creatures emerge
+- Investigation reveals threats → ambush/reinforcements
+- Story escalation → enemies join the fight
+- Environmental events → creatures/guards appear
 
-Syntax: [SPAWN_ENEMY: name | template | count | position | tactics]
-Example from filled clock: [SPAWN_ENEMY: Security Team | grunt | 2 | Far-Enemy | tactical_ranged]
+**How to spawn:**
+Use the `enemy_spawns` field in your RoundSynthesis response. Each EnemySpawn needs:
+- `template`: "Grunt", "Elite", or "Boss" (determines HP/stats)
+- `faction`: Who they work for (e.g., "ACG Security", "Void Cultists")
+- `archetype`: Their role (e.g., "Enforcer", "Ritualist", "Heavy Gunner")
+- `count`: How many (1-5)
+- `spawn_reason`: Why they appeared (10+ chars, e.g., "Reinforcements arrive via transit tunnel")
+- `initial_position`: Where they start (FAR_ENEMY, NEAR_ENEMY, etc.)
+- `custom_traits` (optional): Special tactics/behavior
 
-Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
-Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
-Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
+**Example:**
+```python
+enemy_spawns=[
+    EnemySpawn(
+        template="Grunt",
+        faction="ACG Security",
+        archetype="Enforcer",
+        count=2,
+        spawn_reason="Alarm triggered, security team responds",
+        initial_position=Position.FAR_ENEMY,
+        custom_traits="tactical_ranged"
+    )
+]
+```
 
-**WHY THIS RESTRICTION**: Mid-round spawns bypass clock-based pacing and overwhelm players. Spawns must be predictable and tied to clock advancement.
+**Templates:** Grunt (~12 HP), Elite (~20 HP), Boss (~40 HP)
+**Positions:** FAR_ENEMY, NEAR_ENEMY, ENGAGED, EXTREME_ENEMY
 
-**DESPAWN ENEMIES - AUTOMATIC MECHANIC:**
-When a clock with [DESPAWN_ENEMY: ...] in its filled_consequence fills, that enemy is automatically removed from combat.
-
-Syntax: [DESPAWN_ENEMY: enemy_name | reason]
-Example from filled clock: [DESPAWN_ENEMY: Freeborn Pirates | escaped]
-
-Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
-
-**IMPORTANT**: You still narrate the escape/withdrawal, but the [DESPAWN_ENEMY: ...] marker is already in the clock's filled_consequence. Just copy the consequence text including the marker when you describe what happens."""
+**Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism."""
 
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
@@ -2054,41 +2067,49 @@ Common reasons: escaped, retreated, teleported, fled, recalled, withdrew
             logger.info("Story advancement triggered - adding prompt context")
             story_advancement_prompt = """
 
-🎬 **STORY ADVANCEMENT REQUIRED - ALL CLOCKS COMPLETE**
+🎬 **STORY ADVANCEMENT - MAJOR NARRATIVE SHIFT**
 
-⚠️  **CRITICAL**: All scenario clocks have been resolved! The current situation has concluded.
+⚠️  **Scenario clocks are complete or a major story beat has occurred.** Time to advance the narrative!
 
-**YOU MUST** use the [ADVANCE_STORY: location | situation] marker to move the narrative forward:
+**Use the `story_advancement` field in RoundSynthesis:**
 
-**Format:** [ADVANCE_STORY: New Location | New Situation Description]
+Set `should_advance=True` and provide:
+- `location`: New location name (e.g., "Rebel Safe House", "Void Nexus Archive")
+- `situation`: Brief description of the new scenario (e.g., "You've escaped the ambush. Time to regroup.")
+- `new_void_level` (optional): Update if environmental void changes (0-10)
+- `clear_all_enemies`: Usually True (default) - enemies don't follow to new location
+- `new_clocks`: List of 2-4 NewClock objects for the fresh scenario
 
-**Examples:**
-- [ADVANCE_STORY: Rebel Safe House | You've escaped the ambush. Time to regroup and plan your next move]
-- [ADVANCE_STORY: The Void Nexus | The corruption has spread. You must investigate the source]
-- [ADVANCE_STORY: Corporate Trading Hub | With intel gathered, you head to sell information and resupply]
+**Example:**
+```python
+story_advancement=StoryAdvancement(
+    should_advance=True,
+    location="Abandoned Transit Hub",
+    situation="The security alarms have brought you here. You must find an escape route before reinforcements arrive.",
+    new_void_level=4,
+    clear_all_enemies=True,
+    new_clocks=[
+        NewClock(
+            name="Escape Route",
+            max_ticks=6,
+            description="Find a working transit tunnel before lockdown completes"
+        ),
+        NewClock(
+            name="Security Response",
+            max_ticks=8,
+            description="Heavy ACG forces converge on your position"
+        )
+    ]
+)
+```
 
-**What happens when you use [ADVANCE_STORY: ...]:**
-1. All remaining clocks are cleared
-2. Players are notified of the new location and situation
-3. A fresh scenario with new clocks will be generated for the next round
+**When to advance:**
+- All clocks complete (current trigger)
+- Major story beat completes (investigation reveals villain identity, ritual completed, etc.)
+- Critical single clock fills that changes everything
+- Players achieve/fail primary objective
 
-**After the [ADVANCE_STORY: ...] marker, you MUST create 2-3 new clocks using [NEW_CLOCK: ...] markers:**
-
-**Format:** [NEW_CLOCK: Clock Name | Max Ticks | Description]
-
-**Examples:**
-- [NEW_CLOCK: Security Override | 6 | Bypass the archive's automated defenses]
-- [NEW_CLOCK: Void Spread | 6 | The archive's corruption grows stronger]
-- [NEW_CLOCK: Data Decay | 4 | Critical information is being lost]
-
-**CRITICAL:** You must include BOTH markers:
-1. [ADVANCE_STORY: location | situation] - Moves to new location
-2. [NEW_CLOCK: name | max | desc] - Creates new objectives (2-3 clocks)
-
-Without [NEW_CLOCK:...] markers, the new scenario will have NO objectives and the session will stall!
-
-⚠️  **DO NOT** write clock names in prose - use the [NEW_CLOCK:...] marker format!
-⚠️  **DO NOT** continue in the current location with no clocks - the story will stall!
+**What happens:** Clocks clear, location updates, enemies despawn (unless `clear_all_enemies=False`), new clocks spawn.
 """
 
         # Use LLM to generate synthesis if available

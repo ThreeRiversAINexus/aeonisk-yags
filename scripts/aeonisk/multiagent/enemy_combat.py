@@ -270,7 +270,7 @@ class EnemyCombatManager:
             List of spawn notification messages
         """
         from .schemas.story_events import EnemySpawn
-        from .enemy_spawner import spawn_enemy_from_template
+        from .enemy_spawner import spawn_enemy
 
         if not self.enabled:
             return []
@@ -287,12 +287,13 @@ class EnemyCombatManager:
                     enemy_name = f"{spawn.faction} {spawn.archetype}"
 
                 # Use the template-based spawner
-                enemy = spawn_enemy_from_template(
-                    template=spawn.template.lower(),
+                # spawn_enemy signature: (name, template_key, position_str, tactics_override, personality_override, current_round)
+                enemy = spawn_enemy(
                     name=enemy_name,
-                    position=spawn.initial_position,
-                    tactics=spawn.custom_traits or "adaptive",
-                    spawned_round=self.current_round
+                    template_key=spawn.template.lower(),
+                    position_str=spawn.initial_position.value,  # Convert Position enum to string
+                    tactics_override=spawn.custom_traits or "adaptive",
+                    current_round=self.current_round
                 )
 
                 if enemy:

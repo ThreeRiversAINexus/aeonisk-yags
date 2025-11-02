@@ -35,9 +35,9 @@
     },
     "players": [
       {
-        "name": "Cipher",
+        "name": "Void Archive Researcher Cipher",
         "pronouns": "they/them",
-        "faction": "Void Archive Researcher",
+        "faction": "Tempest Industries",
         "llm": {
           "provider": "anthropic",
           "model": "claude-sonnet-4-5",
@@ -88,9 +88,9 @@
         "void": 3
       },
       {
-        "name": "Mercy",
+        "name": "Mediator Mercy",
         "pronouns": "she/her",
-        "faction": "Independent Mediator",
+        "faction": "Resonance Communes",
         "llm": {
           "provider": "anthropic",
           "model": "claude-sonnet-4-5",
@@ -142,9 +142,9 @@
         "void": 2
       },
       {
-        "name": "Raze",
+        "name": "CorpSec Raze",
         "pronouns": "he/him",
-        "faction": "Ex-Corporate Security",
+        "faction": "Pantheon Security",
         "llm": {
           "provider": "anthropic",
           "model": "claude-sonnet-4-5",

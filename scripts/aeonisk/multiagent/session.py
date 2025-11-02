@@ -1888,6 +1888,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             for notification in spawn_notifications:
                 print(f"\n{notification}")
 
+        # Process initial_enemies from ScenarioSetup structured output
+        scenario_setup = message.payload.get('scenario_setup', None)
+        if scenario_setup and hasattr(scenario_setup, 'initial_enemies'):
+            if scenario_setup.initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
+                spawn_notifications = self.enemy_combat.spawn_from_structured(
+                    scenario_setup.initial_enemies
+                )
+                for notification in spawn_notifications:
+                    print(f"\n{notification}")
+
         self._scenario_ready.set()
 
     def _handle_action_declared(self, message: Message):
