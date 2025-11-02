@@ -3,6 +3,20 @@ Integration tests for replay system.
 
 Tests verify that replay_fixture.py correctly replays sessions using cached
 LLM responses, enabling deterministic replay for debugging and testing.
+
+NOTE: These integration tests are currently SKIPPED because they make live
+API calls and take 5-10 minutes to run. They've been replaced with fast
+unit tests in tests/unit/test_replay_mocked.py that use mocked LLM clients.
+
+WHY KEEP THESE TESTS?
+- Future comprehensive end-to-end validation
+- Regression testing when replay system changes significantly
+- Verify real API behavior (not just mocked behavior)
+
+TO RE-ENABLE: Remove @pytest.mark.skip decorators and run with:
+  pytest tests/integration/test_replay_system.py -v --timeout=600
+
+Last verified working: 2025-11-01 (commit af21c82)
 """
 
 import pytest
@@ -12,8 +26,9 @@ import json
 
 
 class TestReplaySystem:
-    """Integration tests for replay functionality."""
+    """Integration tests for replay functionality (CURRENTLY SKIPPED - see module docstring)."""
 
+    @pytest.mark.skip(reason="Replaced with fast unit tests - see test_replay_mocked.py. Re-enable for comprehensive E2E validation.")
     @pytest.mark.integration
     def test_full_deterministic_replay(self):
         """
@@ -52,6 +67,7 @@ class TestReplaySystem:
 
         # TODO: Add comparison with diff_fixtures.py once basic replay works
 
+    @pytest.mark.skip(reason="Replaced with fast unit tests - see test_replay_mocked.py. Re-enable for comprehensive E2E validation.")
     @pytest.mark.integration
     def test_hybrid_mode_cache_until_round(self):
         """
@@ -88,6 +104,7 @@ class TestReplaySystem:
         output_size = Path(output_path).stat().st_size
         assert output_size > 0, "Output file is empty"
 
+    @pytest.mark.skip(reason="Replaced with fast unit tests - see test_replay_mocked.py. Re-enable for comprehensive E2E validation.")
     @pytest.mark.integration
     def test_replay_completes_without_hanging(self):
         """
