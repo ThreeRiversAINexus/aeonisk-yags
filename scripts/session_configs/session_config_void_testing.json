@@ -29,22 +29,23 @@
   "scenario": {
     "theme": "Temple of Purification - Collaborative Void Cleansing",
     "location": "The Harmonic Sanctum - Sacred Purification Temple",
-    "situation": "The party has arrived at the Harmonic Sanctum, an ancient temple built at the convergence of three major ley lines. This sacred site has been used for collaborative void purification rituals for over a thousand years. The temple's resonance field amplifies cleansing energies, making it the ideal location for deep void purification work. Each character carries significant void corruption and must work together to cleanse one another - void removal is most effective when one ritually trained person purifies another, rather than self-cleansing. The temple is peaceful and protected, allowing the party to focus entirely on their purification work without external threats. Temple doctrine teaches that mutual purification strengthens bonds and demonstrates trust - to let another touch your void-tainted spirit requires absolute faith.",
-    "initial_clocks": [
-      {
-        "name": "Complete Purification Cycle",
-        "current": 0,
-        "max": 8,
-        "description": "Each PC successfully purifies another party member's void (advance +2 per successful purification ritual)"
-      },
-      {
-        "name": "Temple Resonance Harmony",
-        "current": 10,
-        "max": 10,
-        "description": "The temple's ley convergence remains harmonically stable, providing +2 bonus to all void cleansing rituals"
-      }
-    ]
+    "situation": "The party has arrived at the Harmonic Sanctum, an ancient temple built at the convergence of three major ley lines. This sacred site has been used for collaborative void purification rituals for over a thousand years. The temple's resonance field amplifies cleansing energies, making it the ideal location for deep void purification work. Each character carries significant void corruption and must work together to cleanse one another - void removal is most effective when one ritually trained person purifies another, rather than self-cleansing. The temple is peaceful and protected, allowing the party to focus entirely on their purification work without external threats. Temple doctrine teaches that mutual purification strengthens bonds and demonstrates trust - to let another touch your void-tainted spirit requires absolute faith."
   },
+
+  "starting_clocks": [
+    {
+      "name": "Complete Purification Cycle",
+      "current": 0,
+      "max": 8,
+      "description": "Each PC successfully purifies another party member's void (advance +2 per successful purification ritual)"
+    },
+    {
+      "name": "Temple Resonance Harmony",
+      "current": 10,
+      "max": 10,
+      "description": "The temple's ley convergence remains harmonically stable, providing +2 bonus to all void cleansing rituals"
+    }
+  ],
 
   "agents": {
     "dm": {

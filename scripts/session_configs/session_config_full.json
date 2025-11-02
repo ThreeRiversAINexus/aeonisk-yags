@@ -1,4 +1,7 @@
 {
+  "_role": "character_library_source",
+  "_purpose": "Canonical pool of 21 pre-built characters across 10 factions. Use this file as a reference when creating new configs or reusing character definitions.",
+
   "session_name": "full_spectrum_test",
   "max_turns": 5,
   "party_size": 3,

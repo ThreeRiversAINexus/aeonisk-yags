@@ -205,6 +205,295 @@ When `loot_suggestions_enabled: true`, defeated enemies drop:
 
 ---
 
+## Tactical Module Configuration
+
+### `tactical_module_enabled` + `enemy_agents_enabled` (Both Required)
+
+**IMPORTANT:** For enemy AI to work, **both** flags must be `true`.
+
+```json
+{
+  "tactical_module_enabled": true,   // Enables tactical combat system
+  "enemy_agents_enabled": true       // Enables AI-controlled enemies
+}
+```
+
+**What each flag does:**
+- `tactical_module_enabled`: Enables tactical positioning, combat IDs, range tracking
+- `enemy_agents_enabled`: Spawns autonomous enemy AI agents with tactical decision-making
+
+**Common configurations:**
+```json
+// Narrative-only enemies (DM describes all combat)
+{
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false
+}
+
+// Tactical combat with AI enemies
+{
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true
+}
+
+// ❌ BROKEN - Tactical without AI (no agents created)
+{
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": false  // Enemies won't spawn!
+}
+```
+
+---
+
+## Enemy Spawning
+
+### DM Enemy Spawn Syntax
+
+The DM can spawn enemies mid-session using structured commands:
+
+**Format:**
+```
+[SPAWN_ENEMY: name | template | count | position | tactics]
+```
+
+**Templates:**
+- `grunt` - Basic enemy (low HP, standard damage)
+- `elite` - Veteran enemy (high HP, skilled)
+- `sniper` - Long-range specialist (extreme range, precision)
+- `boss` - Leader enemy (high HP, adaptive tactics)
+- `support` - Healer/buffer (assists allies)
+
+**Positions:**
+- `Near-Enemy` / `Near-Ally` - Close range (melee)
+- `Medium-Enemy` / `Medium-Ally` - Mid range
+- `Far-Enemy` / `Far-Ally` - Long range
+- `Extreme-Enemy` / `Extreme-Ally` - Sniper range
+
+**Tactics:**
+- `aggressive_melee` - Rush to melee, prioritize wounded
+- `defensive_ranged` - Stay at range, focus fire
+- `extreme_range` - Sniper tactics, maximum distance
+- `adaptive` - Boss AI, changes tactics based on situation
+- `support_healer` - Heal allies, avoid combat
+
+**Examples:**
+```
+[SPAWN_ENEMY: Street Thugs | grunt | 3 | Near-Enemy | aggressive_melee]
+[SPAWN_ENEMY: Rooftop Sniper | sniper | 1 | Extreme-Enemy | extreme_range]
+[SPAWN_ENEMY: Gang Leader | boss | 1 | Medium-Enemy | adaptive]
+[SPAWN_ENEMY: Medic | support | 1 | Far-Ally | support_healer]
+```
+
+### `initial_enemies` Configuration (Optional)
+
+Spawn enemies at session start without DM prompting:
+
+```json
+{
+  "initial_enemies": [
+    {
+      "name": "Cultist Guards",
+      "template": "grunt",
+      "count": 2,
+      "position": "Near-Enemy",
+      "tactics": "aggressive_melee"
+    },
+    {
+      "name": "Void Channeler",
+      "template": "elite",
+      "count": 1,
+      "position": "Far-Enemy",
+      "tactics": "defensive_ranged"
+    }
+  ]
+}
+```
+
+**Use cases:**
+- Pre-staged ambushes
+- Guaranteed combat start
+- Test scenarios with specific enemy compositions
+
+---
+
+## Scenario Customization
+
+### `force_combat` (Boolean)
+
+Forces the DM to generate a combat-focused scenario.
+
+```json
+{
+  "force_combat": true  // DM creates combat scenario (ambush, raid, etc.)
+}
+```
+
+### `combat_scenario_index` (Integer, Optional)
+
+Forces a specific combat template from the DM's scenario list.
+
+**Available templates:**
+- `0` - "Overwhelming Ambush" (difficult, surrounded)
+- `1` - "Defense Stand" (protect objective)
+- `2` - "Raid Mission" (offensive operation)
+- `3` - "Three-Way Battle" (multi-faction chaos)
+- (Additional templates may exist - check `dm.py` for full list)
+
+**Example:**
+```json
+{
+  "force_combat": true,
+  "combat_scenario_index": 0  // Force "Overwhelming Ambush"
+}
+```
+
+**Note:** If index is out of range, DM falls back to random selection.
+
+### `_scenario_hint` (String, Optional)
+
+Provides guidance to the DM for scenario generation (not a strict requirement).
+
+**Example:**
+```json
+{
+  "agents": {
+    "dm": {
+      "_scenario_hint": "Generate a three-way battle between Tempest, Nexus, and Pantheon factions fighting over a void artifact. Start with enemies already spawned from all three factions."
+    }
+  }
+}
+```
+
+**Use cases:**
+- Complex multi-faction scenarios
+- Specific narrative setups
+- Test scenarios requiring particular conditions
+
+**Behavior:** DM receives this as context but may interpret creatively based on other config options (`force_combat`, `force_vendor_gate`, etc.).
+
+---
+
+## Character Configuration
+
+### Character Library
+
+**Pre-built characters available in:**
+- `session_config_full.json` - 21 characters across 10 factions
+- `session_config_golden_comprehensive.json` - 4 archetype characters (Investigator, Diplomat, Combat, Tech)
+
+**Character formats:**
+
+**Inline definition (current approach):**
+```json
+{
+  "agents": {
+    "players": [
+      {
+        "name": "Kiran Voss",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 8
+        },
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        }
+        // ... full character definition
+      }
+    ]
+  }
+}
+```
+
+**Character reference (future feature):**
+```json
+{
+  "agents": {
+    "players": [
+      {"character_ref": "Kiran Voss"}  // Load from character_library.json
+    ]
+  }
+}
+```
+
+**Required character fields:**
+- `name` - Character name
+- `faction` - Faction affiliation
+- `llm` - LLM provider config (`provider`, `model`, `temperature`)
+
+**Recommended fields:**
+- `pronouns` - Character pronouns (e.g., "she/her", "they/them")
+- `personality` - Behavioral traits (`riskTolerance`, `voidCuriosity`, `bondPreference`, `ritualConservatism`)
+- `attributes` - YAGS attributes (Strength, Agility, Intelligence, etc.)
+- `skills` - Character skills with proficiency levels
+- `equipped_weapons` - Current loadout
+- `void` - Starting void corruption level
+
+### `_design_notes` Pattern (Complex Configs)
+
+For complex or reference configurations, use the `_design_notes` field to document intent:
+
+```json
+{
+  "_design_notes": {
+    "purpose": "ML training fixture with full mixed-scenario arc",
+    "player_archetypes": {
+      "investigator": "High Observation/Science, low Combat",
+      "diplomat": "High Persuasion/Empathy, seeks bonds",
+      "combatant": "High Combat/Tactics, void-averse",
+      "technologist": "High Engineering/Hacking, risk-taker"
+    },
+    "expected_scenario_flow": {
+      "turns_1_5": "Investigation phase",
+      "turns_6_10": "Social encounters",
+      "turns_11_15": "Combat emergence",
+      "turns_16_20": "Ritual/void confrontation"
+    },
+    "mechanics_coverage": [
+      "Scene clocks (investigation + threat)",
+      "Vendor interactions",
+      "Tactical combat with free targeting",
+      "Void corruption progression"
+    ]
+  }
+}
+```
+
+**When to use `_design_notes`:**
+- Golden/reference configurations
+- Complex test scenarios
+- Multi-phase session designs
+- ML training fixtures
+
+**When to skip `_design_notes`:**
+- Simple test configs
+- One-off sessions
+- Standard combat/social scenarios
+
+---
+
+## Config Naming Conventions
+
+**Golden configs:**
+- `session_config_golden_*.json` - Reference implementations, ML training fixtures
+
+**Feature tests:**
+- `session_config_<feature>_test.json` - Tests specific feature (e.g., `void_change_test.json`)
+
+**Scenario types:**
+- `session_config_combat.json` - Combat-focused
+- `session_config_economic.json` - Economy-focused
+- `session_config_ritual_*.json` - Ritual/void scenarios
+- `session_config_pvp_*.json` - Player-vs-player scenarios
+
+**Avoid:**
+- Generic numbered configs (`test1`, `test2`) - use descriptive names instead
+
+---
+
 ## Economy System Overview
 
 ### Talismanic Energy Currency
@@ -504,9 +793,10 @@ StoryAdvancement(
 
 ---
 
-**Version:** 1.1.0 (2025-10-31)
+**Version:** 1.2.0 (2025-11-02)
 **Compatibility:** Tactical Module v1.2.3+
 
 **Changelog:**
+- **v1.2.0 (2025-11-02)**: Added tactical module, enemy spawning, scenario customization, character config, naming conventions
 - **v1.1.0 (2025-10-31)**: Added `starting_clocks` config + environmental void_level updates
 - **v1.0.0 (2025-10-26)**: Initial version with vendor/enemy configuration
