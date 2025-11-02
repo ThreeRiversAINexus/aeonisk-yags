@@ -34,40 +34,46 @@
 
 ## Current State Analysis
 
-### Prompt Sizes
-| Prompt | Lines | Chars | Est. Tokens | Complexity |
-|--------|-------|-------|-------------|------------|
-| dm.yaml | 993 | 49KB | ~12,000 | Very High |
-| player.yaml | 627 | 28KB | ~7,000 | Medium |
-| enemy.yaml | 370 | 14KB | ~3,500 | Low (but uses Python formatters) |
+### Prompt Sizes (ACTUAL MEASUREMENTS - 2025-11-02)
+| Prompt | Lines | Chars | Tokens (measured) | Complexity |
+|--------|-------|-------|-------------------|------------|
+| dm.yaml | 871 | 41,062 | 10,258 | Very High |
+| player.yaml | 484 | 20,545 | 5,129 | Medium |
+| enemy.yaml | 370 | 14KB | ~3,500 (not measured) | Low (but uses Python formatters) |
 | markers.yaml | 413 | 17KB | N/A (docs only) | Reference |
 
-**Per-Round Token Cost:** ~50,500 tokens (DM 12k + 4 players 28k + 3 enemies 10.5k)
+**Per-Round Token Cost (measured):** ~46,516 tokens (DM 10,258 + 4 players 20,516 + 3 enemies 10,500 + ~5,242 for character data/variables)
 
 ### Key Findings from Analysis
 
-**DM Prompt Breakdown (993 lines):**
-- `structured_output_requirements`: 244 lines (24% of file!) - 8+ examples, verbose warnings
-- `combat_rules` + `movement_system`: 165 lines - could be separate module
-- `command_markers`: 131 lines - session control, only needed occasionally
-- `clock_guidance` + `soulcredit_guidance` + `void_mechanics`: 100 lines total - consolidate?
-- `ml_training_tiers`: 59 lines - only needed when JSONL logging enabled
+**DM Prompt Breakdown (871 lines, 10,258 tokens):**
+- `structured_output_requirements`: 244 lines, 2,733 tokens (26.6%!) - 8+ examples, verbose warnings
+- `combat_rules`: 133 lines, 1,825 tokens (17.8%) - could be separate module
+- `command_markers`: 165 lines, 1,641 tokens (16.0%) - session control, only needed occasionally
+- `ml_training_tiers`: 61 lines, 899 tokens (8.8%) - only needed when JSONL logging enabled
+- `clock_guidance`: 67 lines, 730 tokens (7.1%)
+- `movement_system`: 39 lines, 607 tokens (5.9%)
+- `soulcredit_guidance`: 32 lines, 422 tokens (4.1%)
 
-**Player Prompt Breakdown (627 lines):**
-- `structured_output_format`: 113 lines - similar to DM, could reduce examples
-- `stat_awareness_guidance`: 64 lines - critical for preventing bad actions
-- `action_declaration_format`: 79 lines - format enforcement
-- `ritual_requirements`: 30 lines - only needed for Astral Arts users
+**Player Prompt Breakdown (484 lines, 5,129 tokens):**
+- `structured_output_format`: 112 lines, 1,283 tokens (25.0%) - similar to DM, could reduce examples
+- `action_declaration_format`: 80 lines, 755 tokens (14.7%) - format enforcement
+- `stat_awareness_guidance`: 65 lines, 696 tokens (13.6%) - critical for preventing bad actions
+- `action_guidelines`: 48 lines, 589 tokens (11.5%)
+- `ritual_requirements`: 42 lines, 521 tokens (10.2%) - only needed for Astral Arts users
 - Conditional sections already exist (void warnings, failure loop detection)
 
-**Optimization Opportunities:**
-1. **Reduce examples:** DM has 8+ examples, could cut to 3 (save ~1,500 tokens)
-2. **Conditional combat:** Don't load 165 lines of combat rules when no enemies present (save ~600 tokens)
-3. **Shared sections:** Faction names duplicated in DM + Player (save ~50 tokens × 5 agents)
-4. **ML training module:** Only load when needed (save ~250 tokens when disabled)
-5. **Ritual mechanics:** Only load for characters with Astral Arts (save ~120 tokens)
+**Optimization Opportunities (measured impact):**
+1. **Reduce examples:** DM structured_output has 2,733 tokens (26.6%), could cut to 1,500 tokens (save ~1,233 tokens)
+2. **Conditional combat:** combat_rules + movement_system = 2,432 tokens (save when no enemies present)
+3. **Conditional ML training:** ml_training_tiers = 899 tokens (save when JSONL logging disabled)
+4. **Conditional command_markers:** 1,641 tokens (only load at session start/end, save mid-session)
+5. **Shared sections:** Faction names = 103 DM + 108 Player = 211 tokens (save ~200 tokens with sharing)
+6. **Player ritual mechanics:** 521 tokens (save for non-Astral Arts characters)
 
-**Estimated Token Savings:** 20-30% overall (10k-15k tokens per round)
+**Estimated Token Savings:**
+- Conservative (examples + conditional loading): 2,000-3,000 tokens (20-30% of DM prompt)
+- Aggressive (all optimizations): 4,000-6,000 tokens (30-40% total reduction)
 
 ---
 
