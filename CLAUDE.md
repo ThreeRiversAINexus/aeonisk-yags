@@ -25,6 +25,40 @@ source .venv/bin/activate
 python -m pytest tests/unit/test_mechanics.py -v
 ```
 
+## Development Philosophy
+
+### Test-Driven Development (TDD) - MANDATORY
+
+**CRITICAL:** All code changes MUST be driven by tests written FIRST.
+
+1. **Write failing tests BEFORE writing implementation code**
+   - Define desired behavior through tests
+   - Run tests to confirm they fail (red phase)
+   - Only then implement code to make tests pass (green phase)
+
+2. **No code changes without tests**
+   - Refactoring existing code? Write characterization tests first
+   - Adding new features? Write feature tests first
+   - Fixing bugs? Write regression tests that reproduce the bug first
+
+3. **Test location:**
+   - Unit tests: `tests/unit/test_*.py`
+   - Integration tests: `tests/integration/test_*.py`
+   - Run with: `python -m pytest tests/unit/test_file.py -v`
+
+**Example TDD workflow:**
+```bash
+# 1. Write failing tests
+vim tests/unit/test_new_feature.py
+python -m pytest tests/unit/test_new_feature.py -v  # Expect failures
+
+# 2. Implement minimum code to pass tests
+vim scripts/aeonisk/multiagent/module.py
+
+# 3. Run tests again
+python -m pytest tests/unit/test_new_feature.py -v  # Expect passes
+```
+
 ## Critical Patterns
 
 ### 1. Accessing Mechanics
@@ -238,6 +272,14 @@ python scripts/replay_fixture.py \
   --max-rounds 2 \
   --output /tmp/round2_live.jsonl
 
+# Start from specific round (skip early rounds for targeted debugging)
+python scripts/replay_fixture.py \
+  tests/fixtures/sessions/baseline.jsonl \
+  --all-cached \
+  --start-from-round 2 \
+  --max-rounds 3 \
+  --output /tmp/rounds_2_3.jsonl
+
 # No caching (all live LLM - expensive!)
 python scripts/replay_fixture.py \
   tests/fixtures/sessions/baseline.jsonl \
@@ -249,6 +291,7 @@ python scripts/replay_fixture.py \
 - `--cache-player-actions`: Cache players/enemies, DM uses live LLM (test mechanics fixes)
 - `--cache-until-round N`: Cache all agents until round N, then switch to live (hybrid mode)
 - `--max-rounds N`: Stop after N rounds (useful for testing specific rounds)
+- `--start-from-round N`: Skip rounds 0 to N-1, start from round N (isolate specific rounds)
 - `--all-cached`: Full deterministic replay (should match original exactly)
 - `--no-cache`: All live LLM calls (expensive)
 

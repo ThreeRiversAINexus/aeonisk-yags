@@ -150,7 +150,8 @@ async def replay_fixture(
     output_path: Optional[Path] = None,
     cache_mode: str = "all",
     max_rounds: Optional[int] = None,
-    cache_until_round: Optional[int] = None
+    cache_until_round: Optional[int] = None,
+    start_from_round: int = 0
 ):
     """
     Replay a fixture with selective LLM caching.
@@ -161,6 +162,7 @@ async def replay_fixture(
         cache_mode: "all", "players-only", "none"
         max_rounds: Limit replay to N rounds (None = all rounds in fixture)
         cache_until_round: Cache all agents until round N, then go live (None = disabled)
+        start_from_round: Skip rounds 0 to N-1, start replay from round N (default: 0)
 
     Returns:
         Replay result dict
@@ -236,7 +238,8 @@ async def replay_fixture(
     replay = ReplaySession(
         log_path=str(fixture_path),
         replay_to_round=max_rounds if max_rounds else 999,
-        continue_from_round=cache_until_round  # Hybrid mode: cache until round N, then live
+        continue_from_round=cache_until_round,  # Hybrid mode: cache until round N, then live
+        start_from_round=start_from_round  # Skip early rounds
     )
     replay.load_log()
 
@@ -381,6 +384,13 @@ Examples:
         help="Cache all agents until round N, then switch to live LLM (hybrid mode)"
     )
 
+    parser.add_argument(
+        "--start-from-round",
+        type=int,
+        default=0,
+        help="Skip rounds 0 to N-1, start replay from round N (useful for isolating specific rounds)"
+    )
+
     args = parser.parse_args()
 
     # Validate fixture exists
@@ -394,7 +404,8 @@ Examples:
         output_path=args.output,
         cache_mode=args.cache_mode,
         max_rounds=args.max_rounds,
-        cache_until_round=args.cache_until_round
+        cache_until_round=args.cache_until_round,
+        start_from_round=args.start_from_round
     ))
 
     print(f"\n=== Replay Result ===")

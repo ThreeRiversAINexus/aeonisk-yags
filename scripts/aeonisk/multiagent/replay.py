@@ -31,7 +31,7 @@ class ReplaySession:
     - The original session config to recreate the same setup
     """
 
-    def __init__(self, log_path: str, replay_to_round: int = 999, continue_from_round: int = None):
+    def __init__(self, log_path: str, replay_to_round: int = 999, continue_from_round: int = None, start_from_round: int = 0):
         """
         Initialize replay session.
 
@@ -39,10 +39,12 @@ class ReplaySession:
             log_path: Path to the JSONL log file to replay
             replay_to_round: Stop replay after this round (default: replay entire session)
             continue_from_round: Switch to live LLM calls after this round (default: None = full replay)
+            start_from_round: Skip rounds 0 to N-1, start replay from round N (default: 0 = replay from beginning)
         """
         self.log_path = Path(log_path)
         self.replay_to_round = replay_to_round
         self.continue_from_round = continue_from_round
+        self.start_from_round = start_from_round
 
         # Loaded from log
         self.session_id: Optional[str] = None
@@ -149,6 +151,87 @@ class ReplaySession:
             'llm_calls_cached': len(self.llm_cache)
         }
 
+    def get_rounds_in_session(self) -> List[int]:
+        """
+        Get list of all round numbers in the session.
+
+        Returns:
+            Sorted list of round numbers
+        """
+        rounds = set()
+        for event in self.events:
+            if 'round' in event and event['round'] is not None:
+                rounds.add(event['round'])
+        return sorted(list(rounds))
+
+    def get_events_for_round_range(self, start_round: int, end_round: int) -> List[Dict[str, Any]]:
+        """
+        Extract events for a specific round range.
+
+        Args:
+            start_round: First round to include (inclusive)
+            end_round: Last round to include (inclusive)
+
+        Returns:
+            List of events within the round range
+        """
+        filtered_events = []
+        for event in self.events:
+            round_num = event.get('round')
+
+            # Include events with null round (pre-round declarations)
+            if round_num is None:
+                continue
+
+            # Include events within range
+            if start_round <= round_num <= end_round:
+                filtered_events.append(event)
+
+        return filtered_events
+
+    def get_events_to_replay(self) -> List[Dict[str, Any]]:
+        """
+        Get filtered list of events to replay based on start_from_round.
+
+        When start_from_round > 0, this filters out early rounds but
+        preserves critical dependencies like session_start and scenario.
+
+        Returns:
+            List of events to replay
+        """
+        if self.start_from_round == 0:
+            # No filtering needed - replay everything
+            return self.events
+
+        # Always include these event types regardless of round
+        critical_event_types = {
+            'session_start',
+            'scenario',
+            'enemy_spawn',  # Enemies may spawn in earlier rounds but remain active
+        }
+
+        filtered_events = []
+        for event in self.events:
+            event_type = event.get('event_type')
+            round_num = event.get('round')
+
+            # Always include critical events
+            if event_type in critical_event_types:
+                filtered_events.append(event)
+                continue
+
+            # Include events with null round (pre-round declarations like LLM calls)
+            # Note: We keep ALL LLM calls because agents are stateful
+            if round_num is None:
+                filtered_events.append(event)
+                continue
+
+            # Include events from start_from_round onwards
+            if round_num >= self.start_from_round:
+                filtered_events.append(event)
+
+        return filtered_events
+
     def get_mock_llm_client(self):
         """
         Create a MockLLMClient that returns cached responses.
@@ -174,6 +257,8 @@ class ReplaySession:
             raise ValueError("Must call load_log() before replay()")
 
         print(f"\n=== Starting Replay Execution ===")
+        if self.start_from_round > 0:
+            print(f"⏩ SKIP MODE: Starting from round {self.start_from_round} (skipping rounds 0-{self.start_from_round - 1})")
         if self.continue_from_round is not None:
             print(f"🔄 HYBRID MODE: Cached rounds 1-{self.continue_from_round}, then LIVE from round {self.continue_from_round + 1}")
         else:
@@ -195,9 +280,16 @@ class ReplaySession:
             )
 
             # Modify config to limit rounds if specified
+            # When start_from_round is used, adjust max_turns to account for skipped rounds
             if self.replay_to_round < 999:
-                session.config['max_turns'] = self.replay_to_round
-                print(f"✓ Limited replay to {self.replay_to_round} rounds")
+                # If starting from round N and replaying to round M, only run M-N+1 rounds
+                actual_rounds_to_run = self.replay_to_round - self.start_from_round + 1
+                session.config['max_turns'] = actual_rounds_to_run
+                print(f"✓ Limited replay to rounds {self.start_from_round}-{self.replay_to_round} ({actual_rounds_to_run} rounds)")
+            elif self.start_from_round > 0:
+                # If starting from round N but no end specified, still need to configure
+                # The session will run normally from round N onwards
+                print(f"✓ Starting from round {self.start_from_round}, running to end of session")
 
             # Run the session
             await session.start_session()
@@ -220,7 +312,7 @@ class ReplaySession:
             }
 
 
-async def replay_from_log(log_path: str, replay_to_round: int = 999, continue_from_round: int = None, execute: bool = True):
+async def replay_from_log(log_path: str, replay_to_round: int = 999, continue_from_round: int = None, start_from_round: int = 0, execute: bool = True):
     """
     Convenience function to replay a session from a log file.
 
@@ -228,12 +320,13 @@ async def replay_from_log(log_path: str, replay_to_round: int = 999, continue_fr
         log_path: Path to JSONL log file
         replay_to_round: Stop after this round
         continue_from_round: Switch to live LLM calls after this round (hybrid mode)
+        start_from_round: Skip rounds 0 to N-1, start from round N
         execute: If True, actually execute the replay. If False, just validate.
 
     Returns:
         ReplayResult
     """
-    replay = ReplaySession(log_path, replay_to_round, continue_from_round)
+    replay = ReplaySession(log_path, replay_to_round, continue_from_round, start_from_round)
     replay.load_log()
 
     # Validate
