@@ -426,6 +426,108 @@ But this misses emergent behavior from real LLM variance.
 
 **Verdict:** Keep extract+diff, they're production-ready and solve real problems. Replay is architecturally interesting but may not be worth the debugging cost vs. just running new sessions.
 
+## Fixture Management
+
+### Fixture Naming Convention
+
+All fixtures in `tests/fixtures/sessions/` follow this standard:
+
+**Format:** `<purpose>_<scenario-type>_<descriptor>.jsonl`
+
+- **purpose:** `golden` (reference fixture) | `regression` (bug reproduction) | `test` (integration test) | `baseline` (comparison baseline)
+- **scenario-type:** `combat` | `social` | `investigation` | `ritual` | `mixed`
+- **descriptor:** Brief kebab-case description (e.g., `status-effects`, `clock-removal`, `replay-fresh`)
+
+**Examples:**
+- `golden_replay_fresh.jsonl` - Reference implementation for replay system
+- `regression_combat_action_type_bug.jsonl` - Reproduces action type misclassification
+- `test_investigation_starting_clocks.jsonl` - Tests clock loading from config
+
+### Fixture Lifecycle
+
+**Active fixtures:**
+- Used by current tests in `tests/unit/` or `tests/integration/`
+- Documented in `tests/fixtures/sessions/MANIFEST.json`
+- Must be regenerated after mechanics changes that affect their scenarios
+
+**Deprecated fixtures:**
+- Marked `"status": "deprecated"` in MANIFEST.json
+- Can be deleted after verifying no tests reference them
+- Typically deprecated when code they test is removed or fundamentally changed
+
+**Golden fixtures:**
+- Reference implementations (e.g., `replay_test_fresh.jsonl`)
+- NEVER delete without team discussion
+- Only regenerate when mechanics fundamentally change AND you verify mechanical equivalence
+
+### Validating Fixtures
+
+Before using a fixture for replay tests, verify it has complete LLM call data:
+
+```bash
+# Check fixture has player LLM calls (required for replay)
+python scripts/analyze_session.py fixture.jsonl \
+  --search event_type=llm_call source=player_llm_client --count
+# Should show: "Found N matching events" (N > 0)
+
+# Verify fixture structure and completeness
+python scripts/analyze_session.py fixture.jsonl --mode summary
+# Review: rounds, players, enemies, LLM calls
+```
+
+### Regenerating Fixtures After Code Changes
+
+When mechanics change (e.g., damage calculation, void system), fixtures may need regeneration:
+
+1. **Identify affected fixtures** (check MANIFEST.json for scenario types)
+2. **Decide regeneration strategy:**
+   - **Mechanics bug fix:** Create NEW fixture from fresh session (old fixture documents bug)
+   - **Mechanics enhancement:** Regenerate existing fixture using replay tool
+
+**Regeneration using replay (preserves player actions):**
+```bash
+python scripts/replay_fixture.py old_fixture.jsonl \
+  --all-cached \
+  --output new_fixture.jsonl
+```
+
+3. **Verify changes are expected:**
+```bash
+python scripts/diff_fixtures.py old_fixture.jsonl new_fixture.jsonl \
+  --focus effects.damage.dealt effects.void_changes
+```
+
+4. **Update MANIFEST.json** with new `last_regenerated` date and commit hash
+
+### Fixture Size Guidelines
+
+- **Unit tests:** 1-3 rounds, ~50-200KB (fast, focused)
+- **Integration tests:** 2-5 rounds, ~200-500KB (realistic scenarios)
+- **Regression tests:** Minimal rounds to reproduce bug, ~100-300KB
+- **Avoid:** >10 rounds or >1MB files (too slow, hard to debug)
+
+If a fixture exceeds guidelines, extract minimal reproduction:
+```bash
+python scripts/extract_fixture.py large_session.jsonl \
+  --rounds 7-9 \
+  --output minimal_bug_repro.jsonl
+```
+
+### Fixture Metadata (MANIFEST.json)
+
+All fixtures are cataloged in `tests/fixtures/sessions/MANIFEST.json` with:
+- **created:** Date (YYYY-MM-DD)
+- **created_by_commit:** Git SHA
+- **purpose:** Why this fixture exists
+- **scenario:** Brief description (e.g., "Gang Ambush (combat)")
+- **rounds:** Number of rounds
+- **has_player_llm_calls:** Boolean (required for replay)
+- **last_regenerated:** Date + commit SHA (if regenerated)
+- **status:** `active` | `deprecated`
+- **used_by_tests:** List of test files referencing this fixture
+
+See `tests/fixtures/sessions/MANIFEST.json` for current fixture inventory.
+
 ## Design Philosophy
 
 **Core Principle:** Mechanics emerge from LLM-generated structured output, NOT keyword detection or text parsing.
