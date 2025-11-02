@@ -1515,11 +1515,12 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
   - DM: 871 lines, 10,258 tokens (26.6% in structured_output)
   - Player: 484 lines, 5,129 tokens (25% in structured_output)
   - Testing framework successfully runs replay + diff + validation pipeline
-  - **CAVEAT:** Even with --cache-mode all, replay has non-determinism (rolls differ)
-  - This means we can detect *large* mechanical changes but not guarantee byte-for-byte reproduction
-  - Framework is still useful for milestone testing (detect regressions in validation rates, major mechanical changes)
-  - For true deterministic testing, would need to fix replay_fixture.py non-determinism (future work)
-  - Ready to proceed to Phase 2 with understanding that tests check for regressions, not exact reproduction
+  - **CAVEAT:** Existing fixtures may have missing player LLM call data (known bug from before)
+  - `replay_test_fresh.jsonl` is missing player action caching → player actions regenerated (not deterministic)
+  - Root cause: Historical bug where player LLM calls weren't captured in fixtures
+  - **ACTION NEEDED:** Generate fresh fixtures from new sessions BEFORE using framework for real testing
+  - Framework itself is functional, but needs valid fixtures with complete LLM call data
+  - Ready to proceed to Phase 2 (DM modularization), will generate fresh baseline fixtures later
 
 ### Phase 2: DM Prompt Modularization
 - [ ] Split dm.yaml into 6 modules
@@ -1582,8 +1583,16 @@ Questions about prompt deprecation? See `docs/PROMPT_EDITING_GUIDE.md` or ask in
 - ✅ Focus on DM + Player prompts (defer enemy)
 - ✅ Milestone testing (not per-change testing)
 - ✅ Hybrid migration (only migrate Python code if we touch it)
+- ✅ Move forward with Phase 2 despite fixture issues (will regenerate fixtures later)
 
 ### Open Questions
+
+**Fixture Quality Issues (discovered 2025-11-02):**
+- **Problem:** Existing fixtures missing player LLM call data (historical bug)
+- **Impact:** Cannot use for deterministic replay testing yet
+- **Solution:** Generate fresh fixtures from new sessions after fixing player LLM caching
+- **Timeline:** Defer until Phase 2.4 (milestone testing) - run fresh session, extract fixture, then test
+- **Workaround:** Phase 2 can proceed with manual session testing instead of fixture replay
 
 1. **Should we create a new branch (`prompt-optimization`) or work on `test-driven-development`?**
    - Recommendation: Create new branch for clean history
