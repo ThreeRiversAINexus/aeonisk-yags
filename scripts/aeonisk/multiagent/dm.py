@@ -141,11 +141,12 @@ class AIDMAgent(Agent):
         modules.append('dm_structured_output')
 
         # Conditional: Load combat + commands modules if enemies present
-        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
-            if len(self.shared_state.enemy_agents) > 0:
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat') and self.shared_state.enemy_combat:
+            enemy_agents = getattr(self.shared_state.enemy_combat, 'enemy_agents', [])
+            if len(enemy_agents) > 0:
                 modules.append('dm_combat')
                 modules.append('dm_commands')  # Enemy spawning/removal/NPC management guidance
-                logger.debug("DM: Loading dm_combat + dm_commands modules (enemies present)")
+                logger.debug(f"DM: Loading dm_combat + dm_commands modules ({len(enemy_agents)} enemies present)")
 
         # Conditional: Load state tracking if clocks or rituals expected
         if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
