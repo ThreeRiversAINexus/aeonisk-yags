@@ -4838,3 +4838,191 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
         # Fallback: return intent as discovery if action was successful
         return f"Investigated: {intent[:100]}" if intent else None
+
+    def _process_npc_spawn(self, npc_spawn: 'NPCSpawn') -> 'NPCAgent':
+        """
+        Process NPC spawn from structured output.
+
+        Creates NPCAgent instance and registers it with SharedState.
+
+        Args:
+            npc_spawn: NPCSpawn schema from RoundSynthesis
+
+        Returns:
+            Created NPCAgent instance
+        """
+        from .npc_agent import NPCAgent
+        from .schemas.story_events import NPCSpawn
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Generate unique agent_id (using pattern similar to enemies)
+        # Use enemy_xxx format for consistency with conversion system
+        npc_id = f"enemy_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
+
+        # Create NPC agent
+        npc = NPCAgent(
+            agent_id=npc_id,
+            name=npc_spawn.name,
+            faction=npc_spawn.faction,
+            entity_type=npc_spawn.entity_type,
+            disposition=npc_spawn.disposition,
+            threat_level=npc_spawn.threat_level,
+            description=npc_spawn.description,
+            health=npc_spawn.health,
+            max_health=npc_spawn.health,  # Max health = starting health
+            soak=npc_spawn.soak,
+            void_score=0,  # NPCs start with no void corruption
+            skills=npc_spawn.skills if npc_spawn.skills else {},
+            converted_from_enemy=npc_spawn.converted_from_enemy_id is not None  # Track if this was a conversion
+        )
+
+        # Register with SharedState
+        if self.shared_state:
+            self.shared_state.add_npc(npc)
+            logger.info(f"Spawned NPC: {npc.name} ({npc.agent_id}) - {npc.entity_type}/{npc.disposition}")
+
+        return npc
+
+    def _process_deescalation(self, deescalation: 'Deescalation', current_round: int) -> 'NPCAgent':
+        """
+        Process de-escalation from structured output.
+
+        Converts enemy to NPC, preserving state and agent_id.
+
+        Args:
+            deescalation: Deescalation schema from RoundSynthesis
+            current_round: Current round number
+
+        Returns:
+            Created NPCAgent instance
+        """
+        from .agent_conversion import deescalate_enemy_to_npc
+        from .schemas.action_effects import AgentConversion
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Get enemy from SharedState
+        if not self.shared_state:
+            logger.error(f"Cannot process de-escalation: no shared_state")
+            return None
+
+        enemy = self.shared_state.get_enemy(deescalation.enemy_id)
+        if not enemy:
+            logger.error(f"Cannot de-escalate {deescalation.enemy_id}: enemy not found")
+            return None
+
+        # Convert enemy to NPC (preserves all state)
+        npc = deescalate_enemy_to_npc(
+            enemy=enemy,
+            disposition=deescalation.resulting_disposition,
+            current_round=current_round
+        )
+
+        # Remove from enemy pool, add to NPC pool
+        self.shared_state.remove_enemy(deescalation.enemy_id)
+        self.shared_state.add_npc(npc)
+
+        logger.info(f"De-escalated {enemy.name} ({deescalation.enemy_id}) → NPC ({npc.entity_type}/{npc.disposition})")
+        logger.info(f"Reason: {deescalation.reason}")
+
+        # Log conversion for JSONL
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics and mechanics.jsonl_logger:
+            conversion = AgentConversion(
+                round=current_round,
+                agent_id=npc.agent_id,  # Stable ID
+                from_type="enemy",
+                to_type="npc",
+                trigger=deescalation.reason,
+                state_snapshot={
+                    "health": npc.health,
+                    "max_health": npc.max_health,
+                    "stuns": npc.stuns,
+                    "wounds": npc.wounds,
+                    "void_score": npc.void_score,
+                    "entity_type": npc.entity_type,
+                    "disposition": npc.disposition
+                }
+            )
+            mechanics.jsonl_logger.log_event(
+                event_type="agent_conversion",
+                data=conversion.model_dump(),
+                round_num=current_round
+            )
+
+        return npc
+
+    def _process_escalation(self, escalation: 'Escalation', current_round: int) -> 'EnemyAgent':
+        """
+        Process escalation from structured output.
+
+        Converts NPC to enemy, preserving state and agent_id.
+
+        Args:
+            escalation: Escalation schema from RoundSynthesis
+            current_round: Current round number
+
+        Returns:
+            Created EnemyAgent instance
+        """
+        from .agent_conversion import escalate_npc_to_enemy
+        from .schemas.action_effects import AgentConversion
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Get NPC from SharedState
+        if not self.shared_state:
+            logger.error(f"Cannot process escalation: no shared_state")
+            return None
+
+        npc = self.shared_state.get_npc(escalation.npc_id)
+        if not npc:
+            logger.error(f"Cannot escalate {escalation.npc_id}: NPC not found")
+            return None
+
+        # Convert NPC to enemy (preserves all state)
+        enemy = escalate_npc_to_enemy(
+            npc=npc,
+            template_override=escalation.template,
+            current_round=current_round
+        )
+
+        # Remove from NPC pool, add to enemy pool
+        self.shared_state.remove_npc(escalation.npc_id)
+        # Note: enemy needs to be added to enemy_agents in SharedState
+        # This is typically done in enemy_combat module, but we'll add directly here
+        if hasattr(self.shared_state, 'enemy_agents'):
+            self.shared_state.enemy_agents.append(enemy)
+
+        logger.info(f"Escalated {npc.name} ({escalation.npc_id}) → Enemy (template: {escalation.template})")
+        logger.info(f"Reason: {escalation.reason}")
+
+        # Log conversion for JSONL
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics and mechanics.jsonl_logger:
+            conversion = AgentConversion(
+                round=current_round,
+                agent_id=enemy.agent_id,  # Stable ID
+                from_type="npc",
+                to_type="enemy",
+                trigger=escalation.reason,
+                state_snapshot={
+                    "health": enemy.health,
+                    "max_health": enemy.max_health,
+                    "stuns": enemy.stuns,
+                    "wounds": enemy.wounds,
+                    "void_score": enemy.void_score,
+                    "template": escalation.template
+                }
+            )
+            mechanics.jsonl_logger.log_event(
+                event_type="agent_conversion",
+                data=conversion.model_dump(),
+                round_num=current_round
+            )
+
+        return enemy

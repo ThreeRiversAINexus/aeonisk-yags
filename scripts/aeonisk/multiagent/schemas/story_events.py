@@ -406,6 +406,22 @@ class RoundSynthesis(BaseModel):
         description="Enemies removed this round via non-combat means (arrested, fled, convinced, etc.)"
     )
 
+    # NPC management
+    npc_spawns: List['NPCSpawn'] = Field(
+        default_factory=list,
+        description="New NPCs spawned this round (guides, civilians, allies)"
+    )
+
+    deescalations: List['Deescalation'] = Field(
+        default_factory=list,
+        description="Enemies converted to NPCs this round (via diplomacy, intimidation, surrender)"
+    )
+
+    escalations: List['Escalation'] = Field(
+        default_factory=list,
+        description="NPCs converted to enemies this round (attacked, provoked, hostile factions)"
+    )
+
     # Clock lifecycle
     clocks_filled: List[str] = Field(
         default_factory=list,
@@ -514,4 +530,135 @@ class ScenarioSetup(BaseModel):
     initial_enemies: List[EnemySpawn] = Field(
         default_factory=list,
         description="Enemies present at scenario start (optional)"
+    )
+
+
+# NPC and De-escalation Schemas (for NPC system)
+
+class NPCSpawn(BaseModel):
+    """
+    Spawn an NPC into the scene.
+
+    Use when:
+    - Introducing non-combatant characters
+    - Enemy surrenders/negotiates (DM marks conversion)
+    - Scene requires dialogue NPCs
+    - Quest-givers, guides, civilians appear
+
+    Example:
+    ```python
+    spawn = NPCSpawn(
+        name="Freeborn Navigator",
+        faction="Freeborn",
+        entity_type="neutral",
+        threat_level="non_combatant",
+        disposition="neutral",
+        description="Weathered woman with neural optics and void-stained fingers",
+        health=20,
+        soak=2,
+        skills={"perception": 5, "astral_arts": 3}
+    )
+    ```
+    """
+    name: str = Field(..., min_length=3, max_length=50)
+    faction: str = Field(..., description="NPC's faction/allegiance (Freeborn, ACG, Civilian, etc.)")
+    entity_type: Literal["neutral", "ally", "prisoner"] = Field(
+        ...,
+        description="NPC's relation to players: neutral (non-aligned), ally (friendly), prisoner (captured)"
+    )
+    threat_level: Literal["non_combatant", "potential_threat", "armed_neutral"] = Field(
+        "non_combatant",
+        description="Determines enemy targeting: non_combatant (ignored by most), potential_threat (professionals engage), armed_neutral (treated as threat)"
+    )
+    disposition: Literal["friendly", "neutral", "wary", "prisoner"] = Field(
+        ...,
+        description="NPC's attitude: friendly (helpful), neutral (indifferent), wary (suspicious), prisoner (captured/restrained)"
+    )
+    description: str = Field(..., min_length=20, max_length=300)
+    health: int = Field(..., ge=1, le=100)
+    soak: int = Field(..., ge=0, le=20)
+    skills: dict[str, int] = Field(
+        default_factory=dict,
+        description="Key skills (for cooperative checks, e.g., {'perception': 5, 'combat': 3})"
+    )
+
+    # Optional: conversion tracking
+    converted_from_enemy_id: Optional[str] = Field(
+        None,
+        description="If NPC was converted from enemy, track original agent_id"
+    )
+
+
+class Deescalation(BaseModel):
+    """
+    Convert enemy to NPC via diplomacy/intimidation/voluntary surrender.
+
+    Use when:
+    - Successful negotiation/surrender
+    - Enemy convinced to stand down
+    - Intimidation causes flee/withdrawal
+    - Morale breaks and enemy surrenders
+
+    Example:
+    ```python
+    deescalate = Deescalation(
+        enemy_id="enemy_freeborn_pirate_1",
+        resulting_entity_type="neutral",
+        resulting_disposition="neutral",
+        reason="Convinced of shared Freeborn kinship, agrees to temporary ceasefire"
+    )
+    ```
+    """
+    enemy_id: str = Field(
+        ...,
+        description="Enemy to convert (agent_id is preserved during conversion)"
+    )
+    resulting_entity_type: Literal["neutral", "ally", "prisoner"] = Field(
+        ...,
+        description="NPC entity type after conversion"
+    )
+    resulting_disposition: Literal["friendly", "neutral", "wary", "prisoner"] = Field(
+        ...,
+        description="NPC disposition after conversion"
+    )
+    reason: str = Field(
+        ...,
+        min_length=20,
+        max_length=300,
+        description="Why enemy de-escalated (for ML training and narrative continuity)"
+    )
+
+
+class Escalation(BaseModel):
+    """
+    Convert NPC to enemy after provocation.
+
+    Use when:
+    - NPC is attacked
+    - NPC is severely threatened
+    - NPC's faction is attacked and they choose to defend
+    - Situation changes and NPC becomes hostile
+
+    Example:
+    ```python
+    escalate = Escalation(
+        npc_id="enemy_civilian_1",
+        reason="Attacked by player, now defending self in panic",
+        template="desperate_fighter"
+    )
+    ```
+    """
+    npc_id: str = Field(
+        ...,
+        description="NPC to convert (agent_id is preserved during conversion)"
+    )
+    reason: str = Field(
+        ...,
+        min_length=20,
+        max_length=300,
+        description="Why NPC escalated to combat"
+    )
+    template: str = Field(
+        "desperate_fighter",
+        description="Enemy template for tactics (default: desperate_fighter for untrained NPCs)"
     )
