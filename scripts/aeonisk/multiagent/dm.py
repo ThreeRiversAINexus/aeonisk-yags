@@ -747,11 +747,16 @@ IMPORTANT:
                 )
                 npc_spawns.append(npc_spawn)
 
-            # Create simple namespace object with initial_enemies and/or npc_spawns attributes
-            scenario_setup_obj = SimpleNamespace(
-                initial_enemies=enemy_spawns,
-                npc_spawns=npc_spawns  # Use npc_spawns to match RoundSynthesis field name
-            )
+            # Serialize Pydantic models to dicts for JSON serialization
+            # (Message.to_json() uses json.dumps with default=str, which breaks objects)
+            enemy_spawn_dicts = [spawn.model_dump() for spawn in enemy_spawns]
+            npc_spawn_dicts = [spawn.model_dump() for spawn in npc_spawns]
+
+            # Create dict (not SimpleNamespace) for JSON serialization
+            scenario_setup_dict = {
+                'initial_enemies': enemy_spawn_dicts,
+                'npc_spawns': npc_spawn_dicts
+            }
             if enemy_spawns:
                 logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
             if npc_spawns:
@@ -763,8 +768,8 @@ IMPORTANT:
             'opening_narration': opening_narration,
             'faction_conflicts': []
         }
-        if scenario_setup_obj:
-            payload['scenario_setup'] = scenario_setup_obj
+        if initial_enemies_config or initial_npcs_config:
+            payload['scenario_setup'] = scenario_setup_dict
 
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,

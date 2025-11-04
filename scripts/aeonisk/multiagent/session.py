@@ -1891,6 +1891,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Process initial_enemies from ScenarioSetup structured output
         # Handle both SimpleNamespace (object) and dict (after serialization)
         scenario_setup = message.payload.get('scenario_setup', None)
+        logger.debug(f"scenario_setup type: {type(scenario_setup)}, value: {scenario_setup}")
         if scenario_setup:
             # Get initial_enemies (works for both object and dict)
             initial_enemies = getattr(scenario_setup, 'initial_enemies', None)
