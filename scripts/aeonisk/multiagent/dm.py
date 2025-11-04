@@ -2216,6 +2216,35 @@ enemy_spawns=[
 
 **Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism."""
 
+        # Build enemy status context (for de-escalation system)
+        enemy_status_context = ""
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+            enemy_combat = self.shared_state.enemy_combat
+            if enemy_combat and enemy_combat.enabled:
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                if active_enemies:
+                    enemy_lines = []
+                    for enemy in active_enemies:
+                        health_pct = (enemy.health / enemy.max_health * 100) if enemy.max_health > 0 else 0
+                        enemy_lines.append(f"  - {enemy.name} (ID: {enemy.agent_id}) - {enemy.health}/{enemy.max_health} HP ({health_pct:.0f}%)")
+
+                    enemy_status_context = "\n\n**Active Enemies:**\n" + "\n".join(enemy_lines)
+                    enemy_status_context += "\n\n⚠️  If enemies surrender/calm down, use `deescalations` field with their exact agent_id (e.g., enemy_grunt_adbb6db0)"
+
+        # Build NPC status context
+        npc_status_context = ""
+        if self.shared_state and self.shared_state.npc_agents:
+            npc_lines = []
+            for npc in self.shared_state.npc_agents:
+                if getattr(npc, 'is_active', True):
+                    npc_lines.append(f"  - {npc.name} (ID: {npc.agent_id}) - {npc.entity_type}/{npc.disposition}")
+
+            if npc_lines:
+                npc_status_context = "\n\n**Active NPCs:**\n" + "\n".join(npc_lines)
+                npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id"
+
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
         if self.needs_story_advancement:
@@ -2276,6 +2305,8 @@ story_advancement=StoryAdvancement(
 {clock_state_text}
 {filled_clocks_text}
 {expired_clocks_text}
+{enemy_status_context}
+{npc_status_context}
 {story_advancement_prompt}
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:

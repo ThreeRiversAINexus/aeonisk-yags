@@ -65,7 +65,35 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \        reason=\"Persuaded that ritual was corrupted, agreed to stand down\"\n\
   \    )\n]\n```\n\n**Resolution types:**\n- `NEUTRALIZED`: Arrested, captured, restrained\n\
   - `FLED`: Scared off, retreated, escaped\n- `CONVINCED`: Talked down, persuaded,\
-  \ negotiated\n- `SUBDUED`: Knocked unconscious, incapacitated\n\n**IMPORTANT: Story\
+  \ negotiated\n- `SUBDUED`: Knocked unconscious, incapacitated\n\n**6. NPC Management\
+  \ (De-escalation System):**\n\n**When enemies surrender/calm down, use `deescalations`\
+  \ to convert them to NPCs:**\n\n```python\ndeescalations=[\n    Deescalation(\n\
+  \        enemy_id=\"enemy_raider_1\",  # Exact enemy agent_id from combat\n   \
+  \     resulting_disposition=\"prisoner\",  # friendly/neutral/wary/prisoner\n  \
+  \      reason=\"Surrendered after intimidation, now restrained\"\n    )\n]\n```\n\
+  \n**Dispositions:**\n- `\"prisoner\"`: Captured, restrained, under guard\n- `\"\
+  wary\"`: Suspicious, will flee if threatened\n- `\"neutral\"`: Calm, indifferent,\
+  \ observing\n- `\"friendly\"`: Cooperative, helpful, allied\n\n**When to use de-escalation\
+  \ vs enemy_removal:**\n- ✅ Use `deescalations` when enemy STAYS IN SCENE as non-combatant\
+  \ (prisoners, surrendered, calmed)\n- ✅ Use `enemy_removals` when enemy LEAVES\
+  \ SCENE entirely (fled, escaped, disappeared)\n\n**Spawn new civilian NPCs:**\n\
+  ```python\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Frightened Dock Worker\"\
+  ,\n        faction=\"Independent Civilian\",\n        entity_type=\"neutral\",  #\
+  \ neutral/ally/prisoner\n        threat_level=\"non_combatant\",  # non_combatant/potential_threat/armed_neutral\n\
+  \        disposition=\"wary\",\n        description=\"Terrified civilian hiding\
+  \ behind cargo crates\",\n        health=15,\n        soak=0,\n        skills={}\n\
+  \    )\n]\n```\n\n**NPC threat levels (affects enemy targeting):**\n- `\"non_combatant\"\
+  `: Civilians - most enemies ignore\n- `\"potential_threat\"`: NPCs that might be\
+  \ dangerous - professionals may target\n- `\"armed_neutral\"`: NPCs with weapons\
+  \ - most enemies treat as threats\n\n**When NPCs become hostile, use `escalations`:**\n\
+  ```python\nescalations=[\n    Escalation(\n        npc_id=\"enemy_civilian_1\"\
+  ,  # Stable agent_id (may be enemy_xxx format)\n        reason=\"Attacked by player,\
+  \ now fighting back in self-defense\",\n        template_override=\"desperate_fighter\"\
+  \  # Optional: enemy template for combat stats\n    )\n]\n```\n\n**CRITICAL: Use\
+  \ exact enemy agent_id for de-escalations:**\n- Enemy agent IDs look like `enemy_raider_1`,\
+  \ `enemy_grunt_a3f2`\n- You'll see them in the enemy list each round\n- De-escalation\
+  \ preserves agent_id (stable across conversions)\n- DO NOT make up IDs - use exact\
+  \ IDs from combat status\n\n**IMPORTANT: Story\
   \ Advancement Auto-Clears Enemies**\nWhen you use `story_advancement` with `should_advance=True`,\
   \ ALL active enemies are automatically removed (unless you set `clear_all_enemies=False`).\
   \ This prevents enemies from persisting across scene changes.\n\nExample:\n```python\n\
