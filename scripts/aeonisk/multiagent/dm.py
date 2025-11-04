@@ -2021,7 +2021,8 @@ IMPORTANT:
         # Build context about what happened
         outcomes_summary = []
         for res in resolutions:
-            char_name = res['character_name']
+            char_name = res.get('character_name', 'Unknown')
+
             # Handle both old format (full dict) and new format (serializable dict)
             if 'resolution' in res and isinstance(res['resolution'], dict):
                 if 'resolution' in res['resolution']:
@@ -2032,11 +2033,36 @@ IMPORTANT:
                     # Old format: res['resolution'] has direct 'outcome' field
                     success = res['resolution'].get('success', True)
             else:
-                success = True
+                # Enemy result format or other simplified formats
+                success = res.get('result') not in ['invalidated', 'failed', 'target not found']
 
-            intent = res['action'].get('intent', res['action'].get('description', 'unknown action'))
+            # Handle action field - can be dict (PC actions) or string (enemy actions)
+            action = res.get('action', {})
+            if isinstance(action, dict):
+                # PC action format: action is a dict with 'intent' or 'description'
+                intent = action.get('intent', action.get('description', 'unknown action'))
+            else:
+                # Enemy action format: action is a string like 'attack', 'move', etc.
+                intent = str(action)
+                # Make it more readable
+                if intent == 'attack':
+                    target = res.get('target', 'unknown target')
+                    intent = f"attacked {target}"
+                elif intent == 'hold':
+                    intent = "held position"
 
-            status = "succeeded" if success else "failed"
+            # Check if action was invalidated
+            if res.get('result') == 'invalidated':
+                failure_reason = res.get('failure_reason', 'unknown')
+                if failure_reason == 'attacker_surrendered':
+                    status = "surrendered (action cancelled)"
+                elif failure_reason == 'attacker_defeated':
+                    status = "already defeated (action cancelled)"
+                else:
+                    status = f"action invalidated ({failure_reason})"
+            else:
+                status = "succeeded" if success else "failed"
+
             outcomes_summary.append(f"- {char_name} {status} at: {intent}")
 
         outcomes_text = "\n".join(outcomes_summary)
