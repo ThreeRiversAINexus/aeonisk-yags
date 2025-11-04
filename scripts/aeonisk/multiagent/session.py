@@ -1898,6 +1898,24 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 for notification in spawn_notifications:
                     print(f"\n{notification}")
 
+        # Process initial_npcs (npc_spawns) from ScenarioSetup structured output
+        if scenario_setup and hasattr(scenario_setup, 'npc_spawns'):
+            if scenario_setup.npc_spawns:
+                # Process NPC spawns via DM
+                for npc_spawn in scenario_setup.npc_spawns:
+                    # Find DM agent
+                    dm_agent = None
+                    for agent in self.agents:
+                        if agent.agent_id.startswith('dm_'):
+                            dm_agent = agent
+                            break
+
+                    if dm_agent and hasattr(dm_agent, '_process_npc_spawn'):
+                        npc = dm_agent._process_npc_spawn(npc_spawn)
+                        print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
+                    else:
+                        logger.warning(f"Cannot spawn NPC {npc_spawn.name} - DM not found or missing _process_npc_spawn")
+
         self._scenario_ready.set()
 
     def _handle_action_declared(self, message: Message):

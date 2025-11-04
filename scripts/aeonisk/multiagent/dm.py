@@ -678,14 +678,17 @@ IMPORTANT:
         # Generate opening narration based on situation
         opening_narration = f"{situation}"
 
-        # Create scenario_setup object with initial_enemies if specified
-        scenario_setup_obj = None
-        if initial_enemies_config:
-            from types import SimpleNamespace
-            from .schemas.story_events import EnemySpawn
-            from .enemy_agent import Position
+        # Extract initial_npcs from top-level config
+        initial_npcs_config = config.get('initial_npcs', [])
 
-            # Convert config dicts to EnemySpawn objects
+        # Create scenario_setup object with initial_enemies and/or initial_npcs if specified
+        scenario_setup_obj = None
+        if initial_enemies_config or initial_npcs_config:
+            from types import SimpleNamespace
+            from .schemas.story_events import EnemySpawn, NPCSpawn
+            from .schemas.shared_types import Position  # Position Enum, not enemy_agent.Position class
+
+            # Convert initial_enemies config dicts to EnemySpawn objects
             enemy_spawns = []
             for enemy_config in initial_enemies_config:
                 # Map config template (lowercase) to schema template (capitalized)
@@ -697,10 +700,19 @@ IMPORTANT:
                 }
                 template = template_map.get(template_raw, 'Grunt')
 
-                # Parse position string to Position object
-                # Valid rings: Engaged, Near, Far, Extreme
-                position_str = enemy_config.get('position', 'Far-Enemy')  # Default to Far
-                initial_position = Position.from_string(position_str)
+                # Map position string to Position enum
+                # Valid: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy
+                position_str = enemy_config.get('position', 'Far-Enemy')
+                position_map = {
+                    'Engaged': Position.ENGAGED,
+                    'Near-PC': Position.NEAR_PC,
+                    'Near-Enemy': Position.NEAR_ENEMY,
+                    'Far-PC': Position.FAR_PC,
+                    'Far-Enemy': Position.FAR_ENEMY,
+                    'Extreme-PC': Position.EXTREME_PC,
+                    'Extreme-Enemy': Position.EXTREME_ENEMY
+                }
+                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
 
                 # Extract/generate required fields
                 name = enemy_config.get('name', 'Unknown Enemy')
@@ -719,9 +731,31 @@ IMPORTANT:
                 )
                 enemy_spawns.append(enemy_spawn)
 
-            # Create simple namespace object with initial_enemies attribute
-            scenario_setup_obj = SimpleNamespace(initial_enemies=enemy_spawns)
-            logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
+            # Convert initial_npcs config dicts to NPCSpawn objects
+            npc_spawns = []
+            for npc_config in initial_npcs_config:
+                npc_spawn = NPCSpawn(
+                    name=npc_config.get('name', 'Unknown NPC'),
+                    faction=npc_config.get('faction', 'Unknown'),
+                    entity_type=npc_config.get('entity_type', 'neutral'),
+                    threat_level=npc_config.get('threat_level', 'non_combatant'),
+                    disposition=npc_config.get('disposition', 'neutral'),
+                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
+                    health=npc_config.get('health', 20),
+                    soak=npc_config.get('soak', 0),
+                    skills=npc_config.get('skills', {})
+                )
+                npc_spawns.append(npc_spawn)
+
+            # Create simple namespace object with initial_enemies and/or npc_spawns attributes
+            scenario_setup_obj = SimpleNamespace(
+                initial_enemies=enemy_spawns,
+                npc_spawns=npc_spawns  # Use npc_spawns to match RoundSynthesis field name
+            )
+            if enemy_spawns:
+                logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
+            if npc_spawns:
+                logger.info(f"Config specifies {len(npc_spawns)} initial NPC spawn(s)")
 
         # Broadcast scenario setup
         payload = {
@@ -746,6 +780,8 @@ IMPORTANT:
         if initial_enemies_config:
             total_enemies = sum(e.get('count', 1) for e in initial_enemies_config)
             print(f"Will spawn {total_enemies} initial enemies from config")
+        if initial_npcs_config:
+            print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
 
     async def _request_human_scenario(self, config: Dict[str, Any]):
         """Request scenario from human DM."""

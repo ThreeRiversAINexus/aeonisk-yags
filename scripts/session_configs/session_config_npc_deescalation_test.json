@@ -37,6 +37,21 @@
     }
   ],
 
+  "_comment_initial_npcs": "NPCs present at scenario start (can spawn via initial_npcs or DM can spawn via npc_spawns during play)",
+  "initial_npcs": [
+    {
+      "name": "Dock Worker Kassia",
+      "faction": "Independent Laborer",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Terrified civilian dock worker hiding behind cargo crates, caught in crossfire between raiders and enforcers",
+      "health": 15,
+      "soak": 0,
+      "skills": {}
+    }
+  ],
+
   "agents": {
     "dm": {
       "llm": {
