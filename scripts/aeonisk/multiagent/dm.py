@@ -4977,6 +4977,12 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         # Register with SharedState
         if self.shared_state:
             self.shared_state.add_npc(npc)
+
+            # Register with target_id_mapper for tracking
+            target_mapper = self.shared_state.get_target_id_mapper()
+            if target_mapper:
+                target_mapper.register_npc(npc)
+
             logger.info(f"Spawned NPC: {npc.name} ({npc.agent_id}) - {npc.entity_type}/{npc.disposition}")
 
         return npc

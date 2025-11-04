@@ -93,7 +93,7 @@ def deescalate_enemy_to_npc(
     if hasattr(enemy, 'conditions'):
         for cond in enemy.conditions:
             # Condition is a Pydantic model, so we can reconstruct
-            from scripts.aeonisk.multiagent.schemas.shared_types import Condition
+            from .schemas.shared_types import Condition
             conditions_copy.append(Condition(
                 name=cond.name,
                 penalty=cond.penalty,
@@ -184,7 +184,7 @@ def escalate_npc_to_enemy(
 
     # Copy conditions
     conditions_copy = []
-    from scripts.aeonisk.multiagent.schemas.shared_types import Condition
+    from .schemas.shared_types import Condition
     for cond in npc.conditions:
         conditions_copy.append(Condition(
             name=cond.name,

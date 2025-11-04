@@ -1369,6 +1369,27 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                 print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s} | {position_str:15s}")
 
+        # Display NPCs (non-combatants)
+        if self.shared_state and self.shared_state.npc_agents:
+            print("\n  NPCs (Non-Combatants):")
+            for npc in self.shared_state.npc_agents:
+                # Get health info
+                health = getattr(npc, 'health', '?')
+                max_health = getattr(npc, 'max_health', '?')
+                health_str = f"{health}/{max_health} HP"
+
+                # Get entity type and disposition
+                entity_type = getattr(npc, 'entity_type', 'neutral')
+                disposition = getattr(npc, 'disposition', 'neutral')
+                status_str = f"{entity_type}/{disposition}"
+
+                # Active status
+                is_active = getattr(npc, 'is_active', True)
+                active_indicator = "" if is_active else " [INACTIVE]"
+
+                print(f"    [--] {npc.name:20s} | {health_str:12s} | {status_str:15s}{active_indicator}")
+                print(f"         └─ Faction: {npc.faction} | Threat: {npc.threat_level}")
+
         # Display clock states if available
         if mechanics and mechanics.scene_clocks:
             print("\n  Scene Clocks:")
