@@ -84,10 +84,10 @@
         "equipped_weapons": {
           "primary": "pistol"
         },
-        "carried_weapons": ["stun_baton"],
+        "carried_weapons": ["shock_baton"],
         "inventory": {
           "pistol": 1,
-          "stun_baton": 1,
+          "shock_baton": 1,
           "med_kit": 2,
           "diplomatic_credentials": 1
         },
