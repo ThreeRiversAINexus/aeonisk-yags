@@ -14,7 +14,7 @@ Critical principle: Conversion is changing behavior mode, not creating a new age
 from typing import Optional, Literal
 import logging
 
-from scripts.aeonisk.multiagent.npc_agent import NPCAgent, ConversionRecord
+from .npc_agent import NPCAgent, ConversionRecord
 
 logger = logging.getLogger(__name__)
 

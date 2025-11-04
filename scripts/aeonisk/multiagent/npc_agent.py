@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Literal
 from pydantic import BaseModel, Field
 import logging
 
-from scripts.aeonisk.multiagent.schemas.shared_types import Condition
+from .schemas.shared_types import Condition
 
 logger = logging.getLogger(__name__)
 
