@@ -631,6 +631,9 @@ IMPORTANT:
         void_level = scenario_config.get('void_level', 3)
         initial_clocks = scenario_config.get('initial_clocks', [])
 
+        # Extract initial_enemies from top-level config (not scenario dict)
+        initial_enemies_config = config.get('initial_enemies', [])
+
         # Create scenario object
         scenario = Scenario(
             theme=theme,
@@ -675,15 +678,41 @@ IMPORTANT:
         # Generate opening narration based on situation
         opening_narration = f"{situation}"
 
+        # Create scenario_setup object with initial_enemies if specified
+        scenario_setup_obj = None
+        if initial_enemies_config:
+            from types import SimpleNamespace
+            from .schemas.story_events import EnemySpawn
+
+            # Convert config dicts to EnemySpawn objects
+            enemy_spawns = []
+            for enemy_config in initial_enemies_config:
+                enemy_spawn = EnemySpawn(
+                    name=enemy_config.get('name', 'Unknown Enemy'),
+                    template=enemy_config.get('template', 'grunt'),
+                    count=enemy_config.get('count', 1),
+                    position=enemy_config.get('position', 'Medium-Enemy'),
+                    tactics=enemy_config.get('tactics', 'balanced')
+                )
+                enemy_spawns.append(enemy_spawn)
+
+            # Create simple namespace object with initial_enemies attribute
+            scenario_setup_obj = SimpleNamespace(initial_enemies=enemy_spawns)
+            logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
+
         # Broadcast scenario setup
+        payload = {
+            'scenario': scenario_data,
+            'opening_narration': opening_narration,
+            'faction_conflicts': []
+        }
+        if scenario_setup_obj:
+            payload['scenario_setup'] = scenario_setup_obj
+
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
-            {
-                'scenario': scenario_data,
-                'opening_narration': opening_narration,
-                'faction_conflicts': []
-            }
+            payload
         )
 
         print(f"\n[DM {self.agent_id}] Using scenario from config file")
@@ -691,6 +720,9 @@ IMPORTANT:
         print(f"Location: {location}")
         if initial_clocks:
             print(f"Initialized {len(initial_clocks)} clocks from config")
+        if initial_enemies_config:
+            total_enemies = sum(e.get('count', 1) for e in initial_enemies_config)
+            print(f"Will spawn {total_enemies} initial enemies from config")
 
     async def _request_human_scenario(self, config: Dict[str, Any]):
         """Request scenario from human DM."""
