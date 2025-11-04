@@ -31,6 +31,69 @@ from .tactical_resolution import ResolutionState
 logger = logging.getLogger(__name__)
 
 
+def _parse_surrender_from_resolution(
+    resolution_data: Dict[str, Any],
+    resolution_state: ResolutionState,
+    target_id_mapper: Optional[Any] = None
+) -> None:
+    """
+    Parse PC action resolution to detect enemy surrender.
+
+    Checks for conditions/effects indicating surrender and marks enemies
+    as surrendered in resolution_state to invalidate their subsequent actions.
+
+    Args:
+        resolution_data: DM's action resolution (from adjudication)
+        resolution_state: Resolution state to update
+        target_id_mapper: Target ID mapper for resolving target IDs (optional)
+    """
+    # Extract target info from action
+    action = resolution_data.get('context', {})
+    target_id = action.get('target')
+
+    if not target_id:
+        return  # No target, can't be a surrender
+
+    # Check if targeting an enemy
+    if target_id_mapper and hasattr(target_id_mapper, 'is_enemy'):
+        if not target_id_mapper.is_enemy(target_id):
+            return  # Not targeting enemy
+
+    # Look for surrender indicators in effects
+    effects = resolution_data.get('effects', {})
+
+    # Check status_effects (text-based, legacy format)
+    status_effects = effects.get('status_effects', [])
+    if isinstance(status_effects, list):
+        for effect in status_effects:
+            effect_lower = str(effect).lower()
+            if any(keyword in effect_lower for keyword in ['surrendered', 'surrender', 'laid down weapons', 'disarmed and compliant']):
+                # Resolve target ID to enemy agent_id
+                if target_id_mapper:
+                    target_entity = target_id_mapper.resolve_target(target_id)
+                    if target_entity and hasattr(target_entity, 'agent_id'):
+                        resolution_state.mark_surrendered(target_entity.agent_id)
+                        logger.info(f"Detected surrender from status effect: {target_entity.agent_id}")
+                        return
+
+    # Check conditions (structured format, Pydantic schema)
+    conditions = effects.get('conditions')
+    if conditions:
+        for condition in conditions:
+            if isinstance(condition, dict):
+                cond_name = condition.get('name', '').lower()
+                cond_desc = condition.get('description', '').lower()
+
+                if 'surrender' in cond_name or 'surrender' in cond_desc:
+                    # Resolve target ID to enemy agent_id
+                    if target_id_mapper:
+                        target_entity = target_id_mapper.resolve_target(target_id)
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            resolution_state.mark_surrendered(target_entity.agent_id)
+                            logger.info(f"Detected surrender from condition: {target_entity.agent_id}")
+                            return
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -824,11 +887,18 @@ class SelfPlayingSession:
                         if resolution_data:
                             all_resolutions.append(resolution_data)
 
+                            # Parse surrender from PC action resolution
+                            # This marks enemies as surrendered in resolution_state BEFORE their turn
+                            # so their actions get invalidated (like defeated enemies)
+                            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                            _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
                         # TODO: Update resolution_state based on PC action results
-                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.)
+                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.
+                        #  Currently handles: surrendered enemies via _parse_surrender_from_resolution)
 
             elif agent_type == 'enemy':
                 # Enemy action execution with resolution state tracking
@@ -851,6 +921,38 @@ class SelfPlayingSession:
                         # Enemy actions use a simplified result dict compared to ActionResolution schema
                         # but DM needs to see enemy actions to synthesize round accurately
                         all_resolutions.append(result)
+
+        # Convert surrendered enemies to NPCs after all actions resolve
+        # This happens AFTER resolution (actions invalidated) but BEFORE synthesis
+        if resolution_state.surrendered and self.enemy_combat.enabled:
+            from .agent_conversion import deescalate_enemy_to_npc
+
+            for enemy_id in list(resolution_state.surrendered):
+                # Find the enemy agent
+                enemy = next((e for e in self.enemy_combat.enemy_agents if e.agent_id == enemy_id), None)
+
+                if enemy and enemy.is_active:
+                    # Convert to NPC with "prisoner" disposition
+                    npc = deescalate_enemy_to_npc(
+                        enemy=enemy,
+                        disposition="prisoner",
+                        current_round=mechanics.current_round if mechanics else 0
+                    )
+
+                    # Add to shared state
+                    if self.shared_state:
+                        self.shared_state.npc_agents.append(npc)
+
+                        # Register in target mapper
+                        if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                            self.shared_state.target_id_mapper.register_npc(npc)
+
+                    # Deactivate enemy (no longer in combat)
+                    enemy.is_active = False
+                    enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                    logger.info(f"✅ Converted surrendered enemy {enemy_id} to NPC prisoner: {npc.name}")
+                    print(f"\n✅ {enemy.name} has been detained and is no longer a threat")
 
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
