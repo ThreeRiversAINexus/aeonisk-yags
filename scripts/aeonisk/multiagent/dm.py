@@ -2175,50 +2175,20 @@ IMPORTANT:
         if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
-**ENEMY SPAWNING (Structured Output):**
+**NPC MANAGEMENT (De-escalation System):**
 
-You can spawn enemies using the `enemy_spawns` field in RoundSynthesis. Spawn enemies when narratively appropriate:
+⚠️ **CRITICAL: NARRATIVE-MECHANICAL ALIGNMENT** ⚠️
 
-✅ **Common spawn triggers:**
-- Clock with spawn consequence fills (e.g., "Security Alarms" → guards respond)
-- Void corruption spreads → void creatures emerge
-- Investigation reveals threats → ambush/reinforcements
-- Story escalation → enemies join the fight
-- Environmental events → creatures/guards appear
+If your narration describes surrender, detention, prisoners, or peaceful resolution:
+→ You MUST populate `deescalations` field with the converted enemies
+→ Narrative alone does NOT change combat state
+→ Enemy agents fight based on structured state, NOT narrative text
+→ Divergence = enemies keep fighting despite narration saying they surrendered
 
-**How to spawn:**
-Use the `enemy_spawns` field in your RoundSynthesis response. Each EnemySpawn needs:
-- `template`: "Grunt", "Elite", or "Boss" (determines HP/stats)
-- `faction`: Who they work for (e.g., "ACG Security", "Void Cultists")
-- `archetype`: Their role (e.g., "Enforcer", "Ritualist", "Heavy Gunner")
-- `count`: How many (1-5)
-- `spawn_reason`: Why they appeared (10+ chars, e.g., "Reinforcements arrive via transit tunnel")
-- `initial_position`: Where they start (FAR_ENEMY, NEAR_ENEMY, etc.)
-- `custom_traits` (optional): Special tactics/behavior
-
-**Example:**
-```python
-enemy_spawns=[
-    EnemySpawn(
-        template="Grunt",
-        faction="ACG Security",
-        archetype="Enforcer",
-        count=2,
-        spawn_reason="Alarm triggered, security team responds",
-        initial_position=Position.FAR_ENEMY,
-        custom_traits="tactical_ranged"
-    )
-]
-```
-
-**Templates:** Grunt (~12 HP), Elite (~20 HP), Boss (~40 HP)
-**Positions:** FAR_ENEMY, NEAR_ENEMY, ENGAGED, EXTREME_ENEMY
-
-**Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism.
+**IF YOU WRITE "surrendered" or "detained" or "prisoner" in narration:**
+→ USE `deescalations` field with exact enemy_id from "Active Enemies" list
 
 ---
-
-**NPC MANAGEMENT (De-escalation System):**
 
 When enemies surrender, calm down, or negotiate, use the `deescalations` field to convert them to NPCs:
 
@@ -2290,7 +2260,50 @@ escalations=[
         template="desperate_fighter"
     )
 ]
-```"""
+```
+
+---
+
+**ENEMY SPAWNING (Structured Output):**
+
+You can spawn enemies using the `enemy_spawns` field in RoundSynthesis. Spawn enemies when narratively appropriate:
+
+✅ **Common spawn triggers:**
+- Clock with spawn consequence fills (e.g., "Security Alarms" → guards respond)
+- Void corruption spreads → void creatures emerge
+- Investigation reveals threats → ambush/reinforcements
+- Story escalation → enemies join the fight
+- Environmental events → creatures/guards appear
+
+**How to spawn:**
+Use the `enemy_spawns` field in your RoundSynthesis response. Each EnemySpawn needs:
+- `template`: "Grunt", "Elite", or "Boss" (determines HP/stats)
+- `faction`: Who they work for (e.g., "ACG Security", "Void Cultists")
+- `archetype`: Their role (e.g., "Enforcer", "Ritualist", "Heavy Gunner")
+- `count`: How many (1-5)
+- `spawn_reason`: Why they appeared (10+ chars, e.g., "Reinforcements arrive via transit tunnel")
+- `initial_position`: Where they start (FAR_ENEMY, NEAR_ENEMY, etc.)
+- `custom_traits` (optional): Special tactics/behavior
+
+**Example:**
+```python
+enemy_spawns=[
+    EnemySpawn(
+        template="Grunt",
+        faction="ACG Security",
+        archetype="Enforcer",
+        count=2,
+        spawn_reason="Alarm triggered, security team responds",
+        initial_position=Position.FAR_ENEMY,
+        custom_traits="tactical_ranged"
+    )
+]
+```
+
+**Templates:** Grunt (~12 HP), Elite (~20 HP), Boss (~40 HP)
+**Positions:** FAR_ENEMY, NEAR_ENEMY, ENGAGED, EXTREME_ENEMY
+
+**Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism."""
 
         # Build enemy status context (for de-escalation system)
         enemy_status_context = ""

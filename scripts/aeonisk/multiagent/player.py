@@ -612,45 +612,53 @@ class AIPlayerAgent(Agent):
         logger.debug(f"Intent: {action_declaration.intent}")
 
         if (is_dialogue_action or is_intimacy_ritual) and self.shared_state:
-            # Check if intent or description mentions any party member name
-            intent_lower = action_declaration.intent.lower()
-            description_lower = action_declaration.description.lower()
-            for player_name in other_players:
-                logger.debug(f"Checking if '{player_name.lower()}' or parts in '{intent_lower}'")
-                # Check if full name or significant parts are mentioned (handle "Enforcer Kael" vs "Enforcer Kael Dren")
-                name_parts = player_name.lower().split()
-                # Check if at least 2 words from name appear, or the full name
-                if player_name.lower() in intent_lower or player_name.lower() in description_lower:
-                    is_free_action = True
-                elif len(name_parts) >= 2:
-                    # Check if at least 2 consecutive words from the name appear
-                    for i in range(len(name_parts) - 1):
-                        two_word_combo = f"{name_parts[i]} {name_parts[i+1]}"
-                        if two_word_combo in intent_lower or two_word_combo in description_lower:
-                            is_free_action = True
+            # Check if action targets a party member using target field
+            target_agent_id = None
+            target_name = None
+
+            if action_declaration.target:
+                # Resolve target using target_id_mapper
+                target_id_mapper = self.shared_state.target_id_mapper
+                if target_id_mapper:
+                    # Try to resolve target ID to agent
+                    target_agent = target_id_mapper.resolve_target(action_declaration.target)
+                    if target_agent:
+                        # Check if target is a player (has character_state)
+                        if hasattr(target_agent, 'character_state'):
+                            target_agent_id = target_agent.agent_id
+                            target_name = target_agent.character_state.name
+                        # Also check by agent_id against registered players
+                        elif hasattr(target_agent, 'agent_id'):
+                            for player in self.shared_state.registered_players:
+                                if player['agent_id'] == target_agent.agent_id:
+                                    target_agent_id = target_agent.agent_id
+                                    target_name = player['name']
+                                    break
+
+                # If not found via mapper, check if target is a direct name match
+                if not target_agent_id:
+                    for player in self.shared_state.registered_players:
+                        if player['name'].lower() == action_declaration.target.lower():
+                            target_agent_id = player['agent_id']
+                            target_name = player['name']
                             break
 
-                if is_free_action:
-                    if is_intimacy_ritual:
-                        print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
-                    else:
-                        print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
+            # If targeting a party member, grant free action + coordination bonus
+            if target_agent_id and target_agent_id != self.agent_id and target_name:
+                is_free_action = True
 
-                    # Grant coordination bonus to the target
-                    # Detect coordination keywords
-                    coordination_keywords = [
-                        'share', 'tell', 'inform', 'coordinate', 'discuss', 'ask',
-                        'brief', 'report', 'advise', 'warn', 'update', 'consult'
-                    ]
-                    if any(kw in intent_lower for kw in coordination_keywords):
-                        self.shared_state.grant_coordination_bonus(
-                            from_agent=self.agent_id,
-                            from_name=self.character_state.name,
-                            to_name=player_name,
-                            reason="coordinated information sharing"
-                        )
+                if is_intimacy_ritual:
+                    print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
+                else:
+                    print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
 
-                    break
+                # Grant coordination bonus (inter-party dialogue inherently shares information)
+                self.shared_state.grant_coordination_bonus(
+                    from_agent=self.agent_id,
+                    from_name=self.character_state.name,
+                    to_name=target_name,
+                    reason="coordinated information sharing"
+                )
 
         # Convert to dict and add character-specific data
         action = action_declaration.to_dict()
