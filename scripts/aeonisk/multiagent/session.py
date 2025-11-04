@@ -1889,20 +1889,45 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 print(f"\n{notification}")
 
         # Process initial_enemies from ScenarioSetup structured output
+        # Handle both SimpleNamespace (object) and dict (after serialization)
         scenario_setup = message.payload.get('scenario_setup', None)
-        if scenario_setup and hasattr(scenario_setup, 'initial_enemies'):
-            if scenario_setup.initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
+        if scenario_setup:
+            # Get initial_enemies (works for both object and dict)
+            initial_enemies = getattr(scenario_setup, 'initial_enemies', None)
+            if initial_enemies is None and isinstance(scenario_setup, dict):
+                initial_enemies = scenario_setup.get('initial_enemies', [])
+
+            if initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
+                # Reconstruct EnemySpawn objects if they were serialized to dicts
+                from scripts.aeonisk.multiagent.schemas.story_events import EnemySpawn
+                enemy_spawn_objects = []
+                for enemy in initial_enemies:
+                    if isinstance(enemy, dict):
+                        enemy_spawn_objects.append(EnemySpawn(**enemy))
+                    else:
+                        enemy_spawn_objects.append(enemy)
+
                 spawn_notifications = self.enemy_combat.spawn_from_structured(
-                    scenario_setup.initial_enemies
+                    enemy_spawn_objects
                 )
                 for notification in spawn_notifications:
                     print(f"\n{notification}")
 
-        # Process initial_npcs (npc_spawns) from ScenarioSetup structured output
-        if scenario_setup and hasattr(scenario_setup, 'npc_spawns'):
-            if scenario_setup.npc_spawns:
+            # Get npc_spawns (works for both object and dict)
+            npc_spawns = getattr(scenario_setup, 'npc_spawns', None)
+            if npc_spawns is None and isinstance(scenario_setup, dict):
+                npc_spawns = scenario_setup.get('npc_spawns', [])
+
+            if npc_spawns:
+                # Reconstruct NPCSpawn objects if they were serialized to dicts
+                from scripts.aeonisk.multiagent.schemas.story_events import NPCSpawn
+
                 # Process NPC spawns via DM
-                for npc_spawn in scenario_setup.npc_spawns:
+                for npc_spawn in npc_spawns:
+                    # Reconstruct NPCSpawn if it's a dict
+                    if isinstance(npc_spawn, dict):
+                        npc_spawn = NPCSpawn(**npc_spawn)
+
                     # Find DM agent
                     dm_agent = None
                     for agent in self.agents:
