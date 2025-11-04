@@ -2671,3 +2671,67 @@ def apply_mixed_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
         "unconscious_check_needed": stun_effect["unconscious_check"],
         "death_check_needed": wound_effect["death_check"]
     }
+
+
+def apply_healing(
+    target: Any,
+    amount: int,
+    heal_type: str  # "stun", "wound", or "hp"
+) -> Dict[str, Any]:
+    """
+    Heal target agent.
+
+    Healing system for NPCs, players, and enemies. Supports three types:
+    - "stun": Remove stun damage (fast recovery, field medicine)
+    - "wound": Reduce wound penalties (surgery-equivalent, requires tools)
+    - "hp": Restore health (medical treatment, bandaging)
+
+    Args:
+        target: Agent with health/stuns/wounds attributes
+        amount: Amount to heal
+        heal_type: Type of healing ("stun", "wound", "hp")
+
+    Returns:
+        Dict with healing results (amount_healed, stuns_removed, or wounds_treated)
+
+    Example:
+        >>> result = apply_healing(npc, amount=10, heal_type="hp")
+        >>> print(result["amount_healed"])  # 10 (or less if at max_health)
+    """
+    if heal_type == "stun":
+        # Remove stun damage
+        stuns_before = getattr(target, 'stuns', 0)
+        new_stuns = max(0, stuns_before - amount)
+        target.stuns = new_stuns
+        return {
+            "stuns_removed": stuns_before - new_stuns,
+            "old_stuns": stuns_before,
+            "new_stuns": new_stuns
+        }
+
+    elif heal_type == "wound":
+        # Reduce wound penalties (surgery-equivalent)
+        wounds_before = getattr(target, 'wounds', 0)
+        new_wounds = max(0, wounds_before - amount)
+        target.wounds = new_wounds
+        return {
+            "wounds_treated": wounds_before - new_wounds,
+            "old_wounds": wounds_before,
+            "new_wounds": new_wounds
+        }
+
+    elif heal_type == "hp":
+        # Restore health (capped at max_health)
+        hp_before = getattr(target, 'health', 0)
+        max_health = getattr(target, 'max_health', hp_before)
+        new_health = min(max_health, hp_before + amount)
+        target.health = new_health
+        return {
+            "amount_healed": new_health - hp_before,
+            "old_health": hp_before,
+            "new_health": new_health,
+            "max_health": max_health
+        }
+
+    else:
+        raise ValueError(f"Invalid heal_type: {heal_type}. Must be 'stun', 'wound', or 'hp'.")
