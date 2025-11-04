@@ -333,6 +333,34 @@ sections:
     )
     ```
 
+    **Example 4: Social Action (Intimidation - Single Target)**
+    ```python
+    PlayerAction(
+        intent="Intimidate the guard captain into standing down",
+        description="I step forward, hand on my weapon, and lock eyes with the captain. 'Walk away now, or I drop you where you stand. Your squad won't make it out alive. Is this contract worth dying for?'",
+        attribute="Charisma",
+        skill="Charm",
+        difficulty_estimate=22,
+        difficulty_justification="DC 22: Professional guard following orders, but outnumbered and facing credible threat",
+        action_type=ActionType.SOCIAL,
+        target="tgt_7a3f"  # ← CRITICAL: Target specific enemy for single-target social actions
+    )
+    ```
+
+    **Example 5: Social Action (Negotiation - Single Target)**
+    ```python
+    PlayerAction(
+        intent="Negotiate peaceful surrender with raider leader",
+        description="I holster my weapon and raise empty hands in a gesture of truce. 'You're outgunned and cornered. Surrender now, and Pantheon Security will process you fairly. Fight, and you won't survive this.'",
+        attribute="Empathy",
+        skill="Charm",
+        difficulty_estimate=25,
+        difficulty_justification="DC 25: Raider has pride and crew watching, but situation is clearly hopeless",
+        action_type=ActionType.SOCIAL,
+        target="tgt_c6jt"  # ← CRITICAL: Targets only this raider, not entire group. Social actions affect single targets unless DM narratively expands scope.
+    )
+    ```
+
     ## ✅ VALIDATION CHECKLIST
 
     Before declaring your action, verify:

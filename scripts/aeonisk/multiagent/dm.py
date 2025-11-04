@@ -2614,17 +2614,29 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
-            # CRITICAL: Resolve target IDs to character names for void cleansing
-            # In free targeting mode, actions have target="tgt_xxxx" but outcome parser needs target_character="Name"
+            # CRITICAL: Resolve target IDs to entity names for effect application
+            # In free targeting mode, actions have target="tgt_xxxx" but need entity names for structured output
             if action.get('target') and action['target'].startswith('tgt_'):
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for PC-to-PC action handling
-                    if target_entity and target_id_mapper.is_player(action['target']):
-                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
-                            action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
+                    if target_entity:
+                        # Resolve target type and populate appropriate field
+                        if target_id_mapper.is_player(action['target']):
+                            # PC target - for PC-to-PC actions (healing, buffs, void cleansing)
+                            if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                                action['target_character'] = target_entity.character_state.name
+                                logger.debug(f"Resolved target ID {action['target']} → PC '{action['target_character']}'")
+                        elif target_id_mapper.is_enemy(action['target']):
+                            # Enemy target - for social actions, combat, debuffs
+                            if hasattr(target_entity, 'name'):
+                                action['target_enemy'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → Enemy '{action['target_enemy']}'")
+                        elif target_id_mapper.is_npc(action['target']):
+                            # NPC target - for interactions with non-combatants
+                            if hasattr(target_entity, 'name'):
+                                action['target_npc'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → NPC '{action['target_npc']}'")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
@@ -3491,17 +3503,29 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
-            # CRITICAL: Resolve target IDs to character names for void cleansing
-            # In free targeting mode, actions have target="tgt_xxxx" but outcome parser needs target_character="Name"
+            # CRITICAL: Resolve target IDs to entity names for effect application
+            # In free targeting mode, actions have target="tgt_xxxx" but need entity names for structured output
             if action.get('target') and action['target'].startswith('tgt_'):
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for PC-to-PC action handling
-                    if target_entity and target_id_mapper.is_player(action['target']):
-                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
-                            action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
+                    if target_entity:
+                        # Resolve target type and populate appropriate field
+                        if target_id_mapper.is_player(action['target']):
+                            # PC target - for PC-to-PC actions (healing, buffs, void cleansing)
+                            if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                                action['target_character'] = target_entity.character_state.name
+                                logger.debug(f"Resolved target ID {action['target']} → PC '{action['target_character']}'")
+                        elif target_id_mapper.is_enemy(action['target']):
+                            # Enemy target - for social actions, combat, debuffs
+                            if hasattr(target_entity, 'name'):
+                                action['target_enemy'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → Enemy '{action['target_enemy']}'")
+                        elif target_id_mapper.is_npc(action['target']):
+                            # NPC target - for interactions with non-combatants
+                            if hasattr(target_entity, 'name'):
+                                action['target_npc'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → NPC '{action['target_npc']}'")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:

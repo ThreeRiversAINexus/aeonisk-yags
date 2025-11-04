@@ -65,8 +65,31 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \        reason=\"Persuaded that ritual was corrupted, agreed to stand down\"\n\
   \    )\n]\n```\n\n**Resolution types:**\n- `NEUTRALIZED`: Arrested, captured, restrained\n\
   - `FLED`: Scared off, retreated, escaped\n- `CONVINCED`: Talked down, persuaded,\
-  \ negotiated\n- `SUBDUED`: Knocked unconscious, incapacitated\n\n**6. NPC Management\
-  \ (De-escalation System):**\n\n**When enemies surrender/calm down, use `deescalations`\
+  \ negotiated\n- `SUBDUED`: Knocked unconscious, incapacitated\n\n## ⚠️ CRITICAL:\
+  \ SURRENDERS = enemy_removals, NOT CONDITIONS ⚠️\n\n**When enemies surrender/are\
+  \ negotiated down:**\n- ✅ **CORRECT**: Use `enemy_removals` with `resolution=CONVINCED`\n\
+  - ❌ **WRONG**: Apply \"Surrendered\" condition to enemy\n\n**Why enemy_removals\
+  \ is correct:**\n- Automatically triggers de-escalation → converts enemy to NPC\n\
+  - Removes from combat immediately\n- Single code path, no extra condition tracking\n\
+  - Preserves agent_id and state for potential future interactions\n\n**Why conditions\
+  \ are wrong:**\n- Conditions are for debuffs (Stunned, Off-Balance, Prone) that\
+  \ expire\n- Requires complex logic to prevent surrendered enemies from acting\n\
+  - Doesn't trigger NPC conversion\n- Enemy agents keep fighting despite \"Surrendered\"\
+  \ condition\n\n**Example - Successful Negotiation:**\n```python\n# Player Wei Lin\
+  \ successfully negotiated surrender (Empathy + Charm vs DC 25)\nRoundSynthesis(\n\
+  \    narration=\"Wei Lin's words cut through the tension. The raider leader hesitates,\
+  \ then lowers her weapon...\",\n    enemy_removals=[\n        EnemyRemoval(\n  \
+  \          enemy_name=\"Freeborn Smugglers Raider #1\",  # Use exact name from combat\
+  \ status\n            resolution=EnemyResolution.CONVINCED,\n            reason=\"\
+  Negotiated surrender after Wei Lin's diplomacy\"\n        )\n    ]\n)\n```\n\n**Result:**\
+  \ Raider #1 automatically converts to NPC with disposition=\"wary\" and entity_type=\"\
+  prisoner\", removed from combat.\n\n**NOT THIS:**\n```python\n# ❌ WRONG - This\
+  \ will NOT work!\nActionResolution(\n    effects=MechanicalEffects(\n        conditions=[\n\
+  \            Condition(\n                target=\"tgt_c6jt\",\n                name=\"\
+  Surrendered\",\n                penalty=-999,\n                description=\"Disarmed\
+  \ and compliant\"\n            )\n        ]\n    )\n)\n```\n**Problem:** Enemy\
+  \ agents don't check conditions before declaring actions. They'll keep attacking!\n\
+  \n**6. NPC Management\ (De-escalation System):**\n\n**When enemies surrender/calm down, use `deescalations`\
   \ to convert them to NPCs:**\n\n```python\ndeescalations=[\n    Deescalation(\n\
   \        enemy_id=\"enemy_raider_1\",  # Exact enemy agent_id from combat\n   \
   \     resulting_disposition=\"prisoner\",  # friendly/neutral/wary/prisoner\n  \
