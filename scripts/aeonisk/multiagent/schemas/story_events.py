@@ -403,7 +403,15 @@ class RoundSynthesis(BaseModel):
 
     enemy_removals: List[EnemyRemoval] = Field(
         default_factory=list,
-        description="Enemies removed this round via non-combat means (arrested, fled, convinced, etc.) - use empty list [] if none, NOT null"
+        description="""Enemies removed this round via non-combat means (arrested, fled, convinced, etc.) - use empty list [] if none, NOT null.
+
+⚠️ CRITICAL: SURRENDERS = enemy_removals with resolution=CONVINCED, NOT CONDITIONS! ⚠️
+
+When enemies surrender/are talked down:
+✅ CORRECT: enemy_removals=[EnemyRemoval(enemy_name="Raider #1", resolution=CONVINCED, reason="Negotiated surrender")]
+❌ WRONG: Apply "Surrendered" condition to enemy (conditions are for debuffs like Stunned/Prone, NOT removal from combat!)
+
+WHY: Conditions don't stop enemy agents from acting. Enemy agents check their state and continue attacking despite "Surrendered" conditions. Using enemy_removals with CONVINCED automatically triggers de-escalation → converts to NPC → removes from combat."""
     )
 
     # NPC management

@@ -847,10 +847,10 @@ class SelfPlayingSession:
                         else:
                             print(f"\n[{result['character_name']}] {result['narration']}")
 
-                        # TODO: Enemy action logging
-                        # Enemy actions use a simplified result dict that doesn't match
-                        # the ActionResolution schema. Consider implementing enemy-specific
-                        # logging or adapting the result format.
+                        # Add enemy result to synthesis input
+                        # Enemy actions use a simplified result dict compared to ActionResolution schema
+                        # but DM needs to see enemy actions to synthesize round accurately
+                        all_resolutions.append(result)
 
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
