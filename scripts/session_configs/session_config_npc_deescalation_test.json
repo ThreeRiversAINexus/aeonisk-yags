@@ -26,9 +26,12 @@
   "initial_enemies": [
     {
       "name": "Freeborn Raiders",
-      "template": "grunt",
+      "template": "Grunt",
+      "faction": "Freeborn Smugglers",
+      "archetype": "Raider",
       "count": 3,
       "position": "Medium-Enemy",
+      "spawn_reason": "Cornered smugglers caught in contraband operation",
       "tactics": "defensive"
     }
   ],

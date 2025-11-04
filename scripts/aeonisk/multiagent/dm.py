@@ -682,17 +682,44 @@ IMPORTANT:
         scenario_setup_obj = None
         if initial_enemies_config:
             from types import SimpleNamespace
-            from .schemas.story_events import EnemySpawn
+            from .schemas.story_events import EnemySpawn, Position
 
             # Convert config dicts to EnemySpawn objects
             enemy_spawns = []
             for enemy_config in initial_enemies_config:
+                # Map config template (lowercase) to schema template (capitalized)
+                template_raw = enemy_config.get('template', 'grunt').lower()
+                template_map = {
+                    'grunt': 'Grunt',
+                    'elite': 'Elite',
+                    'boss': 'Boss'
+                }
+                template = template_map.get(template_raw, 'Grunt')
+
+                # Map position string to Position enum if needed
+                position_str = enemy_config.get('position', 'Medium-Enemy')
+                position_map = {
+                    'Near-Enemy': Position.NEAR_ENEMY,
+                    'Medium-Enemy': Position.MEDIUM_ENEMY,
+                    'Far-Enemy': Position.FAR_ENEMY,
+                    'Extreme-Enemy': Position.EXTREME_ENEMY
+                }
+                initial_position = position_map.get(position_str, Position.MEDIUM_ENEMY)
+
+                # Extract/generate required fields
+                name = enemy_config.get('name', 'Unknown Enemy')
+                faction = enemy_config.get('faction', 'Hostile')
+                archetype = enemy_config.get('archetype', name)  # Default to name if not specified
+                spawn_reason = enemy_config.get('spawn_reason', f'{name} present at scenario start')
+
                 enemy_spawn = EnemySpawn(
-                    name=enemy_config.get('name', 'Unknown Enemy'),
-                    template=enemy_config.get('template', 'grunt'),
+                    template=template,
+                    faction=faction,
+                    archetype=archetype,
                     count=enemy_config.get('count', 1),
-                    position=enemy_config.get('position', 'Medium-Enemy'),
-                    tactics=enemy_config.get('tactics', 'balanced')
+                    spawn_reason=spawn_reason,
+                    initial_position=initial_position,
+                    custom_traits=enemy_config.get('tactics')  # Map tactics to custom_traits
                 )
                 enemy_spawns.append(enemy_spawn)
 
