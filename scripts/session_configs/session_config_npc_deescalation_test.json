@@ -23,6 +23,7 @@
   },
 
   "_comment_initial_enemies": "Start with low-morale enemies who can be intimidated/convinced to surrender",
+  "_comment_positions": "Valid rings: Engaged, Near, Far, Extreme (no 'Medium')",
   "initial_enemies": [
     {
       "name": "Freeborn Raiders",
@@ -30,7 +31,7 @@
       "faction": "Freeborn Smugglers",
       "archetype": "Raider",
       "count": 3,
-      "position": "Medium-Enemy",
+      "position": "Far-Enemy",
       "spawn_reason": "Cornered smugglers caught in contraband operation",
       "tactics": "defensive"
     }

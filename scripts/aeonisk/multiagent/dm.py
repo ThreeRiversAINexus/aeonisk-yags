@@ -682,7 +682,8 @@ IMPORTANT:
         scenario_setup_obj = None
         if initial_enemies_config:
             from types import SimpleNamespace
-            from .schemas.story_events import EnemySpawn, Position
+            from .schemas.story_events import EnemySpawn
+            from .enemy_agent import Position
 
             # Convert config dicts to EnemySpawn objects
             enemy_spawns = []
@@ -696,15 +697,10 @@ IMPORTANT:
                 }
                 template = template_map.get(template_raw, 'Grunt')
 
-                # Map position string to Position enum if needed
-                position_str = enemy_config.get('position', 'Medium-Enemy')
-                position_map = {
-                    'Near-Enemy': Position.NEAR_ENEMY,
-                    'Medium-Enemy': Position.MEDIUM_ENEMY,
-                    'Far-Enemy': Position.FAR_ENEMY,
-                    'Extreme-Enemy': Position.EXTREME_ENEMY
-                }
-                initial_position = position_map.get(position_str, Position.MEDIUM_ENEMY)
+                # Parse position string to Position object
+                # Valid rings: Engaged, Near, Far, Extreme
+                position_str = enemy_config.get('position', 'Far-Enemy')  # Default to Far
+                initial_position = Position.from_string(position_str)
 
                 # Extract/generate required fields
                 name = enemy_config.get('name', 'Unknown Enemy')
