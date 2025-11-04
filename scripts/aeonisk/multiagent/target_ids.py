@@ -52,6 +52,7 @@ class TargetIDMapper:
         self.target_id_map: Dict[str, Any] = {}  # tgt_7a3f -> agent reference
         self.reverse_map: Dict[str, str] = {}     # agent_id -> tgt_7a3f
         self.enabled: bool = False
+        self.npc_registry: Dict[str, Any] = {}    # agent_id -> NPC reference
         logger.debug("TargetIDMapper initialized")
 
     def enable(self):
@@ -286,9 +287,181 @@ class TargetIDMapper:
 
         return info
 
+    # NPC tracking methods (for de-escalation system)
+
+    def register_npc(self, npc: Any) -> None:
+        """
+        Register NPC for tracking.
+
+        NPCs have stable agent_id (may be enemy_xxx format from conversions).
+
+        Args:
+            npc: NPCAgent instance
+        """
+        self.npc_registry[npc.agent_id] = npc
+        logger.debug(f"Registered NPC: {npc.agent_id} ({npc.name})")
+
+    def unregister_npc(self, agent_id: str) -> bool:
+        """
+        Unregister NPC.
+
+        Args:
+            agent_id: NPC agent ID
+
+        Returns:
+            True if removed, False if not found
+        """
+        if agent_id in self.npc_registry:
+            del self.npc_registry[agent_id]
+            logger.debug(f"Unregistered NPC: {agent_id}")
+            return True
+        return False
+
+    def is_npc(self, agent_id: str) -> bool:
+        """
+        Check if agent_id is registered as NPC.
+
+        Args:
+            agent_id: Agent ID to check (can be enemy_xxx format)
+
+        Returns:
+            True if NPC, False otherwise
+        """
+        return agent_id in self.npc_registry
+
+    def get_all_npc_ids(self) -> List[str]:
+        """Get all registered NPC agent IDs."""
+        return list(self.npc_registry.keys())
+
+    def get_agent_type(self, agent_id: str) -> Optional[str]:
+        """
+        Determine agent type from agent_id.
+
+        Args:
+            agent_id: Agent ID to check
+
+        Returns:
+            "player", "enemy", or "npc", or None if unknown
+        """
+        # Check NPC registry first (handles stable IDs)
+        if agent_id in self.npc_registry:
+            return "npc"
+
+        # Check if it's in free targeting system
+        if self.enabled and agent_id in self.target_id_map:
+            agent = self.target_id_map[agent_id]
+            if hasattr(agent, 'character_state'):
+                return "player"
+            else:
+                return "enemy"
+
+        # Fallback: guess from ID prefix
+        if agent_id.startswith("player_"):
+            return "player"
+        elif agent_id.startswith("enemy_"):
+            # Could be enemy or NPC (stable IDs), check registry
+            if agent_id in self.npc_registry:
+                return "npc"
+            return "enemy"
+
+        return None
+
+    def can_target(
+        self,
+        source_id: str,
+        target_id: str,
+        source_type: Optional[str] = None
+    ) -> bool:
+        """
+        Check if source agent can target target agent.
+
+        Rules:
+        - Players can target anyone/anything
+        - Enemies can target players + NPCs (based on personality, checked elsewhere)
+        - NPCs cannot target (non-combatants)
+
+        Args:
+            source_id: Source agent ID
+            target_id: Target agent ID
+            source_type: Optional type hint ("player", "enemy", "npc")
+
+        Returns:
+            True if targeting is allowed
+        """
+        if source_type is None:
+            source_type = self.get_agent_type(source_id)
+
+        # Players can target anything
+        if source_type == "player":
+            return True
+
+        # Enemies can target (checked with personality elsewhere)
+        if source_type == "enemy":
+            return True  # Personality check done in can_target_with_personality
+
+        # NPCs cannot target (non-combatants)
+        if source_type == "npc":
+            return False
+
+        # Unknown source type, deny
+        return False
+
+    def can_target_with_personality(
+        self,
+        source_id: str,
+        target_id: str,
+        personality: str,
+        target_threat_level: str
+    ) -> bool:
+        """
+        Check if enemy can target NPC based on personality and threat level.
+
+        Personality-based targeting:
+        - ruthless: Target anyone (PCs, all NPCs)
+        - professional: Target threats only (PCs, armed/potential threat NPCs)
+        - defensive: Only PCs (ignore all NPCs)
+
+        Threat levels:
+        - non_combatant: Civilians, unarmed bystanders
+        - potential_threat: NPCs that might be dangerous
+        - armed_neutral: NPCs with weapons/training
+
+        Args:
+            source_id: Enemy agent ID
+            target_id: Target agent ID
+            personality: Enemy personality ("ruthless", "professional", "defensive")
+            target_threat_level: Target's threat level
+
+        Returns:
+            True if enemy can target based on personality
+        """
+        target_type = self.get_agent_type(target_id)
+
+        # Always can target players
+        if target_type == "player":
+            return True
+
+        # NPC targeting depends on personality
+        if target_type == "npc":
+            if personality == "ruthless":
+                # Ruthless enemies target anyone
+                return True
+            elif personality == "professional":
+                # Professional enemies only target threats
+                return target_threat_level in ["potential_threat", "armed_neutral"]
+            elif personality == "defensive":
+                # Defensive enemies ignore all NPCs
+                return False
+
+        # Default: can't target
+        return False
+
     def __repr__(self) -> str:
         """String representation for debugging."""
         if not self.enabled:
-            return "<CombatIDMapper: disabled>"
+            npc_count = len(self.npc_registry)
+            return f"<TargetIDMapper: disabled, {npc_count} NPCs>"
 
-        return f"<CombatIDMapper: {len(self.combat_id_map)} combatants>"
+        combatant_count = len(self.target_id_map)
+        npc_count = len(self.npc_registry)
+        return f"<TargetIDMapper: {combatant_count} combatants, {npc_count} NPCs>"
