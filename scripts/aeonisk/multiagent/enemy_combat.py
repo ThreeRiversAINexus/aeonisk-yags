@@ -361,26 +361,83 @@ class EnemyCombatManager:
                 continue
 
             for enemy in matching_enemies:
-                enemy.is_active = False
-                enemy.despawned_round = self.current_round
+                # Check if this is a de-escalation (surrender/capture) or departure (fled/killed)
+                from .schemas.story_events import EnemyResolution
 
-                notifications.append(
-                    f"💀 **{enemy.name}** removed ({removal.resolution.value}): {removal.reason}"
-                )
-                logger.info(f"Removed enemy (structured): {enemy.name} - {removal.resolution.value}: {removal.reason}")
+                if removal.resolution in [EnemyResolution.CONVINCED, EnemyResolution.NEUTRALIZED, EnemyResolution.SUBDUED]:
+                    # DE-ESCALATION: Convert enemy to NPC instead of removing
+                    from .agent_conversion import deescalate_enemy_to_npc
 
-                # Log enemy defeat to JSONL for ML training
-                if self.shared_state:
-                    mechanics = self.shared_state.get_mechanics_engine()
-                    if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                        rounds_survived = enemy.despawned_round - enemy.spawned_round
-                        mechanics.jsonl_logger.log_enemy_defeat(
-                            round_num=self.current_round,
-                            enemy_id=enemy.agent_id,
-                            enemy_name=enemy.name,
-                            defeat_reason=removal.resolution.value,
-                            rounds_survived=rounds_survived
-                        )
+                    # Determine disposition from resolution type
+                    if removal.resolution == EnemyResolution.NEUTRALIZED:
+                        disposition = "prisoner"  # Arrested, captured, restrained
+                    elif removal.resolution == EnemyResolution.CONVINCED:
+                        disposition = "wary"  # Talked down, suspicious but compliant
+                    elif removal.resolution == EnemyResolution.SUBDUED:
+                        disposition = "prisoner"  # Knocked out, incapacitated
+
+                    # Convert enemy to NPC
+                    npc = deescalate_enemy_to_npc(
+                        enemy=enemy,
+                        disposition=disposition,
+                        current_round=self.current_round
+                    )
+
+                    # Add NPC to shared state
+                    if self.shared_state:
+                        self.shared_state.npc_agents.append(npc)
+                        # Register NPC in target mapper
+                        if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                            self.shared_state.target_id_mapper.register_npc(npc)
+
+                    # Mark enemy as inactive
+                    enemy.is_active = False
+                    enemy.despawned_round = self.current_round
+
+                    notifications.append(
+                        f"🕊️  **{enemy.name}** de-escalated to NPC ({disposition}): {removal.reason}"
+                    )
+                    logger.info(f"De-escalated enemy to NPC: {enemy.name} ({removal.resolution.value}) → {disposition}")
+
+                    # Log agent conversion event
+                    if self.shared_state:
+                        mechanics = self.shared_state.get_mechanics_engine()
+                        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                event_type="agent_conversion",
+                                data={
+                                    "agent_id": npc.agent_id,
+                                    "from_type": "enemy",
+                                    "to_type": "npc",
+                                    "trigger": removal.resolution.value,
+                                    "resulting_disposition": disposition,
+                                    "reason": removal.reason
+                                },
+                                round_num=self.current_round
+                            )
+
+                else:
+                    # DEPARTURE: Remove enemy from scene (fled, killed, etc.)
+                    enemy.is_active = False
+                    enemy.despawned_round = self.current_round
+
+                    notifications.append(
+                        f"💀 **{enemy.name}** removed ({removal.resolution.value}): {removal.reason}"
+                    )
+                    logger.info(f"Removed enemy (structured): {enemy.name} - {removal.resolution.value}: {removal.reason}")
+
+                    # Log enemy defeat to JSONL for ML training
+                    if self.shared_state:
+                        mechanics = self.shared_state.get_mechanics_engine()
+                        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            rounds_survived = enemy.despawned_round - enemy.spawned_round
+                            mechanics.jsonl_logger.log_enemy_defeat(
+                                round_num=self.current_round,
+                                enemy_id=enemy.agent_id,
+                                enemy_name=enemy.name,
+                                defeat_reason=removal.resolution.value,
+                                rounds_survived=rounds_survived
+                            )
 
         return notifications
 
