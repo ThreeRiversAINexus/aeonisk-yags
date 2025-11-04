@@ -2214,7 +2214,83 @@ enemy_spawns=[
 **Templates:** Grunt (~12 HP), Elite (~20 HP), Boss (~40 HP)
 **Positions:** FAR_ENEMY, NEAR_ENEMY, ENGAGED, EXTREME_ENEMY
 
-**Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism."""
+**Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism.
+
+---
+
+**NPC MANAGEMENT (De-escalation System):**
+
+When enemies surrender, calm down, or negotiate, use the `deescalations` field to convert them to NPCs:
+
+**⚠️ CRITICAL: Use `deescalations` NOT `enemy_removals` for surrenders!**
+- `deescalations` → Enemy STAYS in scene as NPC (prisoner, neutral, ally)
+- `enemy_removals` → Enemy LEAVES scene entirely (fled, escaped)
+
+**When to use de-escalation:**
+✅ Enemy surrenders after intimidation/negotiation
+✅ Enemy convinced to stand down peacefully
+✅ Morale breaks and enemy yields
+✅ Successful diplomatic resolution
+
+**How to use deescalations field:**
+```python
+deescalations=[
+    Deescalation(
+        enemy_id="enemy_grunt_adbb6db0",  # ← EXACT agent_id from Active Enemies list!
+        resulting_entity_type="prisoner",  # neutral, ally, or prisoner
+        resulting_disposition="prisoner",  # friendly, neutral, wary, or prisoner
+        reason="Surrendered after successful intimidation, now restrained and compliant"
+    )
+]
+```
+
+**Dispositions (NPC attitude):**
+- `"prisoner"` → Captured, restrained, under guard
+- `"wary"` → Suspicious, will flee if threatened again
+- `"neutral"` → Calm, indifferent, observing
+- `"friendly"` → Cooperative, helpful, allied
+
+**Entity Types (relationship to players):**
+- `"prisoner"` → Captured enemy (restrained)
+- `"neutral"` → Non-aligned NPC
+- `"ally"` → Friendly NPC who may help
+
+**⚠️ IMPORTANT:** Use the EXACT `enemy_id` from the "Active Enemies" list above. DO NOT make up IDs!
+
+**Spawning new civilian NPCs:**
+Use `npc_spawns` field when introducing non-combatant characters:
+```python
+npc_spawns=[
+    NPCSpawn(
+        name="Frightened Dock Worker",
+        faction="Independent Civilian",
+        entity_type="neutral",
+        threat_level="non_combatant",
+        disposition="wary",
+        description="Terrified civilian hiding behind cargo crates, caught in crossfire",
+        health=15,
+        soak=0,
+        skills={}
+    )
+]
+```
+
+**⚠️ DO NOT hallucinate NPCs in narrative then forget to spawn them!**
+- If you mention an NPC in your narration, you MUST create them via `npc_spawns`
+- BAD: "Guard Captain Torres watches from the doorway" (Torres never spawned!)
+- GOOD: Use `npc_spawns` to create Torres, THEN mention them in narration
+
+**When NPCs become hostile:**
+Use `escalations` field to convert NPC back to enemy:
+```python
+escalations=[
+    Escalation(
+        npc_id="enemy_dock_worker_kassia_8064",  # ← NPC's agent_id
+        reason="Attacked by player, now fighting back in self-defense",
+        template="desperate_fighter"
+    )
+]
+```"""
 
         # Build enemy status context (for de-escalation system)
         enemy_status_context = ""

@@ -398,34 +398,34 @@ class RoundSynthesis(BaseModel):
     # Enemy management
     enemy_spawns: List[EnemySpawn] = Field(
         default_factory=list,
-        description="New enemies to spawn this round"
+        description="New enemies to spawn this round (use empty list [] if none, NOT null)"
     )
 
     enemy_removals: List[EnemyRemoval] = Field(
         default_factory=list,
-        description="Enemies removed this round via non-combat means (arrested, fled, convinced, etc.)"
+        description="Enemies removed this round via non-combat means (arrested, fled, convinced, etc.) - use empty list [] if none, NOT null"
     )
 
     # NPC management
     npc_spawns: List['NPCSpawn'] = Field(
         default_factory=list,
-        description="New NPCs spawned this round (guides, civilians, allies)"
+        description="New NPCs spawned this round (guides, civilians, allies) - use empty list [] if none, NOT null"
     )
 
     deescalations: List['Deescalation'] = Field(
         default_factory=list,
-        description="Enemies converted to NPCs this round (via diplomacy, intimidation, surrender)"
+        description="Enemies converted to NPCs this round (via diplomacy, intimidation, surrender) - use empty list [] if none, NOT null"
     )
 
     escalations: List['Escalation'] = Field(
         default_factory=list,
-        description="NPCs converted to enemies this round (attacked, provoked, hostile factions)"
+        description="NPCs converted to enemies this round (attacked, provoked, hostile factions) - use empty list [] if none, NOT null"
     )
 
     # Clock lifecycle
     clocks_filled: List[str] = Field(
         default_factory=list,
-        description="Clock names that just filled (reached max ticks)"
+        description="Clock names that just filled (reached max ticks) - use empty list [] if none, NOT null"
     )
 
     clocks_expired: List[str] = Field(
@@ -460,6 +460,14 @@ class RoundSynthesis(BaseModel):
         scene_pivot = info.data.get('scene_pivot')
         if v and scene_pivot and (v.should_advance and scene_pivot.should_pivot):
             raise ValueError("Cannot use both scene_pivot and story_advancement in the same round. Choose one: scene_pivot for minor transitions, story_advancement for major chapter changes.")
+        return v
+
+    @field_validator('enemy_spawns', 'enemy_removals', 'npc_spawns', 'deescalations', 'escalations', 'clocks_filled', 'clocks_expired', mode='before')
+    @classmethod
+    def convert_none_to_empty_list(cls, v):
+        """Convert None to empty list for all list fields. LLMs sometimes return null instead of []."""
+        if v is None:
+            return []
         return v
 
 
