@@ -141,11 +141,11 @@ def test_npc_action_schema():
     """NPCAction validates correctly."""
     action = NPCAction(
         action_type="flee",
-        description="I run for cover behind the cargo crates"
+        reason="I run for cover behind the cargo crates"
     )
 
     assert action.action_type == "flee"
-    assert len(action.description) > 0
+    assert len(action.reason) > 0
     assert action.target is None
 
 
@@ -153,7 +153,7 @@ def test_npc_action_with_target():
     """NPCAction can have target for dialogue/assist."""
     action = NPCAction(
         action_type="dialogue",
-        description="I tell the player about the vault code",
+        reason="I tell the player about the vault code",
         target="player_01"
     )
 
@@ -168,16 +168,31 @@ def test_npc_action_types_valid():
     for action_type in valid_types:
         action = NPCAction(
             action_type=action_type,
-            description="Test action"
+            reason="Test action with sufficient length for validation"
         )
         assert action.action_type == action_type
 
 
 def test_npc_llm_client_exists():
     """NPCLLMClient can be instantiated."""
-    client = NPCLLMClient(model="claude-sonnet-4-5-20250929")
+    npc = NPCAgent(
+        agent_id="enemy_test_client",
+        name="Test NPC",
+        faction="Test",
+        entity_type="neutral",
+        disposition="neutral",
+        threat_level="non_combatant",
+        description="Test NPC for client instantiation",
+        health=20,
+        max_health=20,
+        soak=0,
+        void_score=2,
+        skills={}
+    )
+    client = NPCLLMClient(npc, model="claude-sonnet-4-5-20250929")
     assert client is not None
     assert client.model == "claude-sonnet-4-5-20250929"
+    assert client.npc == npc
 
 
 def test_npc_threat_levels():

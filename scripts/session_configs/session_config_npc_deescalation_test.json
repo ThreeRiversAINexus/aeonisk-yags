@@ -1,0 +1,205 @@
+{
+  "session_name": "npc_deescalation_test",
+  "max_turns": 8,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": true,
+
+  "_comment_npc_system": "=== NPC & DE-ESCALATION SYSTEM TEST ===",
+  "_npc_system_info": "Tests NPC spawns, de-escalation, escalation, and healing mechanics",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_initial_enemies": "Start with low-morale enemies who can be intimidated/convinced to surrender",
+  "initial_enemies": [
+    {
+      "name": "Freeborn Raiders",
+      "template": "grunt",
+      "count": 3,
+      "position": "Medium-Enemy",
+      "tactics": "defensive"
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Negotiator Wei Lin",
+        "pronouns": "she/her",
+        "faction": "Pantheon Mediator",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "goals": [
+          "Resolve conflicts through diplomacy when possible",
+          "Minimize casualties and de-escalate violence",
+          "Build rapport with neutral factions"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Charisma": 5,
+          "Size": 5
+        },
+        "skills": {
+          "Empathy": 5,
+          "Charm": 5,
+          "Charisma": 4,
+          "Awareness": 4,
+          "Investigation": 3,
+          "Medicine": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": ["stun_baton"],
+        "inventory": {
+          "pistol": 1,
+          "stun_baton": 1,
+          "med_kit": 2,
+          "diplomatic_credentials": 1
+        },
+        "void": 1
+      },
+      {
+        "name": "Enforcer Marcus Rhys",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "goals": [
+          "Protect the mediator and civilians",
+          "Use force only when necessary",
+          "Capture enemies alive for interrogation"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Intimidation": 5,
+          "Awareness": 5,
+          "Athletics": 4,
+          "Guns": 5,
+          "Brawl": 4,
+          "Medicine": 2
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "riot_carapace": 1,
+          "restraint_cuffs": 3,
+          "med_kit": 1
+        },
+        "void": 2
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Tense Negotiation",
+    "location": "Abandoned Cargo Hub - Contested Territory",
+    "situation": "You've cornered a group of Freeborn raiders who were smuggling contraband. They're outgunned but not yet defeated. They might surrender if given the chance - or fight desperately if they feel trapped with no options. A civilian dock worker is hiding nearby, terrified of the crossfire.",
+    "void_level": 3
+  },
+
+  "_scenario_hint": "DM should spawn NPCs based on player actions: de-escalated enemies become wary/prisoner NPCs, the civilian can be convinced to help or may flee, wounded enemies can be stabilized via healing. Prisoners can provide intel via dialogue. If players attack surrendered NPCs, they should escalate back to enemies.",
+
+  "_test_notes": {
+    "purpose": "Test NPC system: spawns, de-escalation, escalation, healing, dialogue",
+    "expected_npc_triggers": [
+      "Enemy surrender via intimidation → Deescalation (prisoner/wary disposition)",
+      "Civilian appears when combat calms → NPCSpawn (neutral disposition)",
+      "Healing wounded prisoner → apply_healing() mechanics",
+      "NPC dialogue with players → NPCLLMClient action declarations",
+      "Player attacks surrendered NPC → Escalation (NPC → enemy)"
+    ],
+    "skills_to_test": [
+      "Empathy × Charm (Wei Lin negotiation)",
+      "Charisma × Charm (Wei Lin persuasion)",
+      "Combat × Intimidation (Marcus threat display)",
+      "Medicine (stabilizing wounded)"
+    ],
+    "success_criteria": [
+      "At least one enemy de-escalates to NPC (prisoner/wary)",
+      "Civilian NPC spawns and acts via LLM client",
+      "No keyword detection in conversion logic (structured output only)",
+      "NPCs tracked in shared_state.npc_agents",
+      "agent_id stability preserved across conversions",
+      "Healing mechanics work on NPCs"
+    ],
+    "verification": {
+      "console_output": "Look for DM narration about surrender/civilians",
+      "logs": "Check game.log for 'De-escalation', 'NPC spawn', 'Healing' events",
+      "jsonl": "agent_conversion events with stable agent_id, healing_effect logs"
+    }
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Resolve situation with minimal casualties",
+      "type": "negotiation",
+      "required": true
+    },
+    {
+      "description": "Capture at least one raider for interrogation",
+      "type": "capture",
+      "required": false
+    }
+  ]
+}
