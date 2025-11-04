@@ -1900,7 +1900,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             if initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
                 # Reconstruct EnemySpawn objects if they were serialized to dicts
-                from scripts.aeonisk.multiagent.schemas.story_events import EnemySpawn
+                from .schemas.story_events import EnemySpawn
                 enemy_spawn_objects = []
                 for enemy in initial_enemies:
                     if isinstance(enemy, dict):
@@ -1921,7 +1921,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             if npc_spawns:
                 # Reconstruct NPCSpawn objects if they were serialized to dicts
-                from scripts.aeonisk.multiagent.schemas.story_events import NPCSpawn
+                from .schemas.story_events import NPCSpawn
 
                 # Process NPC spawns via DM
                 for npc_spawn in npc_spawns:
