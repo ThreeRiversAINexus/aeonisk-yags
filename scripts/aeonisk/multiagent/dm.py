@@ -140,11 +140,12 @@ class AIDMAgent(Agent):
         modules.append('dm_core')
         modules.append('dm_structured_output')
 
-        # Conditional: Load combat module if enemies present
+        # Conditional: Load combat + commands modules if enemies present
         if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
             if len(self.shared_state.enemy_agents) > 0:
                 modules.append('dm_combat')
-                logger.debug("DM: Loading dm_combat module (enemies present)")
+                modules.append('dm_commands')  # Enemy spawning/removal/NPC management guidance
+                logger.debug("DM: Loading dm_combat + dm_commands modules (enemies present)")
 
         # Conditional: Load state tracking if clocks or rituals expected
         if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
@@ -157,16 +158,16 @@ class AIDMAgent(Agent):
                 if has_clocks:
                     logger.debug(f"DM: Loading dm_state_tracking module ({len(mechanics.scene_clocks)} clocks)")
 
-        # Conditional: Load commands module at session start/end
+        # Conditional: Load commands module at session start (for initial setup)
         if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
             mechanics = self.shared_state.mechanics_engine
             current_round = mechanics.current_round if mechanics else 0
-            max_turns = getattr(self.shared_state, 'max_turns', 10)
 
-            # Load at session start (round 0) or near end
-            if current_round == 0 or current_round >= max_turns - 2:
+            # Load at session start (round 0) for initial setup
+            # Note: Also loaded above when enemies present (for ongoing combat)
+            if current_round == 0 and 'dm_commands' not in modules:
                 modules.append('dm_commands')
-                logger.debug(f"DM: Loading dm_commands module (round {current_round})")
+                logger.debug(f"DM: Loading dm_commands module (session start)")
 
         # Conditional: Load ML training module if JSONL logging enabled
         if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
