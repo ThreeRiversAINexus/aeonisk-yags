@@ -1876,7 +1876,8 @@ IMPORTANT:
                 'character_name': res['character_name'],
                 'initiative': res['initiative'],
                 'action': res['action'],
-                'resolution': res['resolution']['outcome']  # Use serialized outcome instead of raw resolution
+                'resolution': res['resolution']['outcome'],  # Use serialized outcome instead of raw resolution
+                'narration': res['resolution']['narration']  # CRITICAL: Include narration so DM sees it during synthesis
             }
 
             self.send_message_sync(
@@ -2066,7 +2067,14 @@ IMPORTANT:
             else:
                 status = "succeeded" if success else "failed"
 
-            outcomes_summary.append(f"- {char_name} {status} at: {intent}")
+            # CRITICAL: Include narration from individual resolution so DM can maintain consistency
+            narration = res.get('narration', '')
+            if narration:
+                # Truncate very long narrations to keep synthesis prompt focused
+                narration_preview = narration[:500] + "..." if len(narration) > 500 else narration
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}\n  Resolution: {narration_preview}")
+            else:
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}")
 
         outcomes_text = "\n".join(outcomes_summary)
 
@@ -2427,7 +2435,16 @@ story_advancement=StoryAdvancement(
 {npc_status_context}
 {story_advancement_prompt}
 
-**Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:
+**Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
+
+**⚠️ CRITICAL - NARRATIVE CONSISTENCY:**
+- Each "Resolution:" above shows what you ALREADY narrated for that action
+- Your synthesis MUST be consistent with these established facts
+- DO NOT contradict details like names, locations, or outcomes from individual resolutions
+- Your job is to WEAVE these resolutions together, not re-narrate them from scratch
+- If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
+
+**Consider:**
 - Timing: Actions resolved fastest → slowest based on initiative
 - Interactions: How did each person's success/failure affect the others?
 - Conflicts: If multiple people tried similar things, who got there first? What did the slower person encounter?
