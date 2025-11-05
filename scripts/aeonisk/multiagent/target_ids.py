@@ -75,18 +75,20 @@ class TargetIDMapper:
     def assign_ids(
         self,
         player_agents: List[Any],
-        enemy_agents: List[Any]
+        enemy_agents: List[Any],
+        npc_agents: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
         Assign random IDs to all combatants at combat start.
 
-        Combines PCs and enemies into single pool, shuffles to
+        Combines PCs, enemies, and NPCs into single pool, shuffles to
         randomize order (prevents pattern detection), then assigns
         unique target IDs.
 
         Args:
             player_agents: List of PC agents
             enemy_agents: List of enemy agents (active only)
+            npc_agents: List of NPC agents (active only)
 
         Returns:
             Dict mapping target_id -> agent reference
@@ -111,7 +113,15 @@ class TargetIDMapper:
             if hasattr(enemy, 'is_active') and enemy.is_active:
                 all_combatants.append(enemy)
 
-        logger.info(f"Assigning target IDs to {len(all_combatants)} combatants ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies)")
+        # Add active NPCs
+        npc_count = 0
+        if npc_agents:
+            for npc in npc_agents:
+                if hasattr(npc, 'is_active') and npc.is_active:
+                    all_combatants.append(npc)
+                    npc_count += 1
+
+        logger.info(f"Assigning target IDs to {len(all_combatants)} combatants ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs)")
 
         # Shuffle to randomize order (prevents position-based patterns)
         random.shuffle(all_combatants)

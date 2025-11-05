@@ -629,10 +629,16 @@ class SelfPlayingSession:
                 from .enemy_spawner import get_active_enemies
                 active_enemies = get_active_enemies(self.enemy_combat.enemy_agents)
 
-            # Assign IDs to all combatants (PCs + enemies)
+            # Get all active NPCs (empty list if none)
+            active_npcs = []
+            if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                active_npcs = [npc for npc in self.shared_state.npc_agents if npc.is_active]
+
+            # Assign IDs to all combatants (PCs + enemies + NPCs)
             target_id_mapper.assign_ids(
                 player_agents=self.shared_state.player_agents,
-                enemy_agents=active_enemies
+                enemy_agents=active_enemies,
+                npc_agents=active_npcs
             )
             logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
