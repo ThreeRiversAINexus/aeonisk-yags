@@ -189,6 +189,28 @@ sections:
     - Corporate Influence, Debt Law, Intimacy Ritual
     - OR "None" for raw attribute checks
 
+    **⚠️ SKILL SELECTION GUIDANCE - Match Skill to Action Intent:**
+
+    **Social Actions:**
+    - **Intimidation/Threats/Coercion:** Use `Charisma × Intimidation` (if you have Intimidation skill)
+      - Example: "I threaten the guard", "I make it clear what happens if they don't comply"
+      - If no Intimidation skill: `Charisma × Charm` with -5 penalty (unskilled)
+    - **Persuasion/Charm/Seduction:** Use `Empathy × Charm`
+      - Example: "I convince them gently", "I appeal to their better nature"
+    - **Deception/Lying:** Use `Charisma × Guile`
+    - **Emotional support/Counsel:** Use `Empathy × Counsel`
+
+    **Combat Actions:**
+    - **Ranged weapons:** Use `Agility × Guns`
+    - **Melee weapons:** Use `Agility × Melee` or `Strength × Melee`
+    - **Unarmed fighting:** Use `Strength × Brawl` or `Agility × Combat`
+    - **Tactics/Maneuvers:** Use `Perception × Combat` or `Agility × Combat`
+
+    **CHECK YOUR CHARACTER SHEET:** Always prefer skills you have high ranks in!
+    - If you have Intimidation: 5 and Charm: 2, use Intimidation for threats
+    - If you have Systems: 6 and Awareness: 3, use Systems for tech tasks
+    - If you don't have the ideal skill, consider if action intent should change
+
     **4. DIFFICULTY_ESTIMATE - Must be reasonable (5-50)**
     - 10 (Easy), 15 (Routine), 20 (Moderate), 25 (Challenging), 30 (Difficult), 35+ (Very Difficult)
 

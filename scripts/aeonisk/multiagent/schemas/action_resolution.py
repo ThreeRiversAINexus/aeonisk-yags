@@ -255,6 +255,11 @@ class ActionResolution(BaseModel):
         description="Internal notes about LLM compliance issues (for ML training)"
     )
 
+    skill_override: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Skill mismatch detection: {declared: 'Charm', used: 'Intimidation', reason: '...'} when DM overrides player's skill choice"
+    )
+
     # ========== ML Training Fields (Dataset Guidelines Compliance) ==========
 
     # Character data (full sheet snapshot at time of action)

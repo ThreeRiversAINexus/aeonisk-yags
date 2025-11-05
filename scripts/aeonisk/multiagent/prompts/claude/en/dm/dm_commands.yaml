@@ -102,12 +102,18 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   `: Calm, indifferent, observing\n- `\"friendly\"`: Cooperative, helpful, allied\n\
   \n**When enemy stays vs leaves:**\n- ✅ Stays as NPC: Use resolution=CONVINCED/NEUTRALIZED/SUBDUED\
   \ + include NPC fields\n- ✅ Leaves scene: Use resolution=FLED/STORY_ADVANCED (no\
-  \ NPC fields needed)\n\n**Spawn new civilian NPCs:**\n\
-  \n**When to spawn NPCs:**\n- Players enter populated area (civilians, witnesses,\
-  \ bystanders)\n- Story events introduce friendly contacts (informants, allies,\
-  \ medics)\n- Neutral parties appear (armed guards, potential threats who haven't\
-  \ engaged)\n- Players request to interrogate/recruit specific individuals\n- Dramatic\
-  \ moments need witnesses or complications\n\n**Examples:**\n\n```python\n# Example\
+  \ NPC fields needed)\n\n**✨ SPAWN NEW CIVILIAN NPCs - USE THIS ACTIVELY:**\n\
+  \n**⚠️ IMPORTANT: NPCs make scenes come alive! Use `npc_spawns` frequently to populate\
+  \ the world.**\n\n**When to spawn NPCs (use liberally):**\n- Players enter populated\
+  \ area (civilians, witnesses, bystanders)\n- Story events introduce friendly contacts\
+  \ (informants, allies, medics)\n- Neutral parties appear (armed guards, potential\
+  \ threats who haven't engaged)\n- Players request to interrogate/recruit specific\
+  \ individuals\n- Dramatic moments need witnesses or complications\n- ANY time narrative\
+  \ needs a new person to interact with\n\n**Don't wait for players to ask - proactively\
+  \ spawn NPCs when:**\n- Infiltrating a facility → spawn guards, scientists, janitors\n\
+  - Entering a market/populated area → spawn merchants, civilians, local fixers\n\
+  - Social missions → spawn quest-givers, informants, contacts\n- Players need someone\
+  \ to talk to/intimidate/negotiate with\n\n**Examples:**\n\n```python\n# Example\
   \ 1: Civilian non-combatant (most common)\nnpc_spawns=[\n    NPCSpawn(\n       \
   \ name=\"Frightened Dock Worker\",\n        faction=\"Independent Civilian\",\n\
   \        entity_type=\"neutral\",\n        threat_level=\"non_combatant\",\n  \
@@ -146,7 +152,35 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   ```python\nescalations=[\n    Escalation(\n        npc_id=\"enemy_civilian_1\"\
   ,  # Stable agent_id (may be enemy_xxx format)\n        reason=\"Attacked by player,\
   \ now fighting back in self-defense\",\n        template_override=\"desperate_fighter\"\
-  \  # Optional: enemy template for combat stats\n    )\n]\n```\n\n**CRITICAL: Use\
+  \  # Optional: enemy template for combat stats\n    )\n]\n```\n\n**⚠️ ESCALATION\
+  \ TRIGGERS - When to Convert NPCs to Enemies:**\n\n**Success margin matters for\
+  \ intimidation/coercion:**\n- **Low margin (0-5):** High escalation chance - NPC\
+  \ may resist/panic/fight back\n  - Example: \"The guard's hand moves to holster\
+  \ - your threat wasn't convincing enough\"\n  - Wary/armed NPCs especially likely\
+  \ to escalate on weak intimidation\n- **Medium margin (6-10):** Moderate chance\
+  \ - depends on NPC disposition\n  - Friendly → stays compliant, wary → might escalate,\
+  \ prisoner → obeys reluctantly\n- **High margin (11+):** Low chance - NPC too scared/overwhelmed\
+  \ to resist\n  - Example: \"Your cold authority freezes them in place - they won't\
+  \ dare move\"\n  - Even wary NPCs comply when thoroughly intimidated\n\n**Always\
+  \ escalate for:**\n- **Violence against NPCs:** Physical attacks = immediate escalation\
+  \ (self-defense or panic)\n- **Threats to faction:** Attacking NPC's allies in\
+  \ front of them = escalation\n- **Exposed betrayal:** Informants blown in public\
+  \ = fight or flight\n\n**Disposition affects escalation chance:**\n- `friendly`:\
+  \ Very low (betrayal must be severe)\n- `neutral`: Moderate (weighs self-interest)\n\
+  - `wary`: High (already suspicious, quick to react)\n- `prisoner`: Low (already\
+  \ captured, compliance expected)\n\n**Threat level affects escalation outcome:**\n\
+  - `non_combatant`: More likely to **FLEE** than fight (mark as fled, not escalation)\n\
+  - `potential_threat`: May escalate to desperate_fighter\n- `armed_neutral`: Will\
+  \ escalate and fight effectively\n\n**Example scenarios:**\n```python\n# Scenario\
+  \ 1: Weak intimidation on wary guard (margin +3)\nescalations=[\n    Escalation(\n\
+  \        npc_id=\"npc_guard_vex\",\n        reason=\"Low-margin intimidation failed\
+  \ to convince wary guard - drew weapon in self-defense\",\n        template=\"desperate_fighter\"\
+  \n    )\n]\n\n# Scenario 2: High-margin coercion on scientist (margin +15)\n# NO\
+  \ escalation - scientist too terrified to resist\nenemy_conversions=[]  # Scientist\
+  \ complies, doesn't escalate\n\n# Scenario 3: Violence against civilian\nescalations=[\n\
+  \    Escalation(\n        npc_id=\"npc_civilian_kess\",\n        reason=\"Attacked\
+  \ without provocation - grabbed nearest weapon to defend self\",\n        template=\"\
+  desperate_fighter\"\n    )\n]\n```\n\n**CRITICAL: Use\
   \ exact enemy agent_id for de-escalations:**\n- Enemy agent IDs look like `enemy_raider_1`,\
   \ `enemy_grunt_a3f2`\n- You'll see them in the enemy list each round\n- De-escalation\
   \ preserves agent_id (stable across conversions)\n- DO NOT make up IDs - use exact\

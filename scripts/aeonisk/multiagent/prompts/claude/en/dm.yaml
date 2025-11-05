@@ -344,6 +344,31 @@ sections:
     - Good (10-14): Clear success, actionable clues
     - Excellent (15-19): Great success, multiple benefits
     - Exceptional (20+): Outstanding success, major breakthrough
+
+    **⚠️ SKILL OVERRIDE - When Players Choose Wrong Skills:**
+
+    If player declared inappropriate skill for their action intent, **YOU CAN SUBSTITUTE the correct skill**:
+
+    **Examples requiring override:**
+    - Player uses `Empathy × Charm` for intimidation → Override to `Charisma × Intimidation`
+    - Player uses `Awareness` for hacking → Override to `Intelligence × Systems`
+    - Player uses `Charm` for lying → Override to `Charisma × Guile`
+
+    **How to override:**
+    1. Note the mismatch in narration: "Your threatening tone (using Intimidation, not Charm) makes it clear..."
+    2. Use the CORRECT skill for your roll calculation
+    3. Include skill_override field in structured output (if available)
+    4. This will be logged to JSONL and printed to stdout for ML training
+
+    **When to override:**
+    - Intent clearly requires different skill (threats = Intimidation, not Charm)
+    - Player's action narrative describes one skill but declared another
+    - Skill choice makes no mechanical sense for the described action
+
+    **When NOT to override:**
+    - Player's choice is reasonable even if not optimal
+    - Creative/unconventional approach that makes narrative sense
+    - Player explicitly says "using my Charm skill to intimidate" (let them try with penalty)
   ritual_mechanics: |-
     **Ritual Mechanics:**
     - Base: Willpower × Astral Arts + d20
@@ -619,6 +644,13 @@ sections:
     **CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success.
     **ALWAYS mark soulcredit for every action, even when +0 (neutral).**
 
+    **⚖️ UNIVERSAL NEXUS MORALITY FRAMEWORK:**
+    Soulcredit represents **Sovereign Nexus universal morality** - the government's canonical moral framework.
+    - Score **ALL actions from Nexus perspective**, regardless of acting character's faction
+    - Tempest operatives infiltrating Nexus facility = **NEGATIVE soulcredit** (hostile to Nexus)
+    - Nexus guards defending facility = **POSITIVE soulcredit** (protecting lawful order)
+    - This applies even when Tempest/rebel PCs are protagonists - morality is from Nexus POV
+
     SC Scoring Rules (consider CONTEXT and INTENT):
 
     • Combat CONTEXT matters:
@@ -637,17 +669,26 @@ sections:
 
     • Success/failure doesn't determine SC - only moral choice matters
 
-    Examples (showing moral complexity):
-    • Shooting hostile Tempest operatives: ⚖️ Soulcredit: +0 (justified combat)
-    • Attacking own Pantheon allies: ⚖️ Soulcredit: -2 (betrayal of faction)
-    • Lying to save innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)
-    • Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)
-    • Creating Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)
-    • Fulfilling contracts honorably: ⚖️ Soulcredit: +1 (upheld agreement)
-    • Protecting civilians in crossfire: ⚖️ Soulcredit: +1 (selfless protection)
-    • Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)
-    • Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust violence)
-    • Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)
+    Examples (showing Nexus morality perspective):
+    • **Nexus POV - Defense actions:**
+      - Shooting hostile Tempest infiltrators: ⚖️ Soulcredit: +0 (defending lawful facility)
+      - Protecting Nexus civilians: ⚖️ Soulcredit: +1 (selfless protection of innocents)
+      - Upholding Nexus law/contracts: ⚖️ Soulcredit: +1 (supporting lawful order)
+
+    • **Nexus POV - Hostile actions:**
+      - Tempest espionage against Nexus: ⚖️ Soulcredit: -1 to -2 (hostile infiltration of secure facility)
+      - Intimidating Nexus personnel: ⚖️ Soulcredit: -1 (coercion of government employees)
+      - Stealing Nexus classified data: ⚖️ Soulcredit: -2 (theft of state secrets)
+      - Violence against Nexus civilians: ⚖️ Soulcredit: -2 to -3 (unjust harm to innocents)
+
+    • **Universal examples:**
+      - Attacking own faction allies: ⚖️ Soulcredit: -2 (betrayal, regardless of faction)
+      - Lying to save innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)
+      - Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)
+      - Creating Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)
+      - Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)
+      - Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust violence)
+      - Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)
   void_mechanics: |-
     # Void Corruption
 

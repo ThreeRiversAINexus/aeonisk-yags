@@ -2798,6 +2798,27 @@ The following actions ALREADY resolved (faster initiative):
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
 
+                # Skill mismatch detection
+                declared_skill = action.get('skill')
+                dm_resolution_skill = getattr(self._last_structured_resolution, 'skill', None)
+
+                if declared_skill and dm_resolution_skill and declared_skill.lower() != dm_resolution_skill.lower():
+                    skill_override = {
+                        'declared': declared_skill,
+                        'used': dm_resolution_skill,
+                        'reason': f"DM override: Action intent required {dm_resolution_skill}, player declared {declared_skill}"
+                    }
+
+                    # Add to structured resolution for JSONL logging
+                    if hasattr(self._last_structured_resolution, 'skill_override'):
+                        self._last_structured_resolution.skill_override = skill_override
+
+                    # Print to stdout for user visibility and ML training
+                    character_name = action.get('character_name', 'Character')
+                    print(f"\n⚠️  Skill Override: {character_name} declared {declared_skill}, DM used {dm_resolution_skill}")
+                    print(f"    Reason: Action intent required {dm_resolution_skill}")
+                    logger.info(f"Skill mismatch detected: {declared_skill} → {dm_resolution_skill} for {character_name}")
+
                 # Validate void changes were populated when narration contains void markers
                 narration_text = llm_narration if self.llm_config else resolution.narrative
                 has_void_in_narrative = '⚫ Void' in narration_text or 'Void (' in narration_text

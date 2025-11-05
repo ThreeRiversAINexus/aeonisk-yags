@@ -839,7 +839,7 @@ class SelfPlayingSession:
                         if num_enemies > 0:
                             context += f"Combat active - {num_players} players vs {num_enemies} enemies. "
                         else:
-                            context += f"Combat ended. {num_players} players present. "
+                            context += f"No active threats. {num_players} players present. "
 
                         if self.shared_state and hasattr(self.shared_state, 'scenario'):
                             context += f"Situation: {self.shared_state.scenario}"
@@ -2473,6 +2473,41 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         }.get(conversion.resolution, "removed")
 
                         print(f"\n❌ {enemy.name} {resolution_text}: {conversion.reason}")
+
+        # 3.5. Handle escalations (NPC → Enemy conversions)
+        if synthesis.escalations:
+            from .schemas.story_events import Escalation
+
+            # Find DM agent for escalation processing
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            if not dm_agent:
+                logger.warning("Cannot process escalations: DM agent not found")
+            else:
+                for escalation in synthesis.escalations:
+                    # Reconstruct Escalation if it's a dict
+                    if isinstance(escalation, dict):
+                        escalation = Escalation(**escalation)
+
+                    if hasattr(dm_agent, '_process_escalation'):
+                        enemy = dm_agent._process_escalation(
+                            escalation=escalation,
+                            current_round=mechanics.current_round if mechanics else 0
+                        )
+
+                        if enemy:
+                            # Add enemy to enemy_combat system
+                            if self.enemy_combat.enabled:
+                                self.enemy_combat.enemy_agents.append(enemy)
+
+                            print(f"\n⚠️  {enemy.name} escalated to Enemy (was NPC): {escalation.reason}")
+                            logger.info(f"Escalation complete: {enemy.name} ({enemy.agent_id}) now active enemy")
+                    else:
+                        logger.warning(f"Cannot escalate {escalation.npc_id}: DM missing _process_escalation method")
 
         # 4. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:

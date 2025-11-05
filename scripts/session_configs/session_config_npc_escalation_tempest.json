@@ -177,12 +177,12 @@
           "Medicine": 2
         },
         "equipped_weapons": {
-          "primary": "assault_rifle",
+          "primary": "hollowed_repeater",
           "sidearm": "pistol"
         },
         "carried_weapons": ["combat_knife"],
         "inventory": {
-          "assault_rifle": 1,
+          "hollowed_repeater": 1,
           "pistol": 1,
           "combat_knife": 1,
           "tactical_armor": 1,

@@ -133,6 +133,9 @@ class ResolutionState:
 
         Args:
             agent_id: NPC agent ID to mark as fled
+
+        NOTE: Caller should also unregister NPC from target_id_mapper and remove from
+        shared_state.npc_agents to ensure they don't reappear in future rounds.
         """
         self.fled_npcs.add(agent_id)
         logger.info(f"{agent_id} marked as fled")
