@@ -1040,7 +1040,7 @@ class SelfPlayingSession:
 
                     # Create event to track when adjudication completes
                     adjudication_event = asyncio.Event()
-                    self._pending_resolutions[f"{agent.agent_id}_npc"] = adjudication_event
+                    self._pending_resolutions[f"{agent.agent_id}_0"] = adjudication_event  # action_index=0 for NPCs
 
                     # Send action to DM for mechanical resolution (lightweight for NPCs)
                     adjudication_message = Message(
@@ -1069,8 +1069,9 @@ class SelfPlayingSession:
                     if resolution_data:
                         all_resolutions.append(resolution_data)
 
-                    if f"{agent.agent_id}_npc" in self._pending_resolutions:
-                        del self._pending_resolutions[f"{agent.agent_id}_npc"]
+                    # Clean up pending resolution (must match key format used above)
+                    if f"{agent.agent_id}_0" in self._pending_resolutions:
+                        del self._pending_resolutions[f"{agent.agent_id}_0"]
 
         # Convert surrendered enemies to NPCs after all actions resolve
         # This happens AFTER resolution (actions invalidated) but BEFORE synthesis

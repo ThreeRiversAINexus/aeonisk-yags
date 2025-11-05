@@ -2589,6 +2589,27 @@ Generate appropriate consequences based on what makes sense for that specific cl
         description = action.get('description', '')
         intent = action.get('intent', description)
 
+        # Check if this is an NPC action (lightweight adjudication)
+        if action.get('is_npc'):
+            character_name = action.get('character_name', 'NPC')
+            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent}")
+
+            # NPCs get simple narrative resolution without complex mechanics
+            # Generate brief narration (1-2 sentences) from their declared action
+            narration = f"{character_name} {description}"
+
+            # Return lightweight resolution
+            return {
+                'agent_id': player_id,
+                'character_name': character_name,
+                'action': intent,
+                'narration': narration,
+                'resolution': {
+                    'outcome': 'narrated',
+                    'success': True
+                }
+            }
+
         resolution = None
         narration = ""
 
