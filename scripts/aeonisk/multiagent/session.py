@@ -827,12 +827,25 @@ class SelfPlayingSession:
                     print(f"\n[{agent.name}] (NPC {agent.disposition}) declaring (initiative {initiative_score})...")
 
                     try:
-                        # Get NPC action via simple LLM client
-                        npc_action = await agent.llm_client.get_npc_action(
-                            player_agents=player_agents,
-                            enemies=[e for e in self.enemy_combat.enemy_agents if e.is_active] if self.enemy_combat.enabled else [],
-                            scenario_context=self.shared_state.scenario if self.shared_state else None
-                        )
+                        # Build context string for NPC
+                        active_enemies = []
+                        if self.enemy_combat and self.enemy_combat.enabled:
+                            active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
+
+                        num_players = len(player_agents)
+                        num_enemies = len(active_enemies)
+
+                        context = f"Round {mechanics.current_round if mechanics else 0}: "
+                        if num_enemies > 0:
+                            context += f"Combat active - {num_players} players vs {num_enemies} enemies. "
+                        else:
+                            context += f"Combat ended. {num_players} players present. "
+
+                        if self.shared_state and hasattr(self.shared_state, 'scenario'):
+                            context += f"Situation: {self.shared_state.scenario}"
+
+                        # Get NPC action via simple LLM client (correct method: declare_action)
+                        npc_action = await agent.llm_client.declare_action(context)
 
                         if npc_action:
                             # Log NPC declaration
@@ -841,7 +854,7 @@ class SelfPlayingSession:
                                     player_id=agent.agent_id,
                                     character_name=agent.name,
                                     initiative=initiative_score,
-                                    action={'major_action': npc_action.intent, 'description': npc_action.description},
+                                    action={'major_action': npc_action.action_type, 'description': npc_action.reason},
                                     round_num=mechanics.current_round
                                 )
 
@@ -849,8 +862,8 @@ class SelfPlayingSession:
                             self._declared_actions[agent.agent_id] = {
                                 'agent_id': agent.agent_id,
                                 'character_name': agent.name,
-                                'intent': npc_action.intent,
-                                'description': npc_action.description,
+                                'intent': npc_action.action_type,
+                                'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
                                 'initiative': initiative_score
                             }
@@ -864,7 +877,7 @@ class SelfPlayingSession:
                                 payload={
                                     'agent_id': agent.agent_id,
                                     'character_name': agent.name,
-                                    'intent': npc_action.intent,
+                                    'intent': npc_action.action_type,
                                     'initiative': initiative_score,
                                     'agent_type': 'npc'
                                 },
