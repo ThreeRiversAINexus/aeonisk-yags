@@ -592,6 +592,19 @@ class SelfPlayingSession:
                 self._current_initiative[enemy.agent_id] = init
                 print(f"[{enemy.name}] (ENEMY) Initiative: {init} ({enemy.position})")
 
+        # Add NPC initiative entries
+        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                if npc.is_active and npc.can_act:
+                    # NPCs get moderate initiative (15 + random variance)
+                    npc_init = 15 + mechanics.roll_d20() if mechanics else 15
+                    initiative_order.append((npc_init, 'npc', npc))
+                    self._current_initiative[npc.agent_id] = npc_init
+
+                    # Format disposition for display
+                    disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(npc.disposition, "❓")
+                    print(f"[{npc.name}] (NPC {disp_emoji}) Initiative: {npc_init}")
+
         # Sort by initiative (highest first)
         initiative_order.sort(key=lambda x: x[0], reverse=True)
 
@@ -802,6 +815,62 @@ class SelfPlayingSession:
                         )
                         await self.coordinator.message_bus._route_message(broadcast_message)
 
+            elif agent_type == 'npc':
+                # NPC declares simple action (flee/hide/plead/dialogue/assist/pass)
+                if agent.llm_client and agent.can_act:
+                    print(f"\n[{agent.name}] (NPC {agent.disposition}) declaring (initiative {initiative_score})...")
+
+                    try:
+                        # Get NPC action via simple LLM client
+                        npc_action = await agent.llm_client.get_npc_action(
+                            player_agents=player_agents,
+                            enemies=[e for e in self.enemy_combat.enemy_agents if e.is_active] if self.enemy_combat.enabled else [],
+                            scenario_context=self.shared_state.scenario if self.shared_state else None
+                        )
+
+                        if npc_action:
+                            # Log NPC declaration
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_action_declaration(
+                                    player_id=agent.agent_id,
+                                    character_name=agent.name,
+                                    initiative=initiative_score,
+                                    action={'major_action': npc_action.intent, 'description': npc_action.description},
+                                    round_num=mechanics.current_round
+                                )
+
+                            # Store for resolution
+                            self._declared_actions[agent.agent_id] = {
+                                'agent_id': agent.agent_id,
+                                'character_name': agent.name,
+                                'intent': npc_action.intent,
+                                'description': npc_action.description,
+                                'action_type': npc_action.action_type,
+                                'initiative': initiative_score
+                            }
+
+                            # Broadcast NPC action to players
+                            broadcast_message = Message(
+                                id=f"npc_declared_{datetime.now().isoformat()}_{agent.agent_id}",
+                                type=MessageType.ACTION_DECLARED,
+                                sender=agent.agent_id,
+                                recipient=None,  # Broadcast to all
+                                payload={
+                                    'agent_id': agent.agent_id,
+                                    'character_name': agent.name,
+                                    'intent': npc_action.intent,
+                                    'initiative': initiative_score,
+                                    'agent_type': 'npc'
+                                },
+                                timestamp=datetime.now()
+                            )
+                            await self.coordinator.message_bus._route_message(broadcast_message)
+
+                    except Exception as e:
+                        logger.warning(f"NPC {agent.name} failed to declare action: {e}")
+                        # NPCs can skip their turn if declaration fails
+                        print(f"[{agent.name}] unable to act this round")
+
         self._in_declaration_phase = False
 
         # PHASE 2: RESOLUTION (execute in descending initiative order)
@@ -921,6 +990,29 @@ class SelfPlayingSession:
                         # Enemy actions use a simplified result dict compared to ActionResolution schema
                         # but DM needs to see enemy actions to synthesize round accurately
                         all_resolutions.append(result)
+
+            elif agent_type == 'npc':
+                # NPC action execution - send to DM for narrative resolution
+                if agent.agent_id in self._declared_actions:
+                    npc_action = self._declared_actions[agent.agent_id]
+                    print(f"\n[{agent.name}] (NPC) executing: {npc_action['intent']}...")
+
+                    # NPCs get simple narrative resolution from DM (no full adjudication)
+                    # This is different from player/enemy - NPCs just need narration for their non-combat actions
+                    npc_result = {
+                        'agent_id': agent.agent_id,
+                        'character_name': agent.name,
+                        'action': npc_action['intent'],
+                        'description': npc_action['description'],
+                        'initiative': initiative_score,
+                        'result': 'narrated',
+                        'narration': f"{agent.name} {npc_action['description']}"
+                    }
+
+                    # Add NPC action to synthesis (DM will weave it into round narration)
+                    all_resolutions.append(npc_result)
+
+                    logger.debug(f"NPC {agent.name} action added to synthesis")
 
         # Convert surrendered enemies to NPCs after all actions resolve
         # This happens AFTER resolution (actions invalidated) but BEFORE synthesis
@@ -1356,6 +1448,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Group combatants by type
         pcs = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'player']
         enemies = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'enemy']
+        npcs = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'npc']
 
         # Display PCs
         if pcs:
@@ -1471,10 +1564,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                 print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s} | {position_str:15s}")
 
-        # Display NPCs (non-combatants)
-        if self.shared_state and self.shared_state.npc_agents:
+        # Display NPCs (non-combatants in initiative order)
+        if npcs:
             print("\n  NPCs (Non-Combatants):")
-            for npc in self.shared_state.npc_agents:
+            for init, npc in npcs:
                 # Get health info
                 health = getattr(npc, 'health', '?')
                 max_health = getattr(npc, 'max_health', '?')
@@ -1483,7 +1576,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 # Get entity type and disposition
                 entity_type = getattr(npc, 'entity_type', 'neutral')
                 disposition = getattr(npc, 'disposition', 'neutral')
-                status_str = f"{entity_type}/{disposition}"
+
+                # Format disposition with emoji
+                disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(disposition, "❓")
+                status_str = f"{disp_emoji} {disposition}"
 
                 # Active status
                 is_active = getattr(npc, 'is_active', True)
