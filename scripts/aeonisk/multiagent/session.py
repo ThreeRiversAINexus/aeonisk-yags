@@ -597,7 +597,7 @@ class SelfPlayingSession:
             for npc in self.shared_state.npc_agents:
                 if npc.is_active and npc.can_act:
                     # NPCs get moderate initiative (15 + random variance)
-                    npc_init = 15 + mechanics.roll_d20() if mechanics else 15
+                    npc_init = 15 + random.randint(1, 20)
                     initiative_order.append((npc_init, 'npc', npc))
                     self._current_initiative[npc.agent_id] = npc_init
 
