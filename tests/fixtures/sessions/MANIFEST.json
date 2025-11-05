@@ -134,22 +134,39 @@
         "tests/unit/test_enemy_spawn_structured.py"
       ],
       "notes": "Re-extracted from round 0 for replay compatibility (LLM call_sequence starts at 0). Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
+    },
+    "golden_npc_deescalation.jsonl": {
+      "created": "2025-11-05",
+      "created_by_commit": "8edf124",
+      "purpose": "Golden fixture for NPC system - demonstrates de-escalation mechanics, stable agent IDs across conversions, civilian fleeing behavior, and NPC LLM client actions. Tests complete NPC lifecycle.",
+      "scenario": "Tense Negotiation (social/combat) @ Abandoned Cargo Hub - Contested Territory",
+      "rounds": 3,
+      "rounds_range": "0-3",
+      "players": 2,
+      "enemies": 3,
+      "npcs": 1,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "golden",
+      "used_by_tests": [],
+      "notes": "Demonstrates: (1) Fresh NPC spawn with npc_ prefix, (2) Enemy→prisoner de-escalation with stable enemy_ ID preservation, (3) NPC actions (flee, plead, comply, dialogue), (4) Complete JSONL logging (action_declaration + action_resolution). All 3 enemies successfully de-escalate to prisoners via negotiation. 88% action success rate, no errors."
     }
   },
   "statistics": {
-    "total_fixtures": 9,
-    "active": 9,
+    "total_fixtures": 10,
+    "active": 10,
     "deprecated": 0,
-    "with_player_llm_calls": 2,
+    "with_player_llm_calls": 3,
     "categories": {
-      "golden": 1,
+      "golden": 2,
       "regression": 2,
       "test": 6
     }
   },
   "notes": [
     "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
-    "Only replay_test_fresh.jsonl and regression_combat_cultist_spawn_bug.jsonl have complete player LLM call data",
+    "replay_test_fresh.jsonl, regression_combat_cultist_spawn_bug.jsonl, and golden_npc_deescalation.jsonl have complete player LLM call data",
+    "golden_npc_deescalation.jsonl is the reference implementation for NPC system testing",
     "Comprehensive golden fixture planned to replace legacy test fixtures"
   ]
 }
