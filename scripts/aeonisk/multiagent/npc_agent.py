@@ -76,7 +76,12 @@ class NPCAgent:
     def __post_init__(self):
         """Initialize LLM client if not provided."""
         if self.llm_client is None and self.can_act:
-            self.llm_client = NPCLLMClient(self)
+            try:
+                self.llm_client = NPCLLMClient(self)
+                logger.debug(f"NPCLLMClient initialized for {self.name} ({self.agent_id})")
+            except Exception as e:
+                logger.warning(f"Failed to initialize NPCLLMClient for {self.name}: {e}. NPC will use fallback actions.")
+                self.can_act = False  # Disable acting if LLM client fails
 
 
 class NPCAction(BaseModel):
