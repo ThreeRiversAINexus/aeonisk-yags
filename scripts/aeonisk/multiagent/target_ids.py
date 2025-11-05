@@ -368,8 +368,11 @@ class TargetIDMapper:
         # Fallback: guess from ID prefix
         if agent_id.startswith("player_"):
             return "player"
+        elif agent_id.startswith("npc_"):
+            # Fresh NPCs use npc_ prefix
+            return "npc"
         elif agent_id.startswith("enemy_"):
-            # Could be enemy or NPC (stable IDs), check registry
+            # Could be enemy or NPC (converted NPCs keep enemy_ ID for stability)
             if agent_id in self.npc_registry:
                 return "npc"
             return "enemy"

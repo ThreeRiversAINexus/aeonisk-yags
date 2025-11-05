@@ -2617,13 +2617,29 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 state_effects={}
             )
 
-            # Return lightweight resolution matching player format
+            # Return lightweight resolution matching player format (with outcome dict)
             return {
-                'agent_id': player_id,
-                'character_name': character_name,
-                'action': intent,
+                'resolution': npc_resolution,  # ActionResolution dataclass
                 'narration': narration,
-                'resolution': npc_resolution
+                'state_changes': {},  # Empty state changes for NPCs (no mechanics)
+                'combat_data': {},  # No combat data for NPCs
+                'inventory_changes': [],  # No inventory changes
+                'outcome': {
+                    'dm_response': narration,
+                    'success': True,  # NPCs always succeed (simple narration)
+                    'consequences': [],
+                    'narration': narration,  # Needed by line 1882
+                    'resolution': {
+                        'intent': intent,
+                        'attribute': 'None',
+                        'skill': None,
+                        'total': 0,
+                        'difficulty': 0,
+                        'margin': 0,
+                        'outcome_tier': 'marginal',  # String value
+                        'success': True
+                    }
+                }
             }
 
         resolution = None
@@ -5244,9 +5260,9 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
         logger = logging.getLogger(__name__)
 
-        # Generate unique agent_id (using pattern similar to enemies)
-        # Use enemy_xxx format for consistency with conversion system
-        npc_id = f"enemy_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
+        # Generate unique agent_id with npc_ prefix
+        # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)
+        npc_id = f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
 
         # Create NPC agent
         npc = NPCAgent(
