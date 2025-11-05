@@ -453,6 +453,33 @@ class JSONLLogger:
                     "new_clocks": [clock.model_dump() for clock in structured_synthesis.scene_pivot.new_clocks]
                 }
 
+            # Add enemy management fields
+            if structured_synthesis.enemy_spawns:
+                event["enemy_spawns"] = [spawn.model_dump() for spawn in structured_synthesis.enemy_spawns]
+
+            if structured_synthesis.enemy_conversions:
+                event["enemy_conversions"] = [conv.model_dump() for conv in structured_synthesis.enemy_conversions]
+
+            # Add NPC management fields
+            if structured_synthesis.npc_spawns:
+                event["npc_spawns"] = [npc.model_dump() for npc in structured_synthesis.npc_spawns]
+
+            if structured_synthesis.escalations:
+                event["escalations"] = [esc.model_dump() for esc in structured_synthesis.escalations]
+
+            # Add clock lifecycle fields
+            if structured_synthesis.clocks_filled:
+                event["clocks_filled"] = structured_synthesis.clocks_filled
+
+            if structured_synthesis.clocks_expired:
+                event["clocks_expired"] = structured_synthesis.clocks_expired
+
+            # Add session end fields
+            if structured_synthesis.session_end:
+                event["session_end"] = structured_synthesis.session_end
+                if structured_synthesis.session_end_reason:
+                    event["session_end_reason"] = structured_synthesis.session_end_reason
+
         self._write_event(event)
 
     def log_event(self, event_type: str, data: Dict[str, Any], round_num: int):
