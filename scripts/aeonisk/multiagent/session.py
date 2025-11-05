@@ -1015,7 +1015,7 @@ class SelfPlayingSession:
                         all_resolutions.append(result)
 
             elif agent_type == 'npc':
-                # NPC action execution - send to DM for narrative resolution
+                # NPC action execution - route through DM adjudication like players
                 if agent.agent_id in self._declared_actions:
                     # Get first action from list (NPCs only declare one action, but stored as list for consistency)
                     npc_actions = self._declared_actions[agent.agent_id]
@@ -1025,22 +1025,52 @@ class SelfPlayingSession:
                     npc_action = npc_actions[0]  # NPCs only have one action
                     print(f"\n[{agent.name}] (NPC) executing: {npc_action['intent']}...")
 
-                    # NPCs get simple narrative resolution from DM (no full adjudication)
-                    # This is different from player/enemy - NPCs just need narration for their non-combat actions
-                    npc_result = {
-                        'agent_id': agent.agent_id,
+                    # Build action payload for DM adjudication (similar to players)
+                    action_for_adjudication = {
+                        'player_id': agent.agent_id,  # Use agent_id for NPCs (similar to player pattern)
                         'character_name': agent.name,
-                        'action': npc_action['intent'],
-                        'description': npc_action['description'],
                         'initiative': initiative_score,
-                        'result': 'narrated',
-                        'narration': f"{agent.name} {npc_action['description']}"
+                        'action': {
+                            'intent': npc_action['intent'],
+                            'description': npc_action['description'],
+                            'action_type': npc_action.get('action_type', 'dialogue'),
+                            'is_npc': True  # Flag for DM to use lightweight adjudication
+                        }
                     }
 
-                    # Add NPC action to synthesis (DM will weave it into round narration)
-                    all_resolutions.append(npc_result)
+                    # Create event to track when adjudication completes
+                    adjudication_event = asyncio.Event()
+                    self._pending_resolutions[f"{agent.agent_id}_npc"] = adjudication_event
 
-                    logger.debug(f"NPC {agent.name} action added to synthesis")
+                    # Send action to DM for mechanical resolution (lightweight for NPCs)
+                    adjudication_message = Message(
+                        id=f"adjudicate_{datetime.now().isoformat()}_{agent.agent_id}",
+                        type=MessageType.ACTION_DECLARED,
+                        sender='coordinator',
+                        recipient='dm_01',
+                        payload={
+                            'phase': 'resolution_only',
+                            'actions': [action_for_adjudication],
+                            'round': mechanics.current_round if mechanics else 0,
+                            'action_index': 0,
+                            'previous_resolutions': all_resolutions
+                        },
+                        timestamp=datetime.now()
+                    )
+
+                    await self.coordinator.message_bus._route_message(adjudication_message)
+
+                    # Wait for DM to complete adjudication
+                    await adjudication_event.wait()
+                    logger.debug(f"NPC {agent.name} action adjudicated")
+
+                    # Collect resolution for synthesis
+                    resolution_data = getattr(adjudication_event, 'resolution_data', None)
+                    if resolution_data:
+                        all_resolutions.append(resolution_data)
+
+                    if f"{agent.agent_id}_npc" in self._pending_resolutions:
+                        del self._pending_resolutions[f"{agent.agent_id}_npc"]
 
         # Convert surrendered enemies to NPCs after all actions resolve
         # This happens AFTER resolution (actions invalidated) but BEFORE synthesis
@@ -1090,7 +1120,8 @@ class SelfPlayingSession:
                 payload={
                     'phase': 'synthesis',
                     'resolutions': all_resolutions,
-                    'round': mechanics.current_round if mechanics else 0
+                    'round': mechanics.current_round if mechanics else 0,
+                    'resolution_state': resolution_state  # Include fled NPCs for synthesis context
                 },
                 timestamp=datetime.now()
             )

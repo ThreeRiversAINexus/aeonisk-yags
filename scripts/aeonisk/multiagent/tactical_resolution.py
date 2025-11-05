@@ -60,6 +60,10 @@ class ResolutionState:
     # They'll be converted to NPCs after resolution phase
     surrendered: Set[str] = field(default_factory=set)  # Set of enemy agent_ids
 
+    # Fled NPCs (ran away, left scene)
+    # These NPCs are no longer present and should not appear in narration
+    fled_npcs: Set[str] = field(default_factory=set)  # Set of NPC agent_ids
+
     # Position changes (for opportunity attacks, breakaway, etc.)
     position_changes: Dict[str, str] = field(default_factory=dict)  # {agent_id: new_position}
 
@@ -117,6 +121,30 @@ class ResolutionState:
             True if enemy surrendered (action should be invalidated)
         """
         return agent_id in self.surrendered
+
+    def mark_fled(self, agent_id: str):
+        """
+        Mark NPC as fled (ran away, left scene).
+
+        Fled NPCs:
+        - Are no longer present in the scene
+        - Should not appear in subsequent narration
+        - Cannot be targeted or interact with players
+
+        Args:
+            agent_id: NPC agent ID to mark as fled
+        """
+        self.fled_npcs.add(agent_id)
+        logger.info(f"{agent_id} marked as fled")
+
+    def has_fled(self, agent_id: str) -> bool:
+        """
+        Check if NPC has fled during resolution.
+
+        Returns:
+            True if NPC fled (should not appear in narration)
+        """
+        return agent_id in self.fled_npcs
 
     def record_position_change(self, agent_id: str, new_position: str):
         """Record position change during resolution."""

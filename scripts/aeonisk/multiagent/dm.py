@@ -1371,12 +1371,13 @@ IMPORTANT:
         """Generate synthesis from all collected resolutions."""
         resolutions = payload.get('resolutions', [])
         round_num = payload.get('round', 0)
+        resolution_state = payload.get('resolution_state')  # Extract resolution state for fled NPCs tracking
 
         if not resolutions:
             return
 
         # Generate synthesis (can be RoundSynthesis object or str)
-        synthesis = await self._synthesize_round_outcome(resolutions, round_num)
+        synthesis = await self._synthesize_round_outcome(resolutions, round_num, resolution_state=resolution_state)
 
         # Import RoundSynthesis for type checking
         from .schemas.story_events import RoundSynthesis
@@ -2012,10 +2013,15 @@ IMPORTANT:
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int):
+    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
         This is where conflicts are detected and described.
+
+        Args:
+            resolutions: List of resolved actions this round
+            round_num: Current round number
+            resolution_state: ResolutionState with fled NPCs tracking (optional)
 
         Returns:
             Either a RoundSynthesis object (structured) or str (legacy fallback)
@@ -2372,6 +2378,21 @@ enemy_spawns=[
                 npc_status_context = "\n\n**Active NPCs:**\n" + "\n".join(npc_lines)
                 npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id"
 
+        # Build fled NPCs context (for narrative consistency)
+        fled_npcs_context = ""
+        if resolution_state and hasattr(resolution_state, 'fled_npcs') and resolution_state.fled_npcs:
+            fled_npc_names = []
+            if self.shared_state and self.shared_state.npc_agents:
+                for npc in self.shared_state.npc_agents:
+                    if npc.agent_id in resolution_state.fled_npcs:
+                        fled_npc_names.append(npc.name)
+
+            if fled_npc_names:
+                fled_npcs_context = "\n\n**⚠️ FLED NPCs (NO LONGER PRESENT):**\n"
+                fled_npcs_context += "The following NPCs fled/left the scene earlier this round:\n"
+                fled_npcs_context += "\n".join([f"  - {name}" for name in fled_npc_names])
+                fled_npcs_context += "\n\n**CRITICAL:** Do NOT narrate fled NPCs as present in the scene. They have left and cannot interact with players."
+
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
         if self.needs_story_advancement:
@@ -2434,6 +2455,7 @@ story_advancement=StoryAdvancement(
 {expired_clocks_text}
 {enemy_status_context}
 {npc_status_context}
+{fled_npcs_context}
 {story_advancement_prompt}
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
