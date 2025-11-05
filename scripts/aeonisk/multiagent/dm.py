@@ -1767,7 +1767,8 @@ IMPORTANT:
                         "is_free_action": action.get('is_free_action', False),
                         "initiative": initiative,
                         "clock_deltas": clock_deltas,  # Include clock before/after/reason
-                        "clock_sources": clock_sources  # Include source for each clock change
+                        "clock_sources": clock_sources,  # Include source for each clock change
+                        "target": action.get('target')  # Target ID for combat/social actions
                     }
 
                     # Add ritual context if this was a ritual
