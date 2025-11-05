@@ -1581,13 +1581,46 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 
                 combatants_text = "\n  ".join(combatants)
 
+                # Add NPCs if present
+                npc_section = ""
+                if self.shared_state and hasattr(self.shared_state, 'npc_agents') and self.shared_state.npc_agents:
+                    npcs = []
+                    for npc in self.shared_state.npc_agents:
+                        # Get NPC target ID
+                        tgt_id = target_id_mapper.get_target_id(npc.agent_id)
+                        if tgt_id:
+                            # Format disposition with emoji
+                            disp_emoji = {
+                                "friendly": "🤝",
+                                "neutral": "😐",
+                                "wary": "😟",
+                                "prisoner": "🔒"
+                            }.get(npc.disposition, "❓")
+
+                            npcs.append(f"[{tgt_id}] {npc.name:30s} | {disp_emoji} {npc.disposition:10s} | {npc.health}/{npc.max_health} HP")
+
+                    if npcs:
+                        npcs_text = "\n  ".join(npcs)
+                        npc_section = f"""
+
+👥 **NPCs PRESENT** (Non-Combatants):
+
+  {npcs_text}
+
+**NPC Interactions:**
+- NPCs can be targeted for social actions (negotiation, interrogation, assistance)
+- Use their target ID [tgt_XXXX] just like combatants
+- Prisoners may have intel, neutrals may help/flee, wary NPCs are unpredictable
+- Attacking NPCs may escalate them back to enemies!
+"""
+
                 tactical_combat_context = f"""
 
 ⚔️  **COMBAT SITUATION** ⚔️
 
 ⚠️  Combatants in Combat Zone:
 
-  {combatants_text}
+  {combatants_text}{npc_section}
 
 **YOUR CHARACTER**: {self.character_state.name}
 **YOUR FACTION**: {self.character_state.faction}
