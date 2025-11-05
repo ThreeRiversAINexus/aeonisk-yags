@@ -961,7 +961,8 @@ class SelfPlayingSession:
                                 'phase': 'resolution_only',  # Resolve mechanically but don't synthesize yet
                                 'actions': [action_for_adjudication],
                                 'round': mechanics.current_round if mechanics else 0,
-                                'action_index': idx  # Track which action this is for multi-action turns
+                                'action_index': idx,  # Track which action this is for multi-action turns
+                                'previous_resolutions': all_resolutions  # Context from earlier actions this round
                             },
                             timestamp=datetime.now()
                         )

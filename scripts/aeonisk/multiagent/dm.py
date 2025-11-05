@@ -1676,6 +1676,7 @@ IMPORTANT:
         round_num = payload.get('round', 0)
         action_index = payload.get('action_index', 0)  # Track which action this is for multi-action turns
         skip_synthesis = payload.get('skip_synthesis', False)  # Skip synthesis if set
+        previous_resolutions = payload.get('previous_resolutions', [])  # Earlier actions this round for narrative consistency
 
         if not actions:
             # No actions to adjudicate - signal completion
@@ -1712,8 +1713,8 @@ IMPORTANT:
 
             print(f"\n[{character_name}] (initiative {initiative})")
 
-            # Resolve action mechanically
-            resolution = await self._resolve_action_mechanically(player_id, action)
+            # Resolve action mechanically (with context from previous resolutions this round)
+            resolution = await self._resolve_action_mechanically(player_id, action, previous_resolutions=previous_resolutions)
 
             # Print the resolution
             print(f"\n{resolution['narration']}")
@@ -2550,9 +2551,15 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 self.needs_story_advancement = False
             return f"Round {round_num} completes:\n{outcomes_text}"
 
-    async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any]) -> Dict[str, Any]:
+    async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any], previous_resolutions=None) -> Dict[str, Any]:
         """
         Resolve a single action mechanically (rolls, difficulty, narration).
+
+        Args:
+            player_id: Agent ID of acting player
+            action: Action dict with intent, description, etc.
+            previous_resolutions: List of earlier resolved actions this round (for narrative consistency)
+
         Returns resolution data.
         """
         # This is essentially the same as _handle_ai_dm_response but returns data instead of sending messages
@@ -2638,6 +2645,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
             # Format mechanical resolution
             mechanical_text = mechanics.format_resolution_for_narration(resolution)
+
+            # Build context from previous resolutions this round (for narrative consistency)
+            if previous_resolutions:
+                previous_items = []
+                for prev in previous_resolutions[-3:]:  # Last 3 to keep prompt manageable
+                    char_name = prev.get('character_name', 'Unknown')
+                    narration = prev.get('narration', '')
+                    if narration:
+                        # Truncate to 300 chars to keep prompt focused
+                        narration_preview = narration[:300] + "..." if len(narration) > 300 else narration
+                        previous_items.append(f"- {char_name}: {narration_preview}")
+
+                if previous_items:
+                    action['previous_context'] = f"""
+
+**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**
+
+The following actions ALREADY resolved (faster initiative):
+{chr(10).join(previous_items)}
+
+**CONSISTENCY REQUIREMENTS:**
+- Your narration MUST acknowledge these established facts
+- DO NOT contradict details from earlier resolutions
+- Build on the tactical/narrative situation they created
+- If earlier action changed environment (collapsed structure, dropped item), ACKNOWLEDGE IT
+"""
 
             # Generate narrative description using LLM
             if self.llm_config:
@@ -4074,7 +4107,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
         party_context: str = "",
         character_name: str = "",
         target_character: str = "",
-        target_id: str = ""
+        target_id: str = "",
+        previous_context: str = ""
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -4141,6 +4175,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 prompt_parts.append(character_context)
             if resolution_context:
                 prompt_parts.append(resolution_context)
+            if previous_context:
+                prompt_parts.append(previous_context)
 
             prompt_parts.append(f"\nPlayer Action: {description}")
             prompt_parts.append(f"Action Type: {action_type}")
@@ -4480,6 +4516,11 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                 clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
                 clock_context = "\n".join(clock_lines)
 
+        # Extract previous_context from action (for narrative consistency with earlier resolutions)
+        previous_context = ""
+        if action and 'previous_context' in action:
+            previous_context = action['previous_context']
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -4497,7 +4538,8 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             party_context="",
             character_name=action.get('character', 'The character') if action else "The character",
             target_character="",
-            target_id=target_id
+            target_id=target_id,
+            previous_context=previous_context  # Include earlier resolutions for consistency
         )
 
         return prompt
