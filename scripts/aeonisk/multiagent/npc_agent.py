@@ -161,9 +161,10 @@ class NPCLLMClient:
             from os import getenv
 
             # Create agent with structured output
+            # Note: Pydantic AI 1.9.0+ uses 'output_type' not 'result_type'
             agent = Agent(
-                self.model,
-                result_type=NPCAction,
+                f'anthropic:{self.model}',
+                output_type=NPCAction,
                 system_prompt=self._get_system_prompt()
             )
 
