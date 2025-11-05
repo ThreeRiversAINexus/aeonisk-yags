@@ -2266,11 +2266,57 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             for notification in spawn_notifications:
                 print(f"\n{notification}")
 
-        # 3. Handle enemy removals (non-combat exits)
-        if synthesis.enemy_removals and self.enemy_combat.enabled:
-            removal_notifications = self.enemy_combat.remove_from_structured(synthesis.enemy_removals)
-            for notification in removal_notifications:
-                print(f"\n{notification}")
+        # 3. Handle enemy conversions (removals + NPC conversions)
+        if synthesis.enemy_conversions and self.enemy_combat.enabled:
+            from .agent_conversion import deescalate_enemy_to_npc
+            from .schemas.story_events import EnemyResolution
+
+            for conversion in synthesis.enemy_conversions:
+                # Find the enemy
+                enemy = next((e for e in self.enemy_combat.enemy_agents
+                             if e.agent_id == conversion.enemy_id or e.name == conversion.enemy_id), None)
+
+                if not enemy:
+                    logger.warning(f"Enemy {conversion.enemy_id} not found for conversion")
+                    continue
+
+                # Determine if enemy stays or leaves
+                stays_in_scene = conversion.resolution in [
+                    EnemyResolution.CONVINCED,
+                    EnemyResolution.NEUTRALIZED,
+                    EnemyResolution.SUBDUED
+                ]
+
+                if stays_in_scene:
+                    # Convert to NPC (stays in scene)
+                    if enemy.is_active:
+                        npc = deescalate_enemy_to_npc(
+                            enemy=enemy,
+                            disposition=conversion.resulting_disposition,
+                            current_round=mechanics.current_round if mechanics else 0
+                        )
+
+                        if self.shared_state:
+                            self.shared_state.npc_agents.append(npc)
+                            if hasattr(self.shared_state, 'target_id_mapper'):
+                                self.shared_state.target_id_mapper.register_npc(npc)
+
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                        print(f"\n🏳️  {enemy.name} de-escalated to NPC ({conversion.resulting_disposition}): {conversion.reason}")
+                else:
+                    # Remove from scene (leaves entirely)
+                    if enemy.is_active:
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                        resolution_text = {
+                            EnemyResolution.FLED: "fled",
+                            EnemyResolution.STORY_ADVANCED: "removed (story advanced)",
+                        }.get(conversion.resolution, "removed")
+
+                        print(f"\n❌ {enemy.name} {resolution_text}: {conversion.reason}")
 
         # 4. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:
