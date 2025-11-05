@@ -858,15 +858,18 @@ class SelfPlayingSession:
                                     round_num=mechanics.current_round
                                 )
 
-                            # Store for resolution
-                            self._declared_actions[agent.agent_id] = {
+                            # Store for resolution (as list to match player/enemy format)
+                            if agent.agent_id not in self._declared_actions:
+                                self._declared_actions[agent.agent_id] = []
+
+                            self._declared_actions[agent.agent_id].append({
                                 'agent_id': agent.agent_id,
                                 'character_name': agent.name,
                                 'intent': npc_action.action_type,
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
                                 'initiative': initiative_score
-                            }
+                            })
 
                             # Broadcast NPC action to players
                             broadcast_message = Message(
@@ -1013,7 +1016,12 @@ class SelfPlayingSession:
             elif agent_type == 'npc':
                 # NPC action execution - send to DM for narrative resolution
                 if agent.agent_id in self._declared_actions:
-                    npc_action = self._declared_actions[agent.agent_id]
+                    # Get first action from list (NPCs only declare one action, but stored as list for consistency)
+                    npc_actions = self._declared_actions[agent.agent_id]
+                    if not npc_actions:
+                        continue
+
+                    npc_action = npc_actions[0]  # NPCs only have one action
                     print(f"\n[{agent.name}] (NPC) executing: {npc_action['intent']}...")
 
                     # NPCs get simple narrative resolution from DM (no full adjudication)
