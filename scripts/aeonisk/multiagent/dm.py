@@ -2611,7 +2611,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 total=0,
                 difficulty=0,
                 margin=0,
-                outcome_tier=OutcomeTier.SUCCESS,
+                outcome_tier=OutcomeTier.MARGINAL,  # NPCs get basic success (no mechanics)
                 success=True,
                 narrative=narration,
                 state_effects={}
