@@ -2591,6 +2591,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
 
         # Check if this is an NPC action (lightweight adjudication)
         if action.get('is_npc'):
+            from .mechanics import ActionResolution, OutcomeTier
+
             character_name = action.get('character_name', 'NPC')
             logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent}")
 
@@ -2598,16 +2600,30 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Generate brief narration (1-2 sentences) from their declared action
             narration = f"{character_name} {description}"
 
-            # Return lightweight resolution
+            # Create a minimal ActionResolution for NPC (no dice rolls/mechanics)
+            npc_resolution = ActionResolution(
+                intent=intent,
+                attribute='None',  # NPCs don't use attributes
+                skill=None,        # NPCs don't use skills
+                attribute_value=0,
+                skill_value=0,
+                roll=0,            # No dice roll
+                total=0,
+                difficulty=0,
+                margin=0,
+                outcome_tier=OutcomeTier.SUCCESS,
+                success=True,
+                narrative=narration,
+                state_effects={}
+            )
+
+            # Return lightweight resolution matching player format
             return {
                 'agent_id': player_id,
                 'character_name': character_name,
                 'action': intent,
                 'narration': narration,
-                'resolution': {
-                    'outcome': 'narrated',
-                    'success': True
-                }
+                'resolution': npc_resolution
             }
 
         resolution = None
