@@ -103,12 +103,43 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \n**When enemy stays vs leaves:**\n- ✅ Stays as NPC: Use resolution=CONVINCED/NEUTRALIZED/SUBDUED\
   \ + include NPC fields\n- ✅ Leaves scene: Use resolution=FLED/STORY_ADVANCED (no\
   \ NPC fields needed)\n\n**Spawn new civilian NPCs:**\n\
-  ```python\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Frightened Dock Worker\"\
-  ,\n        faction=\"Independent Civilian\",\n        entity_type=\"neutral\",  #\
-  \ neutral/ally/prisoner\n        threat_level=\"non_combatant\",  # non_combatant/potential_threat/armed_neutral\n\
-  \        disposition=\"wary\",\n        description=\"Terrified civilian hiding\
-  \ behind cargo crates\",\n        health=15,\n        soak=0,\n        skills={}\n\
-  \    )\n]\n```\n\n**NPC threat levels (affects enemy targeting):**\n- `\"non_combatant\"\
+  \n**When to spawn NPCs:**\n- Players enter populated area (civilians, witnesses,\
+  \ bystanders)\n- Story events introduce friendly contacts (informants, allies,\
+  \ medics)\n- Neutral parties appear (armed guards, potential threats who haven't\
+  \ engaged)\n- Players request to interrogate/recruit specific individuals\n- Dramatic\
+  \ moments need witnesses or complications\n\n**Examples:**\n\n```python\n# Example\
+  \ 1: Civilian non-combatant (most common)\nnpc_spawns=[\n    NPCSpawn(\n       \
+  \ name=\"Frightened Dock Worker\",\n        faction=\"Independent Civilian\",\n\
+  \        entity_type=\"neutral\",\n        threat_level=\"non_combatant\",\n  \
+  \      disposition=\"wary\",\n        description=\"Terrified civilian hiding behind\
+  \ cargo crates\",\n        health=15,  # Low health, fragile\n        soak=0,\n\
+  \        skills={}  # No special skills\n    )\n]\n\n# Example 2: Friendly ally\
+  \ with skills\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Dr. Yuki Tanaka\",\n\
+  \        faction=\"Freeborn Medical Corps\",\n        entity_type=\"ally\",\n \
+  \       threat_level=\"non_combatant\",\n        disposition=\"friendly\",\n  \
+  \      description=\"Field medic offering to treat the team's wounds\",\n     \
+  \   health=20,\n        soak=0,\n        skills={\"Medicine\": 15, \"Empathy\"\
+  : 12}  # Can assist with healing/social\n    )\n]\n\n# Example 3: Wary potential\
+  \ threat (armed neutral)\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Warehouse\
+  \ Security Guard\",\n        faction=\"Independent Contract Security\",\n     \
+  \   entity_type=\"neutral\",\n        threat_level=\"armed_neutral\",\n       \
+  \ disposition=\"wary\",\n        description=\"Armed guard watching the team cautiously,\
+  \ hand near holster\",\n        health=25,  # More durable than civilians\n   \
+  \     soak=2,  # Light armor\n        skills={\"Notice\": 10, \"Intimidate\": 8}\
+  \  # Professional skills\n    )\n]\n\n# Example 4: Informant with investigative\
+  \ skills\nnpc_spawns=[\n    NPCSpawn(\n        name=\"'Whisper' Chen\",\n     \
+  \   faction=\"Independent Information Broker\",\n        entity_type=\"neutral\"\
+  ,\n        threat_level=\"potential_threat\",\n        disposition=\"neutral\",\n\
+  \        description=\"Data broker with intel on ACG operations\",\n        health=18,\n\
+  \        soak=0,\n        skills={\"Investigation\": 14, \"Deception\": 13, \"\
+  Tech\": 11}  # Intel specialist\n    )\n]\n```\n\n**Health/Soak Guidelines:**\n\
+  - Civilians: 10-15 HP, 0 soak (fragile)\n- Professionals: 20-25 HP, 0-2 soak (guards,\
+  \ medics)\n- Informants/Specialists: 15-20 HP, 0 soak (not combat-focused)\n-\
+  \ Armed neutrals: 20-30 HP, 2-4 soak (security, militia)\n\n**Skills Guidelines:**\n\
+  - Most NPCs: {} (no special skills)\n- Specialists: 1-3 skills at 10-15 (their\
+  \ area of expertise)\n- Use skills for: healing (Medicine), intel (Investigation),\
+  \ social (Empathy/Charm), technical (Tech/Mechanics)\n- NPCs can assist players\
+  \ or provide skill check opportunities\n```\n\n**NPC threat levels (affects enemy targeting):**\n- `\"non_combatant\"\
   `: Civilians - most enemies ignore\n- `\"potential_threat\"`: NPCs that might be\
   \ dangerous - professionals may target\n- `\"armed_neutral\"`: NPCs with weapons\
   \ - most enemies treat as threats\n\n**When NPCs become hostile, use `escalations`:**\n\
