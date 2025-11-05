@@ -35,7 +35,7 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ sessions prematurely. Let scenarios develop. But if clocks indicate clear victory/defeat,\
   \ use these markers to provide narrative closure.\n\n**5. Enemy Management (Structured\
   \ Output):**\n\n**When using structured output (`RoundSynthesis` schema):**\n\n\
-  Use `enemy_spawns` and `enemy_removals` fields instead of text markers.\n\n**Enemy\
+  Use `enemy_spawns` and `enemy_conversions` fields instead of text markers.\n\n**Enemy\
   \ Spawns:**\n```python\nenemy_spawns=[\n    EnemySpawn(\n        template=\"Elite\"\
   ,\n        faction=\"ACG Security Response Team\",\n        archetype=\"Enforcer\"\
   ,\n        spawn_reason=\"Alarm triggered, rapid response team deployed\",\n   \
@@ -55,51 +55,54 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ individual members: damage goes to the whole unit\n- Track which specific member\
   \ is wounded\n\n✅ **DO:**\n- Use HP percentage to guide casualty narration\n- Apply\
   \ all damage/conditions to the group's target ID\n- Keep faction names descriptive:\
-  \ \"Corporate Strike Team\", \"Void Cultist Cell\"\n\n**Enemy Removals (for non-combat\
-  \ resolution):**\n```python\nenemy_removals=[\n    EnemyRemoval(\n        enemy_name=\"\
-  ACG Guard Captain\",\n        resolution=EnemyResolution.NEUTRALIZED,\n        reason=\"\
-  Arrested and restrained by Pantheon Security\"\n    ),\n    EnemyRemoval(\n    \
-  \    enemy_name=\"Street Thugs\",\n        resolution=EnemyResolution.FLED,\n  \
-  \      reason=\"Intimidated by overwhelming force, fled through maintenance corridor\"\
-  \n    ),\n    EnemyRemoval(\n        enemy_name=\"Void Cultist\",\n        resolution=EnemyResolution.CONVINCED,\n\
-  \        reason=\"Persuaded that ritual was corrupted, agreed to stand down\"\n\
-  \    )\n]\n```\n\n**Resolution types:**\n- `NEUTRALIZED`: Arrested, captured, restrained\n\
-  - `FLED`: Scared off, retreated, escaped\n- `CONVINCED`: Talked down, persuaded,\
-  \ negotiated\n- `SUBDUED`: Knocked unconscious, incapacitated\n\n## ⚠️ CRITICAL:\
-  \ SURRENDERS = enemy_removals, NOT CONDITIONS ⚠️\n\n**When enemies surrender/are\
-  \ negotiated down:**\n- ✅ **CORRECT**: Use `enemy_removals` with `resolution=CONVINCED`\n\
-  - ❌ **WRONG**: Apply \"Surrendered\" condition to enemy\n\n**Why enemy_removals\
-  \ is correct:**\n- Automatically triggers de-escalation → converts enemy to NPC\n\
-  - Removes from combat immediately\n- Single code path, no extra condition tracking\n\
-  - Preserves agent_id and state for potential future interactions\n\n**Why conditions\
-  \ are wrong:**\n- Conditions are for debuffs (Stunned, Off-Balance, Prone) that\
-  \ expire\n- Requires complex logic to prevent surrendered enemies from acting\n\
-  - Doesn't trigger NPC conversion\n- Enemy agents keep fighting despite \"Surrendered\"\
-  \ condition\n\n**Example - Successful Negotiation:**\n```python\n# Player Wei Lin\
-  \ successfully negotiated surrender (Empathy + Charm vs DC 25)\nRoundSynthesis(\n\
-  \    narration=\"Wei Lin's words cut through the tension. The raider leader hesitates,\
-  \ then lowers her weapon...\",\n    enemy_removals=[\n        EnemyRemoval(\n  \
-  \          enemy_name=\"Freeborn Smugglers Raider #1\",  # Use exact name from combat\
-  \ status\n            resolution=EnemyResolution.CONVINCED,\n            reason=\"\
-  Negotiated surrender after Wei Lin's diplomacy\"\n        )\n    ]\n)\n```\n\n**Result:**\
-  \ Raider #1 automatically converts to NPC with disposition=\"wary\" and entity_type=\"\
-  prisoner\", removed from combat.\n\n**NOT THIS:**\n```python\n# ❌ WRONG - This\
-  \ will NOT work!\nActionResolution(\n    effects=MechanicalEffects(\n        conditions=[\n\
-  \            Condition(\n                target=\"tgt_c6jt\",\n                name=\"\
-  Surrendered\",\n                penalty=-999,\n                description=\"Disarmed\
-  \ and compliant\"\n            )\n        ]\n    )\n)\n```\n**Problem:** Enemy\
-  \ agents don't check conditions before declaring actions. They'll keep attacking!\n\
-  \n**6. NPC Management\ (De-escalation System):**\n\n**When enemies surrender/calm down, use `deescalations`\
-  \ to convert them to NPCs:**\n\n```python\ndeescalations=[\n    Deescalation(\n\
-  \        enemy_id=\"enemy_raider_1\",  # Exact enemy agent_id from combat\n   \
-  \     resulting_disposition=\"prisoner\",  # friendly/neutral/wary/prisoner\n  \
-  \      reason=\"Surrendered after intimidation, now restrained\"\n    )\n]\n```\n\
-  \n**Dispositions:**\n- `\"prisoner\"`: Captured, restrained, under guard\n- `\"\
-  wary\"`: Suspicious, will flee if threatened\n- `\"neutral\"`: Calm, indifferent,\
-  \ observing\n- `\"friendly\"`: Cooperative, helpful, allied\n\n**When to use de-escalation\
-  \ vs enemy_removal:**\n- ✅ Use `deescalations` when enemy STAYS IN SCENE as non-combatant\
-  \ (prisoners, surrendered, calmed)\n- ✅ Use `enemy_removals` when enemy LEAVES\
-  \ SCENE entirely (fled, escaped, disappeared)\n\n**Spawn new civilian NPCs:**\n\
+  \ \"Corporate Strike Team\", \"Void Cultist Cell\"\n\n**Enemy Conversions (unified field for removals + NPC conversions):**\n```python\nenemy_conversions=[\n\
+  \    # Enemy flees (leaves scene entirely)\n    EnemyConversion(\n        enemy_id=\"\
+  enemy_grunt_1\",\n        resolution=EnemyResolution.FLED,\n        reason=\"Intimidated\
+  \ by overwhelming force, fled through maintenance corridor\"\n    ),\n    # Enemy\
+  \ surrenders (stays as NPC prisoner)\n    EnemyConversion(\n        enemy_id=\"\
+  enemy_raider_2\",\n        resolution=EnemyResolution.CONVINCED,\n        reason=\"\
+  Negotiated surrender after Wei Lin's diplomacy\",\n        resulting_entity_type=\"\
+  prisoner\",\n        resulting_disposition=\"prisoner\"\n    ),\n    # Enemy arrested\
+  \ (stays as NPC prisoner)\n    EnemyConversion(\n        enemy_id=\"enemy_guard_captain_3\"\
+  ,\n        resolution=EnemyResolution.NEUTRALIZED,\n        reason=\"Arrested and\
+  \ restrained by Pantheon Security\",\n        resulting_entity_type=\"prisoner\"\
+  ,\n        resulting_disposition=\"prisoner\"\n    )\n]\n```\n\n**Resolution types:**\n\
+  - `FLED`: Scared off, retreated, escaped (leaves scene)\n- `CONVINCED`: Talked\
+  \ down, persuaded, negotiated (stays as NPC)\n- `NEUTRALIZED`: Arrested, captured,\
+  \ restrained (stays as NPC)\n- `SUBDUED`: Knocked unconscious, incapacitated (stays\
+  \ as NPC)\n- `STORY_ADVANCED`: Scene changed, no longer present (leaves scene)\n\
+  \n## ⚠️ CRITICAL: SURRENDERS = enemy_conversions with CONVINCED, NOT CONDITIONS\
+  \ ⚠️\n\n**When enemies surrender/are negotiated down:**\n- ✅ **CORRECT**: Use `enemy_conversions`\
+  \ with `resolution=CONVINCED` + NPC fields\n- ❌ **WRONG**: Apply \"Surrendered\"\
+  \ condition to enemy\n\n**Why enemy_conversions is correct:**\n- Automatically\
+  \ triggers conversion → enemy becomes NPC\n- Single unified field (no confusion\
+  \ between enemy_removals vs deescalations)\n- Resolution enum makes intent explicit\
+  \ (FLED vs CONVINCED)\n- Required NPC fields ensure complete data (entity_type,\
+  \ disposition)\n\n**Why conditions are wrong:**\n- Conditions are for debuffs (Stunned,\
+  \ Off-Balance, Prone) that expire\n- Doesn't trigger NPC conversion\n- Enemy agents\
+  \ keep fighting despite \"Surrendered\" condition\n\n**Example - Successful Negotiation:**\n\
+  ```python\n# Player Wei Lin successfully negotiated surrender (Empathy + Charm\
+  \ vs DC 25)\nRoundSynthesis(\n    narration=\"Wei Lin's words cut through the tension.\
+  \ The raider leader hesitates, then lowers her weapon...\",\n    enemy_conversions=[\n\
+  \        EnemyConversion(\n            enemy_id=\"enemy_grunt_99958624\",  # Use\
+  \ exact enemy_id from combat status\n            resolution=EnemyResolution.CONVINCED,\n\
+  \            reason=\"Negotiated surrender after Wei Lin's diplomacy\",\n      \
+  \      resulting_entity_type=\"prisoner\",\n            resulting_disposition=\"\
+  prisoner\"\n        )\n    ]\n)\n```\n\n**Result:** Raider automatically converts\
+  \ to NPC with disposition=\"prisoner\" and entity_type=\"prisoner\", removed from\
+  \ combat.\n\n**NOT THIS:**\n```python\n# ❌ WRONG - This will NOT work!\nActionResolution(\n\
+  \    effects=MechanicalEffects(\n        conditions=[\n            Condition(\n \
+  \               target=\"tgt_c6jt\",\n                name=\"Surrendered\",\n   \
+  \             penalty=-999,\n                description=\"Disarmed and compliant\"\
+  \n            )\n        ]\n    )\n)\n```\n**Problem:** Enemy agents don't check\
+  \ conditions before declaring actions. They'll keep attacking!\n\n**6. NPC Management:**\n\
+  \n**Enemy conversions handle de-escalation automatically. No separate deescalations\
+  \ field needed.**\n\n**Dispositions:**\n- `\"prisoner\"`: Captured, restrained,\
+  \ under guard\n- `\"wary\"`: Suspicious, will flee if threatened\n- `\"neutral\"\
+  `: Calm, indifferent, observing\n- `\"friendly\"`: Cooperative, helpful, allied\n\
+  \n**When enemy stays vs leaves:**\n- ✅ Stays as NPC: Use resolution=CONVINCED/NEUTRALIZED/SUBDUED\
+  \ + include NPC fields\n- ✅ Leaves scene: Use resolution=FLED/STORY_ADVANCED (no\
+  \ NPC fields needed)\n\n**Spawn new civilian NPCs:**\n\
   ```python\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Frightened Dock Worker\"\
   ,\n        faction=\"Independent Civilian\",\n        entity_type=\"neutral\",  #\
   \ neutral/ally/prisoner\n        threat_level=\"non_combatant\",  # non_combatant/potential_threat/armed_neutral\n\
