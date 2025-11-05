@@ -27,42 +27,6 @@ class EnemyResolution(str, Enum):
     SUBDUED = "subdued"                  # Knocked unconscious, incapacitated
 
 
-class EnemyRemoval(BaseModel):
-    """
-    Record of an enemy removed from combat via non-combat means.
-
-    Use this for arrests, intimidation, persuasion, or scene changes.
-    DO NOT use for enemies defeated in normal combat (HP → 0).
-
-    Example:
-    ```python
-    removal = EnemyRemoval(
-        enemy_name="ACG Guard Captain",
-        resolution=EnemyResolution.NEUTRALIZED,
-        reason="Arrested and restrained by Pantheon Security"
-    )
-    ```
-    """
-    enemy_name: str = Field(
-        ...,
-        min_length=3,
-        max_length=100,
-        description="Name or ID of enemy being removed"
-    )
-
-    resolution: EnemyResolution = Field(
-        ...,
-        description="How the enemy was removed (neutralized, fled, convinced, etc.)"
-    )
-
-    reason: str = Field(
-        ...,
-        min_length=10,
-        max_length=300,
-        description="Narrative explanation of how/why enemy was removed"
-    )
-
-
 class NewClock(BaseModel):
     """
     New progress clock to spawn.
@@ -351,23 +315,30 @@ class RoundSynthesis(BaseModel):
             new_clocks=[NewClock(name="Override Lockdown", max_ticks=6, description="Hack security terminal")]
         ),
         enemy_spawns=[],
-        enemy_removals=[],
+        enemy_conversions=[],
         clocks_filled=[],
         clocks_expired=[]
     )
     ```
 
-    Example (Story Advancement):
+    Example (Story Advancement with Enemy Surrender):
     ```python
     synthesis = RoundSynthesis(
         narration="The round concludes in controlled chaos. Ash's ritual barely holds...",
         story_advancement=StoryAdvancement(should_advance=False),
         enemy_spawns=[],
-        enemy_removals=[
-            EnemyRemoval(
-                enemy_name="ACG Guard",
+        enemy_conversions=[
+            EnemyConversion(
+                enemy_id="enemy_guard_1",
                 resolution=EnemyResolution.FLED,
                 reason="Intimidated by overwhelming force, fled through maintenance corridor"
+            ),
+            EnemyConversion(
+                enemy_id="enemy_raider_2",
+                resolution=EnemyResolution.CONVINCED,
+                reason="Negotiated surrender after diplomacy",
+                resulting_entity_type="prisoner",
+                resulting_disposition="prisoner"
             )
         ],
         clocks_filled=["Void Surge"],
@@ -401,28 +372,29 @@ class RoundSynthesis(BaseModel):
         description="New enemies to spawn this round (use empty list [] if none, NOT null)"
     )
 
-    enemy_removals: List[EnemyRemoval] = Field(
+    enemy_conversions: List['EnemyConversion'] = Field(
         default_factory=list,
-        description="""Enemies removed this round via non-combat means (arrested, fled, convinced, etc.) - use empty list [] if none, NOT null.
+        description="""Enemies removed/converted this round - use empty list [] if none, NOT null.
 
-⚠️ CRITICAL: SURRENDERS = enemy_removals with resolution=CONVINCED, NOT CONDITIONS! ⚠️
+**Unified field replacing enemy_removals + deescalations.**
 
-When enemies surrender/are talked down:
-✅ CORRECT: enemy_removals=[EnemyRemoval(enemy_name="Raider #1", resolution=CONVINCED, reason="Negotiated surrender")]
+⚠️ CRITICAL: SURRENDERS = enemy_conversions with resolution=CONVINCED, NOT CONDITIONS! ⚠️
+
+When enemies surrender/flee/are arrested:
+✅ CORRECT: enemy_conversions=[EnemyConversion(enemy_id="enemy_raider_1", resolution=CONVINCED, reason="Negotiated surrender", resulting_entity_type="prisoner", resulting_disposition="prisoner")]
 ❌ WRONG: Apply "Surrendered" condition to enemy (conditions are for debuffs like Stunned/Prone, NOT removal from combat!)
 
-WHY: Conditions don't stop enemy agents from acting. Enemy agents check their state and continue attacking despite "Surrendered" conditions. Using enemy_removals with CONVINCED automatically triggers de-escalation → converts to NPC → removes from combat."""
+WHY: Conditions don't stop enemy agents from acting. Enemy agents check their state and continue attacking despite "Surrendered" conditions. Using enemy_conversions with CONVINCED automatically triggers de-escalation → converts to NPC → removes from combat.
+
+Examples:
+- Enemy flees: EnemyConversion(enemy_id="enemy_grunt_1", resolution=FLED, reason="Intimidated, fled through corridor")
+- Enemy surrenders: EnemyConversion(enemy_id="enemy_raider_2", resolution=CONVINCED, reason="Negotiated surrender", resulting_entity_type="prisoner", resulting_disposition="prisoner")"""
     )
 
     # NPC management
     npc_spawns: List['NPCSpawn'] = Field(
         default_factory=list,
         description="New NPCs spawned this round (guides, civilians, allies) - use empty list [] if none, NOT null"
-    )
-
-    deescalations: List['Deescalation'] = Field(
-        default_factory=list,
-        description="Enemies converted to NPCs this round (via diplomacy, intimidation, surrender) - use empty list [] if none, NOT null"
     )
 
     escalations: List['Escalation'] = Field(
@@ -470,7 +442,7 @@ WHY: Conditions don't stop enemy agents from acting. Enemy agents check their st
             raise ValueError("Cannot use both scene_pivot and story_advancement in the same round. Choose one: scene_pivot for minor transitions, story_advancement for major chapter changes.")
         return v
 
-    @field_validator('enemy_spawns', 'enemy_removals', 'npc_spawns', 'deescalations', 'escalations', 'clocks_filled', 'clocks_expired', mode='before')
+    @field_validator('enemy_spawns', 'enemy_conversions', 'npc_spawns', 'escalations', 'clocks_filled', 'clocks_expired', mode='before')
     @classmethod
     def convert_none_to_empty_list(cls, v):
         """Convert None to empty list for all list fields. LLMs sometimes return null instead of []."""
@@ -605,44 +577,93 @@ class NPCSpawn(BaseModel):
     )
 
 
-class Deescalation(BaseModel):
+class EnemyConversion(BaseModel):
     """
-    Convert enemy to NPC via diplomacy/intimidation/voluntary surrender.
+    Enemy removed from combat or converted to NPC.
+
+    **Merges enemy_removals + deescalations into single unified field.**
 
     Use when:
-    - Successful negotiation/surrender
-    - Enemy convinced to stand down
-    - Intimidation causes flee/withdrawal
-    - Morale breaks and enemy surrenders
+    - Enemy flees/escapes scene (resolution=FLED)
+    - Enemy surrenders and becomes prisoner (resolution=CONVINCED/NEUTRALIZED, stays as NPC)
+    - Scene changes and enemies no longer present (resolution=STORY_ADVANCED)
 
-    Example:
+    Examples:
     ```python
-    deescalate = Deescalation(
-        enemy_id="enemy_freeborn_pirate_1",
-        resulting_entity_type="neutral",
-        resulting_disposition="neutral",
-        reason="Convinced of shared Freeborn kinship, agrees to temporary ceasefire"
+    # Enemy flees (leaves scene entirely)
+    EnemyConversion(
+        enemy_id="enemy_raider_1",
+        resolution=EnemyResolution.FLED,
+        reason="Intimidated by overwhelming force, fled through maintenance corridor"
+    )
+
+    # Enemy surrenders (stays as NPC prisoner)
+    EnemyConversion(
+        enemy_id="enemy_raider_2",
+        resolution=EnemyResolution.CONVINCED,
+        reason="Negotiated surrender after Wei Lin's diplomacy",
+        resulting_entity_type="prisoner",
+        resulting_disposition="prisoner"
     )
     ```
     """
     enemy_id: str = Field(
         ...,
-        description="Enemy to convert (agent_id is preserved during conversion)"
+        description="Enemy agent_id (e.g., 'enemy_grunt_abc123') or name (e.g., 'Raider #1')"
     )
-    resulting_entity_type: Literal["neutral", "ally", "prisoner"] = Field(
+
+    resolution: EnemyResolution = Field(
         ...,
-        description="NPC entity type after conversion"
+        description="How enemy was removed: FLED/STORY_ADVANCED (leaves scene), CONVINCED/NEUTRALIZED/SUBDUED (stays as NPC)"
     )
-    resulting_disposition: Literal["friendly", "neutral", "wary", "prisoner"] = Field(
-        ...,
-        description="NPC disposition after conversion"
-    )
+
     reason: str = Field(
         ...,
-        min_length=20,
+        min_length=10,
         max_length=300,
-        description="Why enemy de-escalated (for ML training and narrative continuity)"
+        description="Why enemy was removed/converted (for ML training and narrative continuity)"
     )
+
+    # Optional NPC conversion fields (required if stays in scene)
+    resulting_entity_type: Optional[Literal["neutral", "ally", "prisoner"]] = Field(
+        default=None,
+        description="NPC entity type after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED, where enemy stays in scene)"
+    )
+
+    resulting_disposition: Optional[Literal["friendly", "neutral", "wary", "prisoner"]] = Field(
+        default=None,
+        description="NPC disposition after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED, where enemy stays in scene)"
+    )
+
+    @field_validator('resulting_entity_type', 'resulting_disposition')
+    @classmethod
+    def validate_npc_fields(cls, v, info):
+        """Require NPC fields when enemy stays in scene."""
+        resolution = info.data.get('resolution')
+        stays_in_scene = resolution in [EnemyResolution.CONVINCED, EnemyResolution.NEUTRALIZED, EnemyResolution.SUBDUED]
+
+        if stays_in_scene and v is None:
+            raise ValueError(f"{info.field_name} required when resolution={resolution} (enemy stays as NPC)")
+
+        return v
+
+
+# Legacy aliases for backward compatibility (deprecated)
+class EnemyRemoval(EnemyConversion):
+    """DEPRECATED: Use EnemyConversion instead. Alias maintained for backward compatibility."""
+    # Override description to match old enemy_removals semantics
+    enemy_name: str = Field(..., description="Enemy name or ID (legacy field, use enemy_id)")
+
+    def __init__(self, **data):
+        # Map enemy_name → enemy_id for backward compat
+        if 'enemy_name' in data and 'enemy_id' not in data:
+            data['enemy_id'] = data.pop('enemy_name')
+        super().__init__(**data)
+
+
+class Deescalation(EnemyConversion):
+    """DEPRECATED: Use EnemyConversion instead. Alias maintained for backward compatibility."""
+    pass
 
 
 class Escalation(BaseModel):
