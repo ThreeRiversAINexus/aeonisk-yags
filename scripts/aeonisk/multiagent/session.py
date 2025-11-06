@@ -894,7 +894,7 @@ class SelfPlayingSession:
                                 # Escalate NPC to enemy
                                 enemy = escalate_npc_to_enemy(
                                     npc=agent,
-                                    template=template,
+                                    template_override=template,
                                     current_round=mechanics.current_round if mechanics else 0
                                 )
 
