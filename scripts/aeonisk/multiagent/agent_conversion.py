@@ -275,6 +275,18 @@ def escalate_npc_to_enemy(
                 return 0  # Fumble
             return (agility * 4) + roll
 
+        def is_below_retreat_threshold(self) -> bool:
+            """Check if health is below retreat threshold."""
+            health_pct = self.get_health_percentage() / 100.0
+            return health_pct <= self.retreat_threshold
+
+        def can_use_void_surge(self) -> bool:
+            """Check if can use Void Surge ability."""
+            return (
+                "void_surge" in self.special_abilities and
+                self.void_score < self.void_threshold
+            )
+
     # Synthesize attributes from skills (NPCs only have skills, not attributes)
     # Estimate based on skill levels or use defaults
     def estimate_attributes(skills: Dict[str, int]) -> Dict[str, int]:
