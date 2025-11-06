@@ -195,7 +195,7 @@ def escalate_npc_to_enemy(
 
     # Import EnemyAgent dynamically to avoid circular import
     from dataclasses import dataclass, field
-    from typing import Dict, List
+    from typing import Dict, List, Optional, Any
 
     @dataclass
     class EnemyAgent:
@@ -214,7 +214,16 @@ def escalate_npc_to_enemy(
         template_name: str
         personality: str = "defensive"
         description: str = ""
-        is_active: bool = True  # Required for enemy tracking
+        # State tracking fields (must match real EnemyAgent)
+        is_active: bool = True
+        is_prisoner: bool = False
+        is_panicked: bool = False
+        panic_trigger: Optional[str] = None
+        spawned_round: int = 0
+        despawned_round: Optional[int] = None
+        status_effects: List[str] = field(default_factory=list)
+        debuffs: List[Dict[str, Any]] = field(default_factory=list)
+        shared_intel: Dict[str, Any] = field(default_factory=dict)
 
     # Create enemy with stable ID and preserved state
     enemy = EnemyAgent(
@@ -235,7 +244,10 @@ def escalate_npc_to_enemy(
         # Enemy-specific
         template_name=template,
         personality=_derive_personality_from_template(template),
-        description=npc.description or f"{npc.name} (escalated to combat)"
+        description=npc.description or f"{npc.name} (escalated to combat)",
+
+        # State tracking
+        spawned_round=current_round
     )
 
     logger.debug(f"✅ Escalated {npc.agent_id}: {npc.name} → Enemy ({template})")
