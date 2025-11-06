@@ -214,6 +214,7 @@ def escalate_npc_to_enemy(
         template_name: str
         personality: str = "defensive"
         description: str = ""
+        is_active: bool = True  # Required for enemy tracking
 
     # Create enemy with stable ID and preserved state
     enemy = EnemyAgent(
