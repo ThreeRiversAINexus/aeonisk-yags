@@ -197,16 +197,10 @@ def escalate_npc_to_enemy(
             duration=getattr(cond, 'duration', None)
         ))
 
-    # Import EnemyAgent dynamically to avoid circular import
+    # Import EnemyAgent and Position dynamically to avoid circular import
     from dataclasses import dataclass, field
     from typing import Dict, List, Optional, Any
-
-    # Minimal Position class for tactical combat
-    @dataclass
-    class Position:
-        """Minimal position for escalated NPCs."""
-        ring: str = "Near"  # "Engaged", "Near", "Far", "Extreme"
-        side: str = "Enemy"  # "PC", "Enemy"
+    from .enemy_agent import Position  # Import real Position class with all methods
 
     @dataclass
     class EnemyAgent:
