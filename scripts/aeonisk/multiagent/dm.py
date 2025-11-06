@@ -2606,6 +2606,23 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=round_num,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=synthesis_text,
+                            model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                            temperature=0.8,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'round_synthesis_legacy'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 # Clear story advancement flag after synthesis generation
                 if self.needs_story_advancement:
                     logger.info("Story advancement synthesis generated - clearing flag")
@@ -4597,6 +4614,23 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=current_round,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=full_prompt,
+                            response=resolution_obj.model_dump_json(indent=2),
+                            model=model,
+                            temperature=temperature,
+                            metadata={'purpose': 'action_resolution_structured', 'note': 'Pydantic AI structured output (ActionResolution schema)'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 return resolution_obj
             else:
                 logger.warning("DM: Structured output returned text instead of ActionResolution")
@@ -5094,6 +5128,23 @@ When adjudicating:
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=getattr(self, 'current_round', None),
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=narration,
+                            model=model,
+                            temperature=temperature,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'dialogue_narration_task'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 return narration
 
         except Exception as e:
@@ -5187,6 +5238,23 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=getattr(self, 'current_round', None),
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=consequence,
+                            model=model,
+                            temperature=0.8,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'clock_consequence_generation', 'clock_name': clock_name}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 return consequence
         except Exception as e:
             logger.error(f"Clock consequence generation failed: {e}")
@@ -5269,6 +5337,23 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=getattr(self, 'current_round', None),
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=event_text,
+                            model=model,
+                            temperature=0.85,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'eye_of_breach_event', 'character_void': character_void, 'env_void': env_void}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 logger.info(f"Eye of Breach appeared at void levels: char={character_void}, env={env_void}")
                 return f"👁️ **Eye of Breach Detected** {event_text}"
             except Exception as e:
@@ -5350,7 +5435,8 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             soak=npc_spawn.soak,
             void_score=0,  # NPCs start with no void corruption
             skills=npc_spawn.skills if npc_spawn.skills else {},
-            converted_from_enemy=npc_spawn.converted_from_enemy_id is not None  # Track if this was a conversion
+            converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
+            agent_prompt_logger=self.agent_prompt_logger  # Pass through logger
         )
 
         # Register with SharedState
@@ -5399,7 +5485,8 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         npc = deescalate_enemy_to_npc(
             enemy=enemy,
             disposition=deescalation.resulting_disposition,
-            current_round=current_round
+            current_round=current_round,
+            agent_prompt_logger=self.agent_prompt_logger
         )
 
         # Remove from enemy pool, add to NPC pool

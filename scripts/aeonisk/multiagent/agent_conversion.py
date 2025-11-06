@@ -22,7 +22,8 @@ logger = logging.getLogger(__name__)
 def deescalate_enemy_to_npc(
     enemy,  # EnemyAgent type (avoid circular import)
     disposition: Literal["friendly", "neutral", "wary", "prisoner"],
-    current_round: Optional[int] = None
+    current_round: Optional[int] = None,
+    agent_prompt_logger=None
 ) -> NPCAgent:
     """
     Convert enemy to NPC after successful diplomacy/intimidation/voluntary surrender.
@@ -124,7 +125,10 @@ def deescalate_enemy_to_npc(
         # Conversion tracking (for reverse operation)
         converted_from_enemy=True,
         original_enemy_template=getattr(enemy, 'template_name', None),
-        conversion_history=[conversion]
+        conversion_history=[conversion],
+
+        # Logging
+        agent_prompt_logger=agent_prompt_logger
     )
 
     logger.debug(f"✅ De-escalated {enemy.agent_id}: {enemy.name} → NPC ({disposition})")
@@ -316,7 +320,8 @@ def escalate_npc_to_enemy(
 
 def subdue_enemy_to_prisoner(
     enemy,  # EnemyAgent type
-    current_round: Optional[int] = None
+    current_round: Optional[int] = None,
+    agent_prompt_logger=None
 ) -> NPCAgent:
     """
     Convert enemy to prisoner via non-lethal takedown (stun, subdue).
@@ -347,7 +352,8 @@ def subdue_enemy_to_prisoner(
     return deescalate_enemy_to_npc(
         enemy,
         disposition="prisoner",
-        current_round=current_round
+        current_round=current_round,
+        agent_prompt_logger=agent_prompt_logger
     )
 
 

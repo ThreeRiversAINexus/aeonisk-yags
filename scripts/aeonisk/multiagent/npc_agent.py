@@ -73,11 +73,14 @@ class NPCAgent:
     # Flags
     is_active: bool = True  # Can be set False if NPC leaves scene
 
+    # Logging
+    agent_prompt_logger: Optional['AgentPromptLogger'] = None  # Human-readable prompt/response logging
+
     def __post_init__(self):
         """Initialize LLM client if not provided."""
         if self.llm_client is None and self.can_act:
             try:
-                self.llm_client = NPCLLMClient(self)
+                self.llm_client = NPCLLMClient(self, agent_prompt_logger=self.agent_prompt_logger)
                 logger.debug(f"NPCLLMClient initialized for {self.name} ({self.agent_id})")
             except Exception as e:
                 logger.warning(f"Failed to initialize NPCLLMClient for {self.name}: {e}. NPC will use fallback actions.")
@@ -119,7 +122,8 @@ class NPCLLMClient:
         self,
         npc: 'NPCAgent',
         model: str = "claude-sonnet-4-5-20250929",
-        temperature: float = 1.0
+        temperature: float = 1.0,
+        agent_prompt_logger=None
     ):
         """
         Initialize NPC LLM client.
@@ -128,10 +132,13 @@ class NPCLLMClient:
             npc: The NPC this client represents
             model: Anthropic model ID
             temperature: Sampling temperature (1.0 = balanced)
+            agent_prompt_logger: Optional AgentPromptLogger for human-readable logging
         """
         self.npc = npc
         self.model = model
         self.temperature = temperature
+        self.agent_prompt_logger = agent_prompt_logger
+        self.call_count = 0  # Track LLM call sequence
         logger.debug(f"✅ NPCLLMClient initialized for {npc.name} with model {model}")
 
     async def declare_action(self, context: str) -> NPCAction:
@@ -183,6 +190,27 @@ class NPCLLMClient:
             # Run agent
             result = await agent.run(prompt, model_settings={"temperature": self.temperature})
             action = result.output
+
+            # Log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    system_prompt = self._get_system_prompt()
+                    full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                    response_text = action.model_dump_json(indent=2)
+
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.npc.agent_id,
+                        round_num=None,  # NPCs don't track round internally
+                        call_sequence=self.call_count,
+                        prompt=full_prompt,
+                        response=response_text,
+                        model=self.model,
+                        temperature=self.temperature,
+                        metadata={'purpose': 'npc_action_declaration', 'note': 'Pydantic AI structured output (NPCAction schema)'}
+                    )
+                    self.call_count += 1
+                except Exception as e:
+                    logger.error(f"NPC {self.npc.agent_id}: Failed to log to agent prompt logger: {e}")
 
             logger.debug(f"NPC {self.npc.name} declares: {action.action_type}")
             return action
