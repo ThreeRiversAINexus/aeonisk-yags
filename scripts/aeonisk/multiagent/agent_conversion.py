@@ -197,6 +197,13 @@ def escalate_npc_to_enemy(
     from dataclasses import dataclass, field
     from typing import Dict, List, Optional, Any
 
+    # Minimal Position class for tactical combat
+    @dataclass
+    class Position:
+        """Minimal position for escalated NPCs."""
+        ring: str = "Near"  # "Engaged", "Near", "Far", "Extreme"
+        side: str = "Enemy"  # "PC", "Enemy"
+
     @dataclass
     class EnemyAgent:
         """Minimal enemy agent for conversion (real one defined elsewhere)."""
@@ -212,6 +219,8 @@ def escalate_npc_to_enemy(
         wounds: int
         conditions: List
         template_name: str
+        position: Position  # Tactical position
+        initiative: int = 0  # Will be rolled at round start
         personality: str = "defensive"
         description: str = ""
         # State tracking fields (must match real EnemyAgent)
@@ -224,6 +233,10 @@ def escalate_npc_to_enemy(
         status_effects: List[str] = field(default_factory=list)
         debuffs: List[Dict[str, Any]] = field(default_factory=list)
         shared_intel: Dict[str, Any] = field(default_factory=dict)
+        # Tactical fields
+        fatigue: int = 0
+        defence_token: Optional[str] = None
+        tactical_token: Optional[str] = None
 
         def get_health_percentage(self) -> int:
             """Get current health as percentage (required by enemy_spawner)."""
@@ -251,6 +264,7 @@ def escalate_npc_to_enemy(
         template_name=template,
         personality=_derive_personality_from_template(template),
         description=npc.description or f"{npc.name} (escalated to combat)",
+        position=Position(ring="Near", side="Enemy"),  # Default tactical position
 
         # State tracking
         spawned_round=current_round
