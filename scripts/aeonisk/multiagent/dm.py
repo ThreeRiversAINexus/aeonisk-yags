@@ -2364,11 +2364,17 @@ enemy_spawns=[
             npc_lines = []
             for npc in self.shared_state.npc_agents:
                 if getattr(npc, 'is_active', True):
-                    npc_lines.append(f"  - {npc.name} (ID: {npc.agent_id}) - {npc.entity_type}/{npc.disposition}")
+                    npc_line = f"  - {npc.name} (ID: {npc.agent_id}) - {npc.entity_type}/{npc.disposition}"
+                    # Include NPC description/personality for escalation decision-making
+                    if hasattr(npc, 'description') and npc.description:
+                        # Truncate description to 200 chars for prompt efficiency
+                        desc = npc.description if len(npc.description) <= 200 else npc.description[:197] + "..."
+                        npc_line += f"\n    Personality: {desc}"
+                    npc_lines.append(npc_line)
 
             if npc_lines:
                 npc_status_context = "\n\n**Active NPCs:**\n" + "\n".join(npc_lines)
-                npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id"
+                npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id\n⚠️  Check NPC personalities for escalation triggers (paranoia, low thresholds, etc.)"
 
         # Build fled NPCs context (for narrative consistency)
         fled_npcs_context = ""

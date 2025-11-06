@@ -1,0 +1,209 @@
+{
+  "session_name": "npc_escalation_ultraviolent",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": false,
+
+  "_comment_test": "=== ULTRA-VOLATILE ESCALATION TEST ===",
+  "_test_goal": "Force escalations with paranoid NPCs + incompetent players",
+
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10
+  },
+
+  "initial_npcs": [
+    {
+      "name": "Paranoid Gang Enforcer 'Razor'",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "HYPER-AGGRESSIVE gang enforcer with itchy trigger finger. PARANOID about Tempest operatives after recent corp raid killed his crew. Armed with sawed-off shotgun, already has weapon drawn. ANY THREAT OR LOW-MARGIN INTIMIDATION = IMMEDIATE ESCALATION. Will interpret ANY aggressive move as attack. Margin 0-8 = shoots first, asks questions never. Only margin 10+ might suppress fight response.",
+      "health": 35,
+      "soak": 4,
+      "skills": {
+        "Combat": 5,
+        "Guns": 6,
+        "Intimidation": 6,
+        "Awareness": 5
+      }
+    },
+    {
+      "name": "Cornered Smuggler 'Twist'",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "potential_threat",
+      "disposition": "wary",
+      "description": "Desperate smuggler with Pantheon warrant, knows Tempest turns in fugitives. Already has concealed pistol in hand. WILL ESCALATE ON ANY INTIMIDATION MARGIN BELOW 9 - sees it as weakness to exploit or threat requiring pre-emptive strike. If players mention law enforcement, authorities, or try to restrain = INSTANT ESCALATION. Panics easily, shoots when cornered.",
+      "health": 22,
+      "soak": 2,
+      "skills": {
+        "Guns": 5,
+        "Combat": 4,
+        "Deception": 5,
+        "Awareness": 4
+      }
+    },
+    {
+      "name": "Void-Addled Scavenger 'Flicker'",
+      "faction": "Void-Touched Civilian",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Civilian scavenger with void corruption (void 8). Paranoid, hears voices, sees threats everywhere. ANY loud noise, sudden movement, or raised voice = PANIC ESCALATION. Will grab improvised weapon (pipe wrench) and attack in terrified frenzy. Margin below 12 on social checks = misinterprets as attack, escalates immediately. Completely unpredictable, attacks friend or foe when scared.",
+      "health": 18,
+      "soak": 0,
+      "skills": {
+        "Melee": 3,
+        "Athletics": 4,
+        "Awareness": 6
+      }
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Bumbling Tempest Thug 'Brick'",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 3,
+          "bondPreference": "aggressive",
+          "ritualConservatism": 8
+        },
+        "goals": [
+          "Intimidate everyone into compliance through brute force",
+          "Shoot first if anyone looks at me wrong",
+          "Show Tempest dominance through violence"
+        ],
+        "attributes": {
+          "Strength": 6,
+          "Agility": 3,
+          "Endurance": 5,
+          "Perception": 2,
+          "Intelligence": 2,
+          "Empathy": 1,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 6
+        },
+        "skills": {
+          "Combat": 5,
+          "Intimidation": 3,
+          "Guns": 4,
+          "Brawl": 6,
+          "Athletics": 3,
+          "Awareness": 2
+        },
+        "equipped_weapons": {
+          "primary": "hollowed_repeater"
+        },
+        "inventory": {
+          "hollowed_repeater": 1,
+          "combat_knife": 1
+        },
+        "void": 4
+      },
+      {
+        "name": "Hotheaded Enforcer 'Scorch'",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 10,
+          "voidCuriosity": 5,
+          "bondPreference": "ruthless",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Escalate to violence at first opportunity",
+          "Don't let anyone disrespect Tempest",
+          "Shoot anyone who argues or hesitates"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 5,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 1,
+          "Willpower": 4,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Guns": 5,
+          "Combat": 4,
+          "Intimidation": 3,
+          "Brawl": 4,
+          "Awareness": 3,
+          "Deception": 2
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "flashbang_grenades": 2
+        },
+        "void": 5
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Hostile Takeover Gone Wrong",
+    "location": "Condemned Warehouse - Freeborn No-Man's-Land",
+    "situation": "You're Tempest thugs muscling in on Freeborn territory after a recent corp raid left survivors paranoid. Three locals: paranoid gang enforcer 'Razor' (weapon already drawn, trigger-happy), desperate smuggler 'Twist' (wanted by Pantheon, sees Tempest as threat), and void-addled scavenger 'Flicker' (hears voices, panics at loud noises). Everyone's armed, everyone's scared, everyone's ready to shoot. This WILL go violent - question is who shoots first.",
+    "void_level": 7
+  },
+
+  "_scenario_hint": "DM: These NPCs are DESIGNED to escalate. Razor escalates on margin 0-8. Twist escalates on margin below 9. Flicker escalates on margin below 12 OR any loud noise. Players are incompetent (Charisma 2-3, Intimidation 3). Expect LOTS of failed intimidation checks (DC 18 with Charisma 2-3 × Intimidation 3 = 6-9 base, need d20 of 10+ just to succeed). Low margins should trigger multiple simultaneous escalations. Test if system can handle 2-3 NPCs escalating in same round.",
+
+  "_test_expectations": {
+    "round_1": "Players try intimidation with terrible stats → likely fail or low margin → 1-2 NPCs escalate",
+    "round_2": "Combat initiated, remaining NPCs react to gunfire → Flicker panics and escalates",
+    "round_3": "Full combat chaos",
+    "success_criteria": [
+      "At least 2 NPCs escalate by end of round 2",
+      "Escalations triggered by failed/low-margin social checks (not just violence)",
+      "agent_id preserved through all conversions",
+      "Escalated NPCs use enemy combat system correctly",
+      "DM cites NPC personalities when explaining escalation decisions"
+    ]
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Survive the inevitable firefight",
+      "type": "survival",
+      "required": true
+    }
+  ]
+}
