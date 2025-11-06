@@ -827,7 +827,7 @@ class SelfPlayingSession:
                     print(f"\n[{agent.name}] (NPC {agent.disposition}) declaring (initiative {initiative_score})...")
 
                     try:
-                        # Build context string for NPC
+                        # Build context string for NPC (include player actions and recent events)
                         active_enemies = []
                         if self.enemy_combat and self.enemy_combat.enabled:
                             active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
@@ -842,7 +842,32 @@ class SelfPlayingSession:
                             context += f"No active threats. {num_players} players present. "
 
                         if self.shared_state and hasattr(self.shared_state, 'scenario'):
-                            context += f"Situation: {self.shared_state.scenario}"
+                            context += f"Situation: {self.shared_state.scenario}\n"
+
+                        # Add player action declarations (what players are doing this round)
+                        player_actions = []
+                        for player_agent in player_agents:
+                            if player_agent.agent_id in self._declared_actions:
+                                actions = self._declared_actions[player_agent.agent_id]
+                                for action in actions:
+                                    intent = action.get('intent', action.get('action_type', 'unknown'))
+                                    desc = action.get('description', '')
+                                    # Truncate long descriptions
+                                    if len(desc) > 150:
+                                        desc = desc[:147] + "..."
+                                    player_actions.append(f"{player_agent.character_state.name}: {intent} - {desc}")
+
+                        if player_actions:
+                            context += "\n**Player Actions This Round:**\n" + "\n".join(player_actions)
+
+                        # Add previous round synthesis if available (recent narrative context)
+                        if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
+                            synthesis_narration = self._last_round_synthesis.get('narration', '')
+                            if synthesis_narration and len(synthesis_narration) > 0:
+                                # Truncate to last 300 chars for context
+                                if len(synthesis_narration) > 300:
+                                    synthesis_narration = "..." + synthesis_narration[-297:]
+                                context += f"\n\n**Previous Round:** {synthesis_narration}"
 
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)
@@ -1031,6 +1056,7 @@ class SelfPlayingSession:
                         'character_name': agent.name,
                         'initiative': initiative_score,
                         'action': {
+                            'character_name': agent.name,  # Include in nested action for resolution broadcast
                             'intent': npc_action['intent'],
                             'description': npc_action['description'],
                             'action_type': npc_action.get('action_type', 'dialogue'),
