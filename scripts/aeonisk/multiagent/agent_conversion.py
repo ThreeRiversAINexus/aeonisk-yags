@@ -225,6 +225,12 @@ def escalate_npc_to_enemy(
         debuffs: List[Dict[str, Any]] = field(default_factory=list)
         shared_intel: Dict[str, Any] = field(default_factory=dict)
 
+        def get_health_percentage(self) -> int:
+            """Get current health as percentage (required by enemy_spawner)."""
+            if self.max_health == 0:
+                return 0
+            return int((self.health / self.max_health) * 100)
+
     # Create enemy with stable ID and preserved state
     enemy = EnemyAgent(
         agent_id=npc.agent_id,  # ✅ STABLE - never changes
