@@ -487,9 +487,10 @@ class AIPlayerAgent(Agent):
         """Handle turn request - decide on action."""
         # Reset free action flag each round (prevents bug where main action is skipped in Round 2+)
         self.free_action_used = False
+        # NOTE: declared_actions_this_round is now cleared at round start (session.py), not here
 
-        # Clear declared actions from previous round
-        self.declared_actions_this_round.clear()
+        # Store current initiative for filtering declared actions (passed in payload)
+        self.current_initiative = message.payload.get('initiative', 0)
 
         if self.human_controlled:
             await self._human_player_turn()
@@ -1860,33 +1861,41 @@ Available non-combat actions:
                 narrative_context += "\n# 📖 Recent Story Events\n\n"
             narrative_context += "## Recent Action Outcomes:\n"
             for i, narration in enumerate(self.recent_narrations[-3:], 1):  # Last 3 narrations
-                # Truncate long narrations to keep prompt manageable
-                truncated = narration[:400] + "..." if len(narration) > 400 else narration
-                narrative_context += f"{i}. {truncated}\n\n"
+                # Keep full narration - this is juicy coordination info!
+                narrative_context += f"{i}. {narration}\n\n"
 
-        # Add declared actions this round (all combatants in initiative order)
+        # Add declared actions this round (only from agents with LOWER initiative who declared before you)
         if self.declared_actions_this_round:
-            if not narrative_context:
-                narrative_context += "\n# 📖 Recent Story Events\n\n"
+            # Filter to only show agents who declared before this player (lower initiative = declared first)
+            current_init = getattr(self, 'current_initiative', 0)
+            filtered_declarations = {
+                char_name: action_data
+                for char_name, action_data in self.declared_actions_this_round.items()
+                if (action_data[2] if len(action_data) == 3 else action_data[1]) < current_init
+            }
 
-            # Sort by initiative (slowest first, matching declaration order)
-            sorted_declarations = sorted(
-                self.declared_actions_this_round.items(),
-                key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]  # Initiative is at index 2 in new format, index 1 in old
-            )
+            if filtered_declarations:
+                if not narrative_context:
+                    narrative_context += "\n# 📖 Recent Story Events\n\n"
 
-            narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
-            narrative_context += "*You see what slower combatants declared before you. React accordingly!*\n\n"
-            for char_name, action_data in sorted_declarations:
-                # Handle both old format (intent, initiative) and new format (description, intent, initiative)
-                if len(action_data) == 3:
-                    description, intent, initiative = action_data
-                    narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
-                else:
-                    # Legacy format
-                    intent, initiative = action_data
-                    narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
-            narrative_context += "\n"
+                # Sort by initiative (slowest first, matching declaration order)
+                sorted_declarations = sorted(
+                    filtered_declarations.items(),
+                    key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]
+                )
+
+                narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+                narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
+                for char_name, action_data in sorted_declarations:
+                    # Handle both old format (intent, initiative) and new format (description, intent, initiative)
+                    if len(action_data) == 3:
+                        description, intent, initiative = action_data
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
+                    else:
+                        # Legacy format
+                        intent, initiative = action_data
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
+                narrative_context += "\n"
 
         prompt = f"""{system_prompt}
 

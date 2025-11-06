@@ -526,6 +526,12 @@ class SelfPlayingSession:
                 for agent_id, void_state in mechanics.void_states.items():
                     void_state.reset_round_void()
 
+            # Clear declared actions from previous round (for all player agents)
+            for agent in self.player_agents:
+                if hasattr(agent, 'declared_actions_this_round'):
+                    agent.declared_actions_this_round.clear()
+                    logger.debug(f"Cleared declared actions for {agent.character_state.name}")
+
             # Run round with initiative-based turns
             combat_continues = await self._run_initiative_round()
 
