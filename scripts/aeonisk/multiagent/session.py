@@ -879,18 +879,40 @@ class SelfPlayingSession:
                         num_players = len(player_agents)
                         num_enemies = len(active_enemies)
 
-                        context = f"Round {mechanics.current_round if mechanics else 0}: "
+                        # PHASE 3: Intelligent threat assessment (not just binary)
+                        threat_indicators = []
+
+                        # Check for captured/prisoner NPCs
+                        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                            captured_npcs = [npc for npc in self.shared_state.npc_agents
+                                           if npc.is_active and npc.entity_type == "prisoner"]
+                            if captured_npcs:
+                                threat_indicators.append("ally captured")
+
+                        # Check for active combat
                         if num_enemies > 0:
+                            threat_indicators.append(f"combat: {num_enemies} hostiles")
+
+                        # Build context string with intelligent assessment
+                        context = f"Round {mechanics.current_round if mechanics else 0}: "
+                        if threat_indicators:
+                            context += f"ALERT: {', '.join(threat_indicators)}. {num_players} players present. "
+                        elif num_enemies > 0:
                             context += f"Combat active - {num_players} players vs {num_enemies} enemies. "
                         else:
-                            context += f"No active threats. {num_players} players present. "
+                            context += f"Calm situation. {num_players} players present. "
 
                         if self.shared_state and hasattr(self.shared_state, 'scenario'):
                             context += f"Situation: {self.shared_state.scenario}\n"
 
-                        # Add recent narrative context (NPCs can't see future - use previous round)
+                        # PHASE 4: Add recent narrative context (filter out NPC reasoning echoes)
                         # Include both player actions from last round AND recent resolutions
                         recent_narrative = []
+
+                        # Get list of NPC names to filter out reasoning echoes
+                        npc_names = []
+                        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                            npc_names = [npc.name for npc in self.shared_state.npc_agents if npc.is_active]
 
                         # Add recent player narrations (stored by player agents for context)
                         for player_agent in player_agents:
@@ -898,22 +920,50 @@ class SelfPlayingSession:
                                 # Get last 2 narrations for this player
                                 last_narrations = player_agent.recent_narrations[-2:]
                                 for narration in last_narrations:
-                                    # Truncate to 200 chars
-                                    if len(narration) > 200:
-                                        narration = narration[:197] + "..."
-                                    recent_narrative.append(narration)
+                                    # Skip if this looks like NPC reasoning echo
+                                    # (contains NPC name followed immediately by reasoning text)
+                                    is_npc_reasoning = any(
+                                        narration.startswith(f"[{npc_name}] {npc_name}")
+                                        for npc_name in npc_names
+                                    )
+
+                                    if not is_npc_reasoning:
+                                        # Truncate to 200 chars
+                                        if len(narration) > 200:
+                                            narration = narration[:197] + "..."
+                                        recent_narrative.append(narration)
 
                         if recent_narrative:
                             context += "\n\n**Recent Events:**\n" + "\n".join(recent_narrative[-3:])  # Last 3 events only
 
-                        # Add previous round synthesis if available (recent narrative context)
+                        # PHASE 2: Add previous round DM narration (full context from DM synthesis)
                         if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
                             synthesis_narration = self._last_round_synthesis.get('narration', '')
                             if synthesis_narration and len(synthesis_narration) > 0:
-                                # Truncate to last 300 chars for context
-                                if len(synthesis_narration) > 300:
-                                    synthesis_narration = "..." + synthesis_narration[-297:]
-                                context += f"\n\n**Previous Round:** {synthesis_narration}"
+                                # Truncate to ~400 chars for NPCs (more generous than before)
+                                if len(synthesis_narration) > 400:
+                                    synthesis_narration = "..." + synthesis_narration[-397:]
+                                context += f"\n\n**What Happened Last Round:**\n{synthesis_narration}"
+
+                        # PHASE 1: Show declarations from higher-initiative agents this round
+                        # NPCs need to see what's already been declared before their turn
+                        current_round_declarations = []
+                        for agent_id, actions in self._declared_actions.items():
+                            for action in actions:
+                                # Only show declarations from agents acting before this NPC
+                                if action.get('initiative', 0) > initiative_score:
+                                    actor_name = action.get('character_name', agent_id)
+                                    intent = action.get('intent', action.get('description', 'unknown action'))
+                                    # Truncate long intents for readability
+                                    if len(intent) > 100:
+                                        intent = intent[:97] + "..."
+                                    current_round_declarations.append(
+                                        f"[{actor_name}] declared: {intent}"
+                                    )
+
+                        if current_round_declarations:
+                            context += "\n\n**Actions Already Declared This Round:**\n"
+                            context += "\n".join(current_round_declarations)
 
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)
