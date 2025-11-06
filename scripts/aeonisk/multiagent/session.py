@@ -527,7 +527,8 @@ class SelfPlayingSession:
                     void_state.reset_round_void()
 
             # Clear declared actions from previous round (for all player agents)
-            for agent in self.player_agents:
+            player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+            for agent in player_agents:
                 if hasattr(agent, 'declared_actions_this_round'):
                     agent.declared_actions_this_round.clear()
                     logger.debug(f"Cleared declared actions for {agent.character_state.name}")
