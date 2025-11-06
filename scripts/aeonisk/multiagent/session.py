@@ -276,10 +276,10 @@ class SelfPlayingSession:
         # Initialize agent prompt logger if requested
         if self.log_agents_separately:
             self.agent_prompt_logger = AgentPromptLogger(
-                output_dir="agent_prompts",
+                output_dir="agent_logs",
                 session_id=self.session_id
             )
-            print(f"✓ Agent prompt logging enabled: agent_prompts/")
+            print(f"✓ Agent prompt logging enabled: agent_logs/{self.session_id}/")
 
         # Load starting_clocks from config if present
         if 'starting_clocks' in self.config and self.config['starting_clocks']:

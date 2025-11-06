@@ -163,7 +163,7 @@ def main():
     parser.add_argument(
         '--log-agents-separately',
         action='store_true',
-        help='Log full LLM prompts and responses to separate human-readable files per agent (agent_prompts/player_01.log, etc.)'
+        help='Log full LLM prompts and responses to separate human-readable files per agent (agent_logs/{session_id}/player_01.log, etc.)'
     )
 
     args = parser.parse_args()
@@ -202,7 +202,7 @@ def main():
     if args.random_seed:
         print(f"Using random seed: {args.random_seed}")
     if args.log_agents_separately:
-        print("Agent prompt logging enabled: agent_prompts/*.log")
+        print("Agent prompt logging enabled: agent_logs/{session_id}/*.log")
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
 

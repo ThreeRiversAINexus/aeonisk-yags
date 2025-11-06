@@ -4,8 +4,10 @@ Agent Prompt Logger - Human-Readable LLM Prompt/Response Logging
 Creates per-agent log files showing full LLM prompts (input) and responses (output)
 for debugging agent context visibility issues.
 
+Files organized as: agent_logs/{session_id}/{agent_id}.log
+
 Usage:
-    logger = AgentPromptLogger(output_dir="agent_prompts")
+    logger = AgentPromptLogger(output_dir="agent_logs", session_id="abc123")
     logger.log_llm_call(
         agent_id="player_01",
         round_num=1,
@@ -32,34 +34,37 @@ class AgentPromptLogger:
     """
     Manages per-agent human-readable log files for LLM prompt/response debugging.
 
-    Creates files like: agent_prompts/player_01.log, agent_prompts/dm.log
+    Creates files like: agent_logs/{session_id}/player_01.log, agent_logs/{session_id}/dm.log
     Each file contains timestamped entries showing full prompts and responses.
     """
 
-    def __init__(self, output_dir: str = "agent_prompts", session_id: Optional[str] = None):
+    def __init__(self, output_dir: str = "agent_logs", session_id: Optional[str] = None):
         """
         Initialize agent prompt logger.
 
         Args:
-            output_dir: Directory for agent log files (created if doesn't exist)
-            session_id: Optional session ID to include in file names
+            output_dir: Base directory for agent log files (created if doesn't exist)
+            session_id: Optional session ID to create a subdirectory
         """
-        self.output_dir = Path(output_dir)
+        self.base_output_dir = Path(output_dir)
         self.session_id = session_id
         self.file_handles: Dict[str, Any] = {}  # agent_id -> file handle
         self.call_counts: Dict[str, int] = {}  # agent_id -> call count
         self.lock = Lock()  # Thread safety for file operations
 
-        # Create output directory
+        # Create output directory with session subdirectory if provided
+        if self.session_id:
+            self.output_dir = self.base_output_dir / self.session_id
+        else:
+            self.output_dir = self.base_output_dir
+
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"AgentPromptLogger initialized: {self.output_dir}")
 
     def _get_file_path(self, agent_id: str) -> Path:
         """Get log file path for an agent."""
-        if self.session_id:
-            filename = f"{agent_id}_{self.session_id}.log"
-        else:
-            filename = f"{agent_id}.log"
+        # Filename doesn't include session_id since it's already in the directory path
+        filename = f"{agent_id}.log"
         return self.output_dir / filename
 
     def _get_file_handle(self, agent_id: str):
