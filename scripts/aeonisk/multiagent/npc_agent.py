@@ -95,12 +95,13 @@ class NPCAction(BaseModel):
     - comply: Follow player orders
     - dialogue: Talk, answer questions
     - assist: Help players (if friendly)
+    - attack: Attack players/others (triggers self-escalation to enemy)
     - pass: Explicitly do nothing
     """
 
-    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "pass"]
+    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "pass"]
     reason: str = Field(..., min_length=10, max_length=500, description="Why NPC chose this action")
-    target: Optional[str] = Field(None, description="Target agent ID for dialogue/assist")
+    target: Optional[str] = Field(None, description="Target agent ID for dialogue/assist/attack")
 
 
 class NPCLLMClient:
@@ -192,6 +193,11 @@ class NPCLLMClient:
 
     def _get_system_prompt(self) -> str:
         """Get system prompt based on NPC type."""
+        # Get personality from description if available
+        personality_note = ""
+        if hasattr(self.npc, 'description') and self.npc.description:
+            personality_note = f"\n**Your Personality:** {self.npc.description}\n"
+
         return f"""You are {self.npc.name}, a {self.npc.entity_type} NPC in a tactical RPG.
 
 **Your Role:**
@@ -199,7 +205,7 @@ class NPCLLMClient:
 - Disposition: {self.npc.disposition} (friendly/neutral/wary/prisoner)
 - Threat Level: {self.npc.threat_level} (non_combatant/potential_threat/armed_neutral)
 - Faction: {self.npc.faction}
-
+{personality_note}
 **Action Options:**
 - flee: Run away from danger
 - hide: Take cover, avoid attention
@@ -207,15 +213,25 @@ class NPCLLMClient:
 - comply: Follow instructions, cooperate
 - dialogue: Speak, answer questions, negotiate
 - assist: Help players with tasks (if friendly)
+- **attack: Attack players or others (if threatened, paranoid, or hostile)**
 - pass: Do nothing this turn (use when situation doesn't involve you)
 
 **Guidelines:**
-1. Non-combatants flee or hide during combat
+1. Non-combatants flee or hide during combat (but can attack if cornered/panicked)
 2. Prisoners plead or comply when threatened
 3. Allies assist or provide dialogue
 4. Pass when nothing relevant is happening (opportunistic acting)
 5. Low health → prioritize fleeing/hiding
 6. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
+7. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
+8. If players seem hostile (armed, aggressive, threatening), you CAN attack first
+
+**When to use "attack":**
+- You're paranoid and see armed threats (even if they haven't acted yet)
+- Players are clearly hostile (weapons drawn, threats made, aggressive posture)
+- Your personality says to escalate (check your description!)
+- You're cornered and panic (even non-combatants can grab weapons in desperation)
+- Someone is threatening you, your faction, or people you care about
 
 Choose the most appropriate action and explain why in 10-100 words."""
 

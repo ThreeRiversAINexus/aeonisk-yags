@@ -875,6 +875,43 @@ class SelfPlayingSession:
                         npc_action = await agent.llm_client.declare_action(context)
 
                         if npc_action:
+                            # Check for self-escalation (NPC declares attack)
+                            if npc_action.action_type == "attack":
+                                logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
+                                logger.info(f"   Reason: {npc_action.reason}")
+
+                                # Convert NPC to enemy immediately
+                                from scripts.aeonisk.multiagent.agent_conversion import escalate_npc_to_enemy
+
+                                # Determine enemy template based on NPC threat level
+                                template_map = {
+                                    "non_combatant": "desperate_fighter",
+                                    "potential_threat": "grunt",
+                                    "armed_neutral": "elite"
+                                }
+                                template = template_map.get(agent.threat_level, "grunt")
+
+                                # Escalate NPC to enemy
+                                enemy = escalate_npc_to_enemy(
+                                    npc=agent,
+                                    template=template,
+                                    current_round=mechanics.current_round if mechanics else 0
+                                )
+
+                                # Register with enemy combat system
+                                if self.enemy_combat:
+                                    self.enemy_combat.enemy_agents.append(enemy)
+                                    logger.info(f"   ✅ Converted to enemy: {enemy.agent_id}")
+
+                                # Remove from NPC list
+                                if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                                    self.shared_state.npc_agents = [n for n in self.shared_state.npc_agents if n.agent_id != agent.agent_id]
+
+                                # Enemy will declare actions in enemy phase, skip NPC declaration
+                                logger.info(f"   Enemy will act in enemy combat phase")
+                                continue
+
+                            # Normal NPC action processing
                             # Log NPC declaration
                             if mechanics and mechanics.jsonl_logger:
                                 mechanics.jsonl_logger.log_action_declaration(
