@@ -215,6 +215,7 @@ def escalate_npc_to_enemy(
         soak: int
         void_score: int
         skills: Dict[str, int]
+        attributes: Dict[str, int]  # YAGS attributes (Agility, Strength, etc.)
         stuns: int
         wounds: int
         conditions: List
@@ -244,6 +245,44 @@ def escalate_npc_to_enemy(
                 return 0
             return int((self.health / self.max_health) * 100)
 
+        def roll_initiative(self) -> int:
+            """Roll initiative: (Agility × 4) + d20."""
+            import random
+            agility = self.attributes.get('Agility', 3)
+            roll = random.randint(1, 20)
+            if roll == 1:
+                return 0  # Fumble
+            return (agility * 4) + roll
+
+    # Synthesize attributes from skills (NPCs only have skills, not attributes)
+    # Estimate based on skill levels or use defaults
+    def estimate_attributes(skills: Dict[str, int]) -> Dict[str, int]:
+        """Estimate YAGS attributes from NPC skills."""
+        # Agility: Based on Athletics, Guns, or default 3
+        agility = max(
+            skills.get('Athletics', 0) // 2 + 2,
+            skills.get('Guns', 0) // 2 + 2,
+            3
+        )
+        # Strength: Based on Brawl, Melee, or default 3
+        strength = max(
+            skills.get('Brawl', 0) // 2 + 2,
+            skills.get('Melee', 0) // 2 + 2,
+            3
+        )
+        # Other attributes: defaults (3 = average human)
+        return {
+            'Agility': min(agility, 5),  # Cap at 5 (human max normally)
+            'Strength': min(strength, 5),
+            'Perception': skills.get('Awareness', 0) // 2 + 2,
+            'Intelligence': 3,
+            'Empathy': 2,
+            'Willpower': 3,
+            'Size': 5  # Average human
+        }
+
+    attributes = estimate_attributes(npc.skills)
+
     # Create enemy with stable ID and preserved state
     enemy = EnemyAgent(
         agent_id=npc.agent_id,  # ✅ STABLE - never changes
@@ -256,6 +295,7 @@ def escalate_npc_to_enemy(
         soak=npc.soak,
         void_score=npc.void_score,
         skills=dict(npc.skills),  # Copy dict
+        attributes=attributes,  # Synthesized from skills
         stuns=npc.stuns,
         wounds=npc.wounds,
         conditions=conditions_copy,
