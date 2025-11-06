@@ -928,9 +928,7 @@ class SelfPlayingSession:
                                     )
 
                                     if not is_npc_reasoning:
-                                        # Truncate to 200 chars
-                                        if len(narration) > 200:
-                                            narration = narration[:197] + "..."
+                                        # Keep full narration - this is juicy coordination info!
                                         recent_narrative.append(narration)
 
                         if recent_narrative:
@@ -940,9 +938,7 @@ class SelfPlayingSession:
                         if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
                             synthesis_narration = self._last_round_synthesis.get('narration', '')
                             if synthesis_narration and len(synthesis_narration) > 0:
-                                # Truncate to ~400 chars for NPCs (more generous than before)
-                                if len(synthesis_narration) > 400:
-                                    synthesis_narration = "..." + synthesis_narration[-397:]
+                                # Keep full DM narration - critical context for what just happened
                                 context += f"\n\n**What Happened Last Round:**\n{synthesis_narration}"
 
                         # PHASE 1: Show declarations from higher-initiative agents this round
@@ -954,9 +950,7 @@ class SelfPlayingSession:
                                 if action.get('initiative', 0) > initiative_score:
                                     actor_name = action.get('character_name', agent_id)
                                     intent = action.get('intent', action.get('description', 'unknown action'))
-                                    # Truncate long intents for readability
-                                    if len(intent) > 100:
-                                        intent = intent[:97] + "..."
+                                    # Keep full declarations - agents need context to coordinate!
                                     current_round_declarations.append(
                                         f"[{actor_name}] declared: {intent}"
                                     )
