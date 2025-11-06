@@ -51,6 +51,7 @@ class AIDMAgent(Agent):
         force_scenario: Optional[str] = None,
         llm_logger: Optional[Any] = None,
         llm_client: Optional[Any] = None,
+        agent_prompt_logger: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -63,6 +64,7 @@ class AIDMAgent(Agent):
         self._history_supplier = history_supplier
         self.force_scenario = force_scenario  # For automated testing
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+        self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
@@ -397,6 +399,23 @@ IMPORTANT:
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=None,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=scenario_prompt,
+                            response=llm_text,
+                            model=model,
+                            temperature=0.9,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'scenario_generation'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 # Parse LLM response
                 scenario_data = self._parse_scenario_from_llm(llm_text)
 
@@ -442,6 +461,23 @@ IMPORTANT:
                                     call_sequence=self.llm_logger.call_count
                                 )
                                 self.llm_logger.call_count += 1
+
+                            # Also log to human-readable agent prompt log if enabled
+                            if self.agent_prompt_logger:
+                                try:
+                                    self.agent_prompt_logger.log_llm_call(
+                                        agent_id=self.agent_id,
+                                        round_num=None,
+                                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                                        prompt=retry_prompt,
+                                        response=llm_text,
+                                        model=model,
+                                        temperature=1.0,
+                                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                                        metadata={'purpose': 'scenario_generation_retry'}
+                                    )
+                                except Exception as e:
+                                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
                             scenario_data = self._parse_scenario_from_llm(llm_text)
                             break  # Only check first match and retry once
@@ -1998,6 +2034,23 @@ IMPORTANT:
                     call_sequence=self.llm_logger.call_count
                 )
                 self.llm_logger.call_count += 1
+
+            # Also log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=current_round,
+                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=synthesis.model_dump_json(indent=2),
+                        model=model,
+                        temperature=temperature,
+                        metadata={'purpose': 'round_synthesis_structured', 'note': 'Pydantic AI structured output (RoundSynthesis schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
             return synthesis
 

@@ -121,6 +121,7 @@ class AIPlayerAgent(Agent):
         history_supplier: Optional[Callable[[], Iterable[str]]] = None,
         llm_logger: Optional[Any] = None,
         llm_client: Optional[Any] = None,
+        agent_prompt_logger: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.character_config = character_config
@@ -134,6 +135,7 @@ class AIPlayerAgent(Agent):
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+        self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
@@ -1407,6 +1409,26 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 )
                 self.llm_logger.call_count += 1
                 logger.debug(f"✓ Logged player LLM call for replay (sequence {self.llm_logger.call_count - 1})")
+
+            # Also log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    # System prompt + user prompt combined
+                    full_prompt = f"System: You are {self.character_state.name}, a player character in Aeonisk YAGS.\n\n{prompt}"
+                    response_text = player_action.model_dump_json(indent=2)
+
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=getattr(self, 'current_round', None),
+                        call_sequence=getattr(self.llm_logger, 'call_count', 0) - 1 if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=response_text,
+                        model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                        temperature=self.llm_config.get('temperature', 0.8),
+                        metadata={'note': 'Pydantic AI structured output (PlayerAction schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"Player {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
             # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
             action_declaration = ActionDeclaration(

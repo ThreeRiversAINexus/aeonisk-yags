@@ -27,6 +27,7 @@ from .outcome_parser import (
 )
 from .enemy_combat import EnemyCombatManager
 from .tactical_resolution import ResolutionState
+from .agent_prompt_logger import AgentPromptLogger
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,8 @@ class SelfPlayingSession:
     
     def __init__(self, config_path: str = None, random_seed: Optional[int] = None,
                  replay_mode: bool = False, replay_config: Optional[Dict] = None,
-                 llm_cache: Optional[Dict] = None, continue_from_round: Optional[int] = None):
+                 llm_cache: Optional[Dict] = None, continue_from_round: Optional[int] = None,
+                 log_agents_separately: bool = False):
         # In replay mode, config comes from replay_config instead of file
         if replay_mode and replay_config:
             self.config = replay_config
@@ -146,6 +148,13 @@ class SelfPlayingSession:
             print(f"🔁 Replay mode - Random seed: {random_seed}")
         else:
             print(f"Random seed: {random_seed}")
+
+        # Initialize agent prompt logger if requested
+        self.log_agents_separately = log_agents_separately
+        self.agent_prompt_logger: Optional[AgentPromptLogger] = None
+        if log_agents_separately:
+            # Will be fully initialized after session_id is set during start_session()
+            self.agent_prompt_logger = None  # Deferred until session_id available
 
         # Round statistics for ML training / balance analysis
         self._round_stats = {
@@ -264,6 +273,14 @@ class SelfPlayingSession:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
 
+        # Initialize agent prompt logger if requested
+        if self.log_agents_separately:
+            self.agent_prompt_logger = AgentPromptLogger(
+                output_dir="agent_prompts",
+                session_id=self.session_id
+            )
+            print(f"✓ Agent prompt logging enabled: agent_prompts/")
+
         # Load starting_clocks from config if present
         if 'starting_clocks' in self.config and self.config['starting_clocks']:
             mechanics = self.shared_state.get_mechanics_engine()
@@ -300,6 +317,11 @@ class SelfPlayingSession:
                 session_id=self.session_id
             )
             agent.llm_logger = llm_logger_instance
+
+            # Also attach agent prompt logger if enabled
+            if self.agent_prompt_logger:
+                agent.agent_prompt_logger = self.agent_prompt_logger
+
         print(f"✓ LLM call logging enabled for {len(self.agents)} agents")
 
         # Wait for DM to generate initial scenario before starting gameplay
@@ -665,9 +687,10 @@ class SelfPlayingSession:
                     Wrapper for enemy LLM calls with logging support.
                     Each enemy gets its own instance to track call_sequence per agent.
                     """
-                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None):
+                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None, agent_prompt_logger=None):
                         self.llm_config = llm_config
                         self.jsonl_logger = jsonl_logger
+                        self.agent_prompt_logger = agent_prompt_logger
                         self.agent_id = agent_id
                         self.session_id = session_id
                         self.call_sequence = 0  # Track LLM call ordering for replay
@@ -727,6 +750,26 @@ class SelfPlayingSession:
                                     import logging
                                     logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
 
+                            # Also log to human-readable agent prompt log if enabled
+                            if self.agent_prompt_logger:
+                                try:
+                                    self.agent_prompt_logger.log_llm_call(
+                                        agent_id=self.agent_id,
+                                        round_num=None,  # Enemy calls don't have round context
+                                        call_sequence=self.call_sequence - 1,  # Already incremented above
+                                        prompt=prompt,  # Full prompt text
+                                        response=response_text,
+                                        model=model,
+                                        temperature=temperature,
+                                        tokens={
+                                            'input': response.usage.input_tokens,
+                                            'output': response.usage.output_tokens
+                                        }
+                                    )
+                                except Exception as e:
+                                    import logging
+                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                             return {"content": response_text}
                         else:
                             raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
@@ -736,7 +779,8 @@ class SelfPlayingSession:
                     dm_agent.llm_config,
                     jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                     agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
-                    session_id=self.session_id
+                    session_id=self.session_id,
+                    agent_prompt_logger=self.agent_prompt_logger
                 )
 
         # Declaration loop (slowest → fastest, reversed initiative order)
