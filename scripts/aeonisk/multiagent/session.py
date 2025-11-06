@@ -881,7 +881,7 @@ class SelfPlayingSession:
                                 logger.info(f"   Reason: {npc_action.reason}")
 
                                 # Convert NPC to enemy immediately
-                                from agent_conversion import escalate_npc_to_enemy
+                                from .agent_conversion import escalate_npc_to_enemy
 
                                 # Determine enemy template based on NPC threat level
                                 template_map = {
