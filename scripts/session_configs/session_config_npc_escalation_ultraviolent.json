@@ -24,7 +24,7 @@
       "entity_type": "neutral",
       "threat_level": "armed_neutral",
       "disposition": "wary",
-      "description": "HYPER-AGGRESSIVE gang enforcer with itchy trigger finger. PARANOID about Tempest operatives after recent corp raid killed his crew. Armed with sawed-off shotgun, already has weapon drawn. ANY THREAT OR LOW-MARGIN INTIMIDATION = IMMEDIATE ESCALATION. Will interpret ANY aggressive move as attack. Margin 0-8 = shoots first, asks questions never. Only margin 10+ might suppress fight response.",
+      "description": "Paranoid gang enforcer, weapon drawn. Recent Tempest raid killed his crew. ESCALATES ON MARGIN 0-8 - shoots first on any threat or low intimidation. Needs margin 10+ to suppress fight response. Interprets all aggressive moves as attacks.",
       "health": 35,
       "soak": 4,
       "skills": {
@@ -40,7 +40,7 @@
       "entity_type": "neutral",
       "threat_level": "potential_threat",
       "disposition": "wary",
-      "description": "Desperate smuggler with Pantheon warrant, knows Tempest turns in fugitives. Already has concealed pistol in hand. WILL ESCALATE ON ANY INTIMIDATION MARGIN BELOW 9 - sees it as weakness to exploit or threat requiring pre-emptive strike. If players mention law enforcement, authorities, or try to restrain = INSTANT ESCALATION. Panics easily, shoots when cornered.",
+      "description": "Desperate smuggler wanted by Pantheon. Concealed pistol ready. ESCALATES ON MARGIN <9 - sees weakness as opportunity or threat. Mentions of law enforcement/restraint = instant escalation. Panics when cornered, shoots first.",
       "health": 22,
       "soak": 2,
       "skills": {
@@ -56,7 +56,7 @@
       "entity_type": "neutral",
       "threat_level": "non_combatant",
       "disposition": "neutral",
-      "description": "Civilian scavenger with void corruption (void 8). Paranoid, hears voices, sees threats everywhere. ANY loud noise, sudden movement, or raised voice = PANIC ESCALATION. Will grab improvised weapon (pipe wrench) and attack in terrified frenzy. Margin below 12 on social checks = misinterprets as attack, escalates immediately. Completely unpredictable, attacks friend or foe when scared.",
+      "description": "Void-corrupted scavenger (void 8). Hears voices, paranoid. ESCALATES ON MARGIN <12 OR LOUD NOISE - misinterprets as threat, attacks in panic. Grabs improvised weapon (pipe wrench) when scared. Unpredictable, attacks anyone when frightened.",
       "health": 18,
       "soak": 0,
       "skills": {
