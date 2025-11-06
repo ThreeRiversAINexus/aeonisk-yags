@@ -5421,6 +5421,29 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)
         npc_id = f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
 
+        # Synthesize weapons based on skills and threat level
+        from .weapons import WEAPON_LIBRARY
+        weapons = []
+
+        # Give weapons based on threat level and skills
+        skills = npc_spawn.skills if npc_spawn.skills else {}
+
+        if npc_spawn.threat_level == "armed_neutral":
+            # Armed NPCs get appropriate weapons based on skills
+            if skills.get('Guns', 0) >= 2:
+                weapons.append(WEAPON_LIBRARY['pistol'])
+            if skills.get('Melee', 0) >= 2:
+                weapons.append(WEAPON_LIBRARY['combat_knife'])
+
+        elif npc_spawn.threat_level == "potential_threat":
+            # Potentially dangerous NPCs might have basic weapons
+            if skills.get('Melee', 0) >= 2:
+                weapons.append(WEAPON_LIBRARY['combat_knife'])
+
+        # Everyone can use their fists (unarmed fallback)
+        if not weapons:
+            weapons.append(WEAPON_LIBRARY['fists'])
+
         # Create NPC agent
         npc = NPCAgent(
             agent_id=npc_id,
@@ -5434,7 +5457,8 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             max_health=npc_spawn.health,  # Max health = starting health
             soak=npc_spawn.soak,
             void_score=0,  # NPCs start with no void corruption
-            skills=npc_spawn.skills if npc_spawn.skills else {},
+            skills=skills,
+            weapons=weapons,  # Weapons based on threat level and skills
             converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
             agent_prompt_logger=self.agent_prompt_logger  # Pass through logger
         )

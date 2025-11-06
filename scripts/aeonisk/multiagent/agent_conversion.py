@@ -122,6 +122,9 @@ def deescalate_enemy_to_npc(
         wounds=getattr(enemy, 'wounds', 0),
         conditions=conditions_copy,
 
+        # Equipment (preserve from enemy)
+        weapons=list(getattr(enemy, 'weapons', [])),
+
         # Conversion tracking (for reverse operation)
         converted_from_enemy=True,
         original_enemy_template=getattr(enemy, 'template_name', None),
@@ -332,6 +335,9 @@ def escalate_npc_to_enemy(
         stuns=npc.stuns,
         wounds=npc.wounds,
         conditions=conditions_copy,
+
+        # Equipment (preserve from NPC)
+        weapons=list(npc.weapons) if hasattr(npc, 'weapons') and npc.weapons else [],
 
         # Enemy-specific
         template_name=template,

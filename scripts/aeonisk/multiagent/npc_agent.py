@@ -61,6 +61,9 @@ class NPCAgent:
     wounds: int = 0
     conditions: List[Condition] = field(default_factory=list)
 
+    # Equipment (for escalation to enemy)
+    weapons: List = field(default_factory=list)  # List[Weapon], will be preserved during escalation
+
     # NPC-specific
     llm_client: Optional['NPCLLMClient'] = None  # Simple action declarations
     can_act: bool = True
