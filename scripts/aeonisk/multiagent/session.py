@@ -844,21 +844,23 @@ class SelfPlayingSession:
                         if self.shared_state and hasattr(self.shared_state, 'scenario'):
                             context += f"Situation: {self.shared_state.scenario}\n"
 
-                        # Add player action declarations (what players are doing this round)
-                        player_actions = []
-                        for player_agent in player_agents:
-                            if player_agent.agent_id in self._declared_actions:
-                                actions = self._declared_actions[player_agent.agent_id]
-                                for action in actions:
-                                    intent = action.get('intent', action.get('action_type', 'unknown'))
-                                    desc = action.get('description', '')
-                                    # Truncate long descriptions
-                                    if len(desc) > 150:
-                                        desc = desc[:147] + "..."
-                                    player_actions.append(f"{player_agent.character_state.name}: {intent} - {desc}")
+                        # Add recent narrative context (NPCs can't see future - use previous round)
+                        # Include both player actions from last round AND recent resolutions
+                        recent_narrative = []
 
-                        if player_actions:
-                            context += "\n**Player Actions This Round:**\n" + "\n".join(player_actions)
+                        # Add recent player narrations (stored by player agents for context)
+                        for player_agent in player_agents:
+                            if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
+                                # Get last 2 narrations for this player
+                                last_narrations = player_agent.recent_narrations[-2:]
+                                for narration in last_narrations:
+                                    # Truncate to 200 chars
+                                    if len(narration) > 200:
+                                        narration = narration[:197] + "..."
+                                    recent_narrative.append(narration)
+
+                        if recent_narrative:
+                            context += "\n\n**Recent Events:**\n" + "\n".join(recent_narrative[-3:])  # Last 3 events only
 
                         # Add previous round synthesis if available (recent narrative context)
                         if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
