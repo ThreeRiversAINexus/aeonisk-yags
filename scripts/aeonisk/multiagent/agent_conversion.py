@@ -210,7 +210,7 @@ def escalate_npc_to_enemy(
 
     @dataclass
     class EnemyAgent:
-        """Minimal enemy agent for conversion (real one defined elsewhere)."""
+        """Minimal enemy agent for conversion (must match real EnemyAgent fields)."""
         agent_id: str
         name: str
         faction: str
@@ -222,13 +222,28 @@ def escalate_npc_to_enemy(
         attributes: Dict[str, int]  # YAGS attributes (Agility, Strength, etc.)
         stuns: int
         wounds: int
-        conditions: List
+        conditions: List  # Extra field for NPC→Enemy conversion (NPCs have conditions)
         template_name: str
         position: Position  # Tactical position
         initiative: int = 0  # Will be rolled at round start
-        personality: str = "defensive"
-        description: str = ""
-        # State tracking fields (must match real EnemyAgent)
+        description: str = ""  # Extra field for descriptive text
+
+        # ===== DOCTRINE & BEHAVIOR =====
+        tactics: str = "aggressive_melee"
+        threat_priority: str = "closest_threat"
+        retreat_threshold: float = 0.3
+        personality: str = "flee_when_broken"  # Match real EnemyAgent default
+
+        # ===== AEONISK-SPECIFIC =====
+        void_threshold: int = 8
+
+        # ===== EQUIPMENT =====
+        weapons: List = field(default_factory=list)  # List[Weapon] in real version
+        armor: Optional[Any] = None  # Optional[Armor] in real version
+        special_abilities: List[str] = field(default_factory=list)
+        ammo: Dict[str, int] = field(default_factory=dict)
+
+        # ===== STATE TRACKING =====
         is_active: bool = True
         is_prisoner: bool = False
         is_panicked: bool = False
@@ -238,7 +253,15 @@ def escalate_npc_to_enemy(
         status_effects: List[str] = field(default_factory=list)
         debuffs: List[Dict[str, Any]] = field(default_factory=list)
         shared_intel: Dict[str, Any] = field(default_factory=dict)
-        # Tactical fields
+
+        # ===== YAGS COMPATIBILITY =====
+        size: int = 5  # Human default
+        body_levels: int = 5  # Typically = size
+        move: int = 10  # Movement in meters per round
+        stance: str = "normal"  # "normal", "aggressive", "defensive", "prone"
+        defences_declared: int = 0  # Number of active defences this round
+
+        # ===== TACTICAL FIELDS =====
         fatigue: int = 0
         defence_token: Optional[str] = None
         tactical_token: Optional[str] = None
@@ -388,7 +411,7 @@ def _determine_threat_level_from_enemy(enemy) -> Literal["non_combatant", "poten
 
 def _derive_personality_from_template(template: str) -> str:
     """
-    Derive enemy personality from template name.
+    Derive enemy morale behavior from template name.
 
     Used when escalating NPC back to enemy.
 
@@ -396,13 +419,16 @@ def _derive_personality_from_template(template: str) -> str:
         template: Enemy template name
 
     Returns:
-        personality string ("professional", "ruthless", "defensive")
+        personality string (morale behavior: "flee_when_broken", "surrender_if_cornered", "fight_to_death")
     """
     template_lower = template.lower()
 
+    # Pirates/raiders are likely to flee when losing
     if 'pirate' in template_lower or 'raider' in template_lower:
-        return "ruthless"
-    elif 'soldier' in template_lower or 'guard' in template_lower:
-        return "professional"
+        return "flee_when_broken"
+    # Professional soldiers surrender when tactically defeated
+    elif 'soldier' in template_lower or 'guard' in template_lower or 'elite' in template_lower:
+        return "surrender_if_cornered"
+    # Desperate fighters (default escalation) flee when broken
     else:
-        return "defensive"
+        return "flee_when_broken"
