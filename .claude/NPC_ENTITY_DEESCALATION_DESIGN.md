@@ -1601,6 +1601,301 @@ result = mechanics.apply_healing(target, amount=10, heal_type="hp")
 
 ---
 
-**Last Updated**: 2025-11-04 (Phase 7 complete, Phase 9 in progress)
+## Phase 10: NPC Escalation & Skill Selection Improvements (2025-11-05)
+
+**Status**: Implemented, but prompt caching issue prevents testing ⚠️
+
+### What Was Implemented (Commit: ed4a298)
+
+**9 Critical Fixes** for NPC escalation system and AI skill selection:
+
+#### 1. Escalation Processing Wired Up ✅
+**File**: `session.py:2477-2510`
+
+Added complete escalation processing loop in round synthesis:
+```python
+# 3.5. Handle escalations (NPC → Enemy conversions)
+if synthesis.escalations:
+    for escalation in synthesis.escalations:
+        enemy = dm_agent._process_escalation(
+            escalation=escalation,
+            current_round=mechanics.current_round
+        )
+        if enemy:
+            self.enemy_combat.enemy_agents.append(enemy)
+            print(f"\n⚠️  {enemy.name} escalated to Enemy (was NPC): {escalation.reason}")
+```
+
+**Impact**: NPCs can now convert to enemies when attacked/threatened.
+
+#### 2. Fixed "Combat Ended" Context Bug ✅
+**File**: `session.py:842`
+
+Changed misleading context that confused NPCs:
+```python
+# BEFORE:
+context += f"Combat ended. {num_players} players present. "
+
+# AFTER:
+context += f"No active threats. {num_players} players present. "
+```
+
+**Impact**: NPCs no longer think "combat ended" when combat hasn't started yet.
+
+#### 3. Universal Nexus Morality Framework ✅
+**File**: `dm.yaml:622-627`
+
+Added explicit Sovereign Nexus perspective for soulcredit:
+```yaml
+**⚖️ UNIVERSAL NEXUS MORALITY FRAMEWORK:**
+Soulcredit represents **Sovereign Nexus universal morality** - the government's canonical moral framework.
+- Score **ALL actions from Nexus perspective**, regardless of acting character's faction
+- Tempest operatives infiltrating Nexus facility = **NEGATIVE soulcredit** (hostile to Nexus)
+- Nexus guards defending facility = **POSITIVE soulcredit** (protecting lawful order)
+- This applies even when Tempest/rebel PCs are protagonists - morality is from Nexus POV
+```
+
+**Impact**: Soulcredit should now score from Nexus viewpoint, not PC faction.
+
+#### 4. Margin-Based Escalation Triggers ✅
+**File**: `dm_commands.yaml:150-177`
+
+Added nuanced escalation guidance based on success margins:
+```yaml
+**Success margin matters for intimidation/coercion:**
+- **Low margin (0-5):** High escalation chance - NPC may resist/panic/fight back
+- **Medium margin (6-10):** Moderate chance - depends on NPC disposition
+- **High margin (11+):** Low chance - NPC too scared/overwhelmed to resist
+
+**Always escalate for:**
+- **Violence against NPCs:** Physical attacks = immediate escalation
+- **Threats to faction:** Attacking NPC's allies = escalation
+```
+
+**Impact**: DM has clear guidance on when NPCs should escalate.
+
+#### 5. Emphasized NPC Spawns ✅
+**File**: `dm_commands.yaml:105-116`
+
+Added prominent reminder to use NPCs liberally:
+```yaml
+**✨ SPAWN NEW CIVILIAN NPCs - USE THIS ACTIVELY:**
+
+**⚠️ IMPORTANT: NPCs make scenes come alive! Use `npc_spawns` frequently to populate the world.**
+
+**When to spawn NPCs (use liberally):**
+- Players enter populated area (civilians, witnesses, bystanders)
+- Story events introduce friendly contacts (informants, allies, medics)
+- Neutral parties appear (armed guards, potential threats who haven't engaged)
+```
+
+**Impact**: DM should proactively spawn NPCs instead of waiting for players to ask.
+
+#### 6. Player Skill Selection Guidance ✅
+**File**: `player.yaml:192-212`
+
+Added explicit skill matching for action intents:
+```yaml
+**Social Actions:**
+- **Intimidation/Threats/Coercion:** Use `Charisma × Intimidation` (if you have Intimidation skill)
+- **Persuasion/Charm/Seduction:** Use `Empathy × Charm`
+
+**CHECK YOUR CHARACTER SHEET:** Always prefer skills you have high ranks in!
+```
+
+**Impact**: Player AIs should choose correct skills for their intents.
+
+#### 7. DM Skill Override Capability ✅
+**File**: `dm.yaml:348-371`
+
+DM can now substitute correct skill when player chooses wrong one:
+```yaml
+**⚠️ SKILL OVERRIDE - When Players Choose Wrong Skills:**
+
+If player declared inappropriate skill for their action intent, **YOU CAN SUBSTITUTE the correct skill**:
+
+**Examples requiring override:**
+- Player uses `Empathy × Charm` for intimidation → Override to `Charisma × Intimidation`
+```
+
+**Impact**: DM can fix skill mismatches for better game balance.
+
+#### 8. Skill Mismatch Detection & Logging ✅
+**Files**:
+- `action_resolution.py:258-261` (schema field)
+- `dm.py:2801-2820` (detection logic)
+
+Added detection and logging of skill overrides:
+```python
+skill_override: Optional[Dict[str, str]] = Field(
+    default=None,
+    description="Skill mismatch: {declared: 'Charm', used: 'Intimidation', reason: '...'}"
+)
+
+# Detection logic prints to stdout for ML training
+print(f"\n⚠️  Skill Override: {character_name} declared {declared_skill}, DM used {dm_skill}")
+```
+
+**Impact**: ML training data captures when DM overrides player skill choices.
+
+#### 9. NPC Despawn Documentation ✅
+**File**: `tactical_resolution.py:137-138`
+
+Documented requirements for fled NPC cleanup:
+```python
+NOTE: Caller should also unregister NPC from target_id_mapper and remove from
+shared_state.npc_agents to ensure they don't reappear in future rounds.
+```
+
+**Impact**: Future implementation guidance for NPC removal.
+
+### Test Results (2025-11-05)
+
+**Session**: `session_6f5b4fd0-7c6c-4b10-ac5c-7d0802e49320.jsonl`
+
+**Findings**:
+1. ✅ **NPCs ARE working**: All 3 NPCs (Guard Vex, Dr. Kess, Dara) declared actions
+2. ✅ **NPC AI works**: NPCs using "pass" action appropriately when not involved
+3. ✅ **NPC dialogue works**: NPCs declared "dialogue" actions
+4. ❌ **No escalations occurred**: BUT this is correct - no violence/threats happened
+5. ❌ **Soulcredit still wrong**: Still using mission perspective instead of Nexus
+6. ❌ **Old prompts loaded**: `UNIVERSAL NEXUS MORALITY` text not present in LLM calls
+
+**Root Cause**: Prompt caching issue in `prompt_loader.py`
+
+The PromptLoader has a module-level singleton that caches YAML files:
+```python
+# prompt_loader.py:479
+_default_loader: Optional[PromptLoader] = None
+
+# prompt_loader.py:252
+if file_key in self._file_cache:
+    return self._file_cache[file_key]  # Returns OLD cached prompts
+```
+
+When YAML files are edited, the cached old versions persist until Python process restarts.
+
+### Known Issues
+
+#### Critical: Prompt Cache Prevents Testing ⚠️
+**Issue**: YAML changes not loaded because PromptLoader caches old prompts
+**Evidence**:
+- `dm.yaml` edited at 16:43 (commit ed4a298)
+- Session ran at 21:10 (97 minutes later)
+- Session LLM calls still contain OLD prompt text
+- Checked with: `sed -n '17p' session.jsonl | python -c "... 'UNIVERSAL NEXUS MORALITY' in prompt_text"` → False
+
+**Solutions**:
+1. **Kill process + fresh run** (simplest):
+   ```bash
+   pkill -f run_multiagent_session
+   python3 scripts/run_multiagent_session.py <config>
+   ```
+
+2. **Add cache clearing** (if using test harness):
+   ```python
+   from scripts.aeonisk.multiagent.prompt_loader import get_default_loader
+   get_default_loader().clear_cache()
+   ```
+
+3. **Verify fix worked**:
+   ```python
+   # Check newest session has new prompts
+   python3 -c "
+   import json
+   with open('session.jsonl') as f:
+       for line in f:
+           event = json.loads(line)
+           if event.get('event_type') == 'llm_call' and event.get('agent_type') == 'dm':
+               prompt = str(event.get('prompt', ''))
+               print('✅ NEW' if 'UNIVERSAL NEXUS MORALITY' in prompt else '❌ OLD')
+               break
+   "
+   ```
+
+#### Minor: Soulcredit Still Mission-Oriented
+**Example from Session**:
+```json
+"soulcredit_delta": 1,
+"soulcredit_reasons": [
+  "Prioritized stealth and minimizing casualties - morally considerate tactical planning"
+]
+```
+
+**Expected**:
+```json
+"soulcredit_delta": -1,
+"soulcredit_reasons": [
+  "Hostile infiltration of Nexus facility - espionage against lawful government"
+]
+```
+
+**Cause**: Old prompts still loaded (see above).
+
+### What Actually Works (Verified) ✅
+
+1. **NPC System Integration**: NPCs participate in rounds, declare actions, tracked properly
+2. **NPC Action Types**: "dialogue", "pass" working as designed
+3. **No False Escalations**: System correctly doesn't escalate when no triggers present
+4. **Player Coordination**: Social actions between players working
+5. **Round Synthesis**: Escalation fields present in output (just null when not triggered)
+
+### What Needs Testing (After Prompt Cache Fix)
+
+1. **Escalation triggers**: Attack/threaten NPC → converts to enemy
+2. **Margin-based escalation**: Low margin intimidation → higher chance of escalation
+3. **Soulcredit perspective**: Tempest infiltration → negative soulcredit from Nexus POV
+4. **Skill overrides**: DM substitutes correct skill when player picks wrong one
+5. **Skill mismatch logging**: skill_override field populated in JSONL
+
+### Recommendations for Next Session
+
+**BEFORE running test**:
+1. Kill any existing Python processes: `pkill -f run_multiagent_session`
+2. Wait 2 seconds for cleanup
+3. Run fresh: `python3 scripts/run_multiagent_session.py <config>`
+
+**TEST scenario should include**:
+- Intimidation actions (test skill selection + escalation triggers)
+- Violence against NPCs (test immediate escalation)
+- Low-margin social actions (test margin-based escalation)
+- Tempest vs Nexus actions (test Nexus morality framework)
+
+**VERIFY after test**:
+```bash
+# Check new prompts loaded
+python3 scripts/analyze_session.py <session>.jsonl --search event_type=llm_call agent_type=dm --index
+# Get first DM LLM call line number
+sed -n '<LINE>p' <session>.jsonl | grep -o 'UNIVERSAL NEXUS MORALITY'
+# Should output: UNIVERSAL NEXUS MORALITY
+```
+
+### Files Changed (Commit ed4a298)
+
+- `scripts/aeonisk/multiagent/session.py` (+37 lines)
+- `scripts/aeonisk/multiagent/dm.py` (+21 lines)
+- `scripts/aeonisk/multiagent/prompts/claude/en/dm.yaml` (+63 lines, -21 removed)
+- `scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_commands.yaml` (+48 lines, -3 removed)
+- `scripts/aeonisk/multiagent/prompts/claude/en/player.yaml` (+22 lines)
+- `scripts/aeonisk/multiagent/schemas/action_resolution.py` (+5 lines)
+- `scripts/aeonisk/multiagent/tactical_resolution.py` (+3 lines)
+- `scripts/session_configs/session_config_npc_escalation_tempest.json` (+4 lines, -21 removed)
+
+**Total**: 203 lines added, 45 removed across 8 files
+
+### Git Commits Related to NPC System
+
+**Recent** (2025-11-05):
+- `ed4a298` - NPC escalation system and skill selection improvements (THIS PHASE)
+
+**Previous** (2025-11-04):
+- `5825be1` - test: add comprehensive NPC system tests (56 tests, all passing)
+- `35a9789` - feat: add NPC system golden fixture + Tempest escalation test config
+- `8edf124` - fix: add error handling for NPC LLM client initialization
+- ... (15 more commits from Phase 1-7)
+
+---
+
+**Last Updated**: 2025-11-05 (Phase 10 complete, pending prompt cache fix for testing)
 **Branch**: npcs-and-deescalation
-**Commits**: dcccfee (P1), b1ea47c (P2), 099d571 (P3), 789aa08 (P5-6), 9fb25cc (P7)
+**Commits**: dcccfee (P1), b1ea47c (P2), 099d571 (P3), 789aa08 (P5-6), 9fb25cc (P7), ed4a298 (P10)
