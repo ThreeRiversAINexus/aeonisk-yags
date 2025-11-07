@@ -1,13 +1,7 @@
 """
 Enemy Spawner for Aeonisk Tactical Combat
 
-Handles parsing spawn markers from DM narration and creating enemy agents.
-
-Spawn Syntax:
-    [SPAWN_ENEMY: name | template | position | tactics]
-
-Example:
-    [SPAWN_ENEMY: Syndicate Enforcers | elite | Near-Enemy | aggressive_melee]
+Handles creating enemy agents from structured output (EnemySpawn schema).
 
 Each enemy is a single combat unit. Groups (e.g., "Heavy Gunners Squad")
 are single units with one HP pool. DM narrates casualties based on HP percentage.
@@ -18,9 +12,8 @@ Author: Three Rivers AI Nexus
 Date: 2025-10-22
 """
 
-import re
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 from dataclasses import replace
 
 from .enemy_agent import EnemyAgent, Position
@@ -37,126 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# SPAWN MARKER REGEX
-# =============================================================================
-
-# Pattern: [SPAWN_ENEMY: name | template | position | tactics (optional) | personality:TYPE (optional)]
-# Example: [SPAWN_ENEMY: Debt Collectors | elite | Near-Enemy | aggressive_melee | personality:surrender_if_cornered]
-SPAWN_PATTERN = re.compile(
-    r'\[SPAWN_ENEMY:\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|\]]+)(?:\s*\|\s*([^|\]]+))?(?:\s*\|\s*([^|\]]+))?\]',
-    re.IGNORECASE
-)
-
-# Pattern: [DESPAWN_ENEMY: agent_id | reason]
-DESPAWN_PATTERN = re.compile(
-    r'\[DESPAWN_ENEMY:\s*([^|]+)\s*\|\s*([^\]]+)\]',
-    re.IGNORECASE
-)
-
-
-# =============================================================================
 # SPAWN PROCESSING
 # =============================================================================
-
-def extract_invalid_spawn_markers(text: str) -> List[str]:
-    """
-    Find malformed [SPAWN_ENEMY: ...] markers that don't have enough fields.
-
-    Used for retry mechanism - detects markers that will fail parsing.
-
-    Args:
-        text: DM narration text
-
-    Returns:
-        List of incomplete marker contents (without brackets)
-    """
-    # Match any [SPAWN_ENEMY: ...] marker
-    pattern = r'\[SPAWN_ENEMY:\s*([^\]]+)\]'
-    candidates = re.findall(pattern, text, re.IGNORECASE)
-
-    invalid = []
-    for content in candidates:
-        pipe_count = content.count('|')
-        # Need at least 2 pipes for 3 required fields (name|template|position)
-        # Tactics and personality are optional
-        if pipe_count < 2:
-            invalid.append(content)
-            logger.debug(f"Found invalid SPAWN_ENEMY marker with {pipe_count + 1} fields (need 5): {content[:50]}")
-
-    return invalid
-
-
-def parse_spawn_markers(text: str) -> List[Tuple[str, str, str, Optional[str], Optional[str]]]:
-    """
-    Parse all spawn markers from DM narration.
-
-    Args:
-        text: DM narration text
-
-    Returns:
-        List of (name, template, position, tactics, personality) tuples
-        - personality will be extracted from "personality:TYPE" format in 5th field
-    """
-    # Check for incomplete spawn markers and provide helpful error messages
-    incomplete_pattern = re.compile(r'\[SPAWN_ENEMY:\s*([^\]]+)\]', re.IGNORECASE)
-    incomplete_matches = incomplete_pattern.findall(text)
-
-    if incomplete_matches:
-        for incomplete in incomplete_matches:
-            # Count how many pipe characters are present
-            pipe_count = incomplete.count('|')
-            if pipe_count < 2:  # Need at least 3 fields (name|template|position)
-                logger.error(
-                    f"❌ INVALID SPAWN_ENEMY MARKER: '[SPAWN_ENEMY: {incomplete}]'\n"
-                    f"   Missing required fields! Found {pipe_count + 1} fields, need at least 3.\n"
-                    f"   Correct format: [SPAWN_ENEMY: name | template | position | tactics]\n"
-                    f"   Example: [SPAWN_ENEMY: Corporate Soldiers | elite | Far-Enemy | aggressive_ranged]"
-                )
-
-    matches = SPAWN_PATTERN.findall(text)
-
-    parsed = []
-    for match in matches:
-        name = match[0].strip()
-        template = match[1].strip()
-        position = match[2].strip()
-        tactics = match[3].strip() if len(match) > 3 and match[3] else None
-
-        # Parse personality from 5th field if present (format: "personality:TYPE")
-        personality = None
-        if len(match) > 4 and match[4]:
-            fifth_field = match[4].strip()
-            if fifth_field.startswith('personality:'):
-                personality = fifth_field.split(':', 1)[1].strip()
-                logger.info(f"Found personality override: {personality}")
-
-        parsed.append((name, template, position, tactics, personality))
-        logger.info(f"Found spawn marker: {name} ({template}) at {position}, tactics={tactics}, personality={personality}")
-
-    return parsed
-
-
-def parse_despawn_markers(text: str) -> List[Tuple[str, str]]:
-    """
-    Parse all despawn markers from DM narration.
-
-    Args:
-        text: DM narration text
-
-    Returns:
-        List of (agent_id, reason) tuples
-    """
-    matches = DESPAWN_PATTERN.findall(text)
-
-    parsed = []
-    for match in matches:
-        agent_id = match[0].strip()
-        reason = match[1].strip()
-
-        parsed.append((agent_id, reason))
-        logger.info(f"Found despawn marker: {agent_id} (reason: {reason})")
-
-    return parsed
 
 
 def spawn_enemy(
@@ -279,41 +154,6 @@ def spawn_enemy(
     return agent
 
 
-def spawn_from_marker(
-    marker_text: str,
-    current_round: int = 0
-) -> List[EnemyAgent]:
-    """
-    Parse spawn marker and create enemy agent(s).
-
-    Args:
-        marker_text: Full DM narration text containing markers
-        current_round: Current combat round
-
-    Returns:
-        List of spawned EnemyAgent instances
-    """
-    markers = parse_spawn_markers(marker_text)
-
-    agents = []
-    for name, template, position, tactics, personality in markers:
-        try:
-            agent = spawn_enemy(
-                name=name,
-                template_key=template,
-                position_str=position,
-                tactics_override=tactics,
-                personality_override=personality,
-                current_round=current_round
-            )
-            agents.append(agent)
-        except Exception as e:
-            logger.error(f"Failed to spawn {name}: {e}")
-            # Continue processing other markers
-
-    return agents
-
-
 # =============================================================================
 # DESPAWN PROCESSING
 # =============================================================================
@@ -380,38 +220,6 @@ def despawn_enemy(
 
     logger.warning(f"Could not find agent to despawn: {agent_id} (tried ID and name matching)")
     return None
-
-
-def despawn_from_markers(
-    marker_text: str,
-    agents: List[EnemyAgent],
-    current_round: int = 0
-) -> List[EnemyAgent]:
-    """
-    Parse despawn markers and despawn agents.
-
-    Args:
-        marker_text: DM narration text containing markers
-        agents: List of all enemy agents
-        current_round: Current combat round
-
-    Returns:
-        List of despawned agents
-    """
-    markers = parse_despawn_markers(marker_text)
-
-    despawned = []
-    for agent_id, reason in markers:
-        agent = despawn_enemy(
-            agent_id=agent_id,
-            agents=agents,
-            reason=reason,
-            current_round=current_round
-        )
-        if agent:
-            despawned.append(agent)
-
-    return despawned
 
 
 def auto_despawn_defeated(
@@ -655,57 +463,16 @@ def count_active_units(agents: List[EnemyAgent]) -> int:
     return sum(1 for a in agents if a.is_active)
 
 
-def validate_spawn_syntax(marker_text: str) -> Tuple[bool, Optional[str]]:
-    """
-    Validate spawn marker syntax.
-
-    Args:
-        marker_text: Marker text to validate
-
-    Returns:
-        (is_valid, error_message)
-    """
-    markers = parse_spawn_markers(marker_text)
-
-    if not markers:
-        return False, "No spawn markers found"
-
-    for name, template, position, tactics, personality in markers:
-        # Validate template
-        available = get_available_templates()
-        if template not in available:
-            return False, f"Unknown template '{template}'. Available: {', '.join(available)}"
-
-        # Validate position
-        try:
-            Position.from_string(position)
-        except Exception as e:
-            return False, f"Invalid position '{position}': {e}"
-
-        # Validate tactics (optional)
-        if tactics:
-            from .enemy_agent import TACTICAL_DOCTRINES
-            if tactics not in TACTICAL_DOCTRINES:
-                return False, f"Unknown tactics '{tactics}'"
-
-    return True, None
-
-
 # =============================================================================
 # MODULE EXPORTS
 # =============================================================================
 
 __all__ = [
-    'parse_spawn_markers',
-    'parse_despawn_markers',
     'spawn_enemy',
-    'spawn_from_marker',
     'despawn_enemy',
-    'despawn_from_markers',
     'auto_despawn_defeated',
     'suggest_loot',
     'get_active_enemies',
     'get_enemies_by_position',
-    'count_active_units',
-    'validate_spawn_syntax'
+    'count_active_units'
 ]

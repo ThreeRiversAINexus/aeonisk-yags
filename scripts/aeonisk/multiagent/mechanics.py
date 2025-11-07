@@ -959,8 +959,8 @@ class SceneClock:
     current: int = 0
     maximum: int = 6
     description: str = ""
-    advance_means: str = ""  # What it means to advance (e.g., "Investigation progresses", "Danger increases")
-    regress_means: str = ""  # What it means to regress (e.g., "Setback in investigation", "Danger reduced")
+    advance_meaning: str = ""  # What it means to advance (e.g., "Investigation progresses", "Danger increases")
+    regress_meaning: str = ""  # What it means to regress (e.g., "Setback in investigation", "Danger reduced")
     filled_consequence: str = ""  # What happens when filled (e.g., "Evidence complete, pivot to confrontation")
     timeout_rounds: int = 5  # Rounds until clock expires (default 5)
     allow_negative: bool = False  # If True, clock can go negative (for bidirectional trackers)
@@ -1786,8 +1786,8 @@ class MechanicsEngine:
         name: str,
         maximum: int = 6,
         description: str = "",
-        advance_means: str = "",
-        regress_means: str = "",
+        advance_meaning: str = "",
+        regress_meaning: str = "",
         filled_consequence: str = "",
         timeout_rounds: int = None
     ) -> SceneClock:
@@ -1798,8 +1798,8 @@ class MechanicsEngine:
             name: Clock name (e.g., "Evidence Collection")
             maximum: Max ticks before filling
             description: What the clock tracks
-            advance_means: What it means to advance (e.g., "More evidence discovered")
-            regress_means: What it means to regress (e.g., "Evidence destroyed")
+            advance_meaning: What it means to advance (e.g., "More evidence discovered")
+            regress_meaning: What it means to regress (e.g., "Evidence destroyed")
             filled_consequence: What happens when filled (e.g., "Case ready for prosecution")
             timeout_rounds: Rounds until clock expires (None = auto-calculated based on maximum)
         """
@@ -1819,8 +1819,8 @@ class MechanicsEngine:
             name=name,
             maximum=maximum,
             description=description,
-            advance_means=advance_means,
-            regress_means=regress_means,
+            advance_meaning=advance_meaning,
+            regress_meaning=regress_meaning,
             filled_consequence=filled_consequence,
             timeout_rounds=timeout_rounds
         )
@@ -1975,7 +1975,10 @@ class MechanicsEngine:
                             "delta": after - before,
                             "filled": after >= maximum,
                             "reasons": reasons,
-                            "direction": direction
+                            "direction": direction,
+                            "advance_meaning": clock.advance_meaning,
+                            "regress_meaning": clock.regress_meaning,
+                            "filled_consequence": clock.filled_consequence
                         },
                         round_num=self.current_round
                     )
@@ -1988,7 +1991,10 @@ class MechanicsEngine:
                             "clock_name": clock_name,
                             "final_ticks": after,
                             "maximum_ticks": maximum,
-                            "reasons": reasons
+                            "reasons": reasons,
+                            "filled_consequence": clock.filled_consequence,
+                            "advance_meaning": clock.advance_meaning,
+                            "regress_meaning": clock.regress_meaning
                         },
                         round_num=self.current_round
                     )
@@ -2054,8 +2060,8 @@ class MechanicsEngine:
                     'maximum': clock.maximum,
                     'description': clock.description,
                     'filled_consequence': clock.filled_consequence,
-                    'advance_means': clock.advance_means,
-                    'regress_means': clock.regress_means,
+                    'advance_meaning': clock.advance_meaning,
+                    'regress_meaning': clock.regress_meaning,
                     'removal_reason': 'filled'
                 })
 
@@ -2084,8 +2090,8 @@ class MechanicsEngine:
                     'maximum': clock.maximum,
                     'description': clock.description,
                     'filled_consequence': clock.filled_consequence,
-                    'advance_means': clock.advance_means,
-                    'regress_means': clock.regress_means,
+                    'advance_meaning': clock.advance_meaning,
+                    'regress_meaning': clock.regress_meaning,
                     'removal_reason': 'timeout'
                 })
 

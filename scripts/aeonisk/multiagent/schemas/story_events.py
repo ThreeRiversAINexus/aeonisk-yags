@@ -38,7 +38,8 @@ class NewClock(BaseModel):
         max_ticks=8,
         description="Evacuate civilians from void surge zone",
         advance_meaning="passengers evacuated",
-        regress_meaning="passengers endangered"
+        regress_meaning="passengers endangered",
+        filled_consequence="All passengers safe, transport arrives"
     )
     ```
     """
@@ -76,6 +77,13 @@ class NewClock(BaseModel):
         min_length=5,
         max_length=100,
         description="What it means when clock regresses (opposite of advance)"
+    )
+
+    filled_consequence: str = Field(
+        default="",
+        min_length=0,
+        max_length=300,
+        description="What happens when clock fills (e.g., 'Enemy reinforcements arrive', 'Evidence complete, advance to confrontation')"
     )
 
     current_ticks: int = Field(
@@ -492,6 +500,13 @@ class ScenarioSetup(BaseModel):
         min_length=50,
         max_length=800,
         description="Opening situation (3-5 sentences)"
+    )
+
+    void_level: int = Field(
+        default=3,
+        ge=0,
+        le=10,
+        description="Environmental void corruption level (0-10, default 3)"
     )
 
     starting_clocks: List[NewClock] = Field(

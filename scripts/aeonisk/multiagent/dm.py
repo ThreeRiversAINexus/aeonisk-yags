@@ -292,132 +292,141 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 {lore_context}
 {variety_context}
 
-Create a scenario with:
-1. Theme (2-3 words): The type of situation
-2. Location: A specific place in the Aeonisk setting (USE CANONICAL LOCATIONS FROM LORE ABOVE)
-3. Situation (3-6 sentences): Vivid, atmospheric opening narration that drops players directly into the action. Paint the scene with sensory details, immediate tension, environmental atmosphere, NPCs present, and what's at stake. Show don't tell. This becomes the opening narration players will hear.
-4. Three clocks/timers with CLEAR SEMANTICS:
-   - A threat/danger that could escalate
-   - Something the players are trying to accomplish
-   - A complication or secondary concern
+**Scenario Requirements:**
 
-   **CRITICAL**: For each clock, specify what it means to ADVANCE and REGRESS:
-   - If advancing = getting worse for players (danger increasing, time running out)
-     → Name it clearly: "Security Alert", "Structural Collapse", "Hunter Pursuit"
-     → Use MECHANICAL clock: FILLED should include [SPAWN_ENEMY: ...]
-   - If advancing = progress on objective (evidence gathering, defenses built)
-     → Name it clearly: "Evidence Collection", "Defenses Established", "Evacuation Progress"
-     → Use NARRATIVE clock: FILLED should include [ADVANCE_STORY: Location | Situation] or [NEW_CLOCK: ...]
-   - ALWAYS specify what happens when filled (mechanical OR narrative marker required)
+1. **Theme** (2-3 words): The type of situation (combat, investigation, social, crisis, etc.)
 
-Format:
-THEME: [theme]
-LOCATION: [location from canonical lore]
-SITUATION: [vivid 3-6 sentence atmospheric opening]
-CLOCK1: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
-CLOCK2: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
-CLOCK3: [name] | [max] | [description] | ADVANCE=[what advancing means] | REGRESS=[what regressing means] | FILLED=[consequence when filled]
+2. **Location**: A specific place from Aeonisk canonical lore. Use locations from the lore context above.
 
-Example situation (VIVID, ATMOSPHERIC):
-SITUATION: The Resonance Spire's transmission array crackles with stolen signals - House of Vox feeds hijacked mid-broadcast, replaced with manifesto scrolls denouncing the Nexus. Below, Pantheon Security cordons spiral upward through the cloudbreak, boots hammering on glass walkways. The hijackers are still inside, somewhere in the 200 floors of offices and studios. You have maybe ten minutes before the building locks down completely.
+3. **Situation** (3-6 sentences): Vivid, atmospheric opening narration that drops players directly into action.
+   - Use sensory details and show immediate tension
+   - Include NPCs present and what's at stake
+   - Make it cinematic and engaging
+   - Example: "The Resonance Spire's transmission array crackles with stolen signals..."
 
-Example clocks (MECHANICAL - with spawn markers):
-CLOCK1: Security Alert | 6 | Corporate hunters closing in | ADVANCE=Hunters get closer to finding the team | REGRESS=Team evades or misleads pursuit | FILLED=Hunter team arrives [SPAWN_ENEMY: Corporate Hunters | elite | 2 | Far-Enemy | tactical_ranged]
-CLOCK2: Containment Failure | 4 | Void breach imminent | ADVANCE=Breach worsens | REGRESS=Containment reinforced | FILLED=Void creature emerges [SPAWN_ENEMY: Void Manifestation | boss | 1 | Near-Enemy | aggressive_melee]
+4. **Void Level** (0-10): Environmental void corruption intensity
+   - 0-2: Safe, minimal corruption
+   - 3-5: Moderate void presence
+   - 6-8: Dangerous corruption (consider Eye of Breach if Tempest involved)
+   - 9-10: Critical void breach imminent
 
-Example clocks (NARRATIVE - with scenario markers):
-CLOCK3: Evidence Collection | 8 | Gathering proof of corruption | ADVANCE=More evidence found | REGRESS=Evidence destroyed | FILLED=Case ready, evidence complete [ADVANCE_STORY: Magistrate's Office | Confrontation with the corrupt magistrate]
-CLOCK4: Escape Route | 6 | Finding way out of the facility | ADVANCE=Exit path revealed | REGRESS=Path blocked | FILLED=Exit found! [ADVANCE_STORY: Maintenance Tunnels | You emerge into the tunnels. Allies are regrouping ahead]
-CLOCK5: Void Resonance | 4 | Growing instability | ADVANCE=Resonance intensifies | REGRESS=Stabilization efforts succeed | FILLED=New void rift opening [NEW_CLOCK: Rift Manifestation | 6 | Entities crossing over]
+5. **Starting Clocks** (1-4 clocks): Progress timers with clear semantics
+   - Include at least one **threat clock** (danger escalating) and one **objective clock** (player goal)
+   - Optional: complication or secondary concern
 
-**IMPORTANT**: ALL clocks MUST have consequences in their FILLED field. Use:
-- **Mechanical markers** for spawns/despawns: [SPAWN_ENEMY: ...], [DESPAWN_ENEMY: ...]
-- **Scenario markers** for narrative progression: [ADVANCE_STORY: Location | Situation], [NEW_CLOCK: ...]
+   **For each clock, specify:**
+   - **Name**: Clear, descriptive (e.g., "Security Alert", "Evidence Collection")
+   - **Max ticks** (4-8 recommended): How many advances until filled
+   - **Description**: What this clock tracks
+   - **Advance meaning**: What it means when clock advances (be specific!)
+   - **Regress meaning**: What it means when clock regresses
+   - **Filled consequence**: What happens when filled (narrative description)
 
-**ENEMY SPAWNING**: For combat/danger clocks, add enemy spawn markers to FILLED consequences:
-- Syntax: [SPAWN_ENEMY: name | template | position | tactics]
-- Templates: grunt (15 HP), elite (25 HP), sniper (20 HP), boss (40 HP), enforcer (30 HP), ambusher (18 HP)
-- Positions: Engaged, Near-Enemy, Far-Enemy, Extreme-Enemy
-- Tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, adaptive
-- Use for: Security teams, void creatures, gang members, hostile factions, corrupted entities
-- Example: [SPAWN_ENEMY: Security Team | grunt | Far-Enemy | tactical_ranged]
+   **Clock Types:**
+   - **Threat clocks**: Advancing = worse for players (Security Alert, Structural Collapse, Hunter Pursuit)
+   - **Progress clocks**: Advancing = goal progress (Evidence Collection, Defenses Established, Evacuation Progress)
 
-**ENEMY DESPAWNING**: For escape/retreat clocks, add despawn markers:
-- Syntax: [DESPAWN_ENEMY: enemy_name | reason]
-- Reasons: escaped, retreated, teleported, fled, recalled, withdrew
-- Example: [DESPAWN_ENEMY: Corporate Hunters | escaped through emergency exit]
+6. **Success Conditions**: What constitutes victory for the players?
 
-IMPORTANT:
-- Base your scenario on the canonical lore provided above
-- Three planets: Aeonisk Prime, Nimbus, Arcadia (space travel between them is possible)
-- Humans only, NO aliens
-- Pick a DIFFERENT theme and location from recently used ones (if listed above)
-- Be creative with scenario types:
-  * COMBAT (50% of scenarios): **ambush**, **firefight**, **battle**, **siege**, **assault**, **defense**, **void creature attack**, **hostile extraction**, **combat rescue**, **gang warfare**, **security breach**
-  * SOCIAL: tribunal/trial, bond dispute, debt settlement, trade negotiation, vendor conflict, economic disputes, social scandal
-  * INTRIGUE: heist, investigation, ritual gone wrong, faction conflict, ancient mystery, political intrigue, transit crisis
+7. **Failure Consequences**: What happens if they fail?
+
+**Scenario Variety Guidelines:**
+- Mix combat (50%), social, intrigue, and crisis scenarios
+- Pick DIFFERENT location from recently used ones (if listed above)
+- Scenario types:
+  * COMBAT: ambush, firefight, siege, assault, defense, void creature attack, gang warfare
+  * SOCIAL: tribunal, bond dispute, debt settlement, trade negotiation, vendor conflict
+  * INTRIGUE: heist, investigation, ritual gone wrong, faction conflict, political intrigue
   * CRISIS: void outbreak, station breach, emergency evacuation, containment failure
-- **VARIETY IS KEY**: Mix combat scenarios with social/economic ones. About 50% of scenarios should have combat elements (enemies spawning when danger clocks fill)
-- **Combat scenarios MUST include**: At least one clock with [SPAWN_ENEMY: ...] in its FILLED consequence
-- **Good combat setups**: Ambushes by rival factions, void-corrupted threats, gang turf wars, hostile encounters during missions, defensive stands, security teams responding to alarms
-- **Vendor/Economy scenarios**: Resource acquisition, price negotiations, debt settlement, economic crime investigation
-- If Tempest Industries is involved OR void level is 6+, consider mentioning Eye of Breach (rogue AI) as a potential threat or presence
-- ⚠️ CRITICAL: Respect the party composition above. DO NOT create scenarios where characters betray their own faction
-- ⚠️ CRITICAL: Align scenarios with character goals OR create interesting cross-faction cooperation (e.g., Sovereign Nexus + ArcGen investigating a shared threat)
-- Good examples: ACG hires party to recover stolen debt contracts, Pantheon investigates void corruption, factions team up against common enemy
-- BAD examples: ACG hires Sovereign Nexus to steal from Codex Cathedral, hiring characters to sabotage their own faction"""
 
-                provider = self.llm_config.get('provider', 'anthropic')
-                model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+**Critical Constraints:**
+- Base on canonical lore above (three planets: Aeonisk Prime, Nimbus, Arcadia)
+- Humans only, NO aliens
+- Respect party composition - NO faction betrayal scenarios
+- Align with character goals OR create cross-faction cooperation
+- Good: ACG hires party to recover debt contracts, Pantheon investigates void corruption
+- Bad: ACG hires Sovereign Nexus to steal from their own faction"""
 
-                # Use rate-limited wrapper to prevent API overload
-                from .llm_provider import call_anthropic_with_retry
+                # Try structured output first
+                scenario_setup = await self._generate_scenario_structured(scenario_prompt)
 
-                response = await call_anthropic_with_retry(
-                    client=self.llm_client,
-                    model=model,
-                    messages=[{"role": "user", "content": scenario_prompt}],
-                    max_tokens=1000,
-                    temperature=0.9,
-                    max_retries=3,
-                    base_delay=2.0,
-                    max_delay=120.0,
-                    use_rate_limiter=True
-                )
-                llm_text = response.content[0].text.strip()
+                if scenario_setup:
+                    # Successfully generated structured output
+                    logger.info(f"✓ Using structured output for scenario generation")
+                    scenario_data = {
+                        'theme': scenario_setup.theme,
+                        'location': scenario_setup.location,
+                        'situation': scenario_setup.situation,
+                        'void_level': scenario_setup.void_level,
+                        'clocks': []
+                    }
 
-                # Log LLM call for replay
-                if self.llm_logger:
-                    self.llm_logger._log_llm_call(
-                        messages=[{"role": "user", "content": scenario_prompt}],
-                        response=llm_text,
+                    # Convert NewClock objects to tuple format for compatibility
+                    for clock in scenario_setup.starting_clocks:
+                        scenario_data['clocks'].append((
+                            clock.name,
+                            clock.max_ticks,
+                            clock.description,
+                            clock.advance_meaning,
+                            clock.regress_meaning,
+                            clock.filled_consequence
+                        ))
+
+                else:
+                    # Fall back to legacy text generation + parsing
+                    logger.info("⚠️ Falling back to legacy text-based scenario generation")
+
+                    provider = self.llm_config.get('provider', 'anthropic')
+                    model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
+
+                    # Use rate-limited wrapper to prevent API overload
+                    from .llm_provider import call_anthropic_with_retry
+
+                    response = await call_anthropic_with_retry(
+                        client=self.llm_client,
                         model=model,
+                        messages=[{"role": "user", "content": scenario_prompt}],
+                        max_tokens=1000,
                         temperature=0.9,
-                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
-                        current_round=None,  # Scenario generation happens before round 1
-                        call_sequence=self.llm_logger.call_count
+                        max_retries=3,
+                        base_delay=2.0,
+                        max_delay=120.0,
+                        use_rate_limiter=True
                     )
-                    self.llm_logger.call_count += 1
+                    llm_text = response.content[0].text.strip()
 
-                # Also log to human-readable agent prompt log if enabled
-                if self.agent_prompt_logger:
-                    try:
-                        self.agent_prompt_logger.log_llm_call(
-                            agent_id=self.agent_id,
-                            round_num=None,
-                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
-                            prompt=scenario_prompt,
+                    # Log LLM call for replay
+                    if self.llm_logger:
+                        self.llm_logger._log_llm_call(
+                            messages=[{"role": "user", "content": scenario_prompt}],
                             response=llm_text,
                             model=model,
                             temperature=0.9,
                             tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
-                            metadata={'purpose': 'scenario_generation'}
+                            current_round=None,  # Scenario generation happens before round 1
+                            call_sequence=self.llm_logger.call_count
                         )
-                    except Exception as e:
-                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+                        self.llm_logger.call_count += 1
 
-                # Parse LLM response
-                scenario_data = self._parse_scenario_from_llm(llm_text)
+                    # Also log to human-readable agent prompt log if enabled
+                    if self.agent_prompt_logger:
+                        try:
+                            self.agent_prompt_logger.log_llm_call(
+                                agent_id=self.agent_id,
+                                round_num=None,
+                                call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                                prompt=scenario_prompt,
+                                response=llm_text,
+                                model=model,
+                                temperature=0.9,
+                                tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                                metadata={'purpose': 'scenario_generation'}
+                            )
+                        except Exception as e:
+                            logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+                    # Parse LLM response
+                    scenario_data = self._parse_scenario_from_llm(llm_text)
 
                 # Enforce variety - reject if location matches recent scenarios
                 if self.shared_state:
@@ -539,13 +548,13 @@ IMPORTANT:
                 clock_name = clock_data[0]
                 max_value = clock_data[1]
                 description = clock_data[2] if len(clock_data) > 2 else ""
-                advance_means = clock_data[3] if len(clock_data) > 3 else ""
-                regress_means = clock_data[4] if len(clock_data) > 4 else ""
+                advance_meaning = clock_data[3] if len(clock_data) > 3 else ""
+                regress_meaning = clock_data[4] if len(clock_data) > 4 else ""
                 filled_consequence = clock_data[5] if len(clock_data) > 5 else ""
 
                 mechanics.create_scene_clock(
                     clock_name, max_value, description,
-                    advance_means, regress_means, filled_consequence
+                    advance_meaning, regress_meaning, filled_consequence
                 )
                 print(f"[DM {self.agent_id}] Created clock: {clock_name} (0/{max_value})")
 
@@ -871,7 +880,85 @@ IMPORTANT:
                 'opening_narration': input("Opening narration: ").strip()
             }
         )
-        
+
+    async def _generate_scenario_structured(
+        self,
+        scenario_prompt: str,
+        system_prompt: str = "You are the DM for Aeonisk YAGS, creating an engaging scenario."
+    ) -> Optional['ScenarioSetup']:
+        """
+        Generate scenario using Pydantic AI structured output (ScenarioSetup schema).
+        Returns ScenarioSetup if successful, or None to fall back to legacy text parsing.
+        """
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            logger.debug("DM: No llm_provider available for scenario generation, will use legacy method")
+            return None
+
+        try:
+            from .schemas.story_events import ScenarioSetup
+
+            logger.debug("DM: Attempting structured output for scenario generation")
+
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = 1000
+            temperature = 0.9
+
+            # Generate structured scenario using Pydantic AI
+            scenario: ScenarioSetup = await self.llm_provider.generate_structured(
+                prompt=scenario_prompt,
+                result_type=ScenarioSetup,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+
+            logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
+
+            # Log LLM call for replay
+            if self.llm_logger:
+                estimated_input_tokens = len(scenario_prompt) // 4
+                estimated_output_tokens = (
+                    len(scenario.theme) + len(scenario.location) +
+                    len(scenario.situation) + len(scenario.success_conditions)
+                ) // 4
+
+                self.llm_logger._log_llm_call(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": scenario_prompt}
+                    ],
+                    response=scenario.situation,  # Store situation as representative response
+                    model=model,
+                    temperature=temperature,
+                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                    current_round=None,  # Scenario generation happens before round 1
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
+
+            # Also log to agent prompt logger if enabled
+            if self.agent_prompt_logger:
+                try:
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=None,
+                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                        prompt=scenario_prompt,
+                        response=scenario.situation,
+                        model=model,
+                        temperature=temperature,
+                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                        metadata={'purpose': 'scenario_generation_structured', 'note': 'Pydantic AI structured output (ScenarioSetup schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+            return scenario
+
+        except Exception as e:
+            logger.warning(f"DM: Structured scenario generation failed ({e}), falling back to legacy text parsing")
+            return None
+
     def _parse_scenario_from_llm(self, llm_text: str) -> Dict[str, Any]:
         """Parse scenario from LLM-generated text."""
         lines = llm_text.strip().split('\n')
@@ -917,22 +1004,22 @@ IMPORTANT:
                         description = parts[2].strip()
 
                         # Extract semantic guidance
-                        advance_means = ""
-                        regress_means = ""
+                        advance_meaning = ""
+                        regress_meaning = ""
                         filled_consequence = ""
 
                         for part in parts[3:]:
                             part = part.strip()
                             if part.startswith('ADVANCE='):
-                                advance_means = part.replace('ADVANCE=', '').strip()
+                                advance_meaning = part.replace('ADVANCE=', '').strip()
                             elif part.startswith('REGRESS='):
-                                regress_means = part.replace('REGRESS=', '').strip()
+                                regress_meaning = part.replace('REGRESS=', '').strip()
                             elif part.startswith('FILLED='):
                                 filled_consequence = part.replace('FILLED=', '').strip()
 
                         scenario_data['clocks'].append((
                             name, max_ticks, description,
-                            advance_means, regress_means, filled_consequence
+                            advance_meaning, regress_meaning, filled_consequence
                         ))
 
         # Ensure we have at least 2 clocks
@@ -2155,18 +2242,18 @@ IMPORTANT:
                 current = exp['current']
                 maximum = exp['maximum']
                 description = exp['description']
-                advance_means = exp.get('advance_means', '')
-                regress_means = exp.get('regress_means', '')
+                advance_meaning = exp.get('advance_meaning', '')
+                regress_meaning = exp.get('regress_meaning', '')
                 filled_consequence = exp.get('filled_consequence', '')
 
                 # Build semantic context for expired clock
                 semantic_context = ""
-                if advance_means or regress_means:
+                if advance_meaning or regress_meaning:
                     semantic_context = "\n     📊 SEMANTIC CONTEXT:"
-                    if advance_means:
-                        semantic_context += f"\n        Advance = {advance_means}"
-                    if regress_means:
-                        semantic_context += f"\n        Regress = {regress_means}"
+                    if advance_meaning:
+                        semantic_context += f"\n        Advance = {advance_meaning}"
+                    if regress_meaning:
+                        semantic_context += f"\n        Regress = {regress_meaning}"
                     semantic_context += f"\n     ⚠️  Use this to interpret if {current}/{maximum} is good or bad!"
 
                 if exp_type == "crisis_averted":
@@ -2214,12 +2301,12 @@ IMPORTANT:
 
                     # Add semantic guidance if available
                     clock_info = f"  - {name}: {status}"
-                    if clock.advance_means or clock.regress_means or clock.filled_consequence:
+                    if clock.advance_meaning or clock.regress_meaning or clock.filled_consequence:
                         clock_info += "\n    "
-                        if clock.advance_means:
-                            clock_info += f"Advance = {clock.advance_means}"
-                        if clock.regress_means:
-                            clock_info += f" | Regress = {clock.regress_means}"
+                        if clock.advance_meaning:
+                            clock_info += f"Advance = {clock.advance_meaning}"
+                        if clock.regress_meaning:
+                            clock_info += f" | Regress = {clock.regress_meaning}"
                         if clock.filled_consequence and clock.filled:
                             clock_info += f"\n    🎯 When filled: {clock.filled_consequence}"
 
@@ -2616,21 +2703,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 )
                 synthesis_text = response.content[0].text.strip()
 
-                # Check for invalid SPAWN_ENEMY markers and retry if needed
-                from .enemy_spawner import extract_invalid_spawn_markers
-                invalid_spawns = extract_invalid_spawn_markers(synthesis_text)
-
-                if invalid_spawns:
-                    logger.warning(f"Found {len(invalid_spawns)} invalid SPAWN_ENEMY markers in synthesis - requesting retry")
-                    retry_response = await self._retry_invalid_markers(
-                        marker_type="SPAWN_ENEMY",
-                        invalid_markers=invalid_spawns,
-                        round_num=round_num
-                    )
-                    # Append corrected markers to synthesis
-                    if retry_response.strip():
-                        synthesis_text += f"\n\n{retry_response}"
-                        logger.info(f"Appended retry response to synthesis")
+                # Legacy SPAWN_ENEMY marker validation removed - using structured output now
 
                 # Log LLM call for replay
                 if self.llm_logger:

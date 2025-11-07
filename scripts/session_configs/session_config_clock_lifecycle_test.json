@@ -44,7 +44,16 @@
     }
   ],
 
-  "force_scenario": "[SPAWN_ENEMY: Initial Guards | grunt | 2 | Near-Enemy | aggressive_melee | personality:flee_when_broken]",
+  "initial_enemies": [
+    {
+      "template": "Grunt",
+      "faction": "Station Security",
+      "archetype": "Guards",
+      "count": 2,
+      "spawn_reason": "Initial guard patrol encountered",
+      "initial_position": "Near-Enemy"
+    }
+  ],
 
   "agents": {
     "dm": {
@@ -99,12 +108,12 @@
         "Tactics": 4
       },
       "equipped_weapons": {
-        "primary": "assault_rifle",
+        "primary": "rifle",
         "sidearm": "pistol"
       },
       "carried_weapons": ["combat_knife"],
       "inventory": {
-        "assault_rifle": 1,
+        "rifle": 1,
         "pistol": 1,
         "combat_knife": 1,
         "riot_carapace": 1,
