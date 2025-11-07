@@ -284,8 +284,9 @@ class TargetIDMapper:
             # Player agent
             cs = agent.character_state
             info['name'] = cs.name
-            info['health'] = cs.health
-            info['max_health'] = cs.max_health
+            # Health is stored on agent, not character_state
+            info['health'] = getattr(agent, 'health', 0)
+            info['max_health'] = getattr(agent, 'max_health', 0)
             info['position'] = str(getattr(agent, 'position', 'Unknown'))
             info['void_score'] = cs.void_score
         elif hasattr(agent, 'name'):
