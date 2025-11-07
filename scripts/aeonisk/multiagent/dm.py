@@ -2264,6 +2264,80 @@ IMPORTANT:
         if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
+═══════════════════════════════════════════════════════════════════════════════
+🎭 NPC SPAWNING - CRITICAL FOR NARRATIVE CONSISTENCY 🎭
+═══════════════════════════════════════════════════════════════════════════════
+
+**⚠️ GOLDEN RULE: If you NAME an NPC in your narration, you MUST spawn them via `npc_spawns`**
+
+**MANDATORY NPC SPAWNING TRIGGERS:**
+
+You MUST use `npc_spawns` when:
+✅ You write a named character in your narration (e.g., "Dr. Vohl flees down the corridor")
+✅ Players declare intent to interact with someone ("interrogate the scientist", "talk to the guard")
+✅ Your narration describes NPCs present in the scene ("civilians cower in corners", "technician monitors console")
+✅ Plot requires a character to exist (antagonists, quest-givers, witnesses, informants, allies)
+
+**⚠️ CRITICAL FAILURE MODE - DO NOT DO THIS:**
+❌ Round 1: You write "Dr. Vohl's escape shuttle sits in the hangar..." (Vohl NOT spawned)
+❌ Round 2: Players declare "Find and interrogate Dr. Vohl about the research data"
+❌ Result: BROKEN NARRATIVE - Vohl doesn't exist as an interactable NPC! Players can't target them!
+
+✅ **CORRECT APPROACH:**
+✅ Round 1: Use `npc_spawns` to create Dr. Vohl FIRST
+✅ Round 1: THEN mention Vohl in your narration
+✅ Round 2: Players can now interact with the spawned NPC (interrogate, persuade, combat)
+
+**NPC Spawning Syntax:**
+```python
+npc_spawns=[
+    NPCSpawn(
+        name="Dr. Kellen Vohl",  # EXACT name as it appears in your narration
+        faction="Rogue Scientist (formerly ArcGen)",
+        entity_type="neutral",  # neutral/ally/prisoner
+        threat_level="potential_threat",  # non_combatant/potential_threat/armed_neutral
+        disposition="wary",  # friendly/neutral/wary/prisoner
+        description="Disheveled researcher with void-stained hands, clutching encrypted data slate, cornered and desperate",
+        health=18,
+        soak=0,
+        skills={"Systems": 14, "Science": 12, "Guile": 10}  # Skills for interaction/interrogation
+    )
+]
+```
+
+**Common NPC Types & When to Use:**
+
+1. **Plot Antagonists** (Dr. Vohl, Captain Torres, corrupt officials):
+   - `entity_type="neutral"`, `threat_level="potential_threat"`
+   - Give relevant skills for interaction (Guile for lying, Systems for hacking, Combat for fighting if escalates)
+   - Always spawn if named in narration!
+
+2. **Quest-Givers / Informants** (contacts, witnesses, defectors):
+   - `entity_type="neutral"` or `"ally"`, `threat_level="non_combatant"`
+   - Give social/knowledge skills (Area Lore, Corporate Influence, Science)
+
+3. **Civilians** (dock workers, bystanders, refugees):
+   - `entity_type="neutral"`, `threat_level="non_combatant"`
+   - Minimal skills or empty dict
+
+4. **Converted Enemies** (use `deescalations` field instead - see below):
+   - Don't use `npc_spawns` for surrendered enemies
+   - Use `deescalations` to convert existing enemies to NPCs
+
+**When NPCs become hostile:**
+Use `escalations` field to convert NPC → enemy:
+```python
+escalations=[
+    Escalation(
+        npc_id="npc_dr_vohl_1234",  # ← NPC's agent_id
+        reason="Cornered and panicked, Vohl draws concealed weapon and fires at pursuers",
+        template="desperate_fighter"
+    )
+]
+```
+
+═══════════════════════════════════════════════════════════════════════════════
+
 **NPC MANAGEMENT (De-escalation System):**
 
 ⚠️ **CRITICAL: NARRATIVE-MECHANICAL ALIGNMENT** ⚠️
@@ -2315,41 +2389,6 @@ deescalations=[
 - `"ally"` → Friendly NPC who may help
 
 **⚠️ IMPORTANT:** Use the EXACT `enemy_id` from the "Active Enemies" list above. DO NOT make up IDs!
-
-**Spawning new civilian NPCs:**
-Use `npc_spawns` field when introducing non-combatant characters:
-```python
-npc_spawns=[
-    NPCSpawn(
-        name="Frightened Dock Worker",
-        faction="Independent Civilian",
-        entity_type="neutral",
-        threat_level="non_combatant",
-        disposition="wary",
-        description="Terrified civilian hiding behind cargo crates, caught in crossfire",
-        health=15,
-        soak=0,
-        skills={}
-    )
-]
-```
-
-**⚠️ DO NOT hallucinate NPCs in narrative then forget to spawn them!**
-- If you mention an NPC in your narration, you MUST create them via `npc_spawns`
-- BAD: "Guard Captain Torres watches from the doorway" (Torres never spawned!)
-- GOOD: Use `npc_spawns` to create Torres, THEN mention them in narration
-
-**When NPCs become hostile:**
-Use `escalations` field to convert NPC back to enemy:
-```python
-escalations=[
-    Escalation(
-        npc_id="enemy_dock_worker_kassia_8064",  # ← NPC's agent_id
-        reason="Attacked by player, now fighting back in self-defense",
-        template="desperate_fighter"
-    )
-]
-```
 
 ---
 
@@ -2966,12 +3005,25 @@ The following actions ALREADY resolved (faster initiative):
                                 pc_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
                                 logger.warning(f"🔥 FRIENDLY FIRE: {attacker_name} targeting PC {pc_name} (ID: {target_identifier})")
                     else:
-                        # Legacy fuzzy name matching for enemies
+                        # Legacy fuzzy name matching for enemies AND NPCs (handles escalated agents)
                         target_name = target_identifier
+
+                        # First try enemies
                         for enemy in active_enemies:
-                            if target_name and (target_name.lower() in enemy.name.lower() or enemy.name.lower() in target_name.lower()):
+                            if target_name and (target_name.lower() in enemy.name.lower() or
+                                                enemy.name.lower() in target_name.lower() or
+                                                target_name.lower() in enemy.agent_id.lower()):
                                 target_entity = enemy
                                 break
+
+                        # If not found in enemies, try NPCs (for recently escalated agents or de-escalated enemies)
+                        if not target_entity and self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                            for npc in self.shared_state.npc_agents:
+                                if npc.is_active and target_name and (target_name.lower() in npc.name.lower() or
+                                                                       npc.name.lower() in target_name.lower() or
+                                                                       target_name.lower() in npc.agent_id.lower()):
+                                    target_entity = npc
+                                    break
 
                     if target_entity:
                         # Extract target name once for all effect types
@@ -5523,26 +5575,30 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         # Log conversion for JSONL
         mechanics = self.shared_state.get_mechanics_engine()
         if mechanics and mechanics.jsonl_logger:
-            conversion = AgentConversion(
-                round=current_round,
-                agent_id=npc.agent_id,  # Stable ID
+            mechanics.jsonl_logger.log_agent_conversion(
+                round_num=current_round,
+                agent_id=npc.agent_id,
+                agent_name=npc.name,
                 from_type="enemy",
                 to_type="npc",
                 trigger=deescalation.reason,
-                state_snapshot={
+                state_before={
+                    "health": enemy.health,
+                    "max_health": enemy.max_health,
+                    "wounds": enemy.wounds,
+                    "stuns": enemy.stuns,
+                    "template": enemy.template_name,
+                    "position": str(enemy.position)
+                },
+                state_after={
                     "health": npc.health,
                     "max_health": npc.max_health,
-                    "stuns": npc.stuns,
                     "wounds": npc.wounds,
+                    "stuns": npc.stuns,
                     "void_score": npc.void_score,
                     "entity_type": npc.entity_type,
                     "disposition": npc.disposition
                 }
-            )
-            mechanics.jsonl_logger.log_event(
-                event_type="agent_conversion",
-                data=conversion.model_dump(),
-                round_num=current_round
             )
 
         return npc
@@ -5596,25 +5652,29 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         # Log conversion for JSONL
         mechanics = self.shared_state.get_mechanics_engine()
         if mechanics and mechanics.jsonl_logger:
-            conversion = AgentConversion(
-                round=current_round,
-                agent_id=enemy.agent_id,  # Stable ID
+            mechanics.jsonl_logger.log_agent_conversion(
+                round_num=current_round,
+                agent_id=enemy.agent_id,
+                agent_name=enemy.name,
                 from_type="npc",
                 to_type="enemy",
                 trigger=escalation.reason,
-                state_snapshot={
+                state_before={
+                    "health": npc.health,
+                    "max_health": npc.max_health,
+                    "wounds": npc.wounds,
+                    "stuns": npc.stuns,
+                    "disposition": npc.disposition,
+                    "entity_type": npc.entity_type
+                },
+                state_after={
                     "health": enemy.health,
                     "max_health": enemy.max_health,
-                    "stuns": enemy.stuns,
                     "wounds": enemy.wounds,
-                    "void_score": enemy.void_score,
-                    "template": escalation.template
+                    "stuns": enemy.stuns,
+                    "template": escalation.template,
+                    "position": str(enemy.position)
                 }
-            )
-            mechanics.jsonl_logger.log_event(
-                event_type="agent_conversion",
-                data=conversion.model_dump(),
-                round_num=current_round
             )
 
         return enemy

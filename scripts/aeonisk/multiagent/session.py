@@ -903,17 +903,28 @@ class SelfPlayingSession:
                         # Build context string with intelligent assessment
                         context = f"Round {mechanics.current_round if mechanics else 0}: "
                         if threat_indicators:
-                            context += f"ALERT: {', '.join(threat_indicators)}. {num_players} players present. "
+                            context += f"ALERT: {', '.join(threat_indicators)}. {num_players} players present."
                         elif num_enemies > 0:
-                            context += f"Combat active - {num_players} players vs {num_enemies} enemies. "
+                            context += f"Combat active - {num_players} players vs {num_enemies} enemies."
                         else:
-                            context += f"Calm situation. {num_players} players present. "
+                            context += f"Calm situation. {num_players} players present."
 
                         if self.shared_state and hasattr(self.shared_state, 'scenario'):
-                            context += f"Situation: {self.shared_state.scenario}\n"
+                            context += f" Situation: {self.shared_state.scenario}"
+
+                        # Start narrative context section (matches player formatting)
+                        narrative_context = ""
+
+                        # PHASE 2: Add previous round DM narration FIRST (overall story progression)
+                        if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
+                            synthesis_narration = self._last_round_synthesis.get('narration', '')
+                            if synthesis_narration and len(synthesis_narration) > 0:
+                                narrative_context += "\n\n# 📖 Recent Story Events\n\n"
+                                narrative_context += "## What Just Happened (Last Round Summary):\n"
+                                narrative_context += f"{synthesis_narration}\n"
 
                         # PHASE 4: Add recent narrative context (filter out NPC reasoning echoes)
-                        # Include both player actions from last round AND recent resolutions
+                        # Include ALL action resolutions from current round
                         recent_narrative = []
 
                         # Get list of NPC names to filter out reasoning echoes
@@ -924,9 +935,8 @@ class SelfPlayingSession:
                         # Add recent player narrations (stored by player agents for context)
                         for player_agent in player_agents:
                             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                                # Get last 2 narrations for this player
-                                last_narrations = player_agent.recent_narrations[-2:]
-                                for narration in last_narrations:
+                                # Get ALL narrations (not just last 2) to show full current round context
+                                for narration in player_agent.recent_narrations:
                                     # Skip if this looks like NPC reasoning echo
                                     # (contains NPC name followed immediately by reasoning text)
                                     is_npc_reasoning = any(
@@ -939,14 +949,13 @@ class SelfPlayingSession:
                                         recent_narrative.append(narration)
 
                         if recent_narrative:
-                            context += "\n\n**Recent Events:**\n" + "\n".join(recent_narrative[-3:])  # Last 3 events only
-
-                        # PHASE 2: Add previous round DM narration (full context from DM synthesis)
-                        if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
-                            synthesis_narration = self._last_round_synthesis.get('narration', '')
-                            if synthesis_narration and len(synthesis_narration) > 0:
-                                # Keep full DM narration - critical context for what just happened
-                                context += f"\n\n**What Happened Last Round:**\n{synthesis_narration}"
+                            if not narrative_context:
+                                narrative_context += "\n\n# 📖 Recent Story Events\n\n"
+                            narrative_context += "## Recent Action Outcomes:\n"
+                            # Show ALL recent resolutions (not just last 3)
+                            for i, narration in enumerate(recent_narrative, 1):
+                                narrative_context += f"{i}. {narration}\n"
+                            narrative_context += "\n"
 
                         # PHASE 1: Show declarations from higher-initiative agents this round
                         # NPCs need to see what's already been declared before their turn
@@ -956,15 +965,26 @@ class SelfPlayingSession:
                                 # Only show declarations from agents acting before this NPC
                                 if action.get('initiative', 0) > initiative_score:
                                     actor_name = action.get('character_name', agent_id)
-                                    intent = action.get('intent', action.get('description', 'unknown action'))
+                                    # Use description (full narrative) if available, fallback to intent
+                                    declaration_text = action.get('description', '') or action.get('intent', 'unknown action')
                                     # Keep full declarations - agents need context to coordinate!
                                     current_round_declarations.append(
-                                        f"[{actor_name}] declared: {intent}"
+                                        (actor_name, action.get('initiative', 0), declaration_text)
                                     )
 
                         if current_round_declarations:
-                            context += "\n\n**Actions Already Declared This Round:**\n"
-                            context += "\n".join(current_round_declarations)
+                            if not narrative_context:
+                                narrative_context += "\n\n# 📖 Recent Story Events\n\n"
+                            narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+                            narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
+                            # Sort by initiative (slowest first, matching declaration order)
+                            sorted_declarations = sorted(current_round_declarations, key=lambda x: x[1])
+                            for actor_name, initiative, declaration_text in sorted_declarations:
+                                narrative_context += f"- **{actor_name}** [Init {initiative}]: {declaration_text}\n"
+                            narrative_context += "\n"
+
+                        # Append narrative context to main context
+                        context += narrative_context
 
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)
@@ -998,12 +1018,39 @@ class SelfPlayingSession:
                                     self.enemy_combat.enemy_agents.append(enemy)
                                     logger.info(f"   ✅ Converted to enemy: {enemy.agent_id}")
 
+                                # Log conversion to JSONL
+                                if mechanics and mechanics.jsonl_logger:
+                                    mechanics.jsonl_logger.log_agent_conversion(
+                                        round_num=mechanics.current_round,
+                                        agent_id=enemy.agent_id,
+                                        agent_name=enemy.name,
+                                        from_type="npc",
+                                        to_type="enemy",
+                                        trigger="self_escalation_attack",
+                                        state_before={
+                                            "health": agent.health,
+                                            "max_health": agent.max_health,
+                                            "wounds": agent.wounds,
+                                            "stuns": agent.stuns,
+                                            "disposition": agent.disposition,
+                                            "entity_type": agent.entity_type
+                                        },
+                                        state_after={
+                                            "health": enemy.health,
+                                            "max_health": enemy.max_health,
+                                            "wounds": enemy.wounds,
+                                            "stuns": enemy.stuns,
+                                            "template": enemy.template_name,
+                                            "position": str(enemy.position)
+                                        }
+                                    )
+
                                 # Remove from NPC list
                                 if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
                                     self.shared_state.npc_agents = [n for n in self.shared_state.npc_agents if n.agent_id != agent.agent_id]
 
-                                # Enemy will declare actions in enemy phase, skip NPC declaration
-                                logger.info(f"   Enemy will act in enemy combat phase")
+                                # Enemy will join combat NEXT round (escalation consumed this turn's action)
+                                logger.info(f"   Enemy will join combat next round (escalation consumed this turn)")
                                 continue
 
                             # Normal NPC action processing
@@ -1039,6 +1086,7 @@ class SelfPlayingSession:
                                 payload={
                                     'agent_id': agent.agent_id,
                                     'character_name': agent.name,
+                                    'description': npc_action.reason,  # NPC's reasoning for action (10-500 chars)
                                     'intent': npc_action.action_type,
                                     'initiative': initiative_score,
                                     'agent_type': 'npc'
@@ -2634,7 +2682,37 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                         print(f"\n❌ {enemy.name} {resolution_text}: {conversion.reason}")
 
-        # 3.5. Handle escalations (NPC → Enemy conversions)
+        # 3.5. Handle NPC spawns (NEW - mid-game NPC spawning)
+        if synthesis.npc_spawns:
+            from .schemas.story_events import NPCSpawn
+
+            # Find DM agent for NPC spawn processing
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            if not dm_agent:
+                logger.warning("Cannot process NPC spawns: DM agent not found")
+            else:
+                for npc_spawn in synthesis.npc_spawns:
+                    # Reconstruct NPCSpawn if it's a dict
+                    if isinstance(npc_spawn, dict):
+                        npc_spawn = NPCSpawn(**npc_spawn)
+
+                    if hasattr(dm_agent, '_process_npc_spawn'):
+                        npc = dm_agent._process_npc_spawn(npc_spawn)
+
+                        if npc:
+                            # NPC already added to SharedState and registered by _process_npc_spawn()
+                            # Just log the successful spawn
+                            print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
+                            logger.info(f"NPC spawn complete: {npc.name} ({npc.agent_id})")
+                    else:
+                        logger.warning(f"Cannot spawn NPC {npc_spawn.name}: DM missing _process_npc_spawn method")
+
+        # 4. Handle escalations (NPC → Enemy conversions)
         if synthesis.escalations:
             from .schemas.story_events import Escalation
 

@@ -103,17 +103,27 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \n**When enemy stays vs leaves:**\n- ✅ Stays as NPC: Use resolution=CONVINCED/NEUTRALIZED/SUBDUED\
   \ + include NPC fields\n- ✅ Leaves scene: Use resolution=FLED/STORY_ADVANCED (no\
   \ NPC fields needed)\n\n**✨ SPAWN NEW CIVILIAN NPCs - USE THIS ACTIVELY:**\n\
-  \n**⚠️ IMPORTANT: NPCs make scenes come alive! Use `npc_spawns` frequently to populate\
-  \ the world.**\n\n**When to spawn NPCs (use liberally):**\n- Players enter populated\
-  \ area (civilians, witnesses, bystanders)\n- Story events introduce friendly contacts\
-  \ (informants, allies, medics)\n- Neutral parties appear (armed guards, potential\
-  \ threats who haven't engaged)\n- Players request to interrogate/recruit specific\
-  \ individuals\n- Dramatic moments need witnesses or complications\n- ANY time narrative\
-  \ needs a new person to interact with\n\n**Don't wait for players to ask - proactively\
-  \ spawn NPCs when:**\n- Infiltrating a facility → spawn guards, scientists, janitors\n\
-  - Entering a market/populated area → spawn merchants, civilians, local fixers\n\
-  - Social missions → spawn quest-givers, informants, contacts\n- Players need someone\
-  \ to talk to/intimidate/negotiate with\n\n**Examples:**\n\n```python\n# Example\
+  \n**⚠️ GOLDEN RULE: If you NAME a character in your narration, you MUST spawn them\
+  \ via `npc_spawns`**\n\n**MANDATORY NPC SPAWNING - DO NOT SKIP THIS:**\n\n✅ **You\
+  \ MUST spawn NPCs when:**\n- You write a named character in narration (\"Dr. Vohl\
+  \ flees\", \"Captain Torres watches\")\n- Players declare intent to interact with\
+  \ someone (\"interrogate the scientist\", \"talk to guard\")\n- Your narration describes\
+  \ NPCs present in scene (\"technicians monitor consoles\", \"civilians flee\")\n\
+  - Plot requires character to exist (antagonists, quest-givers, witnesses, informants)\n\
+  \n❌ **CRITICAL FAILURE MODE - DO NOT DO THIS:**\n- Round 1: You write \"Dr. Vohl's\
+  \ lab contains forbidden research...\" (Vohl NOT spawned)\n- Round 2: Players declare\
+  \ \"Find and interrogate Dr. Vohl\"\n- Result: BROKEN - Vohl doesn't exist! Players\
+  \ can't interact!\n\n✅ **CORRECT:** Spawn Dr. Vohl in Round 1 BEFORE mentioning\
+  \ them in narration\n\n**When to spawn NPCs (use liberally):**\n- Players enter\
+  \ populated area (civilians, witnesses, bystanders)\n- Story events introduce friendly\
+  \ contacts (informants, allies, medics)\n- Neutral parties appear (armed guards,\
+  \ potential threats who haven't engaged)\n- Players request to interrogate/recruit\
+  \ specific individuals\n- Dramatic moments need witnesses or complications\n- ANY\
+  \ time narrative needs a new person to interact with\n\n**Don't wait for players\
+  \ to ask - proactively spawn NPCs when:**\n- Infiltrating a facility → spawn guards,\
+  \ scientists, janitors\n- Entering a market/populated area → spawn merchants, civilians,\
+  \ local fixers\n- Social missions → spawn quest-givers, informants, contacts\n-\
+  \ Players need someone to talk to/intimidate/negotiate with\n\n**Examples:**\n\n```python\n# Example\
   \ 1: Civilian non-combatant (most common)\nnpc_spawns=[\n    NPCSpawn(\n       \
   \ name=\"Frightened Dock Worker\",\n        faction=\"Independent Civilian\",\n\
   \        entity_type=\"neutral\",\n        threat_level=\"non_combatant\",\n  \
