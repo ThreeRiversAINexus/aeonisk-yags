@@ -650,6 +650,45 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_agent_conversion(
+        self,
+        round_num: int,
+        agent_id: str,
+        agent_name: str,
+        from_type: str,
+        to_type: str,
+        trigger: str,
+        state_before: Dict[str, Any],
+        state_after: Dict[str, Any]
+    ):
+        """
+        Log agent type conversion (NPC ↔ enemy).
+
+        Args:
+            round_num: Current round
+            agent_id: Agent ID (stable across conversions)
+            agent_name: Display name
+            from_type: Original type ("npc" or "enemy")
+            to_type: New type ("enemy" or "npc")
+            trigger: Reason for conversion ("escalation", "surrender", "intimidation", etc.)
+            state_before: State snapshot before conversion (health, wounds, etc.)
+            state_after: State snapshot after conversion
+        """
+        event = {
+            "event_type": "agent_conversion",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "agent_name": agent_name,
+            "from_type": from_type,
+            "to_type": to_type,
+            "trigger": trigger,
+            "state_before": state_before,
+            "state_after": state_after
+        }
+        self._write_event(event)
+
     def log_round_summary(
         self,
         round_num: int,

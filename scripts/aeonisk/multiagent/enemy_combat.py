@@ -529,6 +529,13 @@ class EnemyCombatManager:
         # Generate tactical prompt
         from .enemy_prompts import generate_tactical_prompt
 
+        # Collect recent action narrations from player agents
+        recent_narrations = []
+        for player_agent in player_agents:
+            if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
+                # Get ALL narrations from this player (not just last 3)
+                recent_narrations.extend(player_agent.recent_narrations)
+
         prompt = generate_tactical_prompt(
             enemy=enemy,
             player_agents=player_agents,
@@ -537,7 +544,8 @@ class EnemyCombatManager:
             available_tokens=available_tokens,
             current_round=self.current_round,
             target_id_mapper=target_id_mapper,
-            free_targeting=free_targeting
+            free_targeting=free_targeting,
+            recent_narrations=recent_narrations if recent_narrations else None
         )
 
         # Get LLM response

@@ -776,8 +776,8 @@ class AIPlayerAgent(Agent):
             prefixed_narration = f"[{acting_character}] {narration}"
             self.recent_narrations.append(prefixed_narration)
 
-            # Keep only last 5 narrations (FIFO rolling window)
-            if len(self.recent_narrations) > 5:
+            # Keep only last 20 narrations (FIFO rolling window) - enough for 1-2 full rounds
+            if len(self.recent_narrations) > 20:
                 self.recent_narrations.pop(0)
 
             logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character}")
@@ -1860,7 +1860,8 @@ Available non-combat actions:
             if not narrative_context:
                 narrative_context += "\n# 📖 Recent Story Events\n\n"
             narrative_context += "## Recent Action Outcomes:\n"
-            for i, narration in enumerate(self.recent_narrations[-3:], 1):  # Last 3 narrations
+            # Show ALL recent narrations (rolling window already limits to last 20)
+            for i, narration in enumerate(self.recent_narrations, 1):
                 # Keep full narration - this is juicy coordination info!
                 narrative_context += f"{i}. {narration}\n\n"
 

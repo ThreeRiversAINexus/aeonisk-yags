@@ -38,7 +38,8 @@ def generate_tactical_prompt(
     available_tokens: List[str],
     current_round: int,
     target_id_mapper=None,
-    free_targeting: bool = False
+    free_targeting: bool = False,
+    recent_narrations: List[str] = None
 ) -> str:
     """
     Generate complete tactical prompt for enemy agent using prompt_loader system.
@@ -55,6 +56,7 @@ def generate_tactical_prompt(
         current_round: Current combat round
         target_id_mapper: Optional target ID mapper for free targeting mode
         free_targeting: Whether to use unified combatant list (no ally/enemy labels)
+        recent_narrations: Recent action resolution narrations (from previous rounds)
 
     Returns:
         Complete tactical prompt string
@@ -67,6 +69,10 @@ def generate_tactical_prompt(
 
     # Status
     sections.append(_format_status(enemy))
+
+    # Recent Action Outcomes (NEW - show what happened recently for context)
+    if recent_narrations:
+        sections.append(_format_recent_outcomes(recent_narrations))
 
     # Combat Doctrine
     sections.append(_format_doctrine(enemy))
@@ -166,6 +172,19 @@ def _get_void_status(void_score: int) -> str:
         return "(Minor corruption)"
     else:
         return "(Stable)"
+
+
+def _format_recent_outcomes(recent_narrations: List[str]) -> str:
+    """Format recent action outcomes section."""
+    section = """## 📖 RECENT ACTION OUTCOMES
+{"=" * 60}
+What just happened in the previous round:
+
+"""
+    for i, narration in enumerate(recent_narrations, 1):
+        section += f"{i}. {narration}\n"
+
+    return section
 
 
 def _format_doctrine(enemy: EnemyAgent) -> str:
