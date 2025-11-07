@@ -290,7 +290,7 @@ class TargetIDMapper:
             info['position'] = str(getattr(agent, 'position', 'Unknown'))
             info['void_score'] = cs.void_score
         elif hasattr(agent, 'name'):
-            # Enemy agent
+            # Enemy agent or NPC (both have required position field)
             info['name'] = agent.name
             info['health'] = agent.health
             info['max_health'] = agent.max_health

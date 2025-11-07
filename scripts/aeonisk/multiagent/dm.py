@@ -492,20 +492,9 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                             break  # Only check first match and retry once
 
             except Exception as e:
-                logger.error(f"Failed to generate AI scenario: {e}, using fallback")
-                # Fallback to simple random scenario
-                themes = ['Corporate Intrigue', 'Void Investigation', 'Bond Crisis', 'Tech Heist', 'Ritual Gone Wrong']
-                scenario_data = {
-                    'theme': random.choice(themes),
-                    'location': 'Unknown Location',
-                    'situation': 'The party finds themselves in a mysterious situation',
-                    'void_level': 3,
-                    'clocks': [
-                        ('Danger Level', 6, 'Escalating threat'),
-                        ('Investigation', 6, 'Uncovering the truth'),
-                        ('Time Pressure', 6, 'Running out of time')
-                    ]
-                }
+                logger.error(f"Failed to generate AI scenario: {e}")
+                # Re-raise exception - fail fast instead of producing broken fallback
+                raise
 
         # Scenario-aware vendor encounter
         # If vendor-gated scenario, force specific vendor type
@@ -4991,7 +4980,9 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
                     # Build enemy positions summary
                     enemy_positions = []
                     for enemy in active_enemies:
-                        enemy_positions.append(f"{enemy.name} at {enemy.position}")
+                        # Skip if enemy doesn't have position (e.g., recently de-escalated NPC)
+                        if hasattr(enemy, 'position'):
+                            enemy_positions.append(f"{enemy.name} at {enemy.position}")
                     enemy_positions_text = ", ".join(enemy_positions)
 
                     tactical_combat_context = f"""
@@ -5612,6 +5603,18 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         if not weapons:
             weapons.append(WEAPON_LIBRARY['fists'])
 
+        # Parse position from NPCSpawn schema, default to Near-Enemy if not provided
+        from .enemy_agent import Position
+        if npc_spawn.position:
+            try:
+                position = Position.from_string(npc_spawn.position)
+            except Exception as e:
+                logger.warning(f"Failed to parse position '{npc_spawn.position}' for NPC {npc_spawn.name}: {e}, using default")
+                position = Position(ring="Near", side="Enemy")
+        else:
+            # Default: NPCs appear at Near-Enemy (close but not engaged)
+            position = Position(ring="Near", side="Enemy")
+
         # Create NPC agent
         npc = NPCAgent(
             agent_id=npc_id,
@@ -5626,6 +5629,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             soak=npc_spawn.soak,
             void_score=0,  # NPCs start with no void corruption
             skills=skills,
+            position=position,  # Required - always has a position
             weapons=weapons,  # Weapons based on threat level and skills
             converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
             agent_prompt_logger=self.agent_prompt_logger  # Pass through logger

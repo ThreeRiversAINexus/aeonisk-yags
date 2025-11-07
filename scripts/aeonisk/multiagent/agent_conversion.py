@@ -34,10 +34,10 @@ def deescalate_enemy_to_npc(
     - Current damage (stuns, wounds)
     - Conditions (all buffs/debuffs)
     - Faction
+    - Position (tactical location preserved)
 
     Removes:
     - Tactics (no longer combat AI)
-    - Position (removed from tactical grid)
     - Enemy LLM client (if any)
 
     Adds:
@@ -122,6 +122,9 @@ def deescalate_enemy_to_npc(
         wounds=getattr(enemy, 'wounds', 0),
         conditions=conditions_copy,
 
+        # Position (preserve from enemy, default to Near-Enemy if missing)
+        position=getattr(enemy, 'position', None) or _default_npc_position(),
+
         # Equipment (preserve from enemy)
         weapons=list(getattr(enemy, 'weapons', [])),
 
@@ -149,10 +152,10 @@ def escalate_npc_to_enemy(
     Preserves (IDENTICAL state):
     - agent_id (STABLE - never changes)
     - Stats, damage, conditions
+    - Position (tactical location preserved, or default if none)
 
     Adds:
     - Tactics (use original template or "desperate_fighter" default)
-    - Position (spawn at Near-Enemy or context-appropriate)
     - Combat AI (enemy action declarations)
 
     Args:
@@ -343,7 +346,7 @@ def escalate_npc_to_enemy(
         template_name=template,
         personality=_derive_personality_from_template(template),
         description=npc.description or f"{npc.name} (escalated to combat)",
-        position=Position(ring="Near", side="Enemy"),  # Default tactical position
+        position=npc.position,  # Position is required, will always exist
 
         # State tracking
         spawned_round=current_round
@@ -444,3 +447,13 @@ def _derive_personality_from_template(template: str) -> str:
     # Desperate fighters (default escalation) flee when broken
     else:
         return "flee_when_broken"
+
+
+def _default_npc_position():
+    """
+    Get default position for NPCs when position is missing.
+
+    Returns Near-Enemy as sensible default (close but not Engaged).
+    """
+    from .enemy_agent import Position
+    return Position(ring="Near", side="Enemy")
