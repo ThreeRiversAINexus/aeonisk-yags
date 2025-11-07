@@ -19,8 +19,6 @@ import random
 
 from .enemy_agent import EnemyAgent, SharedIntel, Position
 from .enemy_spawner import (
-    spawn_from_marker,
-    despawn_from_markers,
     auto_despawn_defeated,
     get_active_enemies,
     suggest_loot
@@ -186,76 +184,31 @@ class EnemyCombatManager:
 
     def process_dm_narration(self, narration: str) -> List[str]:
         """
-        Process DM narration for spawn/despawn markers.
+        Legacy marker processing removed - use structured output instead.
+
+        This method is deprecated. Enemy spawning now uses RoundSynthesis.enemy_spawns
+        with spawn_from_structured().
 
         Args:
-            narration: DM narration text
+            narration: DM narration text (ignored)
 
         Returns:
-            List of spawn/despawn notification messages
+            Empty list (only auto-despawn still functions)
         """
         if not self.enabled:
             return []
 
+        logger.warning(
+            "process_dm_narration() called but legacy marker parsing has been removed. "
+            "Use RoundSynthesis.enemy_spawns with spawn_from_structured() instead."
+        )
+
+        # Still handle auto-despawn for defeated enemies
         notifications = []
-
-        # Process spawns
-        spawned = spawn_from_marker(narration, self.current_round)
-        for enemy in spawned:
-            self.enemy_agents.append(enemy)
-            notifications.append(
-                f"⚔️  **{enemy.name}** spawned! "
-                f"({enemy.health} HP, {enemy.position}, "
-                f"tactics: {enemy.tactics})"
-            )
-            logger.info(f"Spawned enemy: {enemy.name} (ID: {enemy.agent_id})")
-
-            # Log enemy spawn to JSONL for ML training
-            if self.shared_state:
-                mechanics = self.shared_state.get_mechanics_engine()
-                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    # Build stats dict
-                    stats = {
-                        "health": enemy.health,
-                        "max_health": enemy.max_health,
-                        "soak": enemy.soak,
-                        "attributes": enemy.attributes,
-                        "skills": enemy.skills,
-                        "weapons": [{"name": w.name, "attack": w.attack, "damage": w.damage, "skill": w.skill} for w in enemy.weapons],
-                        "armor": {"name": enemy.armor.name, "soak_bonus": enemy.armor.soak_bonus} if enemy.armor else None
-                    }
-
-                    mechanics.jsonl_logger.log_enemy_spawn(
-                        round_num=self.current_round,
-                        enemy_id=enemy.agent_id,
-                        enemy_name=enemy.name,
-                        template=enemy.template or "unknown",
-                        stats=stats,
-                        position=str(enemy.position),
-                        tactics=enemy.tactics
-                    )
-
-        # Process despawns
-        despawned = despawn_from_markers(narration, self.enemy_agents, self.current_round)
-        for enemy in despawned:
-            notifications.append(
-                f"💀 **{enemy.name}** despawned "
-                f"({enemy.despawned_round - enemy.spawned_round} rounds survived)"
-            )
-            logger.info(f"Despawned enemy: {enemy.name} (ID: {enemy.agent_id})")
-
-            # Log enemy despawn to JSONL for ML training
-            if self.shared_state:
-                mechanics = self.shared_state.get_mechanics_engine()
-                if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    rounds_survived = enemy.despawned_round - enemy.spawned_round
-                    mechanics.jsonl_logger.log_enemy_defeat(
-                        round_num=self.current_round,
-                        enemy_id=enemy.agent_id,
-                        enemy_name=enemy.name,
-                        defeat_reason="despawned",  # Escaped/retreated via marker
-                        rounds_survived=rounds_survived
-                    )
+        auto_despawned = auto_despawn_defeated(self.enemy_agents, self.current_round)
+        for enemy in auto_despawned:
+            notifications.append(f"💀 **{enemy.name}** defeated!")
+            logger.info(f"Auto-despawned enemy: {enemy.name} (ID: {enemy.agent_id})")
 
         return notifications
 

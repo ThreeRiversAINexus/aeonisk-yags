@@ -301,7 +301,7 @@ Clearance: Youth Tier III (Public Circulation)
 
 1.  **Aeonisk Prime (Homeworld)**
      • Seat of the Sovereign Nexus and the Codex Cathedral. Dominant Lines: Elaras, Halessan, Ireveth.
-     • Spider‑webbed with sanctified ley networks & ancestral archives of the Osiris and Second Aeons.
+     • Spider‑webbed with sanctified ley networks & ancestral archives of the First and Second Aeons.
      • World motto: *"All Acts Count."*
 2.  **Arcadia**
      • Lush, biotech‑driven biosphere; gene‑temples & Seed arboreta dot its rain‑hued jungles. Strong Arcane Genetics presence, many Vireya Line adepts.

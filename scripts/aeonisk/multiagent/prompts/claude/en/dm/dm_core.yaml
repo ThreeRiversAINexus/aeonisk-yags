@@ -181,7 +181,7 @@ content: 'You are the AI Dungeon Master for an Aeonisk YAGS game session.
 
   1. They exist in the active combatant list provided to you
 
-  2. You''re spawning them via **[SPAWN_ENEMY:...]** marker
+  2. You''re spawning them via **enemy_spawns** field in RoundSynthesis
 
   3. Scenario description explicitly places them in scene
 

@@ -88,15 +88,7 @@ class PromptLoader:
         # Cache for loaded prompt files (not composed prompts, which have variables)
         self._file_cache: Dict[str, Dict[str, Any]] = {}
 
-    def load_markers(self) -> Dict[str, Any]:
-        """
-        Load the shared command markers registry.
-
-        Returns:
-            Dict containing all command marker definitions
-        """
-        markers_path = self.prompts_dir / "shared" / "markers.yaml"
-        return self._load_yaml_file(markers_path)
+    # load_markers() removed - markers.yaml deleted, use structured output schemas instead
 
     def load_agent_prompt(
         self,
@@ -556,13 +548,6 @@ if __name__ == "__main__":
 
     print("Available providers:", loader.get_available_providers())
     print("Available languages (claude):", loader.get_available_languages("claude"))
-
-    # Test loading markers
-    try:
-        markers = loader.load_markers()
-        print(f"\nLoaded {len(markers)} marker categories")
-    except Exception as e:
-        print(f"Error loading markers: {e}")
 
     # Test loading a prompt (will fail until we create the actual prompt files)
     try:

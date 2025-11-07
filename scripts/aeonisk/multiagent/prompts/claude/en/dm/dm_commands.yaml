@@ -7,24 +7,19 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ the scenario has reached a definitive conclusion (victory, defeat, or draw):\n\
   - `[SESSION_END: VICTORY]` - Team achieved their objective\n- `[SESSION_END: DEFEAT]`\
   \ - Team failed catastrophically or was captured/killed\n- `[SESSION_END: DRAW]`\
-  \ - Stalemate or escape with incomplete objectives\n\n**2. Spawn New Clocks:**\n\
-  When filled clocks create new challenges or opportunities:\n`[NEW_CLOCK: Pursuit\
-  \ Chase | 6 | Gangs pursuing through tunnels]`\n\n**3. Advance Story:**\nWhen objectives\
-  \ complete or situation dramatically changes, advance to next scene:\n`[ADVANCE_STORY:\
-  \ Location Name | Situation description]`\n\n**With Structured Output (`StoryAdvancement`\
+  \ - Stalemate or escape with incomplete objectives\n\n**2. Spawn New Clocks:**\nWhen filled clocks create new challenges or opportunities,\
+  \ use `StoryAdvancement.new_clocks` or `ScenePivot.new_clocks` in RoundSynthesis.\n\
+  \n**3. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
+  \ use `StoryAdvancement` in RoundSynthesis\n\n**With Structured Output (`StoryAdvancement`\
   \ schema):**\nUse the `new_void_level` field to update environmental void when story\
   \ beats justify it.\n\n**When to REDUCE void_level:**\n- Purification clocks completed\
   \ (e.g., 8 → 3 after major cleansing ritual)\n- Area successfully cleansed or sanctified\n\
   - Void breach contained or sealed\n- Moving from corrupted zone to safer area\n\n\
   **When to INCREASE void_level:**\n- Containment failure, corruption spreading (e.g.,\
   \ 3 → 7)\n- Moving deeper into void-saturated zones\n- Major void events unleashed\
-  \ by player actions\n- Environmental degradation progressing\n\n**Examples:**\n\
-  - Major location change: `[ADVANCE_STORY: Extraction Point | Having escaped, the\
-  \ team regroups at the safe house]`\n- Purification complete: `new_void_level=3`\
+  \ by player actions\n- Environmental degradation progressing\n\n**Examples:**\n- Purification complete: `new_void_level=3`\
   \ (down from 8) when advancing after cleansing ritual\n- Corruption spreading: `new_void_level=7`\
-  \ (up from 4) when breach containment fails\n- Same location, new situation: `[ADVANCE_STORY:\
-  \ Corporate Facility - Lockdown | Alarms blare as security seals all exits]`\n-\
-  \ Moving to safer zone: `new_void_level=2` (down from 6) when evacuating to sanctified\
+  \ (up from 4) when breach containment fails\n- Moving to safer zone: `new_void_level=2` (down from 6) when evacuating to sanctified\
   \ area\n\n**Note:** `new_void_level` is optional. Only update when story justifies\
   \ environmental void change. Leave None to keep current void_level.\n\n**When to\
   \ Use These Markers:**\n- **Victory**: Key objective achieved (e.g., \"Evidence\
@@ -201,15 +196,5 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   story_advancement=StoryAdvancement(\n    should_advance=True,\n    location=\"Safe\
   \ House - Undercity District\",\n    situation=\"Having escaped the facility, you\
   \ regroup in a secure location...\",\n    clear_all_enemies=True  # Default - removes\
-  \ all enemies from previous scene\n)\n```\n\n**Legacy Text Markers (if NOT using\
-  \ structured output):**\n\n**SPAWN FORMAT (ALL 5 FIELDS REQUIRED):**\n`[SPAWN_ENEMY:\
-  \ name | template | count | position | tactics]`\n\n**Parameters:**\n- **name**:\
-  \ Display name (e.g., \"Corporate Soldiers\", \"Void Cultists\")\n- **template**:\
-  \ Enemy type (grunt, elite, sniper, boss, void_cultist, enforcer)\n- **count**:\
-  \ Number of units (1-2, capped at 2 for balance)\n- **position**: Starting position\
-  \ (Near-Enemy, Far-Enemy, Engaged)\n- **tactics**: Behavior (aggressive_melee, aggressive_ranged,\
-  \ defensive, support)\n\n**Examples:**\n`[SPAWN_ENEMY: Corporate Soldiers | grunt\
-  \ | 2 | Far-Enemy | aggressive_ranged]`\n`[SPAWN_ENEMY: Void Cultist | void_cultist\
-  \ | 1 | Near-Enemy | aggressive_melee]`\n`[SPAWN_ENEMY: Elite Enforcer | elite |\
-  \ 1 | Engaged | defensive]`\n\n**DESPAWN:**\n`[DESPAWN_ENEMY: enemy_id]` - Remove\
-  \ an enemy (fled, negotiated away, etc.)\nExample: `[DESPAWN_ENEMY: enemy_grunt_a3f2]`"
+  \ all enemies from previous scene\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
+  \ have been removed. Always use structured output (RoundSynthesis schema) instead."

@@ -1500,10 +1500,10 @@ You can purchase items, barter, or ask for information! Use your currency (Spark
                             status = f"{clock.current}/{clock.maximum}"
 
                         clock_line = f"- **{clock_name}**: {status}"
-                        if clock.advance_means:
-                            clock_line += f"\n  Advance = {clock.advance_means}"
-                        if clock.regress_means:
-                            clock_line += f" | Regress = {clock.regress_means}"
+                        if clock.advance_meaning:
+                            clock_line += f"\n  Advance = {clock.advance_meaning}"
+                        if clock.regress_meaning:
+                            clock_line += f" | Regress = {clock.regress_meaning}"
                         if clock.filled_consequence and clock.filled:
                             clock_line += f"\n  🎯 Consequence: {clock.filled_consequence}"
 
