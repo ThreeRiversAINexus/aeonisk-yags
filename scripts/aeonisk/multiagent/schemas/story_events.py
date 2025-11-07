@@ -491,14 +491,14 @@ class ScenarioSetup(BaseModel):
     location: str = Field(
         ...,
         min_length=5,
-        max_length=100,
+        max_length=200,
         description="Starting location"
     )
 
     situation: str = Field(
         ...,
         min_length=50,
-        max_length=800,
+        max_length=1200,
         description="Opening situation (3-5 sentences)"
     )
 
@@ -583,6 +583,12 @@ class NPCSpawn(BaseModel):
     skills: dict[str, int] = Field(
         default_factory=dict,
         description="Key skills (for cooperative checks, e.g., {'perception': 5, 'combat': 3})"
+    )
+
+    # Optional: tactical state (defaults to Near-Enemy if omitted)
+    position: Optional[str] = Field(
+        None,
+        description="Tactical position (e.g., 'Near-Enemy', 'Far-PC', 'Engaged'). Defaults to 'Near-Enemy' if not specified."
     )
 
     # Optional: conversion tracking

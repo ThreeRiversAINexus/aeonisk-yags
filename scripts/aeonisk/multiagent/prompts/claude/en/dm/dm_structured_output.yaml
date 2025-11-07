@@ -57,7 +57,25 @@ content: |-
   soulcredit_changes=[SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")]
   ```
 
-  ⚠️ **FREE TARGETING IDS:** Copy exact IDs from combatant list (e.g., `[tgt_grpq] Heavy Gunners` → use `target="tgt_grpq"`). NEVER construct IDs from enemy names!
+  ## 🎯 TARGET ID USAGE (CRITICAL FOR FREE TARGETING MODE)
+
+  **When you see a "VALID TARGET IDS" list in the prompt:**
+
+  ❌ **NEVER INVENT TARGET IDS** - Don't create `tgt_grd1`, `tgt_sec1`, etc. from enemy names
+  ✅ **COPY EXACT IDs** - Use IDs exactly as shown: `[tgt_7a3f] Security Guard #1` → `target="tgt_7a3f"`
+
+  **Why this matters:** Target IDs are randomly generated at combat start. Inventing plausible-looking IDs (like `tgt_grd1` for "guard 1") will FAIL validation - only pre-assigned IDs exist in the mapping.
+
+  Example from combatant list:
+  ```
+  **VALID TARGET IDS:**
+    - [tgt_7a3f] ACG Security Guard #1 (enemy)
+    - [tgt_9k2m] ACG Security Guard #2 (enemy)
+    - [tgt_3c5d] Ash (player)
+  ```
+
+  ✅ CORRECT: `damage=DamageEffect(target="tgt_7a3f", ...)`
+  ❌ WRONG: `damage=DamageEffect(target="tgt_acg1", ...)`  # Invented - will FAIL!
 
   ## 📊 STRUCTURED OUTPUT EXAMPLES
 
@@ -69,14 +87,20 @@ content: |-
       margin=12,
       effects=MechanicalEffects(
           damage=DamageEffect(
-              target="tgt_7a3f",  # ✅ Exact ID from combatant list
+              target="tgt_7a3f",  # ✅ COPIED from [tgt_7a3f] in combatant list - NOT invented!
               base_damage=15,
               soak=7,
               dealt=8,
               weapon="Kinetic Pistol"
           ),
           conditions=[
-              Condition(name="Off-Balance", penalty=-2, duration=1, description="next attack at -2")
+              Condition(
+                  name="Off-Balance",
+                  penalty=-2,
+                  duration=1,
+                  description="next attack at -2",
+                  target="tgt_7a3f"  # ✅ Same target ID for condition
+              )
           ],
           soulcredit_changes=[
               SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")

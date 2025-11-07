@@ -11,7 +11,7 @@ from scripts.aeonisk.multiagent.schemas.shared_types import Condition
 
 
 def test_npc_agent_creation():
-    """NPCs have stats but no tactics/Position."""
+    """NPCs have stats and position (for tactical continuity)."""
     npc = NPCAgent(
         agent_id="enemy_pirate_1",
         name="Freeborn Pirate",
@@ -34,7 +34,9 @@ def test_npc_agent_creation():
     assert npc.disposition == "neutral"
     assert npc.threat_level == "armed_neutral"
     assert not hasattr(npc, 'tactics')
-    assert not hasattr(npc, 'position')
+    assert hasattr(npc, 'position')  # NPCs always have position
+    assert npc.position.ring == "Near"  # Default position
+    assert npc.position.side == "Enemy"
 
 
 def test_npc_has_full_stats():

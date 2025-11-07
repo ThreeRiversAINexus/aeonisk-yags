@@ -250,7 +250,7 @@ class ClaudeProvider(LLMProvider):
 
     def _is_retryable_error(self, error: Exception) -> bool:
         """
-        Check if an error is retryable (overloaded/rate limit).
+        Check if an error is retryable (overloaded/rate limit/validation).
 
         Args:
             error: Exception from API call
@@ -266,7 +266,19 @@ class ClaudeProvider(LLMProvider):
 
         # Check error message for overloaded indicators
         error_str = str(error).lower()
-        return 'overloaded' in error_str or 'rate limit' in error_str
+        if 'overloaded' in error_str or 'rate limit' in error_str:
+            return True
+
+        # Check for Pydantic validation errors (allow retries for LLM to self-correct)
+        # These occur when LLM generates output violating schema constraints
+        if 'validationerror' in error_str or 'validation error' in error_str:
+            return True
+
+        # Check for pydantic-ai specific retry messages
+        if 'exceeded maximum retries' in error_str:
+            return True
+
+        return False
 
     async def generate(
         self,

@@ -4,18 +4,28 @@ NPC Agent and LLM Client for simple non-combatant behavior.
 NPCs (Non-Player Characters) are agents with stats but limited agency:
 - Can flee, hide, plead, dialogue, assist, comply
 - Have full combat stats for healing/conversion
-- NO tactics, NO Position (exist "off-grid")
+- Have Position (for tactical continuity during conversions)
+- NO tactics (no tactical AI)
 - Simple LLM client (not full player sophistication)
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Literal
+from typing import Dict, List, Optional, Literal, TYPE_CHECKING
 from pydantic import BaseModel, Field
 import logging
 
 from .schemas.shared_types import Condition
 
+if TYPE_CHECKING:
+    from .enemy_agent import Position
+
 logger = logging.getLogger(__name__)
+
+
+def _default_npc_position():
+    """Get default position for NPCs (Near-Enemy)."""
+    from .enemy_agent import Position
+    return Position(ring="Near", side="Enemy")
 
 
 @dataclass
@@ -29,13 +39,14 @@ class NPCAgent:
     - Participate in skill checks
     - Take damage (triggers escalation potential)
     - Dialogue with players via simple LLM
+    - Have position on tactical grid (preserved during conversions)
 
     NPCs cannot:
     - Use combat tactics (no tactical AI)
-    - Have Position on tactical grid
     - Declare attack actions (only if escalated to enemy)
 
     Critical: agent_id is STABLE across conversions (never changes).
+    Position is STABLE across conversions (preserves location).
     """
 
     # Identity (STABLE - never changes during conversions)
@@ -54,9 +65,12 @@ class NPCAgent:
     max_health: int
     soak: int
     void_score: int
+
+    # Skills and damage (with defaults)
     skills: Dict[str, int] = field(default_factory=dict)
 
-    # Damage tracking
+    # Tactical state (preserved across conversions) - with sensible default
+    position: 'Position' = field(default_factory=lambda: _default_npc_position())
     stuns: int = 0
     wounds: int = 0
     conditions: List[Condition] = field(default_factory=list)

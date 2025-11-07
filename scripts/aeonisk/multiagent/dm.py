@@ -492,20 +492,9 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                             break  # Only check first match and retry once
 
             except Exception as e:
-                logger.error(f"Failed to generate AI scenario: {e}, using fallback")
-                # Fallback to simple random scenario
-                themes = ['Corporate Intrigue', 'Void Investigation', 'Bond Crisis', 'Tech Heist', 'Ritual Gone Wrong']
-                scenario_data = {
-                    'theme': random.choice(themes),
-                    'location': 'Unknown Location',
-                    'situation': 'The party finds themselves in a mysterious situation',
-                    'void_level': 3,
-                    'clocks': [
-                        ('Danger Level', 6, 'Escalating threat'),
-                        ('Investigation', 6, 'Uncovering the truth'),
-                        ('Time Pressure', 6, 'Running out of time')
-                    ]
-                }
+                logger.error(f"Failed to generate AI scenario: {e}")
+                # Re-raise exception - fail fast instead of producing broken fallback
+                raise
 
         # Scenario-aware vendor encounter
         # If vendor-gated scenario, force specific vendor type
@@ -956,8 +945,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             return scenario
 
         except Exception as e:
-            logger.warning(f"DM: Structured scenario generation failed ({e}), falling back to legacy text parsing")
-            return None
+            logger.error(f"DM: Structured scenario generation failed: {e}")
+            raise RuntimeError(f"Scenario generation failed: {e}") from e
 
     def _parse_scenario_from_llm(self, llm_text: str) -> Dict[str, Any]:
         """Parse scenario from LLM-generated text."""
@@ -2524,6 +2513,8 @@ enemy_spawns=[
         enemy_status_context = ""
         if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
             enemy_combat = self.shared_state.enemy_combat
+            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+
             if enemy_combat and enemy_combat.enabled:
                 from .enemy_spawner import get_active_enemies
                 active_enemies = get_active_enemies(enemy_combat.enemy_agents)
@@ -2532,10 +2523,28 @@ enemy_spawns=[
                     enemy_lines = []
                     for enemy in active_enemies:
                         health_pct = (enemy.health / enemy.max_health * 100) if enemy.max_health > 0 else 0
-                        enemy_lines.append(f"  - {enemy.name} (ID: {enemy.agent_id}) - {enemy.health}/{enemy.max_health} HP ({health_pct:.0f}%)")
+
+                        # Use target ID if free targeting is enabled, otherwise use agent_id
+                        if target_id_mapper and target_id_mapper.enabled:
+                            target_id = target_id_mapper.get_target_id(enemy.agent_id)
+                            if target_id:
+                                # NEW FORMAT: [tgt_xxxx] Name - HP (for structured output)
+                                enemy_lines.append(f"  - [{target_id}] {enemy.name} - {enemy.health}/{enemy.max_health} HP ({health_pct:.0f}%)")
+                            else:
+                                # Fallback if target ID not found
+                                logger.warning(f"No target ID found for enemy {enemy.agent_id}, using agent_id")
+                                enemy_lines.append(f"  - {enemy.name} (ID: {enemy.agent_id}) - {enemy.health}/{enemy.max_health} HP ({health_pct:.0f}%)")
+                        else:
+                            # Legacy format when free targeting disabled
+                            enemy_lines.append(f"  - {enemy.name} (ID: {enemy.agent_id}) - {enemy.health}/{enemy.max_health} HP ({health_pct:.0f}%)")
 
                     enemy_status_context = "\n\n**Active Enemies:**\n" + "\n".join(enemy_lines)
-                    enemy_status_context += "\n\n⚠️  If enemies surrender/calm down, use `deescalations` field with their exact agent_id (e.g., enemy_grunt_adbb6db0)"
+
+                    # Update de-escalation instruction based on mode
+                    if target_id_mapper and target_id_mapper.enabled:
+                        enemy_status_context += "\n\n⚠️  For structured output: Use target IDs (e.g., tgt_7a3f) in damage/conditions. For deescalations, use agent_id (e.g., enemy_grunt_adbb6db0)"
+                    else:
+                        enemy_status_context += "\n\n⚠️  If enemies surrender/calm down, use `deescalations` field with their exact agent_id (e.g., enemy_grunt_adbb6db0)"
 
         # Build NPC status context
         npc_status_context = ""
@@ -4397,7 +4406,8 @@ The following actions ALREADY resolved (faster initiative):
         character_name: str = "",
         target_character: str = "",
         target_id: str = "",
-        previous_context: str = ""
+        previous_context: str = "",
+        combatant_list: str = ""
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -4476,6 +4486,8 @@ The following actions ALREADY resolved (faster initiative):
                 prompt_parts.append(tactical_combat_context)
             if clock_context:
                 prompt_parts.append(clock_context)
+            if combatant_list:
+                prompt_parts.append(combatant_list)
 
             # Add narration task template with outcome guidance
             variables = {
@@ -4758,12 +4770,13 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
                 return resolution_obj
             else:
-                logger.warning("DM: Structured output returned text instead of ActionResolution")
-                return None
+                error_msg = "DM: Structured output returned text instead of ActionResolution object"
+                logger.error(error_msg)
+                raise TypeError(error_msg)
 
         except Exception as e:
-            logger.warning(f"DM: Structured output failed ({e}), falling back to legacy")
-            return None
+            logger.error(f"DM: Structured output failed: {e}")
+            raise RuntimeError(f"Structured output generation failed: {e}") from e
 
     async def _build_resolution_prompt(
         self,
@@ -4827,6 +4840,24 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
         if action and 'previous_context' in action:
             previous_context = action['previous_context']
 
+        # Build combatant list with target IDs for structured output
+        combatant_list = ""
+        if self.shared_state:
+            target_id_mapper = self.shared_state.get_target_id_mapper()
+            if target_id_mapper and target_id_mapper.enabled:
+                all_target_ids = target_id_mapper.get_all_target_ids()
+                if all_target_ids:
+                    combatant_lines = []
+                    for tid in sorted(all_target_ids):  # Sort for consistent ordering
+                        info = target_id_mapper.get_combatant_info(tid)
+                        if info:
+                            # Format: [tgt_xxxx] Name (type)
+                            combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
+
+                    if combatant_lines:
+                        combatant_list = "\n\n**VALID TARGET IDS (use EXACT IDs in damage/conditions):**\n" + "\n".join(combatant_lines)
+                        combatant_list += "\n⚠️  IMPORTANT: When applying damage or conditions, use target IDs exactly as shown above (e.g., tgt_7a3f). Do NOT invent new target IDs!"
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -4845,7 +4876,8 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             character_name=action.get('character', 'The character') if action else "The character",
             target_character="",
             target_id=target_id,
-            previous_context=previous_context  # Include earlier resolutions for consistency
+            previous_context=previous_context,  # Include earlier resolutions for consistency
+            combatant_list=combatant_list  # NEW: Include all valid target IDs
         )
 
         return prompt
@@ -4948,7 +4980,9 @@ IMPORTANT: Failed investigation/sensing actions should result in MISSING the inf
                     # Build enemy positions summary
                     enemy_positions = []
                     for enemy in active_enemies:
-                        enemy_positions.append(f"{enemy.name} at {enemy.position}")
+                        # Skip if enemy doesn't have position (e.g., recently de-escalated NPC)
+                        if hasattr(enemy, 'position'):
+                            enemy_positions.append(f"{enemy.name} at {enemy.position}")
                     enemy_positions_text = ", ".join(enemy_positions)
 
                     tactical_combat_context = f"""
@@ -5569,6 +5603,18 @@ Be vivid and maintain the dark sci-fi atmosphere."""
         if not weapons:
             weapons.append(WEAPON_LIBRARY['fists'])
 
+        # Parse position from NPCSpawn schema, default to Near-Enemy if not provided
+        from .enemy_agent import Position
+        if npc_spawn.position:
+            try:
+                position = Position.from_string(npc_spawn.position)
+            except Exception as e:
+                logger.warning(f"Failed to parse position '{npc_spawn.position}' for NPC {npc_spawn.name}: {e}, using default")
+                position = Position(ring="Near", side="Enemy")
+        else:
+            # Default: NPCs appear at Near-Enemy (close but not engaged)
+            position = Position(ring="Near", side="Enemy")
+
         # Create NPC agent
         npc = NPCAgent(
             agent_id=npc_id,
@@ -5583,6 +5629,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             soak=npc_spawn.soak,
             void_score=0,  # NPCs start with no void corruption
             skills=skills,
+            position=position,  # Required - always has a position
             weapons=weapons,  # Weapons based on threat level and skills
             converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
             agent_prompt_logger=self.agent_prompt_logger  # Pass through logger
