@@ -88,7 +88,7 @@ def create_example_config(output_path: str):
         sys.exit(1)
 
 
-async def run_session(config_path: str, random_seed: int = None):
+async def run_session(config_path: str, random_seed: int = None, log_agents_separately: bool = False):
     """Run a self-playing session."""
     if not Path(config_path).exists():
         print(f"Configuration file not found: {config_path}")
@@ -96,7 +96,11 @@ async def run_session(config_path: str, random_seed: int = None):
         return
 
     try:
-        session = SelfPlayingSession(config_path, random_seed=random_seed)
+        session = SelfPlayingSession(
+            config_path,
+            random_seed=random_seed,
+            log_agents_separately=log_agents_separately
+        )
         await session.start_session()
     except KeyboardInterrupt:
         print("\nSession interrupted by user")
@@ -156,6 +160,12 @@ def main():
         help='Replay rounds 1-N with cached responses, then continue LIVE from round N+1 onwards (hybrid mode)'
     )
 
+    parser.add_argument(
+        '--log-agents-separately',
+        action='store_true',
+        help='Log full LLM prompts and responses to separate human-readable files per agent (agent_logs/{session_id}/player_01.log, etc.)'
+    )
+
     args = parser.parse_args()
     
     # Set up logging
@@ -191,10 +201,16 @@ def main():
     print(f"Configuration: {args.config}")
     if args.random_seed:
         print(f"Using random seed: {args.random_seed}")
+    if args.log_agents_separately:
+        print("Agent prompt logging enabled: agent_logs/{session_id}/*.log")
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
 
-    asyncio.run(run_session(args.config, random_seed=args.random_seed))
+    asyncio.run(run_session(
+        args.config,
+        random_seed=args.random_seed,
+        log_agents_separately=args.log_agents_separately
+    ))
 
 
 if __name__ == "__main__":

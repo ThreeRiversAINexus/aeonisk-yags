@@ -264,10 +264,10 @@ The DM can spawn enemies mid-session using structured commands:
 - `support` - Healer/buffer (assists allies)
 
 **Positions:**
-- `Near-Enemy` / `Near-Ally` - Close range (melee)
-- `Medium-Enemy` / `Medium-Ally` - Mid range
-- `Far-Enemy` / `Far-Ally` - Long range
-- `Extreme-Enemy` / `Extreme-Ally` - Sniper range
+- `Engaged` - Center melee zone (all combatants, no side distinction)
+- `Near-Enemy` / `Near-Ally` - Close range (1 ring from center)
+- `Far-Enemy` / `Far-Ally` - Long range (2 rings from center)
+- `Extreme-Enemy` / `Extreme-Ally` - Sniper range (3 rings from center)
 
 **Tactics:**
 - `aggressive_melee` - Rush to melee, prioritize wounded

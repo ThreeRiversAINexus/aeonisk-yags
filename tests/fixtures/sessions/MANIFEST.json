@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2025-11-02",
+  "last_updated": "2025-11-06",
   "fixtures": {
     "replay_test_fresh.jsonl": {
       "created": "2025-11-01",
@@ -134,22 +134,57 @@
         "tests/unit/test_enemy_spawn_structured.py"
       ],
       "notes": "Re-extracted from round 0 for replay compatibility (LLM call_sequence starts at 0). Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
+    },
+    "golden_npc_deescalation.jsonl": {
+      "created": "2025-11-05",
+      "created_by_commit": "8edf124",
+      "purpose": "Golden fixture for NPC system - demonstrates de-escalation mechanics, stable agent IDs across conversions, civilian fleeing behavior, and NPC LLM client actions. Tests complete NPC lifecycle.",
+      "scenario": "Tense Negotiation (social/combat) @ Abandoned Cargo Hub - Contested Territory",
+      "rounds": 3,
+      "rounds_range": "0-3",
+      "players": 2,
+      "enemies": 3,
+      "npcs": 1,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "golden",
+      "used_by_tests": [],
+      "notes": "Demonstrates: (1) Fresh NPC spawn with npc_ prefix, (2) Enemy→prisoner de-escalation with stable enemy_ ID preservation, (3) NPC actions (flee, plead, comply, dialogue), (4) Complete JSONL logging (action_declaration + action_resolution). All 3 enemies successfully de-escalate to prisoners via negotiation. 88% action success rate, no errors."
+    },
+    "golden_npc_escalation_lifecycle.jsonl": {
+      "created": "2025-11-06",
+      "created_by_commit": "44d0a89",
+      "purpose": "Golden fixture for full NPC lifecycle - spawn → escalate → de-escalate → prisoner. Tests complete bidirectional conversion system with multiple simultaneous escalations.",
+      "scenario": "Hostile Takeover Gone Wrong (social/combat) @ Condemned Warehouse - Freeborn No-Man's-Land",
+      "rounds": 3,
+      "rounds_range": "0-3",
+      "players": 2,
+      "enemies": 0,
+      "npcs": 3,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "golden",
+      "used_by_tests": [
+        "tests/integration/session/test_npc_lifecycle_integration.py"
+      ],
+      "notes": "Demonstrates: (1) 3 NPCs spawned from config with distinct threat levels, (2) All 3 NPCs escalate simultaneously in Round 1 (NPC→enemy), (3) Escalated NPCs use enemy combat AI (Razor shoots Brick for 11 damage), (4) 2 de-escalations to prisoners in Rounds 2-3 (enemy→prisoner), (5) Agent ID preservation through multiple conversions, (6) DM personality-based escalation reasoning. Stress test for simultaneous conversions. 60% action success rate, 0 errors. Config: session_config_npc_escalation_ultraviolent.json."
     }
   },
   "statistics": {
-    "total_fixtures": 9,
-    "active": 9,
+    "total_fixtures": 11,
+    "active": 11,
     "deprecated": 0,
-    "with_player_llm_calls": 2,
+    "with_player_llm_calls": 4,
     "categories": {
-      "golden": 1,
+      "golden": 3,
       "regression": 2,
       "test": 6
     }
   },
   "notes": [
     "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
-    "Only replay_test_fresh.jsonl and regression_combat_cultist_spawn_bug.jsonl have complete player LLM call data",
-    "Comprehensive golden fixture planned to replace legacy test fixtures"
+    "replay_test_fresh.jsonl, regression_combat_cultist_spawn_bug.jsonl, golden_npc_deescalation.jsonl, and golden_npc_escalation_lifecycle.jsonl have complete player LLM call data",
+    "golden_npc_deescalation.jsonl and golden_npc_escalation_lifecycle.jsonl are reference implementations for NPC system testing (de-escalation and escalation respectively)",
+    "golden_npc_escalation_lifecycle.jsonl is a stress test for simultaneous multi-NPC conversions"
   ]
 }

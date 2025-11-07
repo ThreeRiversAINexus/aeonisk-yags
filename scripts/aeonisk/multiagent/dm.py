@@ -51,6 +51,7 @@ class AIDMAgent(Agent):
         force_scenario: Optional[str] = None,
         llm_logger: Optional[Any] = None,
         llm_client: Optional[Any] = None,
+        agent_prompt_logger: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -63,6 +64,7 @@ class AIDMAgent(Agent):
         self._history_supplier = history_supplier
         self.force_scenario = force_scenario  # For automated testing
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+        self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
@@ -140,11 +142,16 @@ class AIDMAgent(Agent):
         modules.append('dm_core')
         modules.append('dm_structured_output')
 
-        # Conditional: Load combat module if enemies present
-        if self.shared_state and hasattr(self.shared_state, 'enemy_agents'):
-            if len(self.shared_state.enemy_agents) > 0:
+        # Always load dm_commands (contains NPC/enemy spawning, escalation triggers)
+        # DM needs to know it CAN spawn NPCs and WHEN to escalate even if none present yet
+        modules.append('dm_commands')
+
+        # Conditional: Load dm_combat if enemies present
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat') and self.shared_state.enemy_combat:
+            enemy_agents = getattr(self.shared_state.enemy_combat, 'enemy_agents', [])
+            if len(enemy_agents) > 0:
                 modules.append('dm_combat')
-                logger.debug("DM: Loading dm_combat module (enemies present)")
+                logger.debug(f"DM: Loading dm_combat module ({len(enemy_agents)} enemies present)")
 
         # Conditional: Load state tracking if clocks or rituals expected
         if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
@@ -156,17 +163,6 @@ class AIDMAgent(Agent):
                 modules.append('dm_state_tracking')
                 if has_clocks:
                     logger.debug(f"DM: Loading dm_state_tracking module ({len(mechanics.scene_clocks)} clocks)")
-
-        # Conditional: Load commands module at session start/end
-        if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
-            mechanics = self.shared_state.mechanics_engine
-            current_round = mechanics.current_round if mechanics else 0
-            max_turns = getattr(self.shared_state, 'max_turns', 10)
-
-            # Load at session start (round 0) or near end
-            if current_round == 0 or current_round >= max_turns - 2:
-                modules.append('dm_commands')
-                logger.debug(f"DM: Loading dm_commands module (round {current_round})")
 
         # Conditional: Load ML training module if JSONL logging enabled
         if self.shared_state and hasattr(self.shared_state, 'mechanics_engine'):
@@ -403,6 +399,23 @@ IMPORTANT:
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=None,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=scenario_prompt,
+                            response=llm_text,
+                            model=model,
+                            temperature=0.9,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'scenario_generation'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 # Parse LLM response
                 scenario_data = self._parse_scenario_from_llm(llm_text)
 
@@ -448,6 +461,23 @@ IMPORTANT:
                                     call_sequence=self.llm_logger.call_count
                                 )
                                 self.llm_logger.call_count += 1
+
+                            # Also log to human-readable agent prompt log if enabled
+                            if self.agent_prompt_logger:
+                                try:
+                                    self.agent_prompt_logger.log_llm_call(
+                                        agent_id=self.agent_id,
+                                        round_num=None,
+                                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                                        prompt=retry_prompt,
+                                        response=llm_text,
+                                        model=model,
+                                        temperature=1.0,
+                                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                                        metadata={'purpose': 'scenario_generation_retry'}
+                                    )
+                                except Exception as e:
+                                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
                             scenario_data = self._parse_scenario_from_llm(llm_text)
                             break  # Only check first match and retry once
@@ -631,6 +661,9 @@ IMPORTANT:
         void_level = scenario_config.get('void_level', 3)
         initial_clocks = scenario_config.get('initial_clocks', [])
 
+        # Extract initial_enemies from top-level config (not scenario dict)
+        initial_enemies_config = config.get('initial_enemies', [])
+
         # Create scenario object
         scenario = Scenario(
             theme=theme,
@@ -675,15 +708,103 @@ IMPORTANT:
         # Generate opening narration based on situation
         opening_narration = f"{situation}"
 
+        # Extract initial_npcs from top-level config
+        initial_npcs_config = config.get('initial_npcs', [])
+
+        # Create scenario_setup object with initial_enemies and/or initial_npcs if specified
+        scenario_setup_obj = None
+        if initial_enemies_config or initial_npcs_config:
+            from types import SimpleNamespace
+            from .schemas.story_events import EnemySpawn, NPCSpawn
+            from .schemas.shared_types import Position  # Position Enum, not enemy_agent.Position class
+
+            # Convert initial_enemies config dicts to EnemySpawn objects
+            enemy_spawns = []
+            for enemy_config in initial_enemies_config:
+                # Map config template (lowercase) to schema template (capitalized)
+                template_raw = enemy_config.get('template', 'grunt').lower()
+                template_map = {
+                    'grunt': 'Grunt',
+                    'elite': 'Elite',
+                    'boss': 'Boss'
+                }
+                template = template_map.get(template_raw, 'Grunt')
+
+                # Map position string to Position enum
+                # Valid: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy
+                position_str = enemy_config.get('position', 'Far-Enemy')
+                position_map = {
+                    'Engaged': Position.ENGAGED,
+                    'Near-PC': Position.NEAR_PC,
+                    'Near-Enemy': Position.NEAR_ENEMY,
+                    'Far-PC': Position.FAR_PC,
+                    'Far-Enemy': Position.FAR_ENEMY,
+                    'Extreme-PC': Position.EXTREME_PC,
+                    'Extreme-Enemy': Position.EXTREME_ENEMY
+                }
+                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
+
+                # Extract/generate required fields
+                name = enemy_config.get('name', 'Unknown Enemy')
+                faction = enemy_config.get('faction', 'Hostile')
+                archetype = enemy_config.get('archetype', name)  # Default to name if not specified
+                spawn_reason = enemy_config.get('spawn_reason', f'{name} present at scenario start')
+
+                enemy_spawn = EnemySpawn(
+                    template=template,
+                    faction=faction,
+                    archetype=archetype,
+                    count=enemy_config.get('count', 1),
+                    spawn_reason=spawn_reason,
+                    initial_position=initial_position,
+                    custom_traits=enemy_config.get('tactics')  # Map tactics to custom_traits
+                )
+                enemy_spawns.append(enemy_spawn)
+
+            # Convert initial_npcs config dicts to NPCSpawn objects
+            npc_spawns = []
+            for npc_config in initial_npcs_config:
+                npc_spawn = NPCSpawn(
+                    name=npc_config.get('name', 'Unknown NPC'),
+                    faction=npc_config.get('faction', 'Unknown'),
+                    entity_type=npc_config.get('entity_type', 'neutral'),
+                    threat_level=npc_config.get('threat_level', 'non_combatant'),
+                    disposition=npc_config.get('disposition', 'neutral'),
+                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
+                    health=npc_config.get('health', 20),
+                    soak=npc_config.get('soak', 0),
+                    skills=npc_config.get('skills', {})
+                )
+                npc_spawns.append(npc_spawn)
+
+            # Serialize Pydantic models to dicts for JSON serialization
+            # (Message.to_json() uses json.dumps with default=str, which breaks objects)
+            enemy_spawn_dicts = [spawn.model_dump() for spawn in enemy_spawns]
+            npc_spawn_dicts = [spawn.model_dump() for spawn in npc_spawns]
+
+            # Create dict (not SimpleNamespace) for JSON serialization
+            scenario_setup_dict = {
+                'initial_enemies': enemy_spawn_dicts,
+                'npc_spawns': npc_spawn_dicts
+            }
+            if enemy_spawns:
+                logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
+            if npc_spawns:
+                logger.info(f"Config specifies {len(npc_spawns)} initial NPC spawn(s)")
+
         # Broadcast scenario setup
+        payload = {
+            'scenario': scenario_data,
+            'opening_narration': opening_narration,
+            'faction_conflicts': []
+        }
+        if initial_enemies_config or initial_npcs_config:
+            payload['scenario_setup'] = scenario_setup_dict
+
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
-            {
-                'scenario': scenario_data,
-                'opening_narration': opening_narration,
-                'faction_conflicts': []
-            }
+            payload
         )
 
         print(f"\n[DM {self.agent_id}] Using scenario from config file")
@@ -691,6 +812,11 @@ IMPORTANT:
         print(f"Location: {location}")
         if initial_clocks:
             print(f"Initialized {len(initial_clocks)} clocks from config")
+        if initial_enemies_config:
+            total_enemies = sum(e.get('count', 1) for e in initial_enemies_config)
+            print(f"Will spawn {total_enemies} initial enemies from config")
+        if initial_npcs_config:
+            print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
 
     async def _request_human_scenario(self, config: Dict[str, Any]):
         """Request scenario from human DM."""
@@ -1273,12 +1399,13 @@ IMPORTANT:
         """Generate synthesis from all collected resolutions."""
         resolutions = payload.get('resolutions', [])
         round_num = payload.get('round', 0)
+        resolution_state = payload.get('resolution_state')  # Extract resolution state for fled NPCs tracking
 
         if not resolutions:
             return
 
         # Generate synthesis (can be RoundSynthesis object or str)
-        synthesis = await self._synthesize_round_outcome(resolutions, round_num)
+        synthesis = await self._synthesize_round_outcome(resolutions, round_num, resolution_state=resolution_state)
 
         # Import RoundSynthesis for type checking
         from .schemas.story_events import RoundSynthesis
@@ -1578,6 +1705,7 @@ IMPORTANT:
         round_num = payload.get('round', 0)
         action_index = payload.get('action_index', 0)  # Track which action this is for multi-action turns
         skip_synthesis = payload.get('skip_synthesis', False)  # Skip synthesis if set
+        previous_resolutions = payload.get('previous_resolutions', [])  # Earlier actions this round for narrative consistency
 
         if not actions:
             # No actions to adjudicate - signal completion
@@ -1614,8 +1742,8 @@ IMPORTANT:
 
             print(f"\n[{character_name}] (initiative {initiative})")
 
-            # Resolve action mechanically
-            resolution = await self._resolve_action_mechanically(player_id, action)
+            # Resolve action mechanically (with context from previous resolutions this round)
+            resolution = await self._resolve_action_mechanically(player_id, action, previous_resolutions=previous_resolutions)
 
             # Print the resolution
             print(f"\n{resolution['narration']}")
@@ -1669,7 +1797,8 @@ IMPORTANT:
                         "is_free_action": action.get('is_free_action', False),
                         "initiative": initiative,
                         "clock_deltas": clock_deltas,  # Include clock before/after/reason
-                        "clock_sources": clock_sources  # Include source for each clock change
+                        "clock_sources": clock_sources,  # Include source for each clock change
+                        "target": action.get('target')  # Target ID for combat/social actions
                     }
 
                     # Add ritual context if this was a ritual
@@ -1777,7 +1906,8 @@ IMPORTANT:
                 'character_name': res['character_name'],
                 'initiative': res['initiative'],
                 'action': res['action'],
-                'resolution': res['resolution']['outcome']  # Use serialized outcome instead of raw resolution
+                'resolution': res['resolution']['outcome'],  # Use serialized outcome instead of raw resolution
+                'narration': res['resolution']['narration']  # CRITICAL: Include narration so DM sees it during synthesis
             }
 
             self.send_message_sync(
@@ -1905,16 +2035,38 @@ IMPORTANT:
                 )
                 self.llm_logger.call_count += 1
 
+            # Also log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=current_round,
+                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=synthesis.model_dump_json(indent=2),
+                        model=model,
+                        temperature=temperature,
+                        metadata={'purpose': 'round_synthesis_structured', 'note': 'Pydantic AI structured output (RoundSynthesis schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
             return synthesis
 
         except Exception as e:
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int):
+    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
         This is where conflicts are detected and described.
+
+        Args:
+            resolutions: List of resolved actions this round
+            round_num: Current round number
+            resolution_state: ResolutionState with fled NPCs tracking (optional)
 
         Returns:
             Either a RoundSynthesis object (structured) or str (legacy fallback)
@@ -1925,7 +2077,8 @@ IMPORTANT:
         # Build context about what happened
         outcomes_summary = []
         for res in resolutions:
-            char_name = res['character_name']
+            char_name = res.get('character_name', 'Unknown')
+
             # Handle both old format (full dict) and new format (serializable dict)
             if 'resolution' in res and isinstance(res['resolution'], dict):
                 if 'resolution' in res['resolution']:
@@ -1936,12 +2089,44 @@ IMPORTANT:
                     # Old format: res['resolution'] has direct 'outcome' field
                     success = res['resolution'].get('success', True)
             else:
-                success = True
+                # Enemy result format or other simplified formats
+                success = res.get('result') not in ['invalidated', 'failed', 'target not found']
 
-            intent = res['action'].get('intent', res['action'].get('description', 'unknown action'))
+            # Handle action field - can be dict (PC actions) or string (enemy actions)
+            action = res.get('action', {})
+            if isinstance(action, dict):
+                # PC action format: action is a dict with 'intent' or 'description'
+                intent = action.get('intent', action.get('description', 'unknown action'))
+            else:
+                # Enemy action format: action is a string like 'attack', 'move', etc.
+                intent = str(action)
+                # Make it more readable
+                if intent == 'attack':
+                    target = res.get('target', 'unknown target')
+                    intent = f"attacked {target}"
+                elif intent == 'hold':
+                    intent = "held position"
 
-            status = "succeeded" if success else "failed"
-            outcomes_summary.append(f"- {char_name} {status} at: {intent}")
+            # Check if action was invalidated
+            if res.get('result') == 'invalidated':
+                failure_reason = res.get('failure_reason', 'unknown')
+                if failure_reason == 'attacker_surrendered':
+                    status = "surrendered (action cancelled)"
+                elif failure_reason == 'attacker_defeated':
+                    status = "already defeated (action cancelled)"
+                else:
+                    status = f"action invalidated ({failure_reason})"
+            else:
+                status = "succeeded" if success else "failed"
+
+            # CRITICAL: Include narration from individual resolution so DM can maintain consistency
+            narration = res.get('narration', '')
+            if narration:
+                # Truncate very long narrations to keep synthesis prompt focused
+                narration_preview = narration[:500] + "..." if len(narration) > 500 else narration
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}\n  Resolution: {narration_preview}")
+            else:
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}")
 
         outcomes_text = "\n".join(outcomes_summary)
 
@@ -2079,6 +2264,134 @@ IMPORTANT:
         if self.config.get('enemy_agents_enabled', False):
             enemy_spawn_prompt = """
 
+═══════════════════════════════════════════════════════════════════════════════
+🎭 NPC SPAWNING - CRITICAL FOR NARRATIVE CONSISTENCY 🎭
+═══════════════════════════════════════════════════════════════════════════════
+
+**⚠️ GOLDEN RULE: If you NAME an NPC in your narration, you MUST spawn them via `npc_spawns`**
+
+**MANDATORY NPC SPAWNING TRIGGERS:**
+
+You MUST use `npc_spawns` when:
+✅ You write a named character in your narration (e.g., "Dr. Vohl flees down the corridor")
+✅ Players declare intent to interact with someone ("interrogate the scientist", "talk to the guard")
+✅ Your narration describes NPCs present in the scene ("civilians cower in corners", "technician monitors console")
+✅ Plot requires a character to exist (antagonists, quest-givers, witnesses, informants, allies)
+
+**⚠️ CRITICAL FAILURE MODE - DO NOT DO THIS:**
+❌ Round 1: You write "Dr. Vohl's escape shuttle sits in the hangar..." (Vohl NOT spawned)
+❌ Round 2: Players declare "Find and interrogate Dr. Vohl about the research data"
+❌ Result: BROKEN NARRATIVE - Vohl doesn't exist as an interactable NPC! Players can't target them!
+
+✅ **CORRECT APPROACH:**
+✅ Round 1: Use `npc_spawns` to create Dr. Vohl FIRST
+✅ Round 1: THEN mention Vohl in your narration
+✅ Round 2: Players can now interact with the spawned NPC (interrogate, persuade, combat)
+
+**NPC Spawning Syntax:**
+```python
+npc_spawns=[
+    NPCSpawn(
+        name="Dr. Kellen Vohl",  # EXACT name as it appears in your narration
+        faction="Rogue Scientist (formerly ArcGen)",
+        entity_type="neutral",  # neutral/ally/prisoner
+        threat_level="potential_threat",  # non_combatant/potential_threat/armed_neutral
+        disposition="wary",  # friendly/neutral/wary/prisoner
+        description="Disheveled researcher with void-stained hands, clutching encrypted data slate, cornered and desperate",
+        health=18,
+        soak=0,
+        skills={"Systems": 14, "Science": 12, "Guile": 10}  # Skills for interaction/interrogation
+    )
+]
+```
+
+**Common NPC Types & When to Use:**
+
+1. **Plot Antagonists** (Dr. Vohl, Captain Torres, corrupt officials):
+   - `entity_type="neutral"`, `threat_level="potential_threat"`
+   - Give relevant skills for interaction (Guile for lying, Systems for hacking, Combat for fighting if escalates)
+   - Always spawn if named in narration!
+
+2. **Quest-Givers / Informants** (contacts, witnesses, defectors):
+   - `entity_type="neutral"` or `"ally"`, `threat_level="non_combatant"`
+   - Give social/knowledge skills (Area Lore, Corporate Influence, Science)
+
+3. **Civilians** (dock workers, bystanders, refugees):
+   - `entity_type="neutral"`, `threat_level="non_combatant"`
+   - Minimal skills or empty dict
+
+4. **Converted Enemies** (use `deescalations` field instead - see below):
+   - Don't use `npc_spawns` for surrendered enemies
+   - Use `deescalations` to convert existing enemies to NPCs
+
+**When NPCs become hostile:**
+Use `escalations` field to convert NPC → enemy:
+```python
+escalations=[
+    Escalation(
+        npc_id="npc_dr_vohl_1234",  # ← NPC's agent_id
+        reason="Cornered and panicked, Vohl draws concealed weapon and fires at pursuers",
+        template="desperate_fighter"
+    )
+]
+```
+
+═══════════════════════════════════════════════════════════════════════════════
+
+**NPC MANAGEMENT (De-escalation System):**
+
+⚠️ **CRITICAL: NARRATIVE-MECHANICAL ALIGNMENT** ⚠️
+
+If your narration describes surrender, detention, prisoners, or peaceful resolution:
+→ You MUST populate `deescalations` field with the converted enemies
+→ Narrative alone does NOT change combat state
+→ Enemy agents fight based on structured state, NOT narrative text
+→ Divergence = enemies keep fighting despite narration saying they surrendered
+
+**IF YOU WRITE "surrendered" or "detained" or "prisoner" in narration:**
+→ USE `deescalations` field with exact enemy_id from "Active Enemies" list
+
+---
+
+When enemies surrender, calm down, or negotiate, use the `deescalations` field to convert them to NPCs:
+
+**⚠️ CRITICAL: Use `deescalations` NOT `enemy_removals` for surrenders!**
+- `deescalations` → Enemy STAYS in scene as NPC (prisoner, neutral, ally)
+- `enemy_removals` → Enemy LEAVES scene entirely (fled, escaped)
+
+**When to use de-escalation:**
+✅ Enemy surrenders after intimidation/negotiation
+✅ Enemy convinced to stand down peacefully
+✅ Morale breaks and enemy yields
+✅ Successful diplomatic resolution
+
+**How to use deescalations field:**
+```python
+deescalations=[
+    Deescalation(
+        enemy_id="enemy_grunt_adbb6db0",  # ← EXACT agent_id from Active Enemies list!
+        resulting_entity_type="prisoner",  # neutral, ally, or prisoner
+        resulting_disposition="prisoner",  # friendly, neutral, wary, or prisoner
+        reason="Surrendered after successful intimidation, now restrained and compliant"
+    )
+]
+```
+
+**Dispositions (NPC attitude):**
+- `"prisoner"` → Captured, restrained, under guard
+- `"wary"` → Suspicious, will flee if threatened again
+- `"neutral"` → Calm, indifferent, observing
+- `"friendly"` → Cooperative, helpful, allied
+
+**Entity Types (relationship to players):**
+- `"prisoner"` → Captured enemy (restrained)
+- `"neutral"` → Non-aligned NPC
+- `"ally"` → Friendly NPC who may help
+
+**⚠️ IMPORTANT:** Use the EXACT `enemy_id` from the "Active Enemies" list above. DO NOT make up IDs!
+
+---
+
 **ENEMY SPAWNING (Structured Output):**
 
 You can spawn enemies using the `enemy_spawns` field in RoundSynthesis. Spawn enemies when narratively appropriate:
@@ -2119,6 +2432,56 @@ enemy_spawns=[
 **Positions:** FAR_ENEMY, NEAR_ENEMY, ENGAGED, EXTREME_ENEMY
 
 **Pacing:** Use spawns to maintain tension. Don't overwhelm players with too many at once. Clock-based spawns provide predictability; emergent spawns provide dynamism."""
+
+        # Build enemy status context (for de-escalation system)
+        enemy_status_context = ""
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+            enemy_combat = self.shared_state.enemy_combat
+            if enemy_combat and enemy_combat.enabled:
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                if active_enemies:
+                    enemy_lines = []
+                    for enemy in active_enemies:
+                        health_pct = (enemy.health / enemy.max_health * 100) if enemy.max_health > 0 else 0
+                        enemy_lines.append(f"  - {enemy.name} (ID: {enemy.agent_id}) - {enemy.health}/{enemy.max_health} HP ({health_pct:.0f}%)")
+
+                    enemy_status_context = "\n\n**Active Enemies:**\n" + "\n".join(enemy_lines)
+                    enemy_status_context += "\n\n⚠️  If enemies surrender/calm down, use `deescalations` field with their exact agent_id (e.g., enemy_grunt_adbb6db0)"
+
+        # Build NPC status context
+        npc_status_context = ""
+        if self.shared_state and self.shared_state.npc_agents:
+            npc_lines = []
+            for npc in self.shared_state.npc_agents:
+                if getattr(npc, 'is_active', True):
+                    npc_line = f"  - {npc.name} (ID: {npc.agent_id}) - {npc.entity_type}/{npc.disposition}"
+                    # Include NPC description/personality for escalation decision-making
+                    if hasattr(npc, 'description') and npc.description:
+                        # Truncate description to 200 chars for prompt efficiency
+                        desc = npc.description if len(npc.description) <= 200 else npc.description[:197] + "..."
+                        npc_line += f"\n    Personality: {desc}"
+                    npc_lines.append(npc_line)
+
+            if npc_lines:
+                npc_status_context = "\n\n**Active NPCs:**\n" + "\n".join(npc_lines)
+                npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id\n⚠️  Check NPC personalities for escalation triggers (paranoia, low thresholds, etc.)"
+
+        # Build fled NPCs context (for narrative consistency)
+        fled_npcs_context = ""
+        if resolution_state and hasattr(resolution_state, 'fled_npcs') and resolution_state.fled_npcs:
+            fled_npc_names = []
+            if self.shared_state and self.shared_state.npc_agents:
+                for npc in self.shared_state.npc_agents:
+                    if npc.agent_id in resolution_state.fled_npcs:
+                        fled_npc_names.append(npc.name)
+
+            if fled_npc_names:
+                fled_npcs_context = "\n\n**⚠️ FLED NPCs (NO LONGER PRESENT):**\n"
+                fled_npcs_context += "The following NPCs fled/left the scene earlier this round:\n"
+                fled_npcs_context += "\n".join([f"  - {name}" for name in fled_npc_names])
+                fled_npcs_context += "\n\n**CRITICAL:** Do NOT narrate fled NPCs as present in the scene. They have left and cannot interact with players."
 
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
@@ -2180,9 +2543,21 @@ story_advancement=StoryAdvancement(
 {clock_state_text}
 {filled_clocks_text}
 {expired_clocks_text}
+{enemy_status_context}
+{npc_status_context}
+{fled_npcs_context}
 {story_advancement_prompt}
 
-**Your task:** Write a cohesive narrative (1-2 paragraphs) describing what happened when these actions played out together. Consider:
+**Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
+
+**⚠️ CRITICAL - NARRATIVE CONSISTENCY:**
+- Each "Resolution:" above shows what you ALREADY narrated for that action
+- Your synthesis MUST be consistent with these established facts
+- DO NOT contradict details like names, locations, or outcomes from individual resolutions
+- Your job is to WEAVE these resolutions together, not re-narrate them from scratch
+- If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
+
+**Consider:**
 - Timing: Actions resolved fastest → slowest based on initiative
 - Interactions: How did each person's success/failure affect the others?
 - Conflicts: If multiple people tried similar things, who got there first? What did the slower person encounter?
@@ -2270,6 +2645,23 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=round_num,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=synthesis_text,
+                            model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                            temperature=0.8,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'round_synthesis_legacy'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 # Clear story advancement flag after synthesis generation
                 if self.needs_story_advancement:
                     logger.info("Story advancement synthesis generated - clearing flag")
@@ -2288,15 +2680,74 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 self.needs_story_advancement = False
             return f"Round {round_num} completes:\n{outcomes_text}"
 
-    async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any]) -> Dict[str, Any]:
+    async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any], previous_resolutions=None) -> Dict[str, Any]:
         """
         Resolve a single action mechanically (rolls, difficulty, narration).
+
+        Args:
+            player_id: Agent ID of acting player
+            action: Action dict with intent, description, etc.
+            previous_resolutions: List of earlier resolved actions this round (for narrative consistency)
+
         Returns resolution data.
         """
         # This is essentially the same as _handle_ai_dm_response but returns data instead of sending messages
         action_type = action.get('action_type', 'unknown')
         description = action.get('description', '')
         intent = action.get('intent', description)
+
+        # Check if this is an NPC action (lightweight adjudication)
+        if action.get('is_npc'):
+            from .mechanics import ActionResolution, OutcomeTier
+
+            character_name = action.get('character_name', 'NPC')
+            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent}")
+
+            # NPCs get simple narrative resolution without complex mechanics
+            # Generate brief narration (1-2 sentences) from their declared action
+            narration = f"{character_name} {description}"
+
+            # Create a minimal ActionResolution for NPC (no dice rolls/mechanics)
+            npc_resolution = ActionResolution(
+                intent=intent,
+                attribute='None',  # NPCs don't use attributes
+                skill=None,        # NPCs don't use skills
+                attribute_value=0,
+                skill_value=0,
+                roll=0,            # No dice roll
+                total=0,
+                difficulty=0,
+                margin=0,
+                outcome_tier=OutcomeTier.MARGINAL,  # NPCs get basic success (no mechanics)
+                success=True,
+                narrative=narration,
+                state_effects={}
+            )
+
+            # Return lightweight resolution matching player format (with outcome dict)
+            return {
+                'resolution': npc_resolution,  # ActionResolution dataclass
+                'narration': narration,
+                'state_changes': {},  # Empty state changes for NPCs (no mechanics)
+                'combat_data': {},  # No combat data for NPCs
+                'inventory_changes': [],  # No inventory changes
+                'outcome': {
+                    'dm_response': narration,
+                    'success': True,  # NPCs always succeed (simple narration)
+                    'consequences': [],
+                    'narration': narration,  # Needed by line 1882
+                    'resolution': {
+                        'intent': intent,
+                        'attribute': 'None',
+                        'skill': None,
+                        'total': 0,
+                        'difficulty': 0,
+                        'margin': 0,
+                        'outcome_tier': 'marginal',  # String value
+                        'success': True
+                    }
+                }
+            }
 
         resolution = None
         narration = ""
@@ -2377,6 +2828,32 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Format mechanical resolution
             mechanical_text = mechanics.format_resolution_for_narration(resolution)
 
+            # Build context from previous resolutions this round (for narrative consistency)
+            if previous_resolutions:
+                previous_items = []
+                for prev in previous_resolutions[-3:]:  # Last 3 to keep prompt manageable
+                    char_name = prev.get('character_name', 'Unknown')
+                    narration = prev.get('narration', '')
+                    if narration:
+                        # Truncate to 300 chars to keep prompt focused
+                        narration_preview = narration[:300] + "..." if len(narration) > 300 else narration
+                        previous_items.append(f"- {char_name}: {narration_preview}")
+
+                if previous_items:
+                    action['previous_context'] = f"""
+
+**⚠️ CRITICAL - EARLIER ACTIONS THIS ROUND:**
+
+The following actions ALREADY resolved (faster initiative):
+{chr(10).join(previous_items)}
+
+**CONSISTENCY REQUIREMENTS:**
+- Your narration MUST acknowledge these established facts
+- DO NOT contradict details from earlier resolutions
+- Build on the tactical/narrative situation they created
+- If earlier action changed environment (collapsed structure, dropped item), ACKNOWLEDGE IT
+"""
+
             # Generate narrative description using LLM
             if self.llm_config:
                 llm_narration = await self._generate_llm_response(
@@ -2398,23 +2875,56 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
-            # CRITICAL: Resolve target IDs to character names for void cleansing
-            # In free targeting mode, actions have target="tgt_xxxx" but outcome parser needs target_character="Name"
+            # CRITICAL: Resolve target IDs to entity names for effect application
+            # In free targeting mode, actions have target="tgt_xxxx" but need entity names for structured output
             if action.get('target') and action['target'].startswith('tgt_'):
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for PC-to-PC action handling
-                    if target_entity and target_id_mapper.is_player(action['target']):
-                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
-                            action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
+                    if target_entity:
+                        # Resolve target type and populate appropriate field
+                        if target_id_mapper.is_player(action['target']):
+                            # PC target - for PC-to-PC actions (healing, buffs, void cleansing)
+                            if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                                action['target_character'] = target_entity.character_state.name
+                                logger.debug(f"Resolved target ID {action['target']} → PC '{action['target_character']}'")
+                        elif target_id_mapper.is_enemy(action['target']):
+                            # Enemy target - for social actions, combat, debuffs
+                            if hasattr(target_entity, 'name'):
+                                action['target_enemy'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → Enemy '{action['target_enemy']}'")
+                        elif target_id_mapper.is_npc(action['target']):
+                            # NPC target - for interactions with non-combatants
+                            if hasattr(target_entity, 'name'):
+                                action['target_npc'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → NPC '{action['target_npc']}'")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
+
+                # Skill mismatch detection
+                declared_skill = action.get('skill')
+                dm_resolution_skill = getattr(self._last_structured_resolution, 'skill', None)
+
+                if declared_skill and dm_resolution_skill and declared_skill.lower() != dm_resolution_skill.lower():
+                    skill_override = {
+                        'declared': declared_skill,
+                        'used': dm_resolution_skill,
+                        'reason': f"DM override: Action intent required {dm_resolution_skill}, player declared {declared_skill}"
+                    }
+
+                    # Add to structured resolution for JSONL logging
+                    if hasattr(self._last_structured_resolution, 'skill_override'):
+                        self._last_structured_resolution.skill_override = skill_override
+
+                    # Print to stdout for user visibility and ML training
+                    character_name = action.get('character_name', 'Character')
+                    print(f"\n⚠️  Skill Override: {character_name} declared {declared_skill}, DM used {dm_resolution_skill}")
+                    print(f"    Reason: Action intent required {dm_resolution_skill}")
+                    logger.info(f"Skill mismatch detected: {declared_skill} → {dm_resolution_skill} for {character_name}")
 
                 # Validate void changes were populated when narration contains void markers
                 narration_text = llm_narration if self.llm_config else resolution.narrative
@@ -2495,12 +3005,25 @@ Generate appropriate consequences based on what makes sense for that specific cl
                                 pc_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
                                 logger.warning(f"🔥 FRIENDLY FIRE: {attacker_name} targeting PC {pc_name} (ID: {target_identifier})")
                     else:
-                        # Legacy fuzzy name matching for enemies
+                        # Legacy fuzzy name matching for enemies AND NPCs (handles escalated agents)
                         target_name = target_identifier
+
+                        # First try enemies
                         for enemy in active_enemies:
-                            if target_name and (target_name.lower() in enemy.name.lower() or enemy.name.lower() in target_name.lower()):
+                            if target_name and (target_name.lower() in enemy.name.lower() or
+                                                enemy.name.lower() in target_name.lower() or
+                                                target_name.lower() in enemy.agent_id.lower()):
                                 target_entity = enemy
                                 break
+
+                        # If not found in enemies, try NPCs (for recently escalated agents or de-escalated enemies)
+                        if not target_entity and self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                            for npc in self.shared_state.npc_agents:
+                                if npc.is_active and target_name and (target_name.lower() in npc.name.lower() or
+                                                                       npc.name.lower() in target_name.lower() or
+                                                                       target_name.lower() in npc.agent_id.lower()):
+                                    target_entity = npc
+                                    break
 
                     if target_entity:
                         # Extract target name once for all effect types
@@ -3275,17 +3798,29 @@ Generate appropriate consequences based on what makes sense for that specific cl
             # Get active clocks for dynamic clock progression
             active_clocks = mechanics.scene_clocks if mechanics else {}
 
-            # CRITICAL: Resolve target IDs to character names for void cleansing
-            # In free targeting mode, actions have target="tgt_xxxx" but outcome parser needs target_character="Name"
+            # CRITICAL: Resolve target IDs to entity names for effect application
+            # In free targeting mode, actions have target="tgt_xxxx" but need entity names for structured output
             if action.get('target') and action['target'].startswith('tgt_'):
                 target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                 if target_id_mapper and target_id_mapper.enabled:
                     target_entity = target_id_mapper.resolve_target(action['target'])
-                    # If targeting a PC, populate target_character for PC-to-PC action handling
-                    if target_entity and target_id_mapper.is_player(action['target']):
-                        if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
-                            action['target_character'] = target_entity.character_state.name
-                            logger.debug(f"Resolved target ID {action['target']} → character '{action['target_character']}' for PC-to-PC action")
+                    if target_entity:
+                        # Resolve target type and populate appropriate field
+                        if target_id_mapper.is_player(action['target']):
+                            # PC target - for PC-to-PC actions (healing, buffs, void cleansing)
+                            if hasattr(target_entity, 'character_state') and hasattr(target_entity.character_state, 'name'):
+                                action['target_character'] = target_entity.character_state.name
+                                logger.debug(f"Resolved target ID {action['target']} → PC '{action['target_character']}'")
+                        elif target_id_mapper.is_enemy(action['target']):
+                            # Enemy target - for social actions, combat, debuffs
+                            if hasattr(target_entity, 'name'):
+                                action['target_enemy'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → Enemy '{action['target_enemy']}'")
+                        elif target_id_mapper.is_npc(action['target']):
+                            # NPC target - for interactions with non-combatants
+                            if hasattr(target_entity, 'name'):
+                                action['target_npc'] = target_entity.name
+                                logger.debug(f"Resolved target ID {action['target']} → NPC '{action['target_npc']}'")
 
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
@@ -3788,7 +4323,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
         party_context: str = "",
         character_name: str = "",
         target_character: str = "",
-        target_id: str = ""
+        target_id: str = "",
+        previous_context: str = ""
     ) -> str:
         """
         Build DM narration prompt using prompt_loader system.
@@ -3855,6 +4391,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 prompt_parts.append(character_context)
             if resolution_context:
                 prompt_parts.append(resolution_context)
+            if previous_context:
+                prompt_parts.append(previous_context)
 
             prompt_parts.append(f"\nPlayer Action: {description}")
             prompt_parts.append(f"Action Type: {action_type}")
@@ -4128,6 +4666,23 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=current_round,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=full_prompt,
+                            response=resolution_obj.model_dump_json(indent=2),
+                            model=model,
+                            temperature=temperature,
+                            metadata={'purpose': 'action_resolution_structured', 'note': 'Pydantic AI structured output (ActionResolution schema)'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 return resolution_obj
             else:
                 logger.warning("DM: Structured output returned text instead of ActionResolution")
@@ -4194,6 +4749,11 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                 clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
                 clock_context = "\n".join(clock_lines)
 
+        # Extract previous_context from action (for narrative consistency with earlier resolutions)
+        previous_context = ""
+        if action and 'previous_context' in action:
+            previous_context = action['previous_context']
+
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
             is_dialogue=False,
@@ -4211,7 +4771,8 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             party_context="",
             character_name=action.get('character', 'The character') if action else "The character",
             target_character="",
-            target_id=target_id
+            target_id=target_id,
+            previous_context=previous_context  # Include earlier resolutions for consistency
         )
 
         return prompt
@@ -4619,6 +5180,23 @@ When adjudicating:
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=getattr(self, 'current_round', None),
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=narration,
+                            model=model,
+                            temperature=temperature,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'dialogue_narration_task'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 return narration
 
         except Exception as e:
@@ -4712,6 +5290,23 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=getattr(self, 'current_round', None),
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=consequence,
+                            model=model,
+                            temperature=0.8,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'clock_consequence_generation', 'clock_name': clock_name}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 return consequence
         except Exception as e:
             logger.error(f"Clock consequence generation failed: {e}")
@@ -4794,6 +5389,23 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     )
                     self.llm_logger.call_count += 1
 
+                # Also log to human-readable agent prompt log if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=getattr(self, 'current_round', None),
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=prompt,
+                            response=event_text,
+                            model=model,
+                            temperature=0.85,
+                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                            metadata={'purpose': 'eye_of_breach_event', 'character_void': character_void, 'env_void': env_void}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                 logger.info(f"Eye of Breach appeared at void levels: char={character_void}, env={env_void}")
                 return f"👁️ **Eye of Breach Detected** {event_text}"
             except Exception as e:
@@ -4838,3 +5450,231 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
         # Fallback: return intent as discovery if action was successful
         return f"Investigated: {intent[:100]}" if intent else None
+
+    def _process_npc_spawn(self, npc_spawn: 'NPCSpawn') -> 'NPCAgent':
+        """
+        Process NPC spawn from structured output.
+
+        Creates NPCAgent instance and registers it with SharedState.
+
+        Args:
+            npc_spawn: NPCSpawn schema from RoundSynthesis
+
+        Returns:
+            Created NPCAgent instance
+        """
+        from .npc_agent import NPCAgent
+        from .schemas.story_events import NPCSpawn
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Generate unique agent_id with npc_ prefix
+        # (Converted NPCs keep their enemy_xxx ID for stability, but fresh NPCs use npc_)
+        npc_id = f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{id(npc_spawn) % 10000}"
+
+        # Synthesize weapons based on skills and threat level
+        from .weapons import WEAPON_LIBRARY
+        weapons = []
+
+        # Give weapons based on threat level and skills
+        skills = npc_spawn.skills if npc_spawn.skills else {}
+
+        if npc_spawn.threat_level == "armed_neutral":
+            # Armed NPCs get appropriate weapons based on skills
+            if skills.get('Guns', 0) >= 2:
+                weapons.append(WEAPON_LIBRARY['pistol'])
+            if skills.get('Melee', 0) >= 2:
+                weapons.append(WEAPON_LIBRARY['combat_knife'])
+
+        elif npc_spawn.threat_level == "potential_threat":
+            # Potentially dangerous NPCs might have basic weapons
+            if skills.get('Melee', 0) >= 2:
+                weapons.append(WEAPON_LIBRARY['combat_knife'])
+
+        # Everyone can use their fists (unarmed fallback)
+        if not weapons:
+            weapons.append(WEAPON_LIBRARY['fists'])
+
+        # Create NPC agent
+        npc = NPCAgent(
+            agent_id=npc_id,
+            name=npc_spawn.name,
+            faction=npc_spawn.faction,
+            entity_type=npc_spawn.entity_type,
+            disposition=npc_spawn.disposition,
+            threat_level=npc_spawn.threat_level,
+            description=npc_spawn.description,
+            health=npc_spawn.health,
+            max_health=npc_spawn.health,  # Max health = starting health
+            soak=npc_spawn.soak,
+            void_score=0,  # NPCs start with no void corruption
+            skills=skills,
+            weapons=weapons,  # Weapons based on threat level and skills
+            converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
+            agent_prompt_logger=self.agent_prompt_logger  # Pass through logger
+        )
+
+        # Register with SharedState
+        if self.shared_state:
+            self.shared_state.add_npc(npc)
+
+            # Register with target_id_mapper for tracking
+            target_mapper = self.shared_state.get_target_id_mapper()
+            if target_mapper:
+                target_mapper.register_npc(npc)
+
+            logger.info(f"Spawned NPC: {npc.name} ({npc.agent_id}) - {npc.entity_type}/{npc.disposition}")
+
+        return npc
+
+    def _process_deescalation(self, deescalation: 'Deescalation', current_round: int) -> 'NPCAgent':
+        """
+        Process de-escalation from structured output.
+
+        Converts enemy to NPC, preserving state and agent_id.
+
+        Args:
+            deescalation: Deescalation schema from RoundSynthesis
+            current_round: Current round number
+
+        Returns:
+            Created NPCAgent instance
+        """
+        from .agent_conversion import deescalate_enemy_to_npc
+        from .schemas.action_effects import AgentConversion
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Get enemy from SharedState
+        if not self.shared_state:
+            logger.error(f"Cannot process de-escalation: no shared_state")
+            return None
+
+        enemy = self.shared_state.get_enemy(deescalation.enemy_id)
+        if not enemy:
+            logger.error(f"Cannot de-escalate {deescalation.enemy_id}: enemy not found")
+            return None
+
+        # Convert enemy to NPC (preserves all state)
+        npc = deescalate_enemy_to_npc(
+            enemy=enemy,
+            disposition=deescalation.resulting_disposition,
+            current_round=current_round,
+            agent_prompt_logger=self.agent_prompt_logger
+        )
+
+        # Remove from enemy pool, add to NPC pool
+        self.shared_state.remove_enemy(deescalation.enemy_id)
+        self.shared_state.add_npc(npc)
+
+        logger.info(f"De-escalated {enemy.name} ({deescalation.enemy_id}) → NPC ({npc.entity_type}/{npc.disposition})")
+        logger.info(f"Reason: {deescalation.reason}")
+
+        # Log conversion for JSONL
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_agent_conversion(
+                round_num=current_round,
+                agent_id=npc.agent_id,
+                agent_name=npc.name,
+                from_type="enemy",
+                to_type="npc",
+                trigger=deescalation.reason,
+                state_before={
+                    "health": enemy.health,
+                    "max_health": enemy.max_health,
+                    "wounds": enemy.wounds,
+                    "stuns": enemy.stuns,
+                    "template": enemy.template_name,
+                    "position": str(enemy.position)
+                },
+                state_after={
+                    "health": npc.health,
+                    "max_health": npc.max_health,
+                    "wounds": npc.wounds,
+                    "stuns": npc.stuns,
+                    "void_score": npc.void_score,
+                    "entity_type": npc.entity_type,
+                    "disposition": npc.disposition
+                }
+            )
+
+        return npc
+
+    def _process_escalation(self, escalation: 'Escalation', current_round: int) -> 'EnemyAgent':
+        """
+        Process escalation from structured output.
+
+        Converts NPC to enemy, preserving state and agent_id.
+
+        Args:
+            escalation: Escalation schema from RoundSynthesis
+            current_round: Current round number
+
+        Returns:
+            Created EnemyAgent instance
+        """
+        from .agent_conversion import escalate_npc_to_enemy
+        from .schemas.action_effects import AgentConversion
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Get NPC from SharedState
+        if not self.shared_state:
+            logger.error(f"Cannot process escalation: no shared_state")
+            return None
+
+        npc = self.shared_state.get_npc(escalation.npc_id)
+        if not npc:
+            logger.error(f"Cannot escalate {escalation.npc_id}: NPC not found")
+            return None
+
+        # Convert NPC to enemy (preserves all state)
+        enemy = escalate_npc_to_enemy(
+            npc=npc,
+            template_override=escalation.template,
+            current_round=current_round
+        )
+
+        # Remove from NPC pool, add to enemy pool
+        self.shared_state.remove_npc(escalation.npc_id)
+        # Note: enemy needs to be added to enemy_agents in SharedState
+        # This is typically done in enemy_combat module, but we'll add directly here
+        if hasattr(self.shared_state, 'enemy_agents'):
+            self.shared_state.enemy_agents.append(enemy)
+
+        logger.info(f"Escalated {npc.name} ({escalation.npc_id}) → Enemy (template: {escalation.template})")
+        logger.info(f"Reason: {escalation.reason}")
+
+        # Log conversion for JSONL
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics and mechanics.jsonl_logger:
+            mechanics.jsonl_logger.log_agent_conversion(
+                round_num=current_round,
+                agent_id=enemy.agent_id,
+                agent_name=enemy.name,
+                from_type="npc",
+                to_type="enemy",
+                trigger=escalation.reason,
+                state_before={
+                    "health": npc.health,
+                    "max_health": npc.max_health,
+                    "wounds": npc.wounds,
+                    "stuns": npc.stuns,
+                    "disposition": npc.disposition,
+                    "entity_type": npc.entity_type
+                },
+                state_after={
+                    "health": enemy.health,
+                    "max_health": enemy.max_health,
+                    "wounds": enemy.wounds,
+                    "stuns": enemy.stuns,
+                    "template": escalation.template,
+                    "position": str(enemy.position)
+                }
+            )
+
+        return enemy

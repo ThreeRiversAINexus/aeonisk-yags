@@ -44,6 +44,7 @@ class ResolutionState:
     As actions resolve in descending initiative order, this tracks:
     - Which tactical tokens have been claimed
     - Which combatants have been defeated
+    - Which combatants have surrendered (invalidates their actions but keeps them present)
     - Which positions have changed
     - Other state mutations that affect later actions
     """
@@ -51,8 +52,17 @@ class ResolutionState:
     # Tactical token tracking
     claimed_tokens: Dict[str, str] = field(default_factory=dict)  # {token_name: claimant_id}
 
-    # Defeated combatants
+    # Defeated combatants (killed, unconscious, fled)
     defeated: Set[str] = field(default_factory=set)  # Set of agent_ids
+
+    # Surrendered combatants (negotiated down, intimidated, convinced)
+    # These enemies are still present in scene but won't act
+    # They'll be converted to NPCs after resolution phase
+    surrendered: Set[str] = field(default_factory=set)  # Set of enemy agent_ids
+
+    # Fled NPCs (ran away, left scene)
+    # These NPCs are no longer present and should not appear in narration
+    fled_npcs: Set[str] = field(default_factory=set)  # Set of NPC agent_ids
 
     # Position changes (for opportunity attacks, breakaway, etc.)
     position_changes: Dict[str, str] = field(default_factory=dict)  # {agent_id: new_position}
@@ -88,6 +98,57 @@ class ResolutionState:
         """Check if combatant has been defeated during resolution."""
         return agent_id in self.defeated
 
+    def mark_surrendered(self, agent_id: str):
+        """
+        Mark enemy as surrendered (negotiated down, intimidated, convinced).
+
+        Surrendered enemies:
+        - Have their actions invalidated for this round
+        - Remain present in scene (not defeated/removed)
+        - Will be converted to NPCs after resolution phase
+
+        Args:
+            agent_id: Enemy agent ID to mark as surrendered
+        """
+        self.surrendered.add(agent_id)
+        logger.info(f"{agent_id} marked as surrendered")
+
+    def is_surrendered(self, agent_id: str) -> bool:
+        """
+        Check if enemy has surrendered during resolution.
+
+        Returns:
+            True if enemy surrendered (action should be invalidated)
+        """
+        return agent_id in self.surrendered
+
+    def mark_fled(self, agent_id: str):
+        """
+        Mark NPC as fled (ran away, left scene).
+
+        Fled NPCs:
+        - Are no longer present in the scene
+        - Should not appear in subsequent narration
+        - Cannot be targeted or interact with players
+
+        Args:
+            agent_id: NPC agent ID to mark as fled
+
+        NOTE: Caller should also unregister NPC from target_id_mapper and remove from
+        shared_state.npc_agents to ensure they don't reappear in future rounds.
+        """
+        self.fled_npcs.add(agent_id)
+        logger.info(f"{agent_id} marked as fled")
+
+    def has_fled(self, agent_id: str) -> bool:
+        """
+        Check if NPC has fled during resolution.
+
+        Returns:
+            True if NPC fled (should not appear in narration)
+        """
+        return agent_id in self.fled_npcs
+
     def record_position_change(self, agent_id: str, new_position: str):
         """Record position change during resolution."""
         self.position_changes[agent_id] = new_position
@@ -110,7 +171,8 @@ class ActionValidator:
     Validates whether a declared action can still execute.
 
     During resolution phase, earlier actions may invalidate later actions:
-    - Target was killed
+    - Target was killed or defeated
+    - Attacker surrendered (negotiated down, intimidated)
     - Target moved out of range
     - Tactical token was claimed by someone else
     - Required resource no longer available
@@ -131,6 +193,10 @@ class ActionValidator:
         # Check if attacker is defeated
         if resolution_state.is_defeated(attacker_id):
             return False, "attacker_defeated"
+
+        # Check if attacker surrendered (CRITICAL for de-escalation)
+        if resolution_state.is_surrendered(attacker_id):
+            return False, "attacker_surrendered"
 
         # Check if target is defeated
         if resolution_state.is_defeated(target_id):
@@ -155,6 +221,10 @@ class ActionValidator:
         if resolution_state.is_defeated(claimant_id):
             return False, "claimant_defeated"
 
+        # Check if claimant surrendered
+        if resolution_state.is_surrendered(claimant_id):
+            return False, "claimant_surrendered"
+
         # Check if token already claimed
         holder = resolution_state.get_token_holder(token_name)
         if holder and holder != claimant_id:
@@ -177,6 +247,10 @@ class ActionValidator:
         # Check if mover is defeated
         if resolution_state.is_defeated(mover_id):
             return False, "mover_defeated"
+
+        # Check if mover surrendered
+        if resolution_state.is_surrendered(mover_id):
+            return False, "mover_surrendered"
 
         # Movement can proceed
         return True, None
@@ -207,6 +281,9 @@ def generate_invalidation_message(
     if failure_reason == "attacker_defeated":
         return f"❌ {agent_name} cannot act - already defeated earlier in the round"
 
+    elif failure_reason == "attacker_surrendered":
+        return f"🏳️  {agent_name} lowers their weapon - they surrendered earlier in the round and will not fight"
+
     elif failure_reason == "target_defeated":
         return f"❌ {agent_name}'s attack fails - {target_name} was already defeated by a faster actor"
 
@@ -217,8 +294,14 @@ def generate_invalidation_message(
     elif failure_reason == "claimant_defeated":
         return f"❌ {agent_name} cannot claim token - defeated before action resolved"
 
+    elif failure_reason == "claimant_surrendered":
+        return f"🏳️  {agent_name} does not claim token - they surrendered earlier in the round"
+
     elif failure_reason == "mover_defeated":
         return f"❌ {agent_name} cannot move - defeated before action resolved"
+
+    elif failure_reason == "mover_surrendered":
+        return f"🏳️  {agent_name} remains in place - they surrendered earlier in the round"
 
     else:
         return f"❌ {agent_name}'s {action_type} action failed: {failure_reason}"

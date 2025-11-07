@@ -121,6 +121,7 @@ class AIPlayerAgent(Agent):
         history_supplier: Optional[Callable[[], Iterable[str]]] = None,
         llm_logger: Optional[Any] = None,
         llm_client: Optional[Any] = None,
+        agent_prompt_logger: Optional[Any] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.character_config = character_config
@@ -134,6 +135,7 @@ class AIPlayerAgent(Agent):
         self._prompt_enricher = prompt_enricher
         self._history_supplier = history_supplier
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
+        self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
@@ -485,9 +487,10 @@ class AIPlayerAgent(Agent):
         """Handle turn request - decide on action."""
         # Reset free action flag each round (prevents bug where main action is skipped in Round 2+)
         self.free_action_used = False
+        # NOTE: declared_actions_this_round is now cleared at round start (session.py), not here
 
-        # Clear declared actions from previous round
-        self.declared_actions_this_round.clear()
+        # Store current initiative for filtering declared actions (passed in payload)
+        self.current_initiative = message.payload.get('initiative', 0)
 
         if self.human_controlled:
             await self._human_player_turn()
@@ -612,45 +615,53 @@ class AIPlayerAgent(Agent):
         logger.debug(f"Intent: {action_declaration.intent}")
 
         if (is_dialogue_action or is_intimacy_ritual) and self.shared_state:
-            # Check if intent or description mentions any party member name
-            intent_lower = action_declaration.intent.lower()
-            description_lower = action_declaration.description.lower()
-            for player_name in other_players:
-                logger.debug(f"Checking if '{player_name.lower()}' or parts in '{intent_lower}'")
-                # Check if full name or significant parts are mentioned (handle "Enforcer Kael" vs "Enforcer Kael Dren")
-                name_parts = player_name.lower().split()
-                # Check if at least 2 words from name appear, or the full name
-                if player_name.lower() in intent_lower or player_name.lower() in description_lower:
-                    is_free_action = True
-                elif len(name_parts) >= 2:
-                    # Check if at least 2 consecutive words from the name appear
-                    for i in range(len(name_parts) - 1):
-                        two_word_combo = f"{name_parts[i]} {name_parts[i+1]}"
-                        if two_word_combo in intent_lower or two_word_combo in description_lower:
-                            is_free_action = True
+            # Check if action targets a party member using target field
+            target_agent_id = None
+            target_name = None
+
+            if action_declaration.target:
+                # Resolve target using target_id_mapper
+                target_id_mapper = self.shared_state.target_id_mapper
+                if target_id_mapper:
+                    # Try to resolve target ID to agent
+                    target_agent = target_id_mapper.resolve_target(action_declaration.target)
+                    if target_agent:
+                        # Check if target is a player (has character_state)
+                        if hasattr(target_agent, 'character_state'):
+                            target_agent_id = target_agent.agent_id
+                            target_name = target_agent.character_state.name
+                        # Also check by agent_id against registered players
+                        elif hasattr(target_agent, 'agent_id'):
+                            for player in self.shared_state.registered_players:
+                                if player['agent_id'] == target_agent.agent_id:
+                                    target_agent_id = target_agent.agent_id
+                                    target_name = player['name']
+                                    break
+
+                # If not found via mapper, check if target is a direct name match
+                if not target_agent_id:
+                    for player in self.shared_state.registered_players:
+                        if player['name'].lower() == action_declaration.target.lower():
+                            target_agent_id = player['agent_id']
+                            target_name = player['name']
                             break
 
-                if is_free_action:
-                    if is_intimacy_ritual:
-                        print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
-                    else:
-                        print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
+            # If targeting a party member, grant free action + coordination bonus
+            if target_agent_id and target_agent_id != self.agent_id and target_name:
+                is_free_action = True
 
-                    # Grant coordination bonus to the target
-                    # Detect coordination keywords
-                    coordination_keywords = [
-                        'share', 'tell', 'inform', 'coordinate', 'discuss', 'ask',
-                        'brief', 'report', 'advise', 'warn', 'update', 'consult'
-                    ]
-                    if any(kw in intent_lower for kw in coordination_keywords):
-                        self.shared_state.grant_coordination_bonus(
-                            from_agent=self.agent_id,
-                            from_name=self.character_state.name,
-                            to_name=player_name,
-                            reason="coordinated information sharing"
-                        )
+                if is_intimacy_ritual:
+                    print(f"[{self.character_state.name}] Inter-party ritual detected - FREE ACTION")
+                else:
+                    print(f"[{self.character_state.name}] Inter-party dialogue detected - FREE ACTION")
 
-                    break
+                # Grant coordination bonus (inter-party dialogue inherently shares information)
+                self.shared_state.grant_coordination_bonus(
+                    from_agent=self.agent_id,
+                    from_name=self.character_state.name,
+                    to_name=target_name,
+                    reason="coordinated information sharing"
+                )
 
         # Convert to dict and add character-specific data
         action = action_declaration.to_dict()
@@ -765,8 +776,8 @@ class AIPlayerAgent(Agent):
             prefixed_narration = f"[{acting_character}] {narration}"
             self.recent_narrations.append(prefixed_narration)
 
-            # Keep only last 5 narrations (FIFO rolling window)
-            if len(self.recent_narrations) > 5:
+            # Keep only last 20 narrations (FIFO rolling window) - enough for 1-2 full rounds
+            if len(self.recent_narrations) > 20:
                 self.recent_narrations.pop(0)
 
             logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character}")
@@ -1400,6 +1411,26 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 self.llm_logger.call_count += 1
                 logger.debug(f"✓ Logged player LLM call for replay (sequence {self.llm_logger.call_count - 1})")
 
+            # Also log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    # System prompt + user prompt combined
+                    full_prompt = f"System: You are {self.character_state.name}, a player character in Aeonisk YAGS.\n\n{prompt}"
+                    response_text = player_action.model_dump_json(indent=2)
+
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=getattr(self, 'current_round', None),
+                        call_sequence=getattr(self.llm_logger, 'call_count', 0) - 1 if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=response_text,
+                        model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                        temperature=self.llm_config.get('temperature', 0.8),
+                        metadata={'note': 'Pydantic AI structured output (PlayerAction schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"Player {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
             # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
             action_declaration = ActionDeclaration(
                 intent=player_action.intent,
@@ -1573,13 +1604,46 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
 
                 combatants_text = "\n  ".join(combatants)
 
+                # Add NPCs if present
+                npc_section = ""
+                if self.shared_state and hasattr(self.shared_state, 'npc_agents') and self.shared_state.npc_agents:
+                    npcs = []
+                    for npc in self.shared_state.npc_agents:
+                        # Get NPC target ID
+                        tgt_id = target_id_mapper.get_target_id(npc.agent_id)
+                        if tgt_id:
+                            # Format disposition with emoji
+                            disp_emoji = {
+                                "friendly": "🤝",
+                                "neutral": "😐",
+                                "wary": "😟",
+                                "prisoner": "🔒"
+                            }.get(npc.disposition, "❓")
+
+                            npcs.append(f"[{tgt_id}] {npc.name:30s} | {disp_emoji} {npc.disposition:10s} | {npc.health}/{npc.max_health} HP")
+
+                    if npcs:
+                        npcs_text = "\n  ".join(npcs)
+                        npc_section = f"""
+
+👥 **NPCs PRESENT** (Non-Combatants):
+
+  {npcs_text}
+
+**NPC Interactions:**
+- NPCs can be targeted for social actions (negotiation, interrogation, assistance)
+- Use their target ID [tgt_XXXX] just like combatants
+- Prisoners may have intel, neutrals may help/flee, wary NPCs are unpredictable
+- Attacking NPCs may escalate them back to enemies!
+"""
+
                 tactical_combat_context = f"""
 
 ⚔️  **COMBAT SITUATION** ⚔️
 
 ⚠️  Combatants in Combat Zone:
 
-  {combatants_text}
+  {combatants_text}{npc_section}
 
 **YOUR CHARACTER**: {self.character_state.name}
 **YOUR FACTION**: {self.character_state.faction}
@@ -1796,34 +1860,43 @@ Available non-combat actions:
             if not narrative_context:
                 narrative_context += "\n# 📖 Recent Story Events\n\n"
             narrative_context += "## Recent Action Outcomes:\n"
-            for i, narration in enumerate(self.recent_narrations[-3:], 1):  # Last 3 narrations
-                # Truncate long narrations to keep prompt manageable
-                truncated = narration[:400] + "..." if len(narration) > 400 else narration
-                narrative_context += f"{i}. {truncated}\n\n"
+            # Show ALL recent narrations (rolling window already limits to last 20)
+            for i, narration in enumerate(self.recent_narrations, 1):
+                # Keep full narration - this is juicy coordination info!
+                narrative_context += f"{i}. {narration}\n\n"
 
-        # Add declared actions this round (all combatants in initiative order)
+        # Add declared actions this round (only from agents with LOWER initiative who declared before you)
         if self.declared_actions_this_round:
-            if not narrative_context:
-                narrative_context += "\n# 📖 Recent Story Events\n\n"
+            # Filter to only show agents who declared before this player (lower initiative = declared first)
+            current_init = getattr(self, 'current_initiative', 0)
+            filtered_declarations = {
+                char_name: action_data
+                for char_name, action_data in self.declared_actions_this_round.items()
+                if (action_data[2] if len(action_data) == 3 else action_data[1]) < current_init
+            }
 
-            # Sort by initiative (slowest first, matching declaration order)
-            sorted_declarations = sorted(
-                self.declared_actions_this_round.items(),
-                key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]  # Initiative is at index 2 in new format, index 1 in old
-            )
+            if filtered_declarations:
+                if not narrative_context:
+                    narrative_context += "\n# 📖 Recent Story Events\n\n"
 
-            narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
-            narrative_context += "*You see what slower combatants declared before you. React accordingly!*\n\n"
-            for char_name, action_data in sorted_declarations:
-                # Handle both old format (intent, initiative) and new format (description, intent, initiative)
-                if len(action_data) == 3:
-                    description, intent, initiative = action_data
-                    narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
-                else:
-                    # Legacy format
-                    intent, initiative = action_data
-                    narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
-            narrative_context += "\n"
+                # Sort by initiative (slowest first, matching declaration order)
+                sorted_declarations = sorted(
+                    filtered_declarations.items(),
+                    key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]
+                )
+
+                narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+                narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
+                for char_name, action_data in sorted_declarations:
+                    # Handle both old format (intent, initiative) and new format (description, intent, initiative)
+                    if len(action_data) == 3:
+                        description, intent, initiative = action_data
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
+                    else:
+                        # Legacy format
+                        intent, initiative = action_data
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
+                narrative_context += "\n"
 
         prompt = f"""{system_prompt}
 

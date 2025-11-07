@@ -48,6 +48,9 @@ class SharedState:
     # Player agents (for ally buff targeting)
     player_agents: List[Any] = field(default_factory=list)
 
+    # NPC agents (non-combatant agents with simple LLM)
+    npc_agents: List[Any] = field(default_factory=list)
+
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys
     party_discoveries: List[Dict[str, str]] = field(default_factory=list)
@@ -272,3 +275,121 @@ Generate something DIFFERENT from these recent scenarios.
     def get_all_players(self) -> List[Any]:
         """Get all registered player agents."""
         return self.player_agents
+
+    # NPC agent management methods
+
+    def add_npc(self, npc: Any) -> None:
+        """
+        Add NPC to shared state.
+
+        Args:
+            npc: NPCAgent instance to track
+        """
+        self.npc_agents.append(npc)
+
+    def get_npc(self, agent_id: str) -> Optional[Any]:
+        """
+        Get NPC by agent_id.
+
+        Args:
+            agent_id: NPC agent ID (can be enemy_xxx format due to stable IDs)
+
+        Returns:
+            NPCAgent if found, None otherwise
+        """
+        for npc in self.npc_agents:
+            if npc.agent_id == agent_id:
+                return npc
+        return None
+
+    def remove_npc(self, agent_id: str) -> bool:
+        """
+        Remove NPC by agent_id.
+
+        Args:
+            agent_id: NPC agent ID to remove
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, npc in enumerate(self.npc_agents):
+            if npc.agent_id == agent_id:
+                self.npc_agents.pop(i)
+                return True
+        return False
+
+    def remove_npc_object(self, npc: Any) -> bool:
+        """
+        Remove NPC by object reference.
+
+        Args:
+            npc: NPCAgent instance to remove
+
+        Returns:
+            True if removed, False if not found
+        """
+        try:
+            self.npc_agents.remove(npc)
+            return True
+        except ValueError:
+            return False
+
+    def get_active_npcs(self) -> List[Any]:
+        """
+        Get all active NPCs (is_active=True).
+
+        Returns:
+            List of active NPCAgents
+        """
+        return [npc for npc in self.npc_agents if getattr(npc, 'is_active', True)]
+
+    def get_npc_count(self) -> int:
+        """Get total number of NPCs in state."""
+        return len(self.npc_agents)
+
+    def get_all_agents(self) -> List[Any]:
+        """
+        Get all agents across all pools (players, enemies, NPCs).
+
+        Returns:
+            List of all agent objects
+
+        Note: Requires enemy_combat manager for enemy agents.
+        """
+        agents = list(self.player_agents) + list(self.npc_agents)
+        if self.enemy_combat:
+            # Add enemy agents if enemy combat manager exists
+            enemy_agents = getattr(self.enemy_combat, 'enemy_agents', [])
+            agents.extend(enemy_agents)
+        return agents
+
+    def get_agent_by_id(self, agent_id: str) -> Optional[Any]:
+        """
+        Get agent by ID, searching across all pools (player/enemy/npc).
+
+        Critical for stable agent_id support - NPCs can have enemy_xxx IDs.
+
+        Args:
+            agent_id: Agent ID to find
+
+        Returns:
+            Agent object if found, None otherwise
+        """
+        # Check players
+        for player in self.player_agents:
+            if getattr(player, 'agent_id', None) == agent_id:
+                return player
+
+        # Check NPCs
+        for npc in self.npc_agents:
+            if npc.agent_id == agent_id:
+                return npc
+
+        # Check enemies
+        if self.enemy_combat:
+            enemy_agents = getattr(self.enemy_combat, 'enemy_agents', [])
+            for enemy in enemy_agents:
+                if getattr(enemy, 'agent_id', None) == agent_id:
+                    return enemy
+
+        return None

@@ -1,0 +1,240 @@
+{
+  "session_name": "npc_escalation_hot",
+  "max_turns": 4,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": false,
+
+  "_comment_npc_system": "=== NPC ESCALATION SYSTEM TEST (HOT COMBAT) ===",
+  "_npc_system_info": "Tests NPC→enemy escalation with aggressive player actions: violence, intimidation, threats",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_initial_npcs": "Start with NPCs that SHOULD escalate when threatened/attacked",
+  "initial_npcs": [
+    {
+      "name": "Gang Leader Vex",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Freeborn gang leader controlling this sector. Armed with pistol, has crew nearby. Suspicious of outsiders but can be negotiated with. Will escalate to violence if threatened, attacked, or insulted. Low intimidation margin should trigger escalation.",
+      "health": 30,
+      "soak": 4,
+      "skills": {
+        "Combat": 4,
+        "Guns": 5,
+        "Intimidation": 5,
+        "Awareness": 4
+      }
+    },
+    {
+      "name": "Civilian Witness Kara",
+      "faction": "Civilian",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Civilian who stumbled upon player activities. Scared, unarmed, just wants to leave. If attacked or threatened violently, will grab nearest weapon and fight back in panic (desperate escalation). High intimidation margin might convince them to flee quietly.",
+      "health": 15,
+      "soak": 0,
+      "skills": {
+        "Athletics": 3,
+        "Awareness": 4
+      }
+    },
+    {
+      "name": "Black Market Dealer Rix",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "potential_threat",
+      "disposition": "wary",
+      "description": "Shady dealer with void contraband. Trying to sell Hollow Seeds. Will flee if threatened heavily, but will escalate if attacked or if deal goes bad. Has concealed pistol and combat experience. Medium intimidation margin is the danger zone.",
+      "health": 25,
+      "soak": 2,
+      "skills": {
+        "Guns": 4,
+        "Deception": 5,
+        "Combat": 3,
+        "Guile": 4
+      }
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Tempest Enforcer Kade",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 7,
+          "bondPreference": "aggressive",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Secure void contraband by any means necessary",
+          "Intimidate or eliminate witnesses to Tempest operations",
+          "Test limits of violence without corporate blowback"
+        ],
+        "attributes": {
+          "Strength": 5,
+          "Agility": 4,
+          "Endurance": 5,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 1,
+          "Willpower": 4,
+          "Charisma": 5,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 6,
+          "Intimidation": 6,
+          "Guns": 5,
+          "Brawl": 5,
+          "Athletics": 4,
+          "Awareness": 3,
+          "Deception": 2
+        },
+        "equipped_weapons": {
+          "primary": "hollowed_repeater",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "hollowed_repeater": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "tactical_armor": 1,
+          "flashbang_grenades": 2
+        },
+        "void": 3
+      },
+      {
+        "name": "Rogue Agent Syx",
+        "pronouns": "she/her",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.9
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 8,
+          "bondPreference": "ruthless",
+          "ritualConservatism": 1
+        },
+        "goals": [
+          "Acquire black market void contraband",
+          "Eliminate loose ends and potential informants",
+          "Maximize violence efficiency and minimize survivors"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 6,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Guns": 6,
+          "Combat": 5,
+          "Stealth": 5,
+          "Intimidation": 4,
+          "Guile": 4,
+          "Awareness": 5,
+          "Brawl": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "suppressor": 1,
+          "combat_knife": 1,
+          "lockpick_set": 1,
+          "void_detector": 1
+        },
+        "void": 4
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Black Market Deal Gone Wrong",
+    "location": "Abandoned Warehouse District - Freeborn Territory",
+    "situation": "You're Tempest operatives meeting a black market dealer (Rix) who claims to have Hollow Seeds for sale. A gang leader (Vex) controls this territory and demands a cut. A civilian witness (Kara) stumbled into the wrong place at the wrong time. This deal is about to go sideways - intimidation, threats, and violence are on the table. Choose your approach: brutal takeover, calculated threats, or all-out combat.",
+    "void_level": 6
+  },
+
+  "_scenario_hint": "DM should create tense confrontation where NPCs push back against player aggression. Players should feel encouraged to use violence, intimidation, and threats. NPCs should escalate based on margin: low-margin intimidation = fight back, mid-margin = comply reluctantly, high-margin = flee/surrender. Test full escalation→combat→de-escalation→prisoner cycle.",
+
+  "_test_notes": {
+    "purpose": "Force NPC escalations with aggressive player actions",
+    "expected_triggers": [
+      "Low-margin Intimidation check (0-5) → Gang leader escalates and fights",
+      "Attacking civilian → Desperate escalation (grabs weapon)",
+      "Shooting dealer without warning → Immediate escalation + combat",
+      "Threatening NPCs in front of each other → Multi-NPC escalation"
+    ],
+    "player_instructions": "Be aggressive! Threaten NPCs, use violence early, fail intimidation checks deliberately (low rolls), attack without negotiation",
+    "success_criteria": [
+      "At least 2 NPCs escalate to enemies this session",
+      "Escalations happen via structured output (no keyword detection)",
+      "agent_id preserved: npc_gang_leader_vex → still npc_gang_leader_vex after escalation",
+      "Escalated NPCs attack players using enemy combat system",
+      "DM uses margin-based escalation (low margin = high chance)",
+      "Soulcredit scores violence from Nexus POV (Tempest aggression = negative)"
+    ]
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Secure Hollow Seeds from black market dealer",
+      "type": "acquisition",
+      "required": true
+    },
+    {
+      "description": "Deal with gang leader's demands (negotiate, intimidate, or eliminate)",
+      "type": "confrontation",
+      "required": true
+    },
+    {
+      "description": "Handle civilian witness (intimidate to silence, eliminate, or let flee)",
+      "type": "cleanup",
+      "required": false
+    }
+  ]
+}

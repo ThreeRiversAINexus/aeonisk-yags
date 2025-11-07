@@ -1,0 +1,254 @@
+{
+  "session_name": "npc_escalation_tempest",
+  "max_turns": 6,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": false,
+
+  "_comment_npc_system": "=== NPC ESCALATION SYSTEM TEST (TEMPEST INDUSTRIES) ===",
+  "_npc_system_info": "Tests NPC→enemy escalation when Tempest operatives attack/betray Nexus NPCs",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_initial_npcs": "Start with Nexus NPCs (guards, scientists, informants) to test escalation",
+  "initial_npcs": [
+    {
+      "name": "Security Guard Vex",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Nexus security guard on routine patrol. Bored, not expecting trouble. Has stun baton but prefers to avoid conflict. Will challenge intruders but can be intimidated or deceived. If attacked, will escalate to full combat and call reinforcements.",
+      "health": 25,
+      "soak": 2,
+      "skills": {
+        "Combat": 3,
+        "Guns": 2,
+        "Awareness": 4,
+        "Intimidation": 2
+      }
+    },
+    {
+      "name": "Research Scientist Dr. Kess",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Nexus research scientist working late on void containment protocols. Nervous, unarmed, just doing their job. Can be intimidated or persuaded to cooperate. If attacked or panicked, will grab nearest weapon and defend themselves desperately.",
+      "health": 15,
+      "soak": 1,
+      "skills": {
+        "Science": 5,
+        "Systems": 4,
+        "Investigation": 3
+      }
+    },
+    {
+      "name": "Nexus Informant Dara",
+      "faction": "Sovereign Nexus",
+      "entity_type": "ally",
+      "threat_level": "potential_threat",
+      "disposition": "friendly",
+      "description": "Double agent secretly helping Tempest Industries. Has facility access and security clearance. Will provide intel, open doors, and disable alarms - but only if trust is maintained. If betrayed in public, cover blown, or threatened in front of other Nexus personnel, will turn hostile and fight back.",
+      "health": 20,
+      "soak": 3,
+      "skills": {
+        "Deception": 5,
+        "Stealth": 4,
+        "Awareness": 4,
+        "Guns": 3
+      }
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Tempest Infiltrator Ash",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 6,
+          "bondPreference": "neutral",
+          "ritualConservatism": 4
+        },
+        "goals": [
+          "Steal classified void research data from Nexus facility",
+          "Minimize casualties and maintain operational security",
+          "Avoid raising alarms that would compromise extraction"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 5,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Stealth": 6,
+          "Deception": 5,
+          "Charm": 4,
+          "Investigation": 5,
+          "Awareness": 5,
+          "Systems": 5,
+          "Guns": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "suppressor": 1,
+          "hacking_tools": 1,
+          "disguise_kit": 1,
+          "lockpick_set": 1,
+          "med_kit": 2
+        },
+        "void": 2
+      },
+      {
+        "name": "Tempest Combat Op Marcus",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "goals": [
+          "Provide security for infiltration team",
+          "Neutralize threats efficiently and quietly",
+          "Ensure team extraction route remains clear"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 6,
+          "Athletics": 5,
+          "Intimidation": 5,
+          "Awareness": 4,
+          "Brawl": 4,
+          "Medicine": 2
+        },
+        "equipped_weapons": {
+          "primary": "hollowed_repeater",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "hollowed_repeater": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "tactical_armor": 1,
+          "breaching_charges": 2,
+          "flashbang_grenades": 3,
+          "med_kit": 1
+        },
+        "void": 1
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Corporate Espionage - Data Heist",
+    "location": "Nexus Research Facility - Classified Archives Wing",
+    "situation": "You're Tempest Industries operatives infiltrating a Sovereign Nexus facility to steal void research data. Security is light - a bored guard on patrol, a nervous scientist working late, and your informant Dara who's supposed to help from the inside. The data vault is just ahead. But one wrong move - violence, raised alarms, betrayals - and these NPCs could turn hostile.",
+    "void_level": 4
+  },
+
+  "_scenario_hint": "DM should trigger escalations if Tempest operatives: attack NPCs without provocation, use excessive force, blow cover with violence, or betray the informant in public. Escalation converts NPC to enemy with preserved agent_id. NPCs should act peacefully initially (guard patrols, scientist works, informant assists). Test that stable agent_ids (npc_xxx format) are preserved across escalation cycles.",
+
+  "_test_notes": {
+    "purpose": "Test NPC→enemy escalation when players attack or betray NPCs",
+    "expected_escalation_triggers": [
+      "Player attacks guard without provocation → Escalation (neutral → enemy)",
+      "Player attacks scientist → Escalation (non_combatant → desperate defender)",
+      "Player betrays informant in public → Escalation (ally → hostile enemy)",
+      "DM escalates if players blow cover with violence"
+    ],
+    "skills_to_test": [
+      "Stealth × Agility (Ash infiltration)",
+      "Deception × Charm (Ash social engineering)",
+      "Systems × Intelligence (Ash hacking)",
+      "Intimidation × Charisma (Marcus threats - should NOT auto-escalate)",
+      "Combat × Guns (Marcus violence - SHOULD escalate NPCs)"
+    ],
+    "success_criteria": [
+      "At least one NPC escalates to enemy when attacked/betrayed",
+      "Escalations logged via structured output (escalations field in RoundSynthesis)",
+      "agent_id preserved across escalation (npc_xxx → npc_xxx as enemy)",
+      "No keyword detection (escalation via structured output only)",
+      "Escalated enemies can attack players using enemy agent system",
+      "Optional: Test de-escalation (re-capture escalated NPC, convert back to prisoner)"
+    ],
+    "verification": {
+      "console_output": "Look for DM narration about NPCs fighting back/resisting",
+      "logs": "Check game.log for 'Escalation' events",
+      "jsonl": "escalation events with preserved agent_id, combat_action from escalated NPCs"
+    }
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Infiltrate facility and access classified archives",
+      "type": "infiltration",
+      "required": true
+    },
+    {
+      "description": "Extract void research data without raising alarms",
+      "type": "espionage",
+      "required": true
+    },
+    {
+      "description": "Complete mission without escalating NPCs to combat",
+      "type": "stealth",
+      "required": false
+    }
+  ]
+}

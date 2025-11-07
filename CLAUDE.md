@@ -94,6 +94,62 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 - **High void warning:** When void ≥8, warn about dangerous actions
 - **Philosophy:** Allow mistakes for ML training, but prevent death spirals
 
+### 6. NPC & De-escalation System
+**Purpose:** Enable dynamic conversion between enemy combatants and non-player characters (NPCs)
+
+**Core Principle:** agent_id is STABLE across ALL conversions (never changes)
+
+**Key Components:**
+- **NPCAgent** (`npc_agent.py:22-75`) - Full combat stats, no tactical AI, simple LLM client
+- **Agent Conversion** (`agent_conversion.py`) - Bidirectional enemy ↔ NPC conversion with full state preservation
+- **Healing System** (`mechanics.py:2676+`) - Stun/wound/HP recovery for stabilizing prisoners
+- **Structured Output** (`schemas/story_events.py:410+`) - `NPCSpawn`, `Deescalation`, `Escalation` schemas
+
+**Conversion Mechanics:**
+```python
+# De-escalate enemy → NPC (surrender, intimidation, morale break)
+npc = deescalate_enemy_to_npc(enemy, disposition="prisoner", current_round=3)
+assert npc.agent_id == enemy.agent_id  # ✅ ID preserved
+assert npc.health == enemy.health      # ✅ State preserved
+
+# Escalate NPC → enemy (attacked by players, betrayal)
+enemy = escalate_npc_to_enemy(npc, template="desperate_fighter", current_round=5)
+assert enemy.agent_id == npc.agent_id  # ✅ ID preserved
+
+# Subdue via non-lethal (wrapper for prisoner conversion)
+prisoner = subdue_enemy_to_prisoner(enemy, current_round=2)
+```
+
+**NPC Capabilities:**
+- **Actions:** flee, hide, plead, comply, dialogue, assist, pass (no attack/tactical)
+- **LLM Client:** Lightweight Pydantic AI client (~500 token prompts vs ~2000 for players)
+- **Opportunistic acting:** Pass turn when nothing interesting happening
+- **Dialogue:** NPCs can provide intel, respond to questions, negotiate
+- **Healing:** Can receive Medicine checks for stabilization
+
+**DM Integration:**
+- DM declares conversions via `RoundSynthesis.deescalations` / `escalations` / `npc_spawns`
+- DM processes conversions in `_process_deescalation()` / `_process_escalation()` / `_process_npc_spawn()`
+- NPCs tracked in `SharedState.npc_agents` list
+- TargetIDMapper personality-based targeting (ruthless/professional/defensive)
+
+**Testing:**
+```bash
+# Run NPC system test suite (86 tests)
+python -m pytest tests/unit/test_npc*.py tests/unit/test_agent_conversion.py -v
+
+# Test session config
+python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_npc_deescalation_test.json
+```
+
+**Files:**
+- Core: `npc_agent.py`, `agent_conversion.py`
+- Tests: `test_npc_agent.py`, `test_npc_llm_client.py`, `test_agent_conversion.py`, `test_dm_npc_integration.py`
+- Session config: `session_config_npc_deescalation_test.json`
+- Design doc: `.claude/NPC_ENTITY_DEESCALATION_DESIGN.md`
+
+**IMPORTANT:** NO keyword detection for conversions - all mechanics via Pydantic structured output
+
 ## ML Logging System
 
 10 event types logged to JSONL: scenario, action_declaration/resolution, round_synthesis/summary, character_state, combat_action, enemy_spawn/defeat, mission_debrief. See `LOGGING_IMPLEMENTATION.md` for details.

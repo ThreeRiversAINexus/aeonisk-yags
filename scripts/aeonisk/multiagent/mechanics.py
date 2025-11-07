@@ -453,6 +453,33 @@ class JSONLLogger:
                     "new_clocks": [clock.model_dump() for clock in structured_synthesis.scene_pivot.new_clocks]
                 }
 
+            # Add enemy management fields
+            if structured_synthesis.enemy_spawns:
+                event["enemy_spawns"] = [spawn.model_dump() for spawn in structured_synthesis.enemy_spawns]
+
+            if structured_synthesis.enemy_conversions:
+                event["enemy_conversions"] = [conv.model_dump() for conv in structured_synthesis.enemy_conversions]
+
+            # Add NPC management fields
+            if structured_synthesis.npc_spawns:
+                event["npc_spawns"] = [npc.model_dump() for npc in structured_synthesis.npc_spawns]
+
+            if structured_synthesis.escalations:
+                event["escalations"] = [esc.model_dump() for esc in structured_synthesis.escalations]
+
+            # Add clock lifecycle fields
+            if structured_synthesis.clocks_filled:
+                event["clocks_filled"] = structured_synthesis.clocks_filled
+
+            if structured_synthesis.clocks_expired:
+                event["clocks_expired"] = structured_synthesis.clocks_expired
+
+            # Add session end fields
+            if structured_synthesis.session_end:
+                event["session_end"] = structured_synthesis.session_end
+                if structured_synthesis.session_end_reason:
+                    event["session_end_reason"] = structured_synthesis.session_end_reason
+
         self._write_event(event)
 
     def log_event(self, event_type: str, data: Dict[str, Any], round_num: int):
@@ -620,6 +647,45 @@ class JSONLLogger:
             "enemy_name": enemy_name,
             "defeat_reason": defeat_reason,
             "rounds_survived": rounds_survived
+        }
+        self._write_event(event)
+
+    def log_agent_conversion(
+        self,
+        round_num: int,
+        agent_id: str,
+        agent_name: str,
+        from_type: str,
+        to_type: str,
+        trigger: str,
+        state_before: Dict[str, Any],
+        state_after: Dict[str, Any]
+    ):
+        """
+        Log agent type conversion (NPC ↔ enemy).
+
+        Args:
+            round_num: Current round
+            agent_id: Agent ID (stable across conversions)
+            agent_name: Display name
+            from_type: Original type ("npc" or "enemy")
+            to_type: New type ("enemy" or "npc")
+            trigger: Reason for conversion ("escalation", "surrender", "intimidation", etc.)
+            state_before: State snapshot before conversion (health, wounds, etc.)
+            state_after: State snapshot after conversion
+        """
+        event = {
+            "event_type": "agent_conversion",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "agent_name": agent_name,
+            "from_type": from_type,
+            "to_type": to_type,
+            "trigger": trigger,
+            "state_before": state_before,
+            "state_after": state_after
         }
         self._write_event(event)
 
@@ -2671,3 +2737,67 @@ def apply_mixed_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
         "unconscious_check_needed": stun_effect["unconscious_check"],
         "death_check_needed": wound_effect["death_check"]
     }
+
+
+def apply_healing(
+    target: Any,
+    amount: int,
+    heal_type: str  # "stun", "wound", or "hp"
+) -> Dict[str, Any]:
+    """
+    Heal target agent.
+
+    Healing system for NPCs, players, and enemies. Supports three types:
+    - "stun": Remove stun damage (fast recovery, field medicine)
+    - "wound": Reduce wound penalties (surgery-equivalent, requires tools)
+    - "hp": Restore health (medical treatment, bandaging)
+
+    Args:
+        target: Agent with health/stuns/wounds attributes
+        amount: Amount to heal
+        heal_type: Type of healing ("stun", "wound", "hp")
+
+    Returns:
+        Dict with healing results (amount_healed, stuns_removed, or wounds_treated)
+
+    Example:
+        >>> result = apply_healing(npc, amount=10, heal_type="hp")
+        >>> print(result["amount_healed"])  # 10 (or less if at max_health)
+    """
+    if heal_type == "stun":
+        # Remove stun damage
+        stuns_before = getattr(target, 'stuns', 0)
+        new_stuns = max(0, stuns_before - amount)
+        target.stuns = new_stuns
+        return {
+            "stuns_removed": stuns_before - new_stuns,
+            "old_stuns": stuns_before,
+            "new_stuns": new_stuns
+        }
+
+    elif heal_type == "wound":
+        # Reduce wound penalties (surgery-equivalent)
+        wounds_before = getattr(target, 'wounds', 0)
+        new_wounds = max(0, wounds_before - amount)
+        target.wounds = new_wounds
+        return {
+            "wounds_treated": wounds_before - new_wounds,
+            "old_wounds": wounds_before,
+            "new_wounds": new_wounds
+        }
+
+    elif heal_type == "hp":
+        # Restore health (capped at max_health)
+        hp_before = getattr(target, 'health', 0)
+        max_health = getattr(target, 'max_health', hp_before)
+        new_health = min(max_health, hp_before + amount)
+        target.health = new_health
+        return {
+            "amount_healed": new_health - hp_before,
+            "old_health": hp_before,
+            "new_health": new_health,
+            "max_health": max_health
+        }
+
+    else:
+        raise ValueError(f"Invalid heal_type: {heal_type}. Must be 'stun', 'wound', or 'hp'.")

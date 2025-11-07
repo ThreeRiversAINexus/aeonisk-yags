@@ -27,8 +27,72 @@ from .outcome_parser import (
 )
 from .enemy_combat import EnemyCombatManager
 from .tactical_resolution import ResolutionState
+from .agent_prompt_logger import AgentPromptLogger
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_surrender_from_resolution(
+    resolution_data: Dict[str, Any],
+    resolution_state: ResolutionState,
+    target_id_mapper: Optional[Any] = None
+) -> None:
+    """
+    Parse PC action resolution to detect enemy surrender.
+
+    Checks for conditions/effects indicating surrender and marks enemies
+    as surrendered in resolution_state to invalidate their subsequent actions.
+
+    Args:
+        resolution_data: DM's action resolution (from adjudication)
+        resolution_state: Resolution state to update
+        target_id_mapper: Target ID mapper for resolving target IDs (optional)
+    """
+    # Extract target info from action
+    action = resolution_data.get('context', {})
+    target_id = action.get('target')
+
+    if not target_id:
+        return  # No target, can't be a surrender
+
+    # Check if targeting an enemy
+    if target_id_mapper and hasattr(target_id_mapper, 'is_enemy'):
+        if not target_id_mapper.is_enemy(target_id):
+            return  # Not targeting enemy
+
+    # Look for surrender indicators in effects
+    effects = resolution_data.get('effects', {})
+
+    # Check status_effects (text-based, legacy format)
+    status_effects = effects.get('status_effects', [])
+    if isinstance(status_effects, list):
+        for effect in status_effects:
+            effect_lower = str(effect).lower()
+            if any(keyword in effect_lower for keyword in ['surrendered', 'surrender', 'laid down weapons', 'disarmed and compliant']):
+                # Resolve target ID to enemy agent_id
+                if target_id_mapper:
+                    target_entity = target_id_mapper.resolve_target(target_id)
+                    if target_entity and hasattr(target_entity, 'agent_id'):
+                        resolution_state.mark_surrendered(target_entity.agent_id)
+                        logger.info(f"Detected surrender from status effect: {target_entity.agent_id}")
+                        return
+
+    # Check conditions (structured format, Pydantic schema)
+    conditions = effects.get('conditions')
+    if conditions:
+        for condition in conditions:
+            if isinstance(condition, dict):
+                cond_name = condition.get('name', '').lower()
+                cond_desc = condition.get('description', '').lower()
+
+                if 'surrender' in cond_name or 'surrender' in cond_desc:
+                    # Resolve target ID to enemy agent_id
+                    if target_id_mapper:
+                        target_entity = target_id_mapper.resolve_target(target_id)
+                        if target_entity and hasattr(target_entity, 'agent_id'):
+                            resolution_state.mark_surrendered(target_entity.agent_id)
+                            logger.info(f"Detected surrender from condition: {target_entity.agent_id}")
+                            return
 
 
 class SelfPlayingSession:
@@ -39,7 +103,8 @@ class SelfPlayingSession:
     
     def __init__(self, config_path: str = None, random_seed: Optional[int] = None,
                  replay_mode: bool = False, replay_config: Optional[Dict] = None,
-                 llm_cache: Optional[Dict] = None, continue_from_round: Optional[int] = None):
+                 llm_cache: Optional[Dict] = None, continue_from_round: Optional[int] = None,
+                 log_agents_separately: bool = False):
         # In replay mode, config comes from replay_config instead of file
         if replay_mode and replay_config:
             self.config = replay_config
@@ -83,6 +148,13 @@ class SelfPlayingSession:
             print(f"🔁 Replay mode - Random seed: {random_seed}")
         else:
             print(f"Random seed: {random_seed}")
+
+        # Initialize agent prompt logger if requested
+        self.log_agents_separately = log_agents_separately
+        self.agent_prompt_logger: Optional[AgentPromptLogger] = None
+        if log_agents_separately:
+            # Will be fully initialized after session_id is set during start_session()
+            self.agent_prompt_logger = None  # Deferred until session_id available
 
         # Round statistics for ML training / balance analysis
         self._round_stats = {
@@ -201,6 +273,14 @@ class SelfPlayingSession:
             self.shared_state.mechanics_engine.jsonl_logger = jsonl_logger
             print(f"✓ JSONL logging enabled: {jsonl_logger.log_file}")
 
+        # Initialize agent prompt logger if requested
+        if self.log_agents_separately:
+            self.agent_prompt_logger = AgentPromptLogger(
+                output_dir="agent_logs",
+                session_id=self.session_id
+            )
+            print(f"✓ Agent prompt logging enabled: agent_logs/{self.session_id}/")
+
         # Load starting_clocks from config if present
         if 'starting_clocks' in self.config and self.config['starting_clocks']:
             mechanics = self.shared_state.get_mechanics_engine()
@@ -237,6 +317,11 @@ class SelfPlayingSession:
                 session_id=self.session_id
             )
             agent.llm_logger = llm_logger_instance
+
+            # Also attach agent prompt logger if enabled
+            if self.agent_prompt_logger:
+                agent.agent_prompt_logger = self.agent_prompt_logger
+
         print(f"✓ LLM call logging enabled for {len(self.agents)} agents")
 
         # Wait for DM to generate initial scenario before starting gameplay
@@ -441,6 +526,13 @@ class SelfPlayingSession:
                 for agent_id, void_state in mechanics.void_states.items():
                     void_state.reset_round_void()
 
+            # Clear declared actions from previous round (for all player agents)
+            player_agents = [agent for agent in self.agents if isinstance(agent, AIPlayerAgent)]
+            for agent in player_agents:
+                if hasattr(agent, 'declared_actions_this_round'):
+                    agent.declared_actions_this_round.clear()
+                    logger.debug(f"Cleared declared actions for {agent.character_state.name}")
+
             # Run round with initiative-based turns
             combat_continues = await self._run_initiative_round()
 
@@ -529,6 +621,19 @@ class SelfPlayingSession:
                 self._current_initiative[enemy.agent_id] = init
                 print(f"[{enemy.name}] (ENEMY) Initiative: {init} ({enemy.position})")
 
+        # Add NPC initiative entries
+        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                if npc.is_active and npc.can_act:
+                    # NPCs get moderate initiative (15 + random variance)
+                    npc_init = 15 + random.randint(1, 20)
+                    initiative_order.append((npc_init, 'npc', npc))
+                    self._current_initiative[npc.agent_id] = npc_init
+
+                    # Format disposition for display
+                    disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(npc.disposition, "❓")
+                    print(f"[{npc.name}] (NPC {disp_emoji}) Initiative: {npc_init}")
+
         # Sort by initiative (highest first)
         initiative_order.sort(key=lambda x: x[0], reverse=True)
 
@@ -553,10 +658,16 @@ class SelfPlayingSession:
                 from .enemy_spawner import get_active_enemies
                 active_enemies = get_active_enemies(self.enemy_combat.enemy_agents)
 
-            # Assign IDs to all combatants (PCs + enemies)
+            # Get all active NPCs (empty list if none)
+            active_npcs = []
+            if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                active_npcs = [npc for npc in self.shared_state.npc_agents if npc.is_active]
+
+            # Assign IDs to all combatants (PCs + enemies + NPCs)
             target_id_mapper.assign_ids(
                 player_agents=self.shared_state.player_agents,
-                enemy_agents=active_enemies
+                enemy_agents=active_enemies,
+                npc_agents=active_npcs
             )
             logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
@@ -583,9 +694,10 @@ class SelfPlayingSession:
                     Wrapper for enemy LLM calls with logging support.
                     Each enemy gets its own instance to track call_sequence per agent.
                     """
-                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None):
+                    def __init__(self, llm_config, jsonl_logger=None, agent_id='enemy_unknown', session_id=None, agent_prompt_logger=None):
                         self.llm_config = llm_config
                         self.jsonl_logger = jsonl_logger
+                        self.agent_prompt_logger = agent_prompt_logger
                         self.agent_id = agent_id
                         self.session_id = session_id
                         self.call_sequence = 0  # Track LLM call ordering for replay
@@ -645,6 +757,26 @@ class SelfPlayingSession:
                                     import logging
                                     logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
 
+                            # Also log to human-readable agent prompt log if enabled
+                            if self.agent_prompt_logger:
+                                try:
+                                    self.agent_prompt_logger.log_llm_call(
+                                        agent_id=self.agent_id,
+                                        round_num=None,  # Enemy calls don't have round context
+                                        call_sequence=self.call_sequence - 1,  # Already incremented above
+                                        prompt=prompt,  # Full prompt text
+                                        response=response_text,
+                                        model=model,
+                                        temperature=temperature,
+                                        tokens={
+                                            'input': response.usage.input_tokens,
+                                            'output': response.usage.output_tokens
+                                        }
+                                    )
+                                except Exception as e:
+                                    import logging
+                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
                             return {"content": response_text}
                         else:
                             raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
@@ -654,7 +786,8 @@ class SelfPlayingSession:
                     dm_agent.llm_config,
                     jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                     agent_id='enemy_shared',  # Default for now, will be overridden per-enemy
-                    session_id=self.session_id
+                    session_id=self.session_id,
+                    agent_prompt_logger=self.agent_prompt_logger
                 )
 
         # Declaration loop (slowest → fastest, reversed initiative order)
@@ -739,6 +872,234 @@ class SelfPlayingSession:
                         )
                         await self.coordinator.message_bus._route_message(broadcast_message)
 
+            elif agent_type == 'npc':
+                # NPC declares simple action (flee/hide/plead/dialogue/assist/pass)
+                if agent.llm_client and agent.can_act:
+                    print(f"\n[{agent.name}] (NPC {agent.disposition}) declaring (initiative {initiative_score})...")
+
+                    try:
+                        # Build context string for NPC (include player actions and recent events)
+                        active_enemies = []
+                        if self.enemy_combat and self.enemy_combat.enabled:
+                            active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
+
+                        num_players = len(player_agents)
+                        num_enemies = len(active_enemies)
+
+                        # PHASE 3: Intelligent threat assessment (not just binary)
+                        threat_indicators = []
+
+                        # Check for captured/prisoner NPCs
+                        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                            captured_npcs = [npc for npc in self.shared_state.npc_agents
+                                           if npc.is_active and npc.entity_type == "prisoner"]
+                            if captured_npcs:
+                                threat_indicators.append("ally captured")
+
+                        # Check for active combat
+                        if num_enemies > 0:
+                            threat_indicators.append(f"combat: {num_enemies} hostiles")
+
+                        # Build context string with intelligent assessment
+                        context = f"Round {mechanics.current_round if mechanics else 0}: "
+                        if threat_indicators:
+                            context += f"ALERT: {', '.join(threat_indicators)}. {num_players} players present."
+                        elif num_enemies > 0:
+                            context += f"Combat active - {num_players} players vs {num_enemies} enemies."
+                        else:
+                            context += f"Calm situation. {num_players} players present."
+
+                        if self.shared_state and hasattr(self.shared_state, 'scenario'):
+                            context += f" Situation: {self.shared_state.scenario}"
+
+                        # Start narrative context section (matches player formatting)
+                        narrative_context = ""
+
+                        # PHASE 2: Add previous round DM narration FIRST (overall story progression)
+                        if hasattr(self, '_last_round_synthesis') and self._last_round_synthesis:
+                            synthesis_narration = self._last_round_synthesis.get('narration', '')
+                            if synthesis_narration and len(synthesis_narration) > 0:
+                                narrative_context += "\n\n# 📖 Recent Story Events\n\n"
+                                narrative_context += "## What Just Happened (Last Round Summary):\n"
+                                narrative_context += f"{synthesis_narration}\n"
+
+                        # PHASE 4: Add recent narrative context (filter out NPC reasoning echoes)
+                        # Include ALL action resolutions from current round
+                        recent_narrative = []
+
+                        # Get list of NPC names to filter out reasoning echoes
+                        npc_names = []
+                        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                            npc_names = [npc.name for npc in self.shared_state.npc_agents if npc.is_active]
+
+                        # Add recent player narrations (stored by player agents for context)
+                        for player_agent in player_agents:
+                            if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
+                                # Get ALL narrations (not just last 2) to show full current round context
+                                for narration in player_agent.recent_narrations:
+                                    # Skip if this looks like NPC reasoning echo
+                                    # (contains NPC name followed immediately by reasoning text)
+                                    is_npc_reasoning = any(
+                                        narration.startswith(f"[{npc_name}] {npc_name}")
+                                        for npc_name in npc_names
+                                    )
+
+                                    if not is_npc_reasoning:
+                                        # Keep full narration - this is juicy coordination info!
+                                        recent_narrative.append(narration)
+
+                        if recent_narrative:
+                            if not narrative_context:
+                                narrative_context += "\n\n# 📖 Recent Story Events\n\n"
+                            narrative_context += "## Recent Action Outcomes:\n"
+                            # Show ALL recent resolutions (not just last 3)
+                            for i, narration in enumerate(recent_narrative, 1):
+                                narrative_context += f"{i}. {narration}\n"
+                            narrative_context += "\n"
+
+                        # PHASE 1: Show declarations from higher-initiative agents this round
+                        # NPCs need to see what's already been declared before their turn
+                        current_round_declarations = []
+                        for agent_id, actions in self._declared_actions.items():
+                            for action in actions:
+                                # Only show declarations from agents acting before this NPC
+                                if action.get('initiative', 0) > initiative_score:
+                                    actor_name = action.get('character_name', agent_id)
+                                    # Use description (full narrative) if available, fallback to intent
+                                    declaration_text = action.get('description', '') or action.get('intent', 'unknown action')
+                                    # Keep full declarations - agents need context to coordinate!
+                                    current_round_declarations.append(
+                                        (actor_name, action.get('initiative', 0), declaration_text)
+                                    )
+
+                        if current_round_declarations:
+                            if not narrative_context:
+                                narrative_context += "\n\n# 📖 Recent Story Events\n\n"
+                            narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+                            narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
+                            # Sort by initiative (slowest first, matching declaration order)
+                            sorted_declarations = sorted(current_round_declarations, key=lambda x: x[1])
+                            for actor_name, initiative, declaration_text in sorted_declarations:
+                                narrative_context += f"- **{actor_name}** [Init {initiative}]: {declaration_text}\n"
+                            narrative_context += "\n"
+
+                        # Append narrative context to main context
+                        context += narrative_context
+
+                        # Get NPC action via simple LLM client (correct method: declare_action)
+                        npc_action = await agent.llm_client.declare_action(context)
+
+                        if npc_action:
+                            # Check for self-escalation (NPC declares attack)
+                            if npc_action.action_type == "attack":
+                                logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
+                                logger.info(f"   Reason: {npc_action.reason}")
+
+                                # Convert NPC to enemy immediately
+                                from .agent_conversion import escalate_npc_to_enemy
+
+                                # Determine enemy template based on NPC threat level
+                                template_map = {
+                                    "non_combatant": "desperate_fighter",
+                                    "potential_threat": "grunt",
+                                    "armed_neutral": "elite"
+                                }
+                                template = template_map.get(agent.threat_level, "grunt")
+
+                                # Escalate NPC to enemy
+                                enemy = escalate_npc_to_enemy(
+                                    npc=agent,
+                                    template_override=template,
+                                    current_round=mechanics.current_round if mechanics else 0
+                                )
+
+                                # Register with enemy combat system
+                                if self.enemy_combat:
+                                    self.enemy_combat.enemy_agents.append(enemy)
+                                    logger.info(f"   ✅ Converted to enemy: {enemy.agent_id}")
+
+                                # Log conversion to JSONL
+                                if mechanics and mechanics.jsonl_logger:
+                                    mechanics.jsonl_logger.log_agent_conversion(
+                                        round_num=mechanics.current_round,
+                                        agent_id=enemy.agent_id,
+                                        agent_name=enemy.name,
+                                        from_type="npc",
+                                        to_type="enemy",
+                                        trigger="self_escalation_attack",
+                                        state_before={
+                                            "health": agent.health,
+                                            "max_health": agent.max_health,
+                                            "wounds": agent.wounds,
+                                            "stuns": agent.stuns,
+                                            "disposition": agent.disposition,
+                                            "entity_type": agent.entity_type
+                                        },
+                                        state_after={
+                                            "health": enemy.health,
+                                            "max_health": enemy.max_health,
+                                            "wounds": enemy.wounds,
+                                            "stuns": enemy.stuns,
+                                            "template": enemy.template_name,
+                                            "position": str(enemy.position)
+                                        }
+                                    )
+
+                                # Remove from NPC list
+                                if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+                                    self.shared_state.npc_agents = [n for n in self.shared_state.npc_agents if n.agent_id != agent.agent_id]
+
+                                # Enemy will join combat NEXT round (escalation consumed this turn's action)
+                                logger.info(f"   Enemy will join combat next round (escalation consumed this turn)")
+                                continue
+
+                            # Normal NPC action processing
+                            # Log NPC declaration
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_action_declaration(
+                                    player_id=agent.agent_id,
+                                    character_name=agent.name,
+                                    initiative=initiative_score,
+                                    action={'major_action': npc_action.action_type, 'description': npc_action.reason},
+                                    round_num=mechanics.current_round
+                                )
+
+                            # Store for resolution (as list to match player/enemy format)
+                            if agent.agent_id not in self._declared_actions:
+                                self._declared_actions[agent.agent_id] = []
+
+                            self._declared_actions[agent.agent_id].append({
+                                'agent_id': agent.agent_id,
+                                'character_name': agent.name,
+                                'intent': npc_action.action_type,
+                                'description': npc_action.reason,
+                                'action_type': npc_action.action_type,
+                                'initiative': initiative_score
+                            })
+
+                            # Broadcast NPC action to players
+                            broadcast_message = Message(
+                                id=f"npc_declared_{datetime.now().isoformat()}_{agent.agent_id}",
+                                type=MessageType.ACTION_DECLARED,
+                                sender=agent.agent_id,
+                                recipient=None,  # Broadcast to all
+                                payload={
+                                    'agent_id': agent.agent_id,
+                                    'character_name': agent.name,
+                                    'description': npc_action.reason,  # NPC's reasoning for action (10-500 chars)
+                                    'intent': npc_action.action_type,
+                                    'initiative': initiative_score,
+                                    'agent_type': 'npc'
+                                },
+                                timestamp=datetime.now()
+                            )
+                            await self.coordinator.message_bus._route_message(broadcast_message)
+
+                    except Exception as e:
+                        logger.warning(f"NPC {agent.name} failed to declare action: {e}")
+                        # NPCs can skip their turn if declaration fails
+                        print(f"[{agent.name}] unable to act this round")
+
         self._in_declaration_phase = False
 
         # PHASE 2: RESOLUTION (execute in descending initiative order)
@@ -807,7 +1168,8 @@ class SelfPlayingSession:
                                 'phase': 'resolution_only',  # Resolve mechanically but don't synthesize yet
                                 'actions': [action_for_adjudication],
                                 'round': mechanics.current_round if mechanics else 0,
-                                'action_index': idx  # Track which action this is for multi-action turns
+                                'action_index': idx,  # Track which action this is for multi-action turns
+                                'previous_resolutions': all_resolutions  # Context from earlier actions this round
                             },
                             timestamp=datetime.now()
                         )
@@ -824,11 +1186,18 @@ class SelfPlayingSession:
                         if resolution_data:
                             all_resolutions.append(resolution_data)
 
+                            # Parse surrender from PC action resolution
+                            # This marks enemies as surrendered in resolution_state BEFORE their turn
+                            # so their actions get invalidated (like defeated enemies)
+                            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                            _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
                         # TODO: Update resolution_state based on PC action results
-                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.)
+                        # (Would need to parse DM adjudication results for defeated targets, claimed tokens, etc.
+                        #  Currently handles: surrendered enemies via _parse_surrender_from_resolution)
 
             elif agent_type == 'enemy':
                 # Enemy action execution with resolution state tracking
@@ -847,10 +1216,102 @@ class SelfPlayingSession:
                         else:
                             print(f"\n[{result['character_name']}] {result['narration']}")
 
-                        # TODO: Enemy action logging
-                        # Enemy actions use a simplified result dict that doesn't match
-                        # the ActionResolution schema. Consider implementing enemy-specific
-                        # logging or adapting the result format.
+                        # Add enemy result to synthesis input
+                        # Enemy actions use a simplified result dict compared to ActionResolution schema
+                        # but DM needs to see enemy actions to synthesize round accurately
+                        all_resolutions.append(result)
+
+            elif agent_type == 'npc':
+                # NPC action execution - route through DM adjudication like players
+                if agent.agent_id in self._declared_actions:
+                    # Get first action from list (NPCs only declare one action, but stored as list for consistency)
+                    npc_actions = self._declared_actions[agent.agent_id]
+                    if not npc_actions:
+                        continue
+
+                    npc_action = npc_actions[0]  # NPCs only have one action
+                    print(f"\n[{agent.name}] (NPC) executing: {npc_action['intent']}...")
+
+                    # Build action payload for DM adjudication (similar to players)
+                    action_for_adjudication = {
+                        'player_id': agent.agent_id,  # Use agent_id for NPCs (similar to player pattern)
+                        'character_name': agent.name,
+                        'initiative': initiative_score,
+                        'action': {
+                            'character_name': agent.name,  # Include in nested action for resolution broadcast
+                            'intent': npc_action['intent'],
+                            'description': npc_action['description'],
+                            'action_type': npc_action.get('action_type', 'dialogue'),
+                            'is_npc': True  # Flag for DM to use lightweight adjudication
+                        }
+                    }
+
+                    # Create event to track when adjudication completes
+                    adjudication_event = asyncio.Event()
+                    self._pending_resolutions[f"{agent.agent_id}_0"] = adjudication_event  # action_index=0 for NPCs
+
+                    # Send action to DM for mechanical resolution (lightweight for NPCs)
+                    adjudication_message = Message(
+                        id=f"adjudicate_{datetime.now().isoformat()}_{agent.agent_id}",
+                        type=MessageType.ACTION_DECLARED,
+                        sender='coordinator',
+                        recipient='dm_01',
+                        payload={
+                            'phase': 'resolution_only',
+                            'actions': [action_for_adjudication],
+                            'round': mechanics.current_round if mechanics else 0,
+                            'action_index': 0,
+                            'previous_resolutions': all_resolutions
+                        },
+                        timestamp=datetime.now()
+                    )
+
+                    await self.coordinator.message_bus._route_message(adjudication_message)
+
+                    # Wait for DM to complete adjudication
+                    await adjudication_event.wait()
+                    logger.debug(f"NPC {agent.name} action adjudicated")
+
+                    # Collect resolution for synthesis
+                    resolution_data = getattr(adjudication_event, 'resolution_data', None)
+                    if resolution_data:
+                        all_resolutions.append(resolution_data)
+
+                    # Clean up pending resolution (must match key format used above)
+                    if f"{agent.agent_id}_0" in self._pending_resolutions:
+                        del self._pending_resolutions[f"{agent.agent_id}_0"]
+
+        # Convert surrendered enemies to NPCs after all actions resolve
+        # This happens AFTER resolution (actions invalidated) but BEFORE synthesis
+        if resolution_state.surrendered and self.enemy_combat.enabled:
+            from .agent_conversion import deescalate_enemy_to_npc
+
+            for enemy_id in list(resolution_state.surrendered):
+                # Find the enemy agent
+                enemy = next((e for e in self.enemy_combat.enemy_agents if e.agent_id == enemy_id), None)
+
+                if enemy and enemy.is_active:
+                    # Convert to NPC with "prisoner" disposition
+                    npc = deescalate_enemy_to_npc(
+                        enemy=enemy,
+                        disposition="prisoner",
+                        current_round=mechanics.current_round if mechanics else 0
+                    )
+
+                    # Add to shared state
+                    if self.shared_state:
+                        self.shared_state.npc_agents.append(npc)
+
+                        # Register in target mapper
+                        if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                            self.shared_state.target_id_mapper.register_npc(npc)
+
+                    # Deactivate enemy (no longer in combat)
+                    enemy.is_active = False
+                    enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                    logger.info(f"✅ Converted surrendered enemy {enemy_id} to NPC prisoner: {npc.name}")
+                    print(f"\n✅ {enemy.name} has been detained and is no longer a threat")
 
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
@@ -868,7 +1329,8 @@ class SelfPlayingSession:
                 payload={
                     'phase': 'synthesis',
                     'resolutions': all_resolutions,
-                    'round': mechanics.current_round if mechanics else 0
+                    'round': mechanics.current_round if mechanics else 0,
+                    'resolution_state': resolution_state  # Include fled NPCs for synthesis context
                 },
                 timestamp=datetime.now()
             )
@@ -1254,6 +1716,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Group combatants by type
         pcs = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'player']
         enemies = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'enemy']
+        npcs = [(init, agent) for init, agent_type, agent in initiative_order if agent_type == 'npc']
 
         # Display PCs
         if pcs:
@@ -1368,6 +1831,30 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 position_str = str(position) if position != 'Unknown' else 'Unknown'
 
                 print(f"    [{init:2d}] {agent.name:20s} | {health_str:12s} | {position_str:15s}")
+
+        # Display NPCs (non-combatants in initiative order)
+        if npcs:
+            print("\n  NPCs (Non-Combatants):")
+            for init, npc in npcs:
+                # Get health info
+                health = getattr(npc, 'health', '?')
+                max_health = getattr(npc, 'max_health', '?')
+                health_str = f"{health}/{max_health} HP"
+
+                # Get entity type and disposition
+                entity_type = getattr(npc, 'entity_type', 'neutral')
+                disposition = getattr(npc, 'disposition', 'neutral')
+
+                # Format disposition with emoji
+                disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(disposition, "❓")
+                status_str = f"{disp_emoji} {disposition}"
+
+                # Active status
+                is_active = getattr(npc, 'is_active', True)
+                active_indicator = "" if is_active else " [INACTIVE]"
+
+                print(f"    [--] {npc.name:20s} | {health_str:12s} | {status_str:15s}{active_indicator}")
+                print(f"         └─ Faction: {npc.faction} | Threat: {npc.threat_level}")
 
         # Display clock states if available
         if mechanics and mechanics.scene_clocks:
@@ -1889,14 +2376,58 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 print(f"\n{notification}")
 
         # Process initial_enemies from ScenarioSetup structured output
+        # Handle both SimpleNamespace (object) and dict (after serialization)
         scenario_setup = message.payload.get('scenario_setup', None)
-        if scenario_setup and hasattr(scenario_setup, 'initial_enemies'):
-            if scenario_setup.initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
+        if scenario_setup:
+            logger.debug(f"scenario_setup found: {type(scenario_setup)}")
+            # Get initial_enemies (works for both object and dict)
+            initial_enemies = getattr(scenario_setup, 'initial_enemies', None)
+            if initial_enemies is None and isinstance(scenario_setup, dict):
+                initial_enemies = scenario_setup.get('initial_enemies', [])
+
+            if initial_enemies and self.enemy_combat and self.enemy_combat.enabled:
+                # Reconstruct EnemySpawn objects if they were serialized to dicts
+                from .schemas.story_events import EnemySpawn
+                enemy_spawn_objects = []
+                for enemy in initial_enemies:
+                    if isinstance(enemy, dict):
+                        enemy_spawn_objects.append(EnemySpawn(**enemy))
+                    else:
+                        enemy_spawn_objects.append(enemy)
+
                 spawn_notifications = self.enemy_combat.spawn_from_structured(
-                    scenario_setup.initial_enemies
+                    enemy_spawn_objects
                 )
                 for notification in spawn_notifications:
                     print(f"\n{notification}")
+
+            # Get npc_spawns (works for both object and dict)
+            npc_spawns = getattr(scenario_setup, 'npc_spawns', None)
+            if npc_spawns is None and isinstance(scenario_setup, dict):
+                npc_spawns = scenario_setup.get('npc_spawns', [])
+
+            if npc_spawns:
+                # Reconstruct NPCSpawn objects if they were serialized to dicts
+                from .schemas.story_events import NPCSpawn
+
+                # Process NPC spawns via DM
+                for npc_spawn in npc_spawns:
+                    # Reconstruct NPCSpawn if it's a dict
+                    if isinstance(npc_spawn, dict):
+                        npc_spawn = NPCSpawn(**npc_spawn)
+
+                    # Find DM agent
+                    dm_agent = None
+                    for agent in self.agents:
+                        if agent.agent_id.startswith('dm_'):
+                            dm_agent = agent
+                            break
+
+                    if dm_agent and hasattr(dm_agent, '_process_npc_spawn'):
+                        npc = dm_agent._process_npc_spawn(npc_spawn)
+                        print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
+                    else:
+                        logger.warning(f"Cannot spawn NPC {npc_spawn.name} - DM not found or missing _process_npc_spawn")
 
         self._scenario_ready.set()
 
@@ -2099,11 +2630,122 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             for notification in spawn_notifications:
                 print(f"\n{notification}")
 
-        # 3. Handle enemy removals (non-combat exits)
-        if synthesis.enemy_removals and self.enemy_combat.enabled:
-            removal_notifications = self.enemy_combat.remove_from_structured(synthesis.enemy_removals)
-            for notification in removal_notifications:
-                print(f"\n{notification}")
+        # 3. Handle enemy conversions (removals + NPC conversions)
+        if synthesis.enemy_conversions and self.enemy_combat.enabled:
+            from .agent_conversion import deescalate_enemy_to_npc
+            from .schemas.story_events import EnemyResolution
+
+            for conversion in synthesis.enemy_conversions:
+                # Find the enemy
+                enemy = next((e for e in self.enemy_combat.enemy_agents
+                             if e.agent_id == conversion.enemy_id or e.name == conversion.enemy_id), None)
+
+                if not enemy:
+                    logger.warning(f"Enemy {conversion.enemy_id} not found for conversion")
+                    continue
+
+                # Determine if enemy stays or leaves
+                stays_in_scene = conversion.resolution in [
+                    EnemyResolution.CONVINCED,
+                    EnemyResolution.NEUTRALIZED,
+                    EnemyResolution.SUBDUED
+                ]
+
+                if stays_in_scene:
+                    # Convert to NPC (stays in scene)
+                    if enemy.is_active:
+                        npc = deescalate_enemy_to_npc(
+                            enemy=enemy,
+                            disposition=conversion.resulting_disposition,
+                            current_round=mechanics.current_round if mechanics else 0
+                        )
+
+                        if self.shared_state:
+                            self.shared_state.npc_agents.append(npc)
+                            if hasattr(self.shared_state, 'target_id_mapper'):
+                                self.shared_state.target_id_mapper.register_npc(npc)
+
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                        print(f"\n🏳️  {enemy.name} de-escalated to NPC ({conversion.resulting_disposition}): {conversion.reason}")
+                else:
+                    # Remove from scene (leaves entirely)
+                    if enemy.is_active:
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                        resolution_text = {
+                            EnemyResolution.FLED: "fled",
+                            EnemyResolution.STORY_ADVANCED: "removed (story advanced)",
+                        }.get(conversion.resolution, "removed")
+
+                        print(f"\n❌ {enemy.name} {resolution_text}: {conversion.reason}")
+
+        # 3.5. Handle NPC spawns (NEW - mid-game NPC spawning)
+        if synthesis.npc_spawns:
+            from .schemas.story_events import NPCSpawn
+
+            # Find DM agent for NPC spawn processing
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            if not dm_agent:
+                logger.warning("Cannot process NPC spawns: DM agent not found")
+            else:
+                for npc_spawn in synthesis.npc_spawns:
+                    # Reconstruct NPCSpawn if it's a dict
+                    if isinstance(npc_spawn, dict):
+                        npc_spawn = NPCSpawn(**npc_spawn)
+
+                    if hasattr(dm_agent, '_process_npc_spawn'):
+                        npc = dm_agent._process_npc_spawn(npc_spawn)
+
+                        if npc:
+                            # NPC already added to SharedState and registered by _process_npc_spawn()
+                            # Just log the successful spawn
+                            print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
+                            logger.info(f"NPC spawn complete: {npc.name} ({npc.agent_id})")
+                    else:
+                        logger.warning(f"Cannot spawn NPC {npc_spawn.name}: DM missing _process_npc_spawn method")
+
+        # 4. Handle escalations (NPC → Enemy conversions)
+        if synthesis.escalations:
+            from .schemas.story_events import Escalation
+
+            # Find DM agent for escalation processing
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            if not dm_agent:
+                logger.warning("Cannot process escalations: DM agent not found")
+            else:
+                for escalation in synthesis.escalations:
+                    # Reconstruct Escalation if it's a dict
+                    if isinstance(escalation, dict):
+                        escalation = Escalation(**escalation)
+
+                    if hasattr(dm_agent, '_process_escalation'):
+                        enemy = dm_agent._process_escalation(
+                            escalation=escalation,
+                            current_round=mechanics.current_round if mechanics else 0
+                        )
+
+                        if enemy:
+                            # Add enemy to enemy_combat system
+                            if self.enemy_combat.enabled:
+                                self.enemy_combat.enemy_agents.append(enemy)
+
+                            print(f"\n⚠️  {enemy.name} escalated to Enemy (was NPC): {escalation.reason}")
+                            logger.info(f"Escalation complete: {enemy.name} ({enemy.agent_id}) now active enemy")
+                    else:
+                        logger.warning(f"Cannot escalate {escalation.npc_id}: DM missing _process_escalation method")
 
         # 4. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:

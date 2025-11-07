@@ -1,0 +1,238 @@
+{
+  "session_name": "npc_escalation_test",
+  "max_turns": 6,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_combat": false,
+
+  "_comment_npc_system": "=== NPC ESCALATION SYSTEM TEST ===",
+  "_npc_system_info": "Tests NPC→enemy escalation when players attack prisoners/neutrals",
+
+  "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_initial_npcs": "Start with PRISONER NPCs (previously de-escalated enemies) to test escalation",
+  "initial_npcs": [
+    {
+      "name": "Captured Raider Vex",
+      "faction": "Freeborn Smugglers",
+      "entity_type": "prisoner",
+      "threat_level": "potential_threat",
+      "disposition": "prisoner",
+      "description": "Disarmed raider, hands bound, but still defiant. Has intel about smuggling operations. If threatened with violence, may resist or try to escape.",
+      "health": 25,
+      "soak": 2,
+      "skills": {
+        "Combat": 3,
+        "Guns": 3,
+        "Brawl": 2
+      }
+    },
+    {
+      "name": "Wounded Raider Kess",
+      "faction": "Freeborn Smugglers",
+      "entity_type": "prisoner",
+      "threat_level": "non_combatant",
+      "disposition": "prisoner",
+      "description": "Badly wounded raider (10 HP remaining), compliant and terrified. Surrendered to save their life. If attacked, will try to flee or defend themselves despite injuries.",
+      "health": 10,
+      "soak": 1,
+      "skills": {
+        "Combat": 2,
+        "Guns": 2
+      }
+    },
+    {
+      "name": "Neutral Informant Dara",
+      "faction": "Independent Contractor",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Informant who agreed to cooperate in exchange for clemency. Has weapons but hasn't used them. If betrayed or attacked, will defend themselves aggressively.",
+      "health": 20,
+      "soak": 3,
+      "skills": {
+        "Combat": 4,
+        "Guns": 4,
+        "Awareness": 4
+      }
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Interrogator Ash",
+        "pronouns": "they/them",
+        "faction": "Pantheon Intelligence",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "goals": [
+          "Extract intel from prisoners efficiently",
+          "Maintain operational security",
+          "Balance between intimidation and persuasion"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Empathy": 4,
+          "Charm": 4,
+          "Intimidation": 5,
+          "Awareness": 5,
+          "Investigation": 5,
+          "Charisma": 4
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": ["shock_baton"],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "restraint_cuffs": 5,
+          "interrogation_kit": 1
+        },
+        "void": 2
+      },
+      {
+        "name": "Enforcer Marcus Rhys",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "goals": [
+          "Protect the interrogator",
+          "Maintain order among prisoners",
+          "Use force only when necessary"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Intimidation": 5,
+          "Awareness": 5,
+          "Athletics": 4,
+          "Guns": 5,
+          "Brawl": 4
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "riot_carapace": 1,
+          "restraint_cuffs": 3
+        },
+        "void": 2
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Prisoner Interrogation Gone Wrong",
+    "location": "Secure Holding Facility - Interrogation Wing",
+    "situation": "You have three prisoners/informants secured for questioning: a defiant raider (Vex), a wounded compliant prisoner (Kess), and a wary informant who agreed to cooperate (Dara). Your mission is to extract intel about smuggling routes. But if you push too hard, use excessive force, or betray agreements, these NPCs may turn hostile.",
+    "void_level": 2
+  },
+
+  "_scenario_hint": "DM should trigger escalations if players: attack prisoners, use torture/excessive force, break deals with informants, or threaten their lives. Escalation converts NPC back to enemy with preserved agent_id. Prisoners should plead, comply, or hide initially. Informant should be cooperative but cautious. Test that stable agent_ids are preserved across de-escalation→escalation cycles.",
+
+  "_test_notes": {
+    "purpose": "Test NPC→enemy escalation when players attack or betray NPCs",
+    "expected_escalation_triggers": [
+      "Player attacks prisoner → Escalation (prisoner → enemy)",
+      "Player uses excessive force/torture → Escalation",
+      "Player breaks deal with informant → Escalation (neutral → enemy)",
+      "DM escalates wounded prisoner if attacked while helpless"
+    ],
+    "skills_to_test": [
+      "Empathy × Charm (Ash persuasion)",
+      "Intelligence × Investigation (Ash interrogation)",
+      "Charisma × Intimidation (threats without violence)",
+      "Combat × Brawl (if escalation happens, physical restraint)"
+    ],
+    "success_criteria": [
+      "At least one NPC escalates to enemy when attacked/betrayed",
+      "Escalations logged via structured output (escalations field)",
+      "agent_id preserved across escalation (enemy_npc_xxx → enemy_npc_xxx)",
+      "No keyword detection (escalation via structured output only)",
+      "Escalated enemies can attack players using enemy agent system"
+    ],
+    "verification": {
+      "console_output": "Look for DM narration about resistance/fighting back",
+      "logs": "Check game.log for 'Escalation' events",
+      "jsonl": "escalation events with preserved agent_id, combat_action from escalated NPCs"
+    }
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Extract smuggling route intel from at least one prisoner",
+      "type": "interrogation",
+      "required": true
+    },
+    {
+      "description": "Maintain cooperation with informant Dara",
+      "type": "negotiation",
+      "required": false
+    }
+  ]
+}

@@ -176,3 +176,5 @@ game.txt
 # Generated releases
 releases/
 archive/*
+agent_logs/
+output/
