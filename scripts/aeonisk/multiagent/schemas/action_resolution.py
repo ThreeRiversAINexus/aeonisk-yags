@@ -11,8 +11,9 @@ This eliminates keyword detection (e.g., parsing "⚫ Void: +1" markers from tex
 while preserving narrative quality.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
+import json
 from .shared_types import (
     SuccessTier,
     VoidChange,
@@ -310,6 +311,18 @@ class ActionResolution(BaseModel):
         default=None,
         description="STRONGLY RECOMMENDED for ML training: All 6 outcome tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success) with narrative (50-500 chars) + mechanical_effect (10-300 chars) for each tier. See ml_training_tiers section in system prompt for detailed instructions and examples."
     )
+
+    @field_validator('outcome_tiers', mode='before')
+    @classmethod
+    def parse_outcome_tiers_json(cls, v):
+        """Auto-parse JSON string to dict if model returns stringified JSON."""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # If it's not valid JSON, let Pydantic's normal validation handle it
+                return v
+        return v
 
 
 class CombatResolution(ActionResolution):
