@@ -218,6 +218,17 @@ class JSONLLogger:
         # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
 
+        # Extract damage from context if available (from structured output)
+        damage_dealt = None
+        if context and context.get('damage_effects'):
+            # Get first damage effect (single-target actions)
+            damage_data = context['damage_effects'][0]
+            damage_dealt = {
+                "target": damage_data.get('target'),
+                "dealt": damage_data.get('dealt'),
+                "source": "structured_output"
+            }
+
         event = {
             "event_type": "action_resolution",
             "ts": datetime.now().isoformat(),
@@ -244,6 +255,7 @@ class JSONLLogger:
             "economy": economy_changes,
             "clocks": clock_states,
             "effects": {
+                "damage": damage_dealt,  # NEW: Damage dealt to targets (for ML training)
                 "status_effects": effects,  # Renamed from top-level effects for clarity
                 "inventory_changes": inventory_changes or []  # New: track offering consumption, item pickups, etc.
             }

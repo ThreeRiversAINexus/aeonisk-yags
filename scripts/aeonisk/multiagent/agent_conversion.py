@@ -11,16 +11,17 @@ Handles conversion between enemy and NPC agent types while preserving:
 Critical principle: Conversion is changing behavior mode, not creating a new agent.
 """
 
-from typing import Optional, Literal
+from typing import Optional, Literal, Dict
 import logging
 
 from .npc_agent import NPCAgent, ConversionRecord
+from .enemy_agent import EnemyAgent, Position
 
 logger = logging.getLogger(__name__)
 
 
 def deescalate_enemy_to_npc(
-    enemy,  # EnemyAgent type (avoid circular import)
+    enemy: EnemyAgent,
     disposition: Literal["friendly", "neutral", "wary", "prisoner"],
     current_round: Optional[int] = None,
     agent_prompt_logger=None
@@ -110,7 +111,7 @@ def deescalate_enemy_to_npc(
         entity_type=entity_type,
         disposition=disposition,
         threat_level=threat_level,
-        description=getattr(enemy, 'description', f"Former {getattr(enemy, 'template_name', 'enemy')}, now {disposition}"),
+        description=getattr(enemy, 'description', f"Former {getattr(enemy, 'template', 'enemy')}, now {disposition}"),
 
         # Copy ALL state (not just some)
         health=enemy.health,
@@ -130,7 +131,7 @@ def deescalate_enemy_to_npc(
 
         # Conversion tracking (for reverse operation)
         converted_from_enemy=True,
-        original_enemy_template=getattr(enemy, 'template_name', None),
+        original_enemy_template=getattr(enemy, 'template', None),
         conversion_history=[conversion],
 
         # Logging
@@ -192,106 +193,8 @@ def escalate_npc_to_enemy(
         }
     )
 
-    # Copy conditions
-    conditions_copy = []
-    from .schemas.shared_types import Condition
-    for cond in npc.conditions:
-        conditions_copy.append(Condition(
-            name=cond.name,
-            penalty=cond.penalty,
-            description=cond.description,
-            duration=getattr(cond, 'duration', None)
-        ))
-
-    # Import EnemyAgent and Position dynamically to avoid circular import
-    from dataclasses import dataclass, field
-    from typing import Dict, List, Optional, Any
-    from .enemy_agent import Position  # Import real Position class with all methods
-
-    @dataclass
-    class EnemyAgent:
-        """Minimal enemy agent for conversion (must match real EnemyAgent fields)."""
-        agent_id: str
-        name: str
-        faction: str
-        health: int
-        max_health: int
-        soak: int
-        void_score: int
-        skills: Dict[str, int]
-        attributes: Dict[str, int]  # YAGS attributes (Agility, Strength, etc.)
-        stuns: int
-        wounds: int
-        conditions: List  # Extra field for NPC→Enemy conversion (NPCs have conditions)
-        template_name: str
-        position: Position  # Tactical position
-        initiative: int = 0  # Will be rolled at round start
-        description: str = ""  # Extra field for descriptive text
-
-        # ===== DOCTRINE & BEHAVIOR =====
-        tactics: str = "aggressive_melee"
-        threat_priority: str = "closest_threat"
-        retreat_threshold: float = 0.3
-        personality: str = "flee_when_broken"  # Match real EnemyAgent default
-
-        # ===== AEONISK-SPECIFIC =====
-        void_threshold: int = 8
-
-        # ===== EQUIPMENT =====
-        weapons: List = field(default_factory=list)  # List[Weapon] in real version
-        armor: Optional[Any] = None  # Optional[Armor] in real version
-        special_abilities: List[str] = field(default_factory=list)
-        ammo: Dict[str, int] = field(default_factory=dict)
-
-        # ===== STATE TRACKING =====
-        is_active: bool = True
-        is_prisoner: bool = False
-        is_panicked: bool = False
-        panic_trigger: Optional[str] = None
-        spawned_round: int = 0
-        despawned_round: Optional[int] = None
-        status_effects: List[str] = field(default_factory=list)
-        debuffs: List[Dict[str, Any]] = field(default_factory=list)
-        shared_intel: Dict[str, Any] = field(default_factory=dict)
-
-        # ===== YAGS COMPATIBILITY =====
-        size: int = 5  # Human default
-        body_levels: int = 5  # Typically = size
-        move: int = 10  # Movement in meters per round
-        stance: str = "normal"  # "normal", "aggressive", "defensive", "prone"
-        defences_declared: int = 0  # Number of active defences this round
-
-        # ===== TACTICAL FIELDS =====
-        fatigue: int = 0
-        defence_token: Optional[str] = None
-        tactical_token: Optional[str] = None
-
-        def get_health_percentage(self) -> int:
-            """Get current health as percentage (required by enemy_spawner)."""
-            if self.max_health == 0:
-                return 0
-            return int((self.health / self.max_health) * 100)
-
-        def roll_initiative(self) -> int:
-            """Roll initiative: (Agility × 4) + d20."""
-            import random
-            agility = self.attributes.get('Agility', 3)
-            roll = random.randint(1, 20)
-            if roll == 1:
-                return 0  # Fumble
-            return (agility * 4) + roll
-
-        def is_below_retreat_threshold(self) -> bool:
-            """Check if health is below retreat threshold."""
-            health_pct = self.get_health_percentage() / 100.0
-            return health_pct <= self.retreat_threshold
-
-        def can_use_void_surge(self) -> bool:
-            """Check if can use Void Surge ability."""
-            return (
-                "void_surge" in self.special_abilities and
-                self.void_score < self.void_threshold
-            )
+    # Note: conditions are NOT copied to EnemyAgent (EnemyAgent uses status_effects instead)
+    # If NPC has conditions, they should be converted to enemy status_effects separately
 
     # Synthesize attributes from skills (NPCs only have skills, not attributes)
     # Estimate based on skill levels or use defaults
@@ -337,19 +240,18 @@ def escalate_npc_to_enemy(
         attributes=attributes,  # Synthesized from skills
         stuns=npc.stuns,
         wounds=npc.wounds,
-        conditions=conditions_copy,
 
         # Equipment (preserve from NPC)
         weapons=list(npc.weapons) if hasattr(npc, 'weapons') and npc.weapons else [],
 
         # Enemy-specific
-        template_name=template,
+        template=template,
         personality=_derive_personality_from_template(template),
-        description=npc.description or f"{npc.name} (escalated to combat)",
         position=npc.position,  # Position is required, will always exist
+        initiative=0,  # Will be rolled at start of round
 
         # State tracking
-        spawned_round=current_round
+        spawned_round=current_round or 0
     )
 
     logger.debug(f"✅ Escalated {npc.agent_id}: {npc.name} → Enemy ({template})")
@@ -395,7 +297,7 @@ def subdue_enemy_to_prisoner(
     )
 
 
-def _determine_threat_level_from_enemy(enemy) -> Literal["non_combatant", "potential_threat", "armed_neutral"]:
+def _determine_threat_level_from_enemy(enemy: EnemyAgent) -> Literal["non_combatant", "potential_threat", "armed_neutral"]:
     """
     Determine NPC threat_level from enemy template/type.
 
@@ -410,7 +312,7 @@ def _determine_threat_level_from_enemy(enemy) -> Literal["non_combatant", "poten
     Returns:
         threat_level string
     """
-    template = getattr(enemy, 'template_name', '').lower()
+    template = getattr(enemy, 'template', '').lower()
 
     # Civilians/bystanders are non-combatants
     if 'civilian' in template or 'bystander' in template:

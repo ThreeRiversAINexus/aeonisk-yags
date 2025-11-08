@@ -145,7 +145,7 @@ def _format_status(enemy: EnemyAgent) -> str:
 
     status = f"""## YOUR STATUS
 {"=" * 60}
-Unit Type: {enemy.template_name.upper()}
+Unit Type: {enemy.template.upper()}
 Health: {enemy.health}/{enemy.max_health} ({health_pct}%) - {health_status}
 Wounds: {enemy.wounds} {wound_status}
 Stuns: {enemy.stuns}
