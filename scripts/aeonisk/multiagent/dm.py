@@ -2917,9 +2917,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     char_name = prev.get('character_name', 'Unknown')
                     narration = prev.get('narration', '')
                     if narration:
-                        # Truncate to 300 chars to keep prompt focused
-                        narration_preview = narration[:300] + "..." if len(narration) > 300 else narration
-                        previous_items.append(f"- {char_name}: {narration_preview}")
+                        # NO TRUNCATION - ML training needs complete data
+                        previous_items.append(f"- {char_name}: {narration}")
 
                 if previous_items:
                     action['previous_context'] = f"""
@@ -4642,18 +4641,29 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
             # Try structured output with fallback disabled (we handle fallback ourselves)
             logger.debug(f"DM: Attempting structured output for {action_type} action")
 
+            # Build clock context for prompt variable interpolation
+            clock_context = ""
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                if mechanics.scene_clocks:
+                    clock_lines = ["Active Scene Clocks (IMPORTANT: Use EXACT names in clock_updates):"]
+                    for clock_name, clock in mechanics.scene_clocks.items():
+                        clock_lines.append(f"  - \"{clock_name}\" ({clock.current}/{clock.maximum}) - {clock.description}")
+                    clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
+                    clock_context = "\n".join(clock_lines)
+
             # Load DM system prompt with conditional modules
             try:
                 # Determine which modules to load based on game state
                 required_modules = self._get_required_dm_modules()
 
-                # Load modular prompt
+                # Load modular prompt with variables
                 system_prompt_obj = load_modular_prompt(
                     agent_type="dm",
                     module_names=required_modules,
                     provider="claude",
                     language="en",
-                    variables={}
+                    variables={"clock_context": clock_context}
                 )
                 system_prompt = system_prompt_obj.content
                 logger.debug(
@@ -5707,7 +5717,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     "max_health": enemy.max_health,
                     "wounds": enemy.wounds,
                     "stuns": enemy.stuns,
-                    "template": enemy.template_name,
+                    "template": enemy.template,
                     "position": str(enemy.position)
                 },
                 state_after={

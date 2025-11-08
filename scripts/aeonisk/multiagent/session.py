@@ -174,6 +174,10 @@ class SelfPlayingSession:
         # Format: {character_name: [(action_type, success_tier, void_change, round_num), ...]}
         self._character_action_history: Dict[str, List[tuple]] = {}
 
+        # Track round synthesis history for debrief context
+        # Format: [(round_num, synthesis_text), ...]
+        self._round_synthesis_history: List[tuple] = []
+
         # Track current round's initiative order for logging
         # Format: {agent_id: initiative_score}
         self._current_initiative: Dict[str, int] = {}
@@ -1039,7 +1043,7 @@ class SelfPlayingSession:
                                             "max_health": enemy.max_health,
                                             "wounds": enemy.wounds,
                                             "stuns": enemy.stuns,
-                                            "template": enemy.template_name,
+                                            "template": enemy.template,
                                             "position": str(enemy.position)
                                         }
                                     )
@@ -1646,12 +1650,21 @@ Examples: "Tell... tell them the truth about..." or "Not like this... *coughs bl
 
 Keep it brief and impactful. You're dying."""
                 else:
+                    # Build narrative summary from round syntheses
+                    narrative_summary = ""
+                    if self._round_synthesis_history:
+                        narrative_summary = "\n**What Happened During the Mission:**\n"
+                        for round_num, synthesis_text in self._round_synthesis_history:
+                            # Truncate to 400 chars per round for brevity
+                            summary = synthesis_text[:400] + "..." if len(synthesis_text) > 400 else synthesis_text
+                            narrative_summary += f"Round {round_num}: {summary}\n\n"
+
                     # Alive player - normal debrief
                     debrief_prompt = f"""You are {player.character_state.name} ({player.character_state.faction}) in a post-mission debrief conversation.
 
 **Mission Context:**
 {scenario_situation}
-
+{narrative_summary}
 **Final Status:**
 {chr(10).join(void_states)}
 {chr(10).join(clocks_status) if clocks_status else 'No clocks tracked'}
@@ -2860,6 +2873,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     synthesis=narration,
                     structured_synthesis=structured_synthesis
                 )
+
+            # Collect synthesis for debrief context
+            if narration and round_num is not None:
+                self._round_synthesis_history.append((round_num, narration))
 
 
 # Configuration example
