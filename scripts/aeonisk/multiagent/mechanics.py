@@ -6,6 +6,7 @@ Implements core dice mechanics, rituals, void progression, and scene clocks.
 import random
 import logging
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
@@ -66,19 +67,28 @@ class JSONLLogger:
         self.output_dir.mkdir(exist_ok=True)
         self.log_file = self.output_dir / f"session_{session_id}.jsonl"
 
+        # Event causal chain tracking
+        self.current_parent_event_id: Optional[str] = None  # Last event ID (for parent_event_id)
+        self.current_correlation_id: Optional[str] = None  # Current round/group ID
+
         # Get git commit hash for reproducibility tracking
         git_commit = self._get_git_commit()
 
         # Initialize log file with session start event
-        self._write_event({
+        session_start_event = {
             "event_type": "session_start",
+            "event_id": str(uuid.uuid4()),  # Generate unique event ID
+            "parent_event_id": None,  # Root event has no parent
+            "correlation_id": None,  # Session start not part of a round
             "ts": datetime.now().isoformat(),
             "session": session_id,
             "config": config or {},
             "random_seed": random_seed,  # For deterministic replay
             "git_commit": git_commit,  # Track codebase version
-            "version": "1.0.0"
-        })
+            "version": "1.2.0"  # BREAKING CHANGE: Added event_id, parent_event_id, correlation_id
+        }
+        self._write_event(session_start_event)
+        self.current_parent_event_id = session_start_event["event_id"]  # Session start is parent of first events
 
     def _get_git_commit(self) -> Optional[str]:
         """Get current git commit hash for version tracking."""
@@ -98,8 +108,37 @@ class JSONLLogger:
             pass
         return None
 
+    def start_round(self, round_num: int):
+        """Start a new round - sets correlation_id for all events in this round."""
+        self.current_correlation_id = f"round_{round_num}_{uuid.uuid4().hex[:8]}"
+
+    def _add_event_chain_fields(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add event_id, parent_event_id, correlation_id to event.
+
+        Returns modified event dict.
+        """
+        # Generate new event ID
+        event_id = str(uuid.uuid4())
+        event["event_id"] = event_id
+
+        # Set parent (previous event)
+        event["parent_event_id"] = self.current_parent_event_id
+
+        # Set correlation (current round/group)
+        event["correlation_id"] = self.current_correlation_id
+
+        # Update parent for next event
+        self.current_parent_event_id = event_id
+
+        return event
+
     def _write_event(self, event: Dict[str, Any]):
-        """Write a single event as a JSON line."""
+        """Write a single event as a JSON line with causal chain metadata."""
+        # Add event chain fields if not already present (session_start sets them manually)
+        if "event_id" not in event:
+            event = self._add_event_chain_fields(event)
+
         with open(self.log_file, 'a') as f:
             f.write(json.dumps(event, default=str) + '\n')
 
@@ -177,7 +216,7 @@ class JSONLLogger:
         purchase_data: Dict[str, Any] = None,
         crafting_data: Dict[str, Any] = None,
         # New ML training fields (dataset guidelines compliance)
-        character_data: Dict[str, Any] = None,
+        # character_data removed - redundant with character_state events (saves ~7,200 tokens/session)
         environment: str = None,
         stakes: str = None,
         goal: str = None,
@@ -272,8 +311,7 @@ class JSONLLogger:
         }
 
         # Add ML training fields if provided (dataset guidelines compliance)
-        if character_data:
-            event["character_data"] = character_data
+        # character_data removed - redundant with character_state events
 
         if environment:
             event["environment"] = environment

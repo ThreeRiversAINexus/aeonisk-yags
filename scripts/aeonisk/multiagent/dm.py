@@ -62,8 +62,6 @@ class AIDMAgent(Agent):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
         self.current_scenario: Optional[Scenario] = None
-        self.human_controlled = False
-        self.human_input_queue = asyncio.Queue()
         self.voice_profile = voice_profile
         self.shared_state = shared_state
         self._prompt_enricher = prompt_enricher
@@ -121,9 +119,6 @@ class AIDMAgent(Agent):
         self.message_handlers[MessageType.AGENT_REGISTER] = self._handle_agent_register
         self.message_handlers[MessageType.DM_NARRATION] = self._handle_dm_narration
 
-        # Human override handlers
-        self.message_handlers[MessageType.PING] = self._handle_human_override_request
-        
     async def on_start(self):
         """Initialize DM agent."""
         logger.debug(f"AI DM {self.agent_id} started")
@@ -134,10 +129,8 @@ class AIDMAgent(Agent):
             None,  # broadcast
             {'agent_type': 'dm', 'capabilities': ['scenario_generation', 'npc_control', 'narrative']}
         )
-        
-        if not self.human_controlled:
-            print(f"\n[DM {self.agent_id}] AI Dungeon Master ready")
-            print("Type 'take_control' to switch to human control")
+
+        print(f"\n[DM {self.agent_id}] AI Dungeon Master ready")
         
     async def on_shutdown(self):
         """Cleanup on shutdown."""
@@ -198,10 +191,7 @@ class AIDMAgent(Agent):
         config = message.payload.get('config', {})
         self.config = config  # Store for later use
 
-        if self.human_controlled:
-            await self._request_human_scenario(config)
-        else:
-            await self._generate_ai_scenario(config)
+        await self._generate_ai_scenario(config)
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI with lore grounding."""
@@ -645,20 +635,100 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             if mechanics and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_scenario(scenario_data)
 
+        # Process initial_enemies from config (if specified)
+        initial_enemies_config = config.get('initial_enemies', [])
+        initial_npcs_config = config.get('initial_npcs', [])
+
+        scenario_setup_dict = None
+        if initial_enemies_config or initial_npcs_config:
+            from .schemas.story_events import EnemySpawn, NPCSpawn
+            from .schemas.shared_types import Position
+
+            # Convert initial_enemies config dicts to EnemySpawn objects
+            enemy_spawns = []
+            for enemy_config in initial_enemies_config:
+                template_raw = enemy_config.get('template', 'grunt').lower()
+                template_map = {
+                    'grunt': 'Grunt',
+                    'elite': 'Elite',
+                    'boss': 'Boss'
+                }
+                template = template_map.get(template_raw, 'Grunt')
+
+                position_str = enemy_config.get('position', 'Far-Enemy')
+                position_map = {
+                    'Engaged': Position.ENGAGED,
+                    'Near-PC': Position.NEAR_PC,
+                    'Near-Enemy': Position.NEAR_ENEMY,
+                    'Far-PC': Position.FAR_PC,
+                    'Far-Enemy': Position.FAR_ENEMY,
+                    'Extreme-PC': Position.EXTREME_PC,
+                    'Extreme-Enemy': Position.EXTREME_ENEMY
+                }
+                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
+
+                enemy_spawn = EnemySpawn(
+                    template=template,
+                    faction=enemy_config.get('faction', 'Hostile'),
+                    archetype=enemy_config.get('archetype', enemy_config.get('name', 'Unknown Enemy')),
+                    count=enemy_config.get('count', 1),
+                    spawn_reason=enemy_config.get('spawn_reason', f"{enemy_config.get('name', 'Enemy')} present at scenario start"),
+                    initial_position=initial_position,
+                    custom_traits=enemy_config.get('tactics')
+                )
+                enemy_spawns.append(enemy_spawn)
+
+            # Convert initial_npcs config dicts to NPCSpawn objects
+            npc_spawns = []
+            for npc_config in initial_npcs_config:
+                npc_spawn = NPCSpawn(
+                    name=npc_config.get('name', 'Unknown NPC'),
+                    faction=npc_config.get('faction', 'Unknown'),
+                    entity_type=npc_config.get('entity_type', 'neutral'),
+                    threat_level=npc_config.get('threat_level', 'non_combatant'),
+                    disposition=npc_config.get('disposition', 'neutral'),
+                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
+                    health=npc_config.get('health', 20),
+                    soak=npc_config.get('soak', 0),
+                    skills=npc_config.get('skills', {})
+                )
+                npc_spawns.append(npc_spawn)
+
+            # Serialize to dicts for JSON
+            scenario_setup_dict = {
+                'initial_enemies': [spawn.model_dump() for spawn in enemy_spawns],
+                'npc_spawns': [spawn.model_dump() for spawn in npc_spawns]
+            }
+
+            if enemy_spawns:
+                logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
+            if npc_spawns:
+                logger.info(f"Config specifies {len(npc_spawns)} initial NPC spawn(s)")
+
+        # Build payload
+        payload = {
+            'scenario': scenario_data,
+            'opening_narration': self._generate_opening_narration(scenario, faction_conflicts),
+            'faction_conflicts': faction_conflicts  # Warn players of potential issues
+        }
+        if scenario_setup_dict:
+            payload['scenario_setup'] = scenario_setup_dict
+
         # Broadcast scenario setup
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
-            {
-                'scenario': scenario_data,
-                'opening_narration': self._generate_opening_narration(scenario, faction_conflicts),
-                'faction_conflicts': faction_conflicts  # Warn players of potential issues
-            }
+            payload
         )
 
         print(f"\n[DM {self.agent_id}] Generated scenario: {scenario.theme}")
         print(f"Location: {scenario.location}")
         print(f"Situation: {scenario.situation}")
+        if initial_enemies_config:
+            total_enemies = sum(e.get('count', 1) for e in initial_enemies_config)
+            print(f"Will spawn {total_enemies} initial enemies from config")
+        if initial_npcs_config:
+            print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
 
         # Track scenario for variety in future sessions
         if self.shared_state:
@@ -678,7 +748,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=0,
-            active_vendor=None
+            active_vendors=[]
         )
         self.current_scenario = scenario
 
@@ -731,7 +801,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=void_level,
-            active_vendor=None
+            active_vendors=[]
         )
         self.current_scenario = scenario
 
@@ -876,60 +946,6 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             print(f"Will spawn {total_enemies} initial enemies from config")
         if initial_npcs_config:
             print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
-
-    async def _request_human_scenario(self, config: Dict[str, Any]):
-        """Request scenario from human DM."""
-        print(f"\n[HUMAN DM {self.agent_id}] Please describe the opening scenario:")
-        print("Theme: ", end='')
-        theme = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
-        
-        print("Location: ", end='')
-        location = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
-        
-        print("Situation: ", end='')
-        situation = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
-        
-        try:
-            void_input = await asyncio.get_event_loop().run_in_executor(
-                None, input, "Void influence level (0-10): "
-            )
-            void_level = int(void_input.strip() or "3")
-        except ValueError:
-            void_level = 3
-            print("Invalid input, using default void level 3")
-        
-        scenario = Scenario(
-            theme=theme,
-            location=location,
-            situation=situation,
-            active_npcs=[],
-            environmental_factors=[],
-            void_level=void_level
-        )
-
-        self.current_scenario = scenario
-
-        # Log scenario to JSONL
-        scenario_data = {
-            'theme': theme,
-            'location': location,
-            'situation': situation,
-            'void_level': void_level
-        }
-        if self.shared_state:
-            mechanics = self.shared_state.get_mechanics_engine()
-            if mechanics and mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_scenario(scenario_data)
-
-        # Broadcast scenario
-        self.send_message_sync(
-            MessageType.SCENARIO_SETUP,
-            None,
-            {
-                'scenario': scenario_data,
-                'opening_narration': input("Opening narration: ").strip()
-            }
-        )
 
     async def _generate_scenario_structured(
         self,
@@ -1596,10 +1612,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         elif phase == 'resolution':
             # Old resolution phase (kept for compatibility)
             action = payload.get('action', payload)
-            if self.human_controlled:
-                await self._handle_human_dm_response(player_id, action)
-            else:
-                await self._handle_ai_dm_response(player_id, action)
+            await self._handle_ai_dm_response(player_id, action)
             return
 
         else:
@@ -1658,97 +1671,16 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             payload_data
         )
 
-    def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Extract complete character sheet data for ML training logging.
-
-        Matches dataset guidelines format:
-        - attributes (all 9 attributes as dict)
-        - skills (all non-zero skills as dict)
-        - void (current corruption level)
-        - wounds (list of wound descriptions)
-        - status_effects (list of active conditions)
-        - soulcredit (current balance)
-
-        Returns None if character not found.
-        """
-        if not self.shared_state or not hasattr(self.shared_state, 'player_agents'):
-            return None
-
-        # Find the player agent
-        player_agent = None
-        for agent in self.shared_state.player_agents:
-            if hasattr(agent, 'agent_id') and agent.agent_id == player_id:
-                player_agent = agent
-                break
-
-        if not player_agent or not hasattr(player_agent, 'character_state'):
-            return None
-
-        char = player_agent.character_state
-
-        # Extract attributes (handle both object and dict formats, and both casings)
-        attributes = {}
-        if hasattr(char, 'attributes'):
-            if isinstance(char.attributes, dict):
-                # attributes is already a dict - try both lowercase and Title case
-                attrs_dict = char.attributes
-                attributes = {
-                    'strength': attrs_dict.get('strength') or attrs_dict.get('Strength', 0),
-                    'agility': attrs_dict.get('agility') or attrs_dict.get('Agility', 0),
-                    'endurance': attrs_dict.get('endurance') or attrs_dict.get('Endurance', 0),
-                    'perception': attrs_dict.get('perception') or attrs_dict.get('Perception', 0),
-                    'intelligence': attrs_dict.get('intelligence') or attrs_dict.get('Intelligence', 0),
-                    'empathy': attrs_dict.get('empathy') or attrs_dict.get('Empathy', 0),
-                    'willpower': attrs_dict.get('willpower') or attrs_dict.get('Willpower', 0),
-                    'charisma': attrs_dict.get('charisma') or attrs_dict.get('Charisma', 0),
-                    'size': attrs_dict.get('size') or attrs_dict.get('Size', 10)  # YAGS default size is 10
-                }
-            else:
-                # attributes is an object
-                attributes = {
-                    'strength': getattr(char.attributes, 'strength', getattr(char.attributes, 'Strength', 0)),
-                    'agility': getattr(char.attributes, 'agility', getattr(char.attributes, 'Agility', 0)),
-                    'endurance': getattr(char.attributes, 'endurance', getattr(char.attributes, 'Endurance', 0)),
-                    'perception': getattr(char.attributes, 'perception', getattr(char.attributes, 'Perception', 0)),
-                    'intelligence': getattr(char.attributes, 'intelligence', getattr(char.attributes, 'Intelligence', 0)),
-                    'empathy': getattr(char.attributes, 'empathy', getattr(char.attributes, 'Empathy', 0)),
-                    'willpower': getattr(char.attributes, 'willpower', getattr(char.attributes, 'Willpower', 0)),
-                    'charisma': getattr(char.attributes, 'charisma', getattr(char.attributes, 'Charisma', 0)),
-                    'size': getattr(char.attributes, 'size', getattr(char.attributes, 'Size', 10))
-                }
-
-        # Extract skills (only non-zero)
-        skills = {}
-        if hasattr(char, 'skills'):
-            for skill_name, skill_value in char.skills.items():
-                if skill_value > 0:
-                    # Convert to lowercase with underscores for dataset format
-                    skill_key = skill_name.lower().replace(' ', '_')
-                    skills[skill_key] = skill_value
-
-        # Extract void, wounds, status effects
-        void_score = char.void if hasattr(char, 'void') else 0
-        wounds = []
-        if hasattr(char, 'wounds'):
-            for wound in char.wounds:
-                wounds.append(f"{wound.description} (-{wound.penalty})" if hasattr(wound, 'penalty') else wound.description)
-
-        status_effects = []
-        if hasattr(char, 'status_effects'):
-            status_effects = list(char.status_effects)
-
-        soulcredit = char.soulcredit if hasattr(char, 'soulcredit') else 0
-
-        return {
-            'name': char.name if hasattr(char, 'name') else 'Unknown',
-            'attributes': attributes,
-            'skills': skills,
-            'void': void_score,
-            'wounds': wounds,
-            'status_effects': status_effects,
-            'soulcredit': soulcredit
-        }
+    # REMOVED: _extract_character_data() - no longer used
+    # Character data now reconstructed from character_state events in ML pipeline
+    # Saves ~7,200 tokens/session by avoiding duplication in action_resolution events
+    #
+    # def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
+    #     """
+    #     Extract complete character sheet data for ML training logging.
+    #     ...
+    #     """
+    #     pass
 
     def _generate_environment_description(self, player_id: str) -> str:
         """
@@ -2016,7 +1948,10 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         "initiative": initiative,
                         "clock_deltas": clock_deltas,  # Include clock before/after/reason
                         "clock_sources": clock_sources,  # Include source for each clock change
-                        "target": action.get('target')  # Target ID for combat/social actions
+                        "target": action.get('target'),  # Target ID for combat/social actions
+                        # FIX: Add damage_effects from state_changes (for JSONL logging)
+                        # NOTE: void changes already tracked via economy.void_delta + void_triggers
+                        "damage_effects": state_changes.get('damage_effects', [])
                     }
 
                     # Add ritual context if this was a ritual
@@ -2036,8 +1971,9 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                         context['prompt_metadata'] = self._last_prompt_metadata.to_dict()
 
-                    # Extract character data for ML training (dataset guidelines)
-                    character_data = self._extract_character_data(player_id)
+                    # REMOVED: character_data extraction (redundant with character_state events)
+                    # Saves ~7,200 tokens/session by avoiding duplication
+                    # ML pipeline can reconstruct from character_state snapshots instead
 
                     # Extract goal from action intent/description
                     goal = action.get('intent') or action.get('description', 'Unknown goal')
@@ -2088,7 +2024,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         purchase_data=purchase_data,  # Pass purchase transaction data
                         crafting_data=crafting_data,  # Pass crafting attempt data
                         # ML training fields (dataset guidelines compliance)
-                        character_data=character_data,
+                        # character_data removed - redundant with character_state events
                         environment=environment,
                         stakes=stakes,
                         goal=goal,
@@ -3027,8 +2963,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
             consumed_item = None
             inventory_changes = []
 
+            # Get character name for logging
+            character_name = action.get('character_name', action.get('character', player_id))
+
             if action.get('has_offering', False) and is_ritual_action:
-                character_state = self.shared_state.get_agent_state(player_id)
+                character_state = self.shared_state.get_agent_by_id(player_id)
                 if character_state:
                     offering_type = action.get('offering_type')  # Optional specific item
                     consumed_item = mechanics.consume_offering(character_state, offering_type)
@@ -3892,40 +3831,6 @@ The following actions ALREADY resolved (faster initiative):
             }
         }
 
-    async def _handle_human_dm_response(self, player_id: str, action: Dict[str, Any]):
-        """Handle action with human DM input."""
-        print(f"\n[HUMAN DM] {player_id} declared action:")
-        print(f"Action: {action.get('action_type', 'unknown')}")
-        print(f"Description: {action.get('description', 'No description')}")
-        
-        print("\nYour response as DM:")
-        dm_response = input().strip()
-        
-        # Ask for mechanical resolution if needed
-        needs_roll = input("Does this require a dice roll? (y/n): ").lower().startswith('y')
-        
-        outcome = {
-            'dm_response': dm_response,
-            'success': True,  # Human determines
-            'consequences': []
-        }
-        
-        if needs_roll:
-            print("Enter roll requirements (attribute+skill, difficulty):")
-            roll_req = input().strip()
-            outcome['roll_required'] = roll_req
-
-        self.send_message_sync(
-            MessageType.ACTION_RESOLVED,
-            None,  # Broadcast so all players see each other's results
-            {
-                'agent_id': player_id,  # Include player_id so session knows who completed
-                'original_action': action,
-                'outcome': outcome,
-                'narration': dm_response
-            }
-        )
-        
     async def _handle_ai_dm_response(self, player_id: str, action: Dict[str, Any]):
         """Handle action with AI DM logic using mechanical resolution."""
         action_type = action.get('action_type', 'unknown')
@@ -3960,8 +3865,11 @@ The following actions ALREADY resolved (faster initiative):
             consumed_item = None
             inventory_changes = []
 
+            # Get character name for logging
+            character_name = action.get('character_name', action.get('character', player_id))
+
             if action.get('has_offering', False) and is_ritual_action:
-                character_state = self.shared_state.get_agent_state(action.get('agent_id'))
+                character_state = self.shared_state.get_agent_by_id(action.get('agent_id'))
                 if character_state:
                     offering_type = action.get('offering_type')  # Optional specific item
                     consumed_item = mechanics.consume_offering(character_state, offering_type)
@@ -4383,8 +4291,9 @@ The following actions ALREADY resolved (faster initiative):
                 if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                     log_context["prompt_metadata"] = self._last_prompt_metadata.to_dict()
 
-                # Extract character data for ML training (dataset guidelines)
-                character_data = self._extract_character_data(player_id)
+                # REMOVED: character_data extraction (redundant with character_state events)
+                # Saves ~7,200 tokens/session by avoiding duplication
+                # ML pipeline can reconstruct from character_state snapshots instead
 
                 # Extract goal from action intent/description
                 goal = action.get('intent') or action.get('description', 'Unknown goal')
@@ -4435,7 +4344,7 @@ The following actions ALREADY resolved (faster initiative):
                     purchase_data=purchase_data,  # Pass purchase transaction data
                     crafting_data=crafting_data,  # Pass crafting attempt data
                     # ML training fields (dataset guidelines compliance)
-                    character_data=character_data,
+                    # character_data removed - redundant with character_state events
                     environment=environment,
                     stakes=stakes,
                     goal=goal,
@@ -4489,27 +4398,8 @@ The following actions ALREADY resolved (faster initiative):
         
     async def _handle_turn_request(self, message: Message):
         """Handle request for DM turn (narrative, NPC actions, etc.)."""
-        if self.human_controlled:
-            await self._human_dm_turn()
-        else:
-            await self._ai_dm_turn()
-            
-    async def _human_dm_turn(self):
-        """Handle human DM turn."""
-        print(f"\n[HUMAN DM {self.agent_id}] Your turn - describe what happens next:")
-        narration = input().strip()
-        
-        if narration:
-            self.send_message_sync(
-                MessageType.DM_NARRATION,
-                None,  # broadcast
-                {
-                    'narration': narration,
-                    'environmental_changes': [],
-                    'npc_actions': []
-                }
-            )
-        
+        await self._ai_dm_turn()
+
     async def _ai_dm_turn(self):
         """Handle AI DM turn - provide synthesis of the round."""
         # For now, just provide status
@@ -4547,22 +4437,6 @@ The following actions ALREADY resolved (faster initiative):
         else:
             # Skip DM turn if no mechanics
             return
-        
-    async def _handle_human_override_request(self, message: Message):
-        """Handle requests to switch between AI/human control."""
-        if message.payload.get('command') == 'take_control' and message.sender == 'human':
-            self.human_controlled = True
-            print(f"[HUMAN DM {self.agent_id}] You now control the DM")
-            
-        elif message.payload.get('command') == 'release_control' and message.sender == 'human':
-            self.human_controlled = False
-            print(f"[DM {self.agent_id}] Switched back to AI control")
-            
-    def toggle_human_control(self):
-        """Toggle between human and AI control."""
-        self.human_controlled = not self.human_controlled
-        status = "HUMAN" if self.human_controlled else "AI"
-        print(f"[{status} DM {self.agent_id}] Control switched to {status} mode")
 
     async def _handle_agent_register(self, message: Message):
         """Handle agent registration messages (no-op for DM)."""

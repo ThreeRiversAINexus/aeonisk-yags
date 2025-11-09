@@ -5,7 +5,48 @@
 Implemented comprehensive combat and character state logging for ML training and gameplay balance analysis. This adds structured logging for combat actions, enemy lifecycle, and character state tracking.
 
 **Implementation Date:** 2025-10-23
-**Status:** Phases 1-4 Complete ✅ (Player & Enemy Combat, Balance Metrics, Round Summaries)
+**Latest Update:** 2025-11-09 (Schema v1.2.0 - Event Causal Chains)
+**Status:** Phases 1-5 Complete ✅ (Combat, Balance, Standardization)
+
+---
+
+## Event Types Catalog (19 Total)
+
+All events include `event_id`, `parent_event_id`, `correlation_id` (schema v1.2.0+)
+
+### Core Events
+1. **session_start** - Session initialization with config and random seed
+2. **action_declaration** - Player/NPC declares intent before resolution
+3. **action_resolution** - DM adjudicates action with roll, outcome, effects
+4. **round_synthesis** - DM summary of round's narrative events
+5. **round_summary** - Aggregate statistics for balance analysis
+6. **character_state** - Character snapshot (HP, void, wounds, status)
+
+### Combat Events
+7. **combat_action** - Detailed combat action (attack roll, damage, defender state)
+8. **enemy_spawn** - Enemy creation with full stats
+9. **enemy_defeat** - Enemy removal (killed, defeated, escaped)
+
+### Story Events
+10. **scenario** - Initial scenario setup (theme, location, stakes)
+11. **mission_debrief** - Character reflections after mission
+12. **story_advancement** - DM narrative progression markers
+13. **npc_spawn** - Non-combat NPC creation
+14. **deescalation** - Enemy → NPC conversion (surrender, capture)
+15. **escalation** - NPC → Enemy conversion (betrayal, attacked)
+
+### Meta Events
+16. **round_start** - Round boundary marker
+17. **llm_call** - LLM API call logging (prompts, responses, tokens)
+18. **marker_retry_attempt** - Invalid marker format requiring retry
+19. **marker_retry_result** - Retry outcome (success/failure)
+
+**Quick Reference:**
+- Combat analysis → `combat_action`, `enemy_spawn`, `enemy_defeat`, `character_state`
+- Narrative reconstruction → `scenario`, `action_resolution`, `round_synthesis`, `mission_debrief`
+- Balance metrics → `round_summary`, `action_resolution`, `combat_action`
+- ML training → `action_resolution`, `llm_call`, `story_advancement`
+- Causal chains → All events have `event_id`, `parent_event_id`, `correlation_id`
 
 ---
 
@@ -453,10 +494,67 @@ for difficulty, successes in by_difficulty.items():
 - Analyze success rate trends
 - Balance encounters based on damage ratios
 
-### Phase 5: Schema Standardization
-- [ ] Standardize field names across events
-- [ ] Add `event_id` UUID to all events
-- [ ] Add `parent_event_id` for causality chains
+### Phase 5: Schema Standardization ✅ **COMPLETE**
+- [x] Standardize field names across events
+- [x] Add `event_id` UUID to all events
+- [x] Add `parent_event_id` for causality chains
+- [x] Add `correlation_id` for grouping related events (e.g., rounds)
+- [x] Remove redundant `character_data` field from action_resolution
+
+**Implementation Date:** 2025-11-09
+**Schema Version:** 1.2.0 (breaking change)
+
+**What Changed:**
+1. **Event Causal Chains** - Every event now has:
+   - `event_id`: Unique UUID for this event
+   - `parent_event_id`: Reference to previous event (causal parent)
+   - `correlation_id`: Groups related events (e.g., `round_1_a3f8b2c4`)
+
+2. **Character Data Removed** - Eliminated 7,200 tokens/session redundancy:
+   - Removed `character_data` field from `action_resolution` events
+   - Character state data already captured in `character_state` events
+   - ML pipeline reconstructs from snapshots instead
+
+**Files Modified:**
+- `mechanics.py:9,70-72,78-91,111-143` - Event tracking infrastructure
+- `session.py:520-522` - Round correlation tracking
+- `schemas/action_resolution.py:282-287` - Removed character_data
+- `dm.py:1674-1683,2055-2057,2107-2108,4375-4377,4427-4428` - Cleanup
+
+**Migration Guide:**
+- Old logs (v1.1.0): Still valid, but lack causal chain fields
+- New logs (v1.2.0): All events have event_id, parent_event_id, correlation_id
+- To reconstruct character state: Use `character_state` events instead of `action_resolution.character_data`
+
+**Example Event Chain:**
+```json
+{
+  "event_type": "session_start",
+  "event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "parent_event_id": null,
+  "correlation_id": null,
+  "ts": "2025-11-09T15:25:14.124814",
+  "session": "abc-123",
+  "version": "1.2.0"
+}
+
+{
+  "event_type": "action_resolution",
+  "event_id": "b2c3d4e5-f6g7-8901-bcde-fg2345678901",
+  "parent_event_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "correlation_id": "round_1_a3f8b2c4",
+  "round": 1,
+  "agent": "Ash Vex",
+  "action": "Ritual cleansing",
+  ...
+}
+```
+
+**Use Cases:**
+- **Causal Analysis:** Trace event → outcome → consequence chains
+- **Round Grouping:** Query all events in a specific round via correlation_id
+- **Replay:** Reconstruct exact event sequence via event_id/parent_event_id
+- **ML Training:** Learn temporal dependencies between events
 
 ---
 
@@ -485,7 +583,21 @@ To test the new logging:
 
 ## Breaking Changes
 
-None! All new events are additive. Old log files remain valid.
+### Version 1.2.0 (2025-11-09)
+**Breaking:** All events now require `event_id`, `parent_event_id`, `correlation_id` fields.
+
+- Old logs (v1.0.0, v1.1.0) lack these fields
+- New analysis tools expect causal chain fields
+- Migration: Use `validate_logging.py` to check schema version
+
+### Version 1.1.0 (2025-10-23)
+**Breaking:** Added `damage_effects` to action_resolution context.
+
+- Old logs lack combat damage tracking
+- Combat balance analysis requires v1.1.0+
+
+### Version 1.0.0 (Initial)
+- Baseline schema with 10 event types
 
 ---
 

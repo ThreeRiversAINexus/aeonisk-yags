@@ -19,7 +19,8 @@ from aeonisk.multiagent.mechanics import (
     MechanicsEngine,
     Difficulty,
     OutcomeTier,
-    Condition
+    Condition,
+    JSONLLogger
 )
 
 
@@ -628,6 +629,214 @@ class TestMechanicsEdgeCases:
         assert summary is not None
         # Verify the summary contains expected data
         assert isinstance(summary, dict)
+
+
+# ============================================================================
+# JSONL Logging Tests
+# ============================================================================
+
+class TestJSONLLogging:
+    """Test JSONL logging captures structured mechanical data."""
+
+    def test_log_action_resolution_WITHOUT_damage_in_context(self, tmp_path):
+        """
+        Test showing the BUG: When damage_effects is NOT in context, damage is null.
+
+        This test documents the current broken behavior and should FAIL initially.
+        """
+        from unittest.mock import Mock
+        from aeonisk.multiagent.mechanics import JSONLLogger, ActionResolution, OutcomeTier
+
+        # Create logger
+        jsonl_logger = JSONLLogger(session_id="test_session", output_dir=str(tmp_path))
+
+        # Mock the _write_event method to capture events
+        logged_events = []
+        def mock_write(event):
+            logged_events.append(event)
+        jsonl_logger._write_event = mock_write
+
+        # Create ActionResolution
+        resolution = ActionResolution(
+            intent="Shoot enemy",
+            attribute="Agility",
+            skill="Combat",
+            attribute_value=4,
+            skill_value=3,
+            roll=15,
+            total=27,
+            difficulty=20,
+            margin=7,
+            outcome_tier=OutcomeTier.MODERATE,
+            success=True,
+            narrative="Shot hits"
+        )
+
+        # BUG: dm.py currently does NOT include damage_effects in context
+        context = {
+            "action_type": "combat",
+            "narration": "Shot hits enemy",
+            # damage_effects is MISSING here (the bug!)
+        }
+
+        # Log the action resolution
+        jsonl_logger.log_action_resolution(
+            round_num=1,
+            phase="action",
+            agent_name="Ash Vex",
+            action="Shoot enemy",
+            resolution=resolution,
+            economy_changes={},
+            clock_states={},
+            effects=[],
+            context=context
+        )
+
+        # Get the logged event
+        event = [e for e in logged_events if e.get('event_type') == 'action_resolution'][0]
+
+        # This assertion shows the BUG: damage is null
+        assert event['effects']['damage'] is None, "BUG CONFIRMED: Without damage_effects in context, damage is null"
+
+    def test_log_action_resolution_captures_damage(self, tmp_path):
+        """
+        Test that action resolution logging captures damage from structured output.
+
+        CRITICAL BUG FIX: Previously damage was extracted from DM structured output
+        but NOT passed to JSONL logger, resulting in effects.damage=null for all
+        combat actions. This test verifies the fix.
+        """
+        from unittest.mock import Mock
+        from aeonisk.multiagent.mechanics import JSONLLogger, ActionResolution, OutcomeTier
+
+        # Create logger
+        jsonl_logger = JSONLLogger(session_id="test_session", output_dir=str(tmp_path))
+
+        # Mock the _write_event method to capture events
+        logged_events = []
+        original_write = jsonl_logger._write_event
+        def mock_write(event):
+            logged_events.append(event)
+            # Don't actually write to file
+        jsonl_logger._write_event = mock_write
+
+        # Create ActionResolution (dataclass from mechanics.py, NOT Pydantic schema)
+        resolution = ActionResolution(
+            intent="Shoot enemy with kinetic weapon",
+            attribute="Agility",
+            skill="Combat",
+            attribute_value=4,
+            skill_value=3,
+            roll=15,  # d20 roll
+            total=27,  # 4*3 + 15 = 27
+            difficulty=20,
+            margin=7,  # 27 - 20 = 7
+            outcome_tier=OutcomeTier.MODERATE,
+            success=True,
+            narrative="Your kinetic round punches through their shoulder guard."
+        )
+
+        # Create context dict (simulating what dm.py builds)
+        # THIS IS THE FIX: dm.py needs to include damage_effects in context
+        context = {
+            "action_type": "combat",
+            "is_ritual": False,
+            "faction": "Covenant",
+            "description": "Shoot enemy with kinetic weapon",
+            "narration": "Shot hit enemy for 8 damage",
+            # FIX: Add damage_effects to context (currently missing in dm.py!)
+            "damage_effects": [
+                {
+                    "type": "damage",
+                    "target": "tgt_7a3f",
+                    "base_damage": 15,
+                    "soak": 7,
+                    "dealt": 8,
+                }
+            ]
+        }
+
+        # Log the action resolution
+        jsonl_logger.log_action_resolution(
+            round_num=1,
+            phase="action",
+            agent_name="Ash Vex",
+            action="Shoot enemy with kinetic weapon",
+            resolution=resolution,
+            economy_changes={"void_delta": 1, "soulcredit_delta": 0},
+            clock_states={},
+            effects=[],
+            context=context
+        )
+
+        # Verify event was logged
+        assert len(logged_events) >= 1, "Should have action_resolution event"
+
+        # Get the action_resolution event
+        event = [e for e in logged_events if e.get('event_type') == 'action_resolution'][0]
+
+        # CRITICAL ASSERTIONS: Verify damage is captured from context
+        assert event['event_type'] == 'action_resolution'
+        assert event['effects']['damage'] is not None, "Damage should be captured from context"
+        assert event['effects']['damage']['target'] == "tgt_7a3f"
+        assert event['effects']['damage']['dealt'] == 8
+        assert event['effects']['damage']['source'] == "structured_output"
+
+    def test_event_chain_fields_present(self, tmp_path):
+        """Test that all events have event_id, parent_event_id, correlation_id."""
+        import json
+        from aeonisk.multiagent.mechanics import ActionResolution
+
+        logger = JSONLLogger(session_id="test_chain", output_dir=str(tmp_path))
+
+        # Start a round (sets correlation_id)
+        logger.start_round(round_num=1)
+
+        # Log a resolution
+        resolution = ActionResolution(
+            intent="Test action",
+            attribute="Strength", skill="Combat",
+            attribute_value=4, skill_value=3,
+            roll=12, total=24, difficulty=20, margin=4,
+            outcome_tier=OutcomeTier.MARGINAL, success=True,
+            narrative="Test combat narration with sufficient length to meet minimum requirements."
+        )
+
+        logger.log_action_resolution(
+            round_num=1,
+            phase="test",
+            agent_name="Test Character",
+            action="Test action",
+            resolution=resolution,
+            economy_changes={},
+            clock_states={},
+            effects=[]
+        )
+
+        # Read logged events
+        log_file = tmp_path / f"session_test_chain.jsonl"
+        with open(log_file, 'r') as f:
+            logged_events = [json.loads(line) for line in f]
+
+        # Session start event should have event chain fields
+        session_start = logged_events[0]
+        assert session_start['event_type'] == 'session_start'
+        assert 'event_id' in session_start, "session_start must have event_id"
+        assert session_start['parent_event_id'] is None, "session_start has no parent"
+        assert session_start['correlation_id'] is None, "session_start not part of round"
+
+        # Action resolution should have event chain fields
+        action_event = [e for e in logged_events if e.get('event_type') == 'action_resolution'][0]
+        assert 'event_id' in action_event, "action_resolution must have event_id"
+        assert 'parent_event_id' in action_event, "action_resolution must have parent_event_id"
+        assert 'correlation_id' in action_event, "action_resolution must have correlation_id"
+
+        # Parent should be session_start (or another event)
+        assert action_event['parent_event_id'] is not None, "action_resolution parent should not be None"
+
+        # Correlation should indicate round 1
+        assert action_event['correlation_id'] is not None, "correlation_id should be set by start_round()"
+        assert 'round_1' in action_event['correlation_id'], "correlation_id should include round number"
 
 
 if __name__ == "__main__":

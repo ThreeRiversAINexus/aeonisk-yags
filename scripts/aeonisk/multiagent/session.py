@@ -517,6 +517,10 @@ class SelfPlayingSession:
                 mechanics = self.shared_state.mechanics_engine
                 mechanics.current_round = round_count  # Update round counter for logging
 
+                # Start new correlation_id for this round's events
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.start_round(round_count)
+
                 # Update hybrid clients with new round (for continue-from-round mode)
                 if self.hybrid_clients:
                     for client in self.hybrid_clients:
@@ -2410,12 +2414,6 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         'consequence': clock.filled_consequence
                     })
 
-        # Process enemy spawn markers from opening narration
-        if opening_narration and self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.process_dm_narration(opening_narration)
-            for notification in spawn_notifications:
-                print(f"\n{notification}")
-
         # Process initial_enemies from ScenarioSetup structured output
         # Handle both SimpleNamespace (object) and dict (after serialization)
         scenario_setup = message.payload.get('scenario_setup', None)
@@ -2869,10 +2867,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             logger.info(f"DM declared session end: {end_result['status']}" +
                        (f" - {end_result['reason']}" if end_result['reason'] else ""))
 
-        # Still handle auto-despawn for defeated enemies (not marker-based)
+        # Auto-despawn defeated enemies (legacy method still used for auto-despawn only)
         if self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.process_dm_narration(narration)
-            for notification in spawn_notifications:
+            auto_despawn_notifications = self.enemy_combat.process_dm_narration(narration)
+            for notification in auto_despawn_notifications:
                 print(f"\n{notification}")
 
     def _handle_dm_narration(self, message: Message):

@@ -279,10 +279,12 @@ class ActionResolution(BaseModel):
     # ========== ML Training Fields (Dataset Guidelines Compliance) ==========
 
     # Character data (full sheet snapshot at time of action)
-    character_data: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Complete character state: attributes, skills, void, wounds, status_effects"
-    )
+    # REMOVED: Redundant with character_state events (saves ~7,200 tokens/session)
+    # Reconstruct from character_state snapshots in ML pipeline instead
+    # character_data: Optional[Dict[str, Any]] = Field(
+    #     default=None,
+    #     description="Complete character state: attributes, skills, void, wounds, status_effects"
+    # )
 
     # Contextual fields (dynamic per action)
     environment: Optional[str] = Field(

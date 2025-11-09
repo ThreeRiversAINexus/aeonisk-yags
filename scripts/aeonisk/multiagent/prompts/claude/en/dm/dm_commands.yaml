@@ -53,19 +53,19 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ \"Corporate Strike Team\", \"Void Cultist Cell\"\n\n**Enemy Conversions (unified field for removals + NPC conversions):**\n```python\nenemy_conversions=[\n\
   \    # Enemy flees (leaves scene entirely)\n    EnemyConversion(\n        enemy_id=\"\
   enemy_grunt_1\",\n        resolution=EnemyResolution.FLED,\n        reason=\"Intimidated\
-  \ by overwhelming force, fled through maintenance corridor\"\n    ),\n    # Enemy\
+  \ by overwhelming force, fled through maintenance corridor\"\n        # No NPC fields needed - enemy leaves scene\n    ),\n    # Enemy\
   \ surrenders (stays as NPC prisoner)\n    EnemyConversion(\n        enemy_id=\"\
   enemy_raider_2\",\n        resolution=EnemyResolution.CONVINCED,\n        reason=\"\
   Negotiated surrender after Wei Lin's diplomacy\",\n        resulting_entity_type=\"\
-  prisoner\",\n        resulting_disposition=\"prisoner\"\n    ),\n    # Enemy arrested\
+  prisoner\",  # ⚠️ REQUIRED when enemy stays!\n        resulting_disposition=\"prisoner\"   # ⚠️ REQUIRED when enemy stays!\n    ),\n    # Enemy arrested\
   \ (stays as NPC prisoner)\n    EnemyConversion(\n        enemy_id=\"enemy_guard_captain_3\"\
   ,\n        resolution=EnemyResolution.NEUTRALIZED,\n        reason=\"Arrested and\
   \ restrained by Pantheon Security\",\n        resulting_entity_type=\"prisoner\"\
-  ,\n        resulting_disposition=\"prisoner\"\n    )\n]\n```\n\n**Resolution types:**\n\
-  - `FLED`: Scared off, retreated, escaped (leaves scene)\n- `CONVINCED`: Talked\
-  \ down, persuaded, negotiated (stays as NPC)\n- `NEUTRALIZED`: Arrested, captured,\
-  \ restrained (stays as NPC)\n- `SUBDUED`: Knocked unconscious, incapacitated (stays\
-  \ as NPC)\n- `STORY_ADVANCED`: Scene changed, no longer present (leaves scene)\n\
+  ,  # ⚠️ REQUIRED when enemy stays!\n        resulting_disposition=\"prisoner\"   # ⚠️ REQUIRED when enemy stays!\n    )\n]\n```\n\n**Resolution types:**\n\
+  - `FLED`: Scared off, retreated, escaped (leaves scene) - NO NPC fields needed\n- `CONVINCED`: Talked\
+  \ down, persuaded, negotiated (STAYS as NPC) - ⚠️ **REQUIRES** resulting_entity_type + resulting_disposition\n- `NEUTRALIZED`: Arrested, captured,\
+  \ restrained (STAYS as NPC) - ⚠️ **REQUIRES** resulting_entity_type + resulting_disposition\n- `SUBDUED`: Knocked unconscious, incapacitated (STAYS\
+  \ as NPC) - ⚠️ **REQUIRES** resulting_entity_type + resulting_disposition\n- `STORY_ADVANCED`: Scene changed, no longer present (leaves scene) - NO NPC fields needed\n\n## ⚠️ CRITICAL: When Enemy Stays in Scene (CONVINCED/NEUTRALIZED/SUBDUED)\n\n**You MUST include BOTH fields or validation will fail:**\n\n```python\n# ❌ WRONG - Will cause validation error!\nEnemyConversion(\n    enemy_id=\"enemy_raider_2\",\n    resolution=EnemyResolution.NEUTRALIZED,\n    reason=\"Arrested\"\n    # Missing resulting_entity_type and resulting_disposition!\n)\n\n# ✅ CORRECT - Both NPC fields provided\nEnemyConversion(\n    enemy_id=\"enemy_raider_2\",\n    resolution=EnemyResolution.NEUTRALIZED,\n    reason=\"Arrested and cuffed by Pantheon enforcer\",\n    resulting_entity_type=\"prisoner\",  # ← REQUIRED\n    resulting_disposition=\"prisoner\"   # ← REQUIRED\n)\n```\n\n**Valid NPC field values:**\n- `resulting_entity_type`: \"neutral\" | \"ally\" | \"prisoner\"\n- `resulting_disposition`: \"friendly\" | \"neutral\" | \"wary\" | \"prisoner\"\n\
   \n## ⚠️ CRITICAL: SURRENDERS = enemy_conversions with CONVINCED, NOT CONDITIONS\
   \ ⚠️\n\n**When enemies surrender/are negotiated down:**\n- ✅ **CORRECT**: Use `enemy_conversions`\
   \ with `resolution=CONVINCED` + NPC fields\n- ❌ **WRONG**: Apply \"Surrendered\"\
