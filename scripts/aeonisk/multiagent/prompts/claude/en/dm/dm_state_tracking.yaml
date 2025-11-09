@@ -1,7 +1,7 @@
 version: 2.0.0
 module: dm_state_tracking
-description: Scene clocks, soulcredit, void mechanics, and rituals
-load_when: clocks_or_rituals
+description: Scene clocks, soulcredit, void mechanics, rituals, and economy
+load_when: always
 content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICIT\
   \ STATE MARKERS** - Mark state changes at the end of your narration:\n\n\U0001F4CA\
   \ [Clock Name]: +X or -X (reason) - Advance/regress a scene clock\n⚫ Void: +X (reason)\
@@ -76,4 +76,39 @@ content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICI
   \ Void automatically\n- Sanctified altar: +3 to roll\n- Failure: +1 Void to performer\n\
   \n**Void Triggers (+1 each):**\n- Direct void exposure or manipulation\n- Ritual\
   \ shortcuts (missing components)\n- Bond betrayal or deception endangering bonds\n\
-  - Use of corrupted technology\n- Entering void-tainted areas"
+  - Use of corrupted technology\n- Entering void-tainted areas\n\n# Currency & Economy\n\
+  \n**⚠️ CRITICAL - CURRENCY TERMINOLOGY:**\n\n**NEVER use \\\"credits\\\" - the in-game\
+  \ currency is Talismanic Energy:**\n- **Breath** (smallest denomination)\n- **Drip**\
+  \ (10 Breath)\n- **Grain** (10 Drip = 100 Breath)\n- **Spark** (largest common\
+  \ unit, 10 Grain = 1000 Breath)\n\n**Soulcredit ≠ Currency:**\n- **Soulcredit**\
+  \ = Spiritual reputation/morality score (0-10 scale)\n- **Talismanic currencies**\
+  \ = Physical money (Breath/Drip/Grain/Spark)\n- NEVER confuse these systems!\n\
+  \n**Purchase Resolution (via structured output):**\nWhen players attempt purchases,\
+  \ populate `effects.purchase` with:\n- `success`: Whether vendor had item & player\
+  \ had currency\n- `vendor_name`: Vendor they're buying from (e.g., \\\"S4CU Vending\
+  \ Node\\\")\n- `items_purchased`: List of items (e.g., [\\\"Incense Stick\\\", \\\
+  \"Med Kit\\\"])\n- `currency_spent`: Dict per type (e.g., {\\\"spark\\\": 2, \\\"\
+  drip\\\": 5})\n- `narrative`: DM description of transaction\n- `failure_reason`:\
+  \ Why it failed (if applicable)\n\n**CRITICAL - YOU MUST POPULATE effects.purchase\
+  \ FOR ALL PURCHASE ACTIONS:**\n\nExample - Player buys Sparksticks from SnackHub\
+  \ Express:\n```\neffects:\n  purchase:\n    success: true\n    vendor_name: \\\"\
+  SnackHub Express\\\"\n    items_purchased: [\\\"Sparksticks\\\"]\n    currency_spent:\
+  \ {\\\"drip\\\": 3}\n    narrative: \\\"The vending machine dispenses Sparksticks\
+  \ with mechanical efficiency.\\\"\n```\n\nExample - Player can't afford item:\n\
+  ```\neffects:\n  purchase:\n    success: false\n    vendor_name: \\\"Cipher\\\"\n\
+  \    items_purchased: []\n    currency_spent: {}\n    narrative: \\\"The vendor\
+  \ shakes their head - you're short 2 Drips.\\\"\n    failure_reason: \\\"Insufficient\
+  \ currency (need 5 Drip, have 3)\\\"\n```\n\n**Crafting Resolution (via structured\
+  \ output):**\nWhen players craft offerings (Attunement skill), populate `effects.crafting`\
+  \ with:\n- `offering_type`: What they're making (e.g., \\\"blood_offering\\\", \\\
+  \"incense\\\")\n- `materials_used`: What they consumed (e.g., [\\\"blood_sample\\\
+  \", \\\"herbs\\\"])\n- `success`: Willpower × Attunement vs DC 15\n- `narrative`:\
+  \ Description of crafting attempt\n\n**CRITICAL - YOU MUST POPULATE effects.crafting\
+  \ FOR ALL CRAFTING ACTIONS:**\n\nExample - Player crafts blood offering successfully:\n\
+  ```\neffects:\n  crafting:\n    offering_type: \\\"blood_offering\\\"\n    materials_used:\
+  \ [\\\"blood_sample\\\"]\n    success: true\n    roll_total: 18\n    narrative:\
+  \ \\\"Your careful attunement transforms the blood sample into a sanctified offering.\\\
+  \"\n```\n\nExample - Player fails to craft incense:\n```\neffects:\n  crafting:\n\
+  \    offering_type: \\\"incense\\\"\n    materials_used: [\\\"herbs\\\"]\n    success:\
+  \ false\n    roll_total: 12\n    narrative: \\\"The herbs smolder incorrectly -\
+  \ the attunement fails, materials wasted.\\\"\n```"

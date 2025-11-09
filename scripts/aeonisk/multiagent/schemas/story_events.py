@@ -230,6 +230,11 @@ class StoryAdvancement(BaseModel):
         description="New clocks to spawn with this story beat"
     )
 
+    vendor_departures: List[str] = Field(
+        default_factory=list,
+        description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
+    )
+
     @field_validator('location', 'situation')
     @classmethod
     def validate_advancement_fields(cls, v: Optional[str], info) -> Optional[str]:

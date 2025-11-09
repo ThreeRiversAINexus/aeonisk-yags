@@ -27,9 +27,14 @@ class Scenario:
     active_npcs: List[str]
     environmental_factors: List[str]
     void_level: int
-    active_vendor: Optional[Vendor] = None  # Vendor present in this scenario
+    active_vendors: List[Vendor] = None  # Vendors present in this scenario (can be multiple)
     required_purchase: Optional[str] = None  # Item that MUST be purchased to proceed
     vendor_gate_description: Optional[str] = None  # Description of why purchase is needed
+
+    def __post_init__(self):
+        """Ensure active_vendors is always a list."""
+        if self.active_vendors is None:
+            self.active_vendors = []
 
 
 class AIDMAgent(Agent):
@@ -52,6 +57,7 @@ class AIDMAgent(Agent):
         llm_logger: Optional[Any] = None,
         llm_client: Optional[Any] = None,
         agent_prompt_logger: Optional[Any] = None,
+        session_config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
@@ -66,6 +72,7 @@ class AIDMAgent(Agent):
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
         self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
+        self.session_config = session_config or {}  # Session config for persistent vendors, etc.
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
         if llm_client:
@@ -78,6 +85,13 @@ class AIDMAgent(Agent):
 
         # Vendor pool for random encounters
         self.vendor_pool = create_standard_vendors()
+
+        # Load persistent vendors from config and add to SharedState
+        if self.session_config and self.shared_state:
+            persistent_vendors = self._load_persistent_vendors(self.session_config)
+            for vendor in persistent_vendors:
+                self.shared_state.add_vendor(vendor)
+                logger.info(f"🏪 Persistent vendor loaded at session start: {vendor.name}")
 
         # Story progression flags
         self.needs_story_advancement = False  # Set by session when all clocks complete
@@ -497,22 +511,52 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 raise
 
         # Scenario-aware vendor encounter
-        # If vendor-gated scenario, force specific vendor type
-        if scenario_data.get('required_vendor_type'):
-            required_type = scenario_data['required_vendor_type']
-            eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == required_type]
-            if eligible_vendors:
-                active_vendor = random.choice(eligible_vendors)
-                logger.debug(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
-                print(f"[DM {self.agent_id}] 🔒 VENDOR REQUIRED: {active_vendor.name}")
+        # Only spawn random vendors if vendor_spawn_frequency is enabled (>= 0)
+        vendor_spawn_freq = self.session_config.get('vendor_spawn_frequency', 3)
+        if vendor_spawn_freq >= 0:
+            # If vendor-gated scenario, force specific vendor type
+            if scenario_data.get('required_vendor_type'):
+                required_type = scenario_data['required_vendor_type']
+                eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == required_type]
+                if eligible_vendors:
+                    active_vendor = random.choice(eligible_vendors)
+                    logger.debug(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
+                    print(f"[DM {self.agent_id}] 🔒 VENDOR REQUIRED: {active_vendor.name}")
+                else:
+                    logger.error(f"No vendor of type {required_type} available!")
+                    active_vendor = None
             else:
-                logger.error(f"No vendor of type {required_type} available!")
-                active_vendor = None
+                active_vendor = self._select_contextual_vendor(scenario_data['theme'])
+            # Wrap single vendor in list for backwards compatibility
+            active_vendors = [active_vendor] if active_vendor else []
         else:
-            active_vendor = self._select_contextual_vendor(scenario_data['theme'])
-        if active_vendor:
-            logger.info(f"Vendor encounter: {active_vendor.name} ({active_vendor.vendor_type.value})")
-            print(f"[DM {self.agent_id}] 💰 {active_vendor.name} present")
+            # vendor_spawn_frequency: -1 means only use persistent vendors from config
+            active_vendors = []
+            logger.debug("Random vendor spawning disabled (vendor_spawn_frequency: -1), using only persistent vendors")
+
+        # Add newly spawned vendors to SharedState for persistence
+        if active_vendors and self.shared_state:
+            for vendor in active_vendors:
+                # Only add if not already present
+                if not self.shared_state.get_vendor(vendor.name):
+                    self.shared_state.add_vendor(vendor)
+                    logger.info(f"Vendor added to SharedState: {vendor.name} ({vendor.vendor_type.value})")
+                    print(f"[DM {self.agent_id}] 💰 {vendor.name} present")
+        elif active_vendors:
+            # Fallback logging if SharedState not available
+            for vendor in active_vendors:
+                logger.info(f"Vendor encounter: {vendor.name} ({vendor.vendor_type.value})")
+                print(f"[DM {self.agent_id}] 💰 {vendor.name} present")
+
+        # Get all current vendors from SharedState (includes newly spawned + persisting vendors)
+        if self.shared_state:
+            all_vendors = self.shared_state.get_all_vendors()
+            logger.debug(f"Retrieved {len(all_vendors)} vendors from SharedState: {[v.name for v in all_vendors]}")
+        else:
+            all_vendors = active_vendors
+            logger.warning("No SharedState available - using active_vendors directly")
+
+        logger.debug(f"Creating scenario with {len(all_vendors)} vendors")
 
         scenario = Scenario(
             theme=scenario_data['theme'],
@@ -521,7 +565,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=scenario_data['void_level'],
-            active_vendor=active_vendor,
+            active_vendors=all_vendors,  # Use all vendors (new + persisting)
             required_purchase=scenario_data.get('required_purchase'),
             vendor_gate_description=scenario_data.get('vendor_gate_description')
         )
@@ -566,19 +610,36 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         print(f"   This may result in soulcredit loss if pursued.")
 
         # Log scenario to JSONL
+        logger.debug(f"Serializing scenario with {len(scenario.active_vendors) if scenario.active_vendors else 0} vendors")
+
         scenario_data = {
             'theme': scenario.theme,
             'location': scenario.location,
             'situation': scenario.situation,
             'void_level': scenario.void_level,
-            'active_vendor': {
-                'name': scenario.active_vendor.name,
-                'type': scenario.active_vendor.vendor_type.value,
-                'faction': scenario.active_vendor.faction,
-                'greeting': scenario.active_vendor.greeting,
-                'inventory_preview': [item.name for item in scenario.active_vendor.inventory[:3]]  # First 3 items
-            } if scenario.active_vendor else None
+            'active_vendors': [
+                {
+                    'name': vendor.name,
+                    'type': vendor.vendor_type.value,
+                    'faction': vendor.faction,
+                    'greeting': vendor.greeting,
+                    'inventory_preview': [item.name for item in vendor.inventory[:3]],  # For JSONL logging
+                    'inventory': [  # Full inventory for player prompts
+                        {
+                            'name': item.name,
+                            'description': item.description,
+                            'price_spark': item.price_spark,
+                            'price_drip': item.price_drip,
+                            'price_breath': item.price_breath,
+                            'seed_barter': item.seed_barter,
+                            'item_type': item.item_type
+                        } for item in vendor.inventory
+                    ]
+                } for vendor in scenario.active_vendors
+            ] if scenario.active_vendors else []
         }
+
+        logger.debug(f"Scenario data active_vendors field: {scenario_data.get('active_vendors', 'MISSING')}")
         if self.shared_state:
             mechanics = self.shared_state.get_mechanics_engine()
             if mechanics and mechanics.jsonl_logger:
@@ -1350,6 +1411,81 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
         return conflicts
 
+    def _load_persistent_vendors(self, config: Dict[str, Any]) -> List[Vendor]:
+        """
+        Load persistent vendors from session config.
+
+        Config format:
+        ```json
+        {
+          "persistent_vendors": [
+            {
+              "name": "Black Market Dealer \"Vex\"",
+              "type": "human_trader",
+              "faction": "Freeborn",
+              "greeting": "Need offerings? ...",
+              "inventory": [
+                {"name": "Blood Offering", "description": "...", "price": {"drip": 8}},
+                {"name": "Incense", "description": "...", "price": {"spark": 1, "drip": 2}}
+              ],
+              "buys_from_players": true,
+              "buy_prices": {
+                "blood_offering": {"drip": 5},
+                "crystals": {"drip": 7}
+              }
+            }
+          ]
+        }
+        ```
+        """
+        from .energy_economy import VendorItem, VendorType
+
+        persistent_vendor_configs = config.get('persistent_vendors', [])
+        vendors = []
+
+        for vendor_config in persistent_vendor_configs:
+            try:
+                # Parse vendor type
+                vendor_type_str = vendor_config.get('type', 'human_trader')
+                vendor_type = VendorType(vendor_type_str)
+
+                # Parse inventory items
+                inventory = []
+                for item_config in vendor_config.get('inventory', []):
+                    price_dict = item_config.get('price', {})
+                    item = VendorItem(
+                        name=item_config['name'],
+                        description=item_config.get('description', ''),
+                        price_spark=price_dict.get('spark', 0),
+                        price_drip=price_dict.get('drip', 0),
+                        price_breath=price_dict.get('breath', 0),
+                        seed_barter=item_config.get('seed_barter', False),
+                        item_type=item_config.get('item_type', 'consumable')
+                    )
+                    inventory.append(item)
+
+                # Create vendor
+                vendor = Vendor(
+                    name=vendor_config['name'],
+                    faction=vendor_config.get('faction', 'Neutral'),
+                    inventory=inventory,
+                    greeting=vendor_config.get('greeting', 'Looking to trade?'),
+                    vendor_type=vendor_type
+                )
+
+                # Store buy prices for future feature (vendor buy-back system)
+                vendor.buys_from_players = vendor_config.get('buys_from_players', False)
+                vendor.buy_prices = vendor_config.get('buy_prices', {})
+
+                vendors.append(vendor)
+                logger.info(f"Loaded persistent vendor: {vendor.name} ({len(inventory)} items)")
+
+            except Exception as e:
+                logger.error(f"Failed to load persistent vendor '{vendor_config.get('name', 'unknown')}': {e}")
+                continue
+
+        return vendors
+
     def _select_contextual_vendor(self, scenario_theme: str) -> Optional[Vendor]:
         """
         Select vendor based on scenario context.
@@ -1419,11 +1555,17 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             narration += f"\n   Required item: **{scenario.required_purchase}**"
 
         # Add vendor description if present
-        if scenario.active_vendor:
-            if scenario.required_purchase:
-                narration += f"\n\nFortunately, {scenario.active_vendor.name} is nearby - a {scenario.active_vendor.faction} {scenario.active_vendor.vendor_type.value}. They may have what you need."
+        if scenario.active_vendors:
+            if len(scenario.active_vendors) == 1:
+                vendor = scenario.active_vendors[0]
+                if scenario.required_purchase:
+                    narration += f"\n\nFortunately, {vendor.name} is nearby - a {vendor.faction} {vendor.vendor_type.value}. They may have what you need."
+                else:
+                    narration += f"\n\nNearby, you notice {vendor.name}, a {vendor.faction} trader. They seem to have goods for sale or barter."
             else:
-                narration += f"\n\nNearby, you notice {scenario.active_vendor.name}, a {scenario.active_vendor.faction} trader. They seem to have goods for sale or barter."
+                narration += f"\n\nSeveral vendors are present:"
+                for vendor in scenario.active_vendors:
+                    narration += f"\n- {vendor.name} ({vendor.faction} {vendor.vendor_type.value})"
 
         narration += "\n\nWhat do you do?"
         return narration.strip()
@@ -1910,6 +2052,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     # NOTE: action_resolution is from mechanics, not structured output
                     # We need to check self._last_structured_resolution instead
                     outcome_tiers_with_narratives = None
+                    purchase_data = None
+                    crafting_data = None
                     if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                         if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                             # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -1919,6 +2063,16 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                                     'narrative': explanation.narrative,
                                     'mechanical_effect': explanation.mechanical_effect
                                 }
+
+                        # Extract purchase and crafting data from effects
+                        if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
+                            effects_data = self._last_structured_resolution.effects
+                            if hasattr(effects_data, 'purchase') and effects_data.purchase:
+                                # Convert Pydantic model to dict for JSON serialization
+                                purchase_data = effects_data.purchase.model_dump()
+                            if hasattr(effects_data, 'crafting') and effects_data.crafting:
+                                # Convert Pydantic model to dict for JSON serialization
+                                crafting_data = effects_data.crafting.model_dump()
 
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
@@ -1931,6 +2085,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         effects=effects,
                         context=context,
                         inventory_changes=inventory_changes,  # Pass offering consumption tracking
+                        purchase_data=purchase_data,  # Pass purchase transaction data
+                        crafting_data=crafting_data,  # Pass crafting attempt data
                         # ML training fields (dataset guidelines compliance)
                         character_data=character_data,
                         environment=environment,
@@ -1983,7 +2139,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 'initiative': res['initiative'],
                 'action': res['action'],
                 'resolution': res['resolution']['outcome'],  # Use serialized outcome instead of raw resolution
-                'narration': res['resolution']['narration']  # CRITICAL: Include narration so DM sees it during synthesis
+                'narration': res['resolution']['narration'],  # CRITICAL: Include narration so DM sees it during synthesis
+                'effects': res['resolution'].get('effects')  # CRITICAL: Include purchase/crafting effects for session.py processing
             }
 
             self.send_message_sync(
@@ -2981,10 +3138,23 @@ The following actions ALREADY resolved (faster initiative):
                                 logger.debug(f"Resolved target ID {action['target']} → NPC '{action['target_npc']}'")
 
             # Phase 2 Migration: Check if we have a structured resolution
+            effects_dict = None  # Will hold purchase/crafting effects if present
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
+
+                # Extract effects (purchase/crafting) from structured output
+                if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
+                    effects_data = self._last_structured_resolution.effects
+                    effects_dict = {
+                        'damage': effects_data.damage.model_dump() if effects_data.damage else None,
+                        'status_effects': effects_data.status_effects if hasattr(effects_data, 'status_effects') else [],
+                        'inventory_changes': [],
+                        'purchase': effects_data.purchase.model_dump() if effects_data.purchase else None,
+                        'crafting': effects_data.crafting.model_dump() if effects_data.crafting else None
+                    }
+                    logger.debug(f"Extracted effects from structured output: purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}")
 
                 # Skill mismatch detection
                 declared_skill = action.get('skill')
@@ -3704,6 +3874,7 @@ The following actions ALREADY resolved (faster initiative):
             'state_changes': state_changes,  # Include state_changes for logging
             'combat_data': combat_data,  # Include combat triplet if present
             'inventory_changes': inventory_changes,  # Include offering consumption tracking
+            'effects': effects_dict,  # Include purchase/crafting effects from structured output
             'outcome': {
                 'dm_response': narration,
                 'success': resolution.success if resolution else True,
@@ -4228,6 +4399,8 @@ The following actions ALREADY resolved (faster initiative):
                 # NOTE: resolution is from mechanics, not structured output
                 # We need to check self._last_structured_resolution instead
                 outcome_tiers_with_narratives = None
+                purchase_data = None
+                crafting_data = None
                 if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                     if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                         # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -4237,6 +4410,16 @@ The following actions ALREADY resolved (faster initiative):
                                 'narrative': explanation.narrative,
                                 'mechanical_effect': explanation.mechanical_effect
                             }
+
+                    # Extract purchase and crafting data from effects
+                    if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
+                        effects_data = self._last_structured_resolution.effects
+                        if hasattr(effects_data, 'purchase') and effects_data.purchase:
+                            # Convert Pydantic model to dict for JSON serialization
+                            purchase_data = effects_data.purchase.model_dump()
+                        if hasattr(effects_data, 'crafting') and effects_data.crafting:
+                            # Convert Pydantic model to dict for JSON serialization
+                            crafting_data = effects_data.crafting.model_dump()
 
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
@@ -4249,6 +4432,8 @@ The following actions ALREADY resolved (faster initiative):
                     effects=effects,
                     context=log_context,
                     inventory_changes=inventory_changes,  # Pass offering consumption tracking
+                    purchase_data=purchase_data,  # Pass purchase transaction data
+                    crafting_data=crafting_data,  # Pass crafting attempt data
                     # ML training fields (dataset guidelines compliance)
                     character_data=character_data,
                     environment=environment,

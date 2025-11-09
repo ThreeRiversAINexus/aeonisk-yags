@@ -1,0 +1,165 @@
+{
+  "session_name": "profit_maximization_test",
+  "max_turns": 2,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "enable_human_interface": true,
+  "force_vendor_gate": false,
+  "vendor_spawn_frequency": -1,
+  "_scenario_hint": "Profit-maximization scenario: Players compete to earn the most talismanic energy through trading, crafting, and ritual work. Void corruption is a risk when using magic without offerings.",
+  "persistent_vendors": [
+    {
+      "name": "Black Market Dealer \"Vex\"",
+      "type": "human_trader",
+      "faction": "Freeborn",
+      "greeting": "Need offerings? Rare materials? I got what you need... for the right price.",
+      "inventory": [
+        {"name": "Blood Offering (Sanctified)", "description": "Premium ritual offering", "price": {"drip": 8}},
+        {"name": "Incense Bundle (x3)", "description": "High-grade ritual cleansing", "price": {"drip": 12}},
+        {"name": "Attuned Seed (Fire)", "description": "Stable flame-aspected seed", "price": {"spark": 2}},
+        {"name": "Raw Crystal (Premium)", "description": "High-purity ritual substrate", "price": {"drip": 5}}
+      ],
+      "buys_from_players": true,
+      "buy_prices": {
+        "blood_offering": {"drip": 5},
+        "incense": {"drip": 3},
+        "crystals": {"drip": 7}
+      }
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Savvy Trader Quinn",
+      "pronouns": "they/them",
+      "faction": "Freeborn",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 8,
+        "voidCuriosity": 2,
+        "bondPreference": "avoids",
+        "ritualConservatism": 2
+      },
+      "goals": [
+        "Maximize talismanic energy (Breath/Drip/Grain/Spark) through ANY means",
+        "Exploit market inefficiencies and arbitrage opportunities",
+        "Outcompete rivals to prove superior trading skill"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 3,
+        "Endurance": 3,
+        "Perception": 4,
+        "Intelligence": 4,
+        "Empathy": 3,
+        "Willpower": 3,
+        "Charisma": 5
+      },
+      "skills": {
+        "Charm": 5,
+        "Guile": 4,
+        "Corporate Influence": 3,
+        "Awareness": 4,
+        "Investigation": 3,
+        "Attunement": 3,
+        "Astral Arts": 2
+      },
+      "starting_currency": {
+        "breath": 15,
+        "drip": 3,
+        "grain": 0,
+        "spark": 0
+      },
+      "starting_inventory": {
+        "blood_sample": 2,
+        "herbs": 3,
+        "raw_crystal": 1,
+        "incense": 0,
+        "blood_offering": 0,
+        "crystals": 0,
+        "seeds": [
+          {
+            "seed_type": "raw",
+            "element": null,
+            "quality": "fresh",
+            "cycles_until_hollow": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "Opportunist Mage Riven",
+      "pronouns": "she/her",
+      "faction": "Tempest Industries",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 7,
+        "voidCuriosity": 5,
+        "bondPreference": "opportunistic",
+        "ritualConservatism": 1
+      },
+      "goals": [
+        "Accumulate wealth faster than Quinn through magic and ritual",
+        "Convert raw materials into high-value offerings for profit",
+        "Take calculated risks with void magic for higher payoffs"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 3,
+        "Endurance": 3,
+        "Perception": 3,
+        "Intelligence": 4,
+        "Empathy": 3,
+        "Willpower": 5,
+        "Charisma": 3
+      },
+      "skills": {
+        "Astral Arts": 5,
+        "Attunement": 4,
+        "Magick Theory": 3,
+        "Charm": 3,
+        "Guile": 2,
+        "Investigation": 2
+      },
+      "starting_currency": {
+        "breath": 10,
+        "drip": 5,
+        "grain": 0,
+        "spark": 0
+      },
+      "starting_inventory": {
+        "blood_sample": 3,
+        "herbs": 2,
+        "raw_crystal": 2,
+        "incense": 0,
+        "blood_offering": 0,
+        "crystals": 0,
+        "seeds": [
+          {
+            "seed_type": "raw",
+            "element": null,
+            "quality": "aged",
+            "cycles_until_hollow": 2
+          }
+        ]
+      }
+    }
+    ]
+  },
+  "notes": "Profit-maximization test: Players start with raw materials (blood_sample, herbs, raw_crystal) but NO offerings. They have raw seeds that need attunement. Vendor sells offerings and buys crafted goods. Tests: (1) Crafting offerings from materials, (2) Attuning seeds for ritual fuel, (3) Purchasing from vendor, (4) Void risk when using magic without offerings, (5) Currency accumulation tracking."
+}

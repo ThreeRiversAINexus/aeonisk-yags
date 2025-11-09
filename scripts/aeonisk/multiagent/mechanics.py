@@ -174,6 +174,8 @@ class JSONLLogger:
         effects: List[str],
         context: Dict[str, Any] = None,
         inventory_changes: List[Dict[str, Any]] = None,
+        purchase_data: Dict[str, Any] = None,
+        crafting_data: Dict[str, Any] = None,
         # New ML training fields (dataset guidelines compliance)
         character_data: Dict[str, Any] = None,
         environment: str = None,
@@ -206,7 +208,13 @@ class JSONLLogger:
           "economy": {"void_delta": +1, "soulcredit_delta": 0,
                       "offering_used": false, "bonds_applied": []},
           "clocks": {"core_access": "7/8", "infection": "2/6"},
-          "effects": ["Barrier fails; backlash ripples"]
+          "effects": {
+            "damage": {"target": "enemy_123", "dealt": 8},
+            "status_effects": ["Barrier fails; backlash ripples"],
+            "inventory_changes": [{"item": "incense", "delta": -1}],
+            "purchase": {"success": true, "vendor_name": "S4CU", "items_purchased": ["Med Kit"], "currency_spent": {"spark": 1}},
+            "crafting": {"offering_type": "blood_offering", "materials_used": ["blood_sample"], "success": true}
+          }
         }
         """
         # Calculate ability score
@@ -257,7 +265,9 @@ class JSONLLogger:
             "effects": {
                 "damage": damage_dealt,  # NEW: Damage dealt to targets (for ML training)
                 "status_effects": effects,  # Renamed from top-level effects for clarity
-                "inventory_changes": inventory_changes or []  # New: track offering consumption, item pickups, etc.
+                "inventory_changes": inventory_changes or [],  # New: track offering consumption, item pickups, etc.
+                "purchase": purchase_data,  # Purchase transaction details (vendor, items, currency)
+                "crafting": crafting_data  # Crafting attempt details (offering type, materials, success)
             }
         }
 
@@ -1762,6 +1772,204 @@ class MechanicsEngine:
         logger.info(f"Consumed 1 {offering_type} from {character_state.name}'s inventory (remaining: {quantity - 1})")
 
         return offering_type
+
+    def craft_offering(
+        self,
+        character_state: Any,
+        offering_type: str,
+        materials: List[str]
+    ) -> tuple[bool, str, Optional[str]]:
+        """
+        Craft an offering from raw materials using Attunement skill.
+
+        Simple conversion (not full ritual) using Willpower × Attunement vs DC 15.
+        Materials are consumed on attempt (success or failure).
+
+        Args:
+            character_state: Character attempting crafting
+            offering_type: Offering to craft ('blood_offering', 'incense', 'crystals')
+            materials: List of material keys to consume (e.g., ['blood_sample', 'herbs'])
+
+        Returns:
+            tuple: (success: bool, message: str, offering_name: str or None)
+
+        Examples:
+            - blood_sample → blood_offering
+            - herbs → incense
+            - raw_crystal → crystals
+        """
+        # Validate inventory exists
+        if not hasattr(character_state, 'inventory'):
+            return (False, "Character has no inventory", None)
+
+        # Validate offering type is recognized
+        valid_offerings = ['blood_offering', 'incense', 'crystals', 'purification_incense']
+        if offering_type not in valid_offerings:
+            return (False, f"Unknown offering type: {offering_type}", None)
+
+        # Check if character has required materials
+        for material in materials:
+            if character_state.inventory.get(material, 0) <= 0:
+                return (False, f"Missing required material: {material}", None)
+
+        # Get Attunement skill and Willpower attribute
+        attunement_skill = character_state.skills.get('attunement', 0)
+        willpower_attr = character_state.attributes.get('willpower', 0)
+
+        # Calculate skill pool (Attribute × Skill)
+        skill_pool = willpower_attr + attunement_skill
+
+        # Roll 2d8 (YAGS dice pool: 2 dice for skill check)
+        die1 = random.randint(1, 8)
+        die2 = random.randint(1, 8)
+        total = skill_pool + die1 + die2
+
+        # DC 15 base (simple conversion)
+        dc = 15
+
+        # Consume materials (happens regardless of success)
+        for material in materials:
+            character_state.inventory[material] -= 1
+            logger.debug(f"Consumed 1 {material} for crafting attempt")
+
+        # Determine success
+        success = total >= dc
+        margin = total - dc
+
+        if success:
+            # Add crafted offering to inventory
+            current = character_state.inventory.get(offering_type, 0)
+            character_state.inventory[offering_type] = current + 1
+
+            message = f"Successfully crafted {offering_type} (roll: {total} vs DC {dc}, margin: +{margin})"
+            logger.info(f"{character_state.name} crafted {offering_type}: {willpower_attr}+{attunement_skill}+{die1}+{die2}={total} vs DC {dc}")
+
+            return (True, message, offering_type)
+        else:
+            message = f"Failed to craft {offering_type} (roll: {total} vs DC {dc}, margin: {margin}). Materials consumed."
+            logger.info(f"{character_state.name} failed crafting {offering_type}: {willpower_attr}+{attunement_skill}+{die1}+{die2}={total} vs DC {dc}")
+
+            return (False, message, None)
+
+    def process_purchase_effect(
+        self,
+        purchase_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process a PurchaseEffect from DM structured output.
+
+        Deducts currency and adds items to inventory based on DM adjudication.
+
+        Args:
+            purchase_effect: PurchaseEffect object or dict from ActionResolution.effects.purchase
+            character_state: Character making the purchase
+
+        Returns:
+            True if processing succeeded, False otherwise
+        """
+        if not purchase_effect:
+            logger.debug(f"No purchase effect for {character_state.name}")
+            return False
+
+        # Convert dict to PurchaseEffect if needed
+        from .schemas.vendor_interaction import PurchaseEffect
+        if isinstance(purchase_effect, dict):
+            try:
+                purchase_effect = PurchaseEffect(**purchase_effect)
+                logger.debug(f"Converted dict to PurchaseEffect for {character_state.name}")
+            except Exception as e:
+                logger.error(f"Failed to convert purchase effect dict to Pydantic model: {e}")
+                logger.error(f"Purchase effect data: {purchase_effect}")
+                return False
+
+        if not purchase_effect.success:
+            logger.info(f"Purchase failed for {character_state.name}: {purchase_effect.failure_reason if purchase_effect.failure_reason else 'Unknown reason'}")
+            return False
+
+        # Deduct currency
+        for currency_type, amount in purchase_effect.currency_spent.items():
+            if hasattr(character_state, 'energy_inventory') and character_state.energy_inventory:
+                success = character_state.energy_inventory.spend_currency(currency_type, amount)
+                if not success:
+                    logger.error(f"Failed to deduct {amount} {currency_type} from {character_state.name} - insufficient funds!")
+                    return False
+                logger.info(f"Deducted {amount} {currency_type} from {character_state.name}")
+            else:
+                logger.warning(f"Character {character_state.name} has no energy_inventory")
+                return False
+
+        # Add items to inventory
+        for item_name in purchase_effect.items_purchased:
+            # Map item names to inventory keys (simplified version)
+            inventory_key = item_name.lower().replace(' ', '_').replace('(', '').replace(')', '')
+
+            # Common mappings
+            if 'incense' in inventory_key:
+                inventory_key = 'incense'
+            elif 'med_kit' in inventory_key or 'medkit' in inventory_key:
+                inventory_key = 'med_kit'
+            elif 'echo_calibrator' in inventory_key or 'echocalibrator' in inventory_key:
+                inventory_key = 'echo_calibrator'
+
+            if hasattr(character_state, 'inventory'):
+                current = character_state.inventory.get(inventory_key, 0)
+                character_state.inventory[inventory_key] = current + 1
+                logger.info(f"Added {inventory_key} to {character_state.name}'s inventory (now: {current + 1})")
+            else:
+                logger.warning(f"Character {character_state.name} has no inventory")
+                return False
+
+        logger.info(f"Successfully processed purchase for {character_state.name}: {purchase_effect.items_purchased} from {purchase_effect.vendor_name}")
+        return True
+
+    def process_crafting_effect(
+        self,
+        crafting_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process a CraftingAttempt from DM structured output.
+
+        Note: Materials should already be consumed by craft_offering() before DM narration.
+        This just logs the outcome and ensures inventory is updated correctly.
+
+        Args:
+            crafting_effect: CraftingAttempt object or dict from ActionResolution.effects.crafting
+            character_state: Character who attempted crafting
+
+        Returns:
+            True if processing succeeded, False otherwise
+        """
+        if not crafting_effect:
+            logger.debug(f"No crafting effect for {character_state.name}")
+            return False
+
+        # Convert dict to CraftingAttempt if needed
+        from .schemas.vendor_interaction import CraftingAttempt
+        if isinstance(crafting_effect, dict):
+            try:
+                crafting_effect = CraftingAttempt(**crafting_effect)
+                logger.debug(f"Converted dict to CraftingAttempt for {character_state.name}")
+            except Exception as e:
+                logger.error(f"Failed to convert crafting effect dict to Pydantic model: {e}")
+                logger.error(f"Crafting effect data: {crafting_effect}")
+                return False
+
+        if crafting_effect.success:
+            # Verify offering was added (should already be done by craft_offering)
+            offering_type = crafting_effect.offering_type
+            if hasattr(character_state, 'inventory'):
+                quantity = character_state.inventory.get(offering_type, 0)
+                logger.info(f"Crafting success verified: {character_state.name} has {quantity} {offering_type}")
+                return True
+            else:
+                logger.warning(f"Character {character_state.name} has no inventory")
+                return False
+        else:
+            # Crafting failed - materials already consumed by craft_offering()
+            logger.info(f"Crafting failed for {character_state.name}: {crafting_effect.offering_type}")
+            return True  # Still "successful" processing, just failed crafting
 
     def check_void_trigger(
         self,

@@ -50,7 +50,20 @@
         "Corporate Influence": 5,
         "Investigation": 4,
         "Charm": 3,
-        "Guile": 3
+        "Guile": 3,
+        "Attunement": 2
+      },
+      "starting_currency": {
+        "breath": 12,
+        "drip": 8,
+        "grain": 2,
+        "spark": 1
+      },
+      "starting_inventory": {
+        "blood_sample": 2,
+        "herbs": 3,
+        "incense": 1,
+        "blood_offering": 0
       }
     },
     {
@@ -88,10 +101,24 @@
         "Guile": 4,
         "Awareness": 4,
         "Investigation": 3,
-        "Pilot": 3
+        "Pilot": 3,
+        "Attunement": 3
+      },
+      "starting_currency": {
+        "breath": 20,
+        "drip": 4,
+        "grain": 1,
+        "spark": 0
+      },
+      "starting_inventory": {
+        "blood_sample": 1,
+        "herbs": 4,
+        "raw_crystal": 1,
+        "incense": 0,
+        "crystals": 1
       }
     }
     ]
   },
-  "notes": "Economic/vendor scenario test - debt dispute, trade negotiation, or vendor conflict"
+  "notes": "Economic/vendor scenario test - debt dispute, trade negotiation, vendor purchases, and offering crafting. Tests purchase structured output and Attunement-based crafting system."
 }

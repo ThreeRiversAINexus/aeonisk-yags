@@ -23,6 +23,10 @@ from .shared_types import (
     DamageEffect,
     PositionChange,
 )
+from .vendor_interaction import (
+    PurchaseEffect,
+    CraftingAttempt,
+)
 
 
 class InventoryChange(BaseModel):
@@ -106,6 +110,17 @@ class MechanicalEffects(BaseModel):
     inventory_changes: List[InventoryChange] = Field(
         default_factory=list,
         description="Inventory changes (offerings consumed, items gained/lost). Populated by mechanics layer when offerings are consumed before DM narration."
+    )
+
+    # Economy interactions
+    purchase: Optional[PurchaseEffect] = Field(
+        default=None,
+        description="Purchase transaction details (if action was a purchase attempt). Replaces keyword parsing in player.py."
+    )
+
+    crafting: Optional[CraftingAttempt] = Field(
+        default=None,
+        description="Offering crafting attempt (if action was crafting). Uses Attunement skill check (DC 15 base)."
     )
 
     # Additional metadata

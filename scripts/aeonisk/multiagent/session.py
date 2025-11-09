@@ -379,6 +379,7 @@ class SelfPlayingSession:
             history_supplier=self._recent_history,
             force_scenario=force_scenario,
             llm_client=dm_llm_client,
+            session_config=self.config,  # Pass full session config for persistent vendors
         )
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -1194,6 +1195,33 @@ class SelfPlayingSession:
                             # so their actions get invalidated (like defeated enemies)
                             target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
+
+                            # Process purchase/crafting effects from structured output
+                            effects = resolution_data.get('effects', {})
+
+                            # Handle purchases
+                            purchase_effect = effects.get('purchase')
+                            if purchase_effect:
+                                try:
+                                    success = mechanics.process_purchase_effect(purchase_effect, agent.character_state)
+                                    if success:
+                                        logger.info(f"Processed purchase for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Purchase processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing purchase for {agent.character_state.name}: {e}")
+
+                            # Handle crafting
+                            crafting_effect = effects.get('crafting')
+                            if crafting_effect:
+                                try:
+                                    success = mechanics.process_crafting_effect(crafting_effect, agent.character_state)
+                                    if success:
+                                        logger.info(f"Processed crafting for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Crafting processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing crafting for {agent.character_state.name}: {e}")
 
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
@@ -2636,6 +2664,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Spawn new clocks from story advancement
             if adv.new_clocks:
                 self._spawn_new_clocks_structured(adv.new_clocks)
+
+            # Remove departing vendors
+            if adv.vendor_departures and self.shared_state:
+                for vendor_name in adv.vendor_departures:
+                    removed = self.shared_state.remove_vendor(vendor_name)
+                    if removed:
+                        logger.info(f"💰 Vendor departed: {vendor_name}")
+                        print(f"   Vendor departed: {vendor_name}")
+                    else:
+                        logger.warning(f"Failed to remove vendor '{vendor_name}' - not found in current_vendors")
 
         # 2. Handle enemy spawns (AFTER story advancement)
         if synthesis.enemy_spawns and self.enemy_combat.enabled:

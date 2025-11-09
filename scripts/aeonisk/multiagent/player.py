@@ -814,104 +814,11 @@ class AIPlayerAgent(Agent):
             self.character_state.soulcredit -= outcome['soulcredit_cost']
             print(f"[{self.character_state.name}] Soulcredit: {self.character_state.soulcredit}")
 
-        # Handle vendor purchases - deduct currency if action succeeded
+        # Note: Purchases are now handled via DM structured output (ActionResolution.effects.purchase)
+        # Currency transfers still handled here temporarily (will migrate to DM structured output)
         intent = original_action.get('intent', '').lower()
-        if ('purchase' in intent or 'buy' in intent) and outcome.get('success', False):
-            self._process_purchase(intent, outcome)
-
-        # Handle currency/item transfers between players
         if ('give' in intent or 'transfer' in intent or 'pool' in intent) and outcome.get('success', False):
             self._process_transfer(intent, outcome)
-
-    def _map_vendor_item_to_inventory_key(self, vendor_item_name: str) -> Optional[str]:
-        """
-        Map vendor item names to character inventory keys.
-        Returns None if item shouldn't be added to inventory (services, consumables without tracking).
-        """
-        mapping = {
-            # Offerings - track in inventory
-            'incense stick': 'incense',
-            'incense stick (single)': 'incense',
-            'purification incense (bundle)': 'purification_incense',
-            'purification incense': 'purification_incense',
-
-            # Medical supplies
-            'med kit (basic)': 'med_kit',
-            'med kit (tactical)': 'med_kit',
-            'breathwater flask': 'breathwater_flask',
-
-            # Tech items
-            'echo-calibrator': 'echo_calibrator',
-            'void scanner (basic)': 'void_scanner',
-            'scrambled id chip': 'scrambled_id',
-            'data slate (encrypted)': 'data_slate',
-            'comm unit': 'comm_unit',
-
-            # Consumables (simple tracking)
-            'glowsticks': 'glowsticks',
-            'sparksticks': 'sparksticks',
-            'dripfruit chews': 'dripfruit',
-            'ration pack': 'rations',
-
-            # Services - don't add to inventory
-            'ritual altar access': None,
-            'bond insurance policy': None,
-        }
-        return mapping.get(vendor_item_name.lower())
-
-    def _process_purchase(self, intent: str, outcome: Dict[str, Any]):
-        """Process a successful purchase and deduct currency."""
-        # Simple item price lookup (prices from energy_economy.py)
-        item_prices = {
-            'breathwater flask': {'drip': 2},
-            'dripfruit chews': {'drip': 1},
-            'med kit (basic)': {'drip': 5},
-            'med kit (tactical)': {'drip': 6},
-            'ration pack': {'drip': 2},
-            'glowsticks': {'breath': 8},
-            'comm unit': {'drip': 3},
-            'sparksticks': {'breath': 3},
-            'echo-calibrator': {'spark': 8},
-            'scrambled id chip': {'spark': 4},
-            'bond insurance policy': {'spark': 12},
-            'data slate (encrypted)': {'drip': 10},
-            'incense stick': {'breath': 10},
-            'incense stick (single)': {'breath': 10},
-            'purification incense (bundle)': {'drip': 8},
-            'purification incense': {'drip': 8},
-            'ritual altar access': {'spark': 1},
-            'void scanner (basic)': {'spark': 4},
-        }
-
-        # Extract item name from intent (very simple parsing)
-        purchased_item = None
-        for item_name in item_prices.keys():
-            if item_name in intent:
-                purchased_item = item_name
-                break
-
-        if purchased_item and self.character_state.energy_inventory:
-            price = item_prices[purchased_item]
-            currency_type = list(price.keys())[0]
-            amount = price[currency_type]
-
-            # Attempt to spend currency
-            if self.character_state.energy_inventory.spend_currency(currency_type, amount):
-                # FIX: Add item to inventory after successful purchase
-                inventory_key = self._map_vendor_item_to_inventory_key(purchased_item)
-                if inventory_key:
-                    current_count = self.character_state.inventory.get(inventory_key, 0)
-                    self.character_state.inventory[inventory_key] = current_count + 1
-                    logger.info(f"Added {inventory_key} to {self.character_state.name}'s inventory (now: {current_count + 1})")
-
-                logger.info(f"{self.character_state.name} purchased {purchased_item} for {amount} {currency_type}")
-                print(f"[{self.character_state.name}] 💰 Purchased {purchased_item} (-{amount} {currency_type})")
-                if inventory_key:
-                    print(f"[{self.character_state.name}] 📦 +1 {inventory_key} (total: {self.character_state.inventory[inventory_key]})")
-                print(f"[{self.character_state.name}] Currency: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
-            else:
-                logger.warning(f"{self.character_state.name} couldn't afford {purchased_item} ({amount} {currency_type})")
-                print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} for {purchased_item}")
 
     def _process_transfer(self, intent: str, outcome: Dict[str, Any]):
         """Process currency or item transfers between players."""
@@ -1470,18 +1377,41 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         scenario_context = ""
         if self.current_scenario:
             vendor_info = ""
-            if self.current_scenario.get('active_vendor'):
-                vendor = self.current_scenario['active_vendor']
-                vendor_info = f"""
+            # Check for vendors (supports both single vendor dict and vendor list)
+            vendors = self.current_scenario.get('active_vendors', [])
+            if not vendors and self.current_scenario.get('active_vendor'):
+                # Backwards compatibility: single vendor dict
+                vendors = [self.current_scenario['active_vendor']]
 
-**💰 VENDOR AVAILABLE: {vendor['name']}**
-- Type: {vendor['type']}
-- Faction: {vendor['faction']}
-- "{vendor['greeting']}"
-- Sample goods: {', '.join(vendor.get('inventory_preview', []))}
+            if vendors:
+                vendor_info = "\n**💰 VENDORS PRESENT:**\n\n"
+                for vendor in vendors:
+                    vendor_info += f"**{vendor['name']}** ({vendor['faction']} {vendor['type']})\n"
+                    vendor_info += f"\"{vendor['greeting']}\"\n\n"
 
-You can purchase items, barter, or ask for information! Use your currency (Sparks, Drips, Breath, Grain).
-"""
+                    # Show full inventory with prices
+                    if 'inventory' in vendor and vendor['inventory']:
+                        vendor_info += "**Inventory:**\n"
+                        for item in vendor['inventory'][:8]:  # Show first 8 items
+                            prices = []
+                            if item.get('price_spark', 0) > 0:
+                                prices.append(f"{item['price_spark']} Spark")
+                            if item.get('price_drip', 0) > 0:
+                                prices.append(f"{item['price_drip']} Drip")
+                            if item.get('price_breath', 0) > 0:
+                                prices.append(f"{item['price_breath']} Breath")
+                            price_str = " or ".join(prices) if prices else "Free"
+                            vendor_info += f"- **{item['name']}** - {price_str}\n"
+
+                        if len(vendor['inventory']) > 8:
+                            vendor_info += f"  _(and {len(vendor['inventory']) - 8} more items)_\n"
+                    elif 'inventory_preview' in vendor:
+                        # Fallback: Sample goods preview
+                        vendor_info += f"Sample goods: {', '.join(vendor.get('inventory_preview', []))}\n"
+
+                    vendor_info += "\n"
+
+                vendor_info += "You can purchase items, barter, or ask for information! Use your currency (Breath/Drip/Grain/Spark).\n"
 
             # Get clock states with semantic guidance
             clock_context = ""

@@ -51,6 +51,9 @@ class SharedState:
     # NPC agents (non-combatant agents with simple LLM)
     npc_agents: List[Any] = field(default_factory=list)
 
+    # Current vendors present in the scenario (persists across rounds until StoryAdvancement removes them)
+    current_vendors: List[Any] = field(default_factory=list)
+
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys
     party_discoveries: List[Dict[str, str]] = field(default_factory=list)
@@ -393,3 +396,53 @@ Generate something DIFFERENT from these recent scenarios.
                     return enemy
 
         return None
+
+    # Vendor management methods
+
+    def add_vendor(self, vendor: Any) -> None:
+        """
+        Add vendor to current scenario (persists across rounds).
+
+        Args:
+            vendor: Vendor instance from energy_economy.py
+        """
+        self.current_vendors.append(vendor)
+
+    def remove_vendor(self, vendor_name: str) -> bool:
+        """
+        Remove vendor by name (via StoryAdvancement.vendor_departures).
+
+        Args:
+            vendor_name: Name of vendor to remove
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, vendor in enumerate(self.current_vendors):
+            if vendor.name == vendor_name:
+                self.current_vendors.pop(i)
+                return True
+        return False
+
+    def get_vendor(self, vendor_name: str) -> Optional[Any]:
+        """
+        Get vendor by name.
+
+        Args:
+            vendor_name: Name of vendor to find
+
+        Returns:
+            Vendor object if found, None otherwise
+        """
+        for vendor in self.current_vendors:
+            if vendor.name == vendor_name:
+                return vendor
+        return None
+
+    def get_all_vendors(self) -> List[Any]:
+        """Get all vendors currently present in scenario."""
+        return self.current_vendors
+
+    def clear_vendors(self) -> None:
+        """Remove all vendors from scenario."""
+        self.current_vendors.clear()
