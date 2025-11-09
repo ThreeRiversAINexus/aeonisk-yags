@@ -787,7 +787,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         theme = scenario_config.get('theme', 'Unknown')
         location = scenario_config.get('location', 'Unknown Location')
         situation = scenario_config.get('situation', 'Something mysterious is happening')
-        void_level = scenario_config.get('void_level', 3)
+        void_level = scenario_config.get('void_level', 0)
         initial_clocks = scenario_config.get('initial_clocks', [])
 
         # Extract initial_enemies from top-level config (not scenario dict)

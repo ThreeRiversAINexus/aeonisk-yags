@@ -439,6 +439,47 @@ class TestVoidSystem:
 
         assert void_state.score == 5
 
+    def test_environmental_void_gain_moderate(self, mechanics_engine):
+        """Test environmental void gain in void_level 7-8 zones (per scene)."""
+        void_state = mechanics_engine.get_void_state("TestChar")
+
+        # Simulate being in void_level=7 environment for one scene
+        void_state.add_void(1, "Environmental exposure (void_level 7)")
+
+        assert void_state.score == 1
+        assert "Environmental exposure" in void_state.history[-1]['reason']
+
+    def test_environmental_void_gain_extreme(self, mechanics_engine):
+        """Test environmental void gain in void_level 9-10 zones (per round)."""
+        void_state = mechanics_engine.get_void_state("TestChar")
+
+        # Simulate being in void_level=9 environment for 3 rounds
+        for round_num in range(3):
+            void_state.add_void(1, f"Environmental exposure round {round_num + 1} (void_level 9)")
+
+        assert void_state.score == 3
+
+    def test_void_forged_weapon_corruption(self, mechanics_engine):
+        """Test void gain from using void-forged weapons (+1-2 per combat scene)."""
+        void_state = mechanics_engine.get_void_state("TestChar")
+
+        # Use void-forged weapon in combat
+        void_state.add_void(2, "Used void-forged kinetic rifle in combat")
+
+        assert void_state.score == 2
+
+    def test_oath_breaking_void_gain(self, mechanics_engine):
+        """Test void gain from breaking sacred oaths (+1-3 by severity)."""
+        void_state = mechanics_engine.get_void_state("TestChar")
+
+        # Minor oath broken
+        void_state.add_void(1, "Broke minor promise to ally")
+        assert void_state.score == 1
+
+        # Major sacred oath broken
+        void_state.add_void(3, "Broke sacred bond with faction")
+        assert void_state.score == 4
+
 
 # ============================================================================
 # Integration Tests (Multiple Systems)

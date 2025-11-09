@@ -740,6 +740,45 @@ Load pre-configured scene clocks at session start.
 - **Ongoing situations**: Players arrive mid-crisis
 - **Test scenarios**: Set up specific clock states for validation
 
+### `scenario.void_level` (Integer, 0-10, Default=0) **UPDATED**
+
+Environmental void corruption level for the scenario.
+
+**Default:** `0` (normal reality, no void corruption)
+
+**Semantic Levels:**
+- **0**: Normal reality - no void presence
+- **1-2**: Subtle void taint - minor distortions, unease
+- **3-4**: Noticeable corruption - reality feels thin
+- **5-6**: Significant void presence - physical manifestations
+- **7-8**: Dangerous corruption - mental effects, **+1 void per scene** (environmental exposure)
+- **9-10**: Catastrophic void breach - **+1 void per round** (immediate corruption)
+
+**When to Use:**
+- `void_level=0`: Most scenarios (combat, investigation, social) - **recommended default**
+- `void_level=3-5`: Void-themed missions, corrupted facilities
+- `void_level=6-8`: Void breach zones, forbidden rituals
+- `void_level=9-10`: Apocalyptic void events
+
+**Example:**
+```json
+{
+  "scenario": {
+    "theme": "Void Corruption",
+    "location": "Corrupted Research Station",
+    "void_level": 8
+  }
+}
+```
+
+**Important Notes:**
+- Environmental `void_level` provides narrative atmosphere
+- Character void gain comes from **actions** (ritual failures, void exposure, oath-breaking, void-forged weapons)
+- At `void_level 7+`, environmental exposure automatically triggers void gain via structured output
+- See "Environmental Void Level Updates" below for dynamic void_level changes during story progression
+
+---
+
 ### Environmental Void Level Updates **NEW**
 
 DM can now update `scenario.void_level` during story advancement.

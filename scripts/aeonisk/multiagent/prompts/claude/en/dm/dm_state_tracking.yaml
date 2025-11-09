@@ -4,41 +4,46 @@ description: Scene clocks, soulcredit, void mechanics, rituals, and economy
 load_when: always
 content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICIT\
   \ STATE MARKERS** - Mark state changes at the end of your narration:\n\n\U0001F4CA\
-  \ [Clock Name]: +X or -X (reason) - Advance/regress a scene clock\n⚫ Void: +X (reason)\
-  \ - Character gains void corruption\n⚖️ Soulcredit: +X or -X (reason) - Character's\
-  \ spiritual trust/morality changes\n\nExamples:\n  \U0001F4CA Evidence Collection:\
-  \ +2 (found hidden documents)\n  ⚫ Void: +1 (ritual backfire)\n  ⚖️ Soulcredit:\
-  \ +0 (neutral combat action)\n  ⚖️ Soulcredit: -2 (deceived officials)\n\n**⚠️ CRITICAL:\
-  \ WHEN TO USE ⚫ VOID MARKERS**\n\n**ONLY include ⚫ Void markers when thematically\
-  \ appropriate:**\n✅ DO use void markers for:\n- Ritual failures (failed astral arts,\
-  \ void manipulation)\n- Direct void exposure (entering void breaches, touching void\
-  \ artifacts)\n- Cosmic horror encounters (witnessing reality tears, void entities)\n\
-  - Using void-powered abilities or magic\n- Critical failures on void-related actions\n\
-  \n❌ DO NOT use void markers for:\n- Regular combat failures (shooting, melee, tactics)\n\
-  - Social failures (negotiation, intimidation, deception)\n- Investigation failures\
-  \ (searching, analyzing, awareness checks)\n- Technical failures (hacking, systems,\
-  \ piloting)\n- Physical failures (athletics, stealth, acrobatics)\n\n**NOT EVERY\
-  \ FAILURE NEEDS VOID CORRUPTION!**\nOnly include ⚫ Void: +X when the action directly\
-  \ involves void/ritual/cosmic themes.\n\n**Sci-fi technobabble ≠ Void corruption:**\n\
-  - \"Neural feedback\" from tech malfunction → NO void change\n- \"Psychic backlash\"\
-  \ from actual void ritual → YES, +1 void\n- \"System overload\" from hacking → NO\
-  \ void change\n- \"Void energy feedback\" from manipulation → YES, +1 void\n\n**VOID\
+  \ [Clock Name]: +X or -X (reason) - Advance/regress a scene clock\n⚖️ Soulcredit:\
+  \ +X or -X (reason) - Character's spiritual trust/morality changes\n\nExamples:\n\
+  \  \U0001F4CA Evidence Collection: +2 (found hidden documents)\n  ⚖️ Soulcredit:\
+  \ +0 (neutral combat action)\n  ⚖️ Soulcredit: -2 (deceived officials)\n\n**⚠\
+  ️ CRITICAL: WHEN TO POPULATE void_changes FIELD**\n\n**Use structured output `effects.void_changes`\
+  \ for void corruption/cleansing. DO NOT use text markers.**\n\n✅ DO populate void_changes\
+  \ for:\n- Ritual failures (failed astral arts, void manipulation) - +1 void\n- Direct\
+  \ void exposure (entering void breaches, touching void artifacts) - +1 void\n- Cosmic\
+  \ horror encounters (witnessing reality tears, void entities) - +1 to +2 void\n-\
+  \ Using void-powered abilities or magic - +1 void\n- Void-forged weapon use in combat\
+  \ - +1 to +2 void per combat scene\n- Breaking oaths/bonds - +1 to +3 void (by severity)\n\
+  - Environmental exposure in high-void zones:\n  * void_level 7-8: +1 void per scene\n\
+  \  * void_level 9-10: +1 void per round\n\n❌ DO NOT populate void_changes for:\n\
+  - Regular combat failures (shooting, melee, tactics)\n- Social failures (negotiation,\
+  \ intimidation, deception)\n- Investigation failures (searching, analyzing, awareness\
+  \ checks)\n- Technical failures (hacking, systems, piloting)\n- Physical failures\
+  \ (athletics, stealth, acrobatics)\n\n**NOT EVERY FAILURE NEEDS VOID CORRUPTION!**\n\
+  Only populate void_changes when the action directly involves void/ritual/cosmic themes.\n\
+  \n**Sci-fi technobabble ≠ Void corruption:**\n- \"Neural feedback\" from tech malfunction\
+  \ → NO void change\n- \"Psychic backlash\" from actual void ritual → YES, void_changes=[VoidChange(amount=1,\
+  \ ...)]\n- \"System overload\" from hacking → NO void change\n- \"Void energy feedback\"\
+  \ from manipulation → YES, void_changes=[VoidChange(amount=1, ...)]\n\n**VOID\
   \ CLEANSING SCALING** - When characters perform void purification rituals:\n⚠️ **MANDATORY**:\
-  \ If the ritual succeeds, you MUST include void reduction markers.\n\nScale void\
-  \ reduction based on success quality (margin over DC):\n  - Marginal (0-4): ⚫ Void:\
-  \ -1 (purification success)\n  - Moderate (5-9): ⚫ Void: -2 (effective cleansing)\n\
-  \  - Good (10-14): ⚫ Void: -3 (powerful purification)\n  - Excellent (15-19): ⚫\
-  \ Void: -4 (exceptional cleansing)\n  - Exceptional (20+): ⚫ Void: -5 (transcendent\
-  \ purification)\n\n**CRITICAL - PC-to-PC Void Cleansing:**\nWhen purifying ANOTHER\
-  \ character (PC or NPC), you MUST specify their name in the marker:\n  ⚫ Void (Target\
-  \ Character): -3 (powerful purification)\n  ⚫ Void (Ally Name): -2 (effective cleansing)\n\
-  \n**DO NOT skip void reduction** even if there are narrative complications!\nYou\
-  \ can describe complications (pain, difficulty, unexpected effects) in the narrative,\n\
-  but successful rituals ALWAYS reduce void by the appropriate amount.\n\nExample\
-  \ of correct format with complications:\n\"The purification burns through their\
-  \ corruption, searing away -3 void despite the resistance.\n⚫ Void (Target Character):\
-  \ -3 (powerful purification despite corrupted resonance)\"\n\nCleansing requires:\
-  \ Success + (ley site OR offering) mentioned in narration\n\n# Soulcredit Guidance\n\
+  \ If the ritual succeeds, you MUST populate void_changes with negative values.\n\
+  \nScale void reduction based on success quality (margin over DC):\n  - Marginal\
+  \ (0-4): void_changes=[VoidChange(amount=-1, reason=\"purification success\")]\n\
+  \  - Moderate (5-9): void_changes=[VoidChange(amount=-2, reason=\"effective cleansing\"\
+  )]\n  - Good (10-14): void_changes=[VoidChange(amount=-3, reason=\"powerful purification\"\
+  )]\n  - Excellent (15-19): void_changes=[VoidChange(amount=-4, reason=\"exceptional\
+  \ cleansing\")]\n  - Exceptional (20+): void_changes=[VoidChange(amount=-5, reason=\"\
+  transcendent purification\")]\n\n**CRITICAL - PC-to-PC Void Cleansing:**\nWhen purifying\
+  \ ANOTHER character (PC or NPC), specify their name:\n  void_changes=[VoidChange(character_name=\"\
+  Target Name\", amount=-3, reason=\"powerful purification\")]\n\n**DO NOT skip void\
+  \ reduction** even if there are narrative complications!\nYou can describe complications\
+  \ (pain, difficulty, unexpected effects) in the narrative,\nbut successful rituals\
+  \ ALWAYS reduce void by the appropriate amount via void_changes field.\n\nExample\
+  \ of correct format with complications:\nNarration: \"The purification burns through\
+  \ their corruption, searing away void despite the resistance.\"\nvoid_changes=[VoidChange(character_name=\"\
+  Ally Name\", amount=-3, reason=\"powerful purification despite corrupted resonance\"\
+  )]\n\nCleansing requires: Success + (ley site OR offering) mentioned in narration\n\n# Soulcredit Guidance\n\
   **CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success.\n**ALWAYS\
   \ mark soulcredit for every action, even when +0 (neutral).**\n\n**⚖️ UNIVERSAL\
   \ NEXUS MORALITY FRAMEWORK:**\nSoulcredit represents **Sovereign Nexus universal\
@@ -67,16 +72,21 @@ content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICI
   \ -2 (broke sworn word)\n• Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust\
   \ violence)\n• Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)\n\
   \n# Void Mechanics\n# Void Corruption\n\nEnvironmental void level affects situations\
-  \ visibly:\n- Level 1-2: Subtle unease, minor distortions\n- Level 3-4: Noticeable\
-  \ corruption, reality feels thin\n- Level 5-6: Significant void presence, physical\
-  \ manifestations\n- Level 7-8: Dangerous corruption, mental effects\n- Level 9-10:\
-  \ Catastrophic void breach imminent\n\nCharacter void scores have mechanical effects\
-  \ at 5+\n\n# Ritual Mechanics\n**Ritual Mechanics:**\n- Base: Willpower × Astral\
-  \ Arts + d20\n- Missing primary tool: +1 Void risk, -2 to roll\n- No offering: +1\
-  \ Void automatically\n- Sanctified altar: +3 to roll\n- Failure: +1 Void to performer\n\
-  \n**Void Triggers (+1 each):**\n- Direct void exposure or manipulation\n- Ritual\
-  \ shortcuts (missing components)\n- Bond betrayal or deception endangering bonds\n\
-  - Use of corrupted technology\n- Entering void-tainted areas\n\n# Currency & Economy\n\
+  \ visibly:\n- Level 0: Normal reality (no void corruption)\n- Level 1-2: Subtle\
+  \ unease, minor distortions\n- Level 3-4: Noticeable corruption, reality feels thin\n\
+  - Level 5-6: Significant void presence, physical manifestations\n- Level 7-8: Dangerous\
+  \ corruption, mental effects. **Characters gain +1 void per scene spent here (populate\
+  \ void_changes in round_synthesis)**\n- Level 9-10: Catastrophic void breach imminent.\
+  \ **Characters gain +1 void per round (populate void_changes in action_resolution)**\n\
+  \nCharacter void scores have mechanical effects at 5+\n\n# Ritual Mechanics\n**Ritual\
+  \ Mechanics:**\n- Base: Willpower × Astral Arts + d20\n- Missing primary tool: +1\
+  \ Void risk, -2 to roll\n- No offering: +1 Void automatically (populate void_changes)\n\
+  - Sanctified altar: +3 to roll\n- Failure: +1 Void to performer (populate void_changes)\n\
+  \n**Void Triggers (populate void_changes field):**\n- Ritual failures/shortcuts\
+  \ (missing components): +1 void\n- Direct void exposure or manipulation: +1 void\n\
+  - Void-forged weapon/equipment use: +1-2 void per combat scene\n- Breaking bonds/oaths:\
+  \ +1-3 void (by severity)\n- Corrupted technology interaction: +1 void\n- Environmental\
+  \ exposure (void_level 7+): +1 void per scene/round\n\n# Currency & Economy\n\
   \n**⚠️ CRITICAL - CURRENCY TERMINOLOGY:**\n\n**NEVER use \\\"credits\\\" - the in-game\
   \ currency is Talismanic Energy:**\n- **Breath** (smallest denomination)\n- **Drip**\
   \ (10 Breath)\n- **Grain** (10 Drip = 100 Breath)\n- **Spark** (largest common\

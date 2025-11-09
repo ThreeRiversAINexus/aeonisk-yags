@@ -112,7 +112,7 @@ content: |-
   )
   ```
 
-  **Example 2: Void Ritual**
+  **Example 2: Void Ritual (Cleansing)**
   ```python
   ActionResolution(
       narration="You channel purifying energy, but inverted resonance fights back. Pain sears through your neural pathways as corruption resists.",
@@ -128,6 +128,70 @@ content: |-
           ],
           soulcredit_changes=[
               SoulcreditChange(character_name="Ash", amount=1, reason="selfless ritual to help ally")
+          ]
+      )
+  )
+  ```
+
+  **Example 3: Void-Forged Weapon Use**
+  ```python
+  ActionResolution(
+      narration="Your void-forged rifle screams as it discharges, reality rippling around the barrel. The shot tears through your target, but you feel the weapon's corruption seeping into your spirit.",
+      success_tier=SuccessTier.GOOD,
+      margin=11,
+      effects=MechanicalEffects(
+          damage=DamageEffect(
+              target="tgt_2k9m",
+              base_damage=18,
+              soak=6,
+              dealt=12,
+              weapon="Void-Forged Kinetic Rifle"
+          ),
+          void_changes=[
+              VoidChange(character_name="Kade", amount=2, reason="used void-forged weapon in combat")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Kade", amount=0, reason="justified combat")
+          ]
+      )
+  )
+  ```
+
+  **Example 4: Environmental Void Exposure**
+  ```python
+  ActionResolution(
+      narration="As you search the corrupted chamber, void energy presses against your consciousness. Every breath tastes of unreality.",
+      success_tier=SuccessTier.MODERATE,
+      margin=6,
+      effects=MechanicalEffects(
+          void_changes=[
+              VoidChange(character_name="Echo", amount=1, reason="environmental exposure (void_level 9)")
+          ],
+          clock_updates=[
+              ClockUpdate(clock_name="Evidence Collection", ticks=2, reason="found corrupted logs")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Echo", amount=0, reason="neutral investigation")
+          ]
+      )
+  )
+  ```
+
+  **Example 5: Breaking Sacred Oath**
+  ```python
+  ActionResolution(
+      narration="You break your sworn word to the Pantheon, lying to your faction contact about the artifact's location. The betrayal weighs on your spirit.",
+      success_tier=SuccessTier.GOOD,
+      margin=13,
+      effects=MechanicalEffects(
+          void_changes=[
+              VoidChange(character_name="Riven", amount=3, reason="broke sacred oath to Pantheon")
+          ],
+          clock_updates=[
+              ClockUpdate(clock_name="Deception", ticks=3, reason="successfully deceived faction")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Riven", amount=-2, reason="betrayed sworn oath")
           ]
       )
   )

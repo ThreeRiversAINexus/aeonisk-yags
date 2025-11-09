@@ -81,7 +81,7 @@ class MechanicalEffects(BaseModel):
     # State changes
     void_changes: List[VoidChange] = Field(
         default_factory=list,
-        description="Void corruption/cleansing changes. CRITICAL: Populate when void-triggering events occur (ritual failures, missing offerings/tools, void exposure, corrupted tech). Empty list = no void events (explicit choice). Examples: [VoidChange(character_name='Kade', amount=2, reason='Failed ritual without offering')] for corruption, [VoidChange(character_name='Ash', amount=-2, reason='Cleansing ritual success')] for cleansing."
+        description="Void corruption/cleansing changes. CRITICAL: Populate when void-triggering events occur. Empty list = no void events (explicit choice). CORRUPTION TRIGGERS (+1 to +5): Ritual failures, missing offerings/tools, direct void exposure, void entity contact, corrupted tech interaction, void-forged weapon use (+1-2 per combat scene), breaking oaths/bonds (+1-3 by severity), environmental exposure (void_level 7-8: +1 per scene; void_level 9-10: +1 per round). CLEANSING (-1 to -5): Successful purification rituals scaled by success margin. Examples: [VoidChange(character_name='Kade', amount=2, reason='Failed ritual without offering')], [VoidChange(character_name='Ash', amount=1, reason='Used void-forged rifle in combat')], [VoidChange(character_name='Riven', amount=1, reason='Environmental exposure (void_level 9)')], [VoidChange(character_name='Echo', amount=-3, reason='Excellent cleansing ritual')]."
     )
 
     soulcredit_changes: List[SoulcreditChange] = Field(
