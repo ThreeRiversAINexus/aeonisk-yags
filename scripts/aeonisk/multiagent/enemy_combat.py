@@ -198,10 +198,8 @@ class EnemyCombatManager:
         if not self.enabled:
             return []
 
-        logger.warning(
-            "process_dm_narration() called but legacy marker parsing has been removed. "
-            "Use RoundSynthesis.enemy_spawns with spawn_from_structured() instead."
-        )
+        # Note: This method is still called for auto-despawn functionality
+        # Enemy spawning now uses RoundSynthesis.enemy_spawns with spawn_from_structured()
 
         # Still handle auto-despawn for defeated enemies
         notifications = []

@@ -3,7 +3,6 @@
   "max_turns": 5,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
   "force_vendor_gate": true,
   "vendor_spawn_frequency": -1,
   "agents": {

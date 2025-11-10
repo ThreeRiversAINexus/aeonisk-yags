@@ -3,7 +3,6 @@
   "max_turns": 6,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
   "force_combat": false,
 
   "_comment_pvp_test": "=== PVP FRIENDLY FIRE TEST ===",

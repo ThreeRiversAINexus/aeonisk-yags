@@ -6,7 +6,6 @@
   "max_turns": 5,
   "party_size": 3,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
 
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds). Vendors offer equipment, ritual supplies, seeds, and services.",

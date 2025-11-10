@@ -3,7 +3,6 @@
   "max_turns": 50,
   "party_size": 3,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
   "force_combat": true,
 
   "_comment": "=== TACTICAL MODULE v1.2.3 FEATURES ===",

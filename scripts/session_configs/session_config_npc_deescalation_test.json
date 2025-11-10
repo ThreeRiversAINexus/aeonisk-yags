@@ -3,7 +3,6 @@
   "max_turns": 3,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
   "force_combat": true,
 
   "_comment_npc_system": "=== NPC & DE-ESCALATION SYSTEM TEST ===",
