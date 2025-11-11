@@ -50,7 +50,7 @@
 **Priority:** CRITICAL - Blocks all economy features
 
 **Tasks:**
-- [ ] **Bug #2:** Rename `energy_inventory` → `energy_purse` across codebase
+- [ ] **Bug #2:** Rename `energy_purse` → `energy_purse` across codebase
   - [ ] Update `CharacterState` class (player.py)
   - [ ] Update all references in dm.py, session.py, mechanics.py
   - [ ] Update prompts in `dm_state_tracking.yaml`
@@ -249,11 +249,11 @@ python3 scripts/run_multiagent_session.py scripts/session_configs/session_config
 
 ## 🐛 Known Bugs (Not Yet Fixed)
 
-### Bug #2: `energy_inventory` vs. `energy_purse` Terminology
+### Bug #2: `energy_purse` vs. `energy_purse` Terminology
 - **Status:** Not fixed
 - **Location:** Codebase-wide
 - **Impact:** Naming inconsistency, breaks immersion
-- **Fix:** Rename all `energy_inventory` → `energy_purse`
+- **Fix:** Rename all `energy_purse` → `energy_purse`
 
 ### Bug #3: `starting_energy` Not Applied from Config
 - **Status:** Not fixed
@@ -330,7 +330,7 @@ python3 scripts/run_multiagent_session.py scripts/session_configs/session_config
 - Pre-validation prevents DM hallucination on purchases
 
 **Technical Debt to Address:**
-- Rename `energy_inventory` → `energy_purse` (consistency)
+- Rename `energy_purse` → `energy_purse` (consistency)
 - Decouple Soulcredit gating (reusable for location access, NPC attitudes, etc.)
 - Add vendor state persistence (inventory depletion, restock mechanics)
 

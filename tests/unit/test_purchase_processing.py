@@ -7,7 +7,7 @@ inventory and currency are updated correctly.
 
 import pytest
 from unittest.mock import Mock
-from scripts.aeonisk.multiagent.schemas.story_events import PurchaseEffect
+from scripts.aeonisk.multiagent.schemas.vendor_interaction import PurchaseEffect
 
 
 class TestPurchaseProcessing:
@@ -21,7 +21,7 @@ class TestPurchaseProcessing:
             vendor_name="Test Vendor",
             items_purchased=["Blood Offering", "Incense"],
             currency_spent={"drip": 20},
-            narrative="You buy the items",
+            narrative="You successfully purchase the items from the vendor.",
             failure_reason=None
         )
 
@@ -37,7 +37,7 @@ class TestPurchaseProcessing:
             vendor_name="Test Vendor",
             items_purchased=[],
             currency_spent={},
-            narrative="Insufficient funds",
+            narrative="You don't have enough currency to make this purchase.",
             failure_reason="Need 20 Drip, have 3"
         )
 
@@ -134,7 +134,7 @@ class TestPurchaseProcessing:
         Requirements:
         1. process_purchase_effect() must exist in session.py or mechanics.py
         2. It must accept PurchaseEffect as input
-        3. It must update player.character_state.energy_inventory.currencies
+        3. It must update player.character_state.energy_purse.currencies
         4. It must update player.character_state.inventory
         5. It must log the purchase to JSONL
         6. It must handle purchase failures gracefully
@@ -154,7 +154,7 @@ class TestInventoryDisplay:
         """
         Document expectation: Round status should display player currency.
 
-        Current behavior: Currency only shows if energy_inventory exists
+        Current behavior: Currency only shows if energy_purse exists
         and has non-zero values.
 
         Expected display format:

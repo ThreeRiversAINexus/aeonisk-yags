@@ -12,7 +12,7 @@ from datetime import datetime
 from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
-from .energy_economy import EnergyInventory, Seed, SeedType, Element, create_raw_seed
+from .energy_economy import EnergyPurse, Seed, SeedType, Element, create_raw_seed
 from .prompt_loader import load_agent_prompt, compose_sections
 
 logger = logging.getLogger(__name__)
@@ -31,13 +31,13 @@ class CharacterState:
     goals: List[str]
     pronouns: str = "they/them"  # Default to gender-neutral
     inventory: Dict[str, int] = None
-    energy_inventory: Optional['EnergyInventory'] = None
+    energy_purse: Optional['EnergyPurse'] = None
 
     def __post_init__(self):
-        """Initialize default inventory and energy inventory if not provided."""
-        # Initialize energy inventory with randomized currency
-        if self.energy_inventory is None:
-            self.energy_inventory = EnergyInventory(
+        """Initialize default inventory and energy purse if not provided."""
+        # Initialize energy purse with randomized currency
+        if self.energy_purse is None:
+            self.energy_purse = EnergyPurse(
                 breath=random.randint(5, 15),  # Variable starting amounts
                 drip=random.randint(3, 10),
                 grain=random.randint(0, 3),
@@ -47,14 +47,14 @@ class CharacterState:
             # Add some starter seeds based on faction (varying freshness)
             if 'Tempest' in self.faction:
                 # Tempest gets Hollow seeds (stable, no decay)
-                self.energy_inventory.add_seed(Seed(SeedType.HOLLOW, origin="tempest_supply"))
+                self.energy_purse.add_seed(Seed(SeedType.HOLLOW, origin="tempest_supply"))
             elif 'Sovereign' in self.faction or 'Pantheon' in self.faction:
                 # Pro-Nexus factions get Attuned seeds (stable)
-                self.energy_inventory.add_seed(Seed(SeedType.ATTUNED, element=Element.SPIRIT, origin="nexus_sanctified"))
+                self.energy_purse.add_seed(Seed(SeedType.ATTUNED, element=Element.SPIRIT, origin="nexus_sanctified"))
             else:
                 # Others get Raw seeds with random freshness (might be aged/old)
                 raw_seed = create_raw_seed(origin="leyline_harvest", freshness="random")
-                self.energy_inventory.add_seed(raw_seed)
+                self.energy_purse.add_seed(raw_seed)
 
         if self.inventory is None:
             self.inventory = {
@@ -226,6 +226,14 @@ class AIPlayerAgent(Agent):
             pronouns=self.character_config.get('pronouns', 'they/them'),
             inventory=inventory
         )
+
+        # Override energy purse with starting_currency from config if provided
+        starting_currency = self.character_config.get('starting_currency')
+        if starting_currency:
+            self.character_state.energy_purse.breath = starting_currency.get('breath', self.character_state.energy_purse.breath)
+            self.character_state.energy_purse.drip = starting_currency.get('drip', self.character_state.energy_purse.drip)
+            self.character_state.energy_purse.grain = starting_currency.get('grain', self.character_state.energy_purse.grain)
+            self.character_state.energy_purse.spark = starting_currency.get('spark', self.character_state.energy_purse.spark)
 
         # Initialize combat attributes (for enemy attacks to work)
         # Health = Size × 2 + Endurance (YAGS-compliant toughness bonus)
@@ -865,7 +873,7 @@ class AIPlayerAgent(Agent):
             return
 
         # Attempt the transfer
-        if self.character_state.energy_inventory.spend_currency(currency_type, amount):
+        if self.character_state.energy_purse.spend_currency(currency_type, amount):
             # Store pending transfer in shared state
             if not hasattr(self.shared_state, 'pending_transfers'):
                 self.shared_state.pending_transfers = []
@@ -881,7 +889,7 @@ class AIPlayerAgent(Agent):
 
             logger.info(f"{self.character_state.name} transferred {amount} {currency_type} to {recipient_name}")
             print(f"[{self.character_state.name}] 💸 Gave {amount} {currency_type} to {recipient_name}")
-            print(f"[{self.character_state.name}] Remaining: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+            print(f"[{self.character_state.name}] Remaining: {self.character_state.energy_purse.spark} Spark, {self.character_state.energy_purse.drip} Drip, {self.character_state.energy_purse.breath} Breath")
         else:
             logger.warning(f"{self.character_state.name} couldn't afford to transfer {amount} {currency_type}")
             print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} to give")
@@ -896,14 +904,14 @@ class AIPlayerAgent(Agent):
 
         for transfer in incoming:
             # Add the currency
-            self.character_state.energy_inventory.add_currency(
+            self.character_state.energy_purse.add_currency(
                 transfer['currency_type'],
                 transfer['amount']
             )
 
             logger.info(f"{self.character_state.name} received {transfer['amount']} {transfer['currency_type']} from {transfer['from_name']}")
             print(f"[{self.character_state.name}] 💰 Received {transfer['amount']} {transfer['currency_type']} from {transfer['from_name']}")
-            print(f"[{self.character_state.name}] New total: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+            print(f"[{self.character_state.name}] New total: {self.character_state.energy_purse.spark} Spark, {self.character_state.energy_purse.drip} Drip, {self.character_state.energy_purse.breath} Breath")
 
             # Remove from pending
             self.shared_state.pending_transfers.remove(transfer)
@@ -1039,7 +1047,7 @@ class AIPlayerAgent(Agent):
         skills_text = _format_tiered_skills(self.character_state.skills)
 
         # Format currency display
-        energy_inv = self.character_state.energy_inventory
+        energy_inv = self.character_state.energy_purse
         if energy_inv:
             currency_display = f"""- Breath: {energy_inv.breath} (smallest denomination)
 - Drip: {energy_inv.drip}
@@ -1350,7 +1358,12 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 agent_id=self.agent_id,
                 action_type=player_action.action_type,
                 target=player_action.target,
-                target_position=player_action.target_position
+                target_position=player_action.target_position,
+                vendor_id=player_action.vendor_id,  # Preserve purchase fields
+                item_id=player_action.item_id,
+                transfer_target=player_action.transfer_target,  # Preserve transfer fields
+                transfer_currency=player_action.transfer_currency,
+                transfer_items=player_action.transfer_items
             )
 
             return action_declaration
@@ -1386,13 +1399,15 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             if vendors:
                 vendor_info = "\n**💰 VENDORS PRESENT:**\n\n"
                 for vendor in vendors:
-                    vendor_info += f"**{vendor['name']}** ({vendor['faction']} {vendor['type']})\n"
+                    vendor_id = vendor.get('vendor_id', 'unknown')
+                    vendor_info += f"**{vendor['name']}** ({vendor['faction']} {vendor['type']}) `[{vendor_id}]`\n"
                     vendor_info += f"\"{vendor['greeting']}\"\n\n"
 
                     # Show full inventory with prices
                     if 'inventory' in vendor and vendor['inventory']:
                         vendor_info += "**Inventory:**\n"
                         for item in vendor['inventory'][:8]:  # Show first 8 items
+                            item_id = item.get('item_id', 'unknown')
                             prices = []
                             if item.get('price_spark', 0) > 0:
                                 prices.append(f"{item['price_spark']} Spark")
@@ -1401,7 +1416,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                             if item.get('price_breath', 0) > 0:
                                 prices.append(f"{item['price_breath']} Breath")
                             price_str = " or ".join(prices) if prices else "Free"
-                            vendor_info += f"- **{item['name']}** - {price_str}\n"
+                            vendor_info += f"- **{item['name']}** `[{item_id}]` - {price_str}\n"
 
                         if len(vendor['inventory']) > 8:
                             vendor_info += f"  _(and {len(vendor['inventory']) - 8} more items)_\n"
@@ -1411,7 +1426,8 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
                     vendor_info += "\n"
 
-                vendor_info += "You can purchase items, barter, or ask for information! Use your currency (Breath/Drip/Grain/Spark).\n"
+                vendor_info += "**To purchase:** Set action_type='purchase', provide vendor_id and item_id.\n"
+                vendor_info += "Example: `action_type: 'purchase', vendor_id: 'vnd_a1b2', item_id: 'itm_c3d4'`\n"
 
             # Get clock states with semantic guidance
             clock_context = ""

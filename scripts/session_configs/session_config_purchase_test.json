@@ -1,0 +1,144 @@
+{
+  "session_name": "purchase_test_simple",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "scenario": {
+    "theme": "Medical Emergency",
+    "location": "Field Hospital Outpost (Nimbus Frontier)",
+    "situation": "Rivan is injured (currently at 15/30 HP) after a skirmish with raiders. Field Medic Jara is present and selling medical supplies. Rivan needs to PURCHASE a Med Kit (5 Drip) to restore health. This is a test of the purchase system - players should use vendor_id and item_id to buy items.",
+    "void_level": 2,
+    "active_npcs": [],
+    "environmental_factors": ["Field hospital tents", "Medical equipment scattered around"],
+    "active_vendors": []
+  },
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_medic",
+      "name": "Field Medic Jara",
+      "faction": "Independent",
+      "vendor_type": "human_trader",
+      "greeting": "Got wounded? I've got Med Kits. 5 Drip each.",
+      "inventory": [
+        {
+          "name": "Med Kit",
+          "description": "Restores 15 HP immediately",
+          "price_drip": 5
+        },
+        {
+          "name": "Combat Stim",
+          "description": "+2 to combat rolls for 3 rounds",
+          "price_spark": 2
+        },
+        {
+          "name": "Armor Patch Kit",
+          "description": "Repairs 5 soak points",
+          "price_drip": 8
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+    {
+      "name": "Injured Scout Rivan",
+      "pronouns": "they/them",
+      "faction": "Freeborn",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 5,
+        "voidCuriosity": 3,
+        "bondPreference": "neutral",
+        "ritualConservatism": 5
+      },
+      "goals": [
+        "Get medical treatment for injuries",
+        "Purchase supplies from the medic",
+        "Test the purchase system"
+      ],
+      "attributes": {
+        "Strength": 3,
+        "Agility": 4,
+        "Endurance": 3,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 3,
+        "Willpower": 3,
+        "Charisma": 4
+      },
+      "skills": {
+        "Charm": 4,
+        "Awareness": 5,
+        "Guns": 4,
+        "Athletics": 3,
+        "Stealth": 3
+      },
+      "starting_health": 15,
+      "starting_max_health": 30,
+      "starting_currency": {
+        "breath": 50,
+        "drip": 25,
+        "grain": 5,
+        "spark": 10
+      },
+      "starting_inventory": {}
+    },
+    {
+      "name": "Medic Assistant Kae",
+      "pronouns": "she/her",
+      "faction": "Independent",
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.8
+      },
+      "personality": {
+        "riskTolerance": 3,
+        "voidCuriosity": 2,
+        "bondPreference": "neutral",
+        "ritualConservatism": 6
+      },
+      "goals": [
+        "Help Rivan get medical supplies",
+        "Test pooling resources for purchases",
+        "Coordinate with teammates"
+      ],
+      "attributes": {
+        "Strength": 2,
+        "Agility": 3,
+        "Endurance": 3,
+        "Perception": 3,
+        "Intelligence": 4,
+        "Empathy": 4,
+        "Willpower": 3,
+        "Charisma": 4
+      },
+      "skills": {
+        "Healing": 5,
+        "Charm": 4,
+        "Awareness": 3,
+        "Investigation": 3
+      },
+      "starting_currency": {
+        "breath": 50,
+        "drip": 25,
+        "grain": 5,
+        "spark": 10
+      },
+      "starting_inventory": {}
+    }
+    ]
+  },
+  "notes": "SIMPLE purchase test. Rivan is injured (15/30 HP). Field Medic Jara sells Med Kits (5 Drip). Players have 25 Drip each (50 total). GOAL: Get players to actually BUY Med Kits using vendor_id/item_id syntax. This is a MECHANICAL test of the purchase system, not a complex roleplay scenario."
+}

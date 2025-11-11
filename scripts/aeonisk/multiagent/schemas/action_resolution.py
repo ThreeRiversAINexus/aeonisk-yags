@@ -26,6 +26,7 @@ from .shared_types import (
 from .vendor_interaction import (
     PurchaseEffect,
     CraftingAttempt,
+    CurrencyTransfer,
 )
 
 
@@ -121,6 +122,11 @@ class MechanicalEffects(BaseModel):
     crafting: Optional[CraftingAttempt] = Field(
         default=None,
         description="Offering crafting attempt (if action was crafting). Uses Attunement skill check (DC 15 base)."
+    )
+
+    currency_transfer: Optional['CurrencyTransfer'] = Field(
+        default=None,
+        description="Player-to-player energy currency transfer (if action was a transfer). Replaces keyword parsing."
     )
 
     # Additional metadata

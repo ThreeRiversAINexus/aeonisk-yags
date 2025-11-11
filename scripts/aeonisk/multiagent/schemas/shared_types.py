@@ -31,6 +31,8 @@ class ActionType(str, Enum):
     TECHNICAL = "technical"
     PERCEPTION = "perception"
     SUPPORT = "support"
+    PURCHASE = "purchase"  # Vendor transactions (separate from social for ML training)
+    TRANSFER = "transfer"  # Energy currency transfers between characters
     CUSTOM = "custom"
 
 

@@ -17,12 +17,63 @@ logger = logging.getLogger(__name__)
 
 # Import energy economy types for seed attunement
 try:
-    from .energy_economy import SeedType, Element, Seed
+    from .energy_economy import SeedType, Element, Seed, Vendor, VendorItem, VendorType
 except ImportError:
     logger.warning("energy_economy module not found, seed attunement will not be available")
     SeedType = None
     Element = None
     Seed = None
+    Vendor = None
+    VendorItem = None
+    VendorType = None
+
+
+@dataclass
+class PurchaseValidation:
+    """
+    Result of pre-purchase validation check.
+
+    Used to validate purchase requests BEFORE calling the DM, preventing
+    LLM hallucinations about successful purchases when player lacks funds.
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    shortage: Optional[Dict[str, int]] = None  # {currency_type: amount_short}
+    sc_blocked: bool = False  # True if purchase blocked by Soulcredit threshold
+    vendor_accessible: bool = True  # True if vendor exists and is accessible
+    # New fields for mechanical purchase system
+    can_afford: bool = False  # Alias for is_valid
+    item_name: str = ""
+    inventory_key: str = ""
+    cost: Dict[str, int] = field(default_factory=dict)
+    player_currency: Dict[str, int] = field(default_factory=dict)
+    surplus: Optional[Dict[str, int]] = None  # How much extra currency player has
+
+    def __post_init__(self):
+        """Sync can_afford with is_valid."""
+        self.can_afford = self.is_valid
+
+
+@dataclass
+class TransferValidation:
+    """
+    Result of pre-transfer validation check.
+
+    Used to validate energy transfers and item transfers BEFORE calling the DM,
+    preventing impossible transfers (out of range, insufficient currency/items, etc.).
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    sender_name: str = ""
+    receiver_name: str = ""
+    receiver_agent_id: str = ""
+    currency: Dict[str, int] = field(default_factory=dict)
+    items: Dict[str, int] = field(default_factory=dict)
+    shortage: Optional[Dict[str, int]] = None  # {currency_type: amount_short}
+    item_shortage: Optional[Dict[str, int]] = None  # {item_name: amount_short}
+    sender_currency: Dict[str, int] = field(default_factory=dict)
+    sender_items: Dict[str, int] = field(default_factory=dict)
+    in_range: bool = False  # True if characters are in same range band
 
 
 class OutcomeTier(Enum):
@@ -793,6 +844,80 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_purchase_attempt(
+        self,
+        round_num: int,
+        player_id: str,
+        character_name: str,
+        vendor_id: str,
+        vendor_name: str,
+        item_id: str,
+        item_name: str,
+        cost: Dict[str, int],
+        player_currency: Dict[str, int],
+        success: bool,
+        failure_reason: Optional[str] = None,
+        shortage: Optional[Dict[str, int]] = None
+    ):
+        """
+        Log purchase attempt (both success and failure).
+
+        Critical for ML training - logs ALL attempts, not just successes.
+
+        Args:
+            round_num: Current round
+            player_id: Agent ID (e.g., 'player_mira')
+            character_name: Character name (e.g., 'Mira Seln')
+            vendor_id: Vendor ID (e.g., 'vnd_a1b2')
+            vendor_name: Vendor name (e.g., 'Test Shop')
+            item_id: Item ID (e.g., 'itm_c3d4')
+            item_name: Item name (e.g., 'Health Kit')
+            cost: Required currency (e.g., {'drip': 5, 'spark': 1})
+            player_currency: Player's current currency (e.g., {'drip': 10, 'spark': 0})
+            success: Whether purchase succeeded
+            failure_reason: Why it failed (if applicable)
+            shortage: How much short (if applicable)
+
+        JSONL Schema:
+        ```json
+        {
+          "event_type": "purchase_attempt",
+          "ts": "2025-01-15T10:30:00",
+          "session": "session_abc123",
+          "round": 2,
+          "player_id": "player_mira",
+          "character_name": "Mira Seln",
+          "vendor_id": "vnd_a1b2",
+          "vendor_name": "Test Shop",
+          "item_id": "itm_c3d4",
+          "item_name": "Health Kit",
+          "cost": {"drip": 5},
+          "player_currency": {"spark": 0, "drip": 4},
+          "success": false,
+          "failure_reason": "Insufficient currency: need 5 Drip, have 4 Drip",
+          "shortage": {"drip": 1}
+        }
+        ```
+        """
+        event = {
+            "event_type": "purchase_attempt",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "player_id": player_id,
+            "character_name": character_name,
+            "vendor_id": vendor_id,
+            "vendor_name": vendor_name,
+            "item_id": item_id,
+            "item_name": item_name,
+            "cost": cost,
+            "player_currency": player_currency,
+            "success": success,
+            "failure_reason": failure_reason,
+            "shortage": shortage
+        }
+        self._write_event(event)
+
     def log_social_deescalation(
         self,
         round_num: int,
@@ -1280,7 +1405,7 @@ class MechanicsEngine:
         "Intelligence", "Empathy", "Willpower", "Charisma"
     ]
 
-    def __init__(self, jsonl_logger: Optional[JSONLLogger] = None):
+    def __init__(self, jsonl_logger: Optional[JSONLLogger] = None, shared_state: Optional[Any] = None):
         self.scene_clocks: Dict[str, SceneClock] = {}
         self.void_states: Dict[str, VoidState] = {}  # agent_id -> VoidState
         self.soulcredit_states: Dict[str, SoulcreditState] = {}  # agent_id -> SoulcreditState
@@ -1290,6 +1415,7 @@ class MechanicsEngine:
         self.jsonl_logger: Optional[JSONLLogger] = jsonl_logger  # Machine-readable event log
         self.current_round: int = 0  # Track current round for logging
         self._last_clock_increment_round: int = -1  # Track last round we incremented clocks
+        self.shared_state: Optional[Any] = shared_state  # NEW: For vendor lookup in purchase validation
 
         # Clock update queue - prevents cascade fills during resolution
         # Queued updates are applied batch during synthesis phase
@@ -1889,6 +2015,364 @@ class MechanicsEngine:
 
             return (False, message, None)
 
+    def validate_purchase_request(
+        self,
+        item_name: str,
+        vendor: Optional['Vendor'],
+        character_state: Any
+    ) -> PurchaseValidation:
+        """
+        Validate a purchase request BEFORE calling the DM.
+
+        Checks:
+        1. Vendor exists and is accessible
+        2. Item exists in vendor inventory
+        3. Character has sufficient currency
+        4. Soulcredit threshold met (vendor-specific)
+
+        Args:
+            item_name: Name of item being purchased
+            vendor: Vendor object (or None if vendor doesn't exist)
+            character_state: Character making purchase
+
+        Returns:
+            PurchaseValidation with validation results
+        """
+        # Check vendor exists
+        if vendor is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason="Vendor not found",
+                vendor_accessible=False
+            )
+
+        # Check Soulcredit threshold (vendor-specific gating)
+        character_sc = getattr(character_state, 'soulcredit', 0)
+        vendor_type = getattr(vendor, 'vendor_type', VendorType.HUMAN_TRADER) if VendorType else None
+
+        # SC gating rules
+        if vendor_type == VendorType.VENDING_MACHINE:
+            # Automated Nexus vendors require SC ≥ -2
+            if character_sc < -2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too low for vending machine (need ≥-2, have {character_sc})",
+                    sc_blocked=True
+                )
+        elif hasattr(vendor, 'vendor_type') and str(vendor.vendor_type).lower() == 'tempest_drone':
+            # Tempest Supply Drones have INVERTED SC (prefer low SC, block high SC)
+            if character_sc >= 2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too high for Tempest drone (need <2, have {character_sc})",
+                    sc_blocked=True
+                )
+
+        # Find item in vendor inventory
+        vendor_item = None
+        for item in vendor.inventory:
+            if item.name.lower() == item_name.lower():
+                vendor_item = item
+                break
+
+        if vendor_item is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Item '{item_name}' not available from this vendor"
+            )
+
+        # Check currency sufficiency
+        if not hasattr(character_state, 'energy_purse') or character_state.energy_purse is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason="Character has no energy purse"
+            )
+
+        energy_purse = character_state.energy_purse
+        shortage = {}
+
+        # Check each currency type in item cost
+        for currency_type, required_amount in vendor_item.cost.items():
+            available_amount = getattr(energy_purse, currency_type, 0)
+            if available_amount < required_amount:
+                shortage[currency_type] = required_amount - available_amount
+
+        if shortage:
+            # Build failure message
+            shortage_parts = [f"{amt} {curr}" for curr, amt in shortage.items()]
+            shortage_str = ", ".join(shortage_parts)
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Insufficient currency (need {shortage_str} more)",
+                shortage=shortage
+            )
+
+        # All checks passed
+        return PurchaseValidation(is_valid=True)
+
+    def validate_purchase(
+        self,
+        character_state: Any,
+        vendor_id: str,
+        item_id: str
+    ) -> PurchaseValidation:
+        """
+        Validate purchase using vendor_id and item_id (NEW mechanical system).
+
+        This is the ID-based validation for the mechanical purchase system.
+        Checks BEFORE DM narration to prevent phantom purchases.
+
+        Args:
+            character_state: Character attempting purchase
+            vendor_id: Vendor ID (vnd_xxxx)
+            item_id: Item ID (itm_xxxx)
+
+        Returns:
+            PurchaseValidation with full details for mechanical execution
+        """
+        # Get vendor by ID from shared state
+        vendor = None
+        if self.shared_state:
+            vendor = self.shared_state.get_vendor_by_id(vendor_id)
+
+        if vendor is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Vendor {vendor_id} not found",
+                vendor_accessible=False
+            )
+
+        # Get item by ID from vendor
+        item = vendor.get_item_by_id(item_id)
+        if item is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Item {item_id} not in {vendor.name} inventory"
+            )
+
+        # Check Soulcredit threshold
+        character_sc = getattr(character_state, 'soulcredit', 0)
+
+        if vendor.vendor_type == VendorType.VENDING_MACHINE:
+            if character_sc < -2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too low for vending machine (need ≥-2, have {character_sc})",
+                    sc_blocked=True,
+                    item_name=item.name,
+                    inventory_key=item.inventory_key
+                )
+
+        # Check currency
+        if not hasattr(character_state, 'energy_purse') or character_state.energy_purse is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason="Character has no energy purse",
+                item_name=item.name,
+                inventory_key=item.inventory_key
+            )
+
+        energy_purse = character_state.energy_purse
+        cost = item.cost
+        player_currency = {
+            'spark': energy_purse.spark,
+            'grain': energy_purse.grain,
+            'drip': energy_purse.drip,
+            'breath': energy_purse.breath
+        }
+
+        # Check affordability
+        shortage = {}
+        for currency_type, required_amount in cost.items():
+            available_amount = player_currency.get(currency_type, 0)
+            if available_amount < required_amount:
+                shortage[currency_type] = required_amount - available_amount
+
+        if shortage:
+            shortage_parts = [f"{amt} {curr.title()}" for curr, amt in shortage.items()]
+            shortage_str = ", ".join(shortage_parts)
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Insufficient currency: need {shortage_str}",
+                shortage=shortage,
+                item_name=item.name,
+                inventory_key=item.inventory_key,
+                cost=cost,
+                player_currency=player_currency
+            )
+
+        # Calculate surplus
+        surplus = {}
+        for currency_type, required_amount in cost.items():
+            available_amount = player_currency.get(currency_type, 0)
+            surplus[currency_type] = available_amount - required_amount
+
+        # Success!
+        return PurchaseValidation(
+            is_valid=True,
+            item_name=item.name,
+            inventory_key=item.inventory_key,
+            cost=cost,
+            player_currency=player_currency,
+            surplus=surplus
+        )
+
+    def validate_transfer(
+        self,
+        sender_state: Any,
+        transfer_target: str,
+        transfer_currency: Dict[str, int] = None,
+        transfer_items: Dict[str, int] = None,
+        sender_position: Any = None
+    ) -> TransferValidation:
+        """
+        Validate energy and/or item transfer using target name/ID and amounts.
+
+        This is pre-validation for the mechanical transfer system.
+        Checks BEFORE DM narration to prevent impossible transfers.
+
+        Args:
+            sender_state: Character attempting transfer
+            transfer_target: Target character name or agent_id
+            transfer_currency: Currency amounts to transfer, e.g. {"drip": 5, "spark": 2} (optional)
+            transfer_items: Item amounts to transfer, e.g. {"Incense": 2, "Crystals": 1} (optional)
+            sender_position: Position object for range checking (optional)
+
+        Returns:
+            TransferValidation with full details for mechanical execution
+        """
+        # Default to empty dicts if not provided
+        transfer_currency = transfer_currency or {}
+        transfer_items = transfer_items or {}
+        from .shared_state import SharedState
+
+        # Get receiver by name or agent_id from shared state
+        receiver_agent = None
+        receiver_state = None
+
+        if self.shared_state:
+            # Try to find by agent_id first
+            for agent in self.shared_state.player_agents:
+                if agent.agent_id == transfer_target or agent.character_state.name.lower() == transfer_target.lower():
+                    receiver_agent = agent
+                    receiver_state = agent.character_state
+                    break
+
+        if receiver_state is None:
+            return TransferValidation(
+                is_valid=False,
+                failure_reason=f"Target character '{transfer_target}' not found"
+            )
+
+        # Check range if positions available
+        in_range = True
+        if sender_position and hasattr(receiver_agent, 'position') and receiver_agent.position:
+            # Both must be in same range band for physical transfer
+            sender_range = getattr(sender_position, 'ring', None)
+            sender_side = getattr(sender_position, 'side', None)
+            receiver_range = getattr(receiver_agent.position, 'ring', None)
+            receiver_side = getattr(receiver_agent.position, 'side', None)
+
+            if sender_range != receiver_range or sender_side != receiver_side:
+                in_range = False
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Out of range: {sender_state.name} and {receiver_state.name} are not in same range band",
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id,
+                    in_range=False
+                )
+
+        # Check sender has energy purse (if transferring currency)
+        sender_currency = {}
+        if transfer_currency:
+            if not hasattr(sender_state, 'energy_purse') or sender_state.energy_purse is None:
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason="Sender has no energy purse",
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id
+                )
+
+            energy_purse = sender_state.energy_purse
+            sender_currency = {
+                'spark': energy_purse.spark,
+                'grain': energy_purse.grain,
+                'drip': energy_purse.drip,
+                'breath': energy_purse.breath
+            }
+
+            # Check sender has sufficient currency
+            shortage = {}
+            for currency_type, amount in transfer_currency.items():
+                available = sender_currency.get(currency_type, 0)
+                if available < amount:
+                    shortage[currency_type] = amount - available
+
+            if shortage:
+                shortage_parts = [f"{amt} {curr.title()}" for curr, amt in shortage.items()]
+                shortage_str = ", ".join(shortage_parts)
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Insufficient currency: need {shortage_str}",
+                    shortage=shortage,
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id,
+                    currency=transfer_currency,
+                    sender_currency=sender_currency
+                )
+
+        # Check sender has items (if transferring items)
+        sender_items = {}
+        if transfer_items:
+            if not hasattr(sender_state, 'inventory') or sender_state.inventory is None:
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason="Sender has no inventory",
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id
+                )
+
+            sender_items = dict(sender_state.inventory) if sender_state.inventory else {}
+
+            # Check sender has sufficient items
+            item_shortage = {}
+            for item_name, amount in transfer_items.items():
+                available = sender_items.get(item_name, 0)
+                if available < amount:
+                    item_shortage[item_name] = amount - available
+
+            if item_shortage:
+                shortage_parts = [f"{amt} {item}" for item, amt in item_shortage.items()]
+                shortage_str = ", ".join(shortage_parts)
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Insufficient items: need {shortage_str}",
+                    item_shortage=item_shortage,
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id,
+                    items=transfer_items,
+                    sender_items=sender_items
+                )
+
+        # Success!
+        return TransferValidation(
+            is_valid=True,
+            sender_name=sender_state.name,
+            receiver_name=receiver_state.name,
+            receiver_agent_id=receiver_agent.agent_id,
+            currency=transfer_currency,
+            items=transfer_items,
+            sender_currency=sender_currency,
+            sender_items=sender_items,
+            in_range=in_range
+        )
+
     def process_purchase_effect(
         self,
         purchase_effect: Any,
@@ -1927,39 +2411,87 @@ class MechanicsEngine:
 
         # Deduct currency
         for currency_type, amount in purchase_effect.currency_spent.items():
-            if hasattr(character_state, 'energy_inventory') and character_state.energy_inventory:
-                success = character_state.energy_inventory.spend_currency(currency_type, amount)
+            if hasattr(character_state, 'energy_purse') and character_state.energy_purse:
+                success = character_state.energy_purse.spend_currency(currency_type, amount)
                 if not success:
                     logger.error(f"Failed to deduct {amount} {currency_type} from {character_state.name} - insufficient funds!")
                     return False
                 logger.info(f"Deducted {amount} {currency_type} from {character_state.name}")
             else:
-                logger.warning(f"Character {character_state.name} has no energy_inventory")
+                logger.warning(f"Character {character_state.name} has no energy_purse")
                 return False
 
         # Add items to inventory
         for item_name in purchase_effect.items_purchased:
-            # Map item names to inventory keys (simplified version)
-            inventory_key = item_name.lower().replace(' ', '_').replace('(', '').replace(')', '')
-
-            # Common mappings
-            if 'incense' in inventory_key:
-                inventory_key = 'incense'
-            elif 'med_kit' in inventory_key or 'medkit' in inventory_key:
-                inventory_key = 'med_kit'
-            elif 'echo_calibrator' in inventory_key or 'echocalibrator' in inventory_key:
-                inventory_key = 'echo_calibrator'
+            inventory_key = self._map_vendor_item_to_inventory_key(item_name)
 
             if hasattr(character_state, 'inventory'):
                 current = character_state.inventory.get(inventory_key, 0)
                 character_state.inventory[inventory_key] = current + 1
-                logger.info(f"Added {inventory_key} to {character_state.name}'s inventory (now: {current + 1})")
+                logger.info(f"Added {item_name} → {inventory_key} to {character_state.name}'s inventory (now: {current + 1})")
             else:
                 logger.warning(f"Character {character_state.name} has no inventory")
                 return False
 
         logger.info(f"Successfully processed purchase for {character_state.name}: {purchase_effect.items_purchased} from {purchase_effect.vendor_name}")
         return True
+
+    # Canonical mapping of vendor item names to inventory keys
+    VENDOR_ITEM_TO_INVENTORY = {
+        # Ritual items
+        "Blood Offering": "blood_offering",
+        "Blood Offering (Sanctified)": "blood_offering",
+        "Incense Bundle": "incense",
+        "Incense": "incense",
+        "Raw Crystal": "raw_crystal",
+        "Crystals": "raw_crystal",
+
+        # Tech items
+        "Echo-Calibrator": "echo_calibrator",
+        "Echo Calibrator": "echo_calibrator",
+        "Resonance Dampener": "resonance_dampener",
+        "Portable Ley Anchor": "portable_ley_anchor",
+        "Scrambled ID Chip": "scrambled_id_chip",
+        "Data Slate (Encrypted)": "data_slate_encrypted",
+
+        # Medical
+        "Health Kit": "med_kit",
+        "Medkit": "med_kit",
+        "Med Kit": "med_kit",
+
+        # Seeds
+        "Attuned Seed (Fire)": "attuned_seed_fire",
+        "Attuned Seed (Water)": "attuned_seed_water",
+        "Attuned Seed (Earth)": "attuned_seed_earth",
+        "Attuned Seed (Air)": "attuned_seed_air",
+        "Attuned Seed (Spirit)": "attuned_seed_spirit",
+        "Raw Seed": "raw_seed",
+        "Hollow Seed": "hollow_seed",
+
+        # Financial
+        "Bond Insurance Policy": "bond_insurance_policy",
+    }
+
+    def _map_vendor_item_to_inventory_key(self, item_name: str) -> str:
+        """
+        Map vendor item name to character inventory key.
+
+        Uses canonical mapping table with fallback normalization.
+
+        Args:
+            item_name: Vendor's name for the item (e.g., "Echo-Calibrator")
+
+        Returns:
+            Inventory key (e.g., "echo_calibrator")
+        """
+        # Check canonical mapping first
+        if item_name in self.VENDOR_ITEM_TO_INVENTORY:
+            return self.VENDOR_ITEM_TO_INVENTORY[item_name]
+
+        # Fallback: normalize name
+        normalized = item_name.lower().replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '')
+        logger.debug(f"No canonical mapping for '{item_name}', using normalized: '{normalized}'")
+        return normalized
 
     def process_crafting_effect(
         self,
@@ -2761,7 +3293,7 @@ Margin: {margin:+d}
         gear_name: str,
         fuel_type: str = "spark",
         fuel_amount: int = 1,
-        energy_inventory = None
+        energy_purse = None
     ) -> Dict[str, Any]:
         """
         Lightweight optional gear fuel consumption.
@@ -2774,12 +3306,12 @@ Margin: {margin:+d}
             gear_name: Name of gear being used
             fuel_type: Type of fuel ("spark", "drip", "breath", "grain")
             fuel_amount: Amount of fuel consumed per use
-            energy_inventory: EnergyInventory instance (from CharacterState)
+            energy_purse: EnergyPurse instance (from CharacterState)
 
         Returns:
             Dict with success (bool), consumed (int), narrative (str)
         """
-        if energy_inventory is None:
+        if energy_purse is None:
             # No inventory provided, assume fuel is not required
             return {
                 'success': True,
@@ -2788,11 +3320,11 @@ Margin: {margin:+d}
             }
 
         # Attempt to spend fuel
-        fuel_available = getattr(energy_inventory, fuel_type, 0)
+        fuel_available = getattr(energy_purse, fuel_type, 0)
 
         if fuel_available >= fuel_amount:
             # Consume fuel
-            success = energy_inventory.spend_currency(fuel_type, fuel_amount)
+            success = energy_purse.spend_currency(fuel_type, fuel_amount)
 
             if success:
                 narrative = f"{gear_name} consumes {fuel_amount} {fuel_type.capitalize()} and activates."
@@ -2810,7 +3342,7 @@ Margin: {margin:+d}
             'consumed': fuel_amount if success else 0,
             'narrative': narrative,
             'fuel_type': fuel_type,
-            'fuel_remaining': getattr(energy_inventory, fuel_type, 0)
+            'fuel_remaining': getattr(energy_purse, fuel_type, 0)
         }
 
         # Log to JSONL if available

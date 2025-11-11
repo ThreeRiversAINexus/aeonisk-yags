@@ -394,23 +394,54 @@ sections:
     - "Barter my Hollow Seed for Drips with the underground broker"
     - "Browse the vending machine for any void-related equipment"
   currency_transfers: |-
-    **For Currency/Item Transfers** (pooling resources with party):
+    **For Energy Currency & Item Transfers** (physical handoff):
     ```
-    INTENT: Give [amount] [currency] to [character name]
-    ATTRIBUTE: Empathy
-    SKILL: Charm
-    DIFFICULTY: 10
-    JUSTIFICATION: Trivial - willing transfer between allies
-    ACTION_TYPE: social
-    DESCRIPTION: I offer my currency to help pool resources
+    INTENT: Transfer [items/currency] to [character name]
+    ACTION_TYPE: transfer
+    TRANSFER_TARGET: [character name or agent_id]
+    TRANSFER_CURRENCY: {"drip": [amount], "spark": [amount], ...}  # Optional
+    TRANSFER_ITEMS: {"Incense": [amount], "Crystals": [amount], ...}  # Optional
+    DESCRIPTION: Physical exchange of items/energy
     ```
+
+    **IMPORTANT:**
+    - Uses full action (not free)
+    - Physical transfer only - must be in same range band
+    - No skill check - mechanical item/currency movement
+    - Soulcredit implications depend on context (charity, bribery, fair exchange)
+    - Can transfer currency, items, or both in same action
 
     Examples:
-    - "Give 1 Spark to Mira Seln to help buy the Echo-Calibrator"
-    - "Transfer 5 Drip to Kress to pool our funds"
-    - "Offer my Grain to the party for the purchase"
+    - Transfer currency to ally:
+      ```
+      INTENT: Transfer currency to Mira for Echo-Calibrator purchase
+      ACTION_TYPE: transfer
+      TRANSFER_TARGET: Mira Seln
+      TRANSFER_CURRENCY: {"drip": 5}
+      DESCRIPTION: I hand 5 Drip talismans to Mira to help pool funds
+      ```
 
-    Note: This is a FREE action - you can transfer AND take another action in the same turn!
+    - Transfer items:
+      ```
+      INTENT: Give Kress ritual components for purification
+      ACTION_TYPE: transfer
+      TRANSFER_TARGET: Kress
+      TRANSFER_ITEMS: {"Incense": 2, "Crystals": 1}
+      DESCRIPTION: I hand over 2 Incense sticks and a Crystal focus
+      ```
+
+    - Transfer both currency and items:
+      ```
+      INTENT: Provide Ash with supplies and payment
+      ACTION_TYPE: transfer
+      TRANSFER_TARGET: Ash Vex
+      TRANSFER_CURRENCY: {"spark": 2}
+      TRANSFER_ITEMS: {"Blood": 1}
+      DESCRIPTION: I give Ash 2 Spark talismans and a Blood vial for the ritual
+      ```
+
+    **Range requirement:** Both characters must be in same range band (Near-PC, Engaged, etc.)
+    **Validation:** System checks you have sufficient currency/items before DM narration
   action_guidelines: |-
     # Action Selection Guidelines
 

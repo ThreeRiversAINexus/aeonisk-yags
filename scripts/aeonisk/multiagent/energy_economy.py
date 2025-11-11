@@ -19,6 +19,52 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 
+def generate_vendor_id() -> str:
+    """
+    Generate unique vendor ID: vnd_xxxx
+
+    Format: vnd_ + 4 random alphanumeric characters
+    Example: vnd_a3kf
+    """
+    import string
+    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"vnd_{suffix}"
+
+
+def generate_item_id() -> str:
+    """
+    Generate unique item ID: itm_xxxx
+
+    Format: itm_ + 4 random alphanumeric characters
+    Example: itm_c9x2
+    """
+    import string
+    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"itm_{suffix}"
+
+
+def item_name_to_inventory_key(item_name: str) -> str:
+    """
+    Convert item name to inventory key.
+
+    Examples:
+    - "Echo-Calibrator" → "echo_calibrator"
+    - "Med Kit (Basic)" → "med_kit_basic"
+    - "Attuned Seed (Fire)" → "attuned_seed_fire"
+    """
+    # Remove parentheses content but keep it for keys
+    import re
+    # Replace parentheses with underscores
+    key = item_name.replace('(', '_').replace(')', '')
+    # Convert to lowercase, replace spaces and hyphens with underscores
+    key = key.lower().replace(' ', '_').replace('-', '_')
+    # Remove multiple consecutive underscores
+    key = re.sub(r'_+', '_', key)
+    # Strip leading/trailing underscores
+    key = key.strip('_')
+    return key
+
+
 class SeedType(Enum):
     """Types of Seeds in the Aeonisk economy."""
     RAW = "raw"  # Unstable, degrades over weeks (individual timers: 3-14 sessions)
@@ -125,7 +171,7 @@ def create_raw_seed(origin: str, freshness: str = "random") -> Seed:
 
 
 @dataclass
-class EnergyInventory:
+class EnergyPurse:
     """
     Tracks all energy currencies and seeds for a character.
 
@@ -192,7 +238,7 @@ class EnergyInventory:
         logger.warning(f"Insufficient {currency_type} (needed {amount})")
         return False
 
-    def transfer_currency_to(self, other_inventory: 'EnergyInventory', currency_type: str, amount: int) -> bool:
+    def transfer_currency_to(self, other_inventory: 'EnergyPurse', currency_type: str, amount: int) -> bool:
         """
         Transfer currency from this inventory to another.
         Returns True if successful, False if insufficient funds.
@@ -202,6 +248,35 @@ class EnergyInventory:
             logger.debug(f"Transferred {amount} {currency_type} to another character")
             return True
         return False
+
+    def transfer_currencies_to(self, receiver_purse: 'EnergyPurse', currency_amounts: dict[str, int]) -> bool:
+        """
+        Transfer multiple currencies from this purse to another.
+
+        Args:
+            receiver_purse: Destination EnergyPurse
+            currency_amounts: Dict of {currency_type: amount}, e.g. {"drip": 5, "spark": 2}
+
+        Returns:
+            True if all transfers succeeded, False if any failed
+        """
+        # First check we have enough of all currencies
+        for currency_type, amount in currency_amounts.items():
+            current_amount = getattr(self, currency_type, 0)
+            if current_amount < amount:
+                logger.warning(f"Insufficient {currency_type} for transfer (have {current_amount}, need {amount})")
+                return False
+
+        # All checks passed - execute transfers
+        for currency_type, amount in currency_amounts.items():
+            if amount > 0:
+                success = self.transfer_currency_to(receiver_purse, currency_type, amount)
+                if not success:
+                    # This shouldn't happen since we pre-checked, but handle it
+                    logger.error(f"Transfer failed for {currency_type} despite pre-check")
+                    return False
+
+        return True
 
     def convert_currency(self, from_type: str, to_type: str, amount: int) -> bool:
         """
@@ -339,13 +414,37 @@ class EnergyInventory:
 @dataclass
 class VendorItem:
     """Item available for purchase from a vendor."""
-    name: str
+    name: str  # Keep name first for backward compatibility
     description: str
+    item_id: str = None  # Auto-generated if not provided
+    inventory_key: str = None  # Auto-generated from name if not provided
     price_spark: int = 0
+    price_grain: int = 0
     price_drip: int = 0
     price_breath: int = 0
     seed_barter: bool = False  # Can trade seeds for this
     item_type: str = "consumable"  # consumable, tool, seed, etc.
+
+    def __post_init__(self):
+        """Auto-generate item_id and inventory_key if not provided."""
+        if self.item_id is None:
+            self.item_id = generate_item_id()
+        if self.inventory_key is None:
+            self.inventory_key = item_name_to_inventory_key(self.name)
+
+    @property
+    def cost(self) -> Dict[str, int]:
+        """Get cost as a dictionary for validation."""
+        cost_dict = {}
+        if self.price_spark > 0:
+            cost_dict['spark'] = self.price_spark
+        if self.price_grain > 0:
+            cost_dict['grain'] = self.price_grain
+        if self.price_drip > 0:
+            cost_dict['drip'] = self.price_drip
+        if self.price_breath > 0:
+            cost_dict['breath'] = self.price_breath
+        return cost_dict
 
     def get_price_string(self) -> str:
         """Get formatted price string."""
@@ -371,13 +470,30 @@ class Vendor:
         faction: str,
         inventory: List[VendorItem],
         greeting: str = "Looking to trade?",
-        vendor_type: VendorType = VendorType.HUMAN_TRADER
+        vendor_type: VendorType = VendorType.HUMAN_TRADER,
+        vendor_id: Optional[str] = None  # Auto-generated if not provided
     ):
+        self.vendor_id = vendor_id if vendor_id else generate_vendor_id()
         self.name = name
         self.faction = faction
         self.inventory = inventory
         self.greeting = greeting
         self.vendor_type = vendor_type
+
+    def get_item_by_id(self, item_id: str) -> Optional[VendorItem]:
+        """
+        Lookup item by ID in vendor inventory.
+
+        Args:
+            item_id: Item ID to search for (itm_xxxx)
+
+        Returns:
+            VendorItem if found, None otherwise
+        """
+        for item in self.inventory:
+            if item.item_id == item_id:
+                return item
+        return None
 
     def get_inventory_display(self) -> str:
         """Get formatted vendor inventory for display."""
@@ -390,7 +506,7 @@ class Vendor:
 
         return "\n".join(lines)
 
-    def sell_item(self, item_index: int, buyer_inventory: EnergyInventory) -> Optional[VendorItem]:
+    def sell_item(self, item_index: int, buyer_inventory: EnergyPurse) -> Optional[VendorItem]:
         """
         Attempt to sell an item to the buyer.
         Returns the item if successful, None if transaction failed.
@@ -428,6 +544,43 @@ class Vendor:
 
         logger.warning(f"Transaction failed: insufficient funds for {item.name}")
         return None
+
+
+def create_test_vendor() -> Vendor:
+    """
+    Create minimal test vendor for unit testing purchase system.
+
+    Returns a simple vending machine with 3 basic items.
+    """
+    test_items = [
+        VendorItem(
+            name="Health Kit",
+            description="Restores 10 HP",
+            price_drip=5,
+            item_type="consumable"
+        ),
+        VendorItem(
+            name="Energy Cell",
+            description="Restores 20 energy",
+            price_drip=3,
+            price_breath=8,
+            item_type="consumable"
+        ),
+        VendorItem(
+            name="Spark Cell",
+            description="High-power energy cell",
+            price_spark=1,
+            item_type="consumable"
+        )
+    ]
+
+    return Vendor(
+        name="Test Vend-O-Mat",
+        faction="Nexus",
+        inventory=test_items,
+        greeting="Testing purchases...",
+        vendor_type=VendorType.VENDING_MACHINE
+    )
 
 
 def create_standard_vendors() -> List[Vendor]:
@@ -635,8 +788,9 @@ __all__ = [
     'Element',
     'VendorType',
     'Seed',
-    'EnergyInventory',
+    'EnergyPurse',
     'VendorItem',
     'Vendor',
+    'create_test_vendor',
     'create_standard_vendors'
 ]

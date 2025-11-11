@@ -119,6 +119,10 @@ class SelfPlayingSession:
         self.running = False
         self.shared_state = SharedState()
         self.shared_state.session_config = self.config  # Store config for agents to access flags
+
+        # Initialize persistent vendors from config
+        self._initialize_persistent_vendors()
+
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
         self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
@@ -205,7 +209,79 @@ class SelfPlayingSession:
         dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
         self.shared_state.load_dm_notes(str(dm_notes_path))
         self.dm_notes_path = dm_notes_path
-        
+
+    def _initialize_persistent_vendors(self):
+        """
+        Initialize persistent vendors from session config.
+
+        Spawns vendors defined in config['persistent_vendors'] into SharedState.
+        These vendors persist across all rounds unless explicitly removed.
+
+        NOTE: This is a minimal implementation for testing. Production gameplay
+        should use DM-driven VendorSpawn structured output (not yet implemented).
+        """
+        persistent_vendors_config = self.config.get('persistent_vendors', [])
+
+        if not persistent_vendors_config:
+            logger.debug("No persistent_vendors in config")
+            return
+
+        from .energy_economy import Vendor, VendorItem, VendorType
+
+        # Note: SharedState uses `current_vendors` attribute, accessed via add_vendor() method
+
+        for vendor_config in persistent_vendors_config:
+            # Parse inventory items
+            inventory_items = []
+            for item_config in vendor_config.get('inventory', []):
+                item = VendorItem(
+                    name=item_config['name'],
+                    description=item_config['description'],
+                    item_id=item_config.get('item_id'),  # FIX: Pass item_id from config (or None for auto-generation)
+                    price_spark=item_config.get('price_spark', 0),
+                    price_grain=item_config.get('price_grain', 0),
+                    price_drip=item_config.get('price_drip', 0),
+                    price_breath=item_config.get('price_breath', 0)
+                )
+                inventory_items.append(item)
+
+            # Parse vendor type (default to human_trader)
+            vendor_type_str = vendor_config.get('vendor_type', 'human_trader')
+            try:
+                vendor_type = VendorType[vendor_type_str.upper()]
+            except KeyError:
+                logger.warning(f"Unknown vendor_type '{vendor_type_str}', defaulting to HUMAN_TRADER")
+                vendor_type = VendorType.HUMAN_TRADER
+
+            # Create vendor
+            vendor = Vendor(
+                name=vendor_config['name'],
+                faction=vendor_config.get('faction', 'Neutral'),
+                inventory=inventory_items,
+                greeting=vendor_config.get('greeting', 'Looking to trade?'),
+                vendor_type=vendor_type,
+                vendor_id=vendor_config.get('vendor_id')  # FIX: Pass vendor_id from config (or None for auto-generation)
+            )
+
+            # Add to shared state using proper method
+            self.shared_state.add_vendor(vendor)
+
+            logger.info(f"Initialized persistent vendor: {vendor.name} ({vendor_type_str}) with {len(inventory_items)} items, vendor_id={vendor.vendor_id}")
+
+        print(f"✓ Loaded {len(persistent_vendors_config)} persistent vendor(s)")
+
+    # NOTE: _inject_required_items_into_vendors() removed
+    #
+    # The DM already handles vendor spawning for required purchases via:
+    # 1. force_vendor_gate → _create_vendor_gated_scenario() generates required_purchase
+    # 2. DM spawns vendor from self.vendor_pool matching required_vendor_type
+    # 3. Vendors in vendor_pool (create_standard_vendors()) have inventory designed for scenarios
+    #
+    # For testing with persistent_vendors config:
+    # - Set vendor_spawn_frequency: -1 to disable DM vendor spawning
+    # - Manually configure persistent vendor inventory to include scenario-required items
+    # - Or set vendor_spawn_frequency: 3 to let DM spawn vendors from vendor_pool
+
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
         try:
@@ -431,6 +507,7 @@ class SelfPlayingSession:
                 prompt_enricher=self.voice_library.enrich_prompt,
                 history_supplier=self._recent_history,
                 llm_client=player_llm_client,
+                agent_prompt_logger=self.agent_prompt_logger,
             )
             self.agents.append(player_agent)
             await player_agent.start()
@@ -454,10 +531,10 @@ class SelfPlayingSession:
                 logger.debug(f"Initialized {player.character_state.name} soulcredit: {initial_sc}")
 
                 # Degrade Raw Seeds (1 cycle per session)
-                if hasattr(player.character_state, 'energy_inventory') and player.character_state.energy_inventory:
-                    player.character_state.energy_inventory.degrade_raw_seeds(cycles=1)
-                    raw_count = player.character_state.energy_inventory.count_seeds(SeedType.RAW)
-                    hollow_count = player.character_state.energy_inventory.count_seeds(SeedType.HOLLOW)
+                if hasattr(player.character_state, 'energy_purse') and player.character_state.energy_purse:
+                    player.character_state.energy_purse.degrade_raw_seeds(cycles=1)
+                    raw_count = player.character_state.energy_purse.count_seeds(SeedType.RAW)
+                    hollow_count = player.character_state.energy_purse.count_seeds(SeedType.HOLLOW)
                     if hollow_count > 0:
                         logger.debug(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
 
@@ -1201,10 +1278,10 @@ class SelfPlayingSession:
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
 
                             # Process purchase/crafting effects from structured output
-                            effects = resolution_data.get('effects', {})
+                            effects = resolution_data.get('effects') or {}
 
                             # Handle purchases
-                            purchase_effect = effects.get('purchase')
+                            purchase_effect = effects.get('purchase') if effects else None
                             if purchase_effect:
                                 try:
                                     success = mechanics.process_purchase_effect(purchase_effect, agent.character_state)
@@ -1216,7 +1293,7 @@ class SelfPlayingSession:
                                     logger.error(f"Error processing purchase for {agent.character_state.name}: {e}")
 
                             # Handle crafting
-                            crafting_effect = effects.get('crafting')
+                            crafting_effect = effects.get('crafting') if effects else None
                             if crafting_effect:
                                 try:
                                     success = mechanics.process_crafting_effect(crafting_effect, agent.character_state)
@@ -1834,32 +1911,75 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         inv_str = " | ".join(inventory_items)
                         print(f"         └─ Inventory: {inv_str}")
 
-                # Display energy/seeds if available
-                if hasattr(agent.character_state, 'energy_inventory') and agent.character_state.energy_inventory:
-                    energy_inv = agent.character_state.energy_inventory
-                    energy_items = []
+                # Display energy purse (currency and seeds)
+                if hasattr(agent.character_state, 'energy_purse') and agent.character_state.energy_purse:
+                    energy_purse = agent.character_state.energy_purse
 
-                    # Seeds
-                    seeds = getattr(energy_inv, 'seed_counts', {})
-                    if seeds.get('attuned', 0) > 0:
-                        energy_items.append(f"Attuned Seeds:{seeds['attuned']}")
-                    if seeds.get('raw', 0) > 0:
-                        energy_items.append(f"Raw Seeds:{seeds['raw']}")
-                    if seeds.get('hollow', 0) > 0:
-                        energy_items.append(f"Hollow:{seeds['hollow']}")
+                    # Display all currencies (show non-zero values)
+                    currency_parts = []
+                    if energy_purse.drip > 0 or energy_purse.breath > 0 or energy_purse.grain > 0 or energy_purse.spark > 0:
+                        if energy_purse.drip > 0:
+                            currency_parts.append(f"Drip:{energy_purse.drip}")
+                        if energy_purse.breath > 0:
+                            currency_parts.append(f"Breath:{energy_purse.breath}")
+                        if energy_purse.grain > 0:
+                            currency_parts.append(f"Grain:{energy_purse.grain}")
+                        if energy_purse.spark > 0:
+                            currency_parts.append(f"Spark:{energy_purse.spark}")
 
-                    # Currency (show highest denomination available)
-                    currency = getattr(energy_inv, 'currencies', {})
-                    if currency.get('spark', 0) > 0:
-                        energy_items.append(f"Sparks:{currency['spark']}")
-                    elif currency.get('grain', 0) > 0:
-                        energy_items.append(f"Grains:{currency['grain']}")
-                    elif currency.get('drip', 0) > 0:
-                        energy_items.append(f"Drips:{currency['drip']}")
+                    if currency_parts:
+                        currency_str = " | ".join(currency_parts)
+                        print(f"         └─ Energy: {currency_str}")
 
-                    if energy_items:
-                        energy_str = " | ".join(energy_items[:3])
-                        print(f"         └─ Resources: {energy_str}")
+                    # Display seeds (if any)
+                    if energy_purse.seeds:
+                        from .energy_economy import SeedType
+                        seed_counts = {}
+                        for seed in energy_purse.seeds:
+                            # Raw seeds: show freshness (convert to currency before degrading to Hollows)
+                            if seed.seed_type == SeedType.RAW:
+                                if seed.cycles_remaining <= 5:
+                                    seed_type_name = "Raw (Old)"
+                                elif seed.cycles_remaining <= 9:
+                                    seed_type_name = "Raw (Aged)"
+                                else:
+                                    seed_type_name = "Raw (Fresh)"
+                            # Hollow seeds: illicit currency from fully degraded Raw seeds
+                            elif seed.seed_type == SeedType.HOLLOW:
+                                seed_type_name = "Hollows"
+                            # Attuned seeds: (not used in current gameplay loop)
+                            elif seed.seed_type == SeedType.ATTUNED:
+                                if seed.element:
+                                    seed_type_name = f"Attuned ({seed.element.value.title()})"
+                                else:
+                                    seed_type_name = "Attuned"
+                            else:
+                                seed_type_name = seed.seed_type.value
+
+                            seed_counts[seed_type_name] = seed_counts.get(seed_type_name, 0) + 1
+
+                        seed_parts = [f"{name}:{count}" for name, count in seed_counts.items()]
+                        seed_str = " | ".join(seed_parts)
+                        print(f"         └─ Seeds: {seed_str}")
+
+                # Display Soulcredit
+                if hasattr(agent.character_state, 'soulcredit'):
+                    sc = agent.character_state.soulcredit
+                    # Determine SC status
+                    if sc >= 8:
+                        sc_status = "Exemplary"
+                    elif sc >= 5:
+                        sc_status = "Good Standing"
+                    elif sc >= 2:
+                        sc_status = "Monitored"
+                    elif sc >= 0:
+                        sc_status = "Probation"
+                    elif sc >= -2:
+                        sc_status = "Restricted"
+                    else:
+                        sc_status = "Sanctioned"
+
+                    print(f"         └─ Soulcredit: {sc:+d}/10 ({sc_status})")
 
         # Display Enemies
         if enemies:
@@ -2494,6 +2614,226 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             'timestamp': message.timestamp
         })
         logger.debug(f"Buffered action from {agent_id} (total: {len(self._declared_actions[agent_id])} actions)")
+
+        # PRE-VALIDATE AND EXECUTE PURCHASE ACTIONS (before DM sees them)
+        # This prevents phantom purchases where DM narrates success but mechanics fail
+        action_payload = message.payload
+        vendor_id = action_payload.get('vendor_id')
+        item_id = action_payload.get('item_id')
+
+        if vendor_id and item_id:
+            # This is a purchase action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        validation = mechanics.validate_purchase(
+                            character_state=player_agent.character_state,
+                            vendor_id=vendor_id,
+                            item_id=item_id
+                        )
+
+                        # Store validation result on the action for DM to see
+                        action_payload['purchase_validation'] = {
+                            'can_afford': validation.can_afford,
+                            'item_name': validation.item_name,
+                            'cost': validation.cost,
+                            'player_currency': validation.player_currency,
+                            'shortage': validation.shortage,
+                            'failure_reason': validation.failure_reason
+                        }
+
+                        if validation.can_afford:
+                            # EXECUTE TRANSACTION MECHANICALLY (before DM narrates)
+                            # Deduct currency
+                            for currency_type, amount in validation.cost.items():
+                                if amount > 0:
+                                    player_agent.character_state.energy_purse.spend_currency(currency_type, amount)
+
+                            # Add item to inventory
+                            inventory = player_agent.character_state.inventory
+                            inventory_key = validation.inventory_key
+                            inventory[inventory_key] = inventory.get(inventory_key, 0) + 1
+
+                            logger.info(f"✓ PURCHASE EXECUTED: {player_agent.character_state.name} bought {validation.item_name} for {validation.cost}")
+                            action_payload['purchase_validation']['executed'] = True
+                        else:
+                            logger.warning(f"Purchase pre-validation FAILED: {validation.failure_reason}")
+                            action_payload['purchase_validation']['executed'] = False
+
+                        # LOG PURCHASE ATTEMPT (both success and failure)
+                        if mechanics.jsonl_logger:
+                            vendor = self.shared_state.get_vendor_by_id(vendor_id)
+                            vendor_name = vendor.name if vendor else "Unknown Vendor"
+
+                            mechanics.jsonl_logger.log_purchase_attempt(
+                                round_num=mechanics.current_round,
+                                player_id=agent_id,
+                                character_name=player_agent.character_state.name,
+                                vendor_id=vendor_id,
+                                vendor_name=vendor_name,
+                                item_id=item_id,
+                                item_name=validation.item_name,
+                                cost=validation.cost,
+                                player_currency=validation.player_currency,
+                                success=validation.can_afford,
+                                failure_reason=validation.failure_reason,
+                                shortage=validation.shortage
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating purchase for {agent_id}: {e}")
+                        action_payload['purchase_validation'] = {
+                            'can_afford': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
+
+        # PRE-VALIDATE AND EXECUTE TRANSFER ACTIONS (before DM sees them)
+        # Similar to purchases - prevents phantom transfers where DM narrates success but mechanics fail
+        transfer_target = action_payload.get('transfer_target')
+        transfer_currency = action_payload.get('transfer_currency')
+        transfer_items = action_payload.get('transfer_items')
+
+        if transfer_target and (transfer_currency or transfer_items):
+            # This is a transfer action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        # Get sender position for range checking
+                        sender_position = getattr(player_agent, 'position', None)
+
+                        validation = mechanics.validate_transfer(
+                            sender_state=player_agent.character_state,
+                            transfer_target=transfer_target,
+                            transfer_currency=transfer_currency,
+                            transfer_items=transfer_items,
+                            sender_position=sender_position
+                        )
+
+                        # Store validation result on the action for DM to see
+                        action_payload['transfer_validation'] = {
+                            'is_valid': validation.is_valid,
+                            'sender_name': validation.sender_name,
+                            'receiver_name': validation.receiver_name,
+                            'receiver_agent_id': validation.receiver_agent_id,
+                            'currency': validation.currency,
+                            'items': validation.items,
+                            'sender_currency': validation.sender_currency,
+                            'sender_items': validation.sender_items,
+                            'shortage': validation.shortage,
+                            'item_shortage': validation.item_shortage,
+                            'failure_reason': validation.failure_reason,
+                            'in_range': validation.in_range
+                        }
+
+                        if validation.is_valid:
+                            # EXECUTE TRANSFER MECHANICALLY (before DM narrates)
+                            receiver_agent = next(
+                                (a for a in self.shared_state.player_agents
+                                 if a.agent_id == validation.receiver_agent_id),
+                                None
+                            )
+
+                            if receiver_agent:
+                                success = True
+
+                                # Execute currency transfer if present
+                                if transfer_currency:
+                                    currency_success = player_agent.character_state.energy_purse.transfer_currencies_to(
+                                        receiver_purse=receiver_agent.character_state.energy_purse,
+                                        currency_amounts=transfer_currency
+                                    )
+                                    success = success and currency_success
+
+                                # Execute item transfer if present
+                                if transfer_items:
+                                    for item_name, amount in transfer_items.items():
+                                        # Remove from sender
+                                        sender_inv = player_agent.character_state.inventory
+                                        if sender_inv and item_name in sender_inv:
+                                            sender_inv[item_name] -= amount
+                                            if sender_inv[item_name] <= 0:
+                                                del sender_inv[item_name]
+
+                                        # Add to receiver
+                                        receiver_inv = receiver_agent.character_state.inventory
+                                        if receiver_inv is None:
+                                            receiver_agent.character_state.inventory = {}
+                                            receiver_inv = receiver_agent.character_state.inventory
+                                        receiver_inv[item_name] = receiver_inv.get(item_name, 0) + amount
+
+                                if success:
+                                    transfer_desc = []
+                                    if transfer_currency:
+                                        transfer_desc.append(f"Currency: {transfer_currency}")
+                                    if transfer_items:
+                                        transfer_desc.append(f"Items: {transfer_items}")
+                                    logger.info(
+                                        f"✓ TRANSFER EXECUTED: {validation.sender_name} → {validation.receiver_name}: "
+                                        f"{', '.join(transfer_desc)}"
+                                    )
+                                    action_payload['transfer_validation']['executed'] = True
+                                else:
+                                    logger.error(f"Transfer execution failed despite validation passing")
+                                    action_payload['transfer_validation']['executed'] = False
+                                    action_payload['transfer_validation']['is_valid'] = False
+                                    action_payload['transfer_validation']['failure_reason'] = "Mechanical transfer failed"
+                            else:
+                                logger.error(f"Receiver agent {validation.receiver_agent_id} not found for transfer")
+                                action_payload['transfer_validation']['executed'] = False
+                                action_payload['transfer_validation']['is_valid'] = False
+                                action_payload['transfer_validation']['failure_reason'] = "Receiver not found"
+                        else:
+                            logger.warning(f"Transfer pre-validation FAILED: {validation.failure_reason}")
+                            action_payload['transfer_validation']['executed'] = False
+
+                        # LOG TRANSFER ATTEMPT (both success and failure)
+                        if mechanics.jsonl_logger:
+                            log_data = {
+                                'sender_id': agent_id,
+                                'sender_name': validation.sender_name,
+                                'receiver_id': validation.receiver_agent_id,
+                                'receiver_name': validation.receiver_name,
+                                'currency': validation.currency,
+                                'items': validation.items,
+                                'success': validation.is_valid,
+                                'failure_reason': validation.failure_reason,
+                                'in_range': validation.in_range
+                            }
+
+                            if validation.is_valid:
+                                if validation.currency:
+                                    log_data['sender_currency_after'] = {
+                                        'spark': player_agent.character_state.energy_purse.spark,
+                                        'grain': player_agent.character_state.energy_purse.grain,
+                                        'drip': player_agent.character_state.energy_purse.drip,
+                                        'breath': player_agent.character_state.energy_purse.breath
+                                    }
+                                if validation.items:
+                                    log_data['sender_items_after'] = dict(player_agent.character_state.inventory) if player_agent.character_state.inventory else {}
+                            else:
+                                log_data['sender_currency'] = validation.sender_currency
+                                log_data['sender_items'] = validation.sender_items
+
+                            mechanics.jsonl_logger.log_event(
+                                'energy_transfer',
+                                log_data,
+                                mechanics.current_round
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating transfer for {agent_id}: {e}")
+                        action_payload['transfer_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
 
         # Log the declaration
         if self.shared_state and self.shared_state.mechanics_engine:

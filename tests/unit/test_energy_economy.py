@@ -9,7 +9,7 @@ Tests verify:
 
 import pytest
 from scripts.aeonisk.multiagent.energy_economy import (
-    EnergyInventory,
+    EnergyPurse,
     Seed,
     SeedType,
     Element,
@@ -22,7 +22,7 @@ class TestCurrencyOperations:
 
     def test_add_currency(self):
         """Test adding currency to inventory."""
-        inv = EnergyInventory(breath=0, drip=0, grain=0, spark=0)
+        inv = EnergyPurse(breath=0, drip=0, grain=0, spark=0)
 
         inv.add_currency("breath", 10)
         assert inv.breath == 10
@@ -38,7 +38,7 @@ class TestCurrencyOperations:
 
     def test_spend_currency_success(self):
         """Test spending currency with sufficient funds."""
-        inv = EnergyInventory(breath=10, drip=5, grain=2, spark=1)
+        inv = EnergyPurse(breath=10, drip=5, grain=2, spark=1)
 
         assert inv.spend_currency("breath", 5) is True
         assert inv.breath == 5
@@ -54,7 +54,7 @@ class TestCurrencyOperations:
 
     def test_spend_currency_insufficient_funds(self):
         """Test spending currency with insufficient funds."""
-        inv = EnergyInventory(breath=5, drip=2, grain=1, spark=0)
+        inv = EnergyPurse(breath=5, drip=2, grain=1, spark=0)
 
         assert inv.spend_currency("breath", 10) is False
         assert inv.breath == 5  # Unchanged
@@ -67,7 +67,7 @@ class TestCurrencyOperations:
 
     def test_spend_currency_exact_amount(self):
         """Test spending exact amount of currency."""
-        inv = EnergyInventory(breath=10, drip=5, grain=2, spark=1)
+        inv = EnergyPurse(breath=10, drip=5, grain=2, spark=1)
 
         assert inv.spend_currency("breath", 10) is True
         assert inv.breath == 0
@@ -77,8 +77,8 @@ class TestCurrencyOperations:
 
     def test_transfer_currency_success(self):
         """Test transferring currency between inventories."""
-        inv1 = EnergyInventory(breath=10, drip=5, grain=2, spark=1)
-        inv2 = EnergyInventory(breath=0, drip=0, grain=0, spark=0)
+        inv1 = EnergyPurse(breath=10, drip=5, grain=2, spark=1)
+        inv2 = EnergyPurse(breath=0, drip=0, grain=0, spark=0)
 
         assert inv1.transfer_currency_to(inv2, "breath", 5) is True
         assert inv1.breath == 5
@@ -90,8 +90,8 @@ class TestCurrencyOperations:
 
     def test_transfer_currency_insufficient_funds(self):
         """Test transferring currency with insufficient funds."""
-        inv1 = EnergyInventory(breath=5, drip=2, grain=1, spark=0)
-        inv2 = EnergyInventory(breath=0, drip=0, grain=0, spark=0)
+        inv1 = EnergyPurse(breath=5, drip=2, grain=1, spark=0)
+        inv2 = EnergyPurse(breath=0, drip=0, grain=0, spark=0)
 
         assert inv1.transfer_currency_to(inv2, "breath", 10) is False
         assert inv1.breath == 5  # Unchanged
@@ -99,8 +99,8 @@ class TestCurrencyOperations:
 
     def test_transfer_currency_all_types(self):
         """Test transferring all currency types."""
-        inv1 = EnergyInventory(breath=10, drip=10, grain=10, spark=10)
-        inv2 = EnergyInventory(breath=0, drip=0, grain=0, spark=0)
+        inv1 = EnergyPurse(breath=10, drip=10, grain=10, spark=10)
+        inv2 = EnergyPurse(breath=0, drip=0, grain=0, spark=0)
 
         inv1.transfer_currency_to(inv2, "breath", 3)
         inv1.transfer_currency_to(inv2, "drip", 2)
@@ -123,7 +123,7 @@ class TestCurrencyConversions:
 
     def test_convert_spark_to_drip(self):
         """Test converting Spark to Drip (1 Spark = 3 Drip default)."""
-        inv = EnergyInventory(spark=2, drip=0)
+        inv = EnergyPurse(spark=2, drip=0)
 
         assert inv.convert_currency("spark", "drip", 1) is True
         assert inv.spark == 1
@@ -131,7 +131,7 @@ class TestCurrencyConversions:
 
     def test_convert_drip_to_spark(self):
         """Test converting Drip to Spark (3 Drip = 1 Spark default)."""
-        inv = EnergyInventory(spark=0, drip=6)
+        inv = EnergyPurse(spark=0, drip=6)
 
         assert inv.convert_currency("drip", "spark", 3) is True
         assert inv.drip == 3
@@ -139,7 +139,7 @@ class TestCurrencyConversions:
 
     def test_convert_drip_to_breath(self):
         """Test converting Drip to Breath (1 Drip = 4 Breath default)."""
-        inv = EnergyInventory(drip=2, breath=0)
+        inv = EnergyPurse(drip=2, breath=0)
 
         assert inv.convert_currency("drip", "breath", 1) is True
         assert inv.drip == 1
@@ -147,7 +147,7 @@ class TestCurrencyConversions:
 
     def test_convert_breath_to_drip(self):
         """Test converting Breath to Drip (4 Breath = 1 Drip default)."""
-        inv = EnergyInventory(breath=12, drip=0)
+        inv = EnergyPurse(breath=12, drip=0)
 
         assert inv.convert_currency("breath", "drip", 8) is True
         assert inv.breath == 4
@@ -155,7 +155,7 @@ class TestCurrencyConversions:
 
     def test_convert_insufficient_currency(self):
         """Test conversion with insufficient source currency."""
-        inv = EnergyInventory(spark=0, drip=5)
+        inv = EnergyPurse(spark=0, drip=5)
 
         assert inv.convert_currency("spark", "drip", 1) is False
         assert inv.spark == 0
@@ -163,7 +163,7 @@ class TestCurrencyConversions:
 
     def test_convert_too_small_amount(self):
         """Test conversion that would result in 0 target currency."""
-        inv = EnergyInventory(breath=2, drip=10)
+        inv = EnergyPurse(breath=2, drip=10)
 
         # 2 Breath < 4 (breaths_per_drip), so conversion fails
         assert inv.convert_currency("breath", "drip", 2) is False
@@ -172,7 +172,7 @@ class TestCurrencyConversions:
 
     def test_convert_hollow_seed_to_drip(self):
         """Test converting Hollow Seed to Drip (black market)."""
-        inv = EnergyInventory(drip=0)
+        inv = EnergyPurse(drip=0)
         hollow_seed = Seed(seed_type=SeedType.HOLLOW, origin="test")
         inv.add_seed(hollow_seed)
 
@@ -182,7 +182,7 @@ class TestCurrencyConversions:
 
     def test_convert_hollow_seed_no_seed_available(self):
         """Test converting Hollow Seed when none in inventory."""
-        inv = EnergyInventory(drip=0)
+        inv = EnergyPurse(drip=0)
 
         assert inv.convert_currency("hollow", "drip", 1) is False
         assert inv.drip == 0  # Unchanged
@@ -270,7 +270,7 @@ class TestInventorySeedOperations:
 
     def test_add_seed(self):
         """Test adding seeds to inventory."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         raw_seed = Seed(seed_type=SeedType.RAW, cycles_remaining=10)
         attuned_seed = Seed(seed_type=SeedType.ATTUNED, element=Element.WATER)
 
@@ -283,7 +283,7 @@ class TestInventorySeedOperations:
 
     def test_consume_seed_raw(self):
         """Test consuming a Raw Seed from inventory."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         seed = Seed(seed_type=SeedType.RAW, cycles_remaining=10, origin="test")
         inv.add_seed(seed)
 
@@ -295,7 +295,7 @@ class TestInventorySeedOperations:
 
     def test_consume_seed_attuned_specific_element(self):
         """Test consuming Attuned Seed with specific element."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         fire_seed = Seed(seed_type=SeedType.ATTUNED, element=Element.FIRE)
         water_seed = Seed(seed_type=SeedType.ATTUNED, element=Element.WATER)
         inv.add_seed(fire_seed)
@@ -310,7 +310,7 @@ class TestInventorySeedOperations:
 
     def test_consume_seed_not_available(self):
         """Test consuming seed when none available."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
 
         consumed = inv.consume_seed(SeedType.HOLLOW)
 
@@ -318,7 +318,7 @@ class TestInventorySeedOperations:
 
     def test_count_seeds_by_type(self):
         """Test counting seeds by type."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=10))
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=8))
         inv.add_seed(Seed(seed_type=SeedType.HOLLOW))
@@ -330,7 +330,7 @@ class TestInventorySeedOperations:
 
     def test_count_seeds_by_element(self):
         """Test counting Attuned Seeds by element."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         inv.add_seed(Seed(seed_type=SeedType.ATTUNED, element=Element.FIRE))
         inv.add_seed(Seed(seed_type=SeedType.ATTUNED, element=Element.FIRE))
         inv.add_seed(Seed(seed_type=SeedType.ATTUNED, element=Element.WATER))
@@ -341,7 +341,7 @@ class TestInventorySeedOperations:
 
     def test_degrade_all_raw_seeds(self):
         """Test degrading all Raw Seeds in inventory."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=5))
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=2))
         inv.add_seed(Seed(seed_type=SeedType.ATTUNED, element=Element.FIRE))
@@ -357,7 +357,7 @@ class TestInventorySeedOperations:
 
     def test_degrade_raw_seeds_to_hollow(self):
         """Test Raw Seeds degrading to Hollow in inventory."""
-        inv = EnergyInventory()
+        inv = EnergyPurse()
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=1))
 
         inv.degrade_raw_seeds(1)
@@ -373,7 +373,7 @@ class TestInventorySerialization:
 
     def test_inventory_as_dict(self):
         """Test serializing full inventory to dict."""
-        inv = EnergyInventory(breath=10, drip=5, grain=2, spark=1)
+        inv = EnergyPurse(breath=10, drip=5, grain=2, spark=1)
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=8, origin="loot"))
         inv.add_seed(Seed(seed_type=SeedType.ATTUNED, element=Element.FIRE, origin="vendor"))
 
@@ -414,15 +414,15 @@ class TestEdgeCases:
 
     def test_spend_zero_currency(self):
         """Test spending 0 currency (should succeed trivially)."""
-        inv = EnergyInventory(breath=10)
+        inv = EnergyPurse(breath=10)
 
         assert inv.spend_currency("breath", 0) is True
         assert inv.breath == 10
 
     def test_transfer_zero_currency(self):
         """Test transferring 0 currency (should succeed trivially)."""
-        inv1 = EnergyInventory(breath=10)
-        inv2 = EnergyInventory(breath=5)
+        inv1 = EnergyPurse(breath=10)
+        inv2 = EnergyPurse(breath=5)
 
         assert inv1.transfer_currency_to(inv2, "breath", 0) is True
         assert inv1.breath == 10
@@ -430,7 +430,7 @@ class TestEdgeCases:
 
     def test_multiple_currency_types_independence(self):
         """Test that currency types are independent."""
-        inv = EnergyInventory(breath=10, drip=5, grain=2, spark=1)
+        inv = EnergyPurse(breath=10, drip=5, grain=2, spark=1)
 
         inv.spend_currency("breath", 10)
         assert inv.breath == 0

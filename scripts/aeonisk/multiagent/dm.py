@@ -562,6 +562,10 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
         self.current_scenario = scenario
 
+        # Vendors are already synced via add_vendor() calls above (lines 528-534)
+        # and get_all_vendors() returns current_vendors list (line 543).
+        # No additional sync needed here - SharedState.current_vendors is authoritative.
+
         # Initialize mechanics and create scenario-specific clocks
         if self.shared_state:
             self.shared_state.initialize_mechanics()
@@ -609,6 +613,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             'void_level': scenario.void_level,
             'active_vendors': [
                 {
+                    'vendor_id': vendor.vendor_id,  # NEW: ID for mechanical purchase
                     'name': vendor.name,
                     'type': vendor.vendor_type.value,
                     'faction': vendor.faction,
@@ -616,6 +621,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     'inventory_preview': [item.name for item in vendor.inventory[:3]],  # For JSONL logging
                     'inventory': [  # Full inventory for player prompts
                         {
+                            'item_id': item.item_id,  # NEW: ID for mechanical purchase
                             'name': item.name,
                             'description': item.description,
                             'price_spark': item.price_spark,
@@ -793,7 +799,15 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         # Extract initial_enemies from top-level config (not scenario dict)
         initial_enemies_config = config.get('initial_enemies', [])
 
-        # Create scenario object
+        # Get all current vendors from SharedState (includes persistent vendors)
+        if self.shared_state:
+            all_vendors = self.shared_state.get_all_vendors()
+            logger.debug(f"Retrieved {len(all_vendors)} vendors from SharedState for config scenario: {[v.name for v in all_vendors]}")
+        else:
+            all_vendors = []
+            logger.warning("No SharedState available - config scenario will have no vendors")
+
+        # Create scenario object WITH persistent vendors from SharedState
         scenario = Scenario(
             theme=theme,
             location=location,
@@ -801,17 +815,38 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=void_level,
-            active_vendors=[]
+            active_vendors=all_vendors  # FIX: Use SharedState vendors, not empty list!
         )
         self.current_scenario = scenario
 
-        # Prepare scenario data
+        # Prepare scenario data WITH vendor inventory for player prompts
         scenario_data = {
             'theme': theme,
             'location': location,
             'situation': situation,
             'void_level': void_level,
-            'vendor': None
+            'active_vendors': [  # FIX: Include vendor data for players!
+                {
+                    'vendor_id': vendor.vendor_id,
+                    'name': vendor.name,
+                    'type': vendor.vendor_type.value,
+                    'faction': vendor.faction,
+                    'greeting': vendor.greeting,
+                    'inventory_preview': [item.name for item in vendor.inventory[:3]],
+                    'inventory': [
+                        {
+                            'item_id': item.item_id,
+                            'name': item.name,
+                            'description': item.description,
+                            'price_spark': item.price_spark,
+                            'price_drip': item.price_drip,
+                            'price_breath': item.price_breath,
+                            'seed_barter': item.seed_barter,
+                            'item_type': item.item_type
+                        } for item in vendor.inventory
+                    ]
+                } for vendor in all_vendors
+            ] if all_vendors else []
         }
 
         # Log scenario
@@ -1468,13 +1503,15 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 # Parse inventory items
                 inventory = []
                 for item_config in vendor_config.get('inventory', []):
+                    # Support both flat format (price_drip: 5) and nested format (price: {drip: 5})
                     price_dict = item_config.get('price', {})
                     item = VendorItem(
                         name=item_config['name'],
                         description=item_config.get('description', ''),
-                        price_spark=price_dict.get('spark', 0),
-                        price_drip=price_dict.get('drip', 0),
-                        price_breath=price_dict.get('breath', 0),
+                        item_id=item_config.get('item_id'),  # FIX: Pass item_id from config
+                        price_spark=item_config.get('price_spark', price_dict.get('spark', 0)),
+                        price_drip=item_config.get('price_drip', price_dict.get('drip', 0)),
+                        price_breath=item_config.get('price_breath', price_dict.get('breath', 0)),
                         seed_barter=item_config.get('seed_barter', False),
                         item_type=item_config.get('item_type', 'consumable')
                     )
@@ -1486,7 +1523,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     faction=vendor_config.get('faction', 'Neutral'),
                     inventory=inventory,
                     greeting=vendor_config.get('greeting', 'Looking to trade?'),
-                    vendor_type=vendor_type
+                    vendor_type=vendor_type,
+                    vendor_id=vendor_config.get('vendor_id')  # FIX: Pass vendor_id from config
                 )
 
                 # Store buy prices for future feature (vendor buy-back system)
@@ -2855,6 +2893,298 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 self.needs_story_advancement = False
             return f"Round {round_num} completes:\n{outcomes_text}"
 
+    async def _resolve_purchase_transaction(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve a pre-validated purchase transaction using specialized narration.
+
+        Purchases are mechanical (currency deducted, item added) and just need atmospheric narration.
+        Uses dedicated dm_purchase.yaml prompt focused on transaction narration.
+
+        Args:
+            action: Action dict with purchase_validation data
+
+        Returns:
+            Resolution dict matching standard format
+        """
+        from .mechanics import ActionResolution, OutcomeTier
+
+        character_name = action.get('character_name', 'Character')
+        intent = action.get('intent', 'Purchase item')
+        purchase_validation = action.get('purchase_validation', {})
+
+        executed = purchase_validation.get('executed', False)
+        item_name = purchase_validation.get('item_name', 'item')
+        cost = purchase_validation.get('cost', {})
+        failure_reason = purchase_validation.get('failure_reason', 'Unknown')
+
+        logger.debug(f"Purchase transaction for {character_name}: executed={executed}, item={item_name}")
+
+        # Load purchase-specific prompt
+        try:
+            system_prompt_obj = load_modular_prompt(
+                agent_type="dm",
+                module_names=["dm_purchase"],
+                provider="claude",
+                language="en"
+            )
+            system_prompt = system_prompt_obj.content if hasattr(system_prompt_obj, 'content') else str(system_prompt_obj)
+        except Exception as e:
+            logger.warning(f"Failed to load dm_purchase prompt: {e}, using inline")
+            system_prompt = "Narrate a purchase transaction. No dice rolls - just atmospheric narration based on validation result."
+
+        # Build user prompt with purchase context
+        user_prompt = f"""
+Character: {character_name}
+Action: {intent}
+
+Purchase Validation Result:
+- Transaction Executed: {executed}
+- Item: {item_name}
+- Cost: {cost}
+- Failure Reason: {failure_reason if not executed else 'N/A'}
+
+Generate an ActionResolution for this {'successful' if executed else 'failed'} purchase transaction.
+"""
+
+        # Call LLM for structured narration
+        try:
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = 500  # Shorter - just need narration
+            temperature = 0.7
+
+            purchase_resolution: ActionResolution = await self.llm_provider.generate_structured(
+                prompt=user_prompt,
+                result_type=ActionResolution,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+
+            narration = purchase_resolution.narrative
+            logger.debug(f"✓ Purchase LLM narration: {len(narration)} chars")
+
+            # Log LLM call for replay
+            if self.llm_logger:
+                estimated_input_tokens = (len(system_prompt) + len(user_prompt)) // 4
+                estimated_output_tokens = len(narration) // 4
+
+                self.llm_logger._log_llm_call(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    response=narration,
+                    model=model,
+                    temperature=temperature,
+                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                    current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None,
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
+
+        except Exception as e:
+            logger.warning(f"Purchase LLM call failed: {e}, using fallback narration")
+            # Fallback to simple template
+            if executed:
+                cost_str = ", ".join([f"{v} {k.title()}" for k, v in cost.items()])
+                narration = f"{character_name} inserts {cost_str} into the payment slot. The machine processes the transaction and dispenses {item_name}."
+            else:
+                narration = f"{character_name} attempts to purchase {item_name}, but the transaction fails: {failure_reason}."
+
+            # Create fallback ActionResolution
+            purchase_resolution = ActionResolution(
+                intent=intent,
+                attribute='None',
+                skill=None,
+                attribute_value=0,
+                skill_value=0,
+                roll=0,
+                total=0,
+                difficulty=0,
+                margin=0,
+                outcome_tier=OutcomeTier.MARGINAL if executed else OutcomeTier.FAILURE,
+                success=executed,
+                narrative=narration,
+                state_effects={'purchase': True, 'item_obtained': item_name if executed else None}
+            )
+
+        # Return resolution matching standard format (includes effects key for session.py)
+        return {
+            'resolution': purchase_resolution,
+            'narration': purchase_resolution.narrative,
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': {},  # Empty effects dict (purchase already executed mechanically)
+            'outcome': {
+                'dm_response': purchase_resolution.narrative,
+                'success': purchase_resolution.success,
+                'consequences': [],
+                'narration': purchase_resolution.narrative,
+                'resolution': {
+                    'intent': purchase_resolution.intent,
+                    'attribute': purchase_resolution.attribute,
+                    'skill': purchase_resolution.skill,
+                    'total': purchase_resolution.total,
+                    'difficulty': purchase_resolution.difficulty,
+                    'margin': purchase_resolution.margin,
+                    'outcome_tier': purchase_resolution.outcome_tier.value if hasattr(purchase_resolution.outcome_tier, 'value') else str(purchase_resolution.outcome_tier),
+                    'success': purchase_resolution.success
+                }
+            }
+        }
+
+    async def _resolve_transfer_transaction(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve a pre-validated energy currency transfer using specialized narration.
+
+        Transfers are mechanical (currency moved between purses) and just need atmospheric narration
+        with Soulcredit interpretation based on context.
+        Uses dedicated dm_transfer.yaml prompt focused on physical exchange and moral implications.
+
+        Args:
+            action: Action dict with transfer_validation data
+
+        Returns:
+            Resolution dict matching standard format
+        """
+        from .mechanics import ActionResolution, OutcomeTier
+
+        character_name = action.get('character_name', 'Character')
+        intent = action.get('intent', 'Transfer currency')
+        transfer_validation = action.get('transfer_validation', {})
+
+        executed = transfer_validation.get('executed', False)
+        sender_name = transfer_validation.get('sender_name', character_name)
+        receiver_name = transfer_validation.get('receiver_name', 'Unknown')
+        currency = transfer_validation.get('currency', {})
+        failure_reason = transfer_validation.get('failure_reason', 'Unknown')
+
+        logger.debug(f"Transfer transaction: {sender_name} → {receiver_name}, executed={executed}, currency={currency}")
+
+        # Load transfer-specific prompt
+        try:
+            system_prompt_obj = load_modular_prompt(
+                agent_type="dm",
+                module_names=["dm_transfer"],
+                provider="claude",
+                language="en"
+            )
+            system_prompt = system_prompt_obj.content if hasattr(system_prompt_obj, 'content') else str(system_prompt_obj)
+        except Exception as e:
+            logger.warning(f"Failed to load dm_transfer prompt: {e}, using inline")
+            system_prompt = "Narrate an energy currency transfer. No dice rolls - just atmospheric narration of the physical exchange and Soulcredit interpretation based on context (charity, bribery, fair exchange, etc.)."
+
+        # Build user prompt with transfer context
+        user_prompt = f"""
+Character: {character_name}
+Action: {intent}
+
+Transfer Validation Result:
+- Transaction Executed: {executed}
+- Sender: {sender_name}
+- Receiver: {receiver_name}
+- Currency: {currency}
+- Failure Reason: {failure_reason if not executed else 'N/A'}
+
+Generate an ActionResolution for this {'successful' if executed else 'failed'} energy transfer.
+
+Context for Soulcredit interpretation:
+Read the action intent to understand WHY this transfer is happening:
+- Charity/aid → +1 to +3 Soulcredit for giver
+- Fair exchange → 0 Soulcredit (neutral)
+- Bribery → -1 to -3 Soulcredit for giver
+- Coercion/extortion → Negative Soulcredit for both parties
+"""
+
+        # Call LLM for structured narration
+        try:
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = 500  # Shorter - just need narration + Soulcredit interpretation
+            temperature = 0.7
+
+            transfer_resolution: ActionResolution = await self.llm_provider.generate_structured(
+                prompt=user_prompt,
+                result_type=ActionResolution,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature
+            )
+
+            narration = transfer_resolution.narrative
+            logger.debug(f"✓ Transfer LLM narration: {len(narration)} chars")
+
+            # Log LLM call for replay
+            if self.llm_logger:
+                estimated_input_tokens = (len(system_prompt) + len(user_prompt)) // 4
+                estimated_output_tokens = len(narration) // 4
+
+                self.llm_logger._log_llm_call(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    response=narration,
+                    model=model,
+                    temperature=temperature,
+                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                    current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None,
+                    call_sequence=self.llm_logger.call_count
+                )
+                self.llm_logger.call_count += 1
+
+        except Exception as e:
+            logger.warning(f"Transfer LLM call failed: {e}, using fallback narration")
+            # Fallback to simple template
+            if executed:
+                currency_str = ", ".join([f"{v} {k.title()}" for k, v in currency.items()])
+                narration = f"{sender_name} presses {currency_str} into {receiver_name}'s palm—talismans changing hands in a brief exchange."
+            else:
+                narration = f"{sender_name} attempts to transfer currency to {receiver_name}, but the transaction fails: {failure_reason}."
+
+            # Create fallback ActionResolution
+            transfer_resolution = ActionResolution(
+                intent=intent,
+                attribute='None',
+                skill=None,
+                attribute_value=0,
+                skill_value=0,
+                roll=0,
+                total=0,
+                difficulty=0,
+                margin=0,
+                outcome_tier=OutcomeTier.MARGINAL if executed else OutcomeTier.FAILURE,
+                success=executed,
+                narrative=narration,
+                state_effects={'currency_transfer': True}
+            )
+
+        # Return resolution matching standard format
+        return {
+            'resolution': transfer_resolution,
+            'narration': transfer_resolution.narrative,
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': {},  # Empty effects dict (transfer already executed mechanically)
+            'outcome': {
+                'dm_response': transfer_resolution.narrative,
+                'success': transfer_resolution.success,
+                'consequences': [],
+                'narration': transfer_resolution.narrative,
+                'resolution': {
+                    'intent': transfer_resolution.intent,
+                    'attribute': transfer_resolution.attribute,
+                    'skill': transfer_resolution.skill,
+                    'total': transfer_resolution.total,
+                    'difficulty': transfer_resolution.difficulty,
+                    'margin': transfer_resolution.margin,
+                    'outcome_tier': transfer_resolution.outcome_tier.value if hasattr(transfer_resolution.outcome_tier, 'value') else str(transfer_resolution.outcome_tier),
+                    'success': transfer_resolution.success
+                }
+            }
+        }
+
     async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any], previous_resolutions=None) -> Dict[str, Any]:
         """
         Resolve a single action mechanically (rolls, difficulty, narration).
@@ -2870,6 +3200,16 @@ Generate appropriate consequences based on what makes sense for that specific cl
         action_type = action.get('action_type', 'unknown')
         description = action.get('description', '')
         intent = action.get('intent', description)
+
+        # Check if this is a pre-validated purchase (specialized narration)
+        purchase_validation = action.get('purchase_validation', {})
+        if action_type == 'purchase' and purchase_validation:
+            return await self._resolve_purchase_transaction(action)
+
+        # Check if this is a pre-validated transfer (specialized narration)
+        transfer_validation = action.get('transfer_validation', {})
+        if action_type == 'transfer' and transfer_validation:
+            return await self._resolve_transfer_transaction(action)
 
         # Check if this is an NPC action (lightweight adjudication)
         if action.get('is_npc'):

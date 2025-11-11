@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .mechanics import MechanicsEngine, SceneClock
@@ -240,7 +243,7 @@ Generate something DIFFERENT from these recent scenarios.
         """Initialize mechanics systems if not already done."""
         if self.mechanics_engine is None:
             from .mechanics import MechanicsEngine
-            self.mechanics_engine = MechanicsEngine()
+            self.mechanics_engine = MechanicsEngine(shared_state=self)  # FIX: Pass self for vendor lookup
 
         if self.action_validator is None:
             from .action_schema import ActionValidator
@@ -403,9 +406,18 @@ Generate something DIFFERENT from these recent scenarios.
         """
         Add vendor to current scenario (persists across rounds).
 
+        Prevents duplicates by name - if vendor with same name exists, skip.
+        This prevents session.py + dm.py from both loading persistent_vendors.
+
         Args:
             vendor: Vendor instance from energy_economy.py
         """
+        # Check if vendor with same name already exists
+        for existing_vendor in self.current_vendors:
+            if existing_vendor.name == vendor.name:
+                # Skip duplicate - already have this vendor
+                return
+
         self.current_vendors.append(vendor)
 
     def remove_vendor(self, vendor_name: str) -> bool:
@@ -436,6 +448,21 @@ Generate something DIFFERENT from these recent scenarios.
         """
         for vendor in self.current_vendors:
             if vendor.name == vendor_name:
+                return vendor
+        return None
+
+    def get_vendor_by_id(self, vendor_id: str) -> Optional[Any]:
+        """
+        Get vendor by ID (NEW mechanical purchase system).
+
+        Args:
+            vendor_id: Vendor ID to find (e.g., "vnd_a1b2")
+
+        Returns:
+            Vendor object if found, None otherwise
+        """
+        for vendor in self.current_vendors:
+            if hasattr(vendor, 'vendor_id') and vendor.vendor_id == vendor_id:
                 return vendor
         return None
 

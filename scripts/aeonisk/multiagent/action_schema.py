@@ -45,6 +45,15 @@ class ActionDeclaration:
     has_offering: bool = False
     ritual_components: Optional[str] = None
 
+    # Optional purchase-specific fields (for vendor transactions)
+    vendor_id: Optional[str] = None  # Vendor ID (vnd_xxxx) for purchase actions
+    item_id: Optional[str] = None  # Item ID (itm_xxxx) for purchase actions
+
+    # Optional transfer-specific fields (for energy currency transfers and item transfers)
+    transfer_target: Optional[str] = None  # Character name or agent_id to transfer to
+    transfer_currency: Optional[Dict[str, int]] = None  # Currency amounts {"drip": 5, "spark": 2}
+    transfer_items: Optional[Dict[str, int]] = None  # Item amounts {"Incense": 2, "Crystals": 1}
+
     # Optional modifiers
     situational_modifiers: Dict[str, int] = None
 
@@ -91,7 +100,7 @@ class ActionDeclaration:
 
         valid_action_types = [
             "explore", "investigate", "ritual", "social",
-            "combat", "technical", "perception", "custom"
+            "combat", "technical", "perception", "purchase", "transfer", "support", "custom"
         ]
         if self.action_type not in valid_action_types:
             errors.append(f"Action type must be one of: {', '.join(valid_action_types)}")

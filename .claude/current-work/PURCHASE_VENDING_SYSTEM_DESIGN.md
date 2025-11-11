@@ -1,8 +1,47 @@
 # Purchase & Vending System Design
 
-**Status:** Design Phase
+**Status:** Phase 1 Complete ✅ | Phase 2-3 Pending
 **Created:** 2025-01-09
+**Updated:** 2025-01-10
 **Purpose:** Complete architectural design for energy-based economy and purchase mechanics
+
+---
+
+## Implementation Status
+
+### ✅ Phase 1: Mechanical Purchase System (COMPLETE - 2025-01-10)
+
+**What's Done:**
+- Pre-validated vendor_id/item_id system
+- Mechanical execution before DM narration
+- Specialized LLM prompt for atmospheric narration
+- No dice rolls for routine purchases
+- Full JSONL logging
+- 8/8 unit tests passing
+
+**Verification:** Session `1dddd8a0-1d85-44e8-b623-cae5b1c7866d` - 6 successful purchases
+
+**See:** `PURCHASE_SYSTEM_COMPLETION.md` for details
+
+### ⏸️ Phase 2: Economy & Vendor Dynamics (NOT STARTED)
+
+**Planned Features:**
+- Persistent vendor state across sessions
+- Dynamic pricing (supply/demand)
+- Inventory depletion tracking
+- DM-spawned vendors in synthesis
+
+**Blocked by:** None (Phase 1 complete, can start anytime)
+
+### ⏸️ Phase 3: Advanced Transactions (NOT STARTED)
+
+**Planned Features:**
+- Negotiation action type (Charisma rolls appropriate here)
+- Credit/barter mechanics
+- Bulk purchases
+- Vendor personality integration
+
+**Blocked by:** Phase 2 vendor dynamics
 
 ---
 
@@ -1810,11 +1849,11 @@ def convert_energy(purse: EnergyPurse, from_type: str, to_type: str, amount: int
 
 **Tasks:**
 1. ✅ **Effects sent to session.py** — ALREADY FIXED (dm.py:2136, 3146, 3876)
-2. **Rename `energy_inventory` → `energy_purse`** throughout codebase
+2. **Rename `energy_purse` → `energy_purse`** throughout codebase
    - `player.py`: CharacterState attribute
    - `session.py`: All references
    - `mechanics.py`: process_purchase_effect()
-   - `energy_economy.py`: Class name (EnergyInventory → EnergyPurse)
+   - `energy_economy.py`: Class name (EnergyPurse → EnergyPurse)
 3. **Fix CharacterState initialization** (player.py:39-46)
    - Respect `starting_energy` from config instead of random values
    - Default to random only if config not provided
@@ -1844,7 +1883,7 @@ def test_round_status_displays_soulcredit():
 ```
 
 **Completion Criteria:**
-- [ ] All references to `energy_inventory` renamed to `energy_purse`
+- [ ] All references to `energy_purse` renamed to `energy_purse`
 - [ ] Config `starting_energy` properly applied to characters
 - [ ] Round status shows energy purse correctly
 - [ ] Round status shows Soulcredit with indicator
@@ -2329,8 +2368,8 @@ def test_soulcredit_blocks_vending_machine_access():
 ```python
 def __post_init__(self):
     """Initialize default inventory and energy inventory if not provided."""
-    if self.energy_inventory is None:
-        self.energy_inventory = EnergyInventory(
+    if self.energy_purse is None:
+        self.energy_purse = EnergyPurse(
             breath=random.randint(5, 15),  # IGNORES CONFIG
             drip=random.randint(3, 10),
             grain=random.randint(0, 3),
@@ -2913,7 +2952,7 @@ round_1:
 
 | Concept | Use This | Not This |
 |---------|----------|----------|
-| Energy storage | `energy_purse` | `energy_inventory`, `currency` |
+| Energy storage | `energy_purse` | `energy_purse`, `currency` |
 | Energy types | Drip, Breath, Grain, Spark | "coins", "money", "cash" |
 | Transaction | "energy transfer", "purchase" | "payment", "spending money" |
 | Container | "talisman" | "wallet", "coin purse" |

@@ -103,6 +103,33 @@ class PlayerAction(BaseModel):
         description="Target ID (tgt_xxxx) or character name for targeted actions"
     )
 
+    # Purchase-specific fields (optional)
+    vendor_id: Optional[str] = Field(
+        default=None,
+        description="Vendor ID (vnd_xxxx) for purchase actions"
+    )
+
+    item_id: Optional[str] = Field(
+        default=None,
+        description="Item ID (itm_xxxx) for purchase actions"
+    )
+
+    # Transfer-specific fields (optional)
+    transfer_target: Optional[str] = Field(
+        default=None,
+        description="Character name or agent_id to transfer energy/items to (for action_type=TRANSFER)"
+    )
+
+    transfer_currency: Optional[Dict[str, int]] = Field(
+        default=None,
+        description="Currency amounts to transfer, e.g. {'drip': 5, 'spark': 2} (for action_type=TRANSFER)"
+    )
+
+    transfer_items: Optional[Dict[str, int]] = Field(
+        default=None,
+        description="Item amounts to transfer, e.g. {'Incense': 2, 'Crystals': 1} (for action_type=TRANSFER)"
+    )
+
     # Ritual-specific fields (optional)
     is_ritual: bool = Field(
         default=False,
@@ -197,6 +224,8 @@ class PlayerAction(BaseModel):
             'agent_id': self.agent_id,
             'target_position': self.target_position.value if self.target_position else None,
             'target': self.target,
+            'vendor_id': self.vendor_id,
+            'item_id': self.item_id,
             'is_ritual': self.is_ritual,
             'has_primary_tool': self.has_primary_tool,
             'has_offering': self.has_offering,

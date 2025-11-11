@@ -606,11 +606,11 @@ The system includes 4 vendor categories:
 
 ### Player Currency Tracking
 
-Characters automatically initialize with `EnergyInventory`:
+Characters automatically initialize with `EnergyPurse`:
 
 ```python
 # Default starting currency
-energy_inventory = EnergyInventory(
+energy_purse = EnergyPurse(
     breath=5,
     drip=10,
     grain=3,
@@ -679,7 +679,7 @@ When `force_vendor_gate: true`, DM generates scenarios like:
 ### Currency Not Showing in Logs
 
 **Check:**
-1. `EnergyInventory` initialized for players
+1. `EnergyPurse` initialized for players
 2. JSONL logging enabled in session
 3. Currency transactions use `.spend_currency()` and `.add_currency()` methods
 

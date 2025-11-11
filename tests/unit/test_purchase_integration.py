@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import Mock, MagicMock
 from scripts.aeonisk.multiagent.mechanics import MechanicsEngine
 from scripts.aeonisk.multiagent.player import CharacterState
-from scripts.aeonisk.multiagent.energy_economy import EnergyInventory
+from scripts.aeonisk.multiagent.energy_economy import EnergyPurse
 
 
 class TestPurchaseProcessingIntegration:
@@ -21,7 +21,7 @@ class TestPurchaseProcessingIntegration:
 
     @pytest.fixture
     def character_with_currency(self):
-        """Create character with energy_inventory and currency."""
+        """Create character with energy_purse and currency."""
         char = CharacterState(
             name="Test Buyer",
             faction="Freeborn",
@@ -44,12 +44,12 @@ class TestPurchaseProcessingIntegration:
             pronouns="they/them"
         )
 
-        # Initialize energy_inventory
-        char.energy_inventory = EnergyInventory()
-        char.energy_inventory.breath = 15
-        char.energy_inventory.drip = 10  # Enough to buy items
-        char.energy_inventory.grain = 0
-        char.energy_inventory.spark = 0
+        # Initialize energy_purse
+        char.energy_purse = EnergyPurse()
+        char.energy_purse.breath = 15
+        char.energy_purse.drip = 10  # Enough to buy items
+        char.energy_purse.grain = 0
+        char.energy_purse.spark = 0
 
         # Initialize inventory
         char.inventory = {
@@ -85,7 +85,7 @@ class TestPurchaseProcessingIntegration:
     def test_process_purchase_effect_with_sufficient_currency(self, mechanics, character_with_currency):
         """Test purchase with sufficient currency."""
         # Give character enough currency
-        character_with_currency.energy_inventory.drip = 25
+        character_with_currency.energy_purse.drip = 25
 
         purchase_effect_dict = {
             "success": True,
@@ -97,7 +97,7 @@ class TestPurchaseProcessingIntegration:
         }
 
         # Starting state
-        assert character_with_currency.energy_inventory.drip == 25
+        assert character_with_currency.energy_purse.drip == 25
         assert character_with_currency.inventory["blood_offering"] == 0
         assert character_with_currency.inventory["incense"] == 0
 
@@ -106,7 +106,7 @@ class TestPurchaseProcessingIntegration:
 
         # Verify results
         assert result is True
-        assert character_with_currency.energy_inventory.drip == 5  # 25 - 20
+        assert character_with_currency.energy_purse.drip == 5  # 25 - 20
         assert character_with_currency.inventory.get("blood_offering", 0) >= 1
         assert character_with_currency.inventory.get("incense", 0) >= 1
 
@@ -121,16 +121,16 @@ class TestPurchaseProcessingIntegration:
             "failure_reason": "Need 20 Drip, have 10"
         }
 
-        starting_drip = character_with_currency.energy_inventory.drip
+        starting_drip = character_with_currency.energy_purse.drip
 
         result = mechanics.process_purchase_effect(purchase_effect_dict, character_with_currency)
 
         assert result is False
-        assert character_with_currency.energy_inventory.drip == starting_drip  # No change
+        assert character_with_currency.energy_purse.drip == starting_drip  # No change
 
     def test_item_name_mapping(self, mechanics, character_with_currency):
         """Test that item names are correctly mapped to inventory keys."""
-        character_with_currency.energy_inventory.drip = 50
+        character_with_currency.energy_purse.drip = 50
 
         purchase_effect_dict = {
             "success": True,
@@ -151,8 +151,8 @@ class TestPurchaseProcessingIntegration:
         # Check inventory (exact keys depend on mapping logic in process_purchase_effect)
         print(f"DEBUG: Final inventory = {character_with_currency.inventory}")
 
-    def test_character_without_energy_inventory_fails(self, mechanics):
-        """Test that characters without energy_inventory can't make purchases."""
+    def test_character_without_energy_purse_fails(self, mechanics):
+        """Test that characters without energy_purse can't make purchases."""
         char_no_energy = CharacterState(
             name="Broke Character",
             faction="Freeborn",
@@ -164,8 +164,8 @@ class TestPurchaseProcessingIntegration:
             goals=[],
             pronouns="they/them"
         )
-        # Set energy_inventory to None to test handling
-        char_no_energy.energy_inventory = None
+        # Set energy_purse to None to test handling
+        char_no_energy.energy_purse = None
 
         purchase_effect_dict = {
             "success": True,
@@ -215,7 +215,7 @@ class TestSessionPurchaseFlow:
 
         Current behavior:
         - Round status only shows HP, position, void, faction, weapons
-        - Currency/inventory require energy_inventory to exist
+        - Currency/inventory require energy_purse to exist
         - Vendors not displayed at all
         """
         pass

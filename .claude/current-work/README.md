@@ -2,7 +2,13 @@
 
 This directory contains work-in-progress documentation.
 
-**Current Branch:** `test-driven-development`
+**Current Branch:** `economy-and-vending`
+
+## Active Documentation
+
+**Economy System:** See `ECONOMY_STATUS.md` for comprehensive status of purchase, transfer, and vendor systems (80% complete as of 2025-01-11)
+
+**Archived Docs:** See `.claude/archive/` for superseded implementation notes
 
 ## Active Development
 
