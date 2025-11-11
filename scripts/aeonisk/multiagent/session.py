@@ -2595,6 +2595,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         if message.type != MessageType.ACTION_DECLARED:
             return
 
+        # Ignore directed messages (e.g., adjudication messages to DM during resolution phase)
+        # Only buffer broadcast messages (recipient=None) from players/enemies declaring actions
+        if message.recipient is not None:
+            return
+
         # Only buffer during declaration phase
         if not self._in_declaration_phase:
             # Enhanced logging to debug spurious ACTION_DECLARED messages
