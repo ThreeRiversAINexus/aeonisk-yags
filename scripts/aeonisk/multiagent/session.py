@@ -2597,6 +2597,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         # Only buffer during declaration phase
         if not self._in_declaration_phase:
+            logger.warning(f"⚠️  ACTION_DECLARED message from {message.sender} DROPPED - not in declaration phase! Intent: {message.payload.get('intent', 'unknown')[:50]}")
             return
 
         # Buffer the action (supports multiple actions per agent for free action system)
@@ -2613,7 +2614,9 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             'action': message.payload,  # Payload IS the action
             'timestamp': message.timestamp
         })
-        logger.debug(f"Buffered action from {agent_id} (total: {len(self._declared_actions[agent_id])} actions)")
+        action_intent = message.payload.get('intent', 'unknown')[:60]
+        is_free = message.payload.get('is_free_action', False)
+        logger.info(f"✓ Buffered {'FREE' if is_free else 'MAIN'} action from {agent_id}: {action_intent} (total: {len(self._declared_actions[agent_id])} actions)")
 
         # PRE-VALIDATE AND EXECUTE PURCHASE ACTIONS (before DM sees them)
         # This prevents phantom purchases where DM narrates success but mechanics fail
