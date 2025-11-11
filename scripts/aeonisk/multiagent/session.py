@@ -2597,7 +2597,26 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         # Only buffer during declaration phase
         if not self._in_declaration_phase:
-            logger.warning(f"⚠️  ACTION_DECLARED message from {message.sender} DROPPED - not in declaration phase! Intent: {message.payload.get('intent', 'unknown')[:50]}")
+            # Enhanced logging to debug spurious ACTION_DECLARED messages
+            import traceback
+            caller_stack = ''.join(traceback.format_stack()[-4:-1])  # Get last 3 frames before this one
+            agent_id = message.sender
+            intent = message.payload.get('intent', 'unknown')[:60]
+            character_name = message.payload.get('character_name', 'unknown')
+            action_type = message.payload.get('action_type', 'unknown')
+            is_free = message.payload.get('is_free_action', False)
+
+            logger.warning(
+                f"⚠️  ACTION_DECLARED DROPPED (not in declaration phase):\n"
+                f"  Sender: {agent_id}\n"
+                f"  Character: {character_name}\n"
+                f"  Intent: {intent}\n"
+                f"  Action Type: {action_type}\n"
+                f"  Is Free: {is_free}\n"
+                f"  Message ID: {message.id}\n"
+                f"  Recipient: {message.recipient}\n"
+                f"  Call stack:\n{caller_stack}"
+            )
             return
 
         # Buffer the action (supports multiple actions per agent for free action system)
