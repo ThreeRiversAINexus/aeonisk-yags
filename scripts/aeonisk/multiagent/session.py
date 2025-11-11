@@ -2857,9 +2857,19 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     )
 
         # Signal that this agent's declaration is complete
-        # Note: Enemies don't have pending events (they declare inline), so only signal for players
+        # CRITICAL: Only signal when we receive the MAIN action (not free action)
+        # Free actions are followed by main actions, so we must wait for the main action
+        # to avoid closing declaration phase prematurely
+        is_free_action = message.payload.get('is_free_action', False)
+
         if agent_id in self._pending_declarations:
-            self._pending_declarations[agent_id].set()
+            if not is_free_action:
+                # This is the main action - signal completion
+                self._pending_declarations[agent_id].set()
+                logger.debug(f"✓ Declaration complete for {agent_id} (main action received)")
+            else:
+                # This is a free action - don't signal yet, wait for main action
+                logger.debug(f"⏳ Free action received from {agent_id}, waiting for main action...")
         elif not agent_id.startswith('enemy_'):
             # Only warn if it's not an enemy (enemies declare inline, no pending event expected)
             logger.warning(f"No pending declaration event for {agent_id}")
