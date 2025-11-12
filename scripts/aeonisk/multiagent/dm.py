@@ -2292,7 +2292,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         # 1. Build available enemies list
         available_enemies = []
         if self.shared_state:
-            enemy_combat = self.shared_state.get_enemy_combat_module()
+            enemy_combat = self.shared_state.enemy_combat
             if enemy_combat and hasattr(enemy_combat, 'enemy_agents'):
                 for enemy in enemy_combat.enemy_agents:
                     if not enemy.is_defeated:
@@ -2369,11 +2369,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     temperature=0.7,
                     tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    metadata={
-                        'phase': 'conversion_check',
-                        'round': round_number,
-                        'source': 'dm_conversion_check'
-                    }
+                    current_round=round_number,
+                    call_sequence=self.llm_logger.call_sequence
                 )
 
             return decisions
