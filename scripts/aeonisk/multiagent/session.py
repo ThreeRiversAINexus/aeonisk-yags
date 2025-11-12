@@ -950,6 +950,9 @@ class SelfPlayingSession:
                                 'agent_id': declaration['agent_id'],
                                 'character_name': declaration['character_name'],
                                 'intent': declaration.get('major_action', 'Unknown action'),
+                                'target': declaration.get('target'),  # NEW: targeting info
+                                'weapon': declaration.get('weapon'),  # NEW: weapon info
+                                'reasoning': declaration.get('reasoning', '')[:100],  # NEW: truncated reasoning
                                 'initiative': declaration['initiative'],
                                 'agent_type': 'enemy'
                             },
@@ -3050,6 +3053,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     else:
                         logger.warning(f"Failed to remove vendor '{vendor_name}' - not found in current_vendors")
 
+            # Remove departing NPCs
+            if adv.npc_departures and self.shared_state:
+                for npc_identifier in adv.npc_departures:
+                    removed = self.shared_state.remove_npc(npc_identifier)
+                    if removed:
+                        logger.info(f"👤 NPC departed: {npc_identifier}")
+                        print(f"   NPC departed: {npc_identifier}")
+                    else:
+                        logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
+
         # 2. Handle enemy spawns (AFTER story advancement)
         if synthesis.enemy_spawns and self.enemy_combat.enabled:
             spawn_notifications = self.enemy_combat.spawn_from_structured(synthesis.enemy_spawns)
@@ -3067,7 +3080,51 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                              if e.agent_id == conversion.enemy_id or e.name == conversion.enemy_id), None)
 
                 if not enemy:
-                    logger.warning(f"Enemy {conversion.enemy_id} not found for conversion")
+                    # ✅ VALIDATION: Enemy not found - log warning and skip gracefully
+                    logger.warning(f"Enemy {conversion.enemy_id} not found for conversion, skipping")
+                    print(f"\n⚠️  WARNING: Enemy {conversion.enemy_id} not found for conversion")
+
+                    # Defensive fallback: Check if this is actually an NPC (common DM mistake)
+                    if self.shared_state:
+                        npc = self.shared_state.get_npc(conversion.enemy_id)
+                        if npc:
+                            logger.warning(
+                                f"Wrong field used: '{conversion.enemy_id}' is an NPC, not an enemy. "
+                                f"Use 'escalations' field for NPC→Enemy conversions. "
+                                f"Auto-converting as escalation..."
+                            )
+                            print(f"   (Detected ID is NPC, not enemy - use 'escalations' field for NPC→Enemy)")
+
+                            # Auto-escalate the NPC using the correct pathway
+                            from .schemas.story_events import Escalation
+
+                            # Find DM agent to process escalation
+                            dm_agent = None
+                            for agent in self.agents:
+                                if agent.agent_id.startswith('dm_'):
+                                    dm_agent = agent
+                                    break
+
+                            if dm_agent and hasattr(dm_agent, '_process_escalation'):
+                                # Create escalation with reasonable defaults
+                                escalation = Escalation(
+                                    npc_id=conversion.enemy_id,
+                                    reason=conversion.reason,
+                                    template="desperate_fighter"  # Default template
+                                )
+
+                                enemy = dm_agent._process_escalation(
+                                    escalation=escalation,
+                                    current_round=mechanics.current_round if mechanics else 0
+                                )
+
+                                if enemy and self.enemy_combat.enabled:
+                                    self.enemy_combat.enemy_agents.append(enemy)
+                                    print(f"   ⚔️  {npc.name} escalated to enemy (auto-corrected): {conversion.reason}")
+                                    logger.info(f"Auto-escalation successful: {npc.name} → Enemy")
+                            continue
+
+                    # Enemy truly not found (not NPC either)
                     continue
 
                 # Determine if enemy stays or leaves
@@ -3157,6 +3214,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     if isinstance(escalation, dict):
                         escalation = Escalation(**escalation)
 
+                    # ✅ VALIDATION: Check NPC exists before escalation
+                    npc = None
+                    if self.shared_state:
+                        npc = next((n for n in self.shared_state.npc_agents if n.agent_id == escalation.npc_id), None)
+
+                    if not npc:
+                        logger.warning(f"NPC {escalation.npc_id} not found for escalation, skipping")
+                        print(f"\n⚠️  WARNING: NPC {escalation.npc_id} not found for escalation")
+                        continue  # Skip this escalation, process others
+
                     if hasattr(dm_agent, '_process_escalation'):
                         enemy = dm_agent._process_escalation(
                             escalation=escalation,
@@ -3207,6 +3274,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Spawn new clocks
             if pivot.new_clocks:
                 self._spawn_new_clocks_structured(pivot.new_clocks)
+
+            # Remove departing NPCs
+            if pivot.npc_departures and self.shared_state:
+                for npc_identifier in pivot.npc_departures:
+                    removed = self.shared_state.remove_npc(npc_identifier)
+                    if removed:
+                        logger.info(f"👤 NPC departed (scene pivot): {npc_identifier}")
+                        print(f"   NPC departed: {npc_identifier}")
+                    else:
+                        logger.warning(f"Failed to remove NPC '{npc_identifier}' during scene pivot - not found in npc_agents")
 
             print(f"\n🔄 SCENE PIVOT")
             print(f"   New Area: {pivot.new_room}")

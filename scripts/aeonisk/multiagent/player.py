@@ -169,8 +169,8 @@ class AIPlayerAgent(Agent):
         self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
         self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
         # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
-        # {character_name: (intent, initiative_score)}
-        self.declared_actions_this_round: Dict[str, Tuple[str, int]] = {}
+        # {character_name: (description, intent, target, weapon, reasoning, initiative_score)}
+        self.declared_actions_this_round: Dict[str, Tuple[str, str, Optional[str], Optional[str], str, int]] = {}
 
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
@@ -483,13 +483,16 @@ class AIPlayerAgent(Agent):
         character_name = action.get('character_name', 'Unknown')
         description = action.get('description', '')
         intent = action.get('intent', '')
+        target = action.get('target')  # NEW: targeting info (may be None)
+        weapon = action.get('weapon')  # NEW: weapon info (may be None)
+        reasoning = action.get('reasoning', '')  # NEW: reasoning (may be empty)
         initiative = action.get('initiative', 0)
 
         # Store ALL combatant actions for tactical awareness (neutral - no ally/enemy distinction)
-        # Store both description (full narrative) and intent (tactical summary) for AI context
+        # Store description, intent, target, weapon, and initiative for AI context
         if intent or description:
-            self.declared_actions_this_round[character_name] = (description, intent, initiative)
-            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative})")
+            self.declared_actions_this_round[character_name] = (description, intent, target, weapon, reasoning, initiative)
+            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative}, target={target})")
 
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
@@ -1818,7 +1821,7 @@ Available non-combat actions:
             filtered_declarations = {
                 char_name: action_data
                 for char_name, action_data in self.declared_actions_this_round.items()
-                if (action_data[2] if len(action_data) == 3 else action_data[1]) < current_init
+                if action_data[-1] < current_init  # initiative is always last element
             }
 
             if filtered_declarations:
@@ -1828,18 +1831,35 @@ Available non-combat actions:
                 # Sort by initiative (slowest first, matching declaration order)
                 sorted_declarations = sorted(
                     filtered_declarations.items(),
-                    key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]
+                    key=lambda x: x[1][-1]  # initiative is always last element
                 )
 
                 narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
                 narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
                 for char_name, action_data in sorted_declarations:
-                    # Handle both old format (intent, initiative) and new format (description, intent, initiative)
-                    if len(action_data) == 3:
+                    # Current format: (description, intent, target, weapon, reasoning, initiative)
+                    if len(action_data) == 6:
+                        description, intent, target, weapon, reasoning, initiative = action_data
+
+                        # Format action with targeting info if available
+                        if description:
+                            # NPCs and players with descriptions
+                            action_text = description
+                        else:
+                            # Enemies without description - build from components
+                            action_text = intent
+                            if target:
+                                action_text += f" targeting {target}"
+                            if weapon:
+                                action_text += f" with {weapon}"
+
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {action_text}\n"
+                    elif len(action_data) == 3:
+                        # Legacy format (description, intent, initiative)
                         description, intent, initiative = action_data
-                        narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {description if description else intent}\n"
                     else:
-                        # Legacy format
+                        # Very old format (intent, initiative)
                         intent, initiative = action_data
                         narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
                 narrative_context += "\n"
