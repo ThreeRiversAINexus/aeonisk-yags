@@ -158,6 +158,11 @@ class ScenePivot(BaseModel):
         description="New clocks for this scene"
     )
 
+    npc_departures: List[str] = Field(
+        default_factory=list,
+        description="NPC agent_ids or names to remove from scenario (e.g., ['npc_civilian_1']). NPCs can leave during minor scene changes (flee from alarm, dismissed, walk away)."
+    )
+
     @field_validator('new_room', 'situation_change')
     @classmethod
     def validate_pivot_fields(cls, v: Optional[str], info) -> Optional[str]:
@@ -233,6 +238,11 @@ class StoryAdvancement(BaseModel):
     vendor_departures: List[str] = Field(
         default_factory=list,
         description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
+    )
+
+    npc_departures: List[str] = Field(
+        default_factory=list,
+        description="NPC agent_ids or names to remove from scenario (e.g., ['npc_guide_1', 'Dr. Yuki Tanaka']). NPCs leave when dismissed, walk away, flee, or story advances past them. Use this for peaceful departures. For combat-related fleeing, use enemy_conversions with FLED resolution instead."
     )
 
     @field_validator('location', 'situation')
@@ -724,4 +734,104 @@ class Escalation(BaseModel):
     template: str = Field(
         "desperate_fighter",
         description="Enemy template for tactics (default: desperate_fighter for untrained NPCs)"
+    )
+
+
+class ConversionDecisions(BaseModel):
+    """
+    Conversion check phase output - determines which enemies/NPCs should convert.
+
+    This is generated in a SEPARATE phase between resolution and synthesis,
+    allowing the DM to focus solely on conversion decisions without
+    mixing narrative synthesis responsibilities.
+
+    The conversion check phase runs after all action resolutions are complete,
+    giving the DM full context about enemy health, player actions, and tactical situation.
+
+    Example:
+    ```python
+    decisions = ConversionDecisions(
+        enemy_conversions=[
+            EnemyConversion(
+                enemy_id="enemy_thug_01",
+                resolution=EnemyResolution.CONVINCED,
+                reason="Surrounded and low HP, surrenders to avoid death",
+                resulting_entity_type="prisoner",
+                resulting_disposition="prisoner"
+            )
+        ],
+        escalations=[],
+        npc_spawns=[
+            NPCSpawn(
+                name="Station Guard",
+                faction="Station Security",
+                entity_type="neutral",
+                threat_level="armed_neutral",
+                disposition="wary",
+                description="Armed guard responding to alarm",
+                health=60,
+                soak=5,
+                skills={"combat": 3, "awareness": 4}
+            )
+        ]
+    )
+    ```
+    """
+    enemy_conversions: List[EnemyConversion] = Field(
+        default_factory=list,
+        description="""Enemies to remove/convert this round.
+
+⚠️ CRITICAL: Validate enemy_id exists before conversion! ⚠️
+
+Valid conversions:
+- Enemy flees: resolution=FLED (leaves scene entirely)
+- Enemy surrenders: resolution=CONVINCED with resulting_entity_type/disposition (stays as NPC prisoner)
+- Enemy subdued: resolution=SUBDUED/NEUTRALIZED with resulting_entity_type/disposition (incapacitated NPC)
+
+See available enemies in conversion check prompt (includes enemy_id, name, health %).
+Use empty list [] if no conversions."""
+    )
+
+    escalations: List[Escalation] = Field(
+        default_factory=list,
+        description="""NPCs to convert to enemies this round.
+
+⚠️ CRITICAL: Validate npc_id exists before escalation! ⚠️
+
+Common triggers:
+- NPC was attacked by players (took damage)
+- NPC's faction was attacked (defending allies)
+- NPC was threatened/intimidated (self-defense)
+
+See available NPCs in conversion check prompt (includes npc_id, name, disposition, health %).
+Use empty list [] if no escalations."""
+    )
+
+    npc_spawns: List[NPCSpawn] = Field(
+        default_factory=list,
+        description="""New NPCs to spawn this round.
+
+Use when:
+- Introducing quest-givers, guides, civilians
+- Scene requires dialogue characters
+- Environmental NPCs (merchants, bystanders, etc.)
+
+NOTE: For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED.
+Only use npc_spawns for BRAND NEW characters entering the scene.
+Use empty list [] if no new NPCs."""
+    )
+
+    reasoning: str = Field(
+        ...,
+        min_length=20,
+        max_length=500,
+        description="""Brief explanation of conversion decisions (20-500 chars).
+
+Explain WHY you made these conversion choices based on:
+- Enemy health/morale (low HP = surrender likely)
+- Player actions (intimidation, diplomacy = de-escalation)
+- NPC provocations (attacked = escalation likely)
+- Tactical situation (surrounded, outnumbered = flee/surrender)
+
+Example: "Thug #1 surrendered due to low HP (15%) and intimidation. Guard #2 fled when surrounded. No NPC escalations - prisoner remains compliant." """
     )

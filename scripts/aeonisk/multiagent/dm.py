@@ -2265,6 +2265,129 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
+    async def check_conversions(self, round_number: int, resolution_summary: str):
+        """
+        Separate conversion check phase - determine which enemies/NPCs should convert.
+
+        Called AFTER all action resolutions, BEFORE synthesis.
+        This allows the DM to focus solely on conversion decisions without
+        mixing narrative synthesis responsibilities.
+
+        Args:
+            round_number: Current round number
+            resolution_summary: Summary of all action resolutions this round
+
+        Returns:
+            ConversionDecisions with enemy_conversions, escalations, npc_spawns
+
+        Raises:
+            RuntimeError: If llm_provider not initialized (replay mode)
+        """
+        from .schemas.story_events import ConversionDecisions
+        import yaml
+        import os
+
+        logger.debug(f"DM: Running conversion check for round {round_number}")
+
+        # 1. Build available enemies list
+        available_enemies = []
+        if self.shared_state:
+            enemy_combat = self.shared_state.get_enemy_combat_module()
+            if enemy_combat and hasattr(enemy_combat, 'enemy_agents'):
+                for enemy in enemy_combat.enemy_agents:
+                    if not enemy.is_defeated:
+                        health_pct = int((enemy.health / enemy.max_health) * 100) if enemy.max_health > 0 else 0
+
+                        # Flag low HP enemies as conversion candidates
+                        is_candidate = health_pct < 30
+                        marker = "🎯 CANDIDATE" if is_candidate else ""
+
+                        available_enemies.append(
+                            f"{enemy.agent_id} ({enemy.name}, {health_pct}% HP) {marker}".strip()
+                        )
+
+        # 2. Build available NPCs list
+        available_npcs = []
+        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                health_pct = int((npc.health / npc.max_health) * 100) if hasattr(npc, 'max_health') and npc.max_health > 0 else 100
+
+                # Flag NPCs who took damage (escalation candidates)
+                took_damage = health_pct < 100
+                marker = "⚠️ TOOK DAMAGE" if took_damage else ""
+
+                available_npcs.append(
+                    f"{npc.agent_id} ({npc.name}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
+                )
+
+        # 3. Load conversion check prompt from YAML
+        prompt_path = os.path.join(
+            os.path.dirname(__file__),
+            "prompts/claude/en/dm/dm_conversion_check.yaml"
+        )
+
+        with open(prompt_path, 'r') as f:
+            prompt_data = yaml.safe_load(f)
+
+        # 4. Format prompt with context
+        prompt = prompt_data['conversion_check_prompt'].format(
+            available_enemies="\n".join(available_enemies) if available_enemies else "No active enemies",
+            available_npcs="\n".join(available_npcs) if available_npcs else "No active NPCs",
+            resolution_summary=resolution_summary
+        )
+
+        # 5. Check if llm_provider available (not replay mode)
+        if not self.llm_provider:
+            raise RuntimeError("DM llm_provider not initialized - cannot run conversion check (replay mode?)")
+
+        logger.debug(f"DM: Calling LLM for conversion decisions (round {round_number})")
+
+        # 6. Call LLM with structured output (Pydantic AI)
+        try:
+            decisions: ConversionDecisions = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=ConversionDecisions,
+                system_prompt="You are the DM determining which conversions should occur based on action resolutions.",
+                max_tokens=1500,  # Conversion decisions are shorter than full synthesis
+                temperature=0.7
+            )
+
+            logger.debug(f"✓ DM conversion decisions: {len(decisions.enemy_conversions)} enemy conversions, "
+                        f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns")
+
+            # 7. Log conversion check call for replay
+            if self.llm_logger:
+                estimated_input_tokens = len(prompt) // 4
+                estimated_output_tokens = len(decisions.reasoning) // 4
+
+                self.llm_logger._log_llm_call(
+                    messages=[
+                        {"role": "system", "content": "You are the DM determining conversions."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    response=decisions.model_dump_json(),
+                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                    temperature=0.7,
+                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                    metadata={
+                        'phase': 'conversion_check',
+                        'round': round_number,
+                        'source': 'dm_conversion_check'
+                    }
+                )
+
+            return decisions
+
+        except Exception as e:
+            logger.error(f"DM: Conversion check failed: {type(e).__name__}: {e}")
+            # Return empty decisions on failure (no conversions)
+            return ConversionDecisions(
+                enemy_conversions=[],
+                escalations=[],
+                npc_spawns=[],
+                reasoning=f"Conversion check failed: {str(e)}"
+            )
+
     async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
