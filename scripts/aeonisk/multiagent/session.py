@@ -1428,6 +1428,53 @@ class SelfPlayingSession:
                     logger.info(f"✅ Converted surrendered enemy {enemy_id} to NPC prisoner: {npc.name}")
                     print(f"\n✅ {enemy.name} has been detained and is no longer a threat")
 
+        # CONVERSION CHECK PHASE: Determine which enemies/NPCs should convert before synthesis
+        conversion_decisions = None
+        if all_resolutions:
+            print(f"\n{'='*80}")
+            print(f"🔄 CONVERSION CHECK PHASE (Round {mechanics.current_round if mechanics else 0})")
+            print(f"{'='*80}")
+
+            # Build resolution summary for DM context
+            resolution_summary = self._build_resolution_summary(all_resolutions)
+
+            # Find DM agent
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            if dm_agent and hasattr(dm_agent, 'check_conversions'):
+                try:
+                    conversion_decisions = await dm_agent.check_conversions(
+                        round_number=mechanics.current_round if mechanics else 0,
+                        resolution_summary=resolution_summary
+                    )
+
+                    print(f"✅ Conversion decisions:")
+                    print(f"   - Enemy conversions: {len(conversion_decisions.enemy_conversions)}")
+                    print(f"   - NPC escalations: {len(conversion_decisions.escalations)}")
+                    print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
+                    print(f"   - Reasoning: {conversion_decisions.reasoning}")
+
+                    logger.info(f"Conversion check complete: {len(conversion_decisions.enemy_conversions)} conversions, "
+                               f"{len(conversion_decisions.escalations)} escalations, {len(conversion_decisions.npc_spawns)} spawns")
+
+                except Exception as e:
+                    logger.warning(f"Conversion check failed: {e}")
+                    print(f"\n⚠️  Conversion check failed: {e}")
+                    # Continue with empty conversion decisions
+                    from .schemas.story_events import ConversionDecisions
+                    conversion_decisions = ConversionDecisions(
+                        enemy_conversions=[],
+                        escalations=[],
+                        npc_spawns=[],
+                        reasoning="Conversion check failed, proceeding without conversions"
+                    )
+            else:
+                logger.debug("DM agent not found or doesn't have check_conversions method - skipping conversion check")
+
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
             print("\n=== Generating Round Synthesis ===")
@@ -2032,6 +2079,44 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 print(f"    • {name}: {status}{filled_str}")
 
         print()
+
+    def _build_resolution_summary(self, all_resolutions: List[Dict]) -> str:
+        """
+        Build summary of resolutions for conversion check phase.
+
+        Args:
+            all_resolutions: List of resolution dicts from this round
+
+        Returns:
+            Human-readable summary string for DM conversion context
+        """
+        if not all_resolutions:
+            return "No resolutions this round"
+
+        summary_lines = []
+        for resolution in all_resolutions:
+            agent_name = resolution.get('character_name', 'Unknown')
+            action = resolution.get('action_description', 'Unknown action')
+
+            # Truncate long actions
+            if len(action) > 100:
+                action = action[:97] + "..."
+
+            # Get success status
+            success = resolution.get('success', False)
+            status = 'SUCCESS' if success else 'FAIL'
+
+            # Add damage dealt if any
+            damage_text = ""
+            effects = resolution.get('effects')
+            if effects and hasattr(effects, 'damage') and effects.damage and effects.damage.dealt:
+                damage_text = f" (dealt {effects.damage.dealt} damage)"
+            elif isinstance(effects, dict) and effects.get('damage', {}).get('dealt'):
+                damage_text = f" (dealt {effects['damage']['dealt']} damage)"
+
+            summary_lines.append(f"- {agent_name}: {action} ({status}){damage_text}")
+
+        return "\n".join(summary_lines)
 
     def _spawn_new_clocks(self, new_clocks: List[Dict[str, any]]):
         """Spawn new clocks from DM markers (legacy)."""
