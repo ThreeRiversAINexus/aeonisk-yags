@@ -106,10 +106,63 @@ def extract_narrative_elements(log_file: Path) -> List[Dict[str, Any]]:
                 elif event_type == 'round_synthesis':
                     synthesis = event.get('synthesis', 'No synthesis')
 
-                    content = f"""### Round {event.get('round')} Summary
+                    content_parts = [f"""### Round {event.get('round')} Summary
 
 {synthesis}
-"""
+"""]
+
+                    # Add structured story elements if present
+                    if 'story_advancement' in event:
+                        adv = event['story_advancement']
+                        content_parts.append(f"""
+**STORY ADVANCEMENT**
+- New Location: {adv.get('location', 'Unknown')}
+- New Situation: {adv.get('situation', 'Unknown')}
+- Void Level: {adv.get('new_void_level', '?')}
+""")
+                        if adv.get('clear_all_enemies'):
+                            content_parts.append("- *All enemies cleared*\n")
+                        if adv.get('new_clocks'):
+                            content_parts.append("- New Clocks: " + ", ".join(c['name'] for c in adv['new_clocks']) + "\n")
+
+                    if 'scene_pivot' in event:
+                        pivot = event['scene_pivot']
+                        content_parts.append(f"""
+**SCENE PIVOT**
+- New Room: {pivot.get('new_room', 'Unknown')}
+- Situation Change: {pivot.get('situation_change', 'Unknown')}
+""")
+                        if pivot.get('clear_specific_clocks'):
+                            content_parts.append("- Clocks Cleared: " + ", ".join(pivot['clear_specific_clocks']) + "\n")
+                        if pivot.get('new_clocks'):
+                            content_parts.append("- New Clocks: " + ", ".join(c['name'] for c in pivot['new_clocks']) + "\n")
+
+                    if 'enemy_spawns' in event and event['enemy_spawns']:
+                        spawns = event['enemy_spawns']
+                        content_parts.append(f"\n**NEW ENEMIES:** {len(spawns)} spawned\n")
+
+                    if 'npc_spawns' in event and event['npc_spawns']:
+                        spawns = event['npc_spawns']
+                        content_parts.append(f"\n**NEW NPCs:** {len(spawns)} appeared\n")
+
+                    if 'escalations' in event and event['escalations']:
+                        esc = event['escalations']
+                        content_parts.append(f"\n**ESCALATIONS:** {len(esc)} NPCs became hostile\n")
+
+                    if 'clocks_filled' in event and event['clocks_filled']:
+                        filled = event['clocks_filled']
+                        content_parts.append(f"\n**CLOCKS FILLED:** {', '.join(filled)}\n")
+
+                    if 'clocks_expired' in event and event['clocks_expired']:
+                        expired = event['clocks_expired']
+                        content_parts.append(f"\n**CLOCKS EXPIRED:** {', '.join(expired)}\n")
+
+                    if event.get('session_end'):
+                        reason = event.get('session_end_reason', 'Unknown')
+                        content_parts.append(f"\n**SESSION END:** {reason}\n")
+
+                    content = "".join(content_parts)
+
                     narratives.append({
                         'type': 'round_synthesis',
                         'round': event.get('round'),
