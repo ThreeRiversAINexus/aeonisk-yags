@@ -800,6 +800,63 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_targeting_validation(
+        self,
+        round_num: int,
+        agent_id: str,
+        original_target: str,
+        corrected_target: Optional[str],
+        correction_method: str,
+        triggered_by: str,
+        success: bool,
+        confidence: Optional[str] = None,
+        reasoning: Optional[str] = None,
+        error: Optional[str] = None,
+        declared_target: Optional[str] = None,
+        effect_type: str = "damage",
+        model_used: Optional[str] = None,
+        validation_time_ms: Optional[float] = None
+    ):
+        """
+        Log targeting validation event (triggered when DM targeting errors detected).
+
+        Args:
+            round_num: Current round
+            agent_id: Agent whose action triggered validation
+            original_target: Target ID/name in DM's output (invalid)
+            corrected_target: Corrected target ID (if successful)
+            correction_method: 'mechanical', 'llm_inference', or 'failed'
+            triggered_by: Error type ('missing_target', 'invalid_format', 'name_instead_of_id', 'unresolvable_id')
+            success: Whether targeting was successfully corrected
+            confidence: LLM confidence level ('high', 'medium', 'low') if using LLM
+            reasoning: LLM's reasoning for correction if using LLM
+            error: Error description if correction failed
+            declared_target: Target from action declaration (for comparison)
+            effect_type: Type of effect ('damage', 'healing', 'void_change', etc.)
+            model_used: LLM model used for correction ('claude-haiku-4', etc.)
+            validation_time_ms: Time taken for validation (milliseconds)
+        """
+        event = {
+            "event_type": "targeting_validation",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "original_target": original_target,
+            "declared_target": declared_target,
+            "original_effect_type": effect_type,
+            "triggered_by": triggered_by,
+            "correction_method": correction_method,
+            "corrected_target": corrected_target,
+            "model_used": model_used,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "success": success,
+            "error_description": error,
+            "validation_time_ms": validation_time_ms
+        }
+        self._write_event(event)
+
     def log_round_summary(
         self,
         round_num: int,

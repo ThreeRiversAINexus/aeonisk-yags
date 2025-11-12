@@ -5228,6 +5228,120 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 else:
                     logger.debug("✓ Structured output validation passed (all expected fields populated)")
 
+                # TARGETING VALIDATION: Check and correct targeting errors in damage effects
+                if resolution_obj.effects and resolution_obj.effects.damage:
+                    from .targeting_validation import validate_and_correct_targeting, llm_infer_correct_target
+                    import time
+
+                    start_time = time.time()
+
+                    is_valid, corrected_effect, error = validate_and_correct_targeting(
+                        effect=resolution_obj.effects.damage,
+                        declared_action=action,
+                        target_id_mapper=self.shared_state.get_target_id_mapper() if self.shared_state else None,
+                        allow_llm_fallback=True
+                    )
+
+                    validation_time_ms = (time.time() - start_time) * 1000
+
+                    if not is_valid:
+                        # Mechanical correction failed - try LLM fallback
+                        logger.warning(f"⚠️  TARGETING VALIDATION: {error}")
+
+                        try:
+                            # Build available targets map
+                            available_targets = {}
+                            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                            if target_id_mapper and target_id_mapper.enabled:
+                                for target_id in target_id_mapper.get_all_target_ids():
+                                    info = target_id_mapper.get_combatant_info(target_id)
+                                    if info:
+                                        entity_type = info.get('type', 'unknown')
+                                        entity_name = info.get('name', 'Unknown')
+                                        available_targets[target_id] = f"{entity_name} ({entity_type})"
+
+                            # Call Haiku LLM for inference
+                            correction = await llm_infer_correct_target(
+                                effect=resolution_obj.effects.damage,
+                                declared_action=action,
+                                available_targets=available_targets,
+                                error_description=error,
+                                dm_narration=resolution_obj.narration
+                            )
+
+                            # Apply LLM-corrected target
+                            corrected_effect = resolution_obj.effects.damage.model_copy(
+                                update={'target': correction.corrected_target}
+                            )
+
+                            logger.info(f"🤖 LLM TARGETING CORRECTION: {resolution_obj.effects.damage.target} -> {correction.corrected_target} (confidence: {correction.confidence})")
+
+                            # Log to JSONL
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_targeting_validation(
+                                    round_num=current_round if current_round else 0,
+                                    agent_id=action.get('agent_id', 'unknown'),
+                                    original_target=resolution_obj.effects.damage.target,
+                                    corrected_target=correction.corrected_target,
+                                    correction_method='llm_inference',
+                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    success=True,
+                                    confidence=correction.confidence,
+                                    reasoning=correction.reasoning,
+                                    declared_target=action.get('target'),
+                                    effect_type='damage',
+                                    model_used='claude-haiku-4',
+                                    validation_time_ms=validation_time_ms
+                                )
+
+                            is_valid = True
+
+                        except Exception as llm_error:
+                            logger.error(f"❌ LLM targeting correction failed: {llm_error}")
+                            corrected_effect = None
+
+                            # Log failed correction
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_targeting_validation(
+                                    round_num=current_round if current_round else 0,
+                                    agent_id=action.get('agent_id', 'unknown'),
+                                    original_target=resolution_obj.effects.damage.target,
+                                    corrected_target=None,
+                                    correction_method='failed',
+                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    success=False,
+                                    error=str(llm_error),
+                                    declared_target=action.get('target'),
+                                    effect_type='damage',
+                                    validation_time_ms=validation_time_ms
+                                )
+
+                    # Apply corrected effect or clear if validation failed
+                    if is_valid and corrected_effect:
+                        resolution_obj.effects.damage = corrected_effect
+                        if corrected_effect.target != resolution_obj.effects.damage.target:
+                            logger.info(f"✓ MECHANICAL CORRECTION: {resolution_obj.effects.damage.target} -> {corrected_effect.target}")
+
+                            # Log mechanical correction
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_targeting_validation(
+                                    round_num=current_round if current_round else 0,
+                                    agent_id=action.get('agent_id', 'unknown'),
+                                    original_target=resolution_obj.effects.damage.target,
+                                    corrected_target=corrected_effect.target,
+                                    correction_method='mechanical',
+                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    success=True,
+                                    declared_target=action.get('target'),
+                                    effect_type='damage',
+                                    validation_time_ms=validation_time_ms
+                                )
+                    elif not is_valid:
+                        # Clear invalid effect to prevent misapplication
+                        logger.error(f"❌ Targeting validation failed - clearing damage effect")
+                        resolution_obj.effects.damage = None
+                        validation_warnings.append(f"Damage effect removed due to unrecoverable targeting error: {error}")
+
                 # Log structured output metrics (for ML analysis)
                 if self.shared_state and self.shared_state.mechanics_engine:
                     mechanics = self.shared_state.mechanics_engine
