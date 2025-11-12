@@ -6,6 +6,7 @@ errors are detected. Uses mechanical correction first, LLM fallback for complex 
 """
 
 from typing import Optional, Tuple, Dict, Any
+from pydantic import BaseModel, Field
 from .schemas.shared_types import DamageEffect
 from .target_ids import TargetIDMapper
 import logging
@@ -132,3 +133,104 @@ def _get_entity_name(entity: Any) -> str:
 
     # Unknown entity type
     return "Unknown"
+
+
+class TargetCorrectionResult(BaseModel):
+    """LLM-inferred target correction result."""
+
+    corrected_target: str = Field(
+        ...,
+        description="The correct target ID (tgt_xxxx format) for this effect"
+    )
+    confidence: str = Field(
+        ...,
+        description="Confidence level: 'high' (obvious from context), 'medium' (probable), 'low' (guessing)"
+    )
+    reasoning: str = Field(
+        ...,
+        min_length=20,
+        max_length=200,
+        description="Brief explanation of why this target is correct"
+    )
+
+
+async def llm_infer_correct_target(
+    effect: DamageEffect,
+    declared_action: Dict[str, Any],
+    available_targets: Dict[str, str],  # target_id -> name mapping
+    error_description: str,
+    dm_narration: str
+) -> TargetCorrectionResult:
+    """
+    Use Haiku LLM to infer correct target when mechanical correction fails.
+
+    Args:
+        effect: The DamageEffect with invalid targeting
+        declared_action: Original action declaration
+        available_targets: Map of valid target IDs to entity names
+        error_description: What failed mechanically
+        dm_narration: DM's narrative description (for context)
+
+    Returns:
+        TargetCorrectionResult with inferred target
+
+    Cost: ~$0.001 per call (Haiku pricing: $0.25/MTok input, $1.25/MTok output)
+    Latency: ~200-500ms
+    """
+    from pydantic_ai import Agent
+    from pydantic_ai.models.anthropic import AnthropicModel
+
+    # Build context for LLM
+    targets_list = "\n".join(
+        f"- {tid} = {name}" for tid, name in available_targets.items()
+    )
+
+    # Truncate narration to first 300 chars to keep prompt compact
+    narration_excerpt = dm_narration[:300] if dm_narration else "No narration provided"
+    if len(dm_narration) > 300:
+        narration_excerpt += "..."
+
+    prompt = f"""The DM generated an effect with targeting that couldn't be applied mechanically.
+
+DECLARED ACTION:
+Agent: {declared_action.get('agent_id', 'Unknown')}
+Intent: {declared_action.get('intent', 'Unknown')}
+Declared Target: {declared_action.get('target', 'None')}
+
+DM RESOLUTION NARRATION:
+{narration_excerpt}
+
+DM's DAMAGE EFFECT:
+Target: {effect.target}
+Damage: {effect.dealt} HP
+Damage Type: {effect.damage_type or 'unspecified'}
+
+AVAILABLE VALID TARGETS:
+{targets_list}
+
+MECHANICAL VALIDATION ERROR:
+{error_description}
+
+What is the correct target ID for this damage effect? Consider:
+1. Who is mentioned in the DM's narration as being hit/affected?
+2. Does the declared target match any valid target?
+3. Are there context clues (enemy type, positioning, narrative) to identify the target?
+
+Return the correct target ID, your confidence level, and brief reasoning."""
+
+    # Initialize Haiku agent (fast, cheap model for mechanical task)
+    model = AnthropicModel('claude-haiku-4')
+    agent = Agent(
+        model,
+        result_type=TargetCorrectionResult,
+        system_prompt="You are a targeting validation assistant. Your job is to mechanically correct targeting errors in game effects by matching them to valid target IDs."
+    )
+
+    # Run inference
+    logger.info(f"🤖 LLM TARGETING INFERENCE: Attempting to correct '{effect.target}' using Haiku")
+    result = await agent.run(prompt)
+
+    logger.info(f"🤖 LLM TARGETING CORRECTION: {effect.target} -> {result.data.corrected_target} (confidence: {result.data.confidence})")
+    logger.info(f"   Reasoning: {result.data.reasoning}")
+
+    return result.data
