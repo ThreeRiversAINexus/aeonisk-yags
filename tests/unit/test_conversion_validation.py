@@ -8,7 +8,7 @@ enemies/NPCs and provides feedback to prevent DM errors.
 import pytest
 from unittest.mock import Mock, MagicMock, patch
 from scripts.aeonisk.multiagent.schemas.story_events import (
-    EnemyConversion, ConversionResolution, Escalation, NPCSpawn
+    EnemyConversion, EnemyResolution, Escalation, NPCSpawn
 )
 
 
@@ -28,8 +28,8 @@ class TestEnemyConversionValidation:
         # Attempt to convert existing enemy (should succeed)
         conversion = EnemyConversion(
             enemy_id="enemy_thug_01",
-            resolution=ConversionResolution.CONVINCED,
-            narration="The thug surrenders"
+            resolution=EnemyResolution.CONVINCED,
+            reason="The thug surrenders"
         )
 
         # Find enemy in list
@@ -49,8 +49,8 @@ class TestEnemyConversionValidation:
         # Attempt to convert non-existent enemy
         conversion = EnemyConversion(
             enemy_id="enemy_boss_99",  # Doesn't exist
-            resolution=ConversionResolution.CONVINCED,
-            narration="The boss surrenders"
+            resolution=EnemyResolution.CONVINCED,
+            reason="The boss surrenders"
         )
 
         # Validation should detect missing enemy
@@ -104,13 +104,13 @@ class TestEnemyConversionValidation:
         conversions = [
             EnemyConversion(
                 enemy_id="enemy_thug_01",  # Valid
-                resolution=ConversionResolution.CONVINCED,
-                narration="Thug surrenders"
+                resolution=EnemyResolution.CONVINCED,
+                reason="Thug surrenders"
             ),
             EnemyConversion(
                 enemy_id="enemy_boss_99",  # Invalid (doesn't exist)
-                resolution=ConversionResolution.CONVINCED,
-                narration="Boss surrenders"
+                resolution=EnemyResolution.CONVINCED,
+                reason="Boss surrenders"
             )
         ]
 
@@ -146,8 +146,8 @@ class TestNPCEscalationValidation:
         # Attempt to escalate existing NPC (should succeed)
         escalation = Escalation(
             npc_id="npc_prisoner_01",
-            enemy_template="desperate_fighter",
-            narration="Prisoner attacks!"
+            template="desperate_fighter",
+            reason="Prisoner attacked by player, now fighting back in panic"
         )
 
         # Find NPC in list
@@ -166,8 +166,8 @@ class TestNPCEscalationValidation:
         # Attempt to escalate non-existent NPC
         escalation = Escalation(
             npc_id="npc_guard_99",  # Doesn't exist
-            enemy_template="soldier",
-            narration="Guard attacks!"
+            template="soldier",
+            reason="Guard attacked by player after alarm triggered"
         )
 
         # Validation should detect missing NPC
@@ -216,8 +216,8 @@ class TestEnemyRemovalValidation:
         # Attempt to remove existing enemy (should succeed)
         conversion = EnemyConversion(
             enemy_id="enemy_thug_01",
-            resolution=ConversionResolution.DEFEATED,  # Removal, not conversion
-            narration="Thug is defeated"
+            resolution=EnemyResolution.KILLED,  # Removal, not conversion
+            reason="Thug is defeated"
         )
 
         enemy = next((e for e in enemy_combat.enemy_agents if e.agent_id == conversion.enemy_id), None)
@@ -236,8 +236,8 @@ class TestEnemyRemovalValidation:
         # Attempt to remove non-existent enemy
         conversion = EnemyConversion(
             enemy_id="enemy_boss_99",  # Doesn't exist
-            resolution=ConversionResolution.DEFEATED,
-            narration="Boss is defeated"
+            resolution=EnemyResolution.KILLED,
+            reason="Boss is defeated"
         )
 
         enemy = next((e for e in enemy_combat.enemy_agents if e.agent_id == conversion.enemy_id), None)
