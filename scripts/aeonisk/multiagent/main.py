@@ -15,6 +15,10 @@ from .session import SelfPlayingSession, EXAMPLE_CONFIG
 # Load environment variables from .env file
 load_dotenv()
 
+# Initialize custom log levels (TRACE=5, LLM=15)
+# This must happen before any logging configuration
+from . import custom_log_levels  # noqa: F401
+
 
 def setup_logging(level: str = "INFO"):
     """Set up logging configuration."""
@@ -64,17 +68,32 @@ def setup_logging(level: str = "INFO"):
     log_file = open('multiagent.log', 'a')
     sys.stdout = PrintLogger(sys.stdout, log_file)
 
-    # Suppress spammy third-party loggers for cleaner output
-    # Even at DEBUG level, we don't need HTTP connection internals
-    logging.getLogger("httpcore.connection").setLevel(logging.WARNING)
-    logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    # Set HTTP client loggers to LLM level (15)
+    # This way they appear with --log-level LLM but not with --log-level DEBUG
+    # Makes DEBUG useful for mechanics without HTTP spam
+    http_loggers = [
+        "httpcore",
+        "httpcore.connection",
+        "httpcore.http11",
+        "httpcore.http2",
+        "httpx",
+        "urllib3",
+        "urllib3.connectionpool",
+        "requests",
+        "openai",
+        "openai._base_client",
+        "anthropic",
+        "anthropic._base_client",
+    ]
+
+    for logger_name in http_loggers:
+        logging.getLogger(logger_name).setLevel(logging.LLM)
 
     # Suppress internal message bus noise (agent connect/disconnect spam)
     logging.getLogger("aeonisk.multiagent.base").setLevel(logging.WARNING)
 
-    # Keep anthropic client logs - shows actual prompts/responses at DEBUG
-    # (No need to set explicitly, respects root level)
+    # Anthropic/OpenAI client logs now respect LLM level
+    # Use --log-level LLM to see API details, --log-level DEBUG for mechanics only
 
 
 def create_example_config(output_path: str):
@@ -131,8 +150,8 @@ def main():
     parser.add_argument(
         '--log-level',
         default='INFO',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        help='Set logging level (use DEBUG for detailed ChromaDB visibility)'
+        choices=['TRACE', 'DEBUG', 'LLM', 'INFO', 'WARNING', 'ERROR'],
+        help='Set logging level (TRACE=ultra-verbose, DEBUG=detailed, LLM=API calls only, INFO=standard)'
     )
 
     parser.add_argument(

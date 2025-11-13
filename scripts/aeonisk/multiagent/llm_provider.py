@@ -13,6 +13,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any, Union
 from dataclasses import dataclass
 
+# Import custom log levels
+from . import custom_log_levels  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +49,7 @@ class APIRateLimiter:
             self._min_interval = min_request_interval
             self._last_request_time = 0.0
             self._initialized = True
-            logger.info(f"APIRateLimiter initialized: max_concurrent={max_concurrent}, min_interval={min_request_interval}s")
+            logger.llm(f"APIRateLimiter initialized: max_concurrent={max_concurrent}, min_interval={min_request_interval}s")
 
     async def acquire(self):
         """Acquire permission to make an API call."""
@@ -221,7 +224,7 @@ class ClaudeProvider(LLMProvider):
             # This will be initialized on first use if event loop doesn't exist yet
             self._rate_limiter_initialized = False
 
-        logger.info(
+        logger.llm(
             f"ClaudeProvider initialized: model={config.model}, "
             f"max_retries={config.max_retries}, rate_limit={config.use_rate_limiter}"
         )
@@ -348,7 +351,7 @@ class ClaudeProvider(LLMProvider):
 
                     # Log successful retry if not first attempt
                     if attempt > 0:
-                        logger.info(f"✓ Claude API call succeeded after {attempt} retries")
+                        logger.llm(f"✓ Claude API call succeeded after {attempt} retries")
 
                     # Create standardized response
                     return LLMResponse(
@@ -526,7 +529,7 @@ This field is used for ML training and game mechanics - it is NOT optional when 
 
                     # Log successful retry if not first attempt
                     if attempt > 0:
-                        logger.info(f"✓ Structured output succeeded after {attempt} retries")
+                        logger.llm(f"✓ Structured output succeeded after {attempt} retries")
 
                     # Return validated Pydantic model instance
                     # Note: pydantic-ai 1.9.0 uses 'output' not 'data' or 'response'
@@ -601,7 +604,7 @@ class OpenAIProvider(LLMProvider):
 
         # Create client
         self.client = openai.OpenAI(api_key=api_key)
-        logger.info(f"OpenAIProvider initialized with model: {config.model}")
+        logger.llm(f"OpenAIProvider initialized with model: {config.model}")
 
     async def generate(
         self,
@@ -815,7 +818,7 @@ async def call_anthropic_with_retry(
 
                 # Log successful retry if not first attempt
                 if attempt > 0:
-                    logger.info(f"✓ Anthropic API call succeeded after {attempt} retries")
+                    logger.llm(f"✓ Anthropic API call succeeded after {attempt} retries")
 
                 return response
 

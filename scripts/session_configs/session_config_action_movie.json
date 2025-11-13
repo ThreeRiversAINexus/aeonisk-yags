@@ -1,0 +1,341 @@
+{
+  "_role": "action_movie_session",
+  "_purpose": "High-octane narrative generation - heist, betrayal, explosive combat, desperate escapes. Designed for cinematic storytelling.",
+
+  "session_name": "action_movie_heist",
+  "max_turns": 8,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE - FULL COMBAT ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 15,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== ACTION MOVIE SETUP ===",
+  "_scenario_hint": "The crew has just pulled off the impossible - stealing a prototype void-dampening device from Tempest Industries' orbital vault. But as their escape shuttle touches down in the undercity, proximity alarms shriek: Pantheon Security kill-teams incoming, ACG bounty hunters triangulating their position, and worst of all - the device is leaking unstable void energy, corrupting the air itself. They have 30 minutes before the whole district becomes a void rift. Split-second decisions, explosive firefights, impossible odds. GO LOUD.",
+
+  "scenario": {
+    "theme": "heist_gone_wrong_explosive_escape",
+    "location": "Undercity Landing Zone - Sector 7",
+    "situation": "The crew's shuttle has just touched down in the undercity with the stolen void device. Alarms are shrieking, the device is leaking unstable energy, and multiple hostile forces are converging on your position. You have minutes, not hours.",
+    "void_level": 7
+  },
+
+  "_comment_clocks": "=== TICKING TIME BOMBS ===",
+  "starting_clocks": [
+    {
+      "name": "Void Device Meltdown",
+      "max_ticks": 6,
+      "current_ticks": 0,
+      "description": "Prototype device leaking void energy - will rupture and create permanent rift",
+      "advance_meaning": "void corruption spreads, device destabilizes",
+      "regress_meaning": "containment holding, energy stabilizes"
+    },
+    {
+      "name": "Pantheon Containment Net",
+      "max_ticks": 6,
+      "current_ticks": 2,
+      "description": "Pantheon Security kill-teams closing in with heavy armor and void-dampening tech",
+      "advance_meaning": "enforcers tighten perimeter, drones lock targets",
+      "regress_meaning": "delayed by obstacles, forced to regroup"
+    },
+    {
+      "name": "ACG Bounty Hunters",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "Professional mercenaries with trauma insurance tracking the crew for the bounty",
+      "advance_meaning": "hunters triangulate position, set ambush",
+      "regress_meaning": "thrown off trail, distracted by decoys"
+    }
+  ],
+
+  "_comment_initial_enemies": "=== FIRST WAVE ===",
+  "initial_enemies": [
+    {
+      "name": "Pantheon Advance Squad",
+      "template": "tactical_soldier",
+      "count": 3,
+      "position": "Near-Enemy",
+      "tactics": "professional_assault",
+      "description": "Armored enforcers with riot shields and shock weapons"
+    },
+    {
+      "name": "Drone Overwatch",
+      "template": "sniper",
+      "count": 1,
+      "position": "Extreme-Enemy",
+      "tactics": "extreme_range",
+      "description": "Armed surveillance drone painting targets with laser designators"
+    }
+  ],
+
+  "_design_notes": "4-person crew with complementary skills. Hacker, muscle, face, wildcard. Each has secrets, debts, or void corruption that could explode under pressure. High lethality, cinematic set-pieces, impossible choices. All stats validated against YAGS Module v1.2.2, Gear & Tech Reference v1.2.2, and weapons.py.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.8
+      }
+    },
+    "players": [
+      {
+        "name": "Cipher",
+        "pronouns": "she/her",
+        "faction": "Freeborn Hacker",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.85
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 6,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 2,
+          "Agility": 4,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Systems": 6,
+          "Awareness": 5,
+          "Stealth": 4,
+          "Investigation": 4,
+          "Drone Operation": 5,
+          "Sleight": 3,
+          "Guns": 2
+        },
+        "void": 3,
+        "soulcredit": -6,
+        "goals": [
+          "Get rich or die trying - this score pays off EVERYTHING",
+          "Prove she can crack any system in the Sovereign Nexus",
+          "Don't let the crew find out she sold their location to a second buyer"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "neural_interface_deck": 1,
+          "security_bypass_chip": 1,
+          "void_scanner": 1,
+          "hollow_seed": 2,
+          "neural_stimulant": 3,
+          "data_slate": 1
+        }
+      },
+      {
+        "name": "Breaker",
+        "pronouns": "he/him",
+        "faction": "Ex-Pantheon Enforcer",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.85
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 5,
+          "Health": 5,
+          "Agility": 4,
+          "Dexterity": 3,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Combat": 6,
+          "Athletics": 5,
+          "Awareness": 4,
+          "Intimidation": 5,
+          "Guns": 6,
+          "Melee": 5,
+          "Brawl": 6
+        },
+        "void": 0,
+        "soulcredit": -8,
+        "goals": [
+          "One last job - enough credits to disappear forever",
+          "Protect the crew (the only family he has left)",
+          "Kill his former Pantheon partner before she kills him"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": ["combat_knife", "pistol"],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "urban_riot_carapace": 1,
+          "grenade": 3,
+          "breach_charges": 2,
+          "med_kit": 2,
+          "purification_incense": 4
+        }
+      },
+      {
+        "name": "Silvertongue",
+        "pronouns": "they/them",
+        "faction": "Rogue ACG Negotiator",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.85
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 3
+        },
+        "skills": {
+          "Charm": 6,
+          "Counsel": 5,
+          "Guile": 5,
+          "Debt Law": 4,
+          "Corporate Influence": 5,
+          "Awareness": 4,
+          "Intimidation": 3,
+          "Guns": 3
+        },
+        "void": 1,
+        "soulcredit": 3,
+        "goals": [
+          "Talk their way out of certain death (like always)",
+          "Embezzle enough to retire to a pleasure barge on Elysian Station",
+          "Keep the ACG from finding out they've been skimming for years"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "concealed_pistol": 1,
+          "forged_ledger_access_chip": 1,
+          "soulcredit_scanner": 1,
+          "blackmail_data_slate": 1,
+          "bond_contract_templates": 5,
+          "spark_talisman": 3,
+          "incense": 2
+        }
+      },
+      {
+        "name": "Ghost",
+        "pronouns": "he/him",
+        "faction": "Void-Touched Infiltrator",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.85
+        },
+        "personality": {
+          "riskTolerance": 10,
+          "voidCuriosity": 9,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 5,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 1,
+          "Willpower": 5
+        },
+        "skills": {
+          "Stealth": 6,
+          "Athletics": 5,
+          "Astral Arts": 5,
+          "Attunement": 4,
+          "Awareness": 5,
+          "Melee": 5,
+          "Guns": 4,
+          "Sleight": 4
+        },
+        "void": 6,
+        "soulcredit": -12,
+        "goals": [
+          "Embrace the void - it's the only thing that makes him feel ALIVE",
+          "Use the stolen device to open a permanent void rift (screw the crew)",
+          "Die in a blaze of glory before Pantheon puts him in a cleansing cage"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "void_blade"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "pistol": 1,
+          "void_blade": 1,
+          "combat_knife": 1,
+          "void_cloak": 1,
+          "breach_compass": 1,
+          "hollow_seed": 4,
+          "void_resonance_amplifier": 1,
+          "neural_stimulant": 2,
+          "grappling_hook": 1,
+          "voidshroud_drape": 1
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_hooks": "=== EXPLOSIVE MOMENTS TO DEVELOP ===",
+  "_hooks": [
+    "Cipher's betrayal - second buyer's mercenaries arrive mid-firefight",
+    "Breaker's ex-partner leads the Pantheon kill-team - personal vendetta",
+    "Silvertongue tries to negotiate with ACG bounty hunters - double-cross?",
+    "Ghost wants to ACTIVATE the device, not sell it - void-madness tipping point",
+    "Device meltdown creates cascading void anomalies - reality tears, time loops, shadow creatures",
+    "Civilians trapped in the blast radius - save them or save yourselves?",
+    "Escape shuttle sabotaged - who's the rat?",
+    "Final choice: Destroy device (lose payday), sell it (doom thousands), or activate it (void apocalypse)"
+  ],
+
+  "notes": "ACTION MOVIE SESSION - 4 specialists, 1 heist, infinite complications. High lethality, cinematic set-pieces, moral dilemmas under fire. Every character has secrets that could explode. DM: GO HARD. Multiple enemy factions, environmental hazards, ticking clocks, impossible choices. Make them EARN the escape. All stats validated against Aeonisk YAGS Module v1.2.2, Gear & Tech Reference v1.2.2, and weapons.py library."
+}

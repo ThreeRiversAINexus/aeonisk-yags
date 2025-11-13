@@ -10,6 +10,9 @@ import re
 from typing import Dict, List, Tuple, Optional, Any, Union
 import logging
 
+# Import custom log levels
+from . import custom_log_levels  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,20 +52,26 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
     logger.debug("Extracting state changes from structured ActionResolution")
 
     # Extract void changes
+    logger.trace(f"Processing {len(resolution_obj.effects.void_changes)} void changes")
     void_change = sum(vc.amount for vc in resolution_obj.effects.void_changes)
     void_reasons = [vc.reason for vc in resolution_obj.effects.void_changes]
     void_target_character = resolution_obj.effects.void_changes[0].character_name if resolution_obj.effects.void_changes else None
+    logger.trace(f"Void: total={void_change}, target={void_target_character}, reasons={void_reasons}")
 
     # Extract soulcredit changes
+    logger.trace(f"Processing {len(resolution_obj.effects.soulcredit_changes)} soulcredit changes")
     soulcredit_change = sum(sc.amount for sc in resolution_obj.effects.soulcredit_changes)
     soulcredit_reasons = [sc.reason for sc in resolution_obj.effects.soulcredit_changes]
+    logger.trace(f"Soulcredit: total={soulcredit_change}, reasons={soulcredit_reasons}")
 
     # Extract clock updates
     # Note: Legacy format expects (clock_name, ticks, reason, source)
+    logger.trace(f"Processing {len(resolution_obj.effects.clock_updates)} clock updates")
     clock_triggers = [
         (cu.clock_name, cu.ticks, cu.reason, 'structured_output')
         for cu in resolution_obj.effects.clock_updates
     ]
+    logger.trace(f"Clock triggers: {clock_triggers}")
 
     # Extract conditions
     conditions = [

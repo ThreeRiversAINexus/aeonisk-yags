@@ -1255,6 +1255,53 @@ def test_full_capture_scenario():
 - Converts to prisoner (special NPC disposition)
 - Can be stabilized, interrogated, escorted
 
+### NPC Despawning
+
+**Added**: 2025-11-12 (economy-and-vending branch)
+
+NPCs have a complete lifecycle: spawn → interact → depart. Unlike enemies (which are auto-cleared by `StoryAdvancement.clear_all_enemies`), NPCs must be explicitly despawned when they naturally leave the scene.
+
+**Despawning Mechanisms**:
+
+1. **StoryAdvancement.npc_departures** - For major scene transitions:
+   - NPCs don't follow when story advances to new location
+   - Mission complete, NPCs return to daily lives
+   - Guide departs after fulfilling bargain
+   - Social encounter ends, NPCs walk away
+
+2. **ScenePivot.npc_departures** - For minor scene changes:
+   - NPCs flee from alarm/danger (peaceful departure)
+   - Tactical repositioning, NPCs stay behind
+   - Adjacent room transition
+   - NPCs dismissed by players
+
+**Processing** (`session.py:3053-3061`, `3221-3229`):
+```python
+# StoryAdvancement processing
+if adv.npc_departures and self.shared_state:
+    for npc_identifier in adv.npc_departures:
+        removed = self.shared_state.remove_npc(npc_identifier)
+        # Logs: "👤 NPC departed: {identifier}"
+
+# ScenePivot processing
+if pivot.npc_departures and self.shared_state:
+    for npc_identifier in pivot.npc_departures:
+        removed = self.shared_state.remove_npc(npc_identifier)
+        # Logs: "👤 NPC departed (scene pivot): {identifier}"
+```
+
+**Distinction from enemy_conversions.FLED**:
+- `npc_departures`: Peaceful NPC departure (dismissed, walk away, flee from alarm)
+- `enemy_conversions.FLED`: Combat-related enemy fleeing (scared off by violence, routed)
+
+**Implementation**:
+- Schema fields: `story_events.py:238-241` (StoryAdvancement), `161-164` (ScenePivot)
+- Processing: `session.py:3053-3061` (StoryAdvancement), `3221-3229` (ScenePivot)
+- DM prompts: `dm_commands.yaml:192+` (NPC LIFECYCLE - DESPAWNING section)
+- Tests: `test_dm_npc_integration.py:347-553` (6 tests covering schema + processing)
+
+**Design rationale**: NPCs should not accumulate indefinitely. DM must actively manage NPC lifecycle by despawning when narratively appropriate (just as they actively spawn NPCs when entering new areas).
+
 ### Healing System
 
 **Heal types**:

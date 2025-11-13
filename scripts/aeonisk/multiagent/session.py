@@ -3601,17 +3601,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     else:
                         logger.warning(f"Failed to remove vendor '{vendor_name}' - not found in current_vendors")
 
-            # Remove departing NPCs
-            if adv.npc_departures and self.shared_state:
-                for npc_identifier in adv.npc_departures:
-                    removed = self.shared_state.remove_npc(npc_identifier)
-                    if removed:
-                        logger.info(f"👤 NPC departed: {npc_identifier}")
-                        print(f"   NPC departed: {npc_identifier}")
-                    else:
-                        logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
+            # NOTE: NPC departures are now handled in Entity Lifecycle Phase #2 (below)
+            # This allows DM to decide which NPCs follow to new scene in ConversionDecisions
 
-            # SECOND ENTITY LIFECYCLE PHASE - Spawn initial entities for NEW scene
+            # SECOND ENTITY LIFECYCLE PHASE - Manage entities for NEW scene
             print(f"\n{'='*80}")
             print(f"🔄 ENTITY LIFECYCLE PHASE #2 - New Scene Initialization")
             print(f"{'='*80}")
@@ -3643,14 +3636,30 @@ NO conversions/morale checks needed (scene just started).
             # Get spawn decisions from DM for new scene
             if dm_agent and hasattr(dm_agent, 'check_conversions'):
                 try:
-                    post_advancement_decisions = await dm_agent.check_conversions(
-                        round_number=mechanics.current_round if mechanics else 0,
-                        resolution_summary=new_scene_context
+                    # check_conversions is async, but we're in sync context - use asyncio
+                    import asyncio
+                    loop = asyncio.get_event_loop()
+                    post_advancement_decisions = loop.run_until_complete(
+                        dm_agent.check_conversions(
+                            round_number=mechanics.current_round if mechanics else 0,
+                            resolution_summary=new_scene_context
+                        )
                     )
 
                     print(f"\n✅ New scene entities:")
+                    print(f"   - NPC departures: {len(post_advancement_decisions.npc_departures)}")
                     print(f"   - Enemy spawns: {len(post_advancement_decisions.enemy_spawns)}")
                     print(f"   - NPC spawns: {len(post_advancement_decisions.npc_spawns)}")
+
+                    # Process NPC departures first (remove NPCs that don't belong in new scene)
+                    if post_advancement_decisions.npc_departures and self.shared_state:
+                        for npc_identifier in post_advancement_decisions.npc_departures:
+                            removed = self.shared_state.remove_npc(npc_identifier)
+                            if removed:
+                                logger.info(f"👤 NPC departed (post-advancement): {npc_identifier}")
+                                print(f"\n✓ NPC doesn't follow to new scene: {npc_identifier}")
+                            else:
+                                logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found")
 
                     # Process enemy spawns for new scene
                     if post_advancement_decisions.enemy_spawns and self.enemy_combat:

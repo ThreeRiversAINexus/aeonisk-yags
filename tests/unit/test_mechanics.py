@@ -302,6 +302,47 @@ class TestSceneClocks:
         assert removal_event['data']['filled'] == True
         assert removal_event['data']['consequence_triggered'] == True
 
+    def test_get_all_clocks_includes_filled_flag(self, mechanics_engine):
+        """Test that get_all_clocks() includes 'filled' flag for conversion check."""
+        # Create two clocks
+        mechanics_engine.create_scene_clock("Security Response", maximum=6)
+        mechanics_engine.create_scene_clock("Escape Route", maximum=4)
+
+        # Fill the Escape Route clock
+        mechanics_engine.queue_clock_update("Escape Route", ticks=4, reason="Players found exit")
+        mechanics_engine.apply_queued_clock_updates()
+
+        # Partially fill Security Response (critical but not filled)
+        mechanics_engine.queue_clock_update("Security Response", ticks=5, reason="Alarms triggered")
+        mechanics_engine.apply_queued_clock_updates()
+
+        # Get all clocks (this is what conversion check uses)
+        all_clocks = mechanics_engine.get_all_clocks()
+
+        # Should return 2 clocks
+        assert len(all_clocks) == 2
+
+        # Find each clock in results
+        security_clock = next((c for c in all_clocks if c['name'] == "Security Response"), None)
+        escape_clock = next((c for c in all_clocks if c['name'] == "Escape Route"), None)
+
+        assert security_clock is not None
+        assert escape_clock is not None
+
+        # Verify 'filled' flag is present in dict
+        assert 'filled' in security_clock
+        assert 'filled' in escape_clock
+
+        # Verify filled states
+        assert security_clock['filled'] is False  # 5/6 is critical but not filled
+        assert escape_clock['filled'] is True     # 4/4 is filled
+
+        # Verify current/max ticks
+        assert security_clock['current_ticks'] == 5
+        assert security_clock['max_ticks'] == 6
+        assert escape_clock['current_ticks'] == 4
+        assert escape_clock['max_ticks'] == 4
+
 
 # ============================================================================
 # Condition/Status Effect Tests

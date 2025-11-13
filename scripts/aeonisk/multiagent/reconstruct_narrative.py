@@ -139,7 +139,8 @@ def extract_narrative_elements(log_file: Path) -> List[Dict[str, Any]]:
 
                     if 'enemy_spawns' in event and event['enemy_spawns']:
                         spawns = event['enemy_spawns']
-                        content_parts.append(f"\n**NEW ENEMIES:** {len(spawns)} spawned\n")
+                        total_enemies = sum(spawn.get('count', 1) for spawn in spawns)
+                        content_parts.append(f"\n**NEW ENEMIES:** {total_enemies} spawned\n")
 
                     if 'npc_spawns' in event and event['npc_spawns']:
                         spawns = event['npc_spawns']

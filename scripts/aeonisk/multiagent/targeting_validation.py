@@ -222,7 +222,7 @@ Return the correct target ID, your confidence level, and brief reasoning."""
     model = AnthropicModel('claude-haiku-4')
     agent = Agent(
         model,
-        result_type=TargetCorrectionResult,
+        output_type=TargetCorrectionResult,
         system_prompt="You are a targeting validation assistant. Your job is to mechanically correct targeting errors in game effects by matching them to valid target IDs."
     )
 
@@ -230,7 +230,8 @@ Return the correct target ID, your confidence level, and brief reasoning."""
     logger.info(f"🤖 LLM TARGETING INFERENCE: Attempting to correct '{effect.target}' using Haiku")
     result = await agent.run(prompt)
 
-    logger.info(f"🤖 LLM TARGETING CORRECTION: {effect.target} -> {result.data.corrected_target} (confidence: {result.data.confidence})")
-    logger.info(f"   Reasoning: {result.data.reasoning}")
+    # Note: Pydantic AI 1.9.0 uses result.output (not result.data)
+    logger.info(f"🤖 LLM TARGETING CORRECTION: {effect.target} -> {result.output.corrected_target} (confidence: {result.output.confidence})")
+    logger.info(f"   Reasoning: {result.output.reasoning}")
 
-    return result.data
+    return result.output

@@ -700,7 +700,7 @@ class SharedIntel:
             List of formatted intel strings
         """
         recent = [
-            f"From {item.source_agent}: {item.intel}"
+            f"[ALLY {item.source_agent}] {item.intel}"
             for item in self.intel_pool
             if current_round - item.round <= lookback
         ]

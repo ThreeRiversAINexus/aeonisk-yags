@@ -9,6 +9,9 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
+# Import custom log levels
+from . import custom_log_levels  # noqa: F401
+
 logger = logging.getLogger(__name__)
 
 
@@ -199,7 +202,7 @@ class MockMessages:
         cache_key = (self.agent_id, call_seq)
 
         # REPLAY DEBUG: Log cache lookup attempt
-        logger.info(f"🔍 MockLLM: {self.agent_id} requesting call #{call_seq}, cache_key={cache_key}")
+        logger.llm(f"🔍 MockLLM: {self.agent_id} requesting call #{call_seq}, cache_key={cache_key}")
 
         if cache_key not in self.cache:
             logger.error(f"❌ MockLLM: Cache miss for {cache_key}. Available keys: {list(self.cache.keys())[:5]}...")
@@ -213,7 +216,7 @@ class MockMessages:
         tokens = cached.get('tokens', {'input': 0, 'output': 0})
 
         # REPLAY DEBUG: Log successful cache hit
-        logger.info(f"✓ MockLLM: Cache hit for {self.agent_id} call #{call_seq}, returning {len(response_text)} chars")
+        logger.llm(f"✓ MockLLM: Cache hit for {self.agent_id} call #{call_seq}, returning {len(response_text)} chars")
 
         # Increment call counter
         self.call_index[self.agent_id] = call_seq + 1
@@ -279,7 +282,7 @@ class HybridMessages:
             return self.mock_messages.create(model, messages, temperature, max_tokens, **kwargs)
         else:
             # Make real API call with rate limiting
-            logger.info(f"HybridMessages: Round {self.current_round} > {self.continue_from_round}, using REAL LLM (rate-limited)")
+            logger.llm(f"HybridMessages: Round {self.current_round} > {self.continue_from_round}, using REAL LLM (rate-limited)")
             from .llm_provider import call_anthropic_with_retry
             import asyncio
 

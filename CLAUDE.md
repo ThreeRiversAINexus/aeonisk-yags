@@ -25,6 +25,22 @@ source .venv/bin/activate
 python -m pytest tests/unit/test_mechanics.py -v
 ```
 
+**Log levels (for debugging):**
+```bash
+# Standard mode (INFO) - clean logs, session progress only
+python3 scripts/run_multiagent_session.py config.json --log-level INFO
+
+# Debug mechanics without LLM spam (DEBUG) - mechanics details, hides API calls
+python3 scripts/run_multiagent_session.py config.json --log-level DEBUG
+
+# Debug API calls only (LLM) - shows API activity, hides mechanics
+python3 scripts/run_multiagent_session.py config.json --log-level LLM
+
+# Ultra-verbose (TRACE) - line-by-line parsing, state transitions
+python3 scripts/run_multiagent_session.py config.json --log-level TRACE
+```
+See `.claude/CUSTOM_LOG_LEVELS.md` for details on custom log levels.
+
 ## Development Philosophy
 
 ### Test-Driven Development (TDD) - MANDATORY

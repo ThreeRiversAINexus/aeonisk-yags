@@ -252,10 +252,8 @@ Shorter descriptions feel rushed and unsatisfying. Longer descriptions create im
         description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
     )
 
-    npc_departures: List[str] = Field(
-        default_factory=list,
-        description="NPC agent_ids or names to remove from scenario (e.g., ['npc_guide_1', 'Dr. Yuki Tanaka']). NPCs leave when dismissed, walk away, flee, or story advances past them. Use this for peaceful departures. For combat-related fleeing, use enemy_conversions with FLED resolution instead."
-    )
+    # NOTE: npc_departures removed - NPC lifecycle is handled in Entity Lifecycle Phase #2 (after story advancement)
+    # The DM determines which NPCs follow to the new scene vs. stay behind in ConversionDecisions.npc_departures
 
     @field_validator('location', 'situation')
     @classmethod

@@ -48,10 +48,10 @@ class TestTargetingValidationLLM:
             mock_model_class.return_value = mock_model
 
             mock_result = Mock()
-            mock_result.data = Mock()
-            mock_result.data.corrected_target = "tgt_9xz2"
-            mock_result.data.confidence = "high"
-            mock_result.data.reasoning = "DM narration clearly mentions 'heavy gunner' which matches tgt_9xz2"
+            mock_result.output = Mock()
+            mock_result.output.corrected_target = "tgt_9xz2"
+            mock_result.output.confidence = "high"
+            mock_result.output.reasoning = "DM narration clearly mentions 'heavy gunner' which matches tgt_9xz2"
 
             mock_agent_instance = AsyncMock()
             mock_agent_instance.run.return_value = mock_result
@@ -102,10 +102,10 @@ class TestTargetingValidationLLM:
             mock_model = Mock()
             mock_model_class.return_value = mock_model
             mock_result = Mock()
-            mock_result.data = Mock()
-            mock_result.data.corrected_target = "tgt_3bc1"
-            mock_result.data.confidence = "high"
-            mock_result.data.reasoning = "Narration specifies 'Scout Alpha' hit, matching tgt_3bc1"
+            mock_result.output = Mock()
+            mock_result.output.corrected_target = "tgt_3bc1"
+            mock_result.output.confidence = "high"
+            mock_result.output.reasoning = "Narration specifies 'Scout Alpha' hit, matching tgt_3bc1"
 
             mock_agent_instance = AsyncMock()
             mock_agent_instance.run.return_value = mock_result
@@ -153,10 +153,10 @@ class TestTargetingValidationLLM:
             mock_model = Mock()
             mock_model_class.return_value = mock_model
             mock_result = Mock()
-            mock_result.data = Mock()
-            mock_result.data.corrected_target = "tgt_7a3f"
-            mock_result.data.confidence = "medium"
-            mock_result.data.reasoning = "Narration is vague, but Ash is mentioned in earlier context"
+            mock_result.output = Mock()
+            mock_result.output.corrected_target = "tgt_7a3f"
+            mock_result.output.confidence = "medium"
+            mock_result.output.reasoning = "Narration is vague, but Ash is mentioned in earlier context"
 
             mock_agent_instance = AsyncMock()
             mock_agent_instance.run.return_value = mock_result
@@ -205,10 +205,10 @@ class TestTargetingValidationLLM:
             mock_model = Mock()
             mock_model_class.return_value = mock_model
             mock_result = Mock()
-            mock_result.data = Mock()
-            mock_result.data.corrected_target = "tgt_1a2b"
-            mock_result.data.confidence = "low"
-            mock_result.data.reasoning = "No clear indicators, defaulting to first target"
+            mock_result.output = Mock()
+            mock_result.output.corrected_target = "tgt_1a2b"
+            mock_result.output.confidence = "low"
+            mock_result.output.reasoning = "No clear indicators, defaulting to first target"
 
             mock_agent_instance = AsyncMock()
             mock_agent_instance.run.return_value = mock_result
@@ -294,10 +294,10 @@ class TestTargetingValidationLLM:
             mock_model = Mock()
             mock_model_class.return_value = mock_model
             mock_result = Mock()
-            mock_result.data = Mock()
-            mock_result.data.corrected_target = "tgt_9xz2"
-            mock_result.data.confidence = "high"
-            mock_result.data.reasoning = "Enemy mentioned in narration matches tgt_9xz2"
+            mock_result.output = Mock()
+            mock_result.output.corrected_target = "tgt_9xz2"
+            mock_result.output.confidence = "high"
+            mock_result.output.reasoning = "Enemy mentioned in narration matches tgt_9xz2"
 
             mock_agent_instance = AsyncMock()
             mock_agent_instance.run.return_value = mock_result

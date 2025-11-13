@@ -137,15 +137,22 @@ class Condition(BaseModel):
     - Positive penalties are BUFFS (e.g., penalty=2 for Inspired = +2 to rolls)
     - Use penalty=0 ONLY for purely narrative conditions with no mechanical effect
 
+    TARGET FIELD (Optional):
+    - If omitted: Condition applies to the acting character (self-buff/debuff)
+    - If specified: Condition applies to the target (e.g., enemy you intimidated)
+    - For multi-target actions: Create multiple Condition entries, one per target
+
     Examples:
     - Condition(name="Stunned", penalty=-3, duration=2, description="Cannot act next round, -3 to all rolls")
     - Condition(name="Inspired", penalty=2, duration=3, description="+2 to next attack")
-    - Condition(name="Marked", penalty=0, duration=5, description="Target tracked by scanner, no mechanical penalty")
+    - Condition(name="Wavering", target="tgt_abc1", penalty=-2, duration=1, description="Hesitant after intimidation")
+    - Multi-target: [Condition(target="tgt_abc1", ...), Condition(target="tgt_def2", ...), Condition(target="tgt_ghi3", ...)]
     """
     name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired)")
     penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only")
     duration: int = Field(default=1, ge=1, description="Rounds this condition lasts")
     description: str = Field(..., min_length=5, description="What this condition does")
+    target: Optional[str] = Field(default=None, description="Who receives the condition. If omitted, applies to actor. For multi-target actions, create multiple Condition entries.")
 
 
 class DamageEffect(BaseModel):
