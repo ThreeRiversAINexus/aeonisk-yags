@@ -3522,12 +3522,30 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 if self.enemy_combat and self.enemy_combat.enemy_agents:
                     active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
                     if active_enemies:
+                        # Clear enemies
                         for enemy in active_enemies:
                             enemy.is_active = False
                             enemy.despawned_round = mechanics.current_round if mechanics else 0
+
                         enemy_names = [e.name for e in active_enemies]
+                        enemy_ids = [e.agent_id for e in active_enemies]
+
                         logger.info(f"🗑️  Cleared {len(active_enemies)} enemies (clear_all_enemies=True)")
                         print(f"   Enemies removed: {', '.join(enemy_names)}")
+
+                        # Log to entity_lifecycle event (retroactive update)
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                'entity_lifecycle_story_advancement',
+                                {
+                                    'enemies_cleared': enemy_ids,
+                                    'enemy_count': len(active_enemies),
+                                    'reason': 'story_advancement_clear_all_enemies',
+                                    'new_location': adv.location,
+                                    'new_situation': adv.situation
+                                },
+                                round_num=mechanics.current_round
+                            )
             else:
                 logger.info("✓ Preserving active enemies (clear_all_enemies=False)")
 

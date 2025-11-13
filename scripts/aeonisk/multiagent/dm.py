@@ -2397,7 +2397,7 @@ Void Level: {self.current_scenario.void_level}/10"""
                         f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns, "
                         f"{len(decisions.enemy_spawns)} enemy spawns")
 
-            # 7. Log conversion check call for replay
+            # 7. Log conversion check call for replay (JSONL)
             if self.llm_logger:
                 estimated_input_tokens = len(prompt) // 4
                 estimated_output_tokens = len(decisions.reasoning) // 4
@@ -2414,6 +2414,25 @@ Void Level: {self.current_scenario.void_level}/10"""
                     current_round=round_number,
                     call_sequence=self.llm_logger.call_count
                 )
+                self.llm_logger.call_count += 1
+
+            # 8. Also log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    system_prompt = "You are the DM determining conversions."
+                    full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=round_number,
+                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=decisions.model_dump_json(indent=2),
+                        model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                        temperature=0.7,
+                        metadata={'purpose': 'entity_lifecycle_conversion_check', 'note': 'Pydantic AI structured output (ConversionDecisions schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
             return decisions
 

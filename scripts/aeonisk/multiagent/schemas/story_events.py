@@ -790,10 +790,17 @@ Use empty list [] if no escalations."""
         default_factory=list,
         description="""New NPCs to spawn this round.
 
+⚠️ CRITICAL: If you mention spawning NPCs in 'reasoning', you MUST populate this list!
+
 Use when:
 - Introducing quest-givers, guides, civilians
 - Scene requires dialogue characters
 - Environmental NPCs (merchants, bystanders, etc.)
+- Failed player actions in hostile zones (guards respond to alarms)
+- Story requires new characters (medics arrive, enforcers respond, witnesses appear)
+
+❌ DO NOT say "Spawning X" in reasoning without adding NPCSpawn objects to this list!
+✅ DO populate this list whenever you mention spawning in your reasoning!
 
 NOTE: For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED.
 Only use npc_spawns for BRAND NEW characters entering the scene.
@@ -804,13 +811,18 @@ Use empty list [] if no new NPCs."""
         default_factory=list,
         description="""New enemies to spawn this round.
 
+⚠️ CRITICAL: If you mention spawning enemies in 'reasoning', you MUST populate this list!
+
 Use when:
 - Reinforcements arrive after failed stealth/alarms
 - New faction enters conflict
 - Environmental threats appear (guards, patrols, creatures)
 - Clocks trigger enemy arrival (Security Response filled, etc.)
 
+❌ DO NOT say "Spawning X enemies" in reasoning without adding EnemySpawn objects to this list!
+✅ DO populate this list whenever you mention spawning in your reasoning!
 ⚠️ DO NOT duplicate existing enemies! Check active enemies list first.
+
 Use empty list [] if no new enemies needed."""
     )
 
@@ -837,13 +849,17 @@ Use empty list [] if no NPCs should depart."""
         max_length=500,
         description="""Brief explanation of conversion decisions (20-500 chars).
 
+⚠️ CRITICAL: If you say "Spawning X" here, you MUST populate npc_spawns or enemy_spawns lists!
+❌ DO NOT use this field to "narrate" spawns without actually creating them in the lists above!
+
 Explain WHY you made these conversion choices based on:
 - Enemy health/morale (low HP = surrender likely)
 - Player actions (intimidation, diplomacy = de-escalation)
 - NPC provocations (attacked = escalation likely)
 - Tactical situation (surrounded, outnumbered = flee/surrender)
+- Spawn decisions (what triggered spawns, why now)
 
-Example: "Thug #1 surrendered due to low HP (15%) and intimidation. Guard #2 fled when surrounded. No NPC escalations - prisoner remains compliant." """
+Example: "Thug #1 surrendered due to low HP (15%) and intimidation. Guard #2 fled when surrounded. No NPC escalations - prisoner remains compliant. Spawned 2 ACG enforcers due to alarm." """
     )
 
 
