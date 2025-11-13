@@ -382,6 +382,19 @@ class SelfPlayingSession:
                         )
                         mechanics.scene_clocks[clock.name] = scene_clock
                         logger.info(f"Loaded starting clock: {clock.name} ({clock.current_ticks}/{clock.max_ticks})")
+
+                        # Log clock spawn (starting clocks created at round 0/null)
+                        if mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_clock_spawn(
+                                clock.name,
+                                clock.max_ticks,
+                                clock.description,
+                                round_num=None,  # Session start, no round yet
+                                current_ticks=clock.current_ticks,
+                                advance_meaning=clock.advance_meaning,
+                                regress_meaning=clock.regress_meaning,
+                                filled_consequence=clock.filled_consequence
+                            )
                     except Exception as e:
                         logger.warning(f"Failed to load starting clock {clock_config.get('name', 'unknown')}: {e}")
                 print(f"✓ Loaded {len(self.config['starting_clocks'])} starting clock(s)")
@@ -2479,7 +2492,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Log the new clock
             if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_clock_spawn(name, max_ticks, description)
+                mechanics.jsonl_logger.log_clock_spawn(
+                    name,
+                    max_ticks,
+                    description,
+                    round_num=mechanics.current_round,
+                    current_ticks=0,
+                    advance_meaning=clock.advance_meaning if clock else None,
+                    regress_meaning=clock.regress_meaning if clock else None,
+                    filled_consequence=clock.filled_consequence if clock else None
+                )
 
     def _spawn_new_clocks_structured(self, new_clocks: List['NewClock']):
         """Spawn new clocks from structured output (Phase 5: Pydantic AI migration)."""
@@ -2519,7 +2541,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             # Log the new clock
             if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_clock_spawn(clock.name, clock.max_ticks, clock.description)
+                mechanics.jsonl_logger.log_clock_spawn(
+                    clock.name,
+                    clock.max_ticks,
+                    clock.description,
+                    round_num=mechanics.current_round,
+                    current_ticks=clock.current_ticks,
+                    advance_meaning=clock.advance_meaning,
+                    regress_meaning=clock.regress_meaning,
+                    filled_consequence=clock.filled_consequence
+                )
 
     async def _check_and_trigger_story_advancement(self):
         """Check if all clocks are complete and trigger DM to advance the story."""

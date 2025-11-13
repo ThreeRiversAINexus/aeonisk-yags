@@ -512,16 +512,49 @@ class JSONLLogger:
         }
         self._write_event(event)
 
-    def log_clock_spawn(self, clock_name: str, max_ticks: int, description: str):
-        """Log spawning of a new scene clock."""
+    def log_clock_spawn(
+        self,
+        clock_name: str,
+        max_ticks: int,
+        description: str,
+        round_num: Optional[int] = None,
+        current_ticks: int = 0,
+        advance_meaning: Optional[str] = None,
+        regress_meaning: Optional[str] = None,
+        filled_consequence: Optional[str] = None
+    ):
+        """
+        Log spawning of a new scene clock.
+
+        Args:
+            clock_name: Clock identifier
+            max_ticks: Maximum ticks before fill
+            description: What the clock represents
+            round_num: Round when clock was created (None for session start)
+            current_ticks: Starting tick value (default 0)
+            advance_meaning: What advancing the clock represents
+            regress_meaning: What regressing the clock represents
+            filled_consequence: What happens when clock fills
+        """
         event = {
             "event_type": "clock_spawn",
             "ts": datetime.now().isoformat(),
             "session": self.session_id,
+            "round": round_num,
             "clock_name": clock_name,
             "max_ticks": max_ticks,
+            "current_ticks": current_ticks,
             "description": description
         }
+
+        # Add semantic fields if provided
+        if advance_meaning:
+            event["advance_meaning"] = advance_meaning
+        if regress_meaning:
+            event["regress_meaning"] = regress_meaning
+        if filled_consequence:
+            event["filled_consequence"] = filled_consequence
+
         self._write_event(event)
 
     def log_synthesis(self, round_num: int, synthesis: str, structured_synthesis=None):
@@ -909,8 +942,11 @@ class JSONLLogger:
                 - damage_taken_by_players: Total damage taken by players
                 - void_gained: Total void gained this round
                 - void_lost: Total void lost this round
-                - clocks_advanced: Number of clock advancement events
+                - clocks_advanced: Number of clocks that advanced this round
+                - clocks_regressed: Number of clocks that regressed this round
                 - clocks_filled: Number of clocks that filled
+                - total_ticks_advanced: Total ticks advanced across all clocks
+                - total_ticks_regressed: Total ticks regressed across all clocks
                 - active_enemies: Enemy count at round end
                 - player_wounds_total: Sum of all player wounds
         """
@@ -928,7 +964,10 @@ class JSONLLogger:
             "void_gained": summary.get('void_gained', 0),
             "void_lost": summary.get('void_lost', 0),
             "clocks_advanced": summary.get('clocks_advanced', 0),
+            "clocks_regressed": summary.get('clocks_regressed', 0),
             "clocks_filled": summary.get('clocks_filled', 0),
+            "total_ticks_advanced": summary.get('total_ticks_advanced', 0),
+            "total_ticks_regressed": summary.get('total_ticks_regressed', 0),
             "active_enemies": summary.get('active_enemies', 0),
             "player_wounds_total": summary.get('player_wounds_total', 0)
         }
