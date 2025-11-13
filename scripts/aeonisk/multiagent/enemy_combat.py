@@ -278,7 +278,8 @@ class EnemyCombatManager:
                                 template=spawn.template,
                                 stats=stats,
                                 position=str(enemy.position),
-                                tactics=enemy.tactics
+                                tactics=enemy.tactics,
+                                count=spawn.count  # Number of enemies spawned in this batch
                             )
 
         return notifications
@@ -756,6 +757,8 @@ class EnemyCombatManager:
             return self._execute_charge(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         elif 'retreat' in major_action:
             return self._execute_retreat(enemy, declaration, resolution_state)
+        elif 'surrender' in major_action:
+            return self._execute_surrender(enemy, declaration, resolution_state)
         elif 'grenade' in major_action or 'throw' in major_action:
             return self._execute_grenade(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         else:
@@ -1500,6 +1503,36 @@ class EnemyCombatManager:
             attack_result['narration'] = f"{enemy.name} charges from {old_position} to {enemy.position} and attacks (+2 damage)"
 
         return attack_result
+
+    def _execute_surrender(self, enemy: EnemyAgent, declaration: EnemyDeclaration, resolution_state: ResolutionState) -> Dict[str, Any]:
+        """
+        Execute enemy surrender action.
+
+        Enemy has decided to surrender (morale broken, negotiation, overwhelming odds).
+        This marks them for conversion to prisoner NPC in conversion check phase.
+        """
+        # Mark enemy as surrendered (will be converted to NPC prisoner by DM conversion check)
+        enemy.is_active = False
+        enemy.is_prisoner = True
+        enemy.despawned_round = self.current_round
+
+        # Mark in resolution state so conversion check knows they surrendered
+        resolution_state.mark_defeated(enemy.agent_id)
+
+        # Add to shared intel
+        intel_msg = f"{enemy.name} surrendering - {declaration.reasoning[:100]}"
+        resolution_state.add_shared_intel(intel_msg)
+
+        logger.info(f"✓ {enemy.name} surrendered (will convert to prisoner NPC)")
+
+        return {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'surrender',
+            'result': 'success',
+            'narration': f"{enemy.name} lowers their weapon and surrenders",
+            'surrender': True  # Signal for conversion check
+        }
 
     def _execute_retreat(self, enemy: EnemyAgent, declaration: EnemyDeclaration, resolution_state: ResolutionState) -> Dict[str, Any]:
         """Execute enemy retreat action."""

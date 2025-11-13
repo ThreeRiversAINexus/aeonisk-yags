@@ -659,7 +659,8 @@ class JSONLLogger:
         soulcredit: int,
         position: str,
         conditions: List[str] = None,
-        is_defeated: bool = False
+        is_defeated: bool = False,
+        agent: str = 'player'
     ):
         """
         Log character state snapshot (typically at round end).
@@ -676,6 +677,7 @@ class JSONLLogger:
             position: Tactical position (e.g., "Near-PC")
             conditions: List of active conditions (debuffs, buffs)
             is_defeated: Whether character is defeated
+            agent: Agent type ('player', 'enemy', 'npc') for filtering in analysis
         """
         event = {
             "event_type": "character_state",
@@ -691,7 +693,8 @@ class JSONLLogger:
             "soulcredit": soulcredit,
             "position": position,
             "conditions": conditions or [],
-            "is_defeated": is_defeated
+            "is_defeated": is_defeated,
+            "agent": agent
         }
         self._write_event(event)
 
@@ -703,7 +706,8 @@ class JSONLLogger:
         template: str,
         stats: Dict[str, Any],
         position: str,
-        tactics: str
+        tactics: str,
+        count: int = 1
     ):
         """
         Log enemy spawn event.
@@ -716,6 +720,7 @@ class JSONLLogger:
             stats: Dict with health, attributes, skills, weapons, armor
             position: Spawn position
             tactics: Tactical behavior (aggressive_melee, tactical_ranged, etc.)
+            count: Number of enemies spawned in this group (1-5)
         """
         event = {
             "event_type": "enemy_spawn",
@@ -727,7 +732,8 @@ class JSONLLogger:
             "template": template,
             "stats": stats,
             "position": position,
-            "tactics": tactics
+            "tactics": tactics,
+            "count": count
         }
         self._write_event(event)
 
@@ -758,6 +764,33 @@ class JSONLLogger:
             "enemy_name": enemy_name,
             "defeat_reason": defeat_reason,
             "rounds_survived": rounds_survived
+        }
+        self._write_event(event)
+
+    def log_npc_departure(
+        self,
+        round_num: int,
+        npc_id: str,
+        npc_name: str,
+        departure_reason: str
+    ):
+        """
+        Log NPC departure/removal from scene.
+
+        Args:
+            round_num: Current round
+            npc_id: NPC agent ID
+            npc_name: Display name
+            departure_reason: Reason for departure (fled, hidden, dismissed, left, story_advanced)
+        """
+        event = {
+            "event_type": "npc_departure",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "npc_id": npc_id,
+            "npc_name": npc_name,
+            "departure_reason": departure_reason
         }
         self._write_event(event)
 
@@ -2736,6 +2769,24 @@ class MechanicsEngine:
         filled = getattr(self, '_filled_clocks_this_round', [])
         self._filled_clocks_this_round = []
         return filled
+
+    def get_all_clocks(self) -> List[Dict[str, Any]]:
+        """
+        Get all active scene clocks as list of dicts.
+
+        Returns:
+            List of clock dicts with keys: name, current_ticks, max_ticks, description, filled
+        """
+        clock_list = []
+        for name, clock in self.scene_clocks.items():
+            clock_list.append({
+                'name': name,
+                'current_ticks': clock.current,
+                'max_ticks': clock.maximum,
+                'description': clock.description,
+                'filled': clock.filled  # Include filled flag so conversion check can see it
+            })
+        return clock_list
 
     def queue_clock_update(self, clock_name: str, ticks: int, reason: str):
         """

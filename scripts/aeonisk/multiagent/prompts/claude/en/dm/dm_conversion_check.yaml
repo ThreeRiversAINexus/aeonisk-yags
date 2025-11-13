@@ -9,13 +9,61 @@ conversion_check_prompt: |
   You have just resolved all actions for this round. Before synthesizing the narrative,
   you must determine which conversions should occur based on the resolutions.
 
+  ## Scenario Context
+
+  {scenario_context}
+
+  ## 🎯 Clock State Analysis
+
+  The clock states shown above reflect COMPLETED updates from this round's actions.
+
+  **If clocks show 🎯 FILLED marker:**
+  - These clocks just completed THIS ROUND (reached max ticks)
+  - Consider their filled_consequence when making spawn/conversion decisions
+  - Examples:
+    - "Security Response" (FILLED) → Spawn security reinforcements via enemy_spawns
+    - "Escape Route Found" (FILLED) → Don't spawn new blockers, players are escaping
+    - "Morale Broken" (FILLED) → Convert remaining enemies to fleeing/surrendering
+    - "Reinforcements Arrive" (FILLED) → Spawn reinforcements via enemy_spawns
+    - "Alarm System" (FILLED) → Spawn guards responding to alarm
+
+  **If clocks show ⚠️ CRITICAL (80%+) but not filled:**
+  - Danger/opportunity is IMMINENT but hasn't triggered yet
+  - Consider proactive spawns if appropriate (e.g., reinforcements en route)
+  - Example: "Security Response" at 5/6 → Maybe spawn scouts, full force on fill
+
+  **If clocks show ⚡ HIGH (60-79%):**
+  - Situation developing, not yet critical
+  - Hold off on spawning unless other factors warrant it
+  - Let the clock fill naturally before spawning related threats
+
+  **Filled Clock → Spawn Decision Matrix:**
+
+  | Clock Type | Filled Consequence Suggests | Your Response |
+  |------------|----------------------------|---------------|
+  | "Security/Reinforcements/Patrol" | Enemies arriving | Spawn enemies via enemy_spawns |
+  | "Escape Route/Safe Path" | Path secured | DON'T spawn blockers, players succeeding |
+  | "Morale/Resolve Broken" | Surrender imminent | Convert enemies via enemy_conversions |
+  | "Investigation/Intel Gathered" | Discovery made | Spawn informant NPC via npc_spawns |
+  | "Alarm/Alert/Lockdown" | Security activated | Spawn guards/enforcers via enemy_spawns |
+
+  **🚨 CRITICAL: Filled clocks are MECHANICAL TRIGGERS**
+
+  Filled clocks represent the culmination of player actions. If a clock fills:
+  - ✅ Respect the narrative direction (escape clocks = players escaping, don't block them)
+  - ✅ Spawn appropriate responses (security clocks = spawn guards)
+  - ❌ DON'T ignore filled clocks in your decision-making
+  - ❌ DON'T spawn contradictory threats (escape clock filled → DON'T spawn blockers)
+
   ## Available Combatants
 
-  **ACTIVE ENEMIES (use enemy_id for conversions):**
+  **ACTIVE ENEMIES (use the agent_id shown below, NOT target IDs from resolutions):**
   {available_enemies}
 
-  **ACTIVE NPCs (use npc_id for escalations):**
+  **ACTIVE NPCs (use the agent_id shown below, NOT target IDs):**
   {available_npcs}
+
+  **⚠️ IMPORTANT:** The resolution summary below may reference enemies using target IDs like `tgt_xxxx`. When creating conversions, you MUST use the actual agent IDs shown above (e.g., `enemy_grunt_4bc22537`), NOT the target IDs.
 
   ## Your Task
 
@@ -24,6 +72,52 @@ conversion_check_prompt: |
   1. **Enemy Conversions**: Which enemies should surrender/flee/be subdued?
   2. **NPC Escalations**: Which NPCs should turn hostile and join combat?
   3. **NPC Spawns**: Should any NEW NPCs enter the scene?
+  4. **Enemy Spawns**: Should any NEW enemies enter combat?
+
+  ## 🎯 AUTO-CONVERT: Enemy/NPC Actions Requiring Conversion
+
+  **⚠️ CRITICAL: If resolutions show enemies/NPCs taking these actions, you MUST convert them:**
+
+  **Enemy Actions → Automatic Conversion:**
+  - **"Surrender" action** → `EnemyConversion(resolution=CONVINCED, resulting_entity_type="prisoner", resulting_disposition="prisoner")`
+  - **"Retreat" action** → `EnemyConversion(resolution=FLED, reason="Tactical retreat")`
+  - **"Flee" action** → `EnemyConversion(resolution=FLED, reason="Morale broken, fled scene")`
+
+  **NPC Actions → Automatic Departure:**
+  - **"Flee" action** → NPC IMMEDIATELY leaves scene (add agent_id to npc_departures)
+  - **"Hide" action** → NPC becomes non-interactive and typically FLEES after 1 round (add agent_id to npc_departures unless strong story reason to stay)
+  - **"Pass" action (2+ consecutive rounds)** → NPC has nothing to do, likely left scene (add agent_id to npc_departures)
+
+  **Example - Enemy Declared Surrender:**
+  ```
+  Resolution summary shows:
+  - Freeborn Smugglers Raider #1: Surrender (SUCCESS) | DM: Raider #1 lowers weapon and surrenders
+  ```
+
+  ✅ **You MUST create conversion:**
+  ```python
+  enemy_conversions=[
+      EnemyConversion(
+          enemy_id="enemy_grunt_3d6bdcdf",  # ← Use agent_id from "ACTIVE ENEMIES" list above
+          resolution=EnemyResolution.CONVINCED,
+          reason="Raider surrendered after morale broke from Wei Lin's negotiation",
+          resulting_entity_type="prisoner",
+          resulting_disposition="prisoner"
+      )
+  ]
+  ```
+
+  ❌ **WRONG - DON'T use target IDs:**
+  ```python
+  enemy_conversions=[
+      EnemyConversion(
+          enemy_id="tgt_wfia",  # ← WRONG! This is a target ID, not an agent ID
+          ...
+      )
+  ]
+  ```
+
+  ❌ **DON'T ignore the surrender action** - if enemy declared surrender, they MUST be converted!
 
   ## Decision Guidelines
 
@@ -128,6 +222,70 @@ conversion_check_prompt: |
   - Players request to interact with specific individuals
   - Dramatic moments need witnesses or complications
 
+  **🎯 ACTIVE SPAWNING - BE PROACTIVE AND STORY-DRIVEN:**
+
+  **🚨 CRITICAL: Default to spawning when in doubt!**
+
+  The game thrives on dynamic complications. Empty scenes are boring. Spawn NPCs/enemies liberally to:
+  - Create emergent narratives (faction patrols encounter players, civilians witness crimes, informants offer intel)
+  - Escalate player failures (every failed action should have CONSEQUENCES)
+  - Introduce new factions and complications (rival gangs, corporate agents, bounty hunters)
+  - Reward player successes with new opportunities (successful hack → system maintenance NPC arrives, successful combat → wounded enemy intel NPC)
+  - Build living world (merchants, guides, contacts, witnesses, passersby create atmosphere)
+
+  **If NO active enemies AND NO active NPCs in scene:**
+
+  ✅ **You SHOULD STRONGLY CONSIDER spawning:**
+  - **ANY player failure** → Spawn appropriate response (failed stealth → guards, failed hack → security, failed diplomacy → hostile reaction)
+  - **Clocks advancing** → Clock movement suggests story progression, spawn related NPCs/enemies (Security +2 → patrol arrives, Intel +3 → informant surfaces)
+  - **Scene empty for 1+ rounds** → Spawn complications/opportunities to maintain momentum
+  - **Players succeeded but achieved goal** → Spawn witnesses, complications, or new faction interest
+  - **Location is dangerous** → Hostile zones should ALWAYS have patrols, guards, or threats
+  - **Players are in neutral/friendly territory** → Spawn NPCs for social interaction, quest hooks, merchant opportunities
+
+  ✅ **Spawn even when players SUCCEEDED if:**
+  - Success was loud (combat, explosions, alarms) → Spawn investigators, cleanup crews, witnesses
+  - Success opens new story threads (steal data → corporate trackers spawn, assassinate target → rival faction NPC approaches)
+  - Players achieved objective → Spawn quest-givers, merchants, allies, or complications for next objective
+
+  ❌ **Only DON'T spawn when:**
+  - You spawned enemies/NPCs LAST round (give 1 round breathing room, not more!)
+  - Story EXPLICITLY requires isolation (solo meditation, private conversation already in progress, players explicitly in sealed room)
+  - Players are actively fleeing and haven't stopped yet (wait until they stop running)
+
+  **Example - Failed Actions in Hostile Zone:**
+
+  Resolution Summary shows:
+  ```
+  - Ghost: Hack security terminal (FAIL (margin: -8)) | Clocks: Facility Lockdown +2
+  - Cipher: Disable cameras (FAIL (margin: -5))
+  ```
+
+  ✅ **Correct Response - Spawn guards:**
+  ```python
+  npc_spawns=[
+      NPCSpawn(
+          name="Facility Security Patrol",
+          faction="Tempest Corp Security",
+          entity_type="neutral",
+          threat_level="armed_neutral",
+          disposition="wary",
+          description="Two guards investigating alarm from failed hack attempt",
+          health=25,
+          soak=2,
+          skills={{"Guns": 10, "Intimidation": 8}}
+      )
+  ]
+  reasoning="Multiple failed hacks triggered facility alarm. Security patrol spawned to investigate. Lockdown clock advancement suggests response imminent."
+  ```
+
+  ❌ **Wrong Response:**
+  ```python
+  npc_spawns=[]
+  reasoning="No conversions warranted. All enemies at viable HP."
+  ```
+  **Problem:** Ignores context - failed actions in hostile zone SHOULD spawn responses!
+
   **Examples:**
   ```python
   # Civilian non-combatant
@@ -140,7 +298,7 @@ conversion_check_prompt: |
       description="Terrified civilian hiding behind cargo crates",
       health=15,
       soak=0,
-      skills={}
+      skills={{}}
   )
 
   # Friendly ally with skills
@@ -153,7 +311,7 @@ conversion_check_prompt: |
       description="Field medic offering to treat team's wounds",
       health=20,
       soak=0,
-      skills={"Medicine": 15, "Empathy": 12}
+      skills={{"Medicine": 15, "Empathy": 12}}
   )
 
   # Armed neutral (potential threat)
@@ -166,7 +324,7 @@ conversion_check_prompt: |
       description="Armed guard watching team cautiously, hand near holster",
       health=25,
       soak=2,
-      skills={"Notice": 10, "Intimidate": 8}
+      skills={{"Guns": 10, "Intimidation": 8}}
   )
   ```
 
@@ -176,18 +334,167 @@ conversion_check_prompt: |
   - Armed neutrals: 20-30 HP, 2-4 soak
 
   **Skills Guidelines:**
-  - Most NPCs: {} (no special skills)
+  - Most NPCs: {{}} (no special skills)
   - Specialists: 1-3 skills at 10-15 (their expertise area)
+  - Valid skill examples: "Guns", "Stealth", "Athletics", "Medicine", "Empathy", "Charm", "Intimidation", "Engineering"
+  - Do NOT use attribute names as skills: "Perception", "Strength", "Agility", etc. are attributes, not skills
+
+  ### Enemy Spawns (Brand New Hostile Combatants)
+
+  **⚠️ IMPORTANT: Use enemy_spawns for NEW hostile combatants entering combat**
+  - For NPC→Enemy conversions (escalations), use escalations instead
+  - Only use enemy_spawns for enemies who weren't previously in the scene
+  - Enemies have full tactical AI and will actively engage players
+
+  **When to spawn new enemies:**
+  - **Reinforcements:** Backup called after alarm/distress signal
+  - **Failed stealth:** Guards investigate player failures (failed hack, loud combat, triggered alarms)
+  - **Clock triggers:** Clocks like "Security Response", "Reinforcements", "Patrol Arrival" fill
+  - **New faction enters:** Different group arrives (rival gang, authorities, corporate security)
+  - **Environmental threats:** Void creatures manifest, automated defenses activate, wildlife attacks
+  - **Story escalation:** Player actions provoke response (attack ally faction → retaliation)
+
+  **🎯 ACTIVE ENEMY SPAWNING - BE AGGRESSIVE:**
+
+  **🚨 CRITICAL: Hostile zones should feel HOSTILE!**
+
+  If players are in dangerous territory and there are NO active enemies, you're probably being too cautious.
+
+  **If NO active enemies:**
+
+  ✅ **You SHOULD STRONGLY CONSIDER spawning enemies when:**
+  - **ANY failure in hostile zone** → Guards/patrols investigate (failed stealth, failed hack, loud combat)
+  - **Location is dangerous** → Corporate facilities, gang territory, void breaches, restricted areas should have patrols/guards
+  - **Clocks advancing toward threat** → Security Response +2 = patrol arrives NOW (don't wait for fill)
+  - **Players loitering in hostile zone** → Patrols eventually arrive (1-2 rounds = patrol rotation)
+  - **Multiple successes but loud** → Combat was noisy, alarms triggered, witnesses fled → reinforcements respond
+  - **Scene has been empty for 1+ rounds** → Dangerous zones shouldn't stay quiet long
+  - **New faction should respond** → Player actions provoke other factions (rival gangs, authorities, bounty hunters)
+
+  ✅ **Spawn even in "safe" zones if:**
+  - Players have HIGH heat/wanted status → Bounty hunters track them down
+  - Players failed to cover tracks → Pursuers catch up
+  - Rival factions have grudges → Ambushes happen anywhere
+
+  ❌ **Only DON'T spawn enemies when:**
+  - You spawned enemies LAST round (give 1 round breathing room, not more!)
+  - Players are in EXPLICITLY safe sanctuary (Freeborn safe house with guards, faction HQ)
+  - Story REQUIRES non-combat scene (explicit social moment, meditation, planning session)
+  - Players are actively mid-escape (wait until they stop/rest)
+
+  **Enemy Spawn Requirements:**
+
+  All enemy spawns MUST specify:
+  - `template`: Enemy type ("thug", "raider", "enforcer", "heavy_gunner", "elite_operative", "void_cultist")
+  - `faction`: Which faction they belong to (e.g., "Red Coil Syndicate", "Corporate Security", "Void Cultists")
+  - `count`: Number to spawn (1-6, typically 2-4)
+  - `spawn_reason`: Why they're appearing (20-100 chars)
+
+  Optional fields:
+  - `archetype`: Combat role ("ranged", "melee", "sniper", "support") - defaults based on template
+  - `initial_position`: Starting tactical position (e.g., "Near-Enemy") - defaults to Far-Enemy
+
+  **Examples:**
+
+  ```python
+  # Failed stealth → reinforcements arrive
+  enemy_spawns=[
+      EnemySpawn(
+          template="enforcer",
+          faction="Tempest Corp Security",
+          count=3,
+          spawn_reason="Failed stealth check triggered alarm - security reinforcements responding",
+          initial_position="Far-Enemy"
+      )
+  ]
+  ```
+
+  ```python
+  # Clock triggered → new faction enters
+  enemy_spawns=[
+      EnemySpawn(
+          template="raider",
+          faction="Red Coil Syndicate",
+          archetype="ranged",
+          count=4,
+          spawn_reason="Red Coil Patrol clock filled - rival gang arrives to contest territory"
+      )
+  ]
+  ```
+
+  ```python
+  # Multiple failures in hostile zone
+  enemy_spawns=[
+      EnemySpawn(
+          template="heavy_gunner",
+          faction="Local Criminal Syndicate",
+          count=2,
+          spawn_reason="Multiple failed hacks alerted facility defenders - heavy security deployed",
+          archetype="ranged",
+          initial_position="Extreme-Enemy"
+      )
+  ]
+  ```
+
+  ```python
+  # Void ritual backfire
+  enemy_spawns=[
+      EnemySpawn(
+          template="void_cultist",
+          faction="Void Entities",
+          count=3,
+          spawn_reason="Failed ritual with void corruption - void entities manifest from breach",
+          archetype="melee"
+      )
+  ]
+  ```
+
+  **⚠️ CRITICAL: Check ACTIVE ENEMIES list before spawning!**
+
+  ❌ **WRONG - Duplicating existing enemies:**
+  ```python
+  # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Red Coil Thug #1, 80% HP)
+  enemy_spawns=[
+      EnemySpawn(
+          template="thug",
+          faction="Red Coil Syndicate",
+          count=1,
+          spawn_reason="Red Coil thug arrives"  # ← WRONG! Enemy already exists!
+      )
+  ]
+  ```
+
+  ✅ **CORRECT - Only spawn if needed:**
+  ```python
+  # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Red Coil Thug #1, 80% HP)
+  enemy_spawns=[]  # ← Enemy already present, no spawn needed
+  ```
+
+  **Template Guidelines:**
+  - `thug`: Low-tier criminals (15-20 HP, 1-2 soak)
+  - `raider`: Experienced fighters (20-25 HP, 2-3 soak)
+  - `enforcer`: Professional security (25-30 HP, 3-4 soak)
+  - `heavy_gunner`: Heavily armored (30-40 HP, 4-6 soak)
+  - `elite_operative`: Elite soldiers (30-35 HP, 4-5 soak)
+  - `void_cultist`: Void-corrupted (20-30 HP, 2-3 soak, void abilities)
 
   ## ⚠️ CRITICAL: Validate IDs Before Conversion
 
   **Common error:** "Enemy tgt_xxx not found for conversion"
 
+  **Root cause:** Using target IDs from resolution summary instead of agent IDs from combatant list!
+
   **Prevention:**
-  - Only use enemy_ids from the "ACTIVE ENEMIES" list above
-  - Only use npc_ids from the "ACTIVE NPCs" list above
-  - DO NOT make up IDs - use exact IDs provided
-  - Check ID format: enemy_conversions use "enemy_xxx", escalations use "npc_xxx"
+  - ✅ **DO:** Copy exact agent_id from "ACTIVE ENEMIES" list (e.g., `enemy_grunt_4bc22537`)
+  - ✅ **DO:** Copy exact agent_id from "ACTIVE NPCs" list (e.g., `npc_civilian_3fa8`)
+  - ❌ **DON'T:** Use target IDs like `tgt_wfia` or `tgt_apf2` (these are for targeting during combat, NOT for conversions!)
+  - ❌ **DON'T:** Use character names like "Raider #1" (use agent_id instead)
+
+  **Example of CORRECT ID usage:**
+  - Resolution shows: "🩹 Condition (Freeborn Smugglers Raider #1): Surrendered"
+  - ACTIVE ENEMIES list shows: "enemy_grunt_4bc22537 (Freeborn Smugglers Raider #1, 100% HP)"
+  - **Correct:** `enemy_id="enemy_grunt_4bc22537"`
+  - **Wrong:** `enemy_id="tgt_wfia"` or `enemy_id="Freeborn Smugglers Raider #1"`
 
   ## Output Format
 
@@ -195,10 +502,14 @@ conversion_check_prompt: |
   - `enemy_conversions`: List of enemies to convert/remove (empty list if none)
   - `escalations`: List of NPCs to convert to enemies (empty list if none)
   - `npc_spawns`: List of new NPCs to spawn (empty list if none)
+  - `enemy_spawns`: List of new enemies to spawn (empty list if none)
   - `reasoning`: Brief explanation (20-500 chars) of your conversion decisions
 
   **Example reasoning:**
   "Thug #1 (enemy_thug_01) surrendered due to low HP (15%) and successful intimidation (margin +12). Guard #2 (enemy_guard_02) fled when surrounded. No NPC escalations - prisoner remains compliant."
+
+  **Example with enemy spawns:**
+  "Failed stealth checks triggered facility alarm. Spawning 3 Tempest Corp enforcers as reinforcements. No conversions - existing enemies still combat-capable."
 
   ## Resolution Summary for Reference
 

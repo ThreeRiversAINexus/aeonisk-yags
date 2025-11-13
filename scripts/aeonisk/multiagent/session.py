@@ -8,6 +8,7 @@ import logging
 import os
 import random
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -1336,6 +1337,8 @@ class SelfPlayingSession:
                         # but DM needs to see enemy actions to synthesize round accurately
                         all_resolutions.append(result)
 
+                        # TODO: Add enemy action JSONL logging (need to create separate method with correct signature)
+
             elif agent_type == 'npc':
                 # NPC action execution - route through DM adjudication like players
                 if agent.agent_id in self._declared_actions:
@@ -1392,6 +1395,9 @@ class SelfPlayingSession:
                     if resolution_data:
                         all_resolutions.append(resolution_data)
 
+                        # NPC resolutions go through DM adjudication, so they're already logged
+                        # via the normal log_action_resolution call in dm.py
+
                     # Clean up pending resolution (must match key format used above)
                     if f"{agent.agent_id}_0" in self._pending_resolutions:
                         del self._pending_resolutions[f"{agent.agent_id}_0"]
@@ -1428,6 +1434,46 @@ class SelfPlayingSession:
                     logger.info(f"✅ Converted surrendered enemy {enemy_id} to NPC prisoner: {npc.name}")
                     print(f"\n✅ {enemy.name} has been detained and is no longer a threat")
 
+        # === CLOCK UPDATE PHASE ===
+        # Apply clock updates BEFORE conversion check so conversion decisions can see filled clocks
+        clock_updates_applied = {}
+        expired_clocks = []
+        filled_clocks = []
+        if mechanics:
+            clock_updates_applied = mechanics.apply_queued_clock_updates()
+            if clock_updates_applied:
+                logger.debug(f"Applied {len(clock_updates_applied)} queued clock updates before conversion check")
+
+                # Log aggregated updates for each clock
+                for clock_name, update_data in clock_updates_applied.items():
+                    before = update_data['before']
+                    after = update_data['after']
+                    maximum = update_data['maximum']
+                    reasons = update_data['reasons']
+                    direction = update_data['direction']
+
+                    logger.debug(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} "
+                               f"(aggregated: {', '.join(reasons)})")
+
+            # Check for expired clocks
+            expired_clocks = mechanics.check_and_expire_clocks()
+            if expired_clocks:
+                logger.warning(f"Found {len(expired_clocks)} expired clocks: {[c['clock_name'] for c in expired_clocks]}")
+
+            # Log filled clocks (check the update data for 'filled' flag)
+            for clock_name, update_data in clock_updates_applied.items():
+                if update_data.get('filled', False):
+                    # Clock just filled this round
+                    clock_obj = mechanics.scene_clocks.get(clock_name)
+                    if clock_obj:
+                        after = update_data['after']
+                        maximum = update_data['maximum']
+                        consequence = clock_obj.filled_consequence or 'No consequence specified'
+
+                        logger.warning(f"🔔 Clock {clock_name} FILLED: {after}/{maximum} - triggering consequences")
+                        print(f"\n⏰ CLOCK FILLED: {clock_name} ({after}/{maximum})")
+                        print(f"   Consequence: {consequence}")
+
         # CONVERSION CHECK PHASE: Determine which enemies/NPCs should convert before synthesis
         conversion_decisions = None
         if all_resolutions:
@@ -1456,20 +1502,226 @@ class SelfPlayingSession:
                     print(f"   - Enemy conversions: {len(conversion_decisions.enemy_conversions)}")
                     print(f"   - NPC escalations: {len(conversion_decisions.escalations)}")
                     print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
+                    print(f"   - NPC departures: {len(conversion_decisions.npc_departures)}")
+                    print(f"   - Enemy spawns: {len(conversion_decisions.enemy_spawns)}")
                     print(f"   - Reasoning: {conversion_decisions.reasoning}")
 
                     logger.info(f"Conversion check complete: {len(conversion_decisions.enemy_conversions)} conversions, "
-                               f"{len(conversion_decisions.escalations)} escalations, {len(conversion_decisions.npc_spawns)} spawns")
+                               f"{len(conversion_decisions.escalations)} escalations, {len(conversion_decisions.npc_spawns)} NPC spawns, "
+                               f"{len(conversion_decisions.npc_departures)} NPC departures, {len(conversion_decisions.enemy_spawns)} enemy spawns")
+
+                    # Process enemy spawns from conversion check immediately (before synthesis)
+                    if conversion_decisions.enemy_spawns and self.enemy_combat:
+                        # Enable enemy combat if we're spawning enemies (even if it started disabled)
+                        if not self.enemy_combat.enabled:
+                            logger.info("Enabling enemy combat due to conversion check enemy spawn")
+                            self.enemy_combat.enabled = True
+
+                        from .schemas.story_events import EnemySpawn
+
+                        # Reconstruct EnemySpawn objects if they're dicts
+                        enemy_spawn_list = []
+                        for enemy_spawn in conversion_decisions.enemy_spawns:
+                            if isinstance(enemy_spawn, dict):
+                                enemy_spawn = EnemySpawn(**enemy_spawn)
+                            enemy_spawn_list.append(enemy_spawn)
+
+                        # Spawn all enemies using spawn_from_structured
+                        spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+
+                        # Print spawn notifications
+                        for notification in spawn_notifications:
+                            print(f"\n{notification}")
+                            logger.info(f"Enemy spawn: {notification}")
+
+                    # Process enemy conversions with validation
+                    if conversion_decisions.enemy_conversions and self.enemy_combat and self.enemy_combat.enabled:
+                        from .conversion_validation import validate_enemy_conversion, auto_correct_conversion
+                        from .agent_conversion import deescalate_enemy_to_npc
+
+                        for enemy_conversion in conversion_decisions.enemy_conversions:
+                            # Validate conversion
+                            is_valid, error_msg, suggested_id = validate_enemy_conversion(
+                                enemy_conversion.enemy_id,
+                                self.enemy_combat.enemy_agents,
+                                defeated_enemies=[]  # TODO: Track defeated enemies
+                            )
+
+                            if not is_valid:
+                                # Try auto-correction for high-confidence matches
+                                corrected_id = auto_correct_conversion(
+                                    enemy_conversion.enemy_id,
+                                    self.enemy_combat.enemy_agents,
+                                    threshold=0.8
+                                )
+
+                                if corrected_id:
+                                    logger.warning(f"Auto-corrected enemy conversion: {enemy_conversion.enemy_id} → {corrected_id}")
+                                    print(f"⚠️  Auto-corrected conversion ID: {enemy_conversion.enemy_id} → {corrected_id}")
+                                    enemy_conversion.enemy_id = corrected_id
+                                    is_valid = True
+                                else:
+                                    logger.warning(f"Skipping invalid enemy conversion: {error_msg}")
+                                    print(f"\n⚠️  {error_msg}")
+                                    continue
+
+                            # Find and convert the enemy
+                            enemy = next((e for e in self.enemy_combat.enemy_agents
+                                        if e.agent_id == enemy_conversion.enemy_id), None)
+
+                            if enemy and enemy.is_active:
+                                from .schemas.story_events import EnemyResolution
+
+                                # Handle different conversion types
+                                if enemy_conversion.resolution == EnemyResolution.FLED:
+                                    # Enemy leaves scene
+                                    enemy.is_active = False
+                                    enemy.despawned_round = mechanics.current_round if mechanics else 0
+                                    logger.info(f"Enemy fled: {enemy.name} ({enemy.agent_id})")
+                                    print(f"\n✓ {enemy.name} has fled the scene")
+
+                                elif enemy_conversion.resolution in [EnemyResolution.CONVINCED,
+                                                                     EnemyResolution.NEUTRALIZED,
+                                                                     EnemyResolution.SUBDUED]:
+                                    # Enemy becomes NPC
+                                    npc = deescalate_enemy_to_npc(
+                                        enemy=enemy,
+                                        disposition=enemy_conversion.resulting_disposition or "prisoner",
+                                        current_round=mechanics.current_round if mechanics else 0
+                                    )
+
+                                    # Add to shared state
+                                    if self.shared_state:
+                                        self.shared_state.npc_agents.append(npc)
+
+                                        # Register in target mapper
+                                        if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                            self.shared_state.target_id_mapper.register_npc(npc)
+
+                                    # Deactivate enemy
+                                    enemy.is_active = False
+                                    enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                                    logger.info(f"Converted enemy to NPC: {enemy.name} → {npc.name}")
+                                    print(f"\n✓ {enemy.name} converted to NPC ({enemy_conversion.resolution.value})")
+
+                    # Process NPC escalations with validation
+                    if conversion_decisions.escalations and self.shared_state and self.shared_state.npc_agents:
+                        from .conversion_validation import validate_npc_escalation
+                        from .agent_conversion import escalate_npc_to_enemy
+
+                        for escalation in conversion_decisions.escalations:
+                            # Validate escalation
+                            active_enemies = self.enemy_combat.enemy_agents if self.enemy_combat and self.enemy_combat.enabled else []
+                            is_valid, error_msg, suggested_id = validate_npc_escalation(
+                                escalation.npc_id,
+                                self.shared_state.npc_agents,
+                                active_enemies=active_enemies
+                            )
+
+                            if not is_valid:
+                                logger.warning(f"Skipping invalid NPC escalation: {error_msg}")
+                                print(f"\n⚠️  {error_msg}")
+                                continue
+
+                            # Find and escalate the NPC
+                            npc = next((n for n in self.shared_state.npc_agents
+                                      if n.agent_id == escalation.npc_id), None)
+
+                            if npc:
+                                enemy = escalate_npc_to_enemy(
+                                    npc=npc,
+                                    template=escalation.template,
+                                    current_round=mechanics.current_round if mechanics else 0
+                                )
+
+                                # Add to enemy combat
+                                if self.enemy_combat and self.enemy_combat.enabled:
+                                    self.enemy_combat.enemy_agents.append(enemy)
+
+                                    # Register in target mapper
+                                    if self.shared_state and hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                        self.shared_state.target_id_mapper.register_enemy(enemy)
+
+                                # Remove from NPC list
+                                self.shared_state.npc_agents.remove(npc)
+
+                                logger.info(f"Escalated NPC to enemy: {npc.name} → {enemy.name}")
+                                print(f"\n✓ {npc.name} escalated to hostile combatant")
+
+                    # Process NPC spawns from conversion check
+                    if conversion_decisions.npc_spawns and self.shared_state:
+                        from .schemas.story_events import NPCSpawn
+                        from .npc_agent import NPCAgent
+
+                        for npc_spawn in conversion_decisions.npc_spawns:
+                            # Reconstruct NPCSpawn if it's a dict
+                            if isinstance(npc_spawn, dict):
+                                npc_spawn = NPCSpawn(**npc_spawn)
+
+                            # Create NPC agent
+                            npc = NPCAgent(
+                                agent_id=f"npc_{uuid.uuid4().hex[:8]}",
+                                name=npc_spawn.name,
+                                faction=npc_spawn.faction,
+                                disposition=npc_spawn.disposition,
+                                entity_type=npc_spawn.entity_type,
+                                threat_level=npc_spawn.threat_level,
+                                health=npc_spawn.health,
+                                max_health=npc_spawn.health,
+                                soak=npc_spawn.soak,
+                                void_score=0,  # NPCs start with no void
+                                skills=npc_spawn.skills,
+                                description=npc_spawn.description
+                            )
+
+                            # Add to shared state
+                            self.shared_state.npc_agents.append(npc)
+
+                            # Register in target mapper
+                            if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                self.shared_state.target_id_mapper.register_npc(npc)
+
+                            logger.info(f"NPC spawned: {npc.name} ({npc.agent_id})")
+                            print(f"\n✓ NPC entered scene: {npc.name} ({npc.entity_type}, {npc.disposition})")
+
+                    # Process NPC departures from conversion check (aggressive removal)
+                    if conversion_decisions.npc_departures and self.shared_state:
+                        for npc_identifier in conversion_decisions.npc_departures:
+                            # Find NPC to get name before removal
+                            npc = self.shared_state.get_npc_by_id(npc_identifier)
+                            npc_name = npc.name if npc else npc_identifier
+
+                            removed = self.shared_state.remove_npc(npc_identifier)
+                            if removed:
+                                # Log NPC departure to JSONL
+                                if mechanics and mechanics.jsonl_logger:
+                                    mechanics.jsonl_logger.log_npc_departure(
+                                        round_num=mechanics.current_round,
+                                        npc_id=npc_identifier,
+                                        npc_name=npc_name,
+                                        departure_reason="conversion_check_removal"
+                                    )
+
+                                logger.info(f"👤 NPC departed (conversion check): {npc_identifier}")
+                                print(f"\n👤 NPC departed: {npc_name}")
+                            else:
+                                logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
 
                 except Exception as e:
-                    logger.warning(f"Conversion check failed: {e}")
-                    print(f"\n⚠️  Conversion check failed: {e}")
+                    logger.warning(f"Conversion check failed: {type(e).__name__}: {e}")
+                    print(f"\n⚠️  Conversion check failed: {type(e).__name__}: {e}")
+                    # Log traceback for debugging
+                    import traceback
+                    logger.debug(f"Conversion check traceback:\n{traceback.format_exc()}")
                     # Continue with empty conversion decisions
                     from .schemas.story_events import ConversionDecisions
                     conversion_decisions = ConversionDecisions(
                         enemy_conversions=[],
                         escalations=[],
                         npc_spawns=[],
+                        npc_departures=[],
+                        enemy_spawns=[],
                         reasoning="Conversion check failed, proceeding without conversions"
                     )
             else:
@@ -1492,7 +1744,9 @@ class SelfPlayingSession:
                     'phase': 'synthesis',
                     'resolutions': all_resolutions,
                     'round': mechanics.current_round if mechanics else 0,
-                    'resolution_state': resolution_state  # Include fled NPCs for synthesis context
+                    'resolution_state': resolution_state,  # Include fled NPCs for synthesis context
+                    'conversion_decisions': conversion_decisions,  # Include conversion check results for DM narrative
+                    'expired_clocks': expired_clocks  # Include expired clocks from clock update phase
                 },
                 timestamp=datetime.now()
             )
@@ -1543,6 +1797,25 @@ class SelfPlayingSession:
                             conditions=[],  # TODO: Add condition tracking
                             is_defeated=(player.health <= 0) if hasattr(player, 'health') else False
                         )
+
+                # Log character state snapshots for all active enemies (for ML training/balance analysis)
+                if self.enemy_combat.enabled:
+                    for enemy in self.enemy_combat.enemy_agents:
+                        if enemy.is_active:  # Only log active enemies
+                            mechanics.jsonl_logger.log_character_state(
+                                round_num=mechanics.current_round,
+                                character_id=enemy.agent_id,
+                                character_name=enemy.name,
+                                health=enemy.health if hasattr(enemy, 'health') else 0,
+                                max_health=enemy.max_health if hasattr(enemy, 'max_health') else 0,
+                                wounds=enemy.wounds if hasattr(enemy, 'wounds') else 0,
+                                void_score=0,  # Enemies typically don't track void
+                                soulcredit=0,  # Enemies don't track soulcredit
+                                position=str(getattr(enemy, 'position', 'Unknown')),
+                                conditions=[],  # TODO: Add condition tracking for enemies
+                                is_defeated=not enemy.is_active,
+                                agent='enemy'  # Add agent field to identify this as enemy state
+                            )
 
                 # Log round summary for balance analysis
                 active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.is_active]) if self.enemy_combat.enabled else 0
@@ -2102,19 +2375,79 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if len(action) > 100:
                 action = action[:97] + "..."
 
-            # Get success status
+            # Get success status and margin
             success = resolution.get('success', False)
-            status = 'SUCCESS' if success else 'FAIL'
+            margin = resolution.get('margin', 0)
+            tier = resolution.get('outcome_tier', 'UNKNOWN')
+
+            # Build status with margin/tier for context
+            if success:
+                status = f'SUCCESS (margin: {margin:+d}, tier: {tier})'
+            else:
+                status = f'FAIL (margin: {margin:+d})'
+
+            # Get DM narration (the full paragraph!)
+            narration = resolution.get('narration', '')
+            # Truncate to first 300 chars to keep summary readable but preserve key details
+            if len(narration) > 300:
+                narration = narration[:297] + "..."
 
             # Add damage dealt if any
             damage_text = ""
             effects = resolution.get('effects')
             if effects and hasattr(effects, 'damage') and effects.damage and effects.damage.dealt:
-                damage_text = f" (dealt {effects.damage.dealt} damage)"
-            elif isinstance(effects, dict) and effects.get('damage', {}).get('dealt'):
-                damage_text = f" (dealt {effects['damage']['dealt']} damage)"
+                damage_text = f" | Damage: {effects.damage.dealt}"
+            elif isinstance(effects, dict):
+                # Handle dict-based effects (enemy combat format)
+                # Must check that damage is not None before calling .get() on it
+                damage = effects.get('damage')
+                if damage and isinstance(damage, dict):
+                    dealt = damage.get('dealt')
+                    if dealt:
+                        damage_text = f" | Damage: {dealt}"
 
-            summary_lines.append(f"- {agent_name}: {action} ({status}){damage_text}")
+            # Add clock changes if any
+            clock_text = ""
+            if effects:
+                clock_changes = []
+                if hasattr(effects, 'clock_changes') and effects.clock_changes:
+                    for clock in effects.clock_changes:
+                        change = getattr(clock, 'tick_change', 0)
+                        name = getattr(clock, 'clock_name', 'Unknown')
+                        clock_changes.append(f"{name} {change:+d}")
+                elif isinstance(effects, dict) and effects.get('clock_changes'):
+                    for clock in effects['clock_changes']:
+                        change = clock.get('tick_change', 0)
+                        name = clock.get('clock_name', 'Unknown')
+                        clock_changes.append(f"{name} {change:+d}")
+
+                if clock_changes:
+                    clock_text = f" | Clocks: {', '.join(clock_changes)}"
+
+            # Add conditions applied if any
+            condition_text = ""
+            if effects:
+                conditions = []
+                if hasattr(effects, 'conditions') and effects.conditions:
+                    for cond in effects.conditions:
+                        cond_name = getattr(cond, 'name', 'Unknown')
+                        conditions.append(cond_name)
+                elif isinstance(effects, dict) and effects.get('conditions'):
+                    for cond in effects['conditions']:
+                        cond_name = cond.get('name', 'Unknown')
+                        conditions.append(cond_name)
+
+                if conditions:
+                    condition_text = f" | Conditions: {', '.join(conditions)}"
+
+            # Build full summary line with narration
+            summary_line = f"- {agent_name}: {action} ({status}){damage_text}{clock_text}{condition_text}"
+
+            # Add DM narration on next line (indented for readability)
+            if narration:
+                summary_line += f"\n  DM: {narration}"
+
+            summary_lines.append(summary_line)
 
         return "\n".join(summary_lines)
 
@@ -3149,22 +3482,41 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
 
         # 2. Handle enemy spawns (AFTER story advancement)
-        if synthesis.enemy_spawns and self.enemy_combat.enabled:
+        # NOTE: Enemy spawns are now handled exclusively in CONVERSION CHECK PHASE (before synthesis)
+        # Synthesis enemy_spawns are IGNORED to prevent duplicates
+        # TODO: Remove enemy_spawns field from RoundSynthesis schema entirely
+        if False and synthesis.enemy_spawns and self.enemy_combat.enabled:
             spawn_notifications = self.enemy_combat.spawn_from_structured(synthesis.enemy_spawns)
             for notification in spawn_notifications:
                 print(f"\n{notification}")
 
         # 3. Handle enemy conversions (removals + NPC conversions)
-        if synthesis.enemy_conversions and self.enemy_combat.enabled:
+        # NOTE: Conversions are now handled exclusively in CONVERSION CHECK PHASE (before synthesis)
+        # Synthesis enemy_conversions are IGNORED to prevent duplicates
+        # TODO: Remove enemy_conversions field from RoundSynthesis schema entirely
+        if False and synthesis.enemy_conversions and self.enemy_combat.enabled:
             from .agent_conversion import deescalate_enemy_to_npc
             from .schemas.story_events import EnemyResolution
 
             for conversion in synthesis.enemy_conversions:
+                # Resolve target ID to agent ID if needed (DM often uses target IDs from resolutions)
+                enemy_id = conversion.enemy_id
+                if enemy_id.startswith('tgt_'):
+                    # This is a target ID - resolve to actual agent_id
+                    target_mapper = self.shared_state.get_target_id_mapper()
+                    if target_mapper:
+                        resolved_entity = target_mapper.resolve_target(enemy_id)
+                        if resolved_entity and hasattr(resolved_entity, 'agent_id'):
+                            logger.debug(f"✓ Resolved target ID {enemy_id} → {resolved_entity.agent_id}")
+                            enemy_id = resolved_entity.agent_id
+                        else:
+                            logger.warning(f"Could not resolve target ID {enemy_id} - trying as-is")
+
                 # Find the enemy
                 enemy = next((e for e in self.enemy_combat.enemy_agents
-                             if e.agent_id == conversion.enemy_id or e.name == conversion.enemy_id), None)
+                             if e.agent_id == enemy_id or e.name == enemy_id), None)
 
-                if not enemy:
+                if not enemy or not enemy.is_active:
                     # ✅ VALIDATION: Enemy not found - log warning and skip gracefully
                     logger.warning(f"Enemy {conversion.enemy_id} not found for conversion, skipping")
                     print(f"\n⚠️  WARNING: Enemy {conversion.enemy_id} not found for conversion")
@@ -3299,10 +3651,23 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     if isinstance(escalation, dict):
                         escalation = Escalation(**escalation)
 
+                    # Resolve target ID to agent ID if needed
+                    npc_id = escalation.npc_id
+                    if npc_id.startswith('tgt_'):
+                        # This is a target ID - resolve to actual agent_id
+                        target_mapper = self.shared_state.get_target_id_mapper()
+                        if target_mapper:
+                            resolved_entity = target_mapper.resolve_target(npc_id)
+                            if resolved_entity and hasattr(resolved_entity, 'agent_id'):
+                                logger.debug(f"✓ Resolved target ID {npc_id} → {resolved_entity.agent_id}")
+                                npc_id = resolved_entity.agent_id
+                            else:
+                                logger.warning(f"Could not resolve target ID {npc_id} - trying as-is")
+
                     # ✅ VALIDATION: Check NPC exists before escalation
                     npc = None
                     if self.shared_state:
-                        npc = next((n for n in self.shared_state.npc_agents if n.agent_id == escalation.npc_id), None)
+                        npc = next((n for n in self.shared_state.npc_agents if n.agent_id == npc_id), None)
 
                     if not npc:
                         logger.warning(f"NPC {escalation.npc_id} not found for escalation, skipping")

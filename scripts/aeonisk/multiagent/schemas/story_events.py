@@ -373,9 +373,18 @@ class RoundSynthesis(BaseModel):
     # Narrative summary
     narration: str = Field(
         ...,
-        min_length=100,
-        max_length=2000,
-        description="DM's cohesive narrative summarizing the round (100-2000 chars)"
+        min_length=300,
+        max_length=3000,
+        description="""DM's cohesive narrative summarizing the round (300-3000 chars).
+
+        IMPORTANT: Be generous with detail! Aim for 800-1500 characters.
+        - Describe action flow chronologically
+        - Include sensory details (sounds, sights, atmosphere)
+        - Show consequences of each action
+        - Build tension and momentum
+        - Paint vivid scene transitions
+
+        Shorter narrations feel rushed. Longer narrations feel cinematic."""
     )
 
     # Story progression
@@ -597,8 +606,23 @@ class NPCSpawn(BaseModel):
     soak: int = Field(..., ge=0, le=20)
     skills: dict[str, int] = Field(
         default_factory=dict,
-        description="Key skills (for cooperative checks, e.g., {'perception': 5, 'combat': 3})"
+        description="Key YAGS skills (NOT attributes). Examples: {'Guns': 10, 'Medicine': 12, 'Stealth': 8}. Do NOT use 'Perception', 'Strength', etc. (those are attributes, not skills)."
     )
+
+    @field_validator('skills')
+    @classmethod
+    def validate_skills(cls, v: dict) -> dict:
+        """Ensure skills dict has integer values, not strings."""
+        if not isinstance(v, dict):
+            raise ValueError(f"skills must be a dict, got {type(v).__name__}")
+
+        for skill_name, skill_value in v.items():
+            if not isinstance(skill_value, int):
+                raise ValueError(
+                    f"Skill '{skill_name}' has invalid value type: {type(skill_value).__name__}. "
+                    f"Expected int (e.g., {{'Notice': 10}}), got {{{skill_name!r}: {skill_value!r}}}"
+                )
+        return v
 
     # Optional: tactical state (defaults to Near-Enemy if omitted)
     position: Optional[str] = Field(
@@ -819,6 +843,37 @@ Use when:
 NOTE: For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED.
 Only use npc_spawns for BRAND NEW characters entering the scene.
 Use empty list [] if no new NPCs."""
+    )
+
+    enemy_spawns: List['EnemySpawn'] = Field(
+        default_factory=list,
+        description="""New enemies to spawn this round.
+
+Use when:
+- Reinforcements arrive after failed stealth/alarms
+- New faction enters conflict
+- Environmental threats appear (guards, patrols, creatures)
+- Clocks trigger enemy arrival (Security Response filled, etc.)
+
+⚠️ DO NOT duplicate existing enemies! Check active enemies list first.
+Use empty list [] if no new enemies needed."""
+    )
+
+    npc_departures: List[str] = Field(
+        default_factory=list,
+        description="""NPC agent_ids to remove from scene (fled, hidden, left).
+
+⚠️ BE AGGRESSIVE about removing NPCs who flee/hide! ⚠️
+
+Auto-remove NPCs when:
+- NPC declared "Flee" action → IMMEDIATELY remove (add agent_id here)
+- NPC declared "Hide" action → Remove after 1 round unless strong story reason to stay
+- NPC has "Pass" action for 2+ consecutive rounds → Likely left scene
+- NPC is non-combatant in dangerous area → Fled when combat started
+- NPC's purpose is complete → Dismiss them to keep scene dynamic
+
+Examples: ["npc_civilian_a3f2", "npc_guide_5b21"]
+Use empty list [] if no NPCs should depart."""
     )
 
     reasoning: str = Field(
