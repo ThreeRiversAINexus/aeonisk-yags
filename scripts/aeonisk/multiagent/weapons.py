@@ -513,6 +513,160 @@ WEAPON_LIBRARY: Dict[str, Weapon] = {
         load=1,
         special=["stun", "electric", "crowd_control", "amplifies_emotion"]
     ),
+
+    # =========================================================================
+    # ADDITIONAL EXOTIC WEAPONS (from Gear & Tech Reference v1.2.2)
+    # =========================================================================
+    "sparkspike_dagger": Weapon(
+        name="Sparkspike Dagger",
+        skill="Melee",
+        attack=4,
+        defence=3,
+        damage=4,  # +4 DMG from lore
+        damage_type="wound",
+        reach=0,
+        load=1,
+        special=["bonded", "duelist"]  # +1 DEF next turn if duel
+    ),
+
+    "wraithroot_vineblade": Weapon(
+        name="Wraithroot Vineblade",
+        skill="Melee",
+        attack=3,
+        defence=2,
+        damage=2,  # +2 DMG from lore
+        damage_type="mixed",
+        reach=0,
+        load=1,
+        special=["spirit_weave", "bond_defender", "dream_warnings"]  # +1 to hit when defending Bond
+    ),
+
+    "oathpiercer_carbine": Weapon(
+        name="Oathpiercer Carbine",
+        skill="Guns",
+        attack=0,
+        defence=0,
+        damage=4,  # Base damage, +DMG vs ex-Bonds
+        damage_type="wound",
+        reach=0,
+        load=3,
+        is_ranged=True,
+        short_range=10,
+        medium_range=30,
+        long_range=80,
+        increment=8,
+        rof=2,
+        recoil=-1,
+        capacity=20,
+        special=["anti_bond", "ethically_suspect"]  # +DMG vs ex-Bonds
+    ),
+
+    "debtbreaker_sidearm": Weapon(
+        name="Debtbreaker Sidearm",
+        skill="Guns",
+        attack=0,
+        defence=0,
+        damage=4,  # +4 DMG from lore
+        damage_type="wound",
+        reach=0,
+        load=1,
+        is_ranged=True,
+        short_range=6,
+        medium_range=12,
+        long_range=25,
+        increment=6,
+        rof=2,
+        recoil=0,
+        capacity=12,
+        special=["contract_weapon", "track_tags", "soulcredit_locked"]  # Locks if SC < 0, fires track-tags
+    ),
+
+    "drip_veil_projector": Weapon(
+        name="Drip Veil Projector",
+        skill="Guns",
+        attack=-1,  # Not designed for combat
+        defence=0,
+        damage=2,  # Non-lethal
+        damage_type="stun",
+        reach=0,
+        load=2,
+        is_ranged=True,
+        short_range=4,
+        medium_range=8,
+        long_range=12,
+        increment=3,
+        rof=1,
+        recoil=0,
+        capacity=8,
+        special=["spirit_weave", "non_lethal", "purge_trance"]  # Induce purge trance (Will 18)
+    ),
+
+    # =========================================================================
+    # GENERIC/IMPROVISED WEAPONS
+    # =========================================================================
+    "ritual_staff": Weapon(
+        name="Ritual Staff",
+        skill="Melee",
+        attack=1,
+        defence=2,
+        damage=2,
+        damage_type="mixed",
+        reach=2,  # Staff has extended reach
+        load=2,
+        special=["ritual_focus", "two_handed"]
+    ),
+
+    "beat_up_pistol": Weapon(
+        name="Beat-Up Pistol",
+        skill="Guns",
+        attack=-1,  # Degraded weapon, poor accuracy
+        defence=0,
+        damage=3,  # Lower damage than standard pistol
+        damage_type="wound",
+        reach=0,
+        load=1,
+        is_ranged=True,
+        short_range=4,
+        medium_range=8,
+        long_range=15,
+        increment=4,
+        rof=1,
+        recoil=-1,
+        capacity=10,
+        special=["degraded", "unreliable", "poverty_weapon"]
+    ),
+
+    "compact_emp_pistol": Weapon(
+        name="Compact EMP Pistol",
+        skill="Guns",
+        attack=0,
+        defence=0,
+        damage=3,  # Low damage, relies on EMP effect
+        damage_type="stun",
+        reach=0,
+        load=1,
+        is_ranged=True,
+        short_range=5,
+        medium_range=10,
+        long_range=20,
+        increment=5,
+        rof=2,
+        recoil=0,
+        capacity=15,
+        special=["emp", "tech", "stun", "disables_electronics"]
+    ),
+
+    "void_cloak": Weapon(
+        name="Void Cloak",
+        skill="Melee",
+        attack=1,
+        defence=3,  # Primarily defensive, phase-shift capability
+        damage=1,  # Minimal damage, not a weapon per se
+        damage_type="stun",
+        reach=1,
+        load=1,
+        special=["void_infused", "stealth", "phase_shift"]  # Phase-shift (harder to hit)
+    ),
 }
 
 

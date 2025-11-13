@@ -1,0 +1,268 @@
+{
+  "_role": "ml_training_scenario",
+  "_purpose": "Test void threshold crossing mechanics (void 6+ reality warping, void 7+ dissolution spiral), intentional void accumulation for forbidden knowledge access, reality stability degradation, cleansing ritual desperation, PC transformation consequences, time-limited recovery window",
+  "session_name": "Beyond The Threshold - Controlled Dissolution Study",
+  "max_turns": 14,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Reality Manifestations + Pantheon Intervention) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: INTENTIONAL VOID THRESHOLD BREACH ===",
+  "_scenario_hint": "Isolated Research Dome (void_level 6, shielded), Void Theorist at void 4 intentionally pushes to void 6+ to access forbidden pre-Covenant knowledge only visible at threshold. Experiment: controlled dissolution with medical monitor (void 0) and paranoid observer (void 1) standing by. Reality warps at void 6 (walls phase, echoes of dissolved souls, time distortion), void 7 triggers dissolution spiral risk, void 8 = point of no return. Must: extract knowledge before spiral, stabilize researcher with cleansing rituals, document effects for science. Time-limited recovery: 6 rounds after hitting void 7 before permanent transformation. Pantheon cleansing squad inbound (8 rounds ETA). Moral tension: knowledge worth the risk? Abort vs. continue?",
+  "_design_notes": {
+    "ml_training_value": "Void threshold mechanics (void 6 reality warping, void 7 dissolution spiral, void 8 transformation), intentional void accumulation for research, reality instability effects, cleansing ritual mechanics under pressure, time-limited recovery window, PC transformation as consequence, medical stabilization attempts, moral choice (knowledge vs. survival)",
+    "mechanics_tested": [
+      "Void threshold effects (6/7/8)",
+      "Reality warping",
+      "Dissolution spiral mechanics",
+      "Cleansing rituals",
+      "Medical stabilization",
+      "Time-limited recovery",
+      "PC transformation",
+      "Pantheon pursuit"
+    ],
+    "character_innovation": "Character starting void 4 intentionally pushing to 6+, comprehensive void research gear, cleansing ritual stockpile, medical emergency equipment, reality anchor talismans"
+  },
+  "starting_clocks": [
+    {
+      "name": "Void Accumulation",
+      "current_ticks": 4,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Researcher's void level. At 6 ticks: reality warping begins. At 7 ticks: dissolution spiral risk. At 8 ticks: point of no return, permanent transformation.",
+      "advance_meaning": "void accumulation progresses",
+      "regress_meaning": "void accumulation setback or reversal"
+    },
+    {
+      "name": "Knowledge Extraction",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Forbidden data accessed at threshold. At 6 ticks: complete pre-Covenant archive downloaded.",
+      "advance_meaning": "knowledge extraction progresses",
+      "regress_meaning": "knowledge extraction setback or reversal"
+    },
+    {
+      "name": "Recovery Window",
+      "current_ticks": 6,
+      "max_ticks": 6,
+      "direction": "countdown",
+      "description": "Time to stabilize after hitting void 7. At 0 ticks: stabilization impossible, transformation inevitable.",
+      "advance_meaning": "recovery window worsens or time runs out",
+      "regress_meaning": "recovery window improves or delayed"
+    },
+    {
+      "name": "Pantheon Cleansing Arrival",
+      "current_ticks": 8,
+      "max_ticks": 8,
+      "direction": "countdown",
+      "description": "Cleansing squad ETA. At 0 ticks: Pantheon heavy assault, forced purge or evacuation.",
+      "advance_meaning": "pantheon cleansing arrival worsens or time runs out",
+      "regress_meaning": "pantheon cleansing arrival improves or delayed"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Threshold Researcher Iris Veil",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 10,
+          "voidCuriosity": 10,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 5,
+          "Charisma": 2
+        },
+        "skills": {
+          "Void Lore": 6,
+          "Astral Arts": 6,
+          "Attunement": 6,
+          "Magick Theory": 6,
+          "Science": 5,
+          "Investigation": 5,
+          "Willpower": 5
+        },
+        "void": 4,
+        "soulcredit": -5,
+        "goals": [
+          "Intentionally push void to 6+ to access forbidden threshold knowledge",
+          "Document void 7 dissolution spiral effects while conscious",
+          "Accept transformation risk for scientific breakthrough"
+        ],
+        "equipped_weapons": {
+          "primary": "ash_pulse_pike"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ash_pulse_pike": 1,
+          "void_resonance_amplifier": 1,
+          "hollow_seed": 8,
+          "void_scanner": 1,
+          "breach_compass": 1,
+          "neural_stimulant": 6,
+          "data_slate": 1,
+          "reality_anchor_talisman": 4,
+          "research_journal": 1,
+          "threshold_access_device": 1,
+          "emergency_purification_incense": 3,
+          "containment_vessel": 2
+        }
+      },
+      {
+        "name": "Medical Monitor Sanctuary Vael",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Charisma": 4
+        },
+        "skills": {
+          "Medicine": 6,
+          "Astral Arts": 5,
+          "Attunement": 5,
+          "Counsel": 5,
+          "Science": 4,
+          "Awareness": 4
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Monitor researcher's vitals and stabilize at first sign of spiral",
+          "Perform emergency cleansing ritual if void hits 7",
+          "Abort experiment if transformation appears inevitable"
+        ],
+        "equipped_weapons": {
+          "primary": "drip_veil_projector"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "drip_veil_projector": 1,
+          "med_kit": 6,
+          "purification_incense": 15,
+          "crystal_focus": 2,
+          "ritual_altar_portable": 1,
+          "attuned_seed_spirit": 4,
+          "cleansing_ritual_components": 1,
+          "diagnostic_scanner": 1,
+          "neural_stabilizer": 5,
+          "reality_anchor_talisman": 3,
+          "emergency_evacuation_beacon": 1
+        }
+      },
+      {
+        "name": "Paranoid Observer Thane Kross",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 10
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 5,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Investigation": 5,
+          "Awareness": 6,
+          "Intimidation": 4,
+          "Astral Arts": 4,
+          "Guns": 6,
+          "Medicine": 3
+        },
+        "void": 1,
+        "soulcredit": 4,
+        "goals": [
+          "Document experiment for Pantheon tribunal evidence",
+          "Terminate researcher if void reaches 7 (prevent dissolution entity)",
+          "Call cleansing squad if situation becomes uncontrollable"
+        ],
+        "equipped_weapons": {
+          "primary": "shrike_cannon",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "shrike_cannon": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "void_scanner": 1,
+          "data_recorder": 2,
+          "purification_incense": 8,
+          "pantheon_badge": 1,
+          "emergency_beacon": 1,
+          "restraint_cuffs": 3,
+          "lethal_termination_authorization": 1,
+          "riot_carapace": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Void threshold crossing mechanics (void 6 reality warping, void 7 dissolution spiral, void 8 transformation), intentional void accumulation experiment, reality instability effects (wall phasing, time distortion, dissolved soul echoes), cleansing ritual mechanics under time pressure, medical stabilization attempts, time-limited recovery window (6 rounds after void 7), PC transformation as consequence, moral tension (knowledge vs. survival, terminate vs. save). Tests underrepresented void threshold mechanics, high-void gameplay (starting void 4 \u2192 8), cleansing ritual desperation, medical emergency procedures, Pantheon pursuit clock. Long campaign (14 turns) allows gradual void accumulation, threshold crossing, stabilization attempts, transformation drama, Pantheon confrontation. Features highest void character in any config (void 4 \u2192 8), comprehensive void research gear (hollow seeds, void scanners, reality anchors), exotic weapons (Ash Pulse Pike, Shrike Cannon)."
+}
