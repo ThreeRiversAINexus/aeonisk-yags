@@ -214,9 +214,20 @@ class StoryAdvancement(BaseModel):
 
     situation: Optional[str] = Field(
         default=None,
-        min_length=20,
-        max_length=500,
-        description="New situation description (if advancing)"
+        min_length=100,
+        max_length=1500,
+        description="""New situation description (if advancing).
+
+⚠️ IMPORTANT: Be GENEROUS with detail! Aim for 400-800 characters.
+
+Story advancements are major narrative transitions - paint a vivid picture:
+- Describe the new location atmosphere (sights, sounds, smells, lighting)
+- Establish immediate situation and stakes
+- Introduce new NPCs/threats/complications present in the scene
+- Show how players arrived here (transition from previous scene)
+- Set tone and tension for the new chapter
+
+Shorter descriptions feel rushed and unsatisfying. Longer descriptions create immersion."""
     )
 
     new_void_level: Optional[int] = Field(

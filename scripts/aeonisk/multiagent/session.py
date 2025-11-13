@@ -1492,7 +1492,16 @@ class SelfPlayingSession:
         entity_lifecycle_result = EntityLifecycleResult()
         conversion_decisions = None
 
-        if all_resolutions:
+        # Check if story advancement is pending (all clocks complete)
+        # If so, SKIP Entity Lifecycle Phase - spawns/conversions don't make sense when scene is changing
+        dm_agents = [agent for agent in self.agents if hasattr(agent, 'needs_story_advancement')]
+        story_advancement_pending = any(dm.needs_story_advancement for dm in dm_agents) if dm_agents else False
+
+        if story_advancement_pending:
+            logger.info("⏭️  Skipping Entity Lifecycle Phase - story advancement pending (all clocks complete)")
+            print(f"\n⏭️  Entity Lifecycle Phase skipped - story is advancing to new location")
+
+        if all_resolutions and not story_advancement_pending:
             print(f"\n{'='*80}")
             print(f"🔄 ENTITY LIFECYCLE PHASE (Round {mechanics.current_round if mechanics else 0})")
             print(f"{'='*80}")
