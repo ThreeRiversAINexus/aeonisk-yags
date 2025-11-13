@@ -451,6 +451,21 @@ Generate something DIFFERENT from these recent scenarios.
                 return vendor
         return None
 
+    def get_npc_by_id(self, npc_id: str) -> Optional[Any]:
+        """
+        Get NPC by agent ID.
+
+        Args:
+            npc_id: NPC agent ID to find (e.g., "npc_civilian_a3f2")
+
+        Returns:
+            NPCAgent object if found, None otherwise
+        """
+        for npc in self.npc_agents:
+            if hasattr(npc, 'agent_id') and npc.agent_id == npc_id:
+                return npc
+        return None
+
     def get_vendor_by_id(self, vendor_id: str) -> Optional[Any]:
         """
         Get vendor by ID (NEW mechanical purchase system).
@@ -473,3 +488,46 @@ Generate something DIFFERENT from these recent scenarios.
     def clear_vendors(self) -> None:
         """Remove all vendors from scenario."""
         self.current_vendors.clear()
+
+    # Enemy agent management methods (delegate to enemy_combat module)
+
+    def get_enemy(self, agent_id: str) -> Optional[Any]:
+        """
+        Get enemy by agent_id (delegates to enemy_combat module).
+
+        Args:
+            agent_id: Enemy agent ID to find
+
+        Returns:
+            Enemy agent if found, None otherwise
+        """
+        if not self.enemy_combat:
+            return None
+
+        # enemy_combat stores enemies in enemy_agents list
+        enemy_agents = getattr(self.enemy_combat, 'enemy_agents', [])
+        for enemy in enemy_agents:
+            if getattr(enemy, 'agent_id', None) == agent_id:
+                return enemy
+        return None
+
+    def remove_enemy(self, agent_id: str) -> bool:
+        """
+        Remove enemy by agent_id (delegates to enemy_combat module).
+
+        Args:
+            agent_id: Enemy agent ID to remove
+
+        Returns:
+            True if removed, False if not found
+        """
+        if not self.enemy_combat:
+            return False
+
+        # enemy_combat stores enemies in enemy_agents list
+        enemy_agents = getattr(self.enemy_combat, 'enemy_agents', [])
+        for i, enemy in enumerate(enemy_agents):
+            if getattr(enemy, 'agent_id', None) == agent_id:
+                enemy_agents.pop(i)
+                return True
+        return False
