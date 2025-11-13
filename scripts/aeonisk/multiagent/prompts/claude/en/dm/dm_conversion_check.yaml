@@ -86,7 +86,17 @@ conversion_check_prompt: |
   **NPC Actions → Automatic Departure:**
   - **"Flee" action** → NPC IMMEDIATELY leaves scene (add agent_id to npc_departures)
   - **"Hide" action** → NPC becomes non-interactive and typically FLEES after 1 round (add agent_id to npc_departures unless strong story reason to stay)
-  - **"Pass" action (2+ consecutive rounds)** → NPC has nothing to do, likely left scene (add agent_id to npc_departures)
+  - **"Pass" action (1+ rounds)** → NPC is passive/inactive, likely off-screen continuing their activity (add agent_id to npc_departures)
+  - **Coordinating/Assisting passively** → If NPC is just "coordinating rescue" or "assisting evacuation" without active player interaction, they're doing their job off-screen (add agent_id to npc_departures)
+  - **Background activities** → NPCs performing routine tasks (monitoring systems, standing guard, organizing supplies) don't need on-screen presence unless players interact with them (add agent_id to npc_departures)
+
+  **⚠️ BE AGGRESSIVE: Default to departure unless NPC is:**
+  - Actively engaging in dialogue with players THIS round
+  - About to reveal critical information next round
+  - In immediate danger requiring player decisions
+  - Central to current dramatic moment (hostage, key witness, etc.)
+
+  **If NPC just took "Pass" action or is doing passive background work, REMOVE THEM.**
 
   **Example - Enemy Declared Surrender:**
   ```
