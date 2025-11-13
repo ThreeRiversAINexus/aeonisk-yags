@@ -3611,9 +3611,104 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     else:
                         logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
 
-        # NOTE: Enemy/NPC spawns, conversions, and escalations are now handled in ENTITY LIFECYCLE PHASE
-        # (before synthesis). The RoundSynthesis schema no longer has these fields.
-        # Synthesis narrates these changes but doesn't trigger them mechanically.
+            # SECOND ENTITY LIFECYCLE PHASE - Spawn initial entities for NEW scene
+            print(f"\n{'='*80}")
+            print(f"🔄 ENTITY LIFECYCLE PHASE #2 - New Scene Initialization")
+            print(f"{'='*80}")
+            logger.info("Running Entity Lifecycle Phase #2 for new scene after story advancement")
+
+            # Build context for new scene
+            new_scene_context = f"""Story just advanced to new location.
+
+Location: {adv.location}
+Situation: {adv.situation}
+Void Level: {dm_agents[0].current_scenario.void_level if dm_agents and dm_agents[0].current_scenario else 'unknown'}
+
+This is a FRESH scene. Spawn initial enemies/NPCs appropriate for this new location.
+Consider:
+- What threats are present in this location?
+- What NPCs would naturally be here?
+- What complications or opportunities exist?
+
+NO conversions/morale checks needed (scene just started).
+"""
+
+            # Find DM agent
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            # Get spawn decisions from DM for new scene
+            if dm_agent and hasattr(dm_agent, 'check_conversions'):
+                try:
+                    post_advancement_decisions = await dm_agent.check_conversions(
+                        round_number=mechanics.current_round if mechanics else 0,
+                        resolution_summary=new_scene_context
+                    )
+
+                    print(f"\n✅ New scene entities:")
+                    print(f"   - Enemy spawns: {len(post_advancement_decisions.enemy_spawns)}")
+                    print(f"   - NPC spawns: {len(post_advancement_decisions.npc_spawns)}")
+
+                    # Process enemy spawns for new scene
+                    if post_advancement_decisions.enemy_spawns and self.enemy_combat:
+                        if not self.enemy_combat.enabled:
+                            logger.info("Enabling enemy combat due to post-advancement enemy spawn")
+                            self.enemy_combat.enabled = True
+
+                        from .schemas.story_events import EnemySpawn
+                        enemy_spawn_list = []
+                        for spawn in post_advancement_decisions.enemy_spawns:
+                            if isinstance(spawn, dict):
+                                enemy_spawn_list.append(EnemySpawn(**spawn))
+                            else:
+                                enemy_spawn_list.append(spawn)
+
+                        spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+                        for notification in spawn_notifications:
+                            print(f"\n{notification}")
+                            logger.info(f"Post-advancement enemy spawn: {notification}")
+
+                    # Process NPC spawns for new scene
+                    if post_advancement_decisions.npc_spawns and self.shared_state:
+                        from .schemas.story_events import NPCSpawn
+                        from .npc_agent import NPCAgent
+
+                        for npc_spawn in post_advancement_decisions.npc_spawns:
+                            npc = NPCAgent(
+                                agent_id=f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}",
+                                name=npc_spawn.name,
+                                entity_type=npc_spawn.entity_type,
+                                threat_level=npc_spawn.threat_level,
+                                disposition=npc_spawn.disposition,
+                                description=npc_spawn.description,
+                                faction=npc_spawn.faction,
+                                health=npc_spawn.health,
+                                max_health=npc_spawn.health,
+                                soak=npc_spawn.soak,
+                                skills=npc_spawn.skills or {},
+                                shared_state=self.shared_state,
+                                llm_config=dm_agent.llm_config if dm_agent else {}
+                            )
+
+                            self.shared_state.npc_agents.append(npc)
+
+                            if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                self.shared_state.target_id_mapper.register_npc(npc)
+
+                            logger.info(f"Post-advancement NPC spawned: {npc.name} ({npc.agent_id})")
+                            print(f"\n✓ NPC entered new scene: {npc.name} ({npc.entity_type}, {npc.disposition})")
+
+                except Exception as e:
+                    logger.warning(f"Post-advancement Entity Lifecycle Phase failed: {type(e).__name__}: {e}")
+                    print(f"\n⚠️  Post-advancement spawn failed: {type(e).__name__}: {e}")
+
+        # NOTE: Entity lifecycle is handled in TWO phases:
+        # Phase 1 (before synthesis): Conversions, spawns for current scene
+        # Phase 2 (after story advancement): Initial spawns for new scene
+        # RoundSynthesis schema has NO entity management fields.
 
         # 2. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:
