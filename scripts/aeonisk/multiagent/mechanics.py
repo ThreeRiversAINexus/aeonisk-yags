@@ -597,19 +597,9 @@ class JSONLLogger:
                     "new_clocks": [clock.model_dump() for clock in structured_synthesis.scene_pivot.new_clocks]
                 }
 
-            # Add enemy management fields
-            if structured_synthesis.enemy_spawns:
-                event["enemy_spawns"] = [spawn.model_dump() for spawn in structured_synthesis.enemy_spawns]
-
-            if structured_synthesis.enemy_conversions:
-                event["enemy_conversions"] = [conv.model_dump() for conv in structured_synthesis.enemy_conversions]
-
-            # Add NPC management fields
-            if structured_synthesis.npc_spawns:
-                event["npc_spawns"] = [npc.model_dump() for npc in structured_synthesis.npc_spawns]
-
-            if structured_synthesis.escalations:
-                event["escalations"] = [esc.model_dump() for esc in structured_synthesis.escalations]
+            # NOTE: Enemy/NPC management fields removed from RoundSynthesis
+            # (moved to Entity Lifecycle Phase)
+            # These are now in ConversionDecisions and logged via entity_lifecycle event
 
             # Add clock lifecycle fields
             if structured_synthesis.clocks_filled:

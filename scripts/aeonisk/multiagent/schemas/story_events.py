@@ -8,8 +8,9 @@ validated structured output.
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 from enum import Enum
+from dataclasses import dataclass, field
 from .shared_types import Position
 
 
@@ -320,11 +321,14 @@ class EnemySpawn(BaseModel):
 
 class RoundSynthesis(BaseModel):
     """
-    DM's round summary with potential scene pivots, story advancement, and enemy spawns.
+    DM's round summary with potential scene pivots and story advancement.
 
     Use scene_pivot for minor transitions (adjacent rooms, tactical repositioning).
     Use story_advancement for major chapter changes (complete location changes).
     Cannot use both in the same round.
+
+    NOTE: Enemy/NPC spawns, conversions, and escalations are handled in Entity Lifecycle Phase
+    (before synthesis). Synthesis narrates these changes but doesn't trigger them mechanically.
 
     Example (Scene Pivot):
     ```python
@@ -337,33 +341,16 @@ class RoundSynthesis(BaseModel):
             clear_specific_clocks=["Breach Containment"],
             new_clocks=[NewClock(name="Override Lockdown", max_ticks=6, description="Hack security terminal")]
         ),
-        enemy_spawns=[],
-        enemy_conversions=[],
         clocks_filled=[],
         clocks_expired=[]
     )
     ```
 
-    Example (Story Advancement with Enemy Surrender):
+    Example (Story Advancement):
     ```python
     synthesis = RoundSynthesis(
         narration="The round concludes in controlled chaos. Ash's ritual barely holds...",
         story_advancement=StoryAdvancement(should_advance=False),
-        enemy_spawns=[],
-        enemy_conversions=[
-            EnemyConversion(
-                enemy_id="enemy_guard_1",
-                resolution=EnemyResolution.FLED,
-                reason="Intimidated by overwhelming force, fled through maintenance corridor"
-            ),
-            EnemyConversion(
-                enemy_id="enemy_raider_2",
-                resolution=EnemyResolution.CONVINCED,
-                reason="Negotiated surrender after diplomacy",
-                resulting_entity_type="prisoner",
-                resulting_disposition="prisoner"
-            )
-        ],
         clocks_filled=["Void Surge"],
         clocks_expired=[]
     )
@@ -398,41 +385,9 @@ class RoundSynthesis(BaseModel):
         description="Story advancement (major chapter transition with new location). Use for major story beats, complete location changes. Heavier than scene_pivot."
     )
 
-    # Enemy management
-    enemy_spawns: List[EnemySpawn] = Field(
-        default_factory=list,
-        description="New enemies to spawn this round (use empty list [] if none, NOT null)"
-    )
-
-    enemy_conversions: List['EnemyConversion'] = Field(
-        default_factory=list,
-        description="""Enemies removed/converted this round - use empty list [] if none, NOT null.
-
-**Unified field replacing enemy_removals + deescalations.**
-
-⚠️ CRITICAL: SURRENDERS = enemy_conversions with resolution=CONVINCED, NOT CONDITIONS! ⚠️
-
-When enemies surrender/flee/are arrested:
-✅ CORRECT: enemy_conversions=[EnemyConversion(enemy_id="enemy_raider_1", resolution=CONVINCED, reason="Negotiated surrender", resulting_entity_type="prisoner", resulting_disposition="prisoner")]
-❌ WRONG: Apply "Surrendered" condition to enemy (conditions are for debuffs like Stunned/Prone, NOT removal from combat!)
-
-WHY: Conditions don't stop enemy agents from acting. Enemy agents check their state and continue attacking despite "Surrendered" conditions. Using enemy_conversions with CONVINCED automatically triggers de-escalation → converts to NPC → removes from combat.
-
-Examples:
-- Enemy flees: EnemyConversion(enemy_id="enemy_grunt_1", resolution=FLED, reason="Intimidated, fled through corridor")
-- Enemy surrenders: EnemyConversion(enemy_id="enemy_raider_2", resolution=CONVINCED, reason="Negotiated surrender", resulting_entity_type="prisoner", resulting_disposition="prisoner")"""
-    )
-
-    # NPC management
-    npc_spawns: List['NPCSpawn'] = Field(
-        default_factory=list,
-        description="New NPCs spawned this round (guides, civilians, allies) - use empty list [] if none, NOT null"
-    )
-
-    escalations: List['Escalation'] = Field(
-        default_factory=list,
-        description="NPCs converted to enemies this round (attacked, provoked, hostile factions) - use empty list [] if none, NOT null"
-    )
+    # NOTE: Enemy/NPC lifecycle fields REMOVED - now handled in Entity Lifecycle Phase (before synthesis)
+    # All spawns, conversions, and escalations happen in ConversionDecisions and are tracked in EntityLifecycleResult
+    # Synthesis narrates these changes but doesn't trigger them mechanically
 
     # Clock lifecycle
     clocks_filled: List[str] = Field(
@@ -474,7 +429,7 @@ Examples:
             raise ValueError("Cannot use both scene_pivot and story_advancement in the same round. Choose one: scene_pivot for minor transitions, story_advancement for major chapter changes.")
         return v
 
-    @field_validator('enemy_spawns', 'enemy_conversions', 'npc_spawns', 'escalations', 'clocks_filled', 'clocks_expired', mode='before')
+    @field_validator('clocks_filled', 'clocks_expired', mode='before')
     @classmethod
     def convert_none_to_empty_list(cls, v):
         """Convert None to empty list for all list fields. LLMs sometimes return null instead of []."""
@@ -890,3 +845,79 @@ Explain WHY you made these conversion choices based on:
 
 Example: "Thug #1 surrendered due to low HP (15%) and intimidation. Guard #2 fled when surrounded. No NPC escalations - prisoner remains compliant." """
     )
+
+
+@dataclass
+class EntityLifecycleResult:
+    """
+    Complete result of Entity Lifecycle phase - consolidates all entity state changes.
+
+    This phase runs BEFORE synthesis, allowing DM to see final entity state when narrating.
+    Combines morale checks, conversions, spawns, and removals into single result.
+
+    Logged to JSONL as 'entity_lifecycle' event for ML training.
+    """
+    # Morale events (from enemy_combat.check_morale_all())
+    morale_events: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Conversion decisions (from dm.check_conversions())
+    conversion_decisions: Optional['ConversionDecisions'] = None
+
+    # Enemy spawns processed (agent_ids of newly spawned enemies)
+    enemies_spawned: List[str] = field(default_factory=list)
+
+    # NPC spawns processed (agent_ids of newly spawned NPCs)
+    npcs_spawned: List[str] = field(default_factory=list)
+
+    # Enemy conversions processed (agent_ids converted enemy→NPC)
+    enemies_converted: List[str] = field(default_factory=list)
+
+    # NPC escalations processed (agent_ids converted NPC→enemy)
+    npcs_escalated: List[str] = field(default_factory=list)
+
+    # NPC departures processed (agent_ids removed from scene)
+    npcs_departed: List[str] = field(default_factory=list)
+
+    # Summary for synthesis context
+    def to_synthesis_context(self) -> str:
+        """Generate human-readable summary for DM synthesis prompt."""
+        parts = []
+
+        if self.morale_events:
+            panicked = [e for e in self.morale_events if e['type'] == 'panicked']
+            surrendered = [e for e in self.morale_events if e['type'] == 'surrender']
+            if panicked:
+                parts.append(f"{len(panicked)} enemy(ies) panicked: {', '.join(e['character_name'] for e in panicked)}")
+            if surrendered:
+                parts.append(f"{len(surrendered)} enemy(ies) surrendered: {', '.join(e['character_name'] for e in surrendered)}")
+
+        if self.enemies_spawned:
+            parts.append(f"{len(self.enemies_spawned)} new enemy(ies) spawned")
+
+        if self.npcs_spawned:
+            parts.append(f"{len(self.npcs_spawned)} new NPC(s) spawned")
+
+        if self.enemies_converted:
+            parts.append(f"{len(self.enemies_converted)} enemy(ies) converted to NPCs")
+
+        if self.npcs_escalated:
+            parts.append(f"{len(self.npcs_escalated)} NPC(s) escalated to enemies")
+
+        if self.npcs_departed:
+            parts.append(f"{len(self.npcs_departed)} NPC(s) departed")
+
+        return "Entity Lifecycle: " + ("; ".join(parts) if parts else "No changes")
+
+    def to_jsonl_dict(self, round_num: int) -> Dict[str, Any]:
+        """Convert to JSONL-loggable dict for ML training."""
+        return {
+            'event_type': 'entity_lifecycle',
+            'round': round_num,
+            'morale_events': self.morale_events,
+            'enemies_spawned': self.enemies_spawned,
+            'npcs_spawned': self.npcs_spawned,
+            'enemies_converted': self.enemies_converted,
+            'npcs_escalated': self.npcs_escalated,
+            'npcs_departed': self.npcs_departed,
+            'conversion_reasoning': self.conversion_decisions.reasoning if self.conversion_decisions else None
+        }

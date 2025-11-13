@@ -1669,12 +1669,20 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         resolutions = payload.get('resolutions', [])
         round_num = payload.get('round', 0)
         resolution_state = payload.get('resolution_state')  # Extract resolution state for fled NPCs tracking
+        expired_clocks = payload.get('expired_clocks', [])  # Extract expired clocks from clock update phase
+        entity_lifecycle_result = payload.get('entity_lifecycle_result')  # Extract entity lifecycle (morale, spawns, conversions)
 
         if not resolutions:
             return
 
         # Generate synthesis (can be RoundSynthesis object or str)
-        synthesis = await self._synthesize_round_outcome(resolutions, round_num, resolution_state=resolution_state)
+        synthesis = await self._synthesize_round_outcome(
+            resolutions,
+            round_num,
+            resolution_state=resolution_state,
+            expired_clocks=expired_clocks,
+            entity_lifecycle_result=entity_lifecycle_result
+        )
 
         # Import RoundSynthesis for type checking
         from .schemas.story_events import RoundSynthesis
@@ -2221,7 +2229,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 temperature=temperature
             )
 
-            logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+            logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, story_advance={synthesis.story_advancement is not None}")
 
             # Log LLM call for replay (synthesis path)
             if self.llm_logger:
@@ -2295,7 +2303,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             enemy_combat = self.shared_state.enemy_combat
             if enemy_combat and hasattr(enemy_combat, 'enemy_agents'):
                 for enemy in enemy_combat.enemy_agents:
-                    if not enemy.is_defeated:
+                    if enemy.is_active:  # Only active enemies (not defeated/retreated)
                         health_pct = int((enemy.health / enemy.max_health) * 100) if enemy.max_health > 0 else 0
 
                         # Flag low HP enemies as conversion candidates
@@ -2320,7 +2328,39 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     f"{npc.agent_id} ({npc.name}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
                 )
 
-        # 3. Load conversion check prompt from YAML
+        # 3. Build scenario context (location, theme, void level, situation, clocks)
+        scenario_context = "Unknown scenario"
+        if self.current_scenario:
+            scenario_context = f"""**Current Scenario:**
+Theme: {self.current_scenario.theme}
+Location: {self.current_scenario.location}
+Situation: {self.current_scenario.situation}
+Void Level: {self.current_scenario.void_level}/10"""
+
+            # Add clock states (show approaching danger and filled clocks)
+            if self.shared_state and self.shared_state.mechanics_engine:
+                clocks = self.shared_state.mechanics_engine.get_all_clocks()
+                if clocks:
+                    clock_lines = []
+                    for clock in clocks:
+                        ticks = clock['current_ticks']
+                        max_ticks = clock['max_ticks']
+                        percent = int((ticks / max_ticks) * 100) if max_ticks > 0 else 0
+
+                        # Flag filled clocks (just completed this round) and near-completion clocks
+                        marker = ""
+                        if clock.get('filled'):
+                            marker = " 🎯 FILLED"
+                        elif percent >= 80:
+                            marker = " ⚠️ CRITICAL"
+                        elif percent >= 60:
+                            marker = " ⚡ HIGH"
+
+                        clock_lines.append(f"  - {clock['name']}: {ticks}/{max_ticks} ({percent}%){marker}")
+
+                    scenario_context += "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
+
+        # 4. Load conversion check prompt from YAML
         prompt_path = os.path.join(
             os.path.dirname(__file__),
             "prompts/claude/en/dm/dm_conversion_check.yaml"
@@ -2329,8 +2369,9 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         with open(prompt_path, 'r') as f:
             prompt_data = yaml.safe_load(f)
 
-        # 4. Format prompt with context
+        # 5. Format prompt with context
         prompt = prompt_data['conversion_check_prompt'].format(
+            scenario_context=scenario_context,
             available_enemies="\n".join(available_enemies) if available_enemies else "No active enemies",
             available_npcs="\n".join(available_npcs) if available_npcs else "No active NPCs",
             resolution_summary=resolution_summary
@@ -2353,7 +2394,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             )
 
             logger.debug(f"✓ DM conversion decisions: {len(decisions.enemy_conversions)} enemy conversions, "
-                        f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns")
+                        f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns, "
+                        f"{len(decisions.enemy_spawns)} enemy spawns")
 
             # 7. Log conversion check call for replay
             if self.llm_logger:
@@ -2370,7 +2412,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     temperature=0.7,
                     tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
                     current_round=round_number,
-                    call_sequence=self.llm_logger.call_sequence
+                    call_sequence=self.llm_logger.call_count
                 )
 
             return decisions
@@ -2385,7 +2427,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 reasoning=f"Conversion check failed: {str(e)}"
             )
 
-    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None):
+    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None, expired_clocks=None, entity_lifecycle_result=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
         This is where conflicts are detected and described.
@@ -2394,6 +2436,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             resolutions: List of resolved actions this round
             round_num: Current round number
             resolution_state: ResolutionState with fled NPCs tracking (optional)
+            expired_clocks: List of expired clocks from clock update phase (optional)
+            entity_lifecycle_result: EntityLifecycleResult with morale/spawns/conversions (optional)
 
         Returns:
             Either a RoundSynthesis object (structured) or str (legacy fallback)
@@ -2457,20 +2501,11 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
         outcomes_text = "\n".join(outcomes_summary)
 
-        # Apply all queued clock updates (batch application prevents cascade fills)
-        clock_updates_applied = {}
-        expired_clocks = []
-        if self.shared_state:
-            mechanics = self.shared_state.get_mechanics_engine()
-            if mechanics:
-                clock_updates_applied = mechanics.apply_queued_clock_updates()
-                if clock_updates_applied:
-                    logger.debug(f"Applied {len(clock_updates_applied)} queued clock updates during synthesis")
-
-                # Check for expired clocks after applying updates
-                expired_clocks = mechanics.check_and_expire_clocks()
-                if expired_clocks:
-                    logger.warning(f"Found {len(expired_clocks)} expired clocks: {[c['clock_name'] for c in expired_clocks]}")
+        # NOTE: Clock updates are now applied BEFORE conversion check (in session.py)
+        # This allows conversion check to see filled clocks and make informed spawn decisions
+        # expired_clocks are passed from session.py after clock update phase
+        if expired_clocks is None:
+            expired_clocks = []
 
         # Build expired clocks text for DM prompt
         expired_clocks_text = ""
@@ -2830,6 +2865,36 @@ enemy_spawns=[
                 fled_npcs_context += "\n".join([f"  - {name}" for name in fled_npc_names])
                 fled_npcs_context += "\n\n**CRITICAL:** Do NOT narrate fled NPCs as present in the scene. They have left and cannot interact with players."
 
+        # Build entity lifecycle context (morale, spawns, conversions)
+        entity_lifecycle_context = ""
+        if entity_lifecycle_result:
+            # Reconstruct EntityLifecycleResult if it's a dict (from message serialization)
+            from .schemas.story_events import EntityLifecycleResult
+            if isinstance(entity_lifecycle_result, dict):
+                # Manually reconstruct from dict
+                lifecycle_obj = EntityLifecycleResult(
+                    morale_events=entity_lifecycle_result.get('morale_events', []),
+                    conversion_decisions=entity_lifecycle_result.get('conversion_decisions'),
+                    enemies_spawned=entity_lifecycle_result.get('enemies_spawned', []),
+                    npcs_spawned=entity_lifecycle_result.get('npcs_spawned', []),
+                    enemies_converted=entity_lifecycle_result.get('enemies_converted', []),
+                    npcs_escalated=entity_lifecycle_result.get('npcs_escalated', []),
+                    npcs_departed=entity_lifecycle_result.get('npcs_departed', [])
+                )
+            else:
+                lifecycle_obj = entity_lifecycle_result
+
+            lifecycle_summary = lifecycle_obj.to_synthesis_context()
+            if lifecycle_summary != "Entity Lifecycle: No changes":
+                entity_lifecycle_context = f"\n\n**{lifecycle_summary}**\n"
+                entity_lifecycle_context += "⚠️  These entity state changes have ALREADY occurred. Your narration should be consistent with them.\n"
+
+                # Add detailed morale events if present
+                if lifecycle_obj.morale_events:
+                    entity_lifecycle_context += "\n**Morale Events:**\n"
+                    for event in lifecycle_obj.morale_events:
+                        entity_lifecycle_context += f"  - {event['character_name']}: {event['type']} ({event.get('narration', '')})\n"
+
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
         if self.needs_story_advancement:
@@ -2893,7 +2958,13 @@ story_advancement=StoryAdvancement(
 {enemy_status_context}
 {npc_status_context}
 {fled_npcs_context}
+{entity_lifecycle_context}
 {story_advancement_prompt}
+
+**⚠️ CRITICAL - ENTITY LIFECYCLE:**
+All entity spawns, conversions, and lifecycle changes were ALREADY HANDLED in the Entity Lifecycle Phase (before synthesis).
+The RoundSynthesis schema NO LONGER has enemy_spawns, enemy_conversions, npc_spawns, or escalations fields.
+Your narration should describe these changes narratively (they're shown in the context above), but you don't trigger them mechanically.
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
 
@@ -2940,7 +3011,6 @@ Generate appropriate consequences based on what makes sense for that specific cl
             if structured_synthesis:
                 # Return structured object directly (no marker conversion)
                 logger.debug(f"✓ Using structured synthesis: {len(structured_synthesis.narration)} chars, "
-                           f"{len(structured_synthesis.enemy_spawns)} spawns, "
                            f"story_advance={structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance}")
                 return structured_synthesis
 
@@ -4187,9 +4257,12 @@ The following actions ALREADY resolved (faster initiative):
                     affects=[]  # Affects all by default
                 )
 
-                # Determine who receives the condition (default: actor, but can be target)
-                # Check if action has a target (for damage-dealing/debuff actions)
-                target_id = action.get('target')  # Could be tgt_xxxx or character name
+                # Determine who receives the condition
+                # Priority: condition.target > action.target > actor (self)
+                target_id = condition_data.get('target')  # Per-condition target (NEW - supports multi-target)
+                if not target_id:
+                    target_id = action.get('target')  # Fallback to action-level target
+
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
                 should_apply_condition = True  # Flag to control whether to apply
@@ -4197,12 +4270,12 @@ The following actions ALREADY resolved (faster initiative):
                 # Handle different targeting scenarios
                 if target_id == 'None' or target_id is None or not target_id:
                     # Special case: target="None" (string), None (null), or missing/empty
-                    # These all mean: no specific target (area attack or narrative-only combat)
-                    # Only apply self-buffs (positive penalty) to actor
-                    # Skip debuffs (negative penalty) - they would need a real target
+                    # These all mean: no specific target
+                    # Apply condition to actor (self-buff OR self-debuff from failure/backlash)
                     if condition.penalty < 0:
-                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
-                        should_apply_condition = False
+                        logger.debug(f"Applying self-debuff '{condition.name}' (penalty={condition.penalty}) to actor (backlash/failure consequence)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
                     else:
                         # Positive penalty = buff, apply to actor (self-buff)
                         logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
@@ -4244,9 +4317,19 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Apply condition only if flag is True
                 if should_apply_condition:
-                    mechanics.add_condition(condition_target_id, condition)
-                    # Show condition application (with target name)
-                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                    # Check if condition already exists before applying
+                    already_exists = False
+                    if condition_target_id in mechanics.conditions:
+                        for existing in mechanics.conditions[condition_target_id]:
+                            if existing.name == condition.name:
+                                already_exists = True
+                                break
+
+                    # Only add and show narration if condition is new
+                    if not already_exists:
+                        mechanics.add_condition(condition_target_id, condition)
+                        # Show condition application (with target name)
+                        narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement)
             if state_changes.get('position_change'):
@@ -4625,9 +4708,12 @@ The following actions ALREADY resolved (faster initiative):
                     affects=[]  # Affects all by default
                 )
 
-                # Determine who receives the condition (default: actor, but can be target)
-                # Check if action has a target (for damage-dealing/debuff actions)
-                target_id = action.get('target')  # Could be tgt_xxxx or character name
+                # Determine who receives the condition
+                # Priority: condition.target > action.target > actor (self)
+                target_id = condition_data.get('target')  # Per-condition target (NEW - supports multi-target)
+                if not target_id:
+                    target_id = action.get('target')  # Fallback to action-level target
+
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
                 should_apply_condition = True  # Flag to control whether to apply
@@ -4635,12 +4721,12 @@ The following actions ALREADY resolved (faster initiative):
                 # Handle different targeting scenarios
                 if target_id == 'None' or target_id is None or not target_id:
                     # Special case: target="None" (string), None (null), or missing/empty
-                    # These all mean: no specific target (area attack or narrative-only combat)
-                    # Only apply self-buffs (positive penalty) to actor
-                    # Skip debuffs (negative penalty) - they would need a real target
+                    # These all mean: no specific target
+                    # Apply condition to actor (self-buff OR self-debuff from failure/backlash)
                     if condition.penalty < 0:
-                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
-                        should_apply_condition = False
+                        logger.debug(f"Applying self-debuff '{condition.name}' (penalty={condition.penalty}) to actor (backlash/failure consequence)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
                     else:
                         # Positive penalty = buff, apply to actor (self-buff)
                         logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
@@ -4682,9 +4768,19 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Apply condition only if flag is True
                 if should_apply_condition:
-                    mechanics.add_condition(condition_target_id, condition)
-                    # Show condition application (with target name)
-                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                    # Check if condition already exists before applying
+                    already_exists = False
+                    if condition_target_id in mechanics.conditions:
+                        for existing in mechanics.conditions[condition_target_id]:
+                            if existing.name == condition.name:
+                                already_exists = True
+                                break
+
+                    # Only add and show narration if condition is new
+                    if not already_exists:
+                        mechanics.add_condition(condition_target_id, condition)
+                        # Show condition application (with target name)
+                        narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement during rituals)
             if state_changes.get('position_change'):

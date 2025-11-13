@@ -1702,17 +1702,15 @@ class EnemyCombatManager:
             'narration': f"{enemy.name} throws grenade at {target_location} (affects: {', '.join(a[1] for a in affected)})"
         }
 
-    def cleanup_round(self) -> List[Dict[str, Any]]:
+    def check_morale_all(self) -> List[Dict[str, Any]]:
         """
-        Perform end-of-round cleanup.
+        Check morale for all active enemies.
 
-        - Apply group attrition
-        - Auto-despawn defeated enemies
-        - Clear old shared intel
-        - Generate loot suggestions
+        Called during Entity Lifecycle phase (before synthesis) so DM can narrate
+        morale breaks immediately.
 
         Returns:
-            List of cleanup events
+            List of morale events (panicked, surrender)
         """
         if not self.enabled:
             return []
@@ -1786,6 +1784,28 @@ class EnemyCombatManager:
                             'narration': f"{enemy.name} morale breaks! They're panicked and will attempt to flee ({morale_trigger})"
                         })
                         logger.info(f"{enemy.name} is now panicked (morale broken: {morale_trigger})")
+
+        return events
+
+    def cleanup_round(self) -> List[Dict[str, Any]]:
+        """
+        Perform end-of-round cleanup.
+
+        - Tick down debuff/status durations
+        - Auto-despawn defeated enemies
+        - Clear old shared intel
+        - Generate loot suggestions
+
+        NOTE: Morale checks have been moved to check_morale_all() which is called
+        during Entity Lifecycle phase (before synthesis).
+
+        Returns:
+            List of cleanup events
+        """
+        if not self.enabled:
+            return []
+
+        events = []
 
         # Tick down debuff/status durations
         for enemy in get_active_enemies(self.enemy_agents):

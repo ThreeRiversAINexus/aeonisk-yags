@@ -1487,15 +1487,36 @@ class SelfPlayingSession:
                         print(f"\n⏰ CLOCK FILLED: {clock_name} ({after}/{maximum})")
                         print(f"   Consequence: {consequence}")
 
-        # CONVERSION CHECK PHASE: Determine which enemies/NPCs should convert before synthesis
+        # ENTITY LIFECYCLE PHASE: Morale, conversions, spawns, departures (before synthesis)
+        from .schemas.story_events import EntityLifecycleResult
+        entity_lifecycle_result = EntityLifecycleResult()
         conversion_decisions = None
+
         if all_resolutions:
             print(f"\n{'='*80}")
-            print(f"🔄 CONVERSION CHECK PHASE (Round {mechanics.current_round if mechanics else 0})")
+            print(f"🔄 ENTITY LIFECYCLE PHASE (Round {mechanics.current_round if mechanics else 0})")
             print(f"{'='*80}")
 
-            # Build resolution summary for DM context
+            # Step 1: Check morale for all enemies (BEFORE conversions so DM sees panic in context)
+            if self.enemy_combat and self.enemy_combat.enabled:
+                morale_events = self.enemy_combat.check_morale_all()
+                entity_lifecycle_result.morale_events = morale_events
+
+                if morale_events:
+                    print(f"\n📊 Morale Checks:")
+                    for event in morale_events:
+                        print(f"   - {event['character_name']}: {event['type']} ({event.get('narration', '')})")
+                        logger.info(f"Morale event: {event['character_name']} {event['type']}")
+
+            # Step 2: Build resolution summary for DM context (include morale results)
             resolution_summary = self._build_resolution_summary(all_resolutions)
+
+            # Add morale events to resolution summary for DM context
+            if entity_lifecycle_result.morale_events:
+                morale_summary = "\n\nMORALE EVENTS THIS ROUND:\n"
+                for event in entity_lifecycle_result.morale_events:
+                    morale_summary += f"- {event['character_name']}: {event['type']} ({event['narration']})\n"
+                resolution_summary += morale_summary
 
             # Find DM agent
             dm_agent = None
@@ -1504,14 +1525,16 @@ class SelfPlayingSession:
                     dm_agent = agent
                     break
 
+            # Step 3: Get conversion decisions from DM
             if dm_agent and hasattr(dm_agent, 'check_conversions'):
                 try:
                     conversion_decisions = await dm_agent.check_conversions(
                         round_number=mechanics.current_round if mechanics else 0,
                         resolution_summary=resolution_summary
                     )
+                    entity_lifecycle_result.conversion_decisions = conversion_decisions
 
-                    print(f"✅ Conversion decisions:")
+                    print(f"\n✅ Conversion decisions:")
                     print(f"   - Enemy conversions: {len(conversion_decisions.enemy_conversions)}")
                     print(f"   - NPC escalations: {len(conversion_decisions.escalations)}")
                     print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
@@ -1523,7 +1546,7 @@ class SelfPlayingSession:
                                f"{len(conversion_decisions.escalations)} escalations, {len(conversion_decisions.npc_spawns)} NPC spawns, "
                                f"{len(conversion_decisions.npc_departures)} NPC departures, {len(conversion_decisions.enemy_spawns)} enemy spawns")
 
-                    # Process enemy spawns from conversion check immediately (before synthesis)
+                    # Step 4: Process enemy spawns from conversion check immediately (before synthesis)
                     if conversion_decisions.enemy_spawns and self.enemy_combat:
                         # Enable enemy combat if we're spawning enemies (even if it started disabled)
                         if not self.enemy_combat.enabled:
@@ -1541,6 +1564,11 @@ class SelfPlayingSession:
 
                         # Spawn all enemies using spawn_from_structured
                         spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+
+                        # Track spawned enemy agent_ids
+                        for enemy in self.enemy_combat.enemy_agents:
+                            if enemy.spawned_round == (mechanics.current_round if mechanics else 0):
+                                entity_lifecycle_result.enemies_spawned.append(enemy.agent_id)
 
                         # Print spawn notifications
                         for notification in spawn_notifications:
@@ -1615,6 +1643,9 @@ class SelfPlayingSession:
                                     enemy.is_active = False
                                     enemy.despawned_round = mechanics.current_round if mechanics else 0
 
+                                    # Track conversion in lifecycle result
+                                    entity_lifecycle_result.enemies_converted.append(enemy.agent_id)
+
                                     logger.info(f"Converted enemy to NPC: {enemy.name} → {npc.name}")
                                     print(f"\n✓ {enemy.name} converted to NPC ({enemy_conversion.resolution.value})")
 
@@ -1659,6 +1690,9 @@ class SelfPlayingSession:
                                 # Remove from NPC list
                                 self.shared_state.npc_agents.remove(npc)
 
+                                # Track escalation in lifecycle result
+                                entity_lifecycle_result.npcs_escalated.append(npc.agent_id)
+
                                 logger.info(f"Escalated NPC to enemy: {npc.name} → {enemy.name}")
                                 print(f"\n✓ {npc.name} escalated to hostile combatant")
 
@@ -1695,6 +1729,9 @@ class SelfPlayingSession:
                             if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
                                 self.shared_state.target_id_mapper.register_npc(npc)
 
+                            # Track NPC spawn in lifecycle result
+                            entity_lifecycle_result.npcs_spawned.append(npc.agent_id)
+
                             logger.info(f"NPC spawned: {npc.name} ({npc.agent_id})")
                             print(f"\n✓ NPC entered scene: {npc.name} ({npc.entity_type}, {npc.disposition})")
 
@@ -1707,16 +1744,19 @@ class SelfPlayingSession:
 
                             removed = self.shared_state.remove_npc(npc_identifier)
                             if removed:
+                                # Track departure in lifecycle result
+                                entity_lifecycle_result.npcs_departed.append(npc_identifier)
+
                                 # Log NPC departure to JSONL
                                 if mechanics and mechanics.jsonl_logger:
                                     mechanics.jsonl_logger.log_npc_departure(
                                         round_num=mechanics.current_round,
                                         npc_id=npc_identifier,
                                         npc_name=npc_name,
-                                        departure_reason="conversion_check_removal"
+                                        departure_reason="entity_lifecycle_removal"
                                     )
 
-                                logger.info(f"👤 NPC departed (conversion check): {npc_identifier}")
+                                logger.info(f"👤 NPC departed (entity lifecycle): {npc_identifier}")
                                 print(f"\n👤 NPC departed: {npc_name}")
                             else:
                                 logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
@@ -1738,7 +1778,34 @@ class SelfPlayingSession:
                         reasoning="Conversion check failed, proceeding without conversions"
                     )
             else:
-                logger.debug("DM agent not found or doesn't have check_conversions method - skipping conversion check")
+                logger.debug("DM agent not found or doesn't have check_conversions method - skipping entity lifecycle")
+
+        # Log EntityLifecycleResult to JSONL (if any lifecycle events occurred)
+        if (entity_lifecycle_result.morale_events or
+            entity_lifecycle_result.enemies_spawned or
+            entity_lifecycle_result.npcs_spawned or
+            entity_lifecycle_result.enemies_converted or
+            entity_lifecycle_result.npcs_escalated or
+            entity_lifecycle_result.npcs_departed):
+
+            if mechanics and mechanics.jsonl_logger:
+                lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
+                    round_num=mechanics.current_round
+                )
+                mechanics.jsonl_logger.log_event(
+                    'entity_lifecycle',
+                    lifecycle_dict,
+                    round_num=mechanics.current_round
+                )
+
+            # Print entity lifecycle summary
+            print(f"\n{entity_lifecycle_result.to_synthesis_context()}")
+            logger.info(f"Entity lifecycle complete: {len(entity_lifecycle_result.morale_events)} morale events, "
+                       f"{len(entity_lifecycle_result.enemies_spawned)} enemies spawned, "
+                       f"{len(entity_lifecycle_result.npcs_spawned)} NPCs spawned, "
+                       f"{len(entity_lifecycle_result.enemies_converted)} enemies converted, "
+                       f"{len(entity_lifecycle_result.npcs_escalated)} NPCs escalated, "
+                       f"{len(entity_lifecycle_result.npcs_departed)} NPCs departed")
 
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
@@ -1747,6 +1814,10 @@ class SelfPlayingSession:
 
             # Reset synthesis event before requesting synthesis
             self._synthesis_complete.clear()
+
+            # Convert EntityLifecycleResult to dict for message serialization
+            from dataclasses import asdict
+            entity_lifecycle_dict = asdict(entity_lifecycle_result) if entity_lifecycle_result else None
 
             synthesis_message = Message(
                 id=f"synthesis_{datetime.now().isoformat()}",
@@ -1759,6 +1830,7 @@ class SelfPlayingSession:
                     'round': mechanics.current_round if mechanics else 0,
                     'resolution_state': resolution_state,  # Include fled NPCs for synthesis context
                     'conversion_decisions': conversion_decisions,  # Include conversion check results for DM narrative
+                    'entity_lifecycle_result': entity_lifecycle_dict,  # Include entity lifecycle (morale, spawns, conversions)
                     'expired_clocks': expired_clocks  # Include expired clocks from clock update phase
                 },
                 timestamp=datetime.now()
@@ -3512,216 +3584,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     else:
                         logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
 
-        # 2. Handle enemy spawns (AFTER story advancement)
-        # NOTE: Enemy spawns are now handled exclusively in CONVERSION CHECK PHASE (before synthesis)
-        # Synthesis enemy_spawns are IGNORED to prevent duplicates
-        # TODO: Remove enemy_spawns field from RoundSynthesis schema entirely
-        if False and synthesis.enemy_spawns and self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.spawn_from_structured(synthesis.enemy_spawns)
-            for notification in spawn_notifications:
-                print(f"\n{notification}")
+        # NOTE: Enemy/NPC spawns, conversions, and escalations are now handled in ENTITY LIFECYCLE PHASE
+        # (before synthesis). The RoundSynthesis schema no longer has these fields.
+        # Synthesis narrates these changes but doesn't trigger them mechanically.
 
-        # 3. Handle enemy conversions (removals + NPC conversions)
-        # NOTE: Conversions are now handled exclusively in CONVERSION CHECK PHASE (before synthesis)
-        # Synthesis enemy_conversions are IGNORED to prevent duplicates
-        # TODO: Remove enemy_conversions field from RoundSynthesis schema entirely
-        if False and synthesis.enemy_conversions and self.enemy_combat.enabled:
-            from .agent_conversion import deescalate_enemy_to_npc
-            from .schemas.story_events import EnemyResolution
-
-            for conversion in synthesis.enemy_conversions:
-                # Resolve target ID to agent ID if needed (DM often uses target IDs from resolutions)
-                enemy_id = conversion.enemy_id
-                if enemy_id.startswith('tgt_'):
-                    # This is a target ID - resolve to actual agent_id
-                    target_mapper = self.shared_state.get_target_id_mapper()
-                    if target_mapper:
-                        resolved_entity = target_mapper.resolve_target(enemy_id)
-                        if resolved_entity and hasattr(resolved_entity, 'agent_id'):
-                            logger.debug(f"✓ Resolved target ID {enemy_id} → {resolved_entity.agent_id}")
-                            enemy_id = resolved_entity.agent_id
-                        else:
-                            logger.warning(f"Could not resolve target ID {enemy_id} - trying as-is")
-
-                # Find the enemy
-                enemy = next((e for e in self.enemy_combat.enemy_agents
-                             if e.agent_id == enemy_id or e.name == enemy_id), None)
-
-                if not enemy or not enemy.is_active:
-                    # ✅ VALIDATION: Enemy not found - log warning and skip gracefully
-                    logger.warning(f"Enemy {conversion.enemy_id} not found for conversion, skipping")
-                    print(f"\n⚠️  WARNING: Enemy {conversion.enemy_id} not found for conversion")
-
-                    # Defensive fallback: Check if this is actually an NPC (common DM mistake)
-                    if self.shared_state:
-                        npc = self.shared_state.get_npc(conversion.enemy_id)
-                        if npc:
-                            logger.warning(
-                                f"Wrong field used: '{conversion.enemy_id}' is an NPC, not an enemy. "
-                                f"Use 'escalations' field for NPC→Enemy conversions. "
-                                f"Auto-converting as escalation..."
-                            )
-                            print(f"   (Detected ID is NPC, not enemy - use 'escalations' field for NPC→Enemy)")
-
-                            # Auto-escalate the NPC using the correct pathway
-                            from .schemas.story_events import Escalation
-
-                            # Find DM agent to process escalation
-                            dm_agent = None
-                            for agent in self.agents:
-                                if agent.agent_id.startswith('dm_'):
-                                    dm_agent = agent
-                                    break
-
-                            if dm_agent and hasattr(dm_agent, '_process_escalation'):
-                                # Create escalation with reasonable defaults
-                                escalation = Escalation(
-                                    npc_id=conversion.enemy_id,
-                                    reason=conversion.reason,
-                                    template="desperate_fighter"  # Default template
-                                )
-
-                                enemy = dm_agent._process_escalation(
-                                    escalation=escalation,
-                                    current_round=mechanics.current_round if mechanics else 0
-                                )
-
-                                if enemy and self.enemy_combat.enabled:
-                                    self.enemy_combat.enemy_agents.append(enemy)
-                                    print(f"   ⚔️  {npc.name} escalated to enemy (auto-corrected): {conversion.reason}")
-                                    logger.info(f"Auto-escalation successful: {npc.name} → Enemy")
-                            continue
-
-                    # Enemy truly not found (not NPC either)
-                    continue
-
-                # Determine if enemy stays or leaves
-                stays_in_scene = conversion.resolution in [
-                    EnemyResolution.CONVINCED,
-                    EnemyResolution.NEUTRALIZED,
-                    EnemyResolution.SUBDUED
-                ]
-
-                if stays_in_scene:
-                    # Convert to NPC (stays in scene)
-                    if enemy.is_active:
-                        npc = deescalate_enemy_to_npc(
-                            enemy=enemy,
-                            disposition=conversion.resulting_disposition,
-                            current_round=mechanics.current_round if mechanics else 0
-                        )
-
-                        if self.shared_state:
-                            self.shared_state.npc_agents.append(npc)
-                            if hasattr(self.shared_state, 'target_id_mapper'):
-                                self.shared_state.target_id_mapper.register_npc(npc)
-
-                        enemy.is_active = False
-                        enemy.despawned_round = mechanics.current_round if mechanics else 0
-
-                        print(f"\n🏳️  {enemy.name} de-escalated to NPC ({conversion.resulting_disposition}): {conversion.reason}")
-                else:
-                    # Remove from scene (leaves entirely)
-                    if enemy.is_active:
-                        enemy.is_active = False
-                        enemy.despawned_round = mechanics.current_round if mechanics else 0
-
-                        resolution_text = {
-                            EnemyResolution.FLED: "fled",
-                            EnemyResolution.STORY_ADVANCED: "removed (story advanced)",
-                        }.get(conversion.resolution, "removed")
-
-                        print(f"\n❌ {enemy.name} {resolution_text}: {conversion.reason}")
-
-        # 3.5. Handle NPC spawns (NEW - mid-game NPC spawning)
-        if synthesis.npc_spawns:
-            from .schemas.story_events import NPCSpawn
-
-            # Find DM agent for NPC spawn processing
-            dm_agent = None
-            for agent in self.agents:
-                if agent.agent_id.startswith('dm_'):
-                    dm_agent = agent
-                    break
-
-            if not dm_agent:
-                logger.warning("Cannot process NPC spawns: DM agent not found")
-            else:
-                for npc_spawn in synthesis.npc_spawns:
-                    # Reconstruct NPCSpawn if it's a dict
-                    if isinstance(npc_spawn, dict):
-                        npc_spawn = NPCSpawn(**npc_spawn)
-
-                    if hasattr(dm_agent, '_process_npc_spawn'):
-                        npc = dm_agent._process_npc_spawn(npc_spawn)
-
-                        if npc:
-                            # NPC already added to SharedState and registered by _process_npc_spawn()
-                            # Just log the successful spawn
-                            print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
-                            logger.info(f"NPC spawn complete: {npc.name} ({npc.agent_id})")
-                    else:
-                        logger.warning(f"Cannot spawn NPC {npc_spawn.name}: DM missing _process_npc_spawn method")
-
-        # 4. Handle escalations (NPC → Enemy conversions)
-        if synthesis.escalations:
-            from .schemas.story_events import Escalation
-
-            # Find DM agent for escalation processing
-            dm_agent = None
-            for agent in self.agents:
-                if agent.agent_id.startswith('dm_'):
-                    dm_agent = agent
-                    break
-
-            if not dm_agent:
-                logger.warning("Cannot process escalations: DM agent not found")
-            else:
-                for escalation in synthesis.escalations:
-                    # Reconstruct Escalation if it's a dict
-                    if isinstance(escalation, dict):
-                        escalation = Escalation(**escalation)
-
-                    # Resolve target ID to agent ID if needed
-                    npc_id = escalation.npc_id
-                    if npc_id.startswith('tgt_'):
-                        # This is a target ID - resolve to actual agent_id
-                        target_mapper = self.shared_state.get_target_id_mapper()
-                        if target_mapper:
-                            resolved_entity = target_mapper.resolve_target(npc_id)
-                            if resolved_entity and hasattr(resolved_entity, 'agent_id'):
-                                logger.debug(f"✓ Resolved target ID {npc_id} → {resolved_entity.agent_id}")
-                                npc_id = resolved_entity.agent_id
-                            else:
-                                logger.warning(f"Could not resolve target ID {npc_id} - trying as-is")
-
-                    # ✅ VALIDATION: Check NPC exists before escalation
-                    npc = None
-                    if self.shared_state:
-                        npc = next((n for n in self.shared_state.npc_agents if n.agent_id == npc_id), None)
-
-                    if not npc:
-                        logger.warning(f"NPC {escalation.npc_id} not found for escalation, skipping")
-                        print(f"\n⚠️  WARNING: NPC {escalation.npc_id} not found for escalation")
-                        continue  # Skip this escalation, process others
-
-                    if hasattr(dm_agent, '_process_escalation'):
-                        enemy = dm_agent._process_escalation(
-                            escalation=escalation,
-                            current_round=mechanics.current_round if mechanics else 0
-                        )
-
-                        if enemy:
-                            # Add enemy to enemy_combat system
-                            if self.enemy_combat.enabled:
-                                self.enemy_combat.enemy_agents.append(enemy)
-
-                            print(f"\n⚠️  {enemy.name} escalated to Enemy (was NPC): {escalation.reason}")
-                            logger.info(f"Escalation complete: {enemy.name} ({enemy.agent_id}) now active enemy")
-                    else:
-                        logger.warning(f"Cannot escalate {escalation.npc_id}: DM missing _process_escalation method")
-
-        # 4. Handle scene pivot (minor room transitions)
+        # 2. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:
             pivot = synthesis.scene_pivot
             logger.info(f"Scene pivot: {pivot.new_room}")
