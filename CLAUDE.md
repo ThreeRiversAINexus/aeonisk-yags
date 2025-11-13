@@ -698,3 +698,19 @@ python -m pytest tests/unit/test_session_config_validation.py -v
 - `session_config_void_story_advancement_test.json` - Tests void_level updates
 - `session_config_starting_clocks_test.json` - Tests clock loading
 - All test configs use contrived scenarios (max_turns=1-2) for rapid validation
+
+## Known Issues
+
+### dm_commands.yaml Section 6 Outdated
+**File**: `scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_commands.yaml` lines 93-200
+
+**Issue**: "6. NPC Management" section contains 107 lines of outdated instructions about spawning/converting entities in RoundSynthesis.
+
+**Why it's safe to ignore**: 
+- RoundSynthesis schema no longer has entity management fields
+- Pydantic will reject any attempts to use removed fields
+- Entity lifecycle has dedicated prompts in `dm_conversion_check.yaml`
+- DM physically cannot follow those instructions anymore
+
+**Future work**: Remove section 6 and replace with minimal note directing to Entity Lifecycle Phase prompts.
+
