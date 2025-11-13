@@ -3693,9 +3693,9 @@ NO conversions/morale checks needed (scene just started).
                                 health=npc_spawn.health,
                                 max_health=npc_spawn.health,
                                 soak=npc_spawn.soak,
+                                void_score=0,
                                 skills=npc_spawn.skills or {},
-                                shared_state=self.shared_state,
-                                llm_config=dm_agent.llm_config if dm_agent else {}
+                                agent_prompt_logger=self.agent_prompt_logger if hasattr(self, 'agent_prompt_logger') else None
                             )
 
                             self.shared_state.npc_agents.append(npc)
@@ -3812,8 +3812,7 @@ NO conversions/morale checks needed (scene just started).
 
         # Check if this is a round synthesis completion
         if message.payload.get('is_round_synthesis', False):
-            self._synthesis_complete.set()
-            logger.debug("Round synthesis received, signaling completion")
+            logger.debug("Round synthesis received, processing...")
 
             # Check for structured synthesis (Phase 5: Pydantic AI migration)
             structured_synthesis_data = message.payload.get('structured_synthesis')
@@ -3842,6 +3841,10 @@ NO conversions/morale checks needed (scene just started).
             # Collect synthesis for debrief context
             if narration and round_num is not None:
                 self._round_synthesis_history.append((round_num, narration))
+
+            # Signal completion AFTER all processing (including Entity Lifecycle #2) completes
+            self._synthesis_complete.set()
+            logger.debug("Round synthesis processing complete, signaling completion")
 
 
 # Configuration example
