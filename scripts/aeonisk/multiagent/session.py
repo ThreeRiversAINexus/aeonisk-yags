@@ -1715,6 +1715,13 @@ class SelfPlayingSession:
                             if isinstance(npc_spawn, dict):
                                 npc_spawn = NPCSpawn(**npc_spawn)
 
+                            # Check if NPC with same name already exists (prevent duplicates)
+                            existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
+                            if existing_npc:
+                                logger.info(f"NPC '{npc_spawn.name}' already exists ({existing_npc.agent_id}), skipping spawn")
+                                print(f"\n⏭️  NPC '{npc_spawn.name}' already present, skipping spawn")
+                                continue
+
                             # Create NPC agent
                             npc = NPCAgent(
                                 agent_id=f"npc_{uuid.uuid4().hex[:8]}",
@@ -3682,6 +3689,13 @@ NO conversions/morale checks needed (scene just started).
                         import uuid
 
                         for npc_spawn in post_advancement_decisions.npc_spawns:
+                            # Check if NPC with same name already exists (prevent duplicates)
+                            existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
+                            if existing_npc:
+                                logger.info(f"NPC '{npc_spawn.name}' already exists ({existing_npc.agent_id}), skipping spawn")
+                                print(f"\n⏭️  NPC '{npc_spawn.name}' already present in new scene, skipping spawn")
+                                continue
+
                             npc = NPCAgent(
                                 agent_id=f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}",
                                 name=npc_spawn.name,
