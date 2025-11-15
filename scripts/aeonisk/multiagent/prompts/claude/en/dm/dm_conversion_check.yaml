@@ -13,6 +13,9 @@ conversion_check_prompt: |
 
   {scenario_context}
 
+  **PLAYER CHARACTERS (do NOT spawn NPCs with these names):**
+  {player_characters}
+
   ## 🎯 Clock State Analysis
 
   The clock states shown above reflect COMPLETED updates from this round's actions.
@@ -281,9 +284,17 @@ conversion_check_prompt: |
   - For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED
   - Only use npc_spawns for characters who weren't previously in the scene
 
-  ⚠️ **CRITICAL: Check for duplicate NPC roles before spawning!**
+  ⚠️ **CRITICAL: Check for duplicate names before spawning!**
 
-  Before spawning an NPC, check if an NPC with a similar role **already exists** in the ACTIVE NPCs list:
+  Before spawning an NPC, check if an entity with a similar role or name **already exists**:
+
+  **🚨 NEVER spawn NPCs with the same names as PLAYER CHARACTERS:**
+  - ❌ DON'T spawn "Thane Kross" NPC if "Thane Kross" is a player character
+  - ❌ DON'T spawn "Veyra Lune" NPC if "Veyra Lune" is a player character
+  - ❌ DON'T spawn "Sael Thren" NPC if "Sael Thren" is a player character
+  - **Player character names are shown at the top of this prompt**
+
+  **Also check existing NPCs for duplicate roles:**
   - ❌ DON'T spawn "Arcadia Triage Nurse" if "Arcadia Field Medic" already exists
   - ❌ DON'T spawn "Tempest Liaison" if "Tempest Containment Tech" already exists
   - ❌ DON'T spawn "Ritual Shepherd" if another shepherd/guide NPC already exists
