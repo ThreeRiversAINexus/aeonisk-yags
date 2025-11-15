@@ -1,0 +1,98 @@
+{
+  "session_name": "openai_provider_test",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+
+  "_comment_purpose": "Test config for OpenAI GPT-5-mini provider support",
+  "_comment_note": "All agents use GPT-5-mini (no Claude needed)",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": -1,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "_comment_enemy_agents": "Disabled for now - enemy agents don't support OpenAI yet",
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 5,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_initial_enemies": "No enemies - simple investigation scenario",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      },
+      "_comment": "DM uses OpenAI GPT-5-mini (when available - fallback to gpt-4o-mini)"
+    },
+    "players": [
+    {
+      "name": "Test Agent Alpha",
+      "pronouns": "they/them",
+      "faction": "Independent Operative",
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.8
+      },
+      "_comment": "Player uses OpenAI GPT-5-mini",
+      "personality": {
+        "riskTolerance": 5,
+        "voidCuriosity": 3,
+        "bondPreference": "neutral",
+        "ritualConservatism": 5
+      },
+      "goals": [
+        "Test multi-provider support",
+        "Survive combat encounter"
+      ],
+      "attributes": {
+        "Strength": 3,
+        "Agility": 4,
+        "Endurance": 3,
+        "Perception": 4,
+        "Intelligence": 3,
+        "Empathy": 3,
+        "Willpower": 3,
+        "Charisma": 3,
+        "Size": 5
+      },
+      "skills": {
+        "Combat": 4,
+        "Awareness": 4,
+        "Athletics": 3,
+        "Guns": 4,
+        "Brawl": 3,
+        "Melee": 3
+      },
+      "equipped_weapons": {
+        "primary": "pistol",
+        "sidearm": "combat_knife"
+      },
+      "carried_weapons": [],
+      "inventory": {
+        "pistol": 1,
+        "combat_knife": 1,
+        "basic_armor": 1,
+        "medkit": 1
+      },
+      "void_score": 2,
+      "wounds": 0,
+      "money": 500
+    }
+    ]
+  },
+
+  "_scenario_hint": "Quick combat test for OpenAI provider - corrupted drones attack lone operative in abandoned station"
+}

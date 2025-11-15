@@ -477,21 +477,21 @@ class ScenarioSetup(BaseModel):
     theme: str = Field(
         ...,
         min_length=10,
-        max_length=200,
+        max_length=500,  # Increased from 200 for liberal limits
         description="Scenario theme/hook"
     )
 
     location: str = Field(
         ...,
         min_length=5,
-        max_length=200,
+        max_length=500,  # Increased from 200 for liberal limits
         description="Starting location"
     )
 
     situation: str = Field(
         ...,
         min_length=50,
-        max_length=1200,
+        max_length=2500,  # Increased from 1200 for liberal limits
         description="Opening situation (3-5 sentences)"
     )
 
@@ -512,14 +512,14 @@ class ScenarioSetup(BaseModel):
     success_conditions: str = Field(
         ...,
         min_length=20,
-        max_length=300,
+        max_length=800,  # Increased from 300 for liberal limits
         description="What constitutes victory?"
     )
 
     failure_consequences: str = Field(
         ...,
         min_length=20,
-        max_length=300,
+        max_length=800,  # Increased from 300 for liberal limits
         description="What happens if they fail?"
     )
 

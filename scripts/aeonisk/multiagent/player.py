@@ -138,28 +138,28 @@ class AIPlayerAgent(Agent):
         self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
-        # LLM client - can be injected for replay (MockLLMClient) or created normally
+        # LLM client - DEPRECATED (kept for replay compatibility with MockLLMClient)
+        # Modern code uses llm_provider instead
         if llm_client:
             self.llm_client = llm_client
         else:
-            # Create Anthropic client if not provided
-            import anthropic
-            import os
-            self.llm_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+            self.llm_client = None  # No longer needed - use llm_provider
 
-        # LLM Provider for structured output (Phase 3: Pydantic AI migration)
+        # LLM Provider for structured output (supports all providers: Anthropic, OpenAI, local)
         # Only create if not in replay mode (llm_client injected)
         if not llm_client:
-            from .llm_provider import create_claude_provider
+            from .llm_provider import LLMConfig, create_provider
             try:
-                self.llm_provider = create_claude_provider(
+                provider_config = LLMConfig(
+                    provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     max_tokens=self.llm_config.get('max_tokens', 1000),
                     temperature=self.llm_config.get('temperature', 0.8)
                 )
-                logger.debug(f"Player {self.agent_id}: Structured output provider initialized")
+                self.llm_provider = create_provider(provider_config)
+                logger.debug(f"Player {self.agent_id}: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
-                logger.warning(f"Player {self.agent_id}: Failed to create structured output provider: {e}")
+                logger.warning(f"Player {self.agent_id}: Failed to create LLM provider: {e}")
                 self.llm_provider = None
         else:
             # Replay mode - no structured output

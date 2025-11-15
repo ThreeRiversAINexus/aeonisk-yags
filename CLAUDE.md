@@ -41,6 +41,99 @@ python3 scripts/run_multiagent_session.py config.json --log-level TRACE
 ```
 See `.claude/CUSTOM_LOG_LEVELS.md` for details on custom log levels.
 
+## Multi-Provider LLM Support
+
+The system supports multiple LLM providers with provider-specific optimizations:
+
+### Supported Providers
+
+| Provider | Models | Recommended | Status |
+|----------|--------|-------------|--------|
+| **Anthropic** | Claude Sonnet 4.5, Claude 3.5 Haiku | `claude-sonnet-4-5` | ✅ Primary |
+| **OpenAI** | GPT-5-mini, GPT-4.1, O-series | `gpt-5-mini` | ✅ Production Ready |
+| **Local** | Llama 3.1, Mistral 7B | `llama3.1` | ⚠️  Not Implemented |
+
+### API Keys
+
+**Required environment variables:**
+```bash
+export ANTHROPIC_API_KEY="your-key-here"  # For Claude models
+export OPENAI_API_KEY="your-key-here"     # For GPT models
+```
+
+### Using OpenAI Models
+
+**In session config JSON:**
+```json
+{
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Character Name",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        }
+      }
+    ]
+  }
+}
+```
+
+**Test config:** `scripts/session_configs/session_config_openai_test.json`
+
+### Provider-Specific Optimizations
+
+**Rate Limits (auto-applied):**
+- **Anthropic**: 3 concurrent requests, 0.8s interval (~75 req/min)
+- **OpenAI**: 10 concurrent requests, 0.15s interval (~400 req/min)
+- **Local**: 1 concurrent request, no interval
+
+**Pricing (Standard tier, per 1M tokens):**
+- **Claude Sonnet 4.5**: $3.00 input / $15.00 output
+- **GPT-5-mini**: $0.25 input / $2.00 output (8x cheaper output!)
+- **GPT-4o-mini**: $0.15 input / $0.60 output
+
+**Key Differences:**
+- OpenAI has **10x higher rate limits** than Anthropic
+- GPT-5-mini output tokens are **8x cheaper** than Claude Sonnet 4.5
+- Both use Pydantic AI for structured output (provider-agnostic schemas)
+
+### Switching Providers
+
+To switch an existing session config from Claude to OpenAI:
+1. Change `"provider": "anthropic"` → `"provider": "openai"`
+2. Change `"model": "claude-sonnet-4-5"` → `"model": "gpt-5-mini"`
+3. Set `OPENAI_API_KEY` environment variable
+4. Run session normally - rate limits auto-adjust
+
+**Example:**
+```bash
+# Set API key
+export OPENAI_API_KEY="sk-..."
+
+# Run with OpenAI provider
+python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_openai_test.json
+```
+
+### Testing
+
+```bash
+# Unit tests for OpenAI provider
+python -m pytest tests/unit/test_openai_provider.py -v
+
+# Live API test (requires OPENAI_API_KEY)
+python -m pytest tests/unit/test_openai_provider.py::TestOpenAIProviderLiveAPI -v
+```
+
 ## Development Philosophy
 
 ### Test-Driven Development (TDD) - MANDATORY

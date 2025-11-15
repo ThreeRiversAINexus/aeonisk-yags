@@ -450,7 +450,79 @@ When provided, these constraints **OVERRIDE all other scenario generation instru
 **Required character fields:**
 - `name` - Character name
 - `faction` - Faction affiliation
-- `llm` - LLM provider config (`provider`, `model`, `temperature`)
+- `llm` - LLM provider config (see **LLM Configuration** below)
+
+### LLM Configuration
+
+Each agent (DM and players) requires an LLM configuration block:
+
+```json
+{
+  "llm": {
+    "provider": "openai",           // "anthropic", "openai", or "local"
+    "model": "gpt-5-mini",          // Model name for chosen provider
+    "temperature": 0.7              // 0.0-1.0 (higher = more creative)
+  }
+}
+```
+
+**Supported Providers:**
+
+| Provider | Recommended Model | Pricing (per 1M tokens) | Rate Limit |
+|----------|------------------|-------------------------|------------|
+| `anthropic` | `claude-sonnet-4-5` | $3/$15 (input/output) | ~75 req/min |
+| `openai` | `gpt-5-mini` | $0.25/$2 (input/output) | ~400 req/min |
+| `local` | `llama3.1` | Free | Varies |
+
+**Provider-Specific Models:**
+
+**Anthropic:**
+- `claude-sonnet-4-5` (recommended - balanced quality/cost)
+- `claude-3-5-haiku-20241022` (faster, cheaper)
+- `claude-3-opus-20240229` (highest quality, expensive)
+
+**OpenAI:**
+- `gpt-5-mini` (recommended - best cost/performance)
+- `gpt-5` (highest quality)
+- `gpt-4.1-mini` (GPT-4 family, cheaper)
+- `gpt-4o` (GPT-4 optimized)
+- `o3-mini` (reasoning model)
+
+**Temperature Guidelines:**
+- **DM**: 0.6-0.8 (balanced creativity for storytelling)
+- **Players**: 0.7-0.9 (higher variance for diverse player behavior)
+- **Enemies**: 0.7 (tactical variety)
+
+**Environment Variables Required:**
+```bash
+export ANTHROPIC_API_KEY="your-key"  # For Claude models
+export OPENAI_API_KEY="your-key"     # For OpenAI models
+```
+
+**Example - Mixed Providers:**
+```json
+{
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Character 1",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        }
+      }
+    ]
+  }
+}
+```
 
 **Recommended fields:**
 - `pronouns` - Character pronouns (e.g., "she/her", "they/them")

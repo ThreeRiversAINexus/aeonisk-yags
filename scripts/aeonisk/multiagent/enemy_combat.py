@@ -152,9 +152,11 @@ class EnemyCombatManager:
         self.shared_state = shared_state  # Reference to shared state for logging
 
         # LLM Provider for structured output (Phase 4: Pydantic AI migration)
-        from .llm_provider import create_claude_provider
+        # Default to Anthropic (Claude) for now - will be configurable later
+        from .llm_provider import create_provider
         try:
-            self.llm_provider = create_claude_provider(
+            self.llm_provider = create_provider(
+                provider='anthropic',  # Hardcoded for now, TODO: make configurable
                 model='claude-sonnet-4-5',
                 max_tokens=500,
                 temperature=0.7

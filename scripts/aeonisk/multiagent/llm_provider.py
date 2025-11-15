@@ -77,6 +77,75 @@ class APIRateLimiter:
 # Global rate limiter instance
 _rate_limiter = APIRateLimiter()
 
+# Supported models per provider
+# Used for validation and helpful error messages
+SUPPORTED_MODELS = {
+    'anthropic': {
+        'models': [
+            'claude-sonnet-4-5',
+            'claude-sonnet-4-5-20250929',
+            'claude-3-5-sonnet-20241022',
+            'claude-3-5-haiku-20241022',
+            'claude-3-opus-20240229',
+        ],
+        'recommended': 'claude-sonnet-4-5',
+        'pricing_url': 'https://www.anthropic.com/pricing'
+    },
+    'openai': {
+        'models': [
+            # GPT-5 family (2025+)
+            'gpt-5.1',
+            'gpt-5',
+            'gpt-5-mini',
+            'gpt-5-nano',
+            # GPT-4 family
+            'gpt-4.1',
+            'gpt-4.1-mini',
+            'gpt-4.1-nano',
+            'gpt-4o',
+            'gpt-4o-mini',
+            'gpt-4-turbo-preview',
+            # O-series (reasoning)
+            'o1',
+            'o3',
+            'o3-mini',
+            'o4-mini',
+        ],
+        'recommended': 'gpt-5-mini',
+        'pricing_url': 'https://openai.com/pricing'
+    },
+    'local': {
+        'models': [
+            'llama3.1',
+            'llama3.1:70b',
+            'mistral-7b',
+            'mixtral-8x7b',
+        ],
+        'recommended': 'llama3.1',
+        'pricing_url': 'N/A (local inference)'
+    }
+}
+
+# Provider-specific rate limit presets
+# These are optimized for each provider's rate limits and pricing
+RATE_LIMIT_PRESETS = {
+    'anthropic': {
+        'max_concurrent_requests': 3,      # Conservative for Claude (50 req/min tier limit)
+        'min_request_interval': 0.8,       # ~75 req/min max throughput
+        'reasoning': 'Prevents 500/529 overload errors on Anthropic API'
+    },
+    'openai': {
+        'max_concurrent_requests': 10,     # OpenAI handles higher concurrency
+        'min_request_interval': 0.15,      # ~400 req/min max throughput (well under 500 req/min tier)
+        'reasoning': 'OpenAI has higher rate limits (500 req/min for GPT-4, 10k for GPT-3.5)'
+    },
+    'local': {
+        'max_concurrent_requests': 1,      # Local models typically single-threaded
+        'min_request_interval': 0.0,       # No rate limiting needed
+        'reasoning': 'Local inference - no API rate limits'
+    }
+}
+
 
 @dataclass
 class LLMConfig:
@@ -89,14 +158,14 @@ class LLMConfig:
     language: str = "en"  # For prompt selection
 
     # Retry/backoff configuration
-    max_retries: int = 3  # Number of retry attempts for overloaded/rate limit errors
+    max_retries: int = 6  # Number of retry attempts for overloaded/rate limit/timeout errors (increased from 3)
     base_delay: float = 5.0  # Base delay in seconds for exponential backoff (increased from 2.0)
     max_delay: float = 120.0  # Maximum delay between retries (increased from 60.0)
     jitter: bool = True  # Add randomness to prevent thundering herd
 
     # Rate limiting (global across all agents)
     # Tuned for large multi-agent sessions (4 PCs + 8 enemies + DM = 13 agents max)
-    # Very aggressive to prevent Anthropic API 500 Overloaded errors
+    # Defaults are for Anthropic (conservative), but auto-adjusted based on provider
     use_rate_limiter: bool = True  # Enable global rate limiting
     max_concurrent_requests: int = 3  # Max concurrent API calls across all agents
     min_request_interval: float = 0.8  # Minimum seconds between request starts
@@ -107,6 +176,48 @@ class LLMConfig:
     def __post_init__(self):
         if self.extra_params is None:
             self.extra_params = {}
+
+        # Validate provider
+        if self.provider not in SUPPORTED_MODELS:
+            logger.warning(
+                f"⚠️  Unknown provider '{self.provider}'. "
+                f"Supported providers: {', '.join(SUPPORTED_MODELS.keys())}"
+            )
+
+        # Validate model (warning only, not fatal)
+        if self.provider in SUPPORTED_MODELS:
+            supported = SUPPORTED_MODELS[self.provider]
+            if self.model not in supported['models']:
+                logger.warning(
+                    f"⚠️  Model '{self.model}' not in known models for provider '{self.provider}'.\n"
+                    f"   Supported models: {', '.join(supported['models'][:5])}...\n"
+                    f"   Recommended: {supported['recommended']}\n"
+                    f"   Pricing: {supported['pricing_url']}\n"
+                    f"   Continuing anyway (model may still work if recently released)."
+                )
+
+        # Auto-apply provider-specific rate limits if not explicitly overridden
+        # This only applies if the values match the default (haven't been customized)
+        if self.use_rate_limiter and self.provider in RATE_LIMIT_PRESETS:
+            preset = RATE_LIMIT_PRESETS[self.provider]
+
+            # Only override if using default values (user hasn't customized)
+            default_concurrent = 3
+            default_interval = 0.8
+
+            if self.max_concurrent_requests == default_concurrent:
+                self.max_concurrent_requests = preset['max_concurrent_requests']
+                logger.llm(
+                    f"Applied {self.provider} rate limit preset: "
+                    f"max_concurrent={preset['max_concurrent_requests']}"
+                )
+
+            if self.min_request_interval == default_interval:
+                self.min_request_interval = preset['min_request_interval']
+                logger.llm(
+                    f"Applied {self.provider} rate limit preset: "
+                    f"min_interval={preset['min_request_interval']}s"
+                )
 
 
 @dataclass
@@ -253,7 +364,7 @@ class ClaudeProvider(LLMProvider):
 
     def _is_retryable_error(self, error: Exception) -> bool:
         """
-        Check if an error is retryable (overloaded/rate limit/validation).
+        Check if an error is retryable (overloaded/rate limit/validation/timeout).
 
         Args:
             error: Exception from API call
@@ -267,9 +378,16 @@ class ClaudeProvider(LLMProvider):
             # 529: Overloaded (explicit)
             return error.status_code in [500, 529]
 
-        # Check error message for overloaded indicators
+        # Check error type for connection/timeout errors
+        error_type = type(error).__name__
+        if error_type in ['ConnectTimeout', 'ReadTimeout', 'TimeoutError', 'ConnectionError']:
+            return True
+
+        # Check error message for overloaded/timeout indicators
         error_str = str(error).lower()
         if 'overloaded' in error_str or 'rate limit' in error_str:
+            return True
+        if 'timeout' in error_str or 'connection' in error_str:
             return True
 
         # Check for Pydantic validation errors (allow retries for LLM to self-correct)
@@ -646,9 +764,109 @@ class OpenAIProvider(LLMProvider):
                 "OPENAI_API_KEY not found in config or environment variables"
             )
 
-        # Create client
-        self.client = openai.OpenAI(api_key=api_key)
-        logger.llm(f"OpenAIProvider initialized with model: {config.model}")
+        # Create client with increased timeout for connection issues
+        # Default timeout is 5s which can fail on slow connections
+        # Increase to 30s connect, 60s read, 60s write, 120s total pool
+        from httpx import Timeout
+        self.client = openai.OpenAI(
+            api_key=api_key,
+            timeout=Timeout(connect=30.0, read=60.0, write=60.0, pool=120.0)
+        )
+
+        # Initialize rate limiter if enabled
+        if config.use_rate_limiter:
+            # Schedule rate limiter initialization in event loop
+            # This will be initialized on first use if event loop doesn't exist yet
+            self._rate_limiter_initialized = False
+
+        logger.llm(
+            f"OpenAIProvider initialized: model={config.model}, "
+            f"max_retries={config.max_retries}, rate_limit={config.use_rate_limiter}"
+        )
+
+    def _calculate_backoff_delay(self, attempt: int) -> float:
+        """
+        Calculate exponential backoff delay with optional jitter.
+
+        Args:
+            attempt: Current retry attempt number (0-indexed)
+
+        Returns:
+            Delay in seconds
+        """
+        # Exponential backoff: delay = base_delay * (2 ^ attempt)
+        delay = self.config.base_delay * (2 ** attempt)
+
+        # Cap at max_delay
+        delay = min(delay, self.config.max_delay)
+
+        # Add jitter if enabled (randomize 50-100% of delay)
+        if self.config.jitter:
+            delay = delay * (0.5 + random.random() * 0.5)
+
+        return delay
+
+    def _is_retryable_error(self, error: Exception) -> bool:
+        """
+        Check if an error is retryable (rate limit/server error/validation/timeout).
+
+        OpenAI-specific error codes:
+        - 429: Rate limit exceeded
+        - 500: Internal server error
+        - 503: Service unavailable
+        - 400: Bad request (ONLY for known Pydantic AI bugs like null content)
+
+        Args:
+            error: Exception from API call
+
+        Returns:
+            True if error is retryable
+        """
+        error_str = str(error).lower()
+
+        # Check for OpenAI API errors
+        if hasattr(error, 'status_code'):
+            # 429: Rate limit exceeded
+            # 500: Internal server error
+            # 503: Service unavailable
+            if error.status_code in [429, 500, 503]:
+                return True
+
+            # 400: Bad request - ONLY retry if it's the known Pydantic AI null content bug
+            # This is a Pydantic AI bug where it sends {'role': 'assistant', 'content': null}
+            # after a tool call, which OpenAI rejects
+            if error.status_code == 400:
+                if 'content' in error_str and 'null' in error_str:
+                    logger.warning("🐛 Detected Pydantic AI null content bug, will retry")
+                    return True
+                # Don't retry other 400 errors (they're usually schema/validation issues)
+                return False
+
+        # Check error type for connection/timeout errors
+        error_type = type(error).__name__
+        if error_type in ['ConnectTimeout', 'ReadTimeout', 'TimeoutError', 'ConnectionError']:
+            return True
+
+        # Check error message for rate limit/overload/timeout indicators
+        if 'rate limit' in error_str or 'overloaded' in error_str or 'service unavailable' in error_str:
+            return True
+        if 'timeout' in error_str or 'connection' in error_str:
+            return True
+
+        # Check for Pydantic validation errors (allow retries for LLM to self-correct)
+        if 'validationerror' in error_str or 'validation error' in error_str:
+            return True
+
+        # Check for length limit errors (retry with increased max_tokens)
+        if 'lengthfinishreasonerror' in error_str or 'length limit was reached' in error_str:
+            logger.warning("🔄 Length limit reached, will retry with increased max_tokens")
+            return True
+
+        # Check for pydantic-ai specific retry messages
+        if 'exceeded maximum retries' in error_str:
+            return True
+
+        return False
 
     async def generate(
         self,
@@ -695,6 +913,195 @@ class OpenAIProvider(LLMProvider):
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             raise
+
+    async def generate_structured(
+        self,
+        prompt: str,
+        result_type: type,
+        system_prompt: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+        **kwargs
+    ):
+        """
+        Generate structured output validated against a Pydantic model.
+
+        Uses OpenAI's native Structured Output API directly to avoid Pydantic AI bugs.
+
+        TODO: Switch back to Pydantic AI once null content bug is fixed.
+              See: openai_structured.py module docstring
+
+        Args:
+            prompt: User prompt
+            result_type: Pydantic BaseModel class to validate against
+            system_prompt: Optional system prompt
+            max_tokens: Override default max tokens
+            temperature: Override default temperature (MUST be 1.0 for OpenAI)
+            **kwargs: Additional parameters
+
+        Returns:
+            Validated Pydantic model instance
+
+        Example:
+            ```python
+            from schemas.action_resolution import ActionResolution
+
+            resolution = await provider.generate_structured(
+                prompt="Resolve this action: ...",
+                result_type=ActionResolution,
+                system_prompt="You are a game master...",
+                temperature=1.0  # Required for OpenAI structured output
+            )
+            # resolution is a validated ActionResolution instance
+            print(resolution.narration)
+            print(resolution.effects.void_changes)
+            ```
+        """
+        # Import the native OpenAI implementation
+        from .openai_structured import generate_structured_openai_native
+
+        # Use config defaults if not overridden
+        max_tokens = max_tokens or self.config.max_tokens
+        temperature = temperature or self.config.temperature
+
+        # Enhance system prompt for ActionResolution to emphasize void_changes
+        # (same pattern as ClaudeProvider)
+        final_system_prompt = system_prompt or ""
+        if result_type.__name__ == 'ActionResolution':
+            void_emphasis = """
+
+⚠️ CRITICAL FIELD REQUIREMENT: effects.void_changes
+
+When generating ActionResolution, you MUST populate the `effects.void_changes` field for ANY void-triggering event:
+
+**MANDATORY void_changes scenarios (DO NOT leave empty):**
+- **Ritual failures** (astral arts, void manipulation) → `[VoidChange(character_name="PC Name", amount=1, reason="...")]`
+- **Missing offerings** (ritual without consumed offering) → `[VoidChange(amount=1, reason="missing offering")]`
+- **Missing tools** (ritual without primary tool/focus) → `[VoidChange(amount=1, reason="missing ritual tool")]`
+- **Void exposure** (breaches, corrupted areas) → `[VoidChange(amount=1+, reason="void exposure")]`
+- **Corrupted technology** interaction → `[VoidChange(amount=1, reason="corrupted tech")]`
+- **Cleansing rituals** (success) → `[VoidChange(amount=-2 to -5, reason="purification")]`
+
+**When NOT to populate (empty list is correct):**
+- Proper ritual execution WITH offerings consumed = `void_changes=[]`
+- Regular combat/social/investigation failures (no void involvement) = `void_changes=[]`
+
+**character_name MUST be specific PC name**, NOT "Environmental Void" or abstract targets.
+
+This field is used for ML training and game mechanics - it is NOT optional when void events occur!
+"""
+            final_system_prompt += void_emphasis
+
+        # Initialize rate limiter if needed
+        if self.config.use_rate_limiter and not self._rate_limiter_initialized:
+            await _rate_limiter.initialize(
+                max_concurrent=self.config.max_concurrent_requests,
+                min_request_interval=self.config.min_request_interval
+            )
+            self._rate_limiter_initialized = True
+
+        # Acquire rate limiter slot if enabled
+        if self.config.use_rate_limiter:
+            await _rate_limiter.acquire()
+
+        try:
+            # Retry loop with exponential backoff
+            last_error = None
+            for attempt in range(self.config.max_retries + 1):
+                try:
+                    # Use native OpenAI API (bypasses Pydantic AI null content bug)
+                    output = await generate_structured_openai_native(
+                        client=self.client,
+                        model=self.config.model,
+                        prompt=prompt,
+                        result_type=result_type,
+                        system_prompt=final_system_prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        **kwargs
+                    )
+
+                    # Log successful retry if not first attempt
+                    if attempt > 0:
+                        logger.llm(f"✓ Structured output succeeded after {attempt} retries")
+
+                    # Return validated Pydantic model instance
+                    return output
+
+                except Exception as e:
+                    last_error = e
+
+                    # Enhanced error logging
+                    error_details = {
+                        'exception_type': type(e).__name__,
+                        'error_message': str(e),
+                        'attempt': attempt + 1,
+                        'max_retries': self.config.max_retries + 1,
+                        'model': self.config.model,
+                        'result_type': result_type.__name__,
+                    }
+
+                    # Try to extract error details from OpenAI exception
+                    if hasattr(e, 'response'):
+                        try:
+                            error_details['http_status'] = e.response.status_code
+                            error_details['response_body'] = str(e.response.text)[:1000]
+                        except:
+                            pass
+
+                    # Try to extract underlying error
+                    if hasattr(e, '__cause__') and e.__cause__:
+                        error_details['underlying_error'] = f"{type(e.__cause__).__name__}: {e.__cause__}"
+
+                    # Log detailed error info
+                    logger.error(
+                        f"🔴 STRUCTURED OUTPUT VALIDATION ERROR (attempt {attempt + 1}/{self.config.max_retries + 1}):\n"
+                        f"  Exception: {error_details['exception_type']}\n"
+                        f"  Message: {error_details['error_message']}\n"
+                        f"  Schema: {result_type.__name__}\n"
+                        f"  Model: {self.config.model}\n"
+                        + (f"  HTTP Status: {error_details.get('http_status', 'N/A')}\n" if 'http_status' in error_details else "")
+                        + (f"  Underlying: {error_details.get('underlying_error', 'N/A')}\n" if 'underlying_error' in error_details else "")
+                    )
+
+                    # Check if error is retryable
+                    if not self._is_retryable_error(e):
+                        # Non-retryable error, fail immediately
+                        logger.error(f"❌ Structured output error is NON-RETRYABLE, aborting")
+                        raise
+
+                    # Check if we have retries left
+                    if attempt >= self.config.max_retries:
+                        # Out of retries - log comprehensive failure info
+                        logger.error(
+                            f"❌ STRUCTURED OUTPUT FAILED PERMANENTLY after {attempt + 1} attempts:\n"
+                            f"  Final error: {error_details['exception_type']}: {error_details['error_message']}\n"
+                            f"  Schema: {result_type.__name__}\n"
+                            f"  This indicates the model consistently generates invalid output for this schema.\n"
+                            f"  Check schema definition, prompt clarity, or model capability."
+                        )
+                        raise
+
+                    # Calculate backoff delay
+                    delay = self._calculate_backoff_delay(attempt)
+
+                    # Log retry attempt with enhanced details
+                    logger.warning(
+                        f"⚠️  Structured output failed (attempt {attempt + 1}/{self.config.max_retries + 1}), "
+                        f"retrying in {delay:.2f}s\n"
+                        f"  Error: {error_details['exception_type']}: {error_details['error_message']}"
+                    )
+
+                    # Wait before retry
+                    await asyncio.sleep(delay)
+
+            # Should never reach here, but just in case
+            raise last_error or Exception("Unknown error in retry loop")
+
+        finally:
+            # Always release rate limiter slot
+            if self.config.use_rate_limiter:
+                _rate_limiter.release()
 
     def get_prompt_dir(self) -> str:
         """Get prompt directory name."""

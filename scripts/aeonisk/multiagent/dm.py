@@ -94,19 +94,21 @@ class AIDMAgent(Agent):
         # Story progression flags
         self.needs_story_advancement = False  # Set by session when all clocks complete
 
-        # LLM Provider for structured output (Phase 2: Pydantic AI migration)
+        # LLM Provider for structured output (supports all providers: Anthropic, OpenAI, local)
         # Only create if not in replay mode (llm_client injected)
         if not llm_client:
-            from .llm_provider import create_claude_provider
+            from .llm_provider import LLMConfig, create_provider
             try:
-                self.llm_provider = create_claude_provider(
+                provider_config = LLMConfig(
+                    provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     max_tokens=self.llm_config.get('max_tokens', 2000),
                     temperature=self.llm_config.get('temperature', 0.8)
                 )
-                logger.debug("DM: Structured output provider initialized")
+                self.llm_provider = create_provider(provider_config)
+                logger.debug(f"DM: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
-                logger.warning(f"DM: Failed to create structured output provider: {e}")
+                logger.warning(f"DM: Failed to create LLM provider: {e}")
                 self.llm_provider = None
         else:
             # Replay mode - no structured output
@@ -1076,8 +1078,8 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
             logger.debug("DM: Attempting structured output for scenario generation")
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 1000
-            temperature = 0.9
+            max_tokens = 5000  # Large buffer for complex scenarios with multiple clocks
+            temperature = 1.0  # OpenAI structured output requires 1.0, Claude allows other values
 
             # Enhance system prompt if scenario_hint provided
             if scenario_hint:

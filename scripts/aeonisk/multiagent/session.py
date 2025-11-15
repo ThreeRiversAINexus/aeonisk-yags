@@ -801,84 +801,75 @@ class SelfPlayingSession:
                         self.session_id = session_id
                         self.call_sequence = 0  # Track LLM call ordering for replay
 
-                        # Pre-create client for rate limiting
-                        import anthropic
-                        import os
-                        self.client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                        # Use llm_provider instead of direct Anthropic client
+                        from .llm_provider import LLMConfig, create_provider
+
+                        provider_config = LLMConfig(
+                            provider=llm_config.get('provider', 'anthropic'),
+                            model=llm_config.get('model', 'claude-sonnet-4-5'),
+                            temperature=llm_config.get('temperature', 0.7),
+                            max_tokens=500  # Default for enemy agents
+                        )
+                        self.provider = create_provider(provider_config)
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
-                        provider = self.llm_config.get('provider', 'anthropic')
-                        model = self.llm_config.get('model', 'claude-sonnet-4-5')
+                        from datetime import datetime
 
-                        if provider == 'anthropic':
-                            # Use rate-limited wrapper to prevent API overload
-                            from .llm_provider import call_anthropic_with_retry
-                            from datetime import datetime
+                        # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
+                        response = await self.provider.generate(
+                            prompt=prompt,
+                            max_tokens=max_tokens,
+                            temperature=temperature
+                        )
 
-                            messages = [{"role": "user", "content": prompt}]
+                        response_text = response.text
 
-                            response = await call_anthropic_with_retry(
-                                client=self.client,
-                                model=model,
-                                messages=messages,
-                                max_tokens=max_tokens,
-                                temperature=temperature,
-                                max_retries=3,
-                                base_delay=2.0,
-                                max_delay=120.0,
-                                use_rate_limiter=True
-                            )
+                        # Log LLM call if logger is available
+                        if self.jsonl_logger:
+                            try:
+                                self.jsonl_logger.write_event({
+                                    'event_type': 'llm_call',
+                                    'ts': datetime.utcnow().isoformat(),
+                                    'session': self.session_id or 'unknown',
+                                    'round': None,  # Enemy calls don't have round context here
+                                    'agent_id': self.agent_id,
+                                    'agent_type': 'enemy',
+                                    'call_sequence': self.call_sequence,
+                                    'prompt': [{"role": "user", "content": prompt}],  # Format as messages
+                                    'response': response_text,
+                                    'model': self.llm_config.get('model', 'unknown'),
+                                    'temperature': temperature,
+                                    'tokens': {
+                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
+                                        'output': 0  # LLMResponse doesn't separate input/output for basic generate()
+                                    }
+                                })
+                                self.call_sequence += 1
+                            except Exception as e:
+                                import logging
+                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
 
-                            response_text = response.content[0].text
+                        # Also log to human-readable agent prompt log if enabled
+                        if self.agent_prompt_logger:
+                            try:
+                                self.agent_prompt_logger.log_llm_call(
+                                    agent_id=self.agent_id,
+                                    round_num=None,  # Enemy calls don't have round context
+                                    call_sequence=self.call_sequence - 1,  # Already incremented above
+                                    prompt=prompt,  # Full prompt text
+                                    response=response_text,
+                                    model=self.llm_config.get('model', 'unknown'),
+                                    temperature=temperature,
+                                    tokens={
+                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
+                                        'output': 0
+                                    }
+                                )
+                            except Exception as e:
+                                import logging
+                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
-                            # Log LLM call if logger is available
-                            if self.jsonl_logger:
-                                try:
-                                    self.jsonl_logger.write_event({
-                                        'event_type': 'llm_call',
-                                        'ts': datetime.utcnow().isoformat(),
-                                        'session': self.session_id or 'unknown',
-                                        'round': None,  # Enemy calls don't have round context here
-                                        'agent_id': self.agent_id,
-                                        'agent_type': 'enemy',
-                                        'call_sequence': self.call_sequence,
-                                        'prompt': messages,
-                                        'response': response_text,
-                                        'model': model,
-                                        'temperature': temperature,
-                                        'tokens': {
-                                            'input': response.usage.input_tokens,
-                                            'output': response.usage.output_tokens
-                                        }
-                                    })
-                                    self.call_sequence += 1
-                                except Exception as e:
-                                    import logging
-                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
-
-                            # Also log to human-readable agent prompt log if enabled
-                            if self.agent_prompt_logger:
-                                try:
-                                    self.agent_prompt_logger.log_llm_call(
-                                        agent_id=self.agent_id,
-                                        round_num=None,  # Enemy calls don't have round context
-                                        call_sequence=self.call_sequence - 1,  # Already incremented above
-                                        prompt=prompt,  # Full prompt text
-                                        response=response_text,
-                                        model=model,
-                                        temperature=temperature,
-                                        tokens={
-                                            'input': response.usage.input_tokens,
-                                            'output': response.usage.output_tokens
-                                        }
-                                    )
-                                except Exception as e:
-                                    import logging
-                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
-
-                            return {"content": response_text}
-                        else:
-                            raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
+                        return {"content": response_text}
 
                 # Create per-enemy LLM clients for proper logging
                 llm_client = DMLLMClient(
@@ -2177,8 +2168,16 @@ class SelfPlayingSession:
         debriefs = []
         for player in player_agents:
             try:
-                import anthropic
-                client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+                # Use player's configured LLM provider instead of hardcoded Anthropic
+                from .llm_provider import LLMConfig, create_provider
+
+                provider_config = LLMConfig(
+                    provider=player.llm_config.get('provider', 'anthropic'),
+                    model=player.llm_config.get('model', 'claude-sonnet-4-5'),
+                    temperature=0.8,
+                    max_tokens=250
+                )
+                provider = create_provider(provider_config)
 
                 # Get scenario situation from player's current_scenario
                 scenario_situation = "Mission completed"
@@ -2250,15 +2249,14 @@ Provide a brief (2-3 sentence) debrief statement in character voice:
 
 Keep it conversational and in character. This is a dialogue, not a report."""
 
-                response = await asyncio.to_thread(
-                    client.messages.create,
-                    model=player.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                # Use llm_provider's generate method (works for all providers)
+                response = await provider.generate(
+                    prompt=debrief_prompt,
                     max_tokens=250,
-                    temperature=0.8,
-                    messages=[{"role": "user", "content": debrief_prompt}]
+                    temperature=0.8
                 )
 
-                debrief_text = response.content[0].text.strip()
+                debrief_text = response.text.strip()
 
                 # Add death marker for dead players
                 if is_dead:
