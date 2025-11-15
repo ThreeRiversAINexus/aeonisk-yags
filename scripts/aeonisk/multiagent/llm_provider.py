@@ -970,9 +970,13 @@ class OpenAIProvider(LLMProvider):
         max_tokens = max_tokens or self.config.max_tokens
         temperature = temperature or self.config.temperature
 
-        # Enhance system prompt for ActionResolution to emphasize void_changes
-        # (same pattern as ClaudeProvider)
+        # Enhance system prompt for OpenAI models
         final_system_prompt = system_prompt or ""
+
+        # Add conciseness instruction for all OpenAI structured outputs
+        conciseness_note = "\n\n**IMPORTANT**: Be concise in your narration. Aim for 2-4 sentences maximum to avoid token limits."
+        final_system_prompt += conciseness_note
+
         if result_type.__name__ == 'ActionResolution':
             void_emphasis = """
 
@@ -1082,6 +1086,16 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         + (f"  HTTP Status: {error_details.get('http_status', 'N/A')}\n" if 'http_status' in error_details else "")
                         + (f"  Underlying: {error_details.get('underlying_error', 'N/A')}\n" if 'underlying_error' in error_details else "")
                     )
+
+                    # Special handling for length errors - retry with more tokens
+                    if "finish_reason" in str(e) and "length" in str(e):
+                        if max_tokens < 8000:  # Cap at 8000 tokens
+                            new_max_tokens = min(max_tokens + 2000, 8000)
+                            logger.warning(
+                                f"⚠️  Hit token limit ({max_tokens}), retrying with {new_max_tokens} tokens"
+                            )
+                            max_tokens = new_max_tokens
+                            continue  # Retry immediately with higher limit
 
                     # Check if error is retryable
                     if not self._is_retryable_error(e):
