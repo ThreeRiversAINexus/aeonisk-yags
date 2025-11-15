@@ -1305,7 +1305,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 prompt=prompt,
                 result_type=PlayerAction,
                 system_prompt=f"You are {self.character_state.name}, a player character in Aeonisk YAGS.",
-                max_tokens=self.llm_config.get('max_tokens', 2000),  # Increased for complex PlayerAction schemas
+                max_tokens=self.llm_config.get('max_tokens', 3000),  # Increased for OpenAI's verbose output + complex schema
                 temperature=self.llm_config.get('temperature', 0.8)
             )
 
