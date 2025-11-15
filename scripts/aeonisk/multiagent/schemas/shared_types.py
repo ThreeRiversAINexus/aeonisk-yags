@@ -185,17 +185,25 @@ class Condition(BaseModel):
     - If specified: Condition applies to the target (e.g., enemy you intimidated)
     - For multi-target actions: Create multiple Condition entries, one per target
 
+    PROTECTION_AMOUNT (Optional - for barriers/shields):
+    - If specified: Condition acts as damage-absorbing barrier
+    - Value = damage absorption capacity (depletes as damage is blocked)
+    - When protection_amount reaches 0, barrier is removed
+    - Typically used with penalty=0 (barriers don't modify rolls, they absorb damage)
+
     Examples:
     - Condition(name="Stunned", penalty=-3, duration=2, description="Cannot act next round, -3 to all rolls")
     - Condition(name="Inspired", penalty=2, duration=3, description="+2 to next attack")
     - Condition(name="Wavering", target="tgt_abc1", penalty=-2, duration=1, description="Hesitant after intimidation")
+    - Condition(name="Astral Barrier", target="tgt_7a3f", penalty=0, duration=2, description="Blocks 10 damage", protection_amount=10)
     - Multi-target: [Condition(target="tgt_abc1", ...), Condition(target="tgt_def2", ...), Condition(target="tgt_ghi3", ...)]
     """
-    name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired)")
-    penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only")
+    name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired, Astral Barrier)")
+    penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only or protection barrier")
     duration: int = Field(default=1, ge=1, description="Rounds this condition lasts")
     description: str = Field(..., min_length=5, description="What this condition does")
     target: Optional[str] = Field(default=None, description="Who receives the condition. If omitted, applies to actor. For multi-target actions, create multiple Condition entries.")
+    protection_amount: Optional[int] = Field(default=None, ge=0, description="Damage absorption capacity for barriers/shields. If present, this condition blocks incoming damage up to this amount. Depletes as damage is absorbed. Use with penalty=0.")
 
 
 class DamageEffect(BaseModel):
