@@ -1417,12 +1417,12 @@ class SelfPlayingSession:
 
                 if enemy and enemy.is_active:
                     # Convert to NPC with "prisoner" disposition
-                    # NPCs use same LLM provider as DM
+                    # NPCs use same LLM provider as enemies (if available)
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition="prisoner",
                         current_round=mechanics.current_round if mechanics else 0,
-                        llm_provider=self.dm.llm_provider if self.dm else None
+                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
                     )
 
                     # Add to shared state
@@ -1629,12 +1629,12 @@ class SelfPlayingSession:
                                                                      EnemyResolution.NEUTRALIZED,
                                                                      EnemyResolution.SUBDUED]:
                                     # Enemy becomes NPC
-                                    # NPCs use same LLM provider as DM
+                                    # NPCs use same LLM provider as enemies (if available)
                                     npc = deescalate_enemy_to_npc(
                                         enemy=enemy,
                                         disposition=enemy_conversion.resulting_disposition or "prisoner",
                                         current_round=mechanics.current_round if mechanics else 0,
-                                        llm_provider=self.dm.llm_provider if self.dm else None
+                                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
                                     )
 
                                     # Add to shared state
