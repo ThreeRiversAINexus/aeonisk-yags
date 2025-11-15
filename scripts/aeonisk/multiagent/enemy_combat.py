@@ -913,7 +913,11 @@ class EnemyCombatManager:
             }
 
         # Find weapon
-        weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        if weapon_name:
+            weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        else:
+            weapon = None
+
         if not weapon:
             weapon = enemy.weapons[0] if enemy.weapons else None
 
@@ -1195,7 +1199,11 @@ class EnemyCombatManager:
             }
 
         # Find weapon
-        weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        if weapon_name:
+            weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        else:
+            weapon = None
+
         if not weapon:
             weapon = enemy.weapons[0] if enemy.weapons else None
 
