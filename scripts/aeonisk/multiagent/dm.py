@@ -5420,7 +5420,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = self.llm_config.get('max_tokens', 2000)
+            max_tokens = self.llm_config.get('max_tokens', 4000)  # Increased for complex ActionResolution schemas
             temperature = self.llm_config.get('temperature', 0.8)
 
             # Get current round for logging
