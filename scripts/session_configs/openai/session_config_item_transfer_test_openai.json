@@ -1,0 +1,140 @@
+{
+  "session_name": "item_transfer_test (OpenAI)",
+  "max_turns": 3,
+  "party_size": 2,
+  "scenario": {
+    "theme": "Resource Sharing",
+    "location": "Safe House (Freeborn Settlement)",
+    "situation": "You and your companion are in a safe room preparing for a dangerous void purification ritual. You've agreed to pool your resources - Ash is handing over ritual components (Incense and Crystals) to Kress, while Kress is giving energy currency (Drip) to Ash. This is a simple resource exchange between trusted allies - hand over what you agreed to share, acknowledge receipt, then prepare for the ritual.",
+    "void_level": 2,
+    "_scenario_hint": "This is a simple resource pooling scenario. Players should transfer items and currency to each other. No combat, no vendors, just transfers between PCs.",
+    "_design_notes": "Tests item transfer system. Both characters at Near-PC range. Ash should transfer items to Kress, Kress should transfer currency to Ash, then possibly combined transfers."
+  },
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Ash Vex",
+        "faction": "Freeborn",
+        "pronouns": "they/them",
+        "attributes": {
+          "strength": 2,
+          "agility": 3,
+          "endurance": 3,
+          "perception": 4,
+          "intelligence": 4,
+          "empathy": 3,
+          "willpower": 3,
+          "charisma": 3,
+          "size": 10
+        },
+        "skills": {
+          "Magick Theory": 4,
+          "Attunement": 3,
+          "Charm": 2
+        },
+        "void": 2,
+        "soulcredit": 5,
+        "max_hp": 26,
+        "current_hp": 26,
+        "bonds": [
+          "Trust Kress with dangerous void work"
+        ],
+        "goals": [
+          "Hand over 2 Incense sticks and 1 Crystal to Kress for the ritual",
+          "Pool ritual components with your trusted companion"
+        ],
+        "inventory": {
+          "Incense": 4,
+          "Crystals": 3,
+          "Blood": 1
+        },
+        "energy_purse": {
+          "spark": 2,
+          "grain": 1,
+          "drip": 3,
+          "breath": 0
+        },
+        "equipped_weapon": {
+          "name": "Pistol",
+          "damage_type": "wound",
+          "damage_dice": "2d6"
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 7
+        }
+      },
+      {
+        "name": "Kress",
+        "faction": "Freeborn",
+        "pronouns": "he/him",
+        "attributes": {
+          "strength": 3,
+          "agility": 2,
+          "endurance": 3,
+          "perception": 4,
+          "intelligence": 4,
+          "empathy": 2,
+          "willpower": 3,
+          "charisma": 2,
+          "size": 10
+        },
+        "skills": {
+          "Attunement": 4,
+          "Magick Theory": 3,
+          "Medicine": 2
+        },
+        "void": 3,
+        "soulcredit": 4,
+        "max_hp": 30,
+        "current_hp": 30,
+        "bonds": [
+          "Rely on Ash's ritual expertise"
+        ],
+        "goals": [
+          "Give 5 Drip talismans to Ash to help fund the ritual",
+          "Pool energy currency with your trusted companion"
+        ],
+        "inventory": {
+          "Incense": 1,
+          "Crystals": 0
+        },
+        "energy_purse": {
+          "spark": 8,
+          "grain": 5,
+          "drip": 12,
+          "breath": 3
+        },
+        "equipped_weapon": {
+          "name": "Pistol",
+          "damage_type": "wound",
+          "damage_dice": "2d6"
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 6
+        }
+      }
+    ]
+  },
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "free_targeting_mode": false
+}

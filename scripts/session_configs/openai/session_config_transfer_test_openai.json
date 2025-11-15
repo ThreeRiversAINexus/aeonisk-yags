@@ -1,0 +1,133 @@
+{
+  "session_name": "transfer_test_simple (OpenAI)",
+  "max_turns": 2,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "scenario": {
+    "theme": "Resource Pooling",
+    "location": "Field Camp (Nimbus Frontier)",
+    "situation": "Ash has excess energy currency but no immediate need. Kress needs currency to purchase a critical ritual component from nearby vendor. Both characters are at the camp (same range band). This tests the transfer system - Ash should transfer energy to Kress using action_type=transfer.",
+    "void_level": 3,
+    "active_npcs": [],
+    "environmental_factors": [
+      "Campfire",
+      "Supply crates",
+      "Makeshift shelter"
+    ],
+    "active_vendors": []
+  },
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Ash Vex",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 7,
+          "bondPreference": "collaborative",
+          "ritualConservatism": 4
+        },
+        "stats": {
+          "attributes": {
+            "Body": 2,
+            "Agility": 3,
+            "Mind": 4,
+            "Empathy": 3
+          },
+          "skills": {
+            "Magick Theory": 4,
+            "Attunement": 3,
+            "Charm": 2
+          }
+        },
+        "health": {
+          "max_hp": 25,
+          "current_hp": 25,
+          "soak": 5,
+          "wounds": 0
+        },
+        "void": 3,
+        "soulcredit_score": 0,
+        "energy_purse": {
+          "spark": 8,
+          "grain": 5,
+          "drip": 12,
+          "breath": 2
+        },
+        "inventory": {
+          "incense": 2,
+          "crystals": 1
+        },
+        "background": "Tech-mage researcher with collaborative mindset. Willing to share resources with allies."
+      },
+      {
+        "name": "Kress",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 6,
+          "bondPreference": "collaborative",
+          "ritualConservatism": 5
+        },
+        "stats": {
+          "attributes": {
+            "Body": 3,
+            "Agility": 2,
+            "Mind": 4,
+            "Empathy": 2
+          },
+          "skills": {
+            "Attunement": 4,
+            "Magick Theory": 3,
+            "Medicine": 2
+          }
+        },
+        "health": {
+          "max_hp": 30,
+          "current_hp": 30,
+          "soak": 6,
+          "wounds": 0
+        },
+        "void": 3,
+        "soulcredit_score": 0,
+        "energy_purse": {
+          "spark": 1,
+          "grain": 2,
+          "drip": 2,
+          "breath": 0
+        },
+        "inventory": {
+          "blood_offering": 1,
+          "crystals": 2
+        },
+        "background": "Ritual specialist needing more energy to acquire ritual components. Grateful for ally support."
+      }
+    ]
+  },
+  "_design_notes": [
+    "Purpose: Test energy currency transfer system (action_type=transfer)",
+    "Scenario: Ash has excess currency (12 Drip, 8 Spark), Kress is low (2 Drip, 1 Spark)",
+    "Expected: Ash transfers energy to Kress, DM narrates physical handoff + Soulcredit interpretation",
+    "Validation: Pre-checks currency availability and range (both at camp = same range)",
+    "Max 2 turns: Round 1 = transfer, Round 2 = observe results/use transferred funds"
+  ]
+}

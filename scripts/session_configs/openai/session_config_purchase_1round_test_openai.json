@@ -1,0 +1,84 @@
+{
+  "session_name": "purchase_1round_verification (OpenAI)",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "scenario": {
+    "theme": "Vending Machine Purchase Test",
+    "location": "Nexus Supply Depot",
+    "situation": "Single player at vending machine. Make ONE purchase to test the system. Use action_type='purchase' with vendor_id and item_id from the vendor list.",
+    "void_level": 1,
+    "active_npcs": [],
+    "environmental_factors": [
+      "Automated terminal"
+    ]
+  },
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_test_final",
+      "name": "Final Test Vendor",
+      "faction": "Neutral",
+      "vendor_type": "vending_machine",
+      "greeting": "Select item and insert currency.",
+      "inventory": [
+        {
+          "item_id": "itm_test_final",
+          "name": "Test Med Kit",
+          "description": "Restores 10 HP",
+          "price_drip": 3
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Test Purchaser",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Purchase the Test Med Kit using vendor_id='vnd_test_final' and item_id='itm_test_final'"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Systems": 3
+        },
+        "starting_currency": {
+          "breath": 20,
+          "drip": 10,
+          "grain": 2,
+          "spark": 1
+        },
+        "starting_inventory": {}
+      }
+    ]
+  },
+  "notes": "FINAL VERIFICATION - 1 round real LLM test. Verifies: (1) Vendor IDs in prompts, (2) LLM provides vendor_id/item_id, (3) Purchase executes, (4) Currency deducted, (5) Item added. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

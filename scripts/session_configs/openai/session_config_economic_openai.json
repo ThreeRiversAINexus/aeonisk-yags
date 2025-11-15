@@ -1,0 +1,165 @@
+{
+  "session_name": "economic_scenario_test (OpenAI)",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "scenario": {
+    "theme": "Supply Run at Vending Terminal",
+    "location": "Nexus Outpost - Supply Depot (Automated Terminal)",
+    "situation": "Kress and Mira are at an automated Nexus Supply Depot vending machine. They need to restock supplies before heading into the Wastes. The vending machine is MECHANICAL - no negotiation, no credit, exact currency only. This is a test of the purchase system using action_type='purchase' with vendor_id and item_id. Players should make multiple purchases to test the system.",
+    "void_level": 3,
+    "active_npcs": [],
+    "environmental_factors": [
+      "Automated vending terminal",
+      "Sterile supply depot",
+      "No staff present"
+    ]
+  },
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_nexus_shop",
+      "name": "Nexus Supply Depot",
+      "faction": "Sovereign Nexus",
+      "vendor_type": "vending_machine",
+      "greeting": "Authorized personnel only. Select your requisition.",
+      "inventory": [
+        {
+          "name": "Health Kit",
+          "description": "Restores 10 HP",
+          "price_drip": 5
+        },
+        {
+          "name": "Energy Cell",
+          "description": "Restores 20 energy",
+          "price_drip": 3,
+          "price_breath": 8
+        },
+        {
+          "name": "Spark Cell",
+          "description": "High-power energy cell",
+          "price_spark": 1
+        },
+        {
+          "name": "Combat Stim",
+          "description": "+2 to combat rolls for 3 rounds",
+          "price_spark": 2
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "ACG Auditor Kress Valen",
+        "pronouns": "he/him",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "goals": [
+          "Purchase supplies from the vending machine for the upcoming mission",
+          "Test the mechanical purchase system using vendor_id and item_id",
+          "Manage currency efficiently across multiple purchases"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4
+        },
+        "skills": {
+          "Debt Law": 5,
+          "Corporate Influence": 5,
+          "Investigation": 4,
+          "Charm": 3,
+          "Guile": 3,
+          "Attunement": 2
+        },
+        "starting_currency": {
+          "breath": 50,
+          "drip": 15,
+          "grain": 5,
+          "spark": 3
+        },
+        "starting_inventory": {
+          "blood_sample": 2,
+          "herbs": 3,
+          "incense": 1,
+          "blood_offering": 0
+        }
+      },
+      {
+        "name": "Freeborn Trader Mira Seln",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Stock up on supplies using the automated terminal",
+          "Test making purchases with different currency types",
+          "Coordinate with Kress to pool resources if needed"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 4
+        },
+        "skills": {
+          "Charm": 5,
+          "Guile": 4,
+          "Awareness": 4,
+          "Investigation": 3,
+          "Pilot": 3,
+          "Attunement": 3
+        },
+        "starting_currency": {
+          "breath": 50,
+          "drip": 15,
+          "grain": 5,
+          "spark": 3
+        },
+        "starting_inventory": {
+          "blood_sample": 1,
+          "herbs": 4,
+          "raw_crystal": 1,
+          "incense": 0,
+          "crystals": 1
+        }
+      }
+    ]
+  },
+  "notes": "VENDING MACHINE PURCHASE TEST - Deterministic purchase system using action_type='purchase' with vendor_id and item_id. Players have limited currency (15 Drip, 3 Spark each) to force interesting decisions. Vending machine = NO negotiation, NO credit, mechanical validation only. Tests: (1) Config scenario includes persistent vendors, (2) No duplicate vendors, (3) vendor_id/item_id preserved through action flow, (4) ActionType.PURCHASE accepted by validator, (5) Pre-validation purchase system. REGRESSION TEST for sessions 340bd80e, dcbc3d6a, c0048faf, a8ed67c7. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}
