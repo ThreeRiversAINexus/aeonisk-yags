@@ -127,7 +127,17 @@ class NPCAction(BaseModel):
     """
 
     action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "pass"]
-    reason: str = Field(..., min_length=10, max_length=500, description="Why NPC chose this action")
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description="""Why NPC chose this action.
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES, NOT target IDs.
+        - ✅ CORRECT: "Fleeing from Ash who is approaching with weapon drawn"
+        - ❌ WRONG: "Fleeing from tgt_3c5d who is approaching..."
+        """
+    )
     target: Optional[str] = Field(None, description="Target agent ID for dialogue/assist/attack")
 
 

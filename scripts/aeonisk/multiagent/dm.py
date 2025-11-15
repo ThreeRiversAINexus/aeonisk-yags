@@ -3001,7 +3001,9 @@ enemy_spawns=[
 
                     # Update de-escalation instruction based on mode
                     if target_id_mapper and target_id_mapper.enabled:
-                        enemy_status_context += "\n\n⚠️  For structured output: Use target IDs (e.g., tgt_7a3f) in damage/conditions. For deescalations, use agent_id (e.g., enemy_grunt_adbb6db0)"
+                        enemy_status_context += "\n\n⚠️  MECHANICAL FIELDS: Use target IDs (e.g., tgt_7a3f) in damage/conditions fields."
+                        enemy_status_context += "\n⚠️  NARRATIVE TEXT: Use character NAMES (e.g., 'Security Guard') in narration, NOT target IDs."
+                        enemy_status_context += "\n⚠️  For deescalations, use agent_id (e.g., enemy_grunt_adbb6db0), NOT target IDs."
                     else:
                         enemy_status_context += "\n\n⚠️  If enemies surrender/calm down, use `deescalations` field with their exact agent_id (e.g., enemy_grunt_adbb6db0)"
 
@@ -3022,6 +3024,35 @@ enemy_spawns=[
             if npc_lines:
                 npc_status_context = "\n\n**Active NPCs:**\n" + "\n".join(npc_lines)
                 npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id\n⚠️  Check NPC personalities for escalation triggers (paranoia, low thresholds, etc.)"
+
+        # Build player health status context (for injury/casualty awareness)
+        player_status_context = ""
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            player_agents = self.shared_state.get_all_players()
+            if player_agents:
+                player_lines = []
+                for player in player_agents:
+                    health_pct = (player.health / player.max_health * 100) if player.max_health > 0 else 0
+
+                    # Status indicator
+                    if health_pct <= 20:
+                        status_flag = " ⚠️ CRITICAL"
+                    elif health_pct <= 50:
+                        status_flag = " (Bloodied)"
+                    elif health_pct <= 75:
+                        status_flag = " (Wounded)"
+                    else:
+                        status_flag = ""
+
+                    # Wound information
+                    wounds = getattr(player, 'wounds', 0)
+                    wounds_text = f"{wounds} wounds" if wounds > 0 else "no wounds"
+
+                    player_lines.append(f"  - {player.character_state.name}: {player.health}/{player.max_health} HP ({health_pct:.0f}%), {wounds_text}{status_flag}")
+
+                player_status_context = "\n\n**Party Health Status:**\n" + "\n".join(player_lines)
+                player_status_context += "\n\n⚠️  IMPORTANT: If players took significant damage this round, MENTION their injuries in your narration!"
+                player_status_context += "\n⚠️  Players near death (≤20% HP) or critically wounded (≥4 wounds) should be described struggling/desperate."
 
         # Build fled NPCs context (for narrative consistency)
         fled_npcs_context = ""
@@ -3125,6 +3156,7 @@ story_advancement=StoryAdvancement(
 
 **What they tried to do:**
 {outcomes_text}
+{player_status_context}
 {clock_state_text}
 {filled_clocks_text}
 {expired_clocks_text}
@@ -3138,6 +3170,77 @@ story_advancement=StoryAdvancement(
 All entity spawns, conversions, and lifecycle changes were ALREADY HANDLED in the Entity Lifecycle Phase (before synthesis).
 The RoundSynthesis schema NO LONGER has enemy_spawns, enemy_conversions, npc_spawns, or escalations fields.
 Your narration should describe these changes narratively (they're shown in the context above), but you don't trigger them mechanically.
+
+**⚠️ CLOCKS ARE DIFFERENT - YOU CAN STILL SPAWN THEM:**
+
+Unlike entities (handled in Entity Lifecycle Phase), **spawning NEW clocks is YOUR responsibility** in synthesis!
+
+**Use ScenePivot.new_clocks for minor complications (same location):**
+- Failed actions trigger countermeasures → "Security Alert" clock spawns (max_ticks=6)
+- Successful loud actions attract attention → "ACG Investigation" clock spawns (max_ticks=8)
+- Filled clocks create new pressures → "Alarm" fills → "Reinforcements En Route" spawns (max_ticks=4)
+- Scene feels static (2-3 rounds, no new clocks) → Add complication clock
+
+**Use StoryAdvancement.new_clocks for major transitions (new location/chapter):**
+- Story beats complete → New situation with 2-4 fresh clocks
+- Location changes via StoryAdvancement → Clocks for new threats/objectives at new location
+- Critical filled clock triggers chapter shift → New clocks for escalated stakes
+
+**When to spawn clocks:**
+✅ Every 2-3 rounds if no new clocks recently spawned (prevents static scenarios)
+✅ Filled clocks create cascading consequences ("Breach" fills → "Evacuation" + "Containment Failure" spawn)
+✅ Player successes/failures open new complications (steal data → "Corporate Trackers" spawns)
+✅ Environmental changes (ritual backfires → "Void Manifestation" spawns)
+❌ Don't spawn if you just spawned 2+ clocks last round (pacing, avoid overwhelming players)
+
+**Example - Failed Stealth (same location):**
+```python
+scene_pivot=ScenePivot(
+    should_pivot=False,  # Still in same room
+    new_clocks=[
+        NewClock(
+            name="Facility Lockdown",
+            max_ticks=6,
+            description="Security protocols activate after intruder detected",
+            advance_meaning="lockdown systems engage",
+            regress_meaning="lockdown systems bypassed",
+            filled_consequence="All exits sealed, armed response team deployed"
+        )
+    ]
+)
+```
+
+**Example - Filled Clock Cascade:**
+```python
+# If "Security Alarm" clock just filled:
+scene_pivot=ScenePivot(
+    should_pivot=False,
+    new_clocks=[
+        NewClock(
+            name="ACG Tactical Response",
+            max_ticks=5,
+            description="Elite security forces converge on your position",
+            filled_consequence="Heavy combat squad arrives, lethal force authorized"
+        )
+    ]
+)
+```
+
+**Example - Story Advancement (new location):**
+```python
+story_advancement=StoryAdvancement(
+    should_advance=True,
+    location="Reactor Core Access",
+    situation="Your sabotage has brought you deep into the facility's heart...",
+    new_clocks=[
+        NewClock(name="Meltdown Sequence", max_ticks=10, description="Reactor critical, 10 minutes until catastrophic failure"),
+        NewClock(name="Escape Route", max_ticks=6, description="Find working transit tunnel before blast doors seal"),
+        NewClock(name="Corporate Pursuit", max_ticks=8, description="ACG forces tracking your movements")
+    ]
+)
+```
+
+**Remember:** Clocks drive dynamic tension! Spawn them liberally when justified by narrative consequences.
 
 **Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
 
@@ -5827,12 +5930,23 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                     for tid in sorted(all_target_ids):  # Sort for consistent ordering
                         info = target_id_mapper.get_combatant_info(tid)
                         if info:
-                            # Format: [tgt_xxxx] Name (type)
-                            combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
+                            # Show health info for players (for injury-aware narration)
+                            if info['type'] == 'player' and 'agent_id' in info:
+                                player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
+                                if player_agent and hasattr(player_agent, 'health'):
+                                    health_text = f"{player_agent.health}/{player_agent.max_health} HP"
+                                    wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({health_text}{wounds_text})")
+                                else:
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} (player)")
+                            else:
+                                # Format for enemies/NPCs: [tgt_xxxx] Name (type)
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
 
                     if combatant_lines:
-                        combatant_list = "\n\n**VALID TARGET IDS (use EXACT IDs in damage/conditions):**\n" + "\n".join(combatant_lines)
-                        combatant_list += "\n⚠️  IMPORTANT: When applying damage or conditions, use target IDs exactly as shown above (e.g., tgt_7a3f). Do NOT invent new target IDs!"
+                        combatant_list = "\n\n**VALID TARGET IDS (for mechanical fields ONLY):**\n" + "\n".join(combatant_lines)
+                        combatant_list += "\n\n⚠️  MECHANICAL FIELDS: Use target IDs exactly as shown (e.g., tgt_7a3f) in damage/conditions. Do NOT invent new target IDs!"
+                        combatant_list += "\n⚠️  NARRATIVE TEXT: Use character NAMES (e.g., 'Security Guard') in narration, NOT target IDs."
 
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(

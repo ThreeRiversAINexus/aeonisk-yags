@@ -246,7 +246,13 @@ class ActionResolution(BaseModel):
         ...,
         min_length=200,
         max_length=3000,  # Increased from 2000 to allow verbose social/ritual scenes
-        description="DM's vivid narrative description of what happened (200-3000 chars)"
+        description="""DM's vivid narrative description of what happened (200-3000 chars).
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.
+        - ✅ CORRECT: "Your shot hits the security guard, spinning them sideways..."
+        - ❌ WRONG: "Your shot hits tgt_7a3f, spinning them sideways..."
+
+        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions.target, etc.)."""
     )
 
     # Success determination

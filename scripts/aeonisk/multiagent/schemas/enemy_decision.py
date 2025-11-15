@@ -94,13 +94,24 @@ class EnemyDecision(BaseModel):
         ...,
         min_length=20,
         max_length=500,
-        description="Why you chose this action (target priority, threat assessment, coordination)"
+        description="""Why you chose this action (target priority, threat assessment, coordination).
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES in tactical reasoning, NOT target IDs.
+        - ✅ CORRECT: "Focus fire on Ash since they're wounded and the biggest threat"
+        - ❌ WRONG: "Focus fire on tgt_3c5d since they're wounded"
+
+        Target IDs (tgt_xxxx) are ONLY for mechanical fields (target, defence_token)."""
     )
 
     shared_intel: Optional[str] = Field(
         default=None,
         max_length=300,
-        description="Intel to share with allied enemies (optional)"
+        description="""Intel to share with allied enemies (optional).
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES, NOT target IDs.
+        - ✅ CORRECT: "Echo has grenade, recommend spreading out"
+        - ❌ WRONG: "tgt_3c5d has grenade, recommend spreading out"
+        """
     )
 
     # Panic/morale state

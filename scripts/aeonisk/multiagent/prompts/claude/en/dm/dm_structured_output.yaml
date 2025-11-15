@@ -59,6 +59,13 @@ content: |-
 
   ## 🎯 TARGET ID USAGE (CRITICAL FOR FREE TARGETING MODE)
 
+  **SEPARATION OF CONCERNS:**
+  - **Narrative fields** (narration, tactical_reasoning) → Use CHARACTER NAMES
+  - **Mechanical fields** (target, defence_token, damage.target) → Use TARGET IDs (tgt_xxxx)
+
+  ✅ **CORRECT narrative**: "Ash fires at the security guard, who dives for cover..."
+  ❌ **WRONG narrative**: "tgt_3c5d fires at tgt_7a3f, who dives for cover..."
+
   **When you see a "VALID TARGET IDS" list in the prompt:**
 
   ❌ **NEVER INVENT TARGET IDS** - Don't create `tgt_grd1`, `tgt_sec1`, etc. from enemy names
@@ -82,12 +89,13 @@ content: |-
   **Example 1: Combat Action**
   ```python
   ActionResolution(
-      narration="Your bullet punches through their shoulder guard, spinning them sideways. Blood sprays across corroded metal as they stagger back.",
+      narration="Your bullet punches through the security guard's shoulder, spinning them sideways. Blood sprays across corroded metal as they stagger back.",
+      # ☝️ NOTICE: Narration uses "security guard" (character name/description), NOT "tgt_7a3f"
       success_tier=SuccessTier.GOOD,
       margin=12,
       effects=MechanicalEffects(
           damage=DamageEffect(
-              target="tgt_7a3f",  # ✅ COPIED from [tgt_7a3f] in combatant list - NOT invented!
+              target="tgt_7a3f",  # ✅ Target ID ONLY in mechanical fields
               base_damage=15,
               soak=7,
               dealt=8,
@@ -99,7 +107,7 @@ content: |-
                   penalty=-2,
                   duration=1,
                   description="next attack at -2",
-                  target="tgt_7a3f"  # ✅ Same target ID for condition
+                  target="tgt_7a3f"  # ✅ Target ID in mechanical field
               )
           ],
           soulcredit_changes=[

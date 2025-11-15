@@ -188,7 +188,9 @@ sections:
     - ❌ WRONG: "None" when PCs exist (you MUST watch someone!)
 
     **4. TACTICAL_REASONING - Must explain your decision (20-500 chars)**
+    - ⚠️ USE CHARACTER NAMES in reasoning, NOT target IDs
     - ✅ CORRECT: "Targeting Echo (low health, 15 HP) with rifle. Watching Sable for defence to prevent flanking. Claiming High Ground for +2 ranged."
+    - ❌ WRONG: "Targeting tgt_3c5d (low health, 15 HP) with rifle..." (don't use target IDs in narrative text!)
     - ❌ WRONG: "Attacking" (too vague - explain WHY!)
 
     ## 📊 STRUCTURED OUTPUT EXAMPLES
