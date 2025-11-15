@@ -245,8 +245,8 @@ class ActionResolution(BaseModel):
     narration: str = Field(
         ...,
         min_length=200,
-        max_length=2000,
-        description="DM's vivid narrative description of what happened (200-2000 chars)"
+        max_length=3000,  # Increased from 2000 to allow verbose social/ritual scenes
+        description="DM's vivid narrative description of what happened (200-3000 chars)"
     )
 
     # Success determination

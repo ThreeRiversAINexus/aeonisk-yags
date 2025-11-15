@@ -540,25 +540,69 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                 except Exception as e:
                     last_error = e
 
+                    # Enhanced error logging for Pydantic AI validation failures
+                    error_details = {
+                        'exception_type': type(e).__name__,
+                        'error_message': str(e),
+                        'attempt': attempt + 1,
+                        'max_retries': self.config.max_retries + 1,
+                        'model': self.config.model,
+                        'result_type': result_type.__name__,
+                    }
+
+                    # Try to extract Pydantic validation details if available
+                    if hasattr(e, '__cause__') and e.__cause__:
+                        error_details['underlying_error'] = f"{type(e.__cause__).__name__}: {e.__cause__}"
+
+                    # Try to extract raw model output if available
+                    # UnexpectedModelBehavior has a 'body' attribute with the raw response
+                    if hasattr(e, 'body') and e.body:
+                        error_details['raw_model_response'] = e.body[:2000]  # Truncate to 2000 chars
+                        logger.error(f"📋 Raw model response that failed validation:\n{e.body[:1000]}")
+                    elif hasattr(e, 'message') and e.message:
+                        error_details['pydantic_ai_message'] = e.message[:500]
+
+                    # Try to extract raw model output from args as fallback
+                    if hasattr(e, 'args') and len(e.args) > 0:
+                        error_details['raw_error_args'] = str(e.args[0])[:500]  # Truncate to 500 chars
+
+                    # Log detailed error info
+                    logger.error(
+                        f"🔴 STRUCTURED OUTPUT VALIDATION ERROR (attempt {attempt + 1}/{self.config.max_retries + 1}):\n"
+                        f"  Exception: {error_details['exception_type']}\n"
+                        f"  Message: {error_details['error_message']}\n"
+                        f"  Schema: {result_type.__name__}\n"
+                        f"  Model: {self.config.model}\n"
+                        + (f"  Underlying: {error_details.get('underlying_error', 'N/A')}\n" if 'underlying_error' in error_details else "")
+                        + (f"  Raw response available: YES ({len(error_details.get('raw_model_response', ''))} chars)\n" if 'raw_model_response' in error_details else "")
+                    )
+
                     # Check if error is retryable
                     if not self._is_retryable_error(e):
                         # Non-retryable error, fail immediately
-                        logger.error(f"Structured output error (non-retryable): {e}")
+                        logger.error(f"❌ Structured output error is NON-RETRYABLE, aborting")
                         raise
 
                     # Check if we have retries left
                     if attempt >= self.config.max_retries:
-                        # Out of retries
-                        logger.error(f"Structured output error after {attempt} retries: {e}")
+                        # Out of retries - log comprehensive failure info
+                        logger.error(
+                            f"❌ STRUCTURED OUTPUT FAILED PERMANENTLY after {attempt + 1} attempts:\n"
+                            f"  Final error: {error_details['exception_type']}: {error_details['error_message']}\n"
+                            f"  Schema: {result_type.__name__}\n"
+                            f"  This indicates the model consistently generates invalid output for this schema.\n"
+                            f"  Check schema definition, prompt clarity, or model capability."
+                        )
                         raise
 
                     # Calculate backoff delay
                     delay = self._calculate_backoff_delay(attempt)
 
-                    # Log retry attempt
+                    # Log retry attempt with enhanced details
                     logger.warning(
-                        f"Structured output failed (attempt {attempt + 1}/{self.config.max_retries + 1}), "
-                        f"retrying in {delay:.2f}s: {e}"
+                        f"⚠️  Structured output failed (attempt {attempt + 1}/{self.config.max_retries + 1}), "
+                        f"retrying in {delay:.2f}s\n"
+                        f"  Error: {error_details['exception_type']}: {error_details['error_message']}"
                     )
 
                     # Wait before retry

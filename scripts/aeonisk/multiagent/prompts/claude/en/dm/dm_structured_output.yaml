@@ -11,7 +11,7 @@ content: |-
 
   ```python
   ActionResolution(
-      narration: str,        # 200-2000 chars - FREEFORM creative storytelling
+      narration: str,        # TARGET: 800-1500 chars (MAX: 3000) - FREEFORM creative storytelling
       success_tier: SuccessTier,  # CRITICAL_FAILURE → EXCEPTIONAL
       margin: int,           # Success/failure margin
       effects: MechanicalEffects {  # ⚠️ STRUCTURE ALL MECHANICS HERE ⚠️
@@ -199,9 +199,14 @@ content: |-
 
   ## ✅ BEST PRACTICES
 
-  1. **Narration = Creative Storytelling** (freeform, vivid, atmospheric)
-  2. **Effects = Structured Mechanics** (explicit fields, no guessing)
-  3. **Always Populate Relevant Fields** (omitting fields triggers fallback parsing - bad for ML!)
-  4. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)
+  1. **Narration Length: Target 800-1500 characters**
+     - Complex scenes can use up to 2000 chars
+     - HARD LIMIT: 3000 chars (validation will FAIL if exceeded)
+     - **TIP:** Aim for 1000 chars to be safe - quality over quantity!
+
+  2. **Narration = Creative Storytelling** (freeform, vivid, atmospheric)
+  3. **Effects = Structured Mechanics** (explicit fields, no guessing)
+  4. **Always Populate Relevant Fields** (omitting fields triggers fallback parsing - bad for ML!)
+  5. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)
 
   **CRITICAL:** If you skip required fields (damage, void_changes, soulcredit_changes), fallback systems generate inferior data from keyword detection. Always use structured fields!

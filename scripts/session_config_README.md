@@ -351,25 +351,53 @@ Forces a specific combat template from the DM's scenario list.
 
 ### `_scenario_hint` (String, Optional)
 
-Provides guidance to the DM for scenario generation (not a strict requirement).
+**🛑 BINDING CONSTRAINTS** for DM scenario generation with **automatic validation enforcement**.
 
-**Example:**
+When provided, these constraints **OVERRIDE all other scenario generation instructions** and are validated post-generation. If validation fails, scenario generation automatically retries (up to 3 attempts).
+
+**What gets validated:**
+- `void_level` - Must match exactly if specified (e.g., "void_level 6" → scenario.void_level == 6)
+- Prohibited elements - "NO SPAWN_ENEMY" → zero enemies in scenario
+- Required locations - "Terminus Outpost" → location must contain keywords "terminus" and "outpost"
+
+**Example (test scenario - mechanical constraints):**
 ```json
 {
   "agents": {
     "dm": {
-      "_scenario_hint": "Generate a three-way battle between Tempest, Nexus, and Pantheon factions fighting over a void artifact. Start with enemies already spawned from all three factions."
+      "_scenario_hint": "Pure PvP scenario - NO SPAWN_ENEMY, NO NPCs, just two PCs competing for single objective. Absolutely zero enemies or bystanders."
+    }
+  }
+}
+```
+
+**Example (ML training scenario - detailed blueprint):**
+```json
+{
+  "agents": {
+    "dm": {
+      "_scenario_hint": "Terminus Outpost (void_level 6) - mysterious void-tainted plague spreading through mining station workers. 12 sick NPCs need stabilization, limited medical supplies. Competing player goals: Healer wants to save everyone, Enforcer wants quarantine, Researcher wants to study contagion. Clock pressure: illness spreading, supply depletion, evacuation deadline."
     }
   }
 }
 ```
 
 **Use cases:**
-- Complex multi-faction scenarios
-- Specific narrative setups
-- Test scenarios requiring particular conditions
+- **Test scenarios** - Enforce specific mechanical setups (PvP, IFF, no enemies)
+- **ML training scenarios** - Detailed blueprints with void_level, NPCs, clocks, moral dilemmas
+- **Prohibited elements** - Prevent specific mechanics (NO SPAWN_ENEMY, NO combat, etc.)
+- **Location requirements** - Force specific canonical locations
 
-**Behavior:** DM receives this as context but may interpret creatively based on other config options (`force_combat`, `force_vendor_gate`, etc.).
+**Validation behavior:**
+- If hint provided: DM generates scenario → validates constraints → retries if violated (max 3 attempts)
+- If validation fails 3 times: Raises RuntimeError with violation details
+- Violations logged as warnings for debugging
+
+**Constraint format tips:**
+- Be explicit: "void_level 6" not "high void"
+- Use keywords: "NO SPAWN_ENEMY" triggers enemy prohibition check
+- Specify locations: "Terminus Outpost" triggers location keyword validation
+- Length: 50-900 characters (short for tests, detailed for ML training)
 
 ---
 

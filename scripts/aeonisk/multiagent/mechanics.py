@@ -1201,6 +1201,75 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_pydantic_validation_failure(
+        self,
+        round_num: int,
+        agent_type: str,
+        agent_id: str,
+        schema_name: str,
+        exception_type: str,
+        error_message: str,
+        attempt_number: int,
+        max_attempts: int,
+        raw_model_response: Optional[str] = None,
+        underlying_error: Optional[str] = None,
+        action_context: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Log detailed Pydantic AI validation failure for debugging.
+
+        Captures comprehensive information about why structured output failed,
+        including the raw model response that couldn't be validated.
+
+        Args:
+            round_num: Current round number
+            agent_type: 'dm', 'player', or 'enemy'
+            agent_id: Specific agent identifier
+            schema_name: Pydantic schema that failed (e.g., 'ActionResolution')
+            exception_type: Exception class name (e.g., 'UnexpectedModelBehavior')
+            error_message: Full error message
+            attempt_number: Which retry attempt this was (1-based)
+            max_attempts: Maximum retries configured
+            raw_model_response: Raw JSON/text from model (if available)
+            underlying_error: Underlying Pydantic validation error (if available)
+            action_context: Optional context about what was being resolved
+
+        Example:
+            ```python
+            logger.log_pydantic_validation_failure(
+                round_num=5,
+                agent_type='dm',
+                agent_id='dm_narrator',
+                schema_name='ActionResolution',
+                exception_type='UnexpectedModelBehavior',
+                error_message='Exceeded maximum retries (1) for output validation',
+                attempt_number=3,
+                max_attempts=4,
+                raw_model_response='{"narration": "...", "success_tier": "INVALID_VALUE"}',
+                underlying_error='ValidationError: Invalid enum value',
+                action_context={'action_type': 'social', 'player_id': 'player_01'}
+            )
+            ```
+        """
+        event = {
+            "event_type": "pydantic_validation_failure",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_type": agent_type,
+            "agent_id": agent_id,
+            "schema_name": schema_name,
+            "exception_type": exception_type,
+            "error_message": error_message[:1000],  # Truncate very long errors
+            "attempt_number": attempt_number,
+            "max_attempts": max_attempts,
+            "is_final_attempt": attempt_number >= max_attempts,
+            "raw_model_response": raw_model_response[:2000] if raw_model_response else None,  # Truncate
+            "underlying_error": underlying_error[:500] if underlying_error else None,
+            "action_context": action_context
+        }
+        self._write_event(event)
+
 
 @dataclass
 class Condition:

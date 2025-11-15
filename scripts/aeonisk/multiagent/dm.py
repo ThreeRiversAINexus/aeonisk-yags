@@ -278,12 +278,26 @@ class AIDMAgent(Agent):
 
             scenario_constraints = ""
             if scenario_hint:
+                # ENHANCED: Put constraints at ABSOLUTE TOP with stronger language
                 scenario_constraints = f"""
-⚠️⚠️⚠️ **CRITICAL SCENARIO CONSTRAINTS** ⚠️⚠️⚠️
+═══════════════════════════════════════════════════════════════
+🛑 BINDING SCENARIO CONSTRAINTS - VALIDATION ENFORCED 🛑
+═══════════════════════════════════════════════════════════════
+
 {scenario_hint}
 
-YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions below.
-⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+CRITICAL REQUIREMENTS:
+- Your generated scenario will be VALIDATED against these constraints
+- If validation fails, generation will RETRY (up to 3 attempts)
+- Pay special attention to:
+  * void_level (must match exactly if specified)
+  * Prohibited elements (NO SPAWN_ENEMY means ZERO enemies)
+  * Required locations (use exact names/keywords from constraints)
+  * Required NPCs (include all mentioned NPCs)
+
+These constraints OVERRIDE ALL other instructions below. Violation = regeneration.
+
+═══════════════════════════════════════════════════════════════
 
 """
 
@@ -351,8 +365,11 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 - Good: ACG hires party to recover debt contracts, Pantheon investigates void corruption
 - Bad: ACG hires Sovereign Nexus to steal from their own faction"""
 
-                # Try structured output first
-                scenario_setup = await self._generate_scenario_structured(scenario_prompt)
+                # Try structured output first (pass scenario_hint for validation)
+                scenario_setup = await self._generate_scenario_structured(
+                    scenario_prompt,
+                    scenario_hint=scenario_hint
+                )
 
                 if scenario_setup:
                     # Successfully generated structured output
@@ -982,14 +999,72 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         if initial_npcs_config:
             print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
 
+    def _validate_scenario_against_hint(self, scenario: 'ScenarioSetup', hint: str) -> tuple[bool, list[str]]:
+        """
+        Validate generated scenario against scenario_hint constraints.
+
+        Returns:
+            (is_valid, violations) where violations is list of error messages
+        """
+        import re
+
+        violations = []
+        hint_lower = hint.lower()
+
+        # Extract and validate void_level requirement
+        if 'void_level' in hint_lower or 'void level' in hint_lower:
+            match = re.search(r'void[_ ]level\s*(\d+)', hint_lower)
+            if match:
+                required_void_level = int(match.group(1))
+                if scenario.void_level != required_void_level:
+                    violations.append(
+                        f"void_level mismatch: hint requires {required_void_level}, "
+                        f"got {scenario.void_level}"
+                    )
+
+        # Validate prohibited elements - NO enemies
+        if 'no spawn_enemy' in hint_lower or 'no enemies' in hint_lower:
+            if scenario.initial_enemies:
+                violations.append(
+                    f"Prohibited element 'enemies': scenario has {len(scenario.initial_enemies)} enemies "
+                    f"but hint says NO enemies"
+                )
+
+        # Validate location keywords
+        location_lower = scenario.location.lower()
+
+        # Check for specific location requirements
+        location_keywords = []
+        if 'mining station' in hint_lower:
+            location_keywords.append('mining')
+        if 'terminus outpost' in hint_lower:
+            location_keywords.extend(['terminus', 'outpost'])
+        if 'resonance spire' in hint_lower:
+            location_keywords.extend(['resonance', 'spire'])
+        if 'tempest' in hint_lower and 'facility' in hint_lower:
+            location_keywords.extend(['tempest'])
+        if 'arcane genetics' in hint_lower or 'arcgen' in hint_lower:
+            location_keywords.append('arcgen')
+
+        for keyword in location_keywords:
+            if keyword not in location_lower:
+                violations.append(
+                    f"Required location keyword '{keyword}' not found in location: {scenario.location}"
+                )
+
+        return (len(violations) == 0, violations)
+
     async def _generate_scenario_structured(
         self,
         scenario_prompt: str,
-        system_prompt: str = "You are the DM for Aeonisk YAGS, creating an engaging scenario."
+        system_prompt: str = "You are the DM for Aeonisk YAGS, creating an engaging scenario.",
+        scenario_hint: str = ""
     ) -> Optional['ScenarioSetup']:
         """
         Generate scenario using Pydantic AI structured output (ScenarioSetup schema).
         Returns ScenarioSetup if successful, or None to fall back to legacy text parsing.
+
+        If scenario_hint is provided, validates generated scenario and retries up to 3 times on violation.
         """
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
             logger.debug("DM: No llm_provider available for scenario generation, will use legacy method")
@@ -1004,14 +1079,47 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             max_tokens = 1000
             temperature = 0.9
 
-            # Generate structured scenario using Pydantic AI
-            scenario: ScenarioSetup = await self.llm_provider.generate_structured(
-                prompt=scenario_prompt,
-                result_type=ScenarioSetup,
-                system_prompt=system_prompt,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
+            # Enhance system prompt if scenario_hint provided
+            if scenario_hint:
+                system_prompt += (
+                    " Your scenario MUST match the BINDING SCENARIO CONSTRAINTS in the prompt. "
+                    "Violations will cause regeneration. Pay special attention to void_level (must match exactly), "
+                    "prohibited elements (NO SPAWN_ENEMY means zero enemies), and required locations/NPCs."
+                )
+
+            # Retry loop for validation
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                # Generate structured scenario using Pydantic AI
+                scenario: ScenarioSetup = await self.llm_provider.generate_structured(
+                    prompt=scenario_prompt,
+                    result_type=ScenarioSetup,
+                    system_prompt=system_prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+
+                # Validate scenario against hint if provided
+                if scenario_hint:
+                    is_valid, violations = self._validate_scenario_against_hint(scenario, scenario_hint)
+                    if not is_valid:
+                        logger.warning(
+                            f"DM: Scenario validation failed (attempt {attempt + 1}/{max_attempts}): "
+                            f"{', '.join(violations)}"
+                        )
+                        if attempt < max_attempts - 1:
+                            logger.info("DM: Retrying scenario generation...")
+                            continue
+                        else:
+                            raise RuntimeError(
+                                f"Scenario generation failed validation after {max_attempts} attempts. "
+                                f"Violations: {', '.join(violations)}"
+                            )
+                    else:
+                        logger.info("DM: Scenario passed validation checks")
+
+                # Scenario is valid or no hint provided - break retry loop
+                break
 
             logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
 
@@ -5533,7 +5641,75 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 raise TypeError(error_msg)
 
         except Exception as e:
-            logger.error(f"DM: Structured output failed: {e}")
+            # Enhanced error logging with detailed diagnostics
+            error_type = type(e).__name__
+            error_message = str(e)
+
+            # Try to extract raw model response from UnexpectedModelBehavior
+            raw_response = None
+            if hasattr(e, 'body') and e.body:
+                raw_response = e.body
+
+            # Try to extract underlying error
+            underlying_error = None
+            if hasattr(e, '__cause__') and e.__cause__:
+                underlying_error = f"{type(e.__cause__).__name__}: {str(e.__cause__)}"
+
+            logger.error(
+                f"❌ DM: Structured output failed:\n"
+                f"  Exception: {error_type}\n"
+                f"  Message: {error_message}\n"
+                f"  Action type: {action_type}\n"
+                f"  Player: {player_id}\n"
+                + (f"  Raw response: {len(raw_response)} chars\n" if raw_response else "")
+                + (f"  Underlying: {underlying_error}\n" if underlying_error else "")
+            )
+
+            # Log failure to JSONL for ML analysis
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    current_round = mechanics.current_round if hasattr(mechanics, 'current_round') else 0
+
+                    # Extract validation error details
+                    validation_errors = []
+                    if "validation" in error_message.lower():
+                        validation_errors.append(f"{error_type}: {error_message[:200]}")
+
+                    # Extract underlying cause if available
+                    if underlying_error:
+                        validation_errors.append(f"Cause: {underlying_error[:200]}")
+
+                    # Log to structured_output_metrics (general overview)
+                    mechanics.jsonl_logger.log_structured_output_metrics(
+                        round_num=current_round,
+                        agent_type='dm',
+                        agent_id=self.agent_id,
+                        success=False,  # Failed to generate structured output
+                        fallback_triggered=False,  # No fallback attempted (strict mode)
+                        validation_warnings=validation_errors if validation_errors else [f"{error_type}: {error_message[:200]}"],
+                        completeness_score=0.0  # Failed completely
+                    )
+
+                    # ALSO log to pydantic_validation_failure (detailed debugging)
+                    mechanics.jsonl_logger.log_pydantic_validation_failure(
+                        round_num=current_round,
+                        agent_type='dm',
+                        agent_id=self.agent_id,
+                        schema_name='ActionResolution',
+                        exception_type=error_type,
+                        error_message=error_message,
+                        attempt_number=4,  # We don't know the exact attempt here, using max
+                        max_attempts=4,  # ClaudeProvider default
+                        raw_model_response=raw_response,
+                        underlying_error=underlying_error,
+                        action_context={
+                            'action_type': action_type,
+                            'player_id': player_id,
+                            'description': description[:200] if description else None
+                        }
+                    )
+
             raise RuntimeError(f"Structured output generation failed: {e}") from e
 
     async def _build_resolution_prompt(
