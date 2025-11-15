@@ -130,6 +130,31 @@ conversion_check_prompt: |
 
   ## Decision Guidelines
 
+  ### Enemy Departures vs Enemy Conversions
+
+  **⚠️ CRITICAL: Two ways to remove enemies from scene:**
+
+  1. **enemy_departures** (SIMPLE REMOVAL):
+     - Use when: Enemy just **leaves** (no story transformation)
+     - Examples: Guards finish inspection and move on, patrol continues route, security stands down after authorization check
+     - Simpler: Just list agent_ids, no conversion details needed
+     - **This is the PREFERRED method for "stand down" scenarios**
+
+  2. **enemy_conversions** (NARRATIVE TRANSFORMATION):
+     - Use when: Enemy **changes state** before leaving
+     - Examples: Surrender (→ prisoner NPC), flee in terror (FLED), knocked out (SUBDUED)
+     - More complex: Requires resolution type + reason (+ NPC fields if staying)
+
+  **Decision matrix:**
+  | Scenario | Use |
+  |----------|-----|
+  | Guards check credentials, stand down, leave | **enemy_departures** (simple removal) |
+  | Raider surrenders, becomes prisoner | **enemy_conversions** (CONVINCED → prisoner NPC) |
+  | Thug flees in terror after seeing ally killed | **enemy_conversions** (FLED) |
+  | Patrol moves on after finding nothing suspicious | **enemy_departures** (simple removal) |
+  | Enforcer knocked unconscious | **enemy_conversions** (SUBDUED → unconscious NPC) |
+  | Security responds to alarm, situation resolved, they leave | **enemy_departures** (simple removal) |
+
   ### Enemy Conversions (Enemy → NPC or Removal)
 
   **When enemies should convert:**
@@ -508,7 +533,8 @@ conversion_check_prompt: |
   ## Output Format
 
   Return a ConversionDecisions object with:
-  - `enemy_conversions`: List of enemies to convert/remove (empty list if none)
+  - `enemy_conversions`: List of enemies to convert (FLED/CONVINCED/SUBDUED/etc., empty list if none)
+  - `enemy_departures`: List of enemy agent_ids to remove (simple departures, empty list if none)
   - `escalations`: List of NPCs to convert to enemies (empty list if none)
   - `npc_spawns`: List of new NPCs to spawn (empty list if none)
   - `enemy_spawns`: List of new enemies to spawn (empty list if none)
@@ -519,6 +545,9 @@ conversion_check_prompt: |
 
   **Example with enemy spawns:**
   "Failed stealth checks triggered facility alarm. Spawning 3 Tempest Corp enforcers as reinforcements. No conversions - existing enemies still combat-capable."
+
+  **Example with enemy departures:**
+  "Cathedral Security confirmed authorization (Kael's diplomacy margin +18), stood down and departed. No conversions needed - guards simply left after verification."
 
   ## Resolution Summary for Reference
 

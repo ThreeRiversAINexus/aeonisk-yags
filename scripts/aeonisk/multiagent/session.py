@@ -1548,12 +1548,14 @@ class SelfPlayingSession:
                     print(f"   - NPC escalations: {len(conversion_decisions.escalations)}")
                     print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
                     print(f"   - NPC departures: {len(conversion_decisions.npc_departures)}")
+                    print(f"   - Enemy departures: {len(conversion_decisions.enemy_departures)}")
                     print(f"   - Enemy spawns: {len(conversion_decisions.enemy_spawns)}")
                     print(f"   - Reasoning: {conversion_decisions.reasoning}")
 
                     logger.info(f"Conversion check complete: {len(conversion_decisions.enemy_conversions)} conversions, "
                                f"{len(conversion_decisions.escalations)} escalations, {len(conversion_decisions.npc_spawns)} NPC spawns, "
-                               f"{len(conversion_decisions.npc_departures)} NPC departures, {len(conversion_decisions.enemy_spawns)} enemy spawns")
+                               f"{len(conversion_decisions.npc_departures)} NPC departures, {len(conversion_decisions.enemy_departures)} enemy departures, "
+                               f"{len(conversion_decisions.enemy_spawns)} enemy spawns")
 
                     # Step 4: Process enemy spawns from conversion check immediately (before synthesis)
                     if conversion_decisions.enemy_spawns and self.enemy_combat:
@@ -1777,6 +1779,38 @@ class SelfPlayingSession:
                             else:
                                 logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
 
+                    # Process enemy departures from conversion check (aggressive removal)
+                    if conversion_decisions.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
+                        for enemy_identifier in conversion_decisions.enemy_departures:
+                            # Find enemy to get name before removal
+                            enemy = next((e for e in self.enemy_combat.enemy_agents
+                                        if e.agent_id == enemy_identifier), None)
+                            enemy_name = enemy.name if enemy else enemy_identifier
+
+                            if enemy and enemy.is_active:
+                                # Deactivate enemy (mark as despawned)
+                                enemy.is_active = False
+                                enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                                # Track departure in lifecycle result
+                                entity_lifecycle_result.enemies_departed.append(enemy_identifier)
+
+                                # Log enemy departure to JSONL (reuse enemy_defeat event with special reason)
+                                if mechanics and mechanics.jsonl_logger:
+                                    mechanics.jsonl_logger.log_enemy_defeat(
+                                        round_num=mechanics.current_round,
+                                        enemy_id=enemy_identifier,
+                                        enemy_name=enemy_name,
+                                        enemy_faction=enemy.faction if hasattr(enemy, 'faction') else 'Unknown',
+                                        resolution='departed',  # Special resolution for departures
+                                        cause='entity_lifecycle_removal'
+                                    )
+
+                                logger.info(f"⚔️  Enemy departed (entity lifecycle): {enemy_identifier}")
+                                print(f"\n⚔️  Enemy departed: {enemy_name}")
+                            else:
+                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+
                 except Exception as e:
                     logger.warning(f"Conversion check failed: {type(e).__name__}: {e}")
                     print(f"\n⚠️  Conversion check failed: {type(e).__name__}: {e}")
@@ -1790,6 +1824,7 @@ class SelfPlayingSession:
                         escalations=[],
                         npc_spawns=[],
                         npc_departures=[],
+                        enemy_departures=[],
                         enemy_spawns=[],
                         reasoning="Conversion check failed, proceeding without conversions"
                     )
@@ -1802,7 +1837,8 @@ class SelfPlayingSession:
             entity_lifecycle_result.npcs_spawned or
             entity_lifecycle_result.enemies_converted or
             entity_lifecycle_result.npcs_escalated or
-            entity_lifecycle_result.npcs_departed):
+            entity_lifecycle_result.npcs_departed or
+            entity_lifecycle_result.enemies_departed):
 
             if mechanics and mechanics.jsonl_logger:
                 lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
@@ -3650,6 +3686,7 @@ NO conversions/morale checks needed (scene just started).
 
                     print(f"\n✅ New scene entities:")
                     print(f"   - NPC departures: {len(post_advancement_decisions.npc_departures)}")
+                    print(f"   - Enemy departures: {len(post_advancement_decisions.enemy_departures)}")
                     print(f"   - Enemy spawns: {len(post_advancement_decisions.enemy_spawns)}")
                     print(f"   - NPC spawns: {len(post_advancement_decisions.npc_spawns)}")
 
@@ -3662,6 +3699,21 @@ NO conversions/morale checks needed (scene just started).
                                 print(f"\n✓ NPC doesn't follow to new scene: {npc_identifier}")
                             else:
                                 logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found")
+
+                    # Process enemy departures (remove enemies that don't belong in new scene)
+                    if post_advancement_decisions.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
+                        for enemy_identifier in post_advancement_decisions.enemy_departures:
+                            enemy = next((e for e in self.enemy_combat.enemy_agents
+                                        if e.agent_id == enemy_identifier), None)
+                            enemy_name = enemy.name if enemy else enemy_identifier
+
+                            if enemy and enemy.is_active:
+                                enemy.is_active = False
+                                enemy.despawned_round = mechanics.current_round if mechanics else 0
+                                logger.info(f"⚔️  Enemy departed (post-advancement): {enemy_identifier}")
+                                print(f"\n✓ Enemy doesn't follow to new scene: {enemy_name}")
+                            else:
+                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
 
                     # Process enemy spawns for new scene
                     if post_advancement_decisions.enemy_spawns and self.enemy_combat:
@@ -3773,6 +3825,21 @@ NO conversions/morale checks needed (scene just started).
                         print(f"   NPC departed: {npc_identifier}")
                     else:
                         logger.warning(f"Failed to remove NPC '{npc_identifier}' during scene pivot - not found in npc_agents")
+
+            # Remove departing enemies
+            if pivot.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
+                for enemy_identifier in pivot.enemy_departures:
+                    enemy = next((e for e in self.enemy_combat.enemy_agents
+                                if e.agent_id == enemy_identifier), None)
+                    enemy_name = enemy.name if enemy else enemy_identifier
+
+                    if enemy and enemy.is_active:
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+                        logger.info(f"⚔️  Enemy departed (scene pivot): {enemy_identifier}")
+                        print(f"   Enemy departed: {enemy_name}")
+                    else:
+                        logger.warning(f"Failed to remove enemy '{enemy_identifier}' during scene pivot - not found or already inactive")
 
             print(f"\n🔄 SCENE PIVOT")
             print(f"   New Area: {pivot.new_room}")

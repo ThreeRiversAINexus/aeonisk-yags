@@ -164,6 +164,11 @@ class ScenePivot(BaseModel):
         description="NPC agent_ids or names to remove from scenario (e.g., ['npc_civilian_1']). NPCs can leave during minor scene changes (flee from alarm, dismissed, walk away)."
     )
 
+    enemy_departures: List[str] = Field(
+        default_factory=list,
+        description="Enemy agent_ids to remove from scenario (e.g., ['enemy_grunt_abc123']). Enemies can leave during scene pivots (patrol moves on, guards finish inspection, pursuers lost during escape)."
+    )
+
     @field_validator('new_room', 'situation_change')
     @classmethod
     def validate_pivot_fields(cls, v: Optional[str], info) -> Optional[str]:
@@ -852,6 +857,27 @@ Examples: ["npc_civilian_a3f2", "npc_guide_5b21"]
 Use empty list [] if no NPCs should depart."""
     )
 
+    enemy_departures: List[str] = Field(
+        default_factory=list,
+        description="""Enemy agent_ids to remove from scene (fled, stood down, left).
+
+⚠️ BE AGGRESSIVE about removing enemies who are no longer relevant! ⚠️
+
+Auto-remove enemies when:
+- Enemy declared "Flee" or "Retreat" action → IMMEDIATELY remove (add agent_id here)
+- Enemies "stood down" after diplomacy → Security leaves after confirming authorization
+- Scene changed and enemies don't follow → Patrol stays in previous area
+- Temporary threat resolved → Guards finish inspection and move on
+- Combat ended, enemies withdraw → Rival gang retreats after objective complete
+
+Examples: ["enemy_grunt_4bc22537", "enemy_raider_a8f3"]
+Use empty list [] if no enemies should depart.
+
+⚠️ CRITICAL: This is for enemies who LEAVE THE SCENE entirely.
+- Use enemy_departures for: Fled, stood down, moved on, stopped pursuing
+- Use enemy_conversions for: Surrender (→ prisoner NPC), subdued (→ unconscious NPC)"""
+    )
+
     reasoning: str = Field(
         ...,
         min_length=20,
@@ -903,6 +929,9 @@ class EntityLifecycleResult:
     # NPC departures processed (agent_ids removed from scene)
     npcs_departed: List[str] = field(default_factory=list)
 
+    # Enemy departures processed (agent_ids removed from scene)
+    enemies_departed: List[str] = field(default_factory=list)
+
     # Summary for synthesis context
     def to_synthesis_context(self) -> str:
         """Generate human-readable summary for DM synthesis prompt."""
@@ -931,6 +960,9 @@ class EntityLifecycleResult:
         if self.npcs_departed:
             parts.append(f"{len(self.npcs_departed)} NPC(s) departed")
 
+        if self.enemies_departed:
+            parts.append(f"{len(self.enemies_departed)} enemy(ies) departed")
+
         return "Entity Lifecycle: " + ("; ".join(parts) if parts else "No changes")
 
     def to_jsonl_dict(self, round_num: int) -> Dict[str, Any]:
@@ -944,5 +976,6 @@ class EntityLifecycleResult:
             'enemies_converted': self.enemies_converted,
             'npcs_escalated': self.npcs_escalated,
             'npcs_departed': self.npcs_departed,
+            'enemies_departed': self.enemies_departed,
             'conversion_reasoning': self.conversion_decisions.reasoning if self.conversion_decisions else None
         }
