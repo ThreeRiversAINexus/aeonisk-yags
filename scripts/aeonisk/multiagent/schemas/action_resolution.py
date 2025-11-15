@@ -28,6 +28,9 @@ from .vendor_interaction import (
     CraftingAttempt,
     CurrencyTransfer,
 )
+from .action_effects import (
+    HealingEffect,
+)
 
 
 class InventoryChange(BaseModel):
@@ -74,9 +77,14 @@ class MechanicalEffects(BaseModel):
     - Failed ritual → void_changes=[VoidChange(amount=1, ...)] AND soulcredit_changes=[...]
     """
     # Combat
-    damage: Optional[DamageEffect] = Field(
-        default=None,
-        description="Damage dealt (if any)"
+    damage: List[DamageEffect] = Field(
+        default_factory=list,
+        description="Damage dealt to targets. Empty list = no damage. Single target = list with 1 entry. AoE = list with multiple entries. Each entry can have different damage based on margin, positioning, or soak."
+    )
+
+    healing: List[HealingEffect] = Field(
+        default_factory=list,
+        description="Healing applied to targets. Supports hp (health restore), stun (stun removal), wound (wound reduction). Empty list = no healing. Single target healing = list with 1 entry. Mass healing = multiple entries."
     )
 
     # State changes

@@ -42,6 +42,11 @@ def _create_openai_compatible_model(pydantic_model: Type[T]) -> Type[T]:
         if model in _model_cache:
             return _model_cache[model]
 
+        # Defensive check: ensure model has model_fields attribute
+        if not hasattr(model, 'model_fields'):
+            logger.error(f"Model {model} does not have model_fields attribute - not a valid Pydantic model?")
+            raise TypeError(f"Expected Pydantic BaseModel subclass, got {type(model)}")
+
         # Get all fields from original model
         model_fields = model.model_fields
         new_annotations = {}
