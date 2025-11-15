@@ -278,7 +278,7 @@ class EnemySpawn(BaseModel):
     Example:
     ```python
     spawn = EnemySpawn(
-        template="Grunt",
+        template="enforcer",
         faction="ACG Security",
         archetype="Enforcer",
         count=2,
@@ -288,9 +288,9 @@ class EnemySpawn(BaseModel):
     ```
     """
 
-    template: Literal["Grunt", "Elite", "Boss"] = Field(
+    template: str = Field(
         ...,
-        description="Enemy power level template"
+        description="Enemy template from available types. Common templates: 'grunt' (basic), 'elite' (skilled), 'boss' (powerful), 'void_cultist', 'enforcer', 'sniper', 'support', 'ambusher', 'security_drone', 'seedwalker_heavy', etc."
     )
 
     faction: str = Field(
@@ -385,7 +385,13 @@ class RoundSynthesis(BaseModel):
         - Build tension and momentum
         - Paint vivid scene transitions
 
-        Shorter narrations feel rushed. Longer narrations feel cinematic."""
+        Shorter narrations feel rushed. Longer narrations feel cinematic.
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.
+        - ✅ CORRECT: "Ash dives behind cover as the guard opens fire..."
+        - ❌ WRONG: "tgt_3c5d dives behind cover as tgt_7a3f opens fire..."
+
+        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions, etc.)."""
     )
 
     # Story progression
