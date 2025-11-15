@@ -1,0 +1,265 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test pure diplomat archetype (Charm 6, Persuasion 5, Debt Law 5, Insight 5), zero-combat resolution, multi-faction negotiation, social clocks, reputation mechanics, failure state = war outbreak ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "The Seed Trade Summit (OpenAI)",
+  "max_turns": 20,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Zero Combat Scenario) ===",
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Seed Trade is Plot, Not Vendors) ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: THREE-FACTION TRADE SUMMIT ===",
+  "_scenario_hint": "Neutral Zone Trade Station (void_level 3, demilitarized) - Summit to resolve Seed harvesting rights dispute between ACG (wants monopoly), Resonance Communes (spiritual claim), and Freeborn Collective (labor rights). Each faction has valid grievances and leverage. Players must: broker compromise, manage escalating tensions, prevent walkout/violence. NPCs: ACG hardliner (greedy), Commune elder (principled), Freeborn agitator (angry). Failure modes: summit collapses \u2192 trade war, violence erupts \u2192 players blamed, one faction dominates \u2192 moral compromise. Success: balanced treaty all sides accept.",
+  "_design_notes": {
+    "ml_training_value": "Pure social/negotiation scenario, zero combat resolution, tests Charm/Persuasion/Insight/Debt Law in high-stakes context, multi-faction relationship management, dynamic NPC attitudes, reputation tracking, moral trade-offs in diplomacy, failure = systemic consequences (not death)",
+    "mechanics_tested": [
+      "Charm/Persuasion checks",
+      "Insight for reading NPCs",
+      "Debt Law for legal frameworks",
+      "Faction reputation",
+      "Social clocks (trust, tension)",
+      "NPC attitude shifts",
+      "Compromise crafting"
+    ],
+    "character_innovation": "First config with Charm 6 + Persuasion 5 primary, pure social focus, no combat skills, recording drones for evidence gathering, soulcredit scanners for leverage discovery",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Summit Tension",
+      "current_ticks": 4,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Overall conflict escalation. At 7 ticks: faction walkout threatened. At 10 ticks: summit collapses, trade war begins.",
+      "advance_meaning": "summit tension progresses",
+      "regress_meaning": "summit tension setback or reversal"
+    },
+    {
+      "name": "ACG Trust",
+      "current_ticks": 3,
+      "max_ticks": 6,
+      "direction": "bidirectional",
+      "description": "ACG faction confidence in mediators. At 0: ACG walks out. At 6: ACG makes major concession.",
+      "advance_meaning": "acg trust improves",
+      "regress_meaning": "acg trust worsens"
+    },
+    {
+      "name": "Commune Trust",
+      "current_ticks": 4,
+      "max_ticks": 6,
+      "direction": "bidirectional",
+      "description": "Resonance Communes confidence in mediators. At 0: Commune walks out. At 6: Commune makes major concession.",
+      "advance_meaning": "commune trust improves",
+      "regress_meaning": "commune trust worsens"
+    },
+    {
+      "name": "Freeborn Trust",
+      "current_ticks": 2,
+      "max_ticks": 6,
+      "direction": "bidirectional",
+      "description": "Freeborn Collective confidence in mediators. At 0: Freeborn walks out. At 6: Freeborn makes major concession.",
+      "advance_meaning": "freeborn trust improves",
+      "regress_meaning": "freeborn trust worsens"
+    },
+    {
+      "name": "Treaty Progress",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Agreement framework development. At 8 ticks: comprehensive treaty ready for signing (if all factions still at table).",
+      "advance_meaning": "treaty progress progresses",
+      "regress_meaning": "treaty progress setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Mediator Lyris Venn",
+        "pronouns": "she/her",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Charisma": 5
+        },
+        "skills": {
+          "Charm": 6,
+          "Persuasion": 5,
+          "Debt Law": 6,
+          "Corporate Influence": 5,
+          "Insight": 5,
+          "Counsel": 4,
+          "Investigation": 3
+        },
+        "void": 0,
+        "soulcredit": 6,
+        "goals": [
+          "Broker treaty that prevents trade war and protects ACG interests",
+          "Maintain neutrality appearance while advancing ACG position",
+          "Build personal reputation as master negotiator"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ledger_access_chip": 1,
+          "soulcredit_scanner": 1,
+          "recording_drone": 2,
+          "data_slate": 1,
+          "bond_contract_templates": 5,
+          "treaty_draft_documents": 3,
+          "acg_credentials": 1,
+          "summit_mediator_badge": 1,
+          "luxury_gifts_for_bribes": 3,
+          "incense": 4,
+          "spark_talisman": 5,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Harmonizer Sael",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Charisma": 4
+        },
+        "skills": {
+          "Counsel": 6,
+          "Insight": 6,
+          "Charm": 5,
+          "Astral Arts": 5,
+          "Attunement": 4,
+          "Persuasion": 4,
+          "Empathy": 5
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Ensure spiritual sanctity of Seed harvesting is respected",
+          "Prevent exploitation of Commune laborers",
+          "Find compromise that honors all parties' humanity"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "bond_ritual_kit": 1,
+          "crystal_focus": 1,
+          "incense": 8,
+          "memory_crystal": 4,
+          "commune_elder_blessing": 1,
+          "data_slate": 1,
+          "empathy_amplifier_talisman": 1,
+          "meditation_prayer_beads": 1,
+          "shared_meal_provisions": 1,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Advocate Thren Koss",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Charisma": 4
+        },
+        "skills": {
+          "Persuasion": 6,
+          "Guile": 5,
+          "Investigation": 5,
+          "Charm": 4,
+          "Awareness": 4,
+          "Debt Law": 4,
+          "Counsel": 3
+        },
+        "void": 1,
+        "soulcredit": 0,
+        "goals": [
+          "Secure fair wages and safety protections for Freeborn workers",
+          "Expose ACG exploitation and Nexus complicity",
+          "Prevent treaty that perpetuates corporate dominance"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "data_recorder": 1,
+          "evidence_dossier_acg_violations": 1,
+          "labor_rights_legal_texts": 1,
+          "data_slate": 1,
+          "freeborn_collective_credentials": 1,
+          "worker_testimony_recordings": 3,
+          "counterfeit_detection_kit": 1,
+          "comm_unit": 1,
+          "incense": 2,
+          "drip_talisman": 3,
+          "survival_rations": 2
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Pure diplomat archetype (Charm 6, Persuasion 5-6, Counsel 6, Insight 6), ZERO combat scenario - failure is social collapse not death. Multi-faction negotiation with 5 social clocks tracking trust/tension. Tests underrepresented social skills in high-stakes context, NPC attitude management, compromise crafting, moral trade-offs in diplomacy. Long campaign (20 turns) allows for relationship building, trust erosion, leverage discovery, and dynamic NPC reactions. Features no combat weapons - all fists/unarmed. Success requires balancing competing interests without force. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

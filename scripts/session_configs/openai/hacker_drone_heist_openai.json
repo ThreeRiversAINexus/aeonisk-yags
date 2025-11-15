@@ -1,0 +1,262 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test tech specialist archetype (Hacking 6, Systems 6, Drone Operation 5), infiltration mechanics, electronic warfare, drone surveillance, security response escalation, social cover stories ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "Data Vault Infiltration - Project Ledger (OpenAI)",
+  "max_turns": 18,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - HYBRID (Stealth/Hacking Focus, Combat if Failed) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Black Market Gear Pre-Loaded) ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: NEXUS DATA HEIST ===",
+  "_scenario_hint": "Sovereign Nexus Archive Facility (void_level 2, high security), mission: infiltrate and extract compromising Bond contract records that prove illegal debt entrapment schemes. Team must bypass: biometric locks (Hacking), surveillance drones (Drone Operation countermeasures), glyph wards (Systems + Attunement), security patrols (Stealth). If discovered: escalating response from guards \u2192 heavy enforcers \u2192 facility lockdown. Social cover: posing as maintenance crew with forged credentials. Success = clean extraction, failure = combat escape or capture.",
+  "_design_notes": {
+    "ml_training_value": "First config with Hacking 6 + Drone Operation 5 primary skills, tech-focused problem solving, stealth/infiltration clocks, security escalation mechanics, social deception layer, contrast between 'ghost run' success and combat failure modes",
+    "mechanics_tested": [
+      "Hacking checks",
+      "Drone operation",
+      "Stealth infiltration",
+      "Security response escalation",
+      "Social cover maintenance",
+      "Electronic warfare",
+      "Glyph ward bypass"
+    ],
+    "character_innovation": "Drone controller + recording drone + glyph-walker scribe combo, neural interface modules, counterfeit credentials, surveillance countermeasures gear",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Security Alert Level",
+      "current_ticks": 0,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Facility security suspicion. At 4 ticks: patrol increase. At 7 ticks: heavy enforcement. At 10 ticks: facility lockdown and combat unavoidable.",
+      "advance_meaning": "security becomes more alert and suspicious",
+      "regress_meaning": "security relaxes, false alarm dismissed"
+    },
+    {
+      "name": "Data Extraction Progress",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Hacking into vault systems and copying files. At 8 ticks: mission objective complete (but still need to escape).",
+      "advance_meaning": "more data extracted from vault",
+      "regress_meaning": "data corruption or extraction interrupted"
+    },
+    {
+      "name": "Social Cover Integrity",
+      "current_ticks": 6,
+      "max_ticks": 6,
+      "direction": "countdown",
+      "description": "Maintenance crew disguise credibility. At 0 ticks: cover blown, immediate security response.",
+      "advance_meaning": "cover story weakens, suspicion grows",
+      "regress_meaning": "cover story reinforced, credibility restored"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Ghost Protocol Zyn",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 6,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2
+        },
+        "skills": {
+          "Hacking": 6,
+          "Systems": 6,
+          "Drone Operation": 5,
+          "Stealth": 5,
+          "Awareness": 4,
+          "Attunement": 3,
+          "Engineering": 4
+        },
+        "void": 3,
+        "soulcredit": -1,
+        "goals": [
+          "Extract Bond contract database without triggering alarms",
+          "Prove Nexus is using illegal coercion tactics",
+          "Avoid combat - ghost run only"
+        ],
+        "equipped_weapons": {
+          "primary": "compact_emp_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "compact_emp_pistol": 1,
+          "drone_controller": 1,
+          "surveillance_drone_x2": 2,
+          "glyph_walker_scribe": 1,
+          "neural_interface_module": 2,
+          "hacking_toolkit": 1,
+          "signal_jammer": 1,
+          "void_scanner": 1,
+          "counterfeit_credentials": 3,
+          "maintenance_uniform": 1,
+          "data_slate": 1,
+          "security_bypass_chip": 2,
+          "ecm_scrambler": 1
+        }
+      },
+      {
+        "name": "Whisper Shade",
+        "pronouns": "she/her",
+        "faction": "Freeborn Loner",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 5,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Stealth": 6,
+          "Awareness": 6,
+          "Athletics": 5,
+          "Melee": 4,
+          "Pilot": 3,
+          "Combat": 4,
+          "Guile": 4
+        },
+        "void": 2,
+        "soulcredit": -3,
+        "goals": [
+          "Provide lookout and early warning for team",
+          "Disable security patrols silently if necessary",
+          "Ensure escape route remains clear"
+        ],
+        "equipped_weapons": {
+          "primary": "wraithroot_vineblade",
+          "sidearm": "void_cloak"
+        },
+        "carried_weapons": [
+          "shock_baton"
+        ],
+        "inventory": {
+          "wraithroot_vineblade": 1,
+          "void_cloak": 1,
+          "shock_baton": 1,
+          "climbing_gear": 1,
+          "lockpick_set": 1,
+          "comm_unit": 1,
+          "smoke_grenades": 3,
+          "grappling_hook": 1,
+          "infrared_goggles": 1,
+          "counterfeit_credentials": 1,
+          "maintenance_uniform": 1,
+          "medkit": 1
+        }
+      },
+      {
+        "name": "Fixer Mira Voss",
+        "pronouns": "she/her",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 5
+        },
+        "skills": {
+          "Charm": 6,
+          "Guile": 5,
+          "Debt Law": 5,
+          "Corporate Influence": 5,
+          "Awareness": 4,
+          "Investigation": 3,
+          "Guns": 3
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Maintain social cover and talk team out of trouble",
+          "Negotiate exit if caught (leverage ACG connections)",
+          "Secure copy of data for personal profit"
+        ],
+        "equipped_weapons": {
+          "primary": "debtbreaker_sidearm"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "debtbreaker_sidearm": 1,
+          "ledger_access_chip": 1,
+          "soulcredit_scanner": 1,
+          "forged_work_order": 3,
+          "data_slate": 1,
+          "acg_credentials": 1,
+          "maintenance_supervisor_badge": 1,
+          "comm_unit": 1,
+          "incense": 2,
+          "spark_talisman": 3,
+          "bribe_funds_10_drip": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Tech specialist archetype (Hacking 6, Systems 6, Drone Operation 5), infiltration-focused gameplay, security clock escalation, stealth vs. combat branching, social deception layer (cover story maintenance). Tests underrepresented technical skills, electronic warfare, drone tactics. Contrast between 'ghost run' (no combat, perfect stealth) and 'loud run' (combat escape). Long campaign (18 turns) allows for tension building, security escalation, and consequences of failed stealth checks. Features exotic gear: Wraithroot Vineblade (Spirit-Weave), Debtbreaker Sidearm (Contract weapon), drone swarm tactics. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

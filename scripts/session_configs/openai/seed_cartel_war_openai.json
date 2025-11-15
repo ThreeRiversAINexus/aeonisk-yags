@@ -1,0 +1,269 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test Seed economy mechanics (Raw/Attuned/Hollow), ritual attuning processes, echo-calibrator usage, Seed degradation timers, void contamination from Raw Seeds, black market economics, cartel faction dynamics, ritual component scarcity ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "Seed Wars - The Black Market Struggle (OpenAI)",
+  "max_turns": 17,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Cartel Combat) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - SEED-FOCUSED (Black Market Dealers) ===",
+  "vendor_spawn_frequency": 2,
+  "_comment_scenario": "=== SCENARIO: SEED ECONOMY ===",
+  "_scenario_hint": "Freeborn Black Market District (void_level 4, unregulated), two rival Seed cartels (Hollow Syndicate vs. Spirit Traders) fighting over territory and supply lines. Team hired as neutral brokers/enforcers: must navigate Seed trade politics, prevent violence, secure supply for own faction. Seed mechanics: Raw Seeds degrade in 7 cycles (timer), Raw Seeds give +1 void if used unattunedneeds echo-calibrator + ritual altar for safe attuning), Attuned Seeds stable and valuable, Hollow Seeds (degraded) dangerous but potent (+1 void, unstable). Cartel tensions: Hollow Syndicate floods market with cheap dangerous Hollows, Spirit Traders maintain quality Attuned supply but high prices. Economic pressure: ritual component scarcity, contamination risks, degradation timers forcing rushed attuning, competing buyers. Combat if negotiations fail.",
+  "_design_notes": {
+    "ml_training_value": "First config testing Seed economy (Raw/Attuned/Hollow), ritual attuning mechanics (echo-calibrator + ritual altar), Seed degradation timers (7 cycles), void contamination from Raw/Hollow usage, black market economics, cartel faction dynamics, ritual component scarcity pressure, economic manipulation tactics, Attunement skill for ritual success, trade negotiation vs. combat resolution",
+    "mechanics_tested": [
+      "Seed economy (Raw/Attuned/Hollow)",
+      "Ritual attuning processes",
+      "Echo-calibrator usage",
+      "Degradation timers",
+      "Void contamination risks",
+      "Black market trade",
+      "Cartel faction dynamics",
+      "Economic pressure",
+      "Attunement checks"
+    ],
+    "character_innovation": "Attunement specialist (Attunement 6, ritual focus), negotiator (Charm 6, economic savvy), enforcer (Combat 5), Raw/Attuned/Hollow Seeds in starting inventory (FIRST config with Seeds!), echo-calibrators, ritual altars, cartel connections",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Raw Seed Degradation",
+      "current_ticks": 5,
+      "max_ticks": 7,
+      "direction": "progress",
+      "description": "Party's Raw Seeds degrading. At 7 ticks: Raw Seeds become Hollow (dangerous, +1 void if used).",
+      "advance_meaning": "raw seed degradation progresses",
+      "regress_meaning": "raw seed degradation setback or reversal"
+    },
+    {
+      "name": "Cartel Conflict Escalation",
+      "current_ticks": 4,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Violence between Hollow Syndicate and Spirit Traders. At 7 ticks: open warfare. At 10 ticks: district lockdown, supply chains collapse.",
+      "advance_meaning": "cartel conflict escalation progresses",
+      "regress_meaning": "cartel conflict escalation setback or reversal"
+    },
+    {
+      "name": "Seed Supply Scarcity",
+      "current_ticks": 6,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Market scarcity increasing prices. At 10 ticks: Attuned Seeds impossible to obtain, only Hollows available.",
+      "advance_meaning": "seed supply scarcity progresses",
+      "regress_meaning": "seed supply scarcity setback or reversal"
+    },
+    {
+      "name": "Attuning Ritual Progress",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Converting Raw Seeds to Attuned safely. At 6 ticks: entire stockpile attuned (if prioritized).",
+      "advance_meaning": "attuning ritual progress progresses",
+      "regress_meaning": "attuning ritual progress setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Attunement Ritualist Veyra Lune",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 5,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 5,
+          "Charisma": 3
+        },
+        "skills": {
+          "Attunement": 6,
+          "Astral Arts": 6,
+          "Magick Theory": 5,
+          "Counsel": 5,
+          "Investigation": 4,
+          "Systems": 4,
+          "Awareness": 4
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Attune Raw Seeds safely using echo-calibrator and ritual altar",
+          "Prevent void contamination from rushed attuning or Hollow use",
+          "Secure quality Attuned Seed supply for Communes"
+        ],
+        "equipped_weapons": {
+          "primary": "ritual_staff"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_staff": 1,
+          "ritual_altar_portable": 1,
+          "echo_calibrator": 2,
+          "raw_seed": 8,
+          "attuned_seed_spirit": 3,
+          "hollow_seed": 2,
+          "purification_incense": 10,
+          "crystal_focus": 2,
+          "consecration_oil": 3,
+          "talisman_blanks": 5,
+          "seed_containment_vessel": 2,
+          "void_scanner": 1
+        }
+      },
+      {
+        "name": "Trade Negotiator Kael Voss",
+        "pronouns": "he/him",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 5
+        },
+        "skills": {
+          "Charm": 6,
+          "Guile": 6,
+          "Debt Law": 5,
+          "Corporate Influence": 5,
+          "Investigation": 4,
+          "Awareness": 4,
+          "Persuasion": 5
+        },
+        "void": 0,
+        "soulcredit": 5,
+        "goals": [
+          "Negotiate favorable Seed trade deals with both cartels",
+          "Manipulate market scarcity to ACG advantage",
+          "Prevent cartel war (bad for business) while profiting from tension"
+        ],
+        "equipped_weapons": {
+          "primary": "debtbreaker_sidearm"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "debtbreaker_sidearm": 1,
+          "ledger_access_chip": 1,
+          "soulcredit_scanner": 1,
+          "data_slate": 1,
+          "cartel_contact_list": 1,
+          "trade_contract_templates": 8,
+          "acg_credentials": 1,
+          "raw_seed": 4,
+          "attuned_seed_fire": 2,
+          "bribe_funds_15_drip": 1,
+          "market_price_database": 1
+        }
+      },
+      {
+        "name": "Cartel Enforcer Thresh Kain",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 5,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 6,
+          "Intimidation": 5,
+          "Awareness": 5,
+          "Stealth": 5,
+          "Athletics": 5,
+          "Melee": 5
+        },
+        "void": 2,
+        "soulcredit": -2,
+        "goals": [
+          "Provide muscle for trade negotiations and territory disputes",
+          "Prevent Syndicate from flooding market with dangerous Hollows",
+          "Secure Seed supply through force if necessary"
+        ],
+        "equipped_weapons": {
+          "primary": "hollowed_repeater",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "hollowed_repeater": 1,
+          "combat_knife": 1,
+          "void_cloak": 1,
+          "hollow_seed": 6,
+          "raw_seed": 2,
+          "smoke_grenades": 3,
+          "restraint_cuffs": 2,
+          "cartel_territory_map": 1,
+          "comm_unit": 1,
+          "med_kit": 2,
+          "counterfeit_credentials": 2
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Seed economy mechanics (Raw Seeds degrade in 7 cycles, Raw use gives +1 void, attuning requires echo-calibrator + ritual altar, Attuned Seeds stable, Hollow Seeds dangerous +1 void), ritual attuning processes (Attunement checks, consecration, timing), echo-calibrator usage for stabilization, degradation timers creating urgency, void contamination risks from rushed attuning or Hollow usage, black market economics (scarcity, price manipulation, cartel control), cartel faction dynamics (Hollow Syndicate vs. Spirit Traders), ritual component scarcity, economic pressure decisions (quality vs. speed, safety vs. profit). Tests underrepresented Seed economy systems, ritual depth, economic manipulation, cartel politics, Attunement skill for ritual success, trade vs. combat resolution branching. Long campaign (17 turns) allows degradation drama, attuning ritual execution, cartel negotiation, scarcity escalation, potential warfare. Features FIRST config with Raw/Attuned/Hollow Seeds in starting inventory (total 29 Seeds across party), echo-calibrators, ritual altars, comprehensive ritual tools. Characters: Attunement specialist (Attunement 6, Astral Arts 6), trade negotiator (Charm 6, Guile 6), enforcer with Hollowed Repeater (Void weapon, damage scales with void score). Tests economic systems underrepresented in current configs. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

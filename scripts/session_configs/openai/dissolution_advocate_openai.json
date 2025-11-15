@@ -1,0 +1,269 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test void specialist archetype (Void Lore 6, Attunement 6, Astral Arts 6), high void character (starting void 5), void threshold crossing mechanics (void 7+ reality warping), ritual system depth, Pantheon pursuit, moral ambiguity of dissolution philosophy ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "Breach Study - The Dissolution Thesis (OpenAI)",
+  "max_turns": 16,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Pantheon Enforcers May Intervene) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Illegal Research Zone) ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: VOID BREACH RESEARCH ===",
+  "_scenario_hint": "Abandoned Research Station at Breach Site (void_level 8, reality unstable), mission: study active void breach to prove dissolution is controllable evolution, not spiritual death. Lead researcher already at void 5, approaching critical threshold. Must: collect breach data, perform void exposure experiments, document reality warping effects, avoid Pantheon cleansing squad. Tensions: Theorist (pro-dissolution), Watcher (enforce cleansing mandate), Observer (scientific neutrality). Void 6+ triggers reality warping, void 7+ risks dissolution spiral.",
+  "_design_notes": {
+    "ml_training_value": "First config with Void Lore 6 + void 5 starting character, tests void threshold mechanics (void 6-7+ reality effects), ritual consequence systems, high-risk void accumulation, Pantheon antagonist faction, moral ambiguity (is dissolution evolution or death?), environmental void hazards",
+    "mechanics_tested": [
+      "Void Lore checks",
+      "Void accumulation",
+      "Reality warping at void 6-7+",
+      "Ritual consecration/desecration",
+      "Void cleansing rituals",
+      "Environmental void hazards",
+      "Faction pursuit (Pantheon)"
+    ],
+    "character_innovation": "Void specialist with Void Lore 6, Attunement 6, Magick Theory 5, starting void 5 (highest in any config), hollow seeds, void resonance amplifier, breach compass, void scanner array",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Breach Data Collection",
+      "current_ticks": 0,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Research data gathered. At 10 ticks: thesis complete, can prove dissolution control hypothesis.",
+      "advance_meaning": "breach data collection progresses",
+      "regress_meaning": "breach data collection setback or reversal"
+    },
+    {
+      "name": "Pantheon Pursuit",
+      "current_ticks": 3,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Pantheon cleansing squad tracking team. At 7 ticks: enforcers arrive. At 10 ticks: heavy assault team deployed.",
+      "advance_meaning": "pantheon pursuit progresses",
+      "regress_meaning": "pantheon pursuit setback or reversal"
+    },
+    {
+      "name": "Reality Stability",
+      "current_ticks": 6,
+      "max_ticks": 10,
+      "direction": "countdown",
+      "description": "Local reality cohesion at breach site. At 3 ticks: void manifestations common. At 0 ticks: reality collapse, area becomes permanent void zone.",
+      "advance_meaning": "reality stability worsens or time runs out",
+      "regress_meaning": "reality stability improves or delayed"
+    },
+    {
+      "name": "Theorist Void Threshold",
+      "current_ticks": 5,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Lead researcher's void accumulation. At 6 ticks: reality warping begins. At 7 ticks: dissolution spiral risk. At 8 ticks: point of no return.",
+      "advance_meaning": "theorist void threshold progresses",
+      "regress_meaning": "theorist void threshold setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Dissolution Theorist Kael Rift",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 10,
+          "voidCuriosity": 10,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 5,
+          "Charisma": 2
+        },
+        "skills": {
+          "Void Lore": 6,
+          "Astral Arts": 6,
+          "Attunement": 6,
+          "Magick Theory": 5,
+          "Investigation": 5,
+          "Science": 5,
+          "Systems": 4
+        },
+        "void": 5,
+        "soulcredit": -4,
+        "goals": [
+          "Prove dissolution is natural spiritual evolution, not death",
+          "Document void 6-7+ threshold effects in controlled conditions",
+          "Resist Pantheon cleansing mandate and preserve research"
+        ],
+        "equipped_weapons": {
+          "primary": "ash_pulse_pike"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ash_pulse_pike": 1,
+          "void_resonance_amplifier": 1,
+          "hollow_seed": 5,
+          "void_scanner": 1,
+          "breach_compass": 1,
+          "neural_stimulant": 4,
+          "data_slate": 1,
+          "research_journal": 1,
+          "containment_vessel": 3,
+          "reality_anchor_talisman": 2,
+          "dissolution_thesis_draft": 1,
+          "emergency_purification_incense": 2
+        }
+      },
+      {
+        "name": "Watcher Thane Vael",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 10
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Investigation": 5,
+          "Awareness": 5,
+          "Astral Arts": 4,
+          "Intimidation": 4,
+          "Guns": 5,
+          "Melee": 4
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Monitor theorist's void accumulation and intervene if necessary",
+          "Enforce Pantheon cleansing protocols at void 7+ threshold",
+          "Collect evidence for tribunal if research violates doctrine"
+        ],
+        "equipped_weapons": {
+          "primary": "shrike_cannon",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "shrike_cannon": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "void_scanner": 1,
+          "purification_incense": 8,
+          "pantheon_badge": 1,
+          "data_recorder": 1,
+          "restraint_cuffs": 2,
+          "emergency_beacon": 1,
+          "riot_carapace": 1,
+          "cleansing_ritual_kit": 1
+        }
+      },
+      {
+        "name": "Observer Lyss Kain",
+        "pronouns": "she/her",
+        "faction": "Fractal Praxis",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 7,
+          "bondPreference": "avoids",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Astral Arts": 5,
+          "Attunement": 5,
+          "Investigation": 6,
+          "Magick Theory": 5,
+          "Science": 5,
+          "Awareness": 4,
+          "Systems": 4
+        },
+        "void": 2,
+        "soulcredit": 0,
+        "goals": [
+          "Document void threshold phenomena with scientific rigor",
+          "Maintain neutrality between Tempest and Pantheon positions",
+          "Discover fractal patterns in dissolution process"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "fractal_lens": 1,
+          "pattern_recorder": 1,
+          "void_scanner": 1,
+          "data_slate": 1,
+          "crystal_focus": 1,
+          "memory_crystal": 5,
+          "research_equipment_kit": 1,
+          "containment_vessel": 2,
+          "incense": 4,
+          "reality_anchor_talisman": 1,
+          "neural_stimulant": 2
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Void specialist archetype (Void Lore 6, Attunement 6, Astral Arts 6), highest starting void in any config (void 5), tests void threshold mechanics (6+ reality warping, 7+ dissolution risk), ritual consecration/desecration, environmental void hazards (void_level 8), Pantheon antagonist pursuit, moral ambiguity (is dissolution natural evolution?). Features exotic weapon: Ash Pulse Pike (Void-Infused, +4 DMG, stuns astral), Shrike Cannon (Glyph-Encoded, +6 DMG, ignores ritual shields). Long campaign (16 turns) allows void accumulation drama, research progress vs. cleansing pressure, potential PC transformation/dissolution as consequence. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}
