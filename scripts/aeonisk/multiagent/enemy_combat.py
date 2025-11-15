@@ -151,20 +151,8 @@ class EnemyCombatManager:
         self.config: Dict[str, Any] = {}
         self.shared_state = shared_state  # Reference to shared state for logging
 
-        # LLM Provider for structured output (Phase 4: Pydantic AI migration)
-        # Default to Anthropic (Claude) for now - will be configurable later
-        from .llm_provider import create_provider
-        try:
-            self.llm_provider = create_provider(
-                provider='anthropic',  # Hardcoded for now, TODO: make configurable
-                model='claude-sonnet-4-5',
-                max_tokens=500,
-                temperature=0.7
-            )
-            logger.debug("EnemyCombatManager: Structured output provider initialized")
-        except Exception as e:
-            logger.warning(f"EnemyCombatManager: Failed to create structured output provider: {e}")
-            self.llm_provider = None
+        # LLM Provider for structured output - initialized later from session config
+        self.llm_provider = None
 
     def initialize(self, session_config: Dict[str, Any]):
         """
@@ -180,6 +168,34 @@ class EnemyCombatManager:
 
         if self.enabled:
             self.config = session_config.get('enemy_agent_config', {})
+
+            # Initialize LLM provider from DM config (enemies use same provider as DM)
+            from .llm_provider import create_provider
+            try:
+                dm_config = session_config.get('agents', {}).get('dm', {})
+                llm_config = dm_config.get('llm', {})
+
+                if llm_config:
+                    provider = llm_config.get('provider', 'anthropic')
+                    model = llm_config.get('model', 'claude-sonnet-4-5')
+
+                    self.llm_provider = create_provider(
+                        provider=provider,
+                        model=model,
+                        max_tokens=1500,  # Increased for headroom with verbose LLMs
+                        temperature=0.7  # Enemy agents use fixed temp for consistency
+                    )
+                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
+                    logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
+                else:
+                    logger.warning("EnemyCombatManager: No DM LLM config found, structured output disabled")
+                    self.llm_provider = None
+            except Exception as e:
+                import traceback
+                logger.warning(f"EnemyCombatManager: Failed to create structured output provider: {e}")
+                logger.warning(f"Traceback: {traceback.format_exc()}")
+                self.llm_provider = None
+
             logger.debug("Enemy combat manager initialized (ENABLED)")
         else:
             logger.debug("Enemy combat manager initialized (DISABLED)")
@@ -507,7 +523,7 @@ class EnemyCombatManager:
             response = await llm_client.generate_async(
                 prompt=prompt,
                 temperature=0.7,
-                max_tokens=500
+                max_tokens=1500  # Increased for headroom with verbose LLMs
             )
             declaration_text = response.get('content', '')
 
@@ -561,37 +577,55 @@ class EnemyCombatManager:
 
         try:
             from .schemas.enemy_decision import EnemyDecision
-            from .enemy_declaration import EnemyDeclaration
+            # EnemyDeclaration is defined in this file at line 43, no import needed
 
             logger.debug(f"Enemy {enemy.name}: Attempting structured output for tactical decision")
 
             # Generate structured decision using Pydantic AI
+            # Note: LLM only generates tactical fields, we populate identity after
+            system_prompt = f"You are {enemy.name}, an enemy combatant making tactical decisions."
+
             enemy_decision: EnemyDecision = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=EnemyDecision,
-                system_prompt=f"You are {enemy.name}, an enemy combatant making tactical decisions.",
-                max_tokens=500,
+                system_prompt=system_prompt,
+                max_tokens=1500,  # Increased for headroom with verbose LLMs
                 temperature=0.7
             )
 
-            logger.debug(f"✓ Enemy {enemy.name} structured decision: {enemy_decision.major_action}, target={enemy_decision.target}")
+            # Log the raw decision object for debugging
+            logger.debug(f"Enemy {enemy.name} raw decision object: {enemy_decision}")
+            logger.debug(f"Enemy {enemy.name} decision type: {type(enemy_decision)}")
+
+            if enemy_decision is None:
+                logger.error(f"Enemy {enemy.name}: Structured output returned None!")
+                return None
+
+            logger.debug(f"✓ Enemy {enemy.name} structured decision: major_action={enemy_decision.major_action}, target={enemy_decision.target}")
 
             # Convert EnemyDecision (Pydantic) to EnemyDeclaration (legacy format)
+            # Use enemy object's identity fields directly (not from LLM output)
             enemy_declaration = EnemyDeclaration(
+                agent_id=enemy.agent_id,
+                character_name=enemy.name,
+                initiative=enemy.initiative,
                 major_action=enemy_decision.major_action,
                 minor_action=enemy_decision.minor_action or "None",
                 target=enemy_decision.target or "None",
                 weapon=enemy_decision.weapon or "None",
                 defence_token=enemy_decision.defence_token or "None",
-                movement=enemy_decision.movement or "None",
-                reasoning=enemy_decision.reasoning,
+                token_target=enemy_decision.token_target or "None",
+                reasoning=enemy_decision.tactical_reasoning,
                 shared_intel=enemy_decision.shared_intel
             )
 
+            logger.debug(f"✓ Enemy {enemy.name} converted to EnemyDeclaration: {enemy_declaration.major_action}")
             return enemy_declaration
 
         except Exception as e:
+            import traceback
             logger.error(f"Enemy {enemy.name}: Structured output failed: {type(e).__name__}: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
 
     async def declare_actions(
@@ -627,21 +661,36 @@ class EnemyCombatManager:
 
         for enemy in active_enemies:
             logger.debug(f"Generating declaration for {enemy.name} (ID: {enemy.agent_id})")
-            # Generate tactical prompt
-            prompt = generate_tactical_prompt(
-                enemy=enemy,
-                player_agents=player_agents,
-                enemy_agents=active_enemies,
-                shared_intel=self.shared_intel,
-                available_tokens=available_tokens,
-                current_round=self.current_round
-            )
+
+            # Collect context once for all prompt variants
+            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+            free_targeting = self.shared_state.config.get('free_targeting_mode', True) if self.shared_state else True
+            recent_narrations = []
+            for player_agent in player_agents:
+                if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
+                    recent_narrations.extend(player_agent.recent_narrations)
 
             # Try structured output first (Phase 4: Pydantic AI migration)
             parsed = None
+            logger.debug(f"Enemy {enemy.name}: llm_provider check - hasattr={hasattr(self, 'llm_provider')}, value={getattr(self, 'llm_provider', 'NOT_SET')}, is_none={self.llm_provider is None if hasattr(self, 'llm_provider') else 'N/A'}")
             if hasattr(self, 'llm_provider') and self.llm_provider is not None:
                 try:
-                    parsed = await self._generate_enemy_decision_structured(enemy, prompt)
+                    # Use structured-output-compatible prompt (no text format instructions)
+                    from .enemy_prompts import generate_tactical_prompt_structured
+
+                    structured_prompt = generate_tactical_prompt_structured(
+                        enemy=enemy,
+                        player_agents=player_agents,
+                        enemy_agents=active_enemies,
+                        shared_intel=self.shared_intel,
+                        available_tokens=available_tokens,
+                        current_round=self.current_round,
+                        target_id_mapper=target_id_mapper,
+                        free_targeting=free_targeting,
+                        recent_narrations=recent_narrations if recent_narrations else None
+                    )
+
+                    parsed = await self._generate_enemy_decision_structured(enemy, structured_prompt)
                     if parsed:
                         logger.debug(f"✓ Enemy {enemy.name} structured decision: {parsed.major_action}")
                 except Exception as e:
@@ -650,10 +699,25 @@ class EnemyCombatManager:
             # Legacy text parsing fallback
             if not parsed:
                 try:
+                    # Generate legacy prompt with text format instructions
+                    from .enemy_prompts import generate_tactical_prompt
+
+                    legacy_prompt = generate_tactical_prompt(
+                        enemy=enemy,
+                        player_agents=player_agents,
+                        enemy_agents=active_enemies,
+                        shared_intel=self.shared_intel,
+                        available_tokens=available_tokens,
+                        current_round=self.current_round,
+                        target_id_mapper=target_id_mapper,
+                        free_targeting=free_targeting,
+                        recent_narrations=recent_narrations if recent_narrations else None
+                    )
+
                     response = await llm_client.generate_async(
-                        prompt=prompt,
+                        prompt=legacy_prompt,
                         temperature=0.7,
-                        max_tokens=500
+                        max_tokens=1500  # Increased for headroom with verbose LLMs
                     )
                     declaration_text = response.get('content', '')
 

@@ -55,7 +55,7 @@
           "soak": 5,
           "wounds": 0
         },
-        "void_score": 3,
+        "void": 3,
         "soulcredit_score": 0,
         "energy_purse": {
           "spark": 8,
@@ -103,7 +103,7 @@
           "soak": 6,
           "wounds": 0
         },
-        "void_score": 3,
+        "void": 3,
         "soulcredit_score": 0,
         "energy_purse": {
           "spark": 1,

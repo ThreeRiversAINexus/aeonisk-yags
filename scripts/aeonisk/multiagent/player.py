@@ -1309,6 +1309,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 temperature=self.llm_config.get('temperature', 0.8)
             )
 
+            # Populate identity fields from player object (LLM doesn't generate these)
+            player_action.character_name = self.character_state.name
+            player_action.agent_id = self.agent_id
+
             logger.debug(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
 
             # Log LLM call for replay (CRITICAL: without this, replay cache is empty!)

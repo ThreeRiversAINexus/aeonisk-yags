@@ -81,15 +81,17 @@ class PlayerAction(BaseModel):
         description="Action category for context"
     )
 
-    # Character identification
-    character_name: str = Field(
-        ...,
-        description="Full character name"
+    # Character identification (populated by system after LLM generation, not by LLM)
+    character_name: Optional[str] = Field(
+        default=None,
+        description="Full character name (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
-    agent_id: str = Field(
-        ...,
-        description="Agent identifier (e.g., 'player_ash', 'player_echo')"
+    agent_id: Optional[str] = Field(
+        default=None,
+        description="Agent identifier (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
     # Tactical components (optional)
@@ -266,14 +268,16 @@ class FreeAction(BaseModel):
         description="Details of the free action"
     )
 
-    character_name: str = Field(
-        ...,
-        description="Character taking action"
+    character_name: Optional[str] = Field(
+        default=None,
+        description="Character taking action (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
-    agent_id: str = Field(
-        ...,
-        description="Agent identifier"
+    agent_id: Optional[str] = Field(
+        default=None,
+        description="Agent identifier (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
     target: Optional[str] = Field(

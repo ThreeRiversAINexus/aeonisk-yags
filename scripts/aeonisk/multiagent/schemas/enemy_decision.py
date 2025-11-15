@@ -35,22 +35,25 @@ class EnemyDecision(BaseModel):
     ```
     """
 
-    # Identity
-    agent_id: str = Field(
-        ...,
-        description="Enemy agent ID (e.g., 'enemy_scanner_01')"
+    # Identity (populated by system after LLM generation, not by LLM)
+    agent_id: Optional[str] = Field(
+        default=None,
+        description="Enemy agent ID (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
-    character_name: str = Field(
-        ...,
-        description="Enemy character name"
+    character_name: Optional[str] = Field(
+        default=None,
+        description="Enemy character name (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
-    initiative: int = Field(
-        ...,
+    initiative: Optional[int] = Field(
+        default=None,
         ge=1,
         le=50,
-        description="Initiative roll result"
+        description="Initiative roll result (populated by system)",
+        json_schema_extra={"exclude_from_llm": True}
     )
 
     # Defensive positioning

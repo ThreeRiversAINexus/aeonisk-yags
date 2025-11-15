@@ -350,6 +350,50 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
 
 7. **Failure Consequences**: What happens if they fail?
 
+8. **Initial Enemies** (optional, 0-6 enemies): Spawn enemies present at scenario start
+   - Use when scenario requires immediate combat threats
+   - Examples: ambushes, patrols, guards, creatures, hostiles
+   - Leave empty ([]) for investigation/social scenarios where threats emerge later
+
+   **When to spawn initial enemies:**
+   - ✅ Hostile locations (corporate facilities, gang territory, void breaches)
+   - ✅ Combat-focused themes (raid, escape, defense, assault)
+   - ✅ Players infiltrating/trespassing (guards, patrols)
+   - ✅ Story starts mid-action (chase, ambush, firefight)
+   - ❌ Social/investigation scenarios (spawn later via story progression)
+   - ❌ Safe/neutral territory (spawn when story demands it)
+
+   **For each enemy spawn:**
+   - **template**: Enemy type from YAGS system (grunt, enforcer, specialist, etc.)
+   - **faction**: Which faction they belong to (ACG Security, Void Cultists, etc.)
+   - **count**: How many of this type (1-4 per spawn)
+   - **disposition**: combat_stance (always use this for immediate threats)
+   - **description**: Brief visual description
+
+9. **Initial NPCs** (optional, 0-4 NPCs): Spawn NPCs present at scenario start
+   - Use when scenario requires non-combatant characters for roleplay
+   - Examples: quest-givers, witnesses, prisoners, allies, civilians
+   - Leave empty ([]) if no immediate NPCs needed
+
+   **When to spawn initial NPCs:**
+   - ✅ Social/investigation scenarios (witnesses, contacts, informants)
+   - ✅ Prisoners/hostages in combat zones (rescue targets)
+   - ✅ Quest-givers or guides (fixer, navigator, broker)
+   - ✅ Neutral characters in hostile zones (civilians, refugees)
+   - ❌ Pure combat scenarios (unless hostages/prisoners)
+   - ❌ Wilderness/isolated locations (unless story requires)
+
+   **For each NPC spawn:**
+   - **name**: Character name (can be role-based like "Wounded Freeborn Scout")
+   - **faction**: Which faction (can be "None" for neutrals)
+   - **entity_type**: neutral, ally, or prisoner
+   - **threat_level**: non_combatant (for NPCs)
+   - **disposition**: friendly, neutral, hostile, prisoner
+   - **description**: Brief visual description
+   - **health** (10-30): Current health
+   - **soak** (0-3): Damage resistance
+   - **details**: Background, motivations, or relevant info
+
 **Scenario Variety Guidelines:**
 - Mix combat (50%), social, intrigue, and crisis scenarios
 - Pick DIFFERENT location from recently used ones (if listed above)
@@ -2322,7 +2366,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
 
             system_prompt = "You are the DM for Aeonisk YAGS, synthesizing a round of actions."
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = self.llm_config.get('max_tokens', 2000)
+            max_tokens = self.llm_config.get('max_tokens', 4000)  # Increased for RoundSynthesis with verbose LLMs
             temperature = self.llm_config.get('temperature', 0.8)
 
             # Get current round for logging
@@ -3144,23 +3188,19 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 return structured_synthesis
 
             # Legacy text generation fallback
-            logger.debug("DM: Using legacy text generation for synthesis")
+            logger.warning("DM: Structured synthesis failed, falling back to legacy text generation")
+            logger.warning("⚠️  LEGACY FALLBACK is deprecated and will be removed - fix structured output issues instead!")
             try:
-                # Use rate-limited wrapper to prevent API overload
-                from .llm_provider import call_anthropic_with_retry
+                # Use configured provider (not hardcoded Anthropic)
+                if not self.llm_provider:
+                    logger.error("DM: No LLM provider available for legacy fallback")
+                    return None
 
-                response = await call_anthropic_with_retry(
-                    client=self.llm_client,
-                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=500,
-                    temperature=0.8,
-                    max_retries=3,
-                    base_delay=2.0,
-                    max_delay=120.0,
-                    use_rate_limiter=True
+                synthesis_text = await self.llm_provider.generate_text(
+                    prompt=prompt,
+                    max_tokens=4000,  # Increased for synthesis
+                    temperature=0.8
                 )
-                synthesis_text = response.content[0].text.strip()
 
                 # Legacy SPAWN_ENEMY marker validation removed - using structured output now
 

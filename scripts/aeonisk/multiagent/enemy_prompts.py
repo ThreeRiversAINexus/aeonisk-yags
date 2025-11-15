@@ -106,6 +106,71 @@ def generate_tactical_prompt(
     return "\n\n".join(sections)
 
 
+def generate_tactical_prompt_structured(
+    enemy: EnemyAgent,
+    player_agents: List[Any],
+    enemy_agents: List[EnemyAgent],
+    shared_intel: SharedIntel,
+    available_tokens: List[str],
+    current_round: int,
+    target_id_mapper=None,
+    free_targeting: bool = False,
+    recent_narrations: List[str] = None
+) -> str:
+    """
+    Generate tactical prompt for structured output mode (no text format instructions).
+
+    This version excludes the declaration format requirements section since structured
+    output mode expects JSON conforming to the EnemyDecision schema, not text format.
+
+    Args:
+        Same as generate_tactical_prompt()
+
+    Returns:
+        Tactical prompt suitable for structured output mode
+    """
+    sections = []
+
+    # Header
+    sections.append(_format_header(enemy))
+
+    # Status
+    sections.append(_format_status(enemy))
+
+    # Recent Action Outcomes
+    if recent_narrations:
+        sections.append(_format_recent_outcomes(recent_narrations))
+
+    # Combat Doctrine
+    sections.append(_format_doctrine(enemy))
+
+    # Battlefield Situation
+    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
+
+    # Tactical Options
+    sections.append(_format_tactical_options(enemy))
+
+    # Tactical Analysis
+    sections.append(_format_tactical_analysis(enemy, player_agents))
+
+    # Shared Intel
+    if shared_intel:
+        intel_section = _format_shared_intel(shared_intel, current_round)
+        if intel_section:
+            sections.append(intel_section)
+
+    # Retreat Assessment
+    sections.append(_format_retreat_assessment(enemy))
+
+    # NO declaration format requirements - schema defines the structure
+    sections.append("## YOUR DECISION\n\nProvide your tactical decision as structured output conforming to the EnemyDecision schema. Include your tactical reasoning.")
+
+    # Footer
+    sections.append(_format_footer())
+
+    return "\n\n".join(sections)
+
+
 # =============================================================================
 # SECTION FORMATTERS
 # =============================================================================
@@ -724,7 +789,7 @@ TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination positio
 WEAPON: [weapon name if attacking]
 MINOR_ACTION: [Shift / Claim_Token / Reload / Disengage / None]
 TOKEN_TARGET: [token name if claiming]
-TACTICAL_REASONING: [1-2 sentences explaining your choice]
+TACTICAL_REASONING: [explain your choice with as much detail as needed]
 SHARE_INTEL: [Optional: info to share with allied enemies]
 
 ### Example Declarations:

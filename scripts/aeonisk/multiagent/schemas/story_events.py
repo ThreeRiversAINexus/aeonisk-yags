@@ -69,22 +69,22 @@ class NewClock(BaseModel):
     advance_meaning: str = Field(
         ...,
         min_length=5,
-        max_length=150,  # Increased from 100 for verbose LLMs
-        description="SHORT phrase: what it means when clock advances (e.g., 'threat escalates', 'progress made'). Keep under 10 words."
+        max_length=150,
+        description="What it means when clock advances (e.g., 'threat escalates', 'progress made')"
     )
 
     regress_meaning: str = Field(
         ...,
         min_length=5,
-        max_length=150,  # Increased from 100 for verbose LLMs
-        description="SHORT phrase: what it means when clock regresses (opposite of advance). Keep under 10 words."
+        max_length=150,
+        description="What it means when clock regresses (opposite of advance)"
     )
 
     filled_consequence: str = Field(
         default="",
         min_length=0,
-        max_length=400,  # Increased from 300 for verbose LLMs
-        description="CONCISE description: what happens when clock fills (e.g., 'Enemy reinforcements arrive'). Aim for 1-2 sentences max."
+        max_length=400,
+        description="What happens when clock fills (e.g., 'Enemy reinforcements arrive')"
     )
 
     current_ticks: int = Field(
@@ -477,22 +477,22 @@ class ScenarioSetup(BaseModel):
     theme: str = Field(
         ...,
         min_length=10,
-        max_length=500,  # Increased from 200 for liberal limits
-        description="Scenario theme/hook"
+        max_length=500,
+        description="Scenario theme/hook - describe the core tension or conflict"
     )
 
     location: str = Field(
         ...,
         min_length=5,
-        max_length=500,  # Increased from 200 for liberal limits
-        description="Starting location"
+        max_length=500,
+        description="Starting location - be specific about the environment"
     )
 
     situation: str = Field(
         ...,
         min_length=50,
-        max_length=2500,  # Increased from 1200 for liberal limits
-        description="Opening situation (3-5 sentences)"
+        max_length=2500,
+        description="Opening situation - set the scene with as much detail as needed to establish atmosphere, stakes, and immediate context"
     )
 
     void_level: int = Field(
@@ -526,6 +526,11 @@ class ScenarioSetup(BaseModel):
     initial_enemies: List[EnemySpawn] = Field(
         default_factory=list,
         description="Enemies present at scenario start (optional)"
+    )
+
+    initial_npcs: List['NPCSpawn'] = Field(
+        default_factory=list,
+        description="NPCs present at scenario start (optional)"
     )
 
 

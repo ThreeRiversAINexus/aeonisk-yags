@@ -764,13 +764,13 @@ class OpenAIProvider(LLMProvider):
                 "OPENAI_API_KEY not found in config or environment variables"
             )
 
-        # Create client with increased timeout for connection issues
-        # Default timeout is 5s which can fail on slow connections
-        # Increase to 30s connect, 60s read, 60s write, 120s total pool
+        # Create client with increased timeout for OpenAI's slower response times
+        # OpenAI can be very slow with complex structured outputs (especially gpt-5-mini)
+        # Increase to: 30s connect, 180s read, 90s write, 240s total pool
         from httpx import Timeout
         self.client = openai.OpenAI(
             api_key=api_key,
-            timeout=Timeout(connect=30.0, read=60.0, write=60.0, pool=120.0)
+            timeout=Timeout(connect=30.0, read=180.0, write=90.0, pool=240.0)
         )
 
         # Initialize rate limiter if enabled

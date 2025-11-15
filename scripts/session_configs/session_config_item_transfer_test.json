@@ -11,6 +11,13 @@
     "_design_notes": "Tests item transfer system. Both characters at Near-PC range. Ash should transfer items to Kress, Kress should transfer currency to Ash, then possibly combined transfers."
   },
   "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
     "players": [
       {
         "name": "Ash Vex",
@@ -32,7 +39,7 @@
           "Attunement": 3,
           "Charm": 2
         },
-        "void_score": 2,
+        "void": 2,
         "soulcredit": 5,
         "max_hp": 26,
         "current_hp": 26,
@@ -90,7 +97,7 @@
           "Magick Theory": 3,
           "Medicine": 2
         },
-        "void_score": 3,
+        "void": 3,
         "soulcredit": 4,
         "max_hp": 30,
         "current_hp": 30,
@@ -128,12 +135,6 @@
         }
       }
     ]
-  },
-  "dm_config": {
-    "provider": "anthropic",
-    "model": "claude-sonnet-4-5",
-    "temperature": 0.7,
-    "max_tokens": 2000
   },
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,

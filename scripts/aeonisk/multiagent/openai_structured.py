@@ -48,6 +48,12 @@ def _create_openai_compatible_model(pydantic_model: Type[T]) -> Type[T]:
         new_defaults = {}
 
         for field_name, field_info in model_fields.items():
+            # Skip fields marked as excluded from LLM (populated by system)
+            json_schema_extra = field_info.json_schema_extra or {}
+            if isinstance(json_schema_extra, dict) and json_schema_extra.get('exclude_from_llm', False):
+                logger.debug(f"Excluding {model.__name__}.{field_name} from OpenAI schema (populated by system)")
+                continue
+
             # Get the annotation (might be a nested Pydantic model)
             annotation = field_info.annotation
 
