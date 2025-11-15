@@ -217,28 +217,28 @@ async def generate_structured_openai_native(
         schema = compatible_model.model_json_schema()
         logger.debug(f"OpenAI schema for {result_type.__name__}: {len(str(schema))} chars")
 
-        # Check for problematic patterns
-        if '$defs' in schema:
-            for def_name, def_schema in schema['$defs'].items():
-                required = set(def_schema.get('required', []))
-                properties = set(def_schema['properties'].keys()) if 'properties' in def_schema else set()
-                optional = properties - required
-                missing_defaults = []
-                for field in optional:
-                    if 'default' not in def_schema['properties'][field]:
-                        missing_defaults.append(field)
-                if missing_defaults:
-                    logger.warning(f"  {def_name} has optional fields WITHOUT defaults: {missing_defaults}")
+        # Check for problematic patterns (commented out - too noisy, false positives for dict fields)
+        # if '$defs' in schema:
+        #     for def_name, def_schema in schema['$defs'].items():
+        #         required = set(def_schema.get('required', []))
+        #         properties = set(def_schema['properties'].keys()) if 'properties' in def_schema else set()
+        #         optional = properties - required
+        #         missing_defaults = []
+        #         for field in optional:
+        #             if 'default' not in def_schema['properties'][field]:
+        #                 missing_defaults.append(field)
+        #         if missing_defaults:
+        #             logger.warning(f"  {def_name} has optional fields WITHOUT defaults: {missing_defaults}")
 
-        # Specifically check PurchaseEffect
-        if '$defs' in schema and 'PurchaseEffect_OpenAICompat' in [k for k in schema['$defs'].keys() if 'PurchaseEffect' in k]:
-            for def_name in schema['$defs'].keys():
-                if 'PurchaseEffect' in def_name:
-                    pe_schema = schema['$defs'][def_name]
-                    logger.debug(f"  {def_name} required: {pe_schema.get('required', [])}")
-                    if 'currency_spent' in pe_schema.get('properties', {}):
-                        cs = pe_schema['properties']['currency_spent']
-                        logger.debug(f"  currency_spent has default: {'default' in cs}")
+        # Specifically check PurchaseEffect (commented out - debug noise)
+        # if '$defs' in schema and 'PurchaseEffect_OpenAICompat' in [k for k in schema['$defs'].keys() if 'PurchaseEffect' in k]:
+        #     for def_name in schema['$defs'].keys():
+        #         if 'PurchaseEffect' in def_name:
+        #             pe_schema = schema['$defs'][def_name]
+        #             logger.debug(f"  {def_name} required: {pe_schema.get('required', [])}")
+        #             if 'currency_spent' in pe_schema.get('properties', {}):
+        #                 cs = pe_schema['properties']['currency_spent']
+        #                 logger.debug(f"  currency_spent has default: {'default' in cs}")
 
     # Use OpenAI's chat completions API with JSON schema mode
     # NOTE: This runs in a thread pool to avoid blocking the event loop
