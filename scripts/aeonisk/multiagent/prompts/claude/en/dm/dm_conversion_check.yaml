@@ -74,6 +74,30 @@ conversion_check_prompt: |
   3. **NPC Spawns**: Should any NEW NPCs enter the scene?
   4. **Enemy Spawns**: Should any NEW enemies enter combat?
 
+  ## 🚨 AFTER STORY ADVANCEMENT: Review NPC Persistence
+
+  **⚠️ CRITICAL: When this is Entity Lifecycle Phase #2 (after story advancement):**
+
+  Story advancement changes location/situation. **DECIDE which existing NPCs follow to the new scene:**
+
+  **Use `npc_departures` to remove NPCs who stayed behind:**
+  - Location-specific NPCs (evacuees who got to safety, guards who stayed at old post)
+  - NPCs whose purpose is complete (medic finished treating wounded, guide led to destination)
+  - Civilians who wouldn't follow into danger (fearful NPCs who stayed in safe zone)
+
+  **Keep NPCs who logically follow:**
+  - Allied NPCs actively helping players (field medic traveling with team)
+  - NPCs central to ongoing plot (quest-giver, prisoner being escorted)
+  - Authority figures investigating players (Tempest liaison tracking the team)
+
+  **Example:**
+  - Old scene: "Temple Chapel" with "Frightened Worshipper" (fearful civilian)
+  - New scene: "Inner Chapel - Breach Nexus" (dangerous void zone)
+  - Decision: Frightened civilian stayed in outer chapel (add to npc_departures)
+  - Keep: Field medic treating wounded (follows to provide aid)
+
+  **Then spawn NEW NPCs only if needed for the new scene** (don't duplicate existing functional roles!)
+
   ## 🎯 AUTO-CONVERT: Enemy/NPC Actions Requiring Conversion
 
   **⚠️ CRITICAL: If resolutions show enemies/NPCs taking these actions, you MUST convert them:**
