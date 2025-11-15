@@ -3268,7 +3268,7 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
         # Call LLM for structured narration
         try:
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 500  # Shorter - just need narration
+            max_tokens = 2000  # Increased for ActionResolution structured output
             temperature = 0.7
 
             purchase_resolution: ActionResolution = await self.llm_provider.generate_structured(
@@ -3419,7 +3419,7 @@ Read the action intent to understand WHY this transfer is happening:
         # Call LLM for structured narration
         try:
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 500  # Shorter - just need narration + Soulcredit interpretation
+            max_tokens = 2000  # Increased for ActionResolution structured output
             temperature = 0.7
 
             transfer_resolution: ActionResolution = await self.llm_provider.generate_structured(
