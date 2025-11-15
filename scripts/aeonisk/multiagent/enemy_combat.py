@@ -176,15 +176,18 @@ class EnemyCombatManager:
                 llm_config = dm_config.get('llm', {})
 
                 if llm_config:
+                    from .llm_provider import LLMConfig
+
                     provider = llm_config.get('provider', 'anthropic')
                     model = llm_config.get('model', 'claude-sonnet-4-5')
 
-                    self.llm_provider = create_provider(
+                    config = LLMConfig(
                         provider=provider,
                         model=model,
                         max_tokens=1500,  # Increased for headroom with verbose LLMs
                         temperature=0.7  # Enemy agents use fixed temp for consistency
                     )
+                    self.llm_provider = create_provider(config)
                     logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
                     logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
                 else:
