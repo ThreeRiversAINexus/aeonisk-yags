@@ -2499,7 +2499,7 @@ Void Level: {self.current_scenario.void_level}/10"""
                 prompt=prompt,
                 result_type=ConversionDecisions,
                 system_prompt="You are the DM determining which conversions should occur based on action resolutions.",
-                max_tokens=1500,  # Conversion decisions are shorter than full synthesis
+                max_tokens=3000,  # Increased for complex ConversionDecisions schemas
                 temperature=0.7
             )
 

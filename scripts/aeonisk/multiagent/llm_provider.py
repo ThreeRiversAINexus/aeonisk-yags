@@ -889,10 +889,11 @@ class OpenAIProvider(LLMProvider):
 
         # Call API
         try:
+            # gpt-5-mini and newer models require max_completion_tokens instead of max_tokens
             response = self.client.chat.completions.create(
                 model=self.config.model,
                 messages=messages,
-                max_tokens=max_tokens,
+                max_completion_tokens=max_tokens,
                 temperature=temperature,
                 **kwargs
             )
