@@ -69,22 +69,22 @@ class NewClock(BaseModel):
     advance_meaning: str = Field(
         ...,
         min_length=5,
-        max_length=100,
-        description="What it means when clock advances (e.g., 'threat escalates', 'progress made')"
+        max_length=150,  # Increased from 100 for verbose LLMs
+        description="SHORT phrase: what it means when clock advances (e.g., 'threat escalates', 'progress made'). Keep under 10 words."
     )
 
     regress_meaning: str = Field(
         ...,
         min_length=5,
-        max_length=100,
-        description="What it means when clock regresses (opposite of advance)"
+        max_length=150,  # Increased from 100 for verbose LLMs
+        description="SHORT phrase: what it means when clock regresses (opposite of advance). Keep under 10 words."
     )
 
     filled_consequence: str = Field(
         default="",
         min_length=0,
-        max_length=300,
-        description="What happens when clock fills (e.g., 'Enemy reinforcements arrive', 'Evidence complete, advance to confrontation')"
+        max_length=400,  # Increased from 300 for verbose LLMs
+        description="CONCISE description: what happens when clock fills (e.g., 'Enemy reinforcements arrive'). Aim for 1-2 sentences max."
     )
 
     current_ticks: int = Field(

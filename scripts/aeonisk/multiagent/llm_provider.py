@@ -1000,6 +1000,13 @@ This field is used for ML training and game mechanics - it is NOT optional when 
             )
             self._rate_limiter_initialized = True
 
+        # Extract logging parameters from kwargs (before retry loop)
+        llm_logger = kwargs.pop('llm_logger', None)
+        agent_prompt_logger = kwargs.pop('agent_prompt_logger', None)
+        agent_id = kwargs.pop('agent_id', None)
+        current_round = kwargs.pop('current_round', None)
+        call_sequence = kwargs.pop('call_sequence', 0)
+
         # Acquire rate limiter slot if enabled
         if self.config.use_rate_limiter:
             await _rate_limiter.acquire()
@@ -1009,6 +1016,7 @@ This field is used for ML training and game mechanics - it is NOT optional when 
             last_error = None
             for attempt in range(self.config.max_retries + 1):
                 try:
+
                     # Use native OpenAI API (bypasses Pydantic AI null content bug)
                     output = await generate_structured_openai_native(
                         client=self.client,
@@ -1018,6 +1026,11 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                         system_prompt=final_system_prompt,
                         max_tokens=max_tokens,
                         temperature=temperature,
+                        llm_logger=llm_logger,
+                        agent_prompt_logger=agent_prompt_logger,
+                        agent_id=agent_id,
+                        current_round=current_round,
+                        call_sequence=call_sequence,
                         **kwargs
                     )
 
