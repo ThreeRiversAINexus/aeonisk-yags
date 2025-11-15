@@ -279,14 +279,40 @@ async def generate_structured_openai_native(
         raise
 
     # Extract JSON content from response
-    content = completion.choices[0].message.content
+    message = completion.choices[0].message
+    content = message.content
 
     # Check for empty/null content
     if not content:
+        # Inspect completion object for refusal/filter information
+        finish_reason = completion.choices[0].finish_reason
+        refusal = getattr(message, 'refusal', None)
+
+        error_details = [
+            f"OpenAI returned empty content for {result_type.__name__}",
+            f"Finish reason: {finish_reason}",
+        ]
+
+        if refusal:
+            error_details.append(f"Refusal message: {refusal}")
+
+        # Check if there's a tool_calls or function_call instead of content
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            error_details.append(f"Has tool_calls (unexpected): {len(message.tool_calls)} calls")
+
+        if hasattr(message, 'function_call') and message.function_call:
+            error_details.append(f"Has function_call (unexpected): {message.function_call}")
+
+        # Log full completion object for debugging
+        logger.error(
+            f"❌ Empty content from OpenAI:\n" +
+            "\n".join(f"  {detail}" for detail in error_details) +
+            f"\nFull completion.choices[0]: {completion.choices[0]}"
+        )
+
         raise ValueError(
-            f"OpenAI returned empty content for {result_type.__name__}. "
-            f"This may indicate the model refused to generate output or hit a filter. "
-            f"Check the completion object for refusal/filter flags."
+            "OpenAI returned empty content. " +
+            " | ".join(error_details)
         )
 
     # Parse the JSON and validate with Pydantic
