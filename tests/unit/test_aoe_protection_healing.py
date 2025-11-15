@@ -16,6 +16,7 @@ from scripts.aeonisk.multiagent.schemas.shared_types import (
     DamageEffect,
     Condition,
     Position,
+    PositionChange,
 )
 
 from scripts.aeonisk.multiagent.schemas.action_resolution import (
@@ -113,7 +114,7 @@ class TestAoEDamageValidation:
             success=True,
             success_tier="good",
             margin=8,
-            narration="The grenade explodes, catching three enemies in the blast!",
+            narration="The grenade explodes in the middle of the enemy formation, catching three enemies in the blast radius! The lead enemy takes the full force of the explosion, while the two flanking enemies are thrown back by the shockwave.",
             effects=MechanicalEffects(
                 damage=[
                     DamageEffect(target="tgt_7a3f", base_damage=12, dealt=12),
