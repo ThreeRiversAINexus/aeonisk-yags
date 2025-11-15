@@ -881,6 +881,11 @@ class OpenAIProvider(LLMProvider):
         max_tokens = max_tokens or self.config.max_tokens
         temperature = temperature or self.config.temperature
 
+        # OpenAI gpt-5-mini and newer models require temperature=1.0
+        if temperature != 1.0:
+            logger.warning(f"OpenAI {self.config.model} requires temperature=1.0, overriding {temperature}")
+            temperature = 1.0
+
         # Build messages
         messages = []
         if system_prompt:
