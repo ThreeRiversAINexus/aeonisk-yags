@@ -257,6 +257,17 @@ conversion_check_prompt: |
   - For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED
   - Only use npc_spawns for characters who weren't previously in the scene
 
+  ⚠️ **CRITICAL: Check for duplicate NPC roles before spawning!**
+
+  Before spawning an NPC, check if an NPC with a similar role **already exists** in the ACTIVE NPCs list:
+  - ❌ DON'T spawn "Arcadia Triage Nurse" if "Arcadia Field Medic" already exists
+  - ❌ DON'T spawn "Tempest Liaison" if "Tempest Containment Tech" already exists
+  - ❌ DON'T spawn "Ritual Shepherd" if another shepherd/guide NPC already exists
+  - ✅ DO spawn if roles are DISTINCT (e.g., "Tempest Security" + "Tempest Medic" = different)
+  - ✅ DO spawn if narrative justifies duplicates (reinforcements, shift change, etc.)
+
+  **After story advancement:** Existing NPCs persist to new scene unless explicitly removed via npc_departures. Don't re-spawn the same functional roles!
+
   ⚠️ **CRITICAL: NPC disposition MUST be EXACTLY one of 6 values:**
   "friendly", "neutral", "wary", "fearful", "hostile", "prisoner"
 
