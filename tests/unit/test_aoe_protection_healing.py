@@ -208,7 +208,7 @@ class TestRangeBandAoE:
             success=True,
             success_tier="good",
             margin=8,
-            narration="The explosion blasts enemies backward!",
+            narration="The explosion blasts enemies backward, throwing them across the battlefield! Two enemies are hurled away from close range, landing in a heap at the far edge of the combat zone with visible injuries from both the blast and the impact.",
             effects=MechanicalEffects(
                 damage=[
                     DamageEffect(target="tgt_7a3f", base_damage=12, dealt=12),
@@ -216,8 +216,8 @@ class TestRangeBandAoE:
                 ],
                 position_changes=[
                     # Both targets pushed from Near-Enemy to Far-Enemy
-                    {"agent_id": "tgt_7a3f", "old_position": "Near-Enemy", "new_position": "Far-Enemy"},
-                    {"agent_id": "tgt_3c5d", "old_position": "Near-Enemy", "new_position": "Far-Enemy"},
+                    PositionChange(character_name="tgt_7a3f", new_position=Position.FAR_ENEMY, reason="Blasted backward by explosion"),
+                    PositionChange(character_name="tgt_3c5d", new_position=Position.FAR_ENEMY, reason="Thrown back by shockwave"),
                 ],
                 soulcredit_changes=[]
             )
@@ -331,12 +331,13 @@ class TestProtectionBarriers:
         depleted_barrier = Condition(
             name="Shattered Barrier",
             penalty=0,
-            duration=0,
-            description="Barrier depleted",
+            duration=1,  # Will be removed at end of round
+            description="Barrier depleted, shatters immediately",
             protection_amount=0
         )
 
         assert depleted_barrier.protection_amount == 0
+        # Barrier with protection_amount=0 should be removed by condition cleanup
 
     def test_full_action_resolution_with_barrier(self):
         """Complete ActionResolution creating protective barrier."""
@@ -344,7 +345,7 @@ class TestProtectionBarriers:
             success=True,
             success_tier="good",
             margin=5,
-            narration="You weave a shimmering astral barrier around your allies!",
+            narration="You weave a shimmering astral barrier around your allies! The translucent shield pulses with protective energy, forming a dome that will intercept incoming attacks. Your allies feel the warmth of the barrier's protective aura enveloping them as you channel your will into maintaining its integrity.",
             effects=MechanicalEffects(
                 conditions=[
                     Condition(
