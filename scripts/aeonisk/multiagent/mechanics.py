@@ -15,6 +15,28 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+
+def _resolution_success(resolution) -> bool:
+    """
+    Safely check if ActionResolution succeeded.
+
+    Handles both old dataclass (has .success field) and new Pydantic schema (has .success_tier enum).
+    For new schema, success = success_tier in (MODERATE, GOOD, EXCELLENT, EXCEPTIONAL).
+    """
+    # Old schema: has .success field
+    if hasattr(resolution, 'success'):
+        return resolution.success
+
+    # New schema: derive from success_tier
+    if hasattr(resolution, 'success_tier'):
+        from .schemas.action_resolution import SuccessTier
+        success_tiers = {SuccessTier.MODERATE, SuccessTier.GOOD, SuccessTier.EXCELLENT, SuccessTier.EXCEPTIONAL, SuccessTier.MARGINAL}
+        return resolution.success_tier in success_tiers
+
+    # Fallback: assume success if we can't determine
+    return True
+
+
 # Import energy economy types for seed attunement
 try:
     from .energy_economy import SeedType, Element, Seed, Vendor, VendorItem, VendorType
@@ -214,8 +236,13 @@ class JSONLLogger:
         - excellent_success: Roll = DC+20 (margin +10 to +14)
         - exceptional_success: Roll = DC+30+ (margin +15+)
         """
-        ability = resolution.attribute_value * resolution.skill_value if resolution.skill_value > 0 else resolution.attribute_value - 5
-        dc = resolution.difficulty
+        # Defensive attribute access for old vs new ActionResolution schema
+        attribute_value = getattr(resolution, 'attribute_value', 0)
+        skill_value = getattr(resolution, 'skill_value', 0)
+        difficulty = getattr(resolution, 'difficulty', 0)
+
+        ability = attribute_value * skill_value if skill_value > 0 else (attribute_value - 5 if attribute_value > 0 else 0)
+        dc = difficulty
 
         tiers = {
             "critical_failure": {
@@ -307,11 +334,15 @@ class JSONLLogger:
           }
         }
         """
-        # Calculate ability score
-        if resolution.skill and resolution.skill_value > 0:
-            ability = resolution.attribute_value * resolution.skill_value
+        # Calculate ability score (defensive checks for old vs new ActionResolution schema)
+        skill = getattr(resolution, 'skill', None)
+        skill_value = getattr(resolution, 'skill_value', 0)
+        attribute_value = getattr(resolution, 'attribute_value', 0)
+
+        if skill and skill_value > 0:
+            ability = attribute_value * skill_value
         else:
-            ability = resolution.attribute_value - 5  # Unskilled penalty
+            ability = attribute_value - 5 if attribute_value > 0 else 0  # Unskilled penalty
 
         # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
@@ -327,6 +358,21 @@ class JSONLLogger:
                 "source": "structured_output"
             }
 
+        # Build roll dict with defensive attribute access (handles both old dataclass and new Pydantic schema)
+        roll_dict = {
+            "attr": getattr(resolution, 'attribute', None),
+            "attr_val": attribute_value,
+            "skill": skill,
+            "skill_val": skill_value,
+            "ability": ability,
+            "d20": getattr(resolution, 'roll', None),
+            "total": getattr(resolution, 'total', None),
+            "dc": getattr(resolution, 'difficulty', None),
+            "margin": getattr(resolution, 'margin', 0),
+            "tier": getattr(resolution.outcome_tier, 'value', None) if hasattr(resolution, 'outcome_tier') else None,
+            "success": getattr(resolution, 'success', None)
+        }
+
         event = {
             "event_type": "action_resolution",
             "ts": datetime.now().isoformat(),
@@ -336,19 +382,7 @@ class JSONLLogger:
             "agent": agent_name,
             "action": action,
             "context": context or {},
-            "roll": {
-                "attr": resolution.attribute,
-                "attr_val": resolution.attribute_value,
-                "skill": resolution.skill,
-                "skill_val": resolution.skill_value,
-                "ability": ability,
-                "d20": resolution.roll,
-                "total": resolution.total,
-                "dc": resolution.difficulty,
-                "margin": resolution.margin,
-                "tier": resolution.outcome_tier.value,
-                "success": resolution.success
-            },
+            "roll": roll_dict,
             "outcome_tiers": outcome_tiers,  # Threshold-based (backward compat)
             "economy": economy_changes,
             "clocks": clock_states,
@@ -1878,7 +1912,7 @@ class MechanicsEngine:
         )
 
         # Apply tier downgrade if no offering and successful
-        if ritual_effects.get('tier_downgrade') and resolution.success:
+        if ritual_effects.get('tier_downgrade') and _resolution_success(resolution):
             # Downgrade outcome tier by one level
             tier_map = {
                 OutcomeTier.EXCEPTIONAL: OutcomeTier.EXCELLENT,
@@ -1962,21 +1996,21 @@ class MechanicsEngine:
         # Fulfill Ritual Contract/Oath (+1) - formal, witnessed
         if any(keyword in action_text for keyword in ['fulfill contract', 'fulfill oath', 'complete contract',
                                                         'honor oath', 'uphold contract', 'fulfill agreement']):
-            if resolution.success:
+            if _resolution_success(resolution):
                 delta += 1
                 reasons.append("Fulfilled ritual contract/oath (+1 SC)")
 
         # Aid Another's Ritual with Offering (+1)
         if any(keyword in action_text for keyword in ['aid ritual', 'help ritual', 'assist ritual',
                                                         'support ritual', 'join ritual']):
-            if has_offering and resolution.success:
+            if has_offering and _resolution_success(resolution):
                 delta += 1
                 reasons.append("Aided another's ritual with offering (+1 SC)")
 
         # Void Cleansing Ritual (+2-3) - intentional SC improvement action
         if any(keyword in action_text for keyword in ['cleanse void', 'purify void', 'remove void',
                                                         'void cleansing', 'spiritual cleansing']):
-            if resolution.success:
+            if _resolution_success(resolution):
                 # +3 for Strong Resonance+ (margin 10+), +2 otherwise
                 cleanse_bonus = 3 if resolution.margin >= 10 else 2
                 delta += cleanse_bonus
@@ -1984,7 +2018,7 @@ class MechanicsEngine:
 
         # Public Ritual aligned with Bond/Will (+2) - witnessed, significant, Solid+ margin
         if any(keyword in action_text for keyword in ['public ritual', 'witnessed ritual', 'ceremonial ritual']):
-            if resolution.success and resolution.margin >= 5:  # Solid margin
+            if _resolution_success(resolution) and resolution.margin >= 5:  # Solid margin
                 delta += 2
                 reasons.append("Public ritual aligned with principles (+2 SC)")
 
@@ -2003,13 +2037,13 @@ class MechanicsEngine:
 
             if faction in faction_keywords:
                 if any(keyword in action_text for keyword in faction_keywords[faction]):
-                    if resolution.success and 'at cost' in action_text or 'sacrifice' in action_text:
+                    if _resolution_success(resolution) and 'at cost' in action_text or 'sacrifice' in action_text:
                         delta += 1
                         reasons.append(f"Upheld {faction} tenets at personal cost (+1 SC)")
 
         # Ritual Success with Strong Resonance+ (+1) - margin 10+
         # NOTE: This is a minor bonus compared to the social actions above
-        if is_ritual and resolution.success and resolution.margin >= 10:
+        if is_ritual and _resolution_success(resolution) and resolution.margin >= 10:
             # Only award if not already awarded for cleansing or public ritual
             if not any('cleansing' in r or 'Public ritual' in r for r in reasons):
                 delta += 1
@@ -2051,7 +2085,7 @@ class MechanicsEngine:
 
         # Ritual Failure from Negligence (-1) - GM call
         # Only applies if ritual failed AND there's evidence of lack of preparation
-        if is_ritual and not resolution.success:
+        if is_ritual and not _resolution_success(resolution):
             negligence_indicators = ['unprepared', 'no offering', 'rushed', 'careless', 'negligent']
             if any(indicator in action_text for indicator in negligence_indicators):
                 delta -= 1
@@ -3146,7 +3180,7 @@ class MechanicsEngine:
 
         # Saboteur Exposure - advances on successful investigation/detection
         if "Saboteur Exposure" in self.scene_clocks:
-            if resolution.success:
+            if _resolution_success(resolution):
                 # Broad investigation keywords
                 investigation_keywords = [
                     'investigate', 'analyze', 'trace', 'scan', 'search', 'examine',
@@ -3163,7 +3197,7 @@ class MechanicsEngine:
         if "Communal Stability" in self.scene_clocks:
             # Success at healing/stabilizing improves stability
             healing_keywords = ['stabiliz', 'heal', 'mend', 'repair', 'bond', 'harmoniz', 'protective', 'barrier']
-            if resolution.success and any(kw in intent_lower for kw in healing_keywords):
+            if _resolution_success(resolution) and any(kw in intent_lower for kw in healing_keywords):
                 # Stability clock tracks degradation, so successful healing REGRESSES it (improves stability)
                 self.scene_clocks["Communal Stability"].regress(1)
             # Failures at healing or any critical failure degrades stability
@@ -3243,23 +3277,38 @@ class MechanicsEngine:
 
         Codex Nexum guidance: Always emit Attribute × Skill, d20, total, DC, margin, tier.
         """
-        # Format skill text - never show "×None"
-        if resolution.skill and resolution.skill_value > 0:
-            skill_text = f"{resolution.attribute} × {resolution.skill}"
-            ability = resolution.attribute_value * resolution.skill_value
-            formula = f"{resolution.attribute_value} × {resolution.skill_value} + d20({resolution.roll})"
-        else:
-            skill_text = f"{resolution.attribute} (unskilled)"
-            ability = resolution.attribute_value - 5
-            formula = f"{resolution.attribute_value} + d20({resolution.roll}) - 5"
+        # Defensive attribute access for old vs new ActionResolution schema
+        skill = getattr(resolution, 'skill', None)
+        skill_value = getattr(resolution, 'skill_value', 0)
+        attribute = getattr(resolution, 'attribute', 'Unknown')
+        attribute_value = getattr(resolution, 'attribute_value', 0)
+        roll = getattr(resolution, 'roll', 0)
+        intent = getattr(resolution, 'intent', 'Action')
 
-        # Transparent roll display
+        # Format skill text - never show "×None"
+        if skill and skill_value > 0:
+            skill_text = f"{attribute} × {skill}"
+            ability = attribute_value * skill_value
+            formula = f"{attribute_value} × {skill_value} + d20({roll})"
+        else:
+            skill_text = f"{attribute} (unskilled)"
+            ability = attribute_value - 5 if attribute_value > 0 else 0
+            formula = f"{attribute_value} + d20({roll}) - 5" if attribute_value > 0 else "Unknown"
+
+        # Transparent roll display (with defensive access for new Pydantic schema)
+        total = getattr(resolution, 'total', 0)
+        difficulty = getattr(resolution, 'difficulty', 0)
+        margin = getattr(resolution, 'margin', 0)
+        outcome_tier_value = getattr(resolution.outcome_tier, 'value', 'unknown') if hasattr(resolution, 'outcome_tier') else 'unknown'
+        success = getattr(resolution, 'success', False)
+        narrative = getattr(resolution, 'narrative', getattr(resolution, 'narration', ''))
+
         return f"""
-**{resolution.intent}**
+**{intent}**
 Roll: {skill_text}
-Calculation: {formula} = **{resolution.total}**
-DC: {resolution.difficulty} | Margin: {resolution.margin:+d} | Tier: **{resolution.outcome_tier.value.upper()}** {'✓' if resolution.success else '✗'}
-{resolution.narrative}
+Calculation: {formula} = **{total}**
+DC: {difficulty} | Margin: {margin:+d} | Tier: **{outcome_tier_value.upper()}** {'✓' if success else '✗'}
+{narrative}
 """.strip()
 
     def get_state_summary(self) -> Dict[str, Any]:

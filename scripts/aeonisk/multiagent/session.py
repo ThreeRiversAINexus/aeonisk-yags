@@ -934,11 +934,20 @@ class SelfPlayingSession:
                     # Print detailed declaration info
                     if declaration:
                         action = declaration.get('major_action', 'Unknown')
-                        target = declaration.get('target', 'None')
+                        target_id = declaration.get('target', 'None')
                         weapon = declaration.get('weapon', 'N/A')
                         health_str = f"{agent.health}/{agent.max_health} HP"
                         position_str = str(agent.position)
-                        print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target} [{weapon}] | {health_str} | {position_str}")
+
+                        # Resolve target ID to character name for readability
+                        target_display = target_id
+                        if target_id and target_id.startswith('tgt_') and self.shared_state.target_id_mapper:
+                            # Look up character name from TargetIDMapper
+                            combatant_info = self.shared_state.target_id_mapper.get_combatant_info(target_id)
+                            if combatant_info:
+                                target_display = f"{combatant_info['name']} ({target_id})"
+
+                        print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
 
                     # Log enemy declaration
                     if declaration and mechanics and mechanics.jsonl_logger:
@@ -1083,6 +1092,22 @@ class SelfPlayingSession:
 
                         # Append narrative context to main context
                         context += narrative_context
+
+                        # Add combatant list with target IDs for assist/dialogue targeting
+                        if self.shared_state and hasattr(self.shared_state, 'target_id_mapper'):
+                            mapper = self.shared_state.target_id_mapper
+                            if mapper and mapper.enabled:
+                                combatant_list = []
+                                for target_id in mapper.get_all_target_ids():
+                                    info = mapper.get_combatant_info(target_id)
+                                    if info:
+                                        combatant_list.append(f"{info['name']} ({target_id})")
+
+                                if combatant_list:
+                                    context += "\n\n## Available Targets (for assist/dialogue):\n"
+                                    context += "**⚠️ Use target IDs (tgt_xxxx) when specifying targets**\n"
+                                    for c in combatant_list:
+                                        context += f"- {c}\n"
 
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)
@@ -1343,14 +1368,17 @@ class SelfPlayingSession:
                     if result:
                         # Check if action was invalidated
                         if result.get('result') == 'invalidated':
-                            print(f"\n⚠️  {result['narration']}")
+                            narration = self._resolve_target_ids_in_text(result['narration'])
+                            print(f"\n⚠️  {narration}")
                         else:
                             # Enhanced enemy execution output
                             enemy = next((e for e in self.enemy_combat.enemy_agents if e.agent_id == result.get('enemy_id')), None)
                             if enemy:
                                 health_str = f"{enemy.health}/{enemy.max_health} HP"
                                 position_str = str(enemy.position)
-                                print(f"\n[{result['character_name']}] {result['narration']}")
+                                # Resolve target IDs in narration for readability
+                                narration = self._resolve_target_ids_in_text(result['narration'])
+                                print(f"\n[{result['character_name']}] {narration}")
                                 # Show additional details on second line if combat action with damage
                                 if result.get('damage_dealt') is not None:
                                     damage_str = f"Damage: {result.get('damage_dealt')}"
@@ -1361,7 +1389,8 @@ class SelfPlayingSession:
                                     print(f"         └─ {health_str} | {position_str}")
                             else:
                                 # Fallback if enemy not found
-                                print(f"\n[{result['character_name']}] {result['narration']}")
+                                narration = self._resolve_target_ids_in_text(result['narration'])
+                                print(f"\n[{result['character_name']}] {narration}")
 
                         # Add enemy result to synthesis input
                         # Enemy actions use a simplified result dict compared to ActionResolution schema
@@ -1391,6 +1420,7 @@ class SelfPlayingSession:
                             'intent': npc_action['intent'],
                             'description': npc_action['description'],
                             'action_type': npc_action.get('action_type', 'dialogue'),
+                            'target': npc_action.get('target'),  # Include target for assist/dialogue/attack actions
                             'is_npc': True  # Flag for DM to use lightweight adjudication
                         }
                     }
@@ -1759,7 +1789,8 @@ class SelfPlayingSession:
                                 soak=npc_spawn.soak,
                                 void_score=0,  # NPCs start with no void
                                 skills=npc_spawn.skills,
-                                description=npc_spawn.description
+                                description=npc_spawn.description,
+                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
                             )
 
                             # Add to shared state
@@ -1922,7 +1953,8 @@ class SelfPlayingSession:
             cleanup_events = self.enemy_combat.cleanup_round()
 
             for event in cleanup_events:
-                print(f"[CLEANUP] {event['narration']}")
+                narration = self._resolve_target_ids_in_text(event['narration'])
+                print(f"[CLEANUP] {narration}")
 
                 if mechanics and mechanics.jsonl_logger:
                     mechanics.jsonl_logger.log_event(
@@ -2617,6 +2649,34 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         return "\n".join(summary_lines)
 
+    def _resolve_target_ids_in_text(self, text: str) -> str:
+        """
+        Replace target IDs (tgt_xxxx) in text with character names for readability.
+
+        Args:
+            text: Narration or description text potentially containing target IDs
+
+        Returns:
+            Text with target IDs replaced by character names (or original if no mapper)
+        """
+        if not text or not self.shared_state or not self.shared_state.target_id_mapper:
+            return text
+
+        import re
+
+        # Pattern to match target IDs like tgt_7a3f
+        pattern = r'\btgt_[a-z0-9]{4}\b'
+
+        def replace_target_id(match):
+            target_id = match.group(0)
+            combatant_info = self.shared_state.target_id_mapper.get_combatant_info(target_id)
+            if combatant_info:
+                # Replace with "CharacterName (tgt_xxxx)" for clarity
+                return f"{combatant_info['name']} ({target_id})"
+            return target_id  # Keep original if not found
+
+        return re.sub(pattern, replace_target_id, text)
+
     def _spawn_new_clocks(self, new_clocks: List[Dict[str, any]]):
         """Spawn new clocks from DM markers (legacy)."""
         if not self.shared_state or not self.shared_state.mechanics_engine:
@@ -3289,7 +3349,9 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             inventory_key = validation.inventory_key
                             inventory[inventory_key] = inventory.get(inventory_key, 0) + 1
 
-                            logger.info(f"✓ PURCHASE EXECUTED: {player_agent.character_state.name} bought {validation.item_name} for {validation.cost}")
+                            # Format cost dict as readable string (e.g., "5 drip, 2 grain")
+                            cost_str = ", ".join([f"{amount} {currency}" for currency, amount in validation.cost.items() if amount > 0]) if validation.cost else "free"
+                            logger.info(f"✓ PURCHASE EXECUTED: {player_agent.character_state.name} bought {validation.item_name} for {cost_str}")
                             action_payload['purchase_validation']['executed'] = True
                         else:
                             logger.warning(f"Purchase pre-validation FAILED: {validation.failure_reason}")
@@ -3790,7 +3852,8 @@ NO conversions/morale checks needed (scene just started).
                                 soak=npc_spawn.soak,
                                 void_score=0,
                                 skills=npc_spawn.skills or {},
-                                agent_prompt_logger=self.agent_prompt_logger if hasattr(self, 'agent_prompt_logger') else None
+                                agent_prompt_logger=self.agent_prompt_logger if hasattr(self, 'agent_prompt_logger') else None,
+                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
                             )
 
                             self.shared_state.npc_agents.append(npc)

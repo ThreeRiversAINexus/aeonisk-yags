@@ -217,7 +217,7 @@ class NPCLLMClient:
                 prompt=prompt,
                 result_type=NPCAction,
                 system_prompt=self._get_system_prompt(),
-                max_tokens=800,  # NPCs have simple actions
+                max_tokens=1000,  # Increased for OpenAI structured output overhead
                 temperature=self.temperature
             )
 
@@ -270,7 +270,7 @@ class NPCLLMClient:
 - plead: Beg for mercy, express fear
 - comply: Follow instructions, cooperate
 - dialogue: Speak, answer questions, negotiate
-- assist: Help players with tasks (if friendly)
+- assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
 - **attack: Attack players or others (if threatened, paranoid, or hostile)**
 - pass: Do nothing this turn (use when situation doesn't involve you)
 
@@ -278,7 +278,8 @@ class NPCLLMClient:
 1. Non-combatants flee or hide during combat (but can attack if cornered/panicked)
 2. Prisoners plead or comply when threatened
 3. Allies assist or provide dialogue
-4. Pass when nothing relevant is happening (opportunistic acting)
+4. **For assist/dialogue actions: ALWAYS use target IDs (tgt_xxxx) from the combatant list**
+5. Pass when nothing relevant is happening (opportunistic acting)
 5. Low health → prioritize fleeing/hiding
 6. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
 7. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively

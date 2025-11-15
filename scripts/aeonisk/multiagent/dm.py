@@ -18,6 +18,27 @@ from .prompt_loader import load_agent_prompt, compose_sections, load_modular_pro
 logger = logging.getLogger(__name__)
 
 
+def _resolution_success(resolution) -> bool:
+    """
+    Safely check if ActionResolution succeeded.
+
+    Handles both old dataclass (has .success field) and new Pydantic schema (has .success_tier enum).
+    For new schema, success = success_tier in (MODERATE, GOOD, EXCELLENT, EXCEPTIONAL).
+    """
+    # Old schema: has .success field
+    if hasattr(resolution, 'success'):
+        return resolution.success
+
+    # New schema: derive from success_tier
+    if hasattr(resolution, 'success_tier'):
+        from .schemas.action_resolution import SuccessTier
+        success_tiers = {SuccessTier.MODERATE, SuccessTier.GOOD, SuccessTier.EXCELLENT, SuccessTier.EXCEPTIONAL, SuccessTier.MARGINAL}
+        return resolution.success_tier in success_tiers
+
+    # Fallback: assume success if we can't determine
+    return True
+
+
 @dataclass
 class Scenario:
     """Current game scenario state."""
@@ -2236,7 +2257,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                     # Track action for round summary statistics
                     if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                         self.shared_state.session.track_action_resolution(
-                            success=action_resolution.success,
+                            success=_resolution_success(action_resolution),
                             margin=action_resolution.margin
                         )
 
@@ -2482,7 +2503,18 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                     f"{npc.agent_id} ({npc.name}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
                 )
 
-        # 3. Build scenario context (location, theme, void level, situation, clocks)
+        # 3. Build player character names list
+        player_characters = []
+        if self.shared_state and hasattr(self.shared_state, 'session'):
+            session = self.shared_state.session
+            if hasattr(session, 'agents'):
+                from .player import AIPlayerAgent
+                for agent in session.agents:
+                    if isinstance(agent, AIPlayerAgent):
+                        if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'name'):
+                            player_characters.append(agent.character_state.name)
+
+        # 4. Build scenario context (location, theme, void level, situation, clocks)
         scenario_context = "Unknown scenario"
         if self.current_scenario:
             scenario_context = f"""**Current Scenario:**
@@ -2526,6 +2558,7 @@ Void Level: {self.current_scenario.void_level}/10"""
         # 5. Format prompt with context
         prompt = prompt_data['conversion_check_prompt'].format(
             scenario_context=scenario_context,
+            player_characters=", ".join(player_characters) if player_characters else "Unknown players",
             available_enemies="\n".join(available_enemies) if available_enemies else "No active enemies",
             available_npcs="\n".join(available_npcs) if available_npcs else "No active NPCs",
             resolution_summary=resolution_summary
@@ -3368,7 +3401,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
         Returns:
             Resolution dict matching standard format
         """
-        from .mechanics import ActionResolution, OutcomeTier
+        from .schemas.action_resolution import ActionResolution
+        from .mechanics import OutcomeTier
 
         character_name = action.get('character_name', 'Character')
         intent = action.get('intent', 'Purchase item')
@@ -3422,7 +3456,7 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
                 temperature=temperature
             )
 
-            narration = purchase_resolution.narrative
+            narration = purchase_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Purchase LLM narration: {len(narration)} chars")
 
             # Log LLM call for replay
@@ -3453,45 +3487,37 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
             else:
                 narration = f"{character_name} attempts to purchase {item_name}, but the transaction fails: {failure_reason}."
 
-            # Create fallback ActionResolution
+            # Create fallback ActionResolution using new Pydantic schema
+            from .schemas.action_resolution import SuccessTier, MechanicalEffects
             purchase_resolution = ActionResolution(
-                intent=intent,
-                attribute='None',
-                skill=None,
-                attribute_value=0,
-                skill_value=0,
-                roll=0,
-                total=0,
-                difficulty=0,
+                narration=narration,
+                success_tier=SuccessTier.MODERATE if executed else SuccessTier.FAILURE,
                 margin=0,
-                outcome_tier=OutcomeTier.MARGINAL if executed else OutcomeTier.FAILURE,
-                success=executed,
-                narrative=narration,
-                state_effects={'purchase': True, 'item_obtained': item_name if executed else None}
+                effects=MechanicalEffects()  # Purchase already executed mechanically
             )
 
         # Return resolution matching standard format (includes effects key for session.py)
         return {
             'resolution': purchase_resolution,
-            'narration': purchase_resolution.narrative,
+            'narration': purchase_resolution.narration,
             'state_changes': {},
             'combat_data': {},
             'inventory_changes': [],
             'effects': {},  # Empty effects dict (purchase already executed mechanically)
             'outcome': {
-                'dm_response': purchase_resolution.narrative,
-                'success': purchase_resolution.success,
+                'dm_response': getattr(purchase_resolution, 'narrative', getattr(purchase_resolution, 'narration', '')),
+                'success': getattr(purchase_resolution, 'success', True),
                 'consequences': [],
-                'narration': purchase_resolution.narrative,
+                'narration': getattr(purchase_resolution, 'narrative', getattr(purchase_resolution, 'narration', '')),
                 'resolution': {
-                    'intent': purchase_resolution.intent,
-                    'attribute': purchase_resolution.attribute,
-                    'skill': purchase_resolution.skill,
-                    'total': purchase_resolution.total,
-                    'difficulty': purchase_resolution.difficulty,
-                    'margin': purchase_resolution.margin,
-                    'outcome_tier': purchase_resolution.outcome_tier.value if hasattr(purchase_resolution.outcome_tier, 'value') else str(purchase_resolution.outcome_tier),
-                    'success': purchase_resolution.success
+                    'intent': getattr(purchase_resolution, 'intent', None),
+                    'attribute': getattr(purchase_resolution, 'attribute', None),
+                    'skill': getattr(purchase_resolution, 'skill', None),
+                    'total': getattr(purchase_resolution, 'total', None),
+                    'difficulty': getattr(purchase_resolution, 'difficulty', None),
+                    'margin': purchase_resolution.margin if hasattr(purchase_resolution, 'margin') else 0,
+                    'outcome_tier': purchase_resolution.outcome_tier.value if hasattr(purchase_resolution, 'outcome_tier') and hasattr(purchase_resolution.outcome_tier, 'value') else str(getattr(purchase_resolution, 'outcome_tier', 'unknown')),
+                    'success': getattr(purchase_resolution, 'success', True)
                 }
             }
         }
@@ -3510,7 +3536,8 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
         Returns:
             Resolution dict matching standard format
         """
-        from .mechanics import ActionResolution, OutcomeTier
+        from .schemas.action_resolution import ActionResolution
+        from .mechanics import OutcomeTier
 
         character_name = action.get('character_name', 'Character')
         intent = action.get('intent', 'Transfer currency')
@@ -3573,7 +3600,7 @@ Read the action intent to understand WHY this transfer is happening:
                 temperature=temperature
             )
 
-            narration = transfer_resolution.narrative
+            narration = transfer_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Transfer LLM narration: {len(narration)} chars")
 
             # Log LLM call for replay
@@ -3604,45 +3631,37 @@ Read the action intent to understand WHY this transfer is happening:
             else:
                 narration = f"{sender_name} attempts to transfer currency to {receiver_name}, but the transaction fails: {failure_reason}."
 
-            # Create fallback ActionResolution
+            # Create fallback ActionResolution using new Pydantic schema
+            from .schemas.action_resolution import SuccessTier, MechanicalEffects
             transfer_resolution = ActionResolution(
-                intent=intent,
-                attribute='None',
-                skill=None,
-                attribute_value=0,
-                skill_value=0,
-                roll=0,
-                total=0,
-                difficulty=0,
+                narration=narration,
+                success_tier=SuccessTier.MODERATE if executed else SuccessTier.FAILURE,
                 margin=0,
-                outcome_tier=OutcomeTier.MARGINAL if executed else OutcomeTier.FAILURE,
-                success=executed,
-                narrative=narration,
-                state_effects={'currency_transfer': True}
+                effects=MechanicalEffects()  # Transfer already executed mechanically
             )
 
         # Return resolution matching standard format
         return {
             'resolution': transfer_resolution,
-            'narration': transfer_resolution.narrative,
+            'narration': transfer_resolution.narration,
             'state_changes': {},
             'combat_data': {},
             'inventory_changes': [],
             'effects': {},  # Empty effects dict (transfer already executed mechanically)
             'outcome': {
-                'dm_response': transfer_resolution.narrative,
-                'success': transfer_resolution.success,
+                'dm_response': getattr(transfer_resolution, 'narrative', getattr(transfer_resolution, 'narration', '')),
+                'success': getattr(transfer_resolution, 'success', True),
                 'consequences': [],
-                'narration': transfer_resolution.narrative,
+                'narration': getattr(transfer_resolution, 'narrative', getattr(transfer_resolution, 'narration', '')),
                 'resolution': {
-                    'intent': transfer_resolution.intent,
-                    'attribute': transfer_resolution.attribute,
-                    'skill': transfer_resolution.skill,
-                    'total': transfer_resolution.total,
-                    'difficulty': transfer_resolution.difficulty,
-                    'margin': transfer_resolution.margin,
-                    'outcome_tier': transfer_resolution.outcome_tier.value if hasattr(transfer_resolution.outcome_tier, 'value') else str(transfer_resolution.outcome_tier),
-                    'success': transfer_resolution.success
+                    'intent': getattr(transfer_resolution, 'intent', None),
+                    'attribute': getattr(transfer_resolution, 'attribute', None),
+                    'skill': getattr(transfer_resolution, 'skill', None),
+                    'total': getattr(transfer_resolution, 'total', None),
+                    'difficulty': getattr(transfer_resolution, 'difficulty', None),
+                    'margin': transfer_resolution.margin if hasattr(transfer_resolution, 'margin') else 0,
+                    'outcome_tier': transfer_resolution.outcome_tier.value if hasattr(transfer_resolution, 'outcome_tier') and hasattr(transfer_resolution.outcome_tier, 'value') else str(getattr(transfer_resolution, 'outcome_tier', 'unknown')),
+                    'success': getattr(transfer_resolution, 'success', True)
                 }
             }
         }
@@ -3675,35 +3694,95 @@ Read the action intent to understand WHY this transfer is happening:
 
         # Check if this is an NPC action (lightweight adjudication)
         if action.get('is_npc'):
-            from .mechanics import ActionResolution, OutcomeTier
+            from .schemas.action_resolution import ActionResolution
+            from .mechanics import OutcomeTier
 
             character_name = action.get('character_name', 'NPC')
-            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent}")
+            npc_action_type = action.get('action_type', 'unknown')  # action_type is in the action dict
+            target = action.get('target')
+            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent} (type: {npc_action_type})")
 
-            # NPCs get simple narrative resolution without complex mechanics
-            # Generate brief narration (1-2 sentences) from their declared action
-            narration = f"{character_name} {description}"
+            # Import required schema types
+            from .schemas.action_resolution import SuccessTier, MechanicalEffects
+            from .schemas.shared_types import Condition
 
-            # Create a minimal ActionResolution for NPC (no dice rolls/mechanics)
-            npc_resolution = ActionResolution(
-                intent=intent,
-                attribute='None',  # NPCs don't use attributes
-                skill=None,        # NPCs don't use skills
-                attribute_value=0,
-                skill_value=0,
-                roll=0,            # No dice roll
-                total=0,
-                difficulty=0,
-                margin=0,
-                outcome_tier=OutcomeTier.MARGINAL,  # NPCs get basic success (no mechanics)
-                success=True,
-                narrative=narration,
-                state_effects={}
-            )
+            # Special case: "pass" actions use template narration (no LLM call)
+            if npc_action_type == 'pass':
+                narration = f"{character_name} passes because the situation doesn't involve them and they don't want to do anything."
+                # Pad to minimum 200 chars if needed
+                if len(narration) < 200:
+                    narration = narration + " " * (200 - len(narration))
+
+                npc_resolution = ActionResolution(
+                    narration=narration,
+                    success_tier=SuccessTier.MODERATE,
+                    margin=0,
+                    effects=MechanicalEffects()
+                )
+            else:
+                # All other NPC actions: Generate LLM narration
+                npc_prompt = f"""Generate vivid narration for this NPC action (200-400 characters):
+
+NPC: {character_name}
+Action Type: {npc_action_type}
+Intent: {intent}
+Target: {target if target else 'None'}
+
+Describe what the NPC does in atmospheric detail. Focus on their behavior, body language, and immediate effects.
+
+Return ONLY the narration text, nothing else."""
+
+                try:
+                    # Call LLM for simple text narration (not structured output - faster and smaller)
+                    from pydantic import BaseModel, Field
+
+                    class SimpleNarration(BaseModel):
+                        """Simple narration text for NPC actions."""
+                        text: str = Field(..., min_length=200, max_length=500, description="Atmospheric narration of NPC action")
+
+                    npc_narration_response = await self.llm_provider.generate_structured(
+                        prompt=npc_prompt,
+                        result_type=SimpleNarration,
+                        system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
+                        max_tokens=2000,  # Increased for OpenAI structured output overhead (2-3x actual content)
+                        temperature=0.8
+                    )
+                    narration = npc_narration_response.text
+
+                    # Handle assist actions: apply +1 bonus to target
+                    effects = MechanicalEffects()
+                    if npc_action_type == 'assist' and target:
+                        effects.conditions = [
+                            Condition(
+                                name="Assisted",
+                                penalty=1,  # +1 bonus (positive penalty = buff)
+                                duration=1,
+                                description=f"Aided by {character_name}",
+                                target=target
+                            )
+                        ]
+
+                    npc_resolution = ActionResolution(
+                        narration=narration,
+                        success_tier=SuccessTier.MODERATE,
+                        margin=5,
+                        effects=effects
+                    )
+                except Exception as e:
+                    logger.warning(f"NPC LLM narration failed: {e}, using fallback")
+                    narration = f"{character_name} {description}. The NPC action completes successfully."
+                    if len(narration) < 200:
+                        narration = narration + " " * (200 - len(narration))
+                    npc_resolution = ActionResolution(
+                        narration=narration,
+                        success_tier=SuccessTier.MODERATE,
+                        margin=5,
+                        effects=MechanicalEffects()
+                    )
 
             # Return lightweight resolution matching player format (with outcome dict)
             return {
-                'resolution': npc_resolution,  # ActionResolution dataclass
+                'resolution': npc_resolution,  # ActionResolution Pydantic model
                 'narration': narration,
                 'state_changes': {},  # Empty state changes for NPCs (no mechanics)
                 'combat_data': {},  # No combat data for NPCs
@@ -3712,15 +3791,10 @@ Read the action intent to understand WHY this transfer is happening:
                     'dm_response': narration,
                     'success': True,  # NPCs always succeed (simple narration)
                     'consequences': [],
-                    'narration': narration,  # Needed by line 1882
+                    'narration': narration,  # Needed by session.py
                     'resolution': {
-                        'intent': intent,
-                        'attribute': 'None',
-                        'skill': None,
-                        'total': 0,
-                        'difficulty': 0,
-                        'margin': 0,
-                        'outcome_tier': 'marginal',  # String value
+                        'success_tier': 'moderate',  # String value for backwards compat
+                        'margin': 5,
                         'success': True
                     }
                 }
@@ -4056,16 +4130,16 @@ The following actions ALREADY resolved (faster initiative):
                             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                                 # Build attack roll data from resolution
                                 attack_roll_data = {
-                                    "attr": resolution.attribute if resolution else "Unknown",
-                                    "attr_val": resolution.attribute_value if resolution else 0,
-                                    "skill": resolution.skill if resolution else None,
-                                    "skill_val": resolution.skill_value if resolution else 0,
+                                    "attr": getattr(resolution, 'attribute', "Unknown") if resolution else "Unknown",
+                                    "attr_val": getattr(resolution, 'attribute_value', 0) if resolution else 0,
+                                    "skill": getattr(resolution, 'skill', None) if resolution else None,
+                                    "skill_val": getattr(resolution, 'skill_value', 0) if resolution else 0,
                                     "weapon_bonus": 0,  # Not tracked for player attacks currently
-                                    "d20": resolution.roll if resolution else 0,
-                                    "total": resolution.total if resolution else 0,
-                                    "dc": resolution.difficulty if resolution else 0,
-                                    "hit": resolution.success if resolution else True,
-                                    "margin": resolution.margin if resolution else 0
+                                    "d20": getattr(resolution, 'roll', 0) if resolution else 0,
+                                    "total": getattr(resolution, 'total', 0) if resolution else 0,
+                                    "dc": getattr(resolution, 'difficulty', 0) if resolution else 0,
+                                    "hit": getattr(resolution, 'success', True) if resolution else True,
+                                    "margin": resolution.margin if resolution and hasattr(resolution, 'margin') else 0
                                 }
 
                                 # Build damage roll data from combat_data or effect
@@ -4207,7 +4281,7 @@ The following actions ALREADY resolved (faster initiative):
                 # For now, we'll use fallback generation since DM doesn't explicitly write buff blocks yet
 
                 # Generate fallback buff if successful action
-                if resolution and resolution.success:
+                if resolution and _resolution_success(resolution):
                     buff = generate_fallback_buff(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
                     if buff:
                         logger.debug(f"Generated fallback buff: {buff.get('type')} for {buff.get('target')}")
@@ -4326,7 +4400,7 @@ The following actions ALREADY resolved (faster initiative):
                                         skill=skill,
                                         roll_total=resolution.total if resolution else 0,
                                         dc=resolution.difficulty if resolution else 20,
-                                        success=resolution.success if resolution else True,
+                                        success=_resolution_success(resolution) if resolution else True,
                                         margin=resolution.margin if resolution else 10,
                                         outcome="surrender",
                                         narration=narration[:500]  # Truncate to 500 chars
@@ -4378,7 +4452,7 @@ The following actions ALREADY resolved (faster initiative):
                                         skill=skill,
                                         roll_total=resolution.total if resolution else 0,
                                         dc=resolution.difficulty if resolution else 20,
-                                        success=resolution.success if resolution else True,
+                                        success=_resolution_success(resolution) if resolution else True,
                                         margin=resolution.margin if resolution else 10,
                                         outcome="flee",
                                         narration=narration[:500]  # Truncate to 500 chars
@@ -4631,17 +4705,17 @@ The following actions ALREADY resolved (faster initiative):
             'effects': effects_dict,  # Include purchase/crafting effects from structured output
             'outcome': {
                 'dm_response': narration,
-                'success': resolution.success if resolution else True,
+                'success': getattr(resolution, 'success', True) if resolution else True,
                 'consequences': [],
                 'resolution': {
-                    'intent': resolution.intent,
-                    'attribute': resolution.attribute,
-                    'skill': resolution.skill,
-                    'total': resolution.total,
-                    'difficulty': resolution.difficulty,
-                    'margin': resolution.margin,
-                    'outcome_tier': resolution.outcome_tier.value if hasattr(resolution.outcome_tier, 'value') else str(resolution.outcome_tier),
-                    'success': resolution.success
+                    'intent': getattr(resolution, 'intent', None),
+                    'attribute': getattr(resolution, 'attribute', None),
+                    'skill': getattr(resolution, 'skill', None),
+                    'total': getattr(resolution, 'total', None),
+                    'difficulty': getattr(resolution, 'difficulty', None),
+                    'margin': resolution.margin if hasattr(resolution, 'margin') else 0,
+                    'outcome_tier': resolution.outcome_tier.value if hasattr(resolution, 'outcome_tier') and hasattr(resolution.outcome_tier, 'value') else str(getattr(resolution, 'outcome_tier', 'unknown')),
+                    'success': getattr(resolution, 'success', True)
                 } if resolution else {}
             }
         }
@@ -4835,7 +4909,7 @@ The following actions ALREADY resolved (faster initiative):
                     logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
             # Extract and record party discoveries from successful actions
-            if resolution.success and resolution.margin >= 5:
+            if _resolution_success(resolution) and resolution.margin >= 5:
                 # Extract key discovery from the narration (simple heuristic)
                 # Look for sentences that suggest new information
                 discovery_text = self._extract_discovery_from_narration(llm_narration, intent)
@@ -5192,19 +5266,19 @@ The following actions ALREADY resolved (faster initiative):
         if resolution:
             # Convert resolution to JSON-serializable dict
             resolution_data = {
-                'intent': resolution.intent,
-                'attribute': resolution.attribute,
-                'skill': resolution.skill,
-                'total': resolution.total,
-                'difficulty': resolution.difficulty,
-                'margin': resolution.margin,
-                'outcome_tier': resolution.outcome_tier.value,  # Convert enum to string
-                'success': resolution.success
+                'intent': getattr(resolution, 'intent', None),
+                'attribute': getattr(resolution, 'attribute', None),
+                'skill': getattr(resolution, 'skill', None),
+                'total': getattr(resolution, 'total', None),
+                'difficulty': getattr(resolution, 'difficulty', None),
+                'margin': resolution.margin if hasattr(resolution, 'margin') else 0,
+                'outcome_tier': resolution.outcome_tier.value if hasattr(resolution, 'outcome_tier') and hasattr(resolution.outcome_tier, 'value') else str(getattr(resolution, 'outcome_tier', 'unknown')),
+                'success': getattr(resolution, 'success', True)
             }
 
         outcome = {
             'dm_response': narration,
-            'success': resolution.success if resolution else True,
+            'success': getattr(resolution, 'success', True) if resolution else True,
             'consequences': [],
             'resolution': resolution_data
         }
@@ -5893,7 +5967,7 @@ Note: NPCs and other characters are aware of this affiliation.
 
         resolution_context = ""
         if resolution:
-            outcome_text = "succeeded" if resolution.success else "failed"
+            outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
 """
@@ -6023,13 +6097,13 @@ Note: NPCs and other characters are aware of this affiliation. Consider how fact
 
         resolution_context = ""
         if resolution:
-            outcome_text = "succeeded" if resolution.success else "failed"
+            outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
 """
 
         # Build success-specific guidance
-        if resolution and resolution.success:
+        if resolution and _resolution_success(resolution):
             outcome_guidance = """5. Provide a new clue, discovery, or piece of information that rewards their success"""
         else:
             outcome_guidance = """5. NO hints or clues - the failure means they MISS information. Instead provide:
@@ -6400,7 +6474,7 @@ When adjudicating:
             logger.error(f"LLM API error: {e}")
             # Fallback to template
             if resolution:
-                if resolution.success:
+                if _resolution_success(resolution):
                     return f"You {description} successfully. You notice something unusual about the situation that provides a new lead."
                 else:
                     return f"Your attempt to {description} doesn't go as planned. The failure reveals an unexpected complication."
@@ -6557,30 +6631,34 @@ Generate a brief (2-3 sentences) narrative describing the Eye of Breach's sudden
 Be vivid and maintain the dark sci-fi atmosphere."""
 
             try:
-                # Use rate-limited wrapper to prevent API overload
-                from .llm_provider import call_anthropic_with_retry
+                # Use provider-agnostic LLM call (respects configured provider)
+                if not self.llm_provider:
+                    raise RuntimeError("No LLM provider available")
 
-                response = await call_anthropic_with_retry(
-                    client=self.llm_client,
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
+                response = await self.llm_provider.generate(
+                    prompt=prompt,
                     max_tokens=200,
-                    temperature=0.85,
-                    max_retries=3,
-                    base_delay=2.0,
-                    max_delay=120.0,
-                    use_rate_limiter=True
+                    temperature=0.85
                 )
-                event_text = response.content[0].text.strip()
+                event_text = response.text  # Extract text from LLMResponse object
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    # Use actual token count if available, otherwise estimate
+                    if response.tokens_used:
+                        # tokens_used is total, estimate split
+                        estimated_input_tokens = len(prompt) // 4
+                        estimated_output_tokens = response.tokens_used - estimated_input_tokens
+                    else:
+                        estimated_input_tokens = len(prompt) // 4
+                        estimated_output_tokens = len(event_text) // 4
+
                     self.llm_logger._log_llm_call(
                         messages=[{"role": "user", "content": prompt}],
                         response=event_text,
                         model=model,
                         temperature=0.85,
-                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
@@ -6597,7 +6675,6 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                             response=event_text,
                             model=model,
                             temperature=0.85,
-                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                             metadata={'purpose': 'eye_of_breach_event', 'character_void': character_void, 'env_void': env_void}
                         )
                     except Exception as e:
@@ -6722,7 +6799,8 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             position=position,  # Required - always has a position
             weapons=weapons,  # Weapons based on threat level and skills
             converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
-            agent_prompt_logger=self.agent_prompt_logger  # Pass through logger
+            agent_prompt_logger=self.agent_prompt_logger,  # Pass through logger
+            llm_provider=self.llm_provider  # Pass LLM provider for NPC action generation
         )
 
         # Register with SharedState

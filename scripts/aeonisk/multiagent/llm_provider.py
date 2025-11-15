@@ -862,6 +862,11 @@ class OpenAIProvider(LLMProvider):
             logger.warning("🔄 Length limit reached, will retry with increased max_tokens")
             return True
 
+        # Check for finish_reason: length from openai_structured.py (with space or underscore)
+        if ('finish_reason' in error_str or 'finish reason' in error_str) and 'length' in error_str:
+            logger.warning("🔄 OpenAI finish_reason: length detected, will retry with increased max_tokens")
+            return True
+
         # Check for pydantic-ai specific retry messages
         if 'exceeded maximum retries' in error_str:
             return True
@@ -1088,7 +1093,8 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                     )
 
                     # Special handling for length errors - retry with more tokens
-                    if "finish_reason" in str(e) and "length" in str(e):
+                    error_str_check = str(e).lower()
+                    if ("finish_reason" in error_str_check or "finish reason" in error_str_check) and "length" in error_str_check:
                         if max_tokens < 8000:  # Cap at 8000 tokens
                             new_max_tokens = min(max_tokens + 2000, 8000)
                             logger.warning(

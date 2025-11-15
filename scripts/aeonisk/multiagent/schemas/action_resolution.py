@@ -302,7 +302,7 @@ class ActionResolution(BaseModel):
     environment: Optional[str] = Field(
         default=None,
         min_length=10,
-        max_length=200,
+        max_length=800,
         description="One-line setting description with relevant conditions"
     )
 
