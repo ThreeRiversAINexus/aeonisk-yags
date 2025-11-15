@@ -51,7 +51,7 @@ def _create_openai_compatible_model(pydantic_model: Type[T]) -> Type[T]:
             # Skip fields marked as excluded from LLM (populated by system)
             json_schema_extra = field_info.json_schema_extra or {}
             if isinstance(json_schema_extra, dict) and json_schema_extra.get('exclude_from_llm', False):
-                logger.debug(f"Excluding {model.__name__}.{field_name} from OpenAI schema (populated by system)")
+                # logger.debug(f"Excluding {model.__name__}.{field_name} from OpenAI schema (populated by system)")
                 continue
 
             # Get the annotation (might be a nested Pydantic model)
@@ -97,7 +97,7 @@ def _create_openai_compatible_model(pydantic_model: Type[T]) -> Type[T]:
                         title=field_info.title,
                     )
                     new_defaults[field_name] = new_field
-                    logger.debug(f"Converted default_factory for {model.__name__}.{field_name} to default: {default_value}")
+                    # logger.debug(f"Converted default_factory for {model.__name__}.{field_name} to default: {default_value}")
                 except Exception as e:
                     logger.warning(f"Could not convert default_factory for {model.__name__}.{field_name}: {e}")
                     # Keep original field
@@ -108,7 +108,7 @@ def _create_openai_compatible_model(pydantic_model: Type[T]) -> Type[T]:
             else:
                 # Optional field WITHOUT any default - OpenAI strict mode requires a default
                 # Use None as the default for Optional fields
-                logger.warning(f"Field {model.__name__}.{field_name} is optional but has no default, adding default=None for OpenAI strict mode")
+                # logger.warning(f"Field {model.__name__}.{field_name} is optional but has no default, adding default=None for OpenAI strict mode")
                 new_field = Field(
                     default=None,
                     description=field_info.description,
