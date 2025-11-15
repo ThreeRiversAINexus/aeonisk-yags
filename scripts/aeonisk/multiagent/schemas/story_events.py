@@ -290,7 +290,29 @@ class EnemySpawn(BaseModel):
 
     template: str = Field(
         ...,
-        description="Enemy template from available types. Common templates: 'grunt' (basic), 'elite' (skilled), 'boss' (powerful), 'void_cultist', 'enforcer', 'sniper', 'support', 'ambusher', 'security_drone', 'seedwalker_heavy', etc."
+        description="""Enemy template - MUST use EXACTLY ONE of these valid templates:
+
+⚠️ VALID TEMPLATES (use these exact strings):
+- "grunt": Basic enemy, minimal training
+- "elite": Veteran combatant, advanced training
+- "boss": Powerful leader/commander
+- "enforcer": Security/law enforcement type
+- "sniper": Long-range specialist
+- "support": Healer/buffer/controller
+- "ambusher": Stealth/surprise attacker
+- "void_cultist": Void-corrupted enemy
+- "security_drone": Automated security
+- "seedwalker_heavy": Augmented heavy combatant
+- "voidcradle_antibot": Anti-bot specialist
+
+⚠️ INVALID EXAMPLES (do NOT use):
+- "elite_operative" → use "elite" or "enforcer"
+- "guard" → use "grunt" or "enforcer"
+- "soldier" → use "grunt" or "elite"
+- "cultist" → use "void_cultist"
+- "heavy" → use "seedwalker_heavy"
+
+If unsure, choose the CLOSEST match from the valid templates above."""
     )
 
     faction: str = Field(
@@ -341,8 +363,28 @@ class RoundSynthesis(BaseModel):
     Use story_advancement for major chapter changes (complete location changes).
     Cannot use both in the same round.
 
-    NOTE: Enemy/NPC spawns, conversions, and escalations are handled in Entity Lifecycle Phase
-    (before synthesis). Synthesis narrates these changes but doesn't trigger them mechanically.
+    **Phase Responsibilities:**
+
+    - **Entity Lifecycle Phase** (before synthesis):
+      - Enemy/NPC spawns, conversions, escalations via EntityLifecycleResult
+      - Triggered by filled clocks, morale checks, tactical decisions
+      - Processes departures (flee, depart)
+
+    - **Synthesis Phase** (this schema):
+      - ✅ Spawn NEW clocks via ScenePivot.new_clocks or StoryAdvancement.new_clocks
+      - ✅ Narrate entity changes (describe spawns/conversions from Entity Lifecycle)
+      - ✅ Track filled/expired clocks in clocks_filled/clocks_expired (JSONL logging)
+      - ❌ Does NOT spawn/convert entities (that's Entity Lifecycle's job)
+
+    - **Action Resolution Phase** (earlier, per-action):
+      - Update EXISTING clocks via ActionResolution.effects.clock_updates
+      - Damage, void changes, other immediate mechanical effects
+
+    **Clock Spawning Guidance:**
+    Spawn 1-2 NEW clocks every 2-3 rounds via ScenePivot.new_clocks (same location) or
+    StoryAdvancement.new_clocks (new location). Clocks drive dynamic tension and prevent
+    static scenarios. Use liberally when justified by narrative consequences (failed actions,
+    filled clocks creating new pressures, environmental changes).
 
     Example (Scene Pivot):
     ```python
@@ -571,15 +613,32 @@ class NPCSpawn(BaseModel):
     faction: str = Field(..., description="NPC's faction/allegiance (Freeborn, ACG, Civilian, etc.)")
     entity_type: Literal["neutral", "ally", "prisoner"] = Field(
         ...,
-        description="NPC's relation to players: neutral (non-aligned), ally (friendly), prisoner (captured)"
+        description="NPC's RELATIONSHIP to players (how they interact with party, NOT their combat threat). Options: 'neutral' (non-aligned third party), 'ally' (friendly/helpful), 'prisoner' (captured/restrained). ⚠️ DO NOT confuse with threat_level!"
     )
     threat_level: Literal["non_combatant", "potential_threat", "armed_neutral"] = Field(
         "non_combatant",
-        description="Determines enemy targeting: non_combatant (ignored by most), potential_threat (professionals engage), armed_neutral (treated as threat)"
+        description="NPC's COMBAT CAPABILITY (how enemies target them, NOT relationship to players). Options: 'non_combatant' (ignored by most enemies), 'potential_threat' (armed/dangerous, professionals may engage), 'armed_neutral' (visibly armed, treated as threat by ruthless enemies). ⚠️ DO NOT confuse with entity_type!"
     )
-    disposition: Literal["friendly", "neutral", "wary", "prisoner"] = Field(
+    disposition: Literal["friendly", "neutral", "wary", "fearful", "hostile", "prisoner"] = Field(
         ...,
-        description="NPC's attitude: friendly (helpful), neutral (indifferent), wary (suspicious), prisoner (captured/restrained)"
+        description="""NPC's EMOTIONAL STATE/ATTITUDE toward players.
+
+⚠️ MUST use EXACTLY ONE of these values (no variations, synonyms, or creative alternatives):
+- "friendly": Helpful, cooperative, welcoming
+- "neutral": Indifferent, businesslike, professional
+- "wary": Suspicious, cautious, distrustful
+- "fearful": Scared, intimidated, terrified, panicked, frantic (use this for ANY fear-based state)
+- "hostile": Aggressive, antagonistic (but not in combat - use escalations for combat)
+- "prisoner": Captured, restrained, compliant, subdued
+
+⚠️ EXAMPLES OF INVALID VALUES (do NOT use):
+- "frantic" → use "fearful"
+- "panicked" → use "fearful"
+- "determined" → use "neutral" or "wary" depending on attitude
+- "cooperative" → use "friendly"
+- "aggressive" → use "hostile"
+
+If unsure, choose the CLOSEST match from the 6 valid options above."""
     )
     description: str = Field(..., min_length=20, max_length=300)
     health: int = Field(..., ge=1, le=100)
@@ -670,9 +729,19 @@ class EnemyConversion(BaseModel):
         description="NPC entity type after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED, where enemy stays in scene)"
     )
 
-    resulting_disposition: Optional[Literal["friendly", "neutral", "wary", "prisoner"]] = Field(
+    resulting_disposition: Optional[Literal["friendly", "neutral", "wary", "fearful", "hostile", "prisoner"]] = Field(
         default=None,
-        description="NPC disposition after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED, where enemy stays in scene)"
+        description="""NPC disposition after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED).
+
+⚠️ MUST use EXACTLY ONE of: "friendly", "neutral", "wary", "fearful", "hostile", "prisoner"
+
+Common conversions:
+- Intimidated surrender → "fearful"
+- Captured/subdued → "prisoner"
+- Negotiated truce → "neutral"
+- Convinced to help → "friendly"
+
+Do NOT use variations like "frantic", "panicked", "determined" - map to closest valid option."""
     )
 
     @field_validator('resulting_entity_type', 'resulting_disposition')

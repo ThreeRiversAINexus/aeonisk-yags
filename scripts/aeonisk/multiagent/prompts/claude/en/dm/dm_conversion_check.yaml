@@ -184,8 +184,16 @@ conversion_check_prompt: |
   ```
 
   **Valid NPC field values:**
-  - `resulting_entity_type`: "neutral" | "ally" | "prisoner"
-  - `resulting_disposition`: "friendly" | "neutral" | "wary" | "prisoner"
+  - `resulting_entity_type`: "neutral" | "ally" | "prisoner"  (RELATIONSHIP to players - NOT combat threat!)
+  - `resulting_disposition`: ⚠️ MUST use EXACTLY ONE of these 6 values (no variations):
+    - "friendly": Cooperative, helpful, welcoming
+    - "neutral": Indifferent, businesslike, professional
+    - "wary": Suspicious, cautious, distrustful
+    - "fearful": Scared, intimidated, terrified, panicked, frantic (ANY fear state)
+    - "hostile": Aggressive/antagonistic (not in combat - use escalations for combat)
+    - "prisoner": Captured, restrained, compliant, subdued
+
+  ⚠️ INVALID: "frantic", "panicked", "determined", "cooperative" → map to closest valid option!
 
   **Examples:**
   ```python
@@ -248,6 +256,11 @@ conversion_check_prompt: |
   **⚠️ IMPORTANT: Use npc_spawns for NEW characters ONLY**
   - For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED
   - Only use npc_spawns for characters who weren't previously in the scene
+
+  ⚠️ **CRITICAL: NPC disposition MUST be EXACTLY one of 6 values:**
+  "friendly", "neutral", "wary", "fearful", "hostile", "prisoner"
+
+  Do NOT use variations like "frantic" (use "fearful"), "panicked" (use "fearful"), "determined" (use "neutral" or "wary").
 
   **When to spawn new NPCs:**
   - Story introduces quest-givers, informants, contacts
@@ -322,13 +335,13 @@ conversion_check_prompt: |
 
   **Examples:**
   ```python
-  # Civilian non-combatant
+  # Civilian non-combatant (fearful)
   NPCSpawn(
       name="Frightened Dock Worker",
       faction="Independent Civilian",
       entity_type="neutral",
       threat_level="non_combatant",
-      disposition="wary",
+      disposition="fearful",  # Use "fearful" for scared/terrified NPCs
       description="Terrified civilian hiding behind cargo crates",
       health=15,
       soak=0,
@@ -379,6 +392,11 @@ conversion_check_prompt: |
   - For NPC→Enemy conversions (escalations), use escalations instead
   - Only use enemy_spawns for enemies who weren't previously in the scene
   - Enemies have full tactical AI and will actively engage players
+
+  ⚠️ **CRITICAL: Enemy template MUST be EXACTLY one of these valid values:**
+  "grunt", "elite", "boss", "enforcer", "sniper", "support", "ambusher", "void_cultist", "security_drone", "seedwalker_heavy", "voidcradle_antibot"
+
+  Do NOT use variations like "elite_operative" (use "elite" or "enforcer"), "guard" (use "grunt" or "enforcer"), "soldier" (use "grunt"), "cultist" (use "void_cultist"), "heavy" (use "seedwalker_heavy"), "thug" (use "grunt"), "raider" (use "grunt" or "elite").
 
   **When to spawn new enemies:**
   - **Reinforcements:** Backup called after alarm/distress signal
@@ -447,9 +465,9 @@ conversion_check_prompt: |
   # Clock triggered → new faction enters
   enemy_spawns=[
       EnemySpawn(
-          template="raider",
+          template="elite",  # Use "elite" for skilled combatants, NOT "raider"
           faction="Red Coil Syndicate",
-          archetype="ranged",
+          archetype="Raider",
           count=4,
           spawn_reason="Red Coil Patrol clock filled - rival gang arrives to contest territory"
       )
@@ -460,11 +478,11 @@ conversion_check_prompt: |
   # Multiple failures in hostile zone
   enemy_spawns=[
       EnemySpawn(
-          template="heavy_gunner",
+          template="enforcer",  # Use "enforcer" for security/guards, NOT "heavy_gunner"
           faction="Local Criminal Syndicate",
           count=2,
           spawn_reason="Multiple failed hacks alerted facility defenders - heavy security deployed",
-          archetype="ranged",
+          archetype="Heavy Gunner",
           initial_position="Extreme-Enemy"
       )
   ]
@@ -490,7 +508,7 @@ conversion_check_prompt: |
   # ACTIVE ENEMIES list shows: enemy_grunt_4bc22537 (Red Coil Thug #1, 80% HP)
   enemy_spawns=[
       EnemySpawn(
-          template="thug",
+          template="grunt",  # Use "grunt" for basic enemies, NOT "thug"
           faction="Red Coil Syndicate",
           count=1,
           spawn_reason="Red Coil thug arrives"  # ← WRONG! Enemy already exists!
@@ -504,13 +522,17 @@ conversion_check_prompt: |
   enemy_spawns=[]  # ← Enemy already present, no spawn needed
   ```
 
-  **Template Guidelines:**
-  - `thug`: Low-tier criminals (15-20 HP, 1-2 soak)
-  - `raider`: Experienced fighters (20-25 HP, 2-3 soak)
-  - `enforcer`: Professional security (25-30 HP, 3-4 soak)
-  - `heavy_gunner`: Heavily armored (30-40 HP, 4-6 soak)
-  - `elite_operative`: Elite soldiers (30-35 HP, 4-5 soak)
-  - `void_cultist`: Void-corrupted (20-30 HP, 2-3 soak, void abilities)
+  **Template Guidelines (use EXACT template names from valid list):**
+  - `grunt`: Low-tier enemies (thugs, guards, basic soldiers) - 15-20 HP, 1-2 soak
+  - `elite`: Experienced combatants (veterans, skilled fighters) - 20-25 HP, 2-3 soak
+  - `enforcer`: Professional security/law enforcement - 25-30 HP, 3-4 soak
+  - `boss`: Powerful leaders/commanders - 40-50 HP, 4-6 soak
+  - `sniper`: Long-range specialists - 20-25 HP, 2-3 soak
+  - `void_cultist`: Void-corrupted enemies - 20-30 HP, 2-3 soak, void abilities
+  - `seedwalker_heavy`: Heavily augmented combatants - 30-40 HP, 4-6 soak
+  - `security_drone`: Automated security - 20-25 HP, 3-4 soak
+  - `ambusher`: Stealth/surprise attackers - 18-23 HP, 2-3 soak
+  - `support`: Healers/buffers/controllers - 18-22 HP, 1-2 soak
 
   ## ⚠️ CRITICAL: Validate IDs Before Conversion
 

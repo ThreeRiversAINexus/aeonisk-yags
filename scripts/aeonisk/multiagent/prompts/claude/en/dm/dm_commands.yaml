@@ -7,9 +7,64 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ the scenario has reached a definitive conclusion (victory, defeat, or draw):\n\
   - `[SESSION_END: VICTORY]` - Team achieved their objective\n- `[SESSION_END: DEFEAT]`\
   \ - Team failed catastrophically or was captured/killed\n- `[SESSION_END: DRAW]`\
-  \ - Stalemate or escape with incomplete objectives\n\n**2. Spawn New Clocks:**\nWhen filled clocks create new challenges or opportunities,\
-  \ use `StoryAdvancement.new_clocks` or `ScenePivot.new_clocks` in RoundSynthesis.\n\
-  \n**3. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
+  \ - Stalemate or escape with incomplete objectives\n\n**2. Spawn New Clocks:**\n\nClocks create dynamic pressure and drive scenario evolution. Spawn them liberally during synthesis!\n\n**When to spawn new clocks (use ScenePivot.new_clocks):**\n\
+- ✅ Failed actions in hostile environments → \"Security Response\" (6 ticks)\n\
+- ✅ Successful loud actions → \"ACG Investigation\" (8 ticks)\n\
+- ✅ Filled clocks create cascading consequences → \"Alarm\" fills → \"Reinforcements\" spawns\n\
+- ✅ Story complications arise → \"Rival Faction Interest\" (8 ticks)\n\
+- ✅ Scene feels static (2-3 rounds with no new clocks) → Add pressure/opportunity clock\n\
+- ❌ Don't spawn if you just spawned 2+ clocks last round (pacing)\n\n\
+**When to advance story (use StoryAdvancement.new_clocks):**\n\
+- All current clocks complete/expire → New location with 2-4 fresh clocks\n\
+- Major story beat completes → Investigation resolves → \"Confrontation\" chapter begins\n\
+- Critical filled clock triggers location change → \"Breach\" fills → Evacuate to new zone\n\n\
+**Important distinctions:**\n\
+- **Spawning NEW clocks:** RoundSynthesis (ScenePivot/StoryAdvancement) - your synthesis responsibility\n\
+- **Updating EXISTING clocks:** ActionResolution.effects.clock_updates - your action resolution responsibility\n\
+- **Filled clock → entity spawns:** EntityLifecycleResult.enemy_spawns - entity lifecycle phase responsibility\n\n\
+**Examples:**\n\n\
+```python\n\
+# Minor complication (same scene) - Failed stealth\n\
+scene_pivot=ScenePivot(\n\
+    should_pivot=False,\n\
+    new_clocks=[\n\
+        NewClock(\n\
+            name=\"Facility Lockdown\",\n\
+            max_ticks=6,\n\
+            description=\"Security protocols activate after intruder detected\",\n\
+            advance_meaning=\"lockdown systems engage\",\n\
+            regress_meaning=\"lockdown countermeasures disrupted\",\n\
+            filled_consequence=\"All exits sealed, armed response team deployed\"\n\
+        )\n\
+    ]\n\
+)\n\n\
+# Filled clock cascade - \"Alarm\" clock just filled\n\
+scene_pivot=ScenePivot(\n\
+    should_pivot=False,\n\
+    new_clocks=[\n\
+        NewClock(\n\
+            name=\"ACG Tactical Response\",\n\
+            max_ticks=5,\n\
+            description=\"Elite forces converge on breach location\",\n\
+            filled_consequence=\"Heavy combat squad arrives\"\n\
+        )\n\
+    ]\n\
+)\n\n\
+# Major transition (new location/chapter)\n\
+story_advancement=StoryAdvancement(\n\
+    should_advance=True,\n\
+    location=\"Reactor Core Access\",\n\
+    situation=\"Your sabotage has breached the inner sanctum...\",\n\
+    new_clocks=[\n\
+        NewClock(name=\"Meltdown Sequence\", max_ticks=10, description=\"Reactor critical in 10 minutes\"),\n\
+        NewClock(name=\"Escape Route\", max_ticks=6, description=\"Find transit tunnel before blast doors seal\"),\n\
+        NewClock(name=\"Corporate Pursuit\", max_ticks=8, description=\"ACG forces tracking your movements\")\n\
+    ]\n\
+)\n\
+```\n\n\
+**Note:** All clock spawning uses Pydantic structured output (ScenePivot/StoryAdvancement schemas).\n\
+NO marker parsing ([NEW_CLOCK:...] is deprecated and removed as of Nov 2024).\n\n\
+**3. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
   \ use `StoryAdvancement` in RoundSynthesis\n\n**With Structured Output (`StoryAdvancement`\
   \ schema):**\nUse the `new_void_level` field to update environmental void when story\
   \ beats justify it.\n\n**When to REDUCE void_level:**\n- Purification clocks completed\
@@ -119,12 +174,13 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ scientists, janitors\n- Entering a market/populated area → spawn merchants, civilians,\
   \ local fixers\n- Social missions → spawn quest-givers, informants, contacts\n-\
   \ Players need someone to talk to/intimidate/negotiate with\n\n**Examples:**\n\n```python\n# Example\
-  \ 1: Civilian non-combatant (most common)\nnpc_spawns=[\n    NPCSpawn(\n       \
+  \ 1: Civilian non-combatant (fearful)\nnpc_spawns=[\n    NPCSpawn(\n       \
   \ name=\"Frightened Dock Worker\",\n        faction=\"Independent Civilian\",\n\
   \        entity_type=\"neutral\",\n        threat_level=\"non_combatant\",\n  \
-  \      disposition=\"wary\",\n        description=\"Terrified civilian hiding behind\
-  \ cargo crates\",\n        health=15,  # Low health, fragile\n        soak=0,\n\
-  \        skills={}  # No special skills\n    )\n]\n\n# Example 2: Friendly ally\
+  \      disposition=\"fearful\",  # Use 'fearful' for scared/terrified NPCs\n  \
+  \      description=\"Terrified civilian hiding behind cargo crates\",\n        health=15,\
+  \  # Low health, fragile\n        soak=0,\n        skills={}  # No special skills\n\
+  \    )\n]\n\n# Example 2: Friendly ally\
   \ with skills\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Dr. Yuki Tanaka\",\n\
   \        faction=\"Freeborn Medical Corps\",\n        entity_type=\"ally\",\n \
   \       threat_level=\"non_combatant\",\n        disposition=\"friendly\",\n  \

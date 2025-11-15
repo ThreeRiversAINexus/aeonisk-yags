@@ -37,7 +37,12 @@ class ActionType(str, Enum):
 
 
 class Position(str, Enum):
-    """Tactical positioning."""
+    """
+    Tactical positioning.
+
+    Automatically normalizes Unicode hyphen variants (non-breaking hyphen U+2011, etc.)
+    to regular ASCII hyphen (-) to handle LLM output variations.
+    """
     ENGAGED = "Engaged"
     NEAR_PC = "Near-PC"
     NEAR_ENEMY = "Near-Enemy"
@@ -45,6 +50,44 @@ class Position(str, Enum):
     FAR_ENEMY = "Far-Enemy"
     EXTREME_PC = "Extreme-PC"
     EXTREME_ENEMY = "Extreme-Enemy"
+
+    @classmethod
+    def _missing_(cls, value):
+        """
+        Normalize Unicode hyphen variants to regular ASCII hyphen.
+
+        OpenAI models sometimes generate non-breaking hyphens (U+2011 ‑) or other
+        hyphen variants instead of regular ASCII hyphens (U+002D -), causing
+        validation errors like:
+
+        Input: "Near‑PC" (with U+2011 non-breaking hyphen)
+        Expected: "Near-PC" (with U+002D ASCII hyphen)
+
+        This hook normalizes all hyphen-like characters to regular hyphens before lookup.
+        """
+        if isinstance(value, str):
+            # Replace common hyphen variants with regular ASCII hyphen
+            # U+2011: non-breaking hyphen ‑
+            # U+2010: hyphen ‐
+            # U+2012: figure dash ‒
+            # U+2013: en dash –
+            # U+2014: em dash —
+            # U+2212: minus sign −
+            normalized = value.replace('\u2011', '-')  # non-breaking hyphen
+            normalized = normalized.replace('\u2010', '-')  # hyphen
+            normalized = normalized.replace('\u2012', '-')  # figure dash
+            normalized = normalized.replace('\u2013', '-')  # en dash
+            normalized = normalized.replace('\u2014', '-')  # em dash
+            normalized = normalized.replace('\u2212', '-')  # minus sign
+
+            # Try lookup with normalized value
+            try:
+                return cls(normalized)
+            except ValueError:
+                pass  # Let enum raise the original error
+
+        # Let default error handling take over
+        return None
 
 
 class VoidChange(BaseModel):
