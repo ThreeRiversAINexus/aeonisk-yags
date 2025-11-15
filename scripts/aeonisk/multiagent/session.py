@@ -1417,10 +1417,12 @@ class SelfPlayingSession:
 
                 if enemy and enemy.is_active:
                     # Convert to NPC with "prisoner" disposition
+                    # NPCs use same LLM provider as DM
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition="prisoner",
-                        current_round=mechanics.current_round if mechanics else 0
+                        current_round=mechanics.current_round if mechanics else 0,
+                        llm_provider=self.dm.llm_provider if self.dm else None
                     )
 
                     # Add to shared state
@@ -1627,10 +1629,12 @@ class SelfPlayingSession:
                                                                      EnemyResolution.NEUTRALIZED,
                                                                      EnemyResolution.SUBDUED]:
                                     # Enemy becomes NPC
+                                    # NPCs use same LLM provider as DM
                                     npc = deescalate_enemy_to_npc(
                                         enemy=enemy,
                                         disposition=enemy_conversion.resulting_disposition or "prisoner",
-                                        current_round=mechanics.current_round if mechanics else 0
+                                        current_round=mechanics.current_round if mechanics else 0,
+                                        llm_provider=self.dm.llm_provider if self.dm else None
                                     )
 
                                     # Add to shared state
@@ -3134,10 +3138,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 for notification in spawn_notifications:
                     print(f"\n{notification}")
 
-            # Get npc_spawns (works for both object and dict)
-            npc_spawns = getattr(scenario_setup, 'npc_spawns', None)
+            # Get initial_npcs (works for both object and dict)
+            npc_spawns = getattr(scenario_setup, 'initial_npcs', None)
             if npc_spawns is None and isinstance(scenario_setup, dict):
-                npc_spawns = scenario_setup.get('npc_spawns', [])
+                npc_spawns = scenario_setup.get('initial_npcs', [])
 
             if npc_spawns:
                 # Reconstruct NPCSpawn objects if they were serialized to dicts

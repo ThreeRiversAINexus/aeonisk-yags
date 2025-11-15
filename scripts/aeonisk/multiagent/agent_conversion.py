@@ -24,7 +24,8 @@ def deescalate_enemy_to_npc(
     enemy: EnemyAgent,
     disposition: Literal["friendly", "neutral", "wary", "prisoner"],
     current_round: Optional[int] = None,
-    agent_prompt_logger=None
+    agent_prompt_logger=None,
+    llm_provider=None
 ) -> NPCAgent:
     """
     Convert enemy to NPC after successful diplomacy/intimidation/voluntary surrender.
@@ -135,7 +136,10 @@ def deescalate_enemy_to_npc(
         conversion_history=[conversion],
 
         # Logging
-        agent_prompt_logger=agent_prompt_logger
+        agent_prompt_logger=agent_prompt_logger,
+
+        # LLM provider
+        llm_provider=llm_provider
     )
 
     logger.debug(f"✅ De-escalated {enemy.agent_id}: {enemy.name} → NPC ({disposition})")

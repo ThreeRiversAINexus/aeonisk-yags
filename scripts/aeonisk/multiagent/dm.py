@@ -6654,11 +6654,13 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             return None
 
         # Convert enemy to NPC (preserves all state)
+        # NPCs use same LLM provider as DM
         npc = deescalate_enemy_to_npc(
             enemy=enemy,
             disposition=deescalation.resulting_disposition,
             current_round=current_round,
-            agent_prompt_logger=self.agent_prompt_logger
+            agent_prompt_logger=self.agent_prompt_logger,
+            llm_provider=self.llm_provider
         )
 
         # Remove from enemy pool, add to NPC pool

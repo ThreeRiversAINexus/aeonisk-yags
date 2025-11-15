@@ -347,10 +347,12 @@ class EnemyCombatManager:
                         disposition = "prisoner"  # Knocked out, incapacitated
 
                     # Convert enemy to NPC
+                    # NPCs use same LLM provider as enemies
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition=disposition,
-                        current_round=self.current_round
+                        current_round=self.current_round,
+                        llm_provider=self.llm_provider if hasattr(self, 'llm_provider') else None
                     )
 
                     # Add NPC to shared state

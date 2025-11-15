@@ -93,11 +93,18 @@ class NPCAgent:
     # Logging
     agent_prompt_logger: Optional['AgentPromptLogger'] = None  # Human-readable prompt/response logging
 
+    # LLM provider (for creating NPCLLMClient)
+    llm_provider: Optional['LLMProvider'] = None  # LLM provider instance (OpenAI, Anthropic, etc.)
+
     def __post_init__(self):
         """Initialize LLM client if not provided."""
         if self.llm_client is None and self.can_act:
             try:
-                self.llm_client = NPCLLMClient(self, agent_prompt_logger=self.agent_prompt_logger)
+                self.llm_client = NPCLLMClient(
+                    self,
+                    llm_provider=self.llm_provider,
+                    agent_prompt_logger=self.agent_prompt_logger
+                )
                 logger.debug(f"NPCLLMClient initialized for {self.name} ({self.agent_id})")
             except Exception as e:
                 logger.warning(f"Failed to initialize NPCLLMClient for {self.name}: {e}. NPC will use fallback actions.")
@@ -138,7 +145,7 @@ class NPCLLMClient:
     def __init__(
         self,
         npc: 'NPCAgent',
-        model: str = "claude-sonnet-4-5-20250929",
+        llm_provider=None,
         temperature: float = 1.0,
         agent_prompt_logger=None
     ):
@@ -147,16 +154,20 @@ class NPCLLMClient:
 
         Args:
             npc: The NPC this client represents
-            model: Anthropic model ID
+            llm_provider: LLMProvider instance (OpenAI, Anthropic, etc.)
             temperature: Sampling temperature (1.0 = balanced)
             agent_prompt_logger: Optional AgentPromptLogger for human-readable logging
         """
         self.npc = npc
-        self.model = model
+        self.llm_provider = llm_provider
         self.temperature = temperature
         self.agent_prompt_logger = agent_prompt_logger
         self.call_count = 0  # Track LLM call sequence
-        logger.debug(f"✅ NPCLLMClient initialized for {npc.name} with model {model}")
+
+        if llm_provider:
+            logger.debug(f"✅ NPCLLMClient initialized for {npc.name} with provider {type(llm_provider).__name__}")
+        else:
+            logger.warning(f"⚠️  NPCLLMClient initialized for {npc.name} WITHOUT LLM provider - will use fallback actions")
 
     async def declare_action(self, context: str) -> NPCAction:
         """
@@ -185,28 +196,20 @@ class NPCLLMClient:
         # Build prompt based on NPC state
         prompt = self._build_prompt(context)
 
-        # Call LLM with Pydantic AI
+        # Check if LLM provider available
+        if not self.llm_provider:
+            logger.warning(f"No LLM provider for NPC {self.npc.name}, using fallback")
+            return self._get_fallback_action(context)
+
+        # Call LLM with provider
         try:
-            from pydantic_ai import Agent
-            from os import getenv
-
-            # Create agent with structured output
-            # Note: Pydantic AI 1.9.0+ uses 'output_type' not 'result_type'
-            agent = Agent(
-                f'anthropic:{self.model}',
-                output_type=NPCAction,
-                system_prompt=self._get_system_prompt()
+            action = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=NPCAction,
+                system_prompt=self._get_system_prompt(),
+                max_tokens=800,  # NPCs have simple actions
+                temperature=self.temperature
             )
-
-            # Get API key
-            api_key = getenv("ANTHROPIC_API_KEY")
-            if not api_key:
-                logger.warning(f"No ANTHROPIC_API_KEY for NPC {self.npc.name}, using fallback")
-                return self._get_fallback_action(context)
-
-            # Run agent
-            result = await agent.run(prompt, model_settings={"temperature": self.temperature})
-            action = result.output
 
             # Log to human-readable agent prompt log if enabled
             if self.agent_prompt_logger:
@@ -221,9 +224,9 @@ class NPCLLMClient:
                         call_sequence=self.call_count,
                         prompt=full_prompt,
                         response=response_text,
-                        model=self.model,
+                        model=getattr(self.llm_provider, 'model_name', 'unknown'),
                         temperature=self.temperature,
-                        metadata={'purpose': 'npc_action_declaration', 'note': 'Pydantic AI structured output (NPCAction schema)'}
+                        metadata={'purpose': 'npc_action_declaration', 'note': 'Structured output (NPCAction schema)'}
                     )
                     self.call_count += 1
                 except Exception as e:
