@@ -916,8 +916,6 @@ class SelfPlayingSession:
             elif agent_type == 'enemy':
                 # Enemy declares inline (interleaved with PCs)
                 if llm_client:
-                    print(f"\n[{agent.name}] declaring (initiative {initiative_score})...")
-
                     # Create per-enemy LLM client for proper logging
                     enemy_llm_client = DMLLMClient(
                         dm_agent.llm_config,
@@ -932,6 +930,15 @@ class SelfPlayingSession:
                         available_tokens=available_tokens,
                         llm_client=enemy_llm_client
                     )
+
+                    # Print detailed declaration info
+                    if declaration:
+                        action = declaration.get('major_action', 'Unknown')
+                        target = declaration.get('target', 'None')
+                        weapon = declaration.get('weapon', 'N/A')
+                        health_str = f"{agent.health}/{agent.max_health} HP"
+                        position_str = str(agent.position)
+                        print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target} [{weapon}] | {health_str} | {position_str}")
 
                     # Log enemy declaration
                     if declaration and mechanics and mechanics.jsonl_logger:
@@ -968,8 +975,6 @@ class SelfPlayingSession:
             elif agent_type == 'npc':
                 # NPC declares simple action (flee/hide/plead/dialogue/assist/pass)
                 if agent.llm_client and agent.can_act:
-                    print(f"\n[{agent.name}] (NPC {agent.disposition}) declaring (initiative {initiative_score})...")
-
                     try:
                         # Build context string for NPC (include player actions and recent events)
                         active_enemies = []
@@ -1083,6 +1088,12 @@ class SelfPlayingSession:
                         npc_action = await agent.llm_client.declare_action(context)
 
                         if npc_action:
+                            # Print detailed NPC declaration info
+                            health_str = f"{agent.health}/{agent.max_health} HP"
+                            disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(agent.disposition, "❓")
+                            reason_short = npc_action.reason[:60] + "..." if len(npc_action.reason) > 60 else npc_action.reason
+                            print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
+                            print(f"         └─ {reason_short}")
                             # Check for self-escalation (NPC declares attack)
                             if npc_action.action_type == "attack":
                                 logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
@@ -1334,7 +1345,23 @@ class SelfPlayingSession:
                         if result.get('result') == 'invalidated':
                             print(f"\n⚠️  {result['narration']}")
                         else:
-                            print(f"\n[{result['character_name']}] {result['narration']}")
+                            # Enhanced enemy execution output
+                            enemy = next((e for e in self.enemy_combat.enemy_agents if e.agent_id == result.get('enemy_id')), None)
+                            if enemy:
+                                health_str = f"{enemy.health}/{enemy.max_health} HP"
+                                position_str = str(enemy.position)
+                                print(f"\n[{result['character_name']}] {result['narration']}")
+                                # Show additional details on second line if combat action with damage
+                                if result.get('damage_dealt') is not None:
+                                    damage_str = f"Damage: {result.get('damage_dealt')}"
+                                    range_str = f"Range: {result.get('range', 'N/A')}"
+                                    print(f"         └─ {damage_str} | {range_str} | {health_str} | {position_str}")
+                                else:
+                                    # Non-damage actions (movement, claim token, etc.)
+                                    print(f"         └─ {health_str} | {position_str}")
+                            else:
+                                # Fallback if enemy not found
+                                print(f"\n[{result['character_name']}] {result['narration']}")
 
                         # Add enemy result to synthesis input
                         # Enemy actions use a simplified result dict compared to ActionResolution schema

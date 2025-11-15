@@ -1224,12 +1224,39 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         # Build goals text
         goals_text = "\n".join([f"- {goal}" for goal in self.character_state.goals])
 
+        # Calculate health status (matching enemy agent pattern)
+        health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
+
+        if health_pct >= 75:
+            health_status = "Healthy"
+        elif health_pct >= 50:
+            health_status = "Wounded"
+        elif health_pct >= 25:
+            health_status = "Bloodied"
+        else:
+            health_status = "CRITICAL"
+
+        # Wound status annotation (matching enemy agent pattern)
+        if self.wounds >= 4:
+            wound_status = "(HEAVY WOUNDS -15)"
+        elif self.wounds >= 2:
+            wound_status = "(WOUNDED -5)"
+        else:
+            wound_status = ""
+
         # Build variables dict for prompt template
         variables = {
             "character_name": self.character_state.name,
             "pronouns": self.character_state.pronouns,
             "attributes_text": attributes_text,
             "skills_text": skills_text,
+            "health": str(self.health),
+            "max_health": str(self.max_health),
+            "health_pct": str(health_pct),
+            "health_status": health_status,
+            "wounds": str(self.wounds),
+            "wound_status": wound_status,
+            "stuns": str(self.stuns),
             "void_score": str(self.character_state.void_score),
             "soulcredit": str(self.character_state.soulcredit),
             "void_warning": void_warning,
@@ -1547,7 +1574,23 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                         pc_health = pc.health  # Health is on AIPlayerAgent, not CharacterState
                         pc_max_health = pc.max_health
                         void_score = pc.character_state.void_score
-                        combatants.append(f"[{tgt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP | Void {void_score}/10")
+
+                        # Build wound indicator (shows injury severity to teammates)
+                        pc_wounds = getattr(pc, 'wounds', 0)
+                        if pc_wounds >= 4:
+                            wound_indicator = f" | {pc_wounds}w (HEAVY -15) ⚠️"
+                        elif pc_wounds >= 2:
+                            wound_indicator = f" | {pc_wounds}w (WOUNDED -5)"
+                        elif pc_wounds == 1:
+                            wound_indicator = f" | {pc_wounds}w"
+                        else:
+                            wound_indicator = ""
+
+                        # Build stun indicator
+                        pc_stuns = getattr(pc, 'stuns', 0)
+                        stun_indicator = f" | {pc_stuns}s" if pc_stuns > 0 else ""
+
+                        combatants.append(f"[{tgt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP{wound_indicator}{stun_indicator} | Void {void_score}/10")
 
                 # Add all active enemies
                 for enemy in active_enemies:

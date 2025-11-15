@@ -27,6 +27,11 @@ sections:
 
     **Pronouns:** {pronouns}
 
+    **Health Status:**
+    - Health: {health}/{max_health} ({health_pct}%) - {health_status}
+    - Wounds: {wounds} {wound_status}
+    - Stuns: {stuns}
+
     **Attributes:**
     {attributes_text}
 
@@ -37,6 +42,8 @@ sections:
     **Soulcredit:** {soulcredit}
 
     {void_warning}
+
+    **ROLEPLAY YOUR PHYSICAL CONDITION:** Describe actions accounting for your health status. Healthy (75%+) = full capability. Wounded (50-74%) = minor limitations, gritted teeth. Bloodied (25-49%) = significant pain, struggling. Critical (<25%) = desperate survival mode.
   inventory_resources: |-
     # Inventory & Resources
 
