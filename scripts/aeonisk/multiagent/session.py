@@ -2354,17 +2354,30 @@ Provide a brief (2-3 sentence) debrief statement in character voice:
 Keep it conversational and in character. This is a dialogue, not a report."""
 
                 # Use llm_provider's generate method (works for all providers)
-                response = await provider.generate(
-                    prompt=debrief_prompt,
-                    max_tokens=250,
-                    temperature=0.8
-                )
+                # Retry up to 3 times if response is empty
+                debrief_text = ""
+                max_retries = 3
+                for attempt in range(max_retries):
+                    response = await provider.generate(
+                        prompt=debrief_prompt,
+                        max_tokens=2000,  # Increased from 250 - give plenty of headroom for conversational responses
+                        temperature=0.8
+                    )
 
-                debrief_text = response.text.strip()
+                    debrief_text = response.text.strip()
 
-                # Check if debrief is empty and log warning
+                    if debrief_text:
+                        # Success - got non-empty response
+                        break
+                    else:
+                        # Empty response - log and retry
+                        logger.warning(f"Debrief attempt {attempt + 1}/{max_retries} returned empty for {player.character_state.name}")
+                        if attempt < max_retries - 1:
+                            logger.info(f"Retrying debrief generation for {player.character_state.name}...")
+
+                # Check if debrief is still empty after all retries
                 if not debrief_text:
-                    print(f"⚠️  [{player.character_state.name}] (debrief generation returned empty response)\n")
+                    print(f"⚠️  [{player.character_state.name}] (debrief generation returned empty after {max_retries} attempts)\n")
                     # Still add to debriefs so conversation flow isn't broken
                     debriefs.append((player.character_state.name, "[remained silent]"))
                 else:
