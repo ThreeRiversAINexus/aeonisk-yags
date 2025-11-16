@@ -462,18 +462,20 @@ def _process_structured_healing_effects(
 
                 # Note: Would ideally log as 'healing_action' event type
                 # For now, log minimal info to existing event types
-                mechanics.jsonl_logger.log_event({
-                    'event_type': 'healing_applied',
-                    'round': current_round,
-                    'target_id': target_entity.agent_id,
-                    'target_name': target_name,
-                    'heal_type': heal_type,
-                    'amount': amount,
-                    'hp_restored': target_entity.health - old_health if heal_type == "hp" else 0,
-                    'stun_removed': amount if heal_type == "stun" else 0,
-                    'wounds_reduced': (old_wounds - target_entity.wounds) if heal_type == "wound" else 0,
-                    'target_state_after': target_state_after
-                })
+                mechanics.jsonl_logger.log_event(
+                    'healing_applied',
+                    {
+                        'target_id': target_entity.agent_id,
+                        'target_name': target_name,
+                        'heal_type': heal_type,
+                        'amount': amount,
+                        'hp_restored': target_entity.health - old_health if heal_type == "hp" else 0,
+                        'stun_removed': amount if heal_type == "stun" else 0,
+                        'wounds_reduced': (old_wounds - target_entity.wounds) if heal_type == "wound" else 0,
+                        'target_state_after': target_state_after
+                    },
+                    current_round
+                )
 
     return messages
 
@@ -4862,14 +4864,16 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Log to JSONL for training analysis
                 if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    mechanics.jsonl_logger.log_event({
-                        'event_type': 'llm_compliance_issue',
-                        'round': self.current_round,
-                        'player_id': player_id,
-                        'action_intent': intent,
-                        'issue': compliance_issue,
-                        'narration': llm_narration if self.llm_config else resolution.narrative
-                    })
+                    mechanics.jsonl_logger.log_event(
+                        'llm_compliance_issue',
+                        {
+                            'player_id': player_id,
+                            'action_intent': intent,
+                            'issue': compliance_issue,
+                            'narration': llm_narration if self.llm_config else resolution.narrative
+                        },
+                        self.current_round
+                    )
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -5313,14 +5317,16 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Log to JSONL for training analysis
                 if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    mechanics.jsonl_logger.log_event({
-                        'event_type': 'llm_compliance_issue',
-                        'round': self.current_round,
-                        'player_id': player_id,
-                        'action_intent': intent,
-                        'issue': compliance_issue,
-                        'narration': llm_narration if self.llm_config else resolution.narrative
-                    })
+                    mechanics.jsonl_logger.log_event(
+                        'llm_compliance_issue',
+                        {
+                            'player_id': player_id,
+                            'action_intent': intent,
+                            'issue': compliance_issue,
+                            'narration': llm_narration if self.llm_config else resolution.narrative
+                        },
+                        self.current_round
+                    )
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:

@@ -3528,17 +3528,20 @@ Margin: {margin:+d}
 
         # Log to JSONL if available
         if self.jsonl_logger:
-            self.jsonl_logger.log_event({
-                'event_type': 'seed_attunement',
-                'player_id': player_id,
-                'element': element_lower,
-                'method': method,
-                'success': success,
-                'margin': margin,
-                'tier': tier.value,
-                'void_gain': result['void_gain'],
-                'soulcredit_gain': result['soulcredit_gain']
-            })
+            self.jsonl_logger.log_event(
+                'seed_attunement',
+                {
+                    'player_id': player_id,
+                    'element': element_lower,
+                    'method': method,
+                    'success': success,
+                    'margin': margin,
+                    'tier': tier.value,
+                    'void_gain': result['void_gain'],
+                    'soulcredit_gain': result['soulcredit_gain']
+                },
+                self.current_round
+            )
 
         return result
 
@@ -3602,14 +3605,17 @@ Margin: {margin:+d}
 
         # Log to JSONL if available
         if self.jsonl_logger and success:
-            self.jsonl_logger.log_event({
-                'event_type': 'gear_fuel_consumption',
-                'player_id': player_id,
-                'gear_name': gear_name,
-                'fuel_type': fuel_type,
-                'amount': fuel_amount,
-                'remaining': result['fuel_remaining']
-            })
+            self.jsonl_logger.log_event(
+                'gear_fuel_consumption',
+                {
+                    'player_id': player_id,
+                    'gear_name': gear_name,
+                    'fuel_type': fuel_type,
+                    'amount': fuel_amount,
+                    'remaining': result['fuel_remaining']
+                },
+                self.current_round
+            )
 
         return result
 
