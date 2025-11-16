@@ -539,6 +539,8 @@ class ClaudeProvider(LLMProvider):
         system_prompt: Optional[str] = None,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
+        llm_logger: Optional[Any] = None,
+        current_round: Optional[int] = None,
         **kwargs
     ):
         """
@@ -553,6 +555,8 @@ class ClaudeProvider(LLMProvider):
             system_prompt: Optional system prompt
             max_tokens: Override default max tokens
             temperature: Override default temperature
+            llm_logger: Optional LLM call logger for token tracking
+            current_round: Optional current round number for logging
             **kwargs: Additional parameters
 
         Returns:
@@ -565,7 +569,9 @@ class ClaudeProvider(LLMProvider):
             resolution = await provider.generate_structured(
                 prompt="Resolve this action: ...",
                 result_type=ActionResolution,
-                system_prompt="You are a game master..."
+                system_prompt="You are a game master...",
+                llm_logger=self.llm_logger,  # Optional: enables token tracking
+                current_round=self.current_round
             )
             # resolution is a validated ActionResolution instance
             print(resolution.narration)
@@ -648,6 +654,25 @@ This field is used for ML training and game mechanics - it is NOT optional when 
                     # Log successful retry if not first attempt
                     if attempt > 0:
                         logger.llm(f"✓ Structured output succeeded after {attempt} retries")
+
+                    # Extract token usage and log if logger provided
+                    if llm_logger:
+                        usage = result.usage()
+                        tokens = {
+                            'input': usage.input_tokens,
+                            'output': usage.output_tokens,
+                            'total': usage.input_tokens + usage.output_tokens
+                        }
+
+                        llm_logger._log_llm_call(
+                            messages=[{"role": "user", "content": prompt}],
+                            response=str(result.output),
+                            model=self.config.model,
+                            temperature=temperature,
+                            tokens=tokens,
+                            current_round=current_round,
+                            call_sequence=llm_logger.call_count
+                        )
 
                     # Return validated Pydantic model instance
                     # Note: pydantic-ai 1.9.0 uses 'output' not 'data' or 'response'
@@ -908,8 +933,18 @@ class OpenAIProvider(LLMProvider):
                 **kwargs
             )
 
-            # Extract text
-            text = response.choices[0].message.content.strip()
+            # Extract text (handle None content gracefully)
+            content = response.choices[0].message.content
+            text = content.strip() if content is not None else ""
+
+            # Log warning if content is None or empty
+            if not text:
+                logger.warning(
+                    f"OpenAI API returned empty content. "
+                    f"Model: {self.config.model}, "
+                    f"finish_reason: {response.choices[0].finish_reason}, "
+                    f"tokens_used: {response.usage.completion_tokens if response.usage else 'N/A'}"
+                )
 
             # Create standardized response
             return LLMResponse(
