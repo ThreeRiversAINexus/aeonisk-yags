@@ -915,6 +915,7 @@ class SelfPlayingSession:
 
             elif agent_type == 'enemy':
                 # Enemy declares inline (interleaved with PCs)
+                logger.debug(f"Enemy {agent.name} entering declaration (init={initiative_score}, is_active={agent.is_active})")
                 if llm_client:
                     # Create per-enemy LLM client for proper logging
                     enemy_llm_client = DMLLMClient(
@@ -924,12 +925,14 @@ class SelfPlayingSession:
                         session_id=self.session_id
                     )
 
+                    logger.debug(f"Calling declare_single_enemy for {agent.name}")
                     declaration = await self.enemy_combat.declare_single_enemy(
                         enemy=agent,
                         player_agents=player_agents,
                         available_tokens=available_tokens,
                         llm_client=enemy_llm_client
                     )
+                    logger.debug(f"Declaration result for {agent.name}: {declaration is not None}")
 
                     # Print detailed declaration info
                     if declaration:
@@ -980,6 +983,35 @@ class SelfPlayingSession:
                             timestamp=datetime.now()
                         )
                         await self.coordinator.message_bus._route_message(broadcast_message)
+                    else:
+                        # Declaration failed - create fallback DEFENSIVE action
+                        logger.warning(f"⚠️  {agent.name} declaration returned None - using fallback DEFENSIVE action (check game.log for LLM errors)")
+
+                        # Import EnemyDeclaration if not already imported
+                        from .enemy_combat import EnemyDeclaration
+
+                        # Create minimal fallback declaration
+                        fallback_declaration = EnemyDeclaration(
+                            agent_id=agent.agent_id,
+                            character_name=agent.name,
+                            initiative=initiative_score,
+                            defence_token=None,
+                            major_action="DEFENSIVE",
+                            target=None,
+                            weapon=None,
+                            minor_action=None,
+                            token_target=None,
+                            reasoning="Fallback action - original LLM declaration failed",
+                            shared_intel=None
+                        )
+
+                        # Store in enemy_declarations so resolution phase can execute it
+                        self.enemy_combat.enemy_declarations[agent.agent_id] = fallback_declaration
+
+                        # Print fallback action
+                        health_str = f"{agent.health}/{agent.max_health} HP"
+                        position_str = str(agent.position)
+                        print(f"\n[{agent.name}] (Init {initiative_score}) DEFENSIVE (fallback - check logs) | {health_str} | {position_str}")
 
             elif agent_type == 'npc':
                 # NPC declares simple action (flee/hide/plead/dialogue/assist/pass)
