@@ -1891,13 +1891,13 @@ class SelfPlayingSession:
 
                                 # Log enemy departure to JSONL (reuse enemy_defeat event with special reason)
                                 if mechanics and mechanics.jsonl_logger:
+                                    rounds_survived = enemy.despawned_round - enemy.spawned_round
                                     mechanics.jsonl_logger.log_enemy_defeat(
                                         round_num=mechanics.current_round,
                                         enemy_id=enemy_identifier,
                                         enemy_name=enemy_name,
-                                        enemy_faction=enemy.faction if hasattr(enemy, 'faction') else 'Unknown',
-                                        resolution='departed',  # Special resolution for departures
-                                        cause='entity_lifecycle_removal'
+                                        defeat_reason='departed',  # Special reason for departures (entity_lifecycle_removal)
+                                        rounds_survived=rounds_survived
                                     )
 
                                 logger.info(f"⚔️  Enemy departed (entity lifecycle): {enemy_identifier}")
