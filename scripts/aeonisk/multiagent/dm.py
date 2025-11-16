@@ -39,6 +39,445 @@ def _resolution_success(resolution) -> bool:
     return True
 
 
+def _get_active_protections(entity) -> List['Condition']:
+    """
+    Get active protection barriers/shields for an entity.
+
+    Returns list of Condition objects that have protection_amount set (barriers/shields).
+    Used for damage interception logic.
+
+    Args:
+        entity: PlayerAgent, EnemyAgent, or NPCAgent with status_effects
+
+    Returns:
+        List of protection Conditions sorted by application order (FIFO)
+    """
+    if not hasattr(entity, 'status_effects'):
+        return []
+
+    from .schemas.shared_types import Condition
+    protections = []
+
+    for effect in entity.status_effects:
+        # Check if this is a protection barrier (has protection_amount)
+        if hasattr(effect, 'protection_amount') and effect.protection_amount is not None and effect.protection_amount > 0:
+            protections.append(effect)
+
+    return protections
+
+
+def _intercept_damage_with_barriers(damage_amount: int, entity, logger_instance=None) -> tuple[int, List[str]]:
+    """
+    Intercept damage with active protection barriers, applying FIFO depletion.
+
+    Args:
+        damage_amount: Incoming damage before barrier absorption
+        entity: Target entity with status_effects (PlayerAgent/EnemyAgent/NPCAgent)
+        logger_instance: Logger for debug output
+
+    Returns:
+        Tuple of (remaining_damage_after_barriers, list_of_barrier_deplete_messages)
+
+    Example:
+        >>> remaining, messages = _intercept_damage_with_barriers(15, entity)
+        >>> # Entity has "Astral Barrier" with protection_amount=10
+        >>> remaining  # 5 (10 absorbed by barrier)
+        >>> messages   # ["Astral Barrier absorbed 10 damage (depleted)"]
+    """
+    if logger_instance is None:
+        logger_instance = logger
+
+    remaining_damage = damage_amount
+    messages = []
+
+    # Get active protections (FIFO order)
+    protections = _get_active_protections(entity)
+
+    if not protections:
+        return remaining_damage, messages
+
+    # Process barriers in order until damage is absorbed or barriers depleted
+    for barrier in protections:
+        if remaining_damage <= 0:
+            break
+
+        absorbed = min(barrier.protection_amount, remaining_damage)
+        barrier.protection_amount -= absorbed
+        remaining_damage -= absorbed
+
+        entity_name = getattr(entity, 'name', getattr(entity, 'agent_id', 'Unknown'))
+
+        if barrier.protection_amount <= 0:
+            # Barrier depleted
+            messages.append(f"**{barrier.name}** absorbed {absorbed} damage (depleted)")
+            logger_instance.info(f"🛡️ {entity_name}'s {barrier.name} absorbed {absorbed} damage and was depleted")
+
+            # Mark barrier for removal (duration=0 triggers cleanup)
+            barrier.duration = 0
+        else:
+            # Barrier still active
+            messages.append(f"**{barrier.name}** absorbed {absorbed} damage ({barrier.protection_amount} protection remaining)")
+            logger_instance.info(f"🛡️ {entity_name}'s {barrier.name} absorbed {absorbed} damage ({barrier.protection_amount} left)")
+
+    return remaining_damage, messages
+
+
+def _process_structured_damage_effects(
+    damage_effects: List['DamageEffect'],
+    shared_state: 'SharedState',
+    current_round: int,
+    mechanics: Any = None,
+    logger_instance: logging.Logger = None
+) -> List[str]:
+    """
+    Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
+
+    This is the NEW damage processing pipeline for structured output. Replaces legacy
+    keyword-based damage parsing.
+
+    Args:
+        damage_effects: List of DamageEffect objects from ActionResolution.effects.damage
+        shared_state: SharedState for entity resolution
+        current_round: Current round number for logging
+        mechanics: Mechanics engine for JSONL logging (optional)
+        logger_instance: Logger instance (optional)
+
+    Returns:
+        List of narrative messages describing damage outcomes (for appending to DM narration)
+
+    Example:
+        >>> damage_effects = [DamageEffect(target="tgt_7a3f", base_damage=15, dealt=15)]
+        >>> messages = _process_structured_damage_effects(damage_effects, shared_state, 1)
+        >>> messages  # ["⚔️ Enemy takes 15 damage! (8 health → 0, +3 wounds)", "💀 Enemy is defeated!"]
+    """
+    if logger_instance is None:
+        logger_instance = logger
+
+    if not damage_effects:
+        return []
+
+    messages = []
+    target_id_mapper = shared_state.get_target_id_mapper() if shared_state else None
+
+    for damage_effect in damage_effects:
+        target_identifier = damage_effect.target
+        damage_amount = damage_effect.dealt  # Use final damage (post-soak)
+
+        # Resolve target entity
+        target_entity = None
+        target_name = None
+        is_friendly_fire = False
+
+        if target_identifier.startswith('tgt_'):
+            # Target ID resolution (free targeting mode)
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                # Check if target is a player (friendly fire)
+                if target_entity and target_id_mapper.is_player(target_identifier):
+                    is_friendly_fire = True
+                    target_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
+                    logger_instance.warning(f"🔥 FRIENDLY FIRE: Structured damage targeting PC {target_name} (ID: {target_identifier})")
+                elif target_entity:
+                    target_name = target_entity.name
+        else:
+            # Character name resolution (legacy fallback)
+            target_name = target_identifier
+
+            # Try to find entity by name
+            if shared_state:
+                # Try enemies first
+                enemy_combat = shared_state.enemy_combat
+                if enemy_combat:
+                    from .enemy_spawner import get_active_enemies
+                    active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                    for enemy in active_enemies:
+                        if target_name and (target_name.lower() in enemy.name.lower() or
+                                            enemy.name.lower() in target_name.lower()):
+                            target_entity = enemy
+                            break
+
+                # Try NPCs if not found
+                if not target_entity and hasattr(shared_state, 'npc_agents'):
+                    for npc in shared_state.npc_agents:
+                        if npc.is_active and target_name and (target_name.lower() in npc.name.lower() or
+                                                               npc.name.lower() in target_name.lower()):
+                            target_entity = npc
+                            break
+
+        if not target_entity:
+            logger_instance.warning(f"⚠️ Could not resolve damage target: {target_identifier}")
+            messages.append(f"⚠️ **Target '{target_identifier}' not found for damage**")
+            continue
+
+        # === BARRIER INTERCEPTION ===
+        damage_after_barriers, barrier_messages = _intercept_damage_with_barriers(
+            damage_amount,
+            target_entity,
+            logger_instance
+        )
+
+        # Add barrier messages to output
+        if barrier_messages:
+            messages.extend([f"🛡️ {msg}" for msg in barrier_messages])
+
+        # === APPLY DAMAGE TO ENTITY ===
+        if damage_after_barriers > 0:
+            old_health = target_entity.health
+            wounds_dealt = damage_after_barriers // 5  # YAGS: every 5 damage = 1 wound
+            target_entity.wounds += wounds_dealt
+            target_entity.health -= damage_after_barriers
+
+            damage_type_label = f" ({damage_effect.damage_type})" if damage_effect.damage_type else ""
+            friendly_fire_label = " [FRIENDLY FIRE]" if is_friendly_fire else ""
+
+            messages.append(
+                f"⚔️ **{target_name} takes {damage_after_barriers} damage{damage_type_label}!** "
+                f"({old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
+            )
+
+            if is_friendly_fire:
+                logger_instance.warning(
+                    f"🔥 FRIENDLY FIRE DAMAGE: {damage_after_barriers} to {target_name} "
+                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                )
+            else:
+                logger_instance.info(
+                    f"Damage dealt: {damage_after_barriers} to {target_name} "
+                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                )
+
+            # === CHECK FOR DEFEAT ===
+            if target_entity.health <= 0:
+                if hasattr(target_entity, 'check_death_save'):
+                    # Enemy/NPC with death saves
+                    alive, status = target_entity.check_death_save()
+                    if not alive:
+                        logger_instance.info(f"{target_name} KILLED by attack!")
+                        messages.append(f"💀 **{target_name} is KILLED!**")
+                        if hasattr(target_entity, 'is_active'):
+                            target_entity.is_active = False
+                    elif status == "unconscious":
+                        logger_instance.info(f"{target_name} knocked unconscious!")
+                        messages.append(f"😵 **{target_name} is knocked unconscious!**")
+                        if hasattr(target_entity, 'is_active'):
+                            target_entity.is_active = False
+                    else:
+                        logger_instance.info(f"{target_name} critically wounded but conscious!")
+                        messages.append(f"⚠️ **{target_name} is critically wounded!**")
+                else:
+                    # PC or entity without death saves
+                    logger_instance.info(f"{target_name} defeated!")
+                    messages.append(f"💀 **{target_name} is defeated!**")
+                    if hasattr(target_entity, 'is_active'):
+                        target_entity.is_active = False
+
+            # === LOG COMBAT ACTION (ML TRAINING) ===
+            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                # Build minimal combat action log
+                # (Full implementation would extract attack roll data from resolution context)
+                defender_state = {
+                    "health": target_entity.health,
+                    "max_health": target_entity.max_health,
+                    "wounds": target_entity.wounds,
+                    "alive": target_entity.health > 0,
+                    "status": "active" if target_entity.health > 0 else "defeated"
+                }
+
+                damage_roll_data = {
+                    "base_damage": damage_effect.base_damage,
+                    "soak": damage_effect.soak if damage_effect.soak is not None else 0,
+                    "dealt": damage_after_barriers  # Post-barrier damage
+                }
+
+                # Note: attack_roll data would need to be passed from resolution context
+                # For now, log minimal combat action
+                mechanics.jsonl_logger.log_combat_action(
+                    round_num=current_round,
+                    attacker_id="unknown",  # Would need from resolution context
+                    attacker_name="Unknown Attacker",
+                    defender_id=target_entity.agent_id,
+                    defender_name=target_name,
+                    weapon="Unknown Weapon",
+                    attack_roll={},  # Would need from resolution context
+                    damage_roll=damage_roll_data,
+                    wounds_dealt=wounds_dealt,
+                    defender_state_after=defender_state
+                )
+        elif damage_amount > 0:
+            # All damage was absorbed by barriers (damage_after_barriers == 0)
+            messages.append(f"🛡️ **{target_name}'s barriers completely absorbed the attack!**")
+            logger_instance.info(f"🛡️ {target_name}'s barriers completely absorbed {damage_amount} damage")
+
+    return messages
+
+
+def _process_structured_healing_effects(
+    healing_effects: List['HealingEffect'],
+    shared_state: 'SharedState',
+    current_round: int,
+    mechanics: Any = None,
+    logger_instance: logging.Logger = None
+) -> List[str]:
+    """
+    Process List[HealingEffect] from ActionResolution, applying HP/stun/wound recovery.
+
+    This is the NEW healing processing pipeline for structured output. Replaces legacy
+    keyword-based healing parsing.
+
+    Args:
+        healing_effects: List of HealingEffect objects from ActionResolution.effects.healing
+        shared_state: SharedState for entity resolution
+        current_round: Current round number for logging
+        mechanics: Mechanics engine for JSONL logging (optional)
+        logger_instance: Logger instance (optional)
+
+    Returns:
+        List of narrative messages describing healing outcomes (for appending to DM narration)
+
+    Example:
+        >>> healing_effects = [HealingEffect(target="tgt_7a3f", hp=10, stun=5, wounds=1)]
+        >>> messages = _process_structured_healing_effects(healing_effects, shared_state, 1)
+        >>> messages  # ["💚 Ally healed: +10 HP, -5 stun, -1 wounds (15 HP → 25 HP)"]
+    """
+    if logger_instance is None:
+        logger_instance = logger
+
+    if not healing_effects:
+        return []
+
+    messages = []
+    target_id_mapper = shared_state.get_target_id_mapper() if shared_state else None
+
+    for healing_effect in healing_effects:
+        target_identifier = healing_effect.target
+        heal_type = healing_effect.heal_type  # "hp", "stun", or "wound"
+        amount = healing_effect.amount
+
+        # Resolve target entity
+        target_entity = None
+        target_name = None
+
+        if target_identifier.startswith('tgt_'):
+            # Target ID resolution (free targeting mode)
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                if target_entity:
+                    # Check if PC or enemy/NPC
+                    if hasattr(target_entity, 'character_state'):
+                        target_name = target_entity.character_state.name
+                    else:
+                        target_name = target_entity.name
+        else:
+            # Character name resolution (legacy fallback)
+            target_name = target_identifier
+
+            # Try to find entity by name
+            if shared_state:
+                # Try players first
+                if hasattr(shared_state, 'player_agents'):
+                    for player in shared_state.player_agents:
+                        if hasattr(player, 'character_state'):
+                            char_name = player.character_state.name
+                            if target_name and (target_name.lower() in char_name.lower() or
+                                                char_name.lower() in target_name.lower()):
+                                target_entity = player
+                                target_name = char_name
+                                break
+
+                # Try enemies
+                if not target_entity:
+                    enemy_combat = shared_state.enemy_combat
+                    if enemy_combat:
+                        from .enemy_spawner import get_active_enemies
+                        active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                        for enemy in active_enemies:
+                            if target_name and (target_name.lower() in enemy.name.lower() or
+                                                enemy.name.lower() in target_name.lower()):
+                                target_entity = enemy
+                                break
+
+                # Try NPCs
+                if not target_entity and hasattr(shared_state, 'npc_agents'):
+                    for npc in shared_state.npc_agents:
+                        if npc.is_active and target_name and (target_name.lower() in npc.name.lower() or
+                                                               npc.name.lower() in target_name.lower()):
+                            target_entity = npc
+                            break
+
+        if not target_entity:
+            logger_instance.warning(f"⚠️ Could not resolve healing target: {target_identifier}")
+            messages.append(f"⚠️ **Target '{target_identifier}' not found for healing**")
+            continue
+
+        # === APPLY HEALING TO ENTITY ===
+        healing_summary = []
+        old_health = target_entity.health
+        old_wounds = target_entity.wounds
+
+        # Apply healing based on type
+        if heal_type == "hp":
+            # Restore HP (capped at max_health)
+            target_entity.health = min(target_entity.health + amount, target_entity.max_health)
+            actual_heal = target_entity.health - old_health
+            healing_summary.append(f"+{actual_heal} HP")
+        elif heal_type == "stun":
+            # Remove stun (handled by mechanics.apply_medicine if using Medicine skill)
+            # For now, just track what was requested
+            healing_summary.append(f"-{amount} stun")
+            # Note: Actual stun removal would be handled by mechanics.apply_medicine()
+            # This is just for logging/narrative
+        elif heal_type == "wound":
+            # Reduce wounds
+            target_entity.wounds = max(0, target_entity.wounds - amount)
+            actual_wounds_healed = old_wounds - target_entity.wounds
+            healing_summary.append(f"-{actual_wounds_healed} wounds")
+
+        if healing_summary:
+            summary_text = ", ".join(healing_summary)
+            messages.append(
+                f"💚 **{target_name} healed: {summary_text}** "
+                f"({old_health} HP → {target_entity.health} HP)"
+            )
+
+            logger_instance.info(
+                f"Healing applied: {summary_text} to {target_name} "
+                f"({old_health} → {target_entity.health} HP, wounds: {target_entity.wounds})"
+            )
+
+            # === LOG HEALING ACTION (ML TRAINING) ===
+            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                # Build healing log entry
+                # (Full implementation would extract healer details from resolution context)
+                target_state_after = {
+                    "health": target_entity.health,
+                    "max_health": target_entity.max_health,
+                    "wounds": target_entity.wounds,
+                    "alive": target_entity.health > 0,
+                    "status": "active" if target_entity.health > 0 else "defeated"
+                }
+
+                # Note: Would ideally log as 'healing_action' event type
+                # For now, log minimal info to existing event types
+                mechanics.jsonl_logger.log_event({
+                    'event_type': 'healing_applied',
+                    'round': current_round,
+                    'target_id': target_entity.agent_id,
+                    'target_name': target_name,
+                    'heal_type': heal_type,
+                    'amount': amount,
+                    'hp_restored': target_entity.health - old_health if heal_type == "hp" else 0,
+                    'stun_removed': amount if heal_type == "stun" else 0,
+                    'wounds_reduced': (old_wounds - target_entity.wounds) if heal_type == "wound" else 0,
+                    'target_state_after': target_state_after
+                })
+
+    return messages
+
+
 @dataclass
 class Scenario:
     """Current game scenario state."""
@@ -1158,12 +1597,15 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
             max_attempts = 3
             for attempt in range(max_attempts):
                 # Generate structured scenario using Pydantic AI
+                # Token tracking now handled internally
                 scenario: ScenarioSetup = await self.llm_provider.generate_structured(
                     prompt=scenario_prompt,
                     result_type=ScenarioSetup,
                     system_prompt=system_prompt,
                     max_tokens=max_tokens,
-                    temperature=temperature
+                    temperature=temperature,
+                    llm_logger=self.llm_logger,  # Enable automatic token tracking
+                    current_round=None  # Scenario generation happens before round 1
                 )
 
                 # Validate scenario against hint if provided
@@ -1190,26 +1632,9 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
 
             logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
 
-            # Log LLM call for replay
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = len(scenario_prompt) // 4
-                estimated_output_tokens = (
-                    len(scenario.theme) + len(scenario.location) +
-                    len(scenario.situation) + len(scenario.success_conditions)
-                ) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": scenario_prompt}
-                    ],
-                    response=scenario.situation,  # Store situation as representative response
-                    model=model,
-                    temperature=temperature,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=None,  # Scenario generation happens before round 1
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
             # Also log to agent prompt logger if enabled
@@ -2396,33 +2821,22 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                 current_round = self.shared_state.mechanics_engine.current_round
 
             # Generate structured synthesis using Pydantic AI
+            # Token tracking now handled internally
             synthesis: RoundSynthesis = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=RoundSynthesis,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=current_round
             )
 
             logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, story_advance={synthesis.story_advancement is not None}")
 
-            # Log LLM call for replay (synthesis path)
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = len(prompt) // 4
-                estimated_output_tokens = len(synthesis.narration) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response=synthesis.narration,
-                    model=model,
-                    temperature=temperature,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=current_round,
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
             # Also log to human-readable agent prompt log if enabled
@@ -2571,36 +2985,25 @@ Void Level: {self.current_scenario.void_level}/10"""
         logger.debug(f"DM: Calling LLM for conversion decisions (round {round_number})")
 
         # 6. Call LLM with structured output (Pydantic AI)
+        # Token tracking now handled internally
         try:
             decisions: ConversionDecisions = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=ConversionDecisions,
                 system_prompt="You are the DM determining which conversions should occur based on action resolutions.",
                 max_tokens=3000,  # Increased for complex ConversionDecisions schemas
-                temperature=0.7
+                temperature=0.7,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=round_number
             )
 
             logger.debug(f"✓ DM conversion decisions: {len(decisions.enemy_conversions)} enemy conversions, "
                         f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns, "
                         f"{len(decisions.enemy_spawns)} enemy spawns")
 
-            # 7. Log conversion check call for replay (JSONL)
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = len(prompt) // 4
-                estimated_output_tokens = len(decisions.reasoning) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": "You are the DM determining conversions."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response=decisions.model_dump_json(),
-                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=0.7,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=round_number,
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
             # 8. Also log to human-readable agent prompt log if enabled
@@ -3448,34 +3851,23 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
             max_tokens = 2000  # Increased for ActionResolution structured output
             temperature = 0.7
 
+            # Token tracking now handled internally
             purchase_resolution: ActionResolution = await self.llm_provider.generate_structured(
                 prompt=user_prompt,
                 result_type=ActionResolution,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
             )
 
             narration = purchase_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Purchase LLM narration: {len(narration)} chars")
 
-            # Log LLM call for replay
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = (len(system_prompt) + len(user_prompt)) // 4
-                estimated_output_tokens = len(narration) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    response=narration,
-                    model=model,
-                    temperature=temperature,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None,
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
         except Exception as e:
@@ -3592,34 +3984,23 @@ Read the action intent to understand WHY this transfer is happening:
             max_tokens = 2000  # Increased for ActionResolution structured output
             temperature = 0.7
 
+            # Token tracking now handled internally
             transfer_resolution: ActionResolution = await self.llm_provider.generate_structured(
                 prompt=user_prompt,
                 result_type=ActionResolution,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
             )
 
             narration = transfer_resolution.narration  # Use .narration (new Pydantic schema)
             logger.debug(f"✓ Transfer LLM narration: {len(narration)} chars")
 
-            # Log LLM call for replay
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = (len(system_prompt) + len(user_prompt)) // 4
-                estimated_output_tokens = len(narration) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    response=narration,
-                    model=model,
-                    temperature=temperature,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None,
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
         except Exception as e:
@@ -3740,12 +4121,15 @@ Return ONLY the narration text, nothing else."""
                         """Simple narration text for NPC actions."""
                         text: str = Field(..., min_length=200, max_length=500, description="Atmospheric narration of NPC action")
 
+                    # Token tracking now handled internally
                     npc_narration_response = await self.llm_provider.generate_structured(
                         prompt=npc_prompt,
                         result_type=SimpleNarration,
                         system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
                         max_tokens=2000,  # Increased for OpenAI structured output overhead (2-3x actual content)
-                        temperature=0.8
+                        temperature=0.8,
+                        llm_logger=self.llm_logger,  # Enable automatic token tracking
+                        current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
                     )
                     narration = npc_narration_response.text
 
@@ -3962,14 +4346,19 @@ The following actions ALREADY resolved (faster initiative):
                 # Extract effects (purchase/crafting) from structured output
                 if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
                     effects_data = self._last_structured_resolution.effects
+                    # Damage is now List[DamageEffect] - convert to list of dicts for legacy format
+                    damage_list = None
+                    if effects_data.damage:
+                        damage_list = [dmg.model_dump() for dmg in effects_data.damage]
+
                     effects_dict = {
-                        'damage': effects_data.damage.model_dump() if effects_data.damage else None,
+                        'damage': damage_list,  # Now a list of damage effect dicts (or None)
                         'status_effects': effects_data.status_effects if hasattr(effects_data, 'status_effects') else [],
                         'inventory_changes': [],
                         'purchase': effects_data.purchase.model_dump() if effects_data.purchase else None,
                         'crafting': effects_data.crafting.model_dump() if effects_data.crafting else None
                     }
-                    logger.debug(f"Extracted effects from structured output: purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}")
+                    logger.debug(f"Extracted effects from structured output: damage_count={len(damage_list) if damage_list else 0}, purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}")
 
                 # Skill mismatch detection
                 declared_skill = action.get('skill')
@@ -5651,7 +6040,10 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 prompt=prompt,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                # Pass llm_logger and current_round for token tracking
+                llm_logger=self.llm_logger,
+                current_round=current_round
                 # fallback_to_text defaults to False - strict mode
             )
 
@@ -5671,18 +6063,29 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     logger.debug("✓ Structured output validation passed (all expected fields populated)")
 
                 # TARGETING VALIDATION: Check and correct targeting errors in damage effects
+                # NOTE: Currently validates only first damage effect for AoE (List[DamageEffect])
                 if resolution_obj.effects and resolution_obj.effects.damage:
                     from .targeting_validation import validate_and_correct_targeting, llm_infer_correct_target
                     import time
 
                     start_time = time.time()
 
-                    is_valid, corrected_effect, error = validate_and_correct_targeting(
-                        effect=resolution_obj.effects.damage,
-                        declared_action=action,
-                        target_id_mapper=self.shared_state.get_target_id_mapper() if self.shared_state else None,
-                        allow_llm_fallback=True
-                    )
+                    # For AoE (list of damage effects), validate first target
+                    # TODO: Extend to validate all targets in AoE
+                    first_damage = resolution_obj.effects.damage[0] if resolution_obj.effects.damage else None
+
+                    if first_damage:
+                        is_valid, corrected_effect, error = validate_and_correct_targeting(
+                            effect=first_damage,
+                            declared_action=action,
+                            target_id_mapper=self.shared_state.get_target_id_mapper() if self.shared_state else None,
+                            allow_llm_fallback=True
+                        )
+                    else:
+                        # Empty damage list - skip validation
+                        is_valid = True
+                        corrected_effect = None
+                        error = None
 
                     validation_time_ms = (time.time() - start_time) * 1000
 
@@ -5704,7 +6107,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
                             # Call Haiku LLM for inference
                             correction = await llm_infer_correct_target(
-                                effect=resolution_obj.effects.damage,
+                                effect=first_damage,
                                 declared_action=action,
                                 available_targets=available_targets,
                                 error_description=error,
@@ -5712,18 +6115,18 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                             )
 
                             # Apply LLM-corrected target
-                            corrected_effect = resolution_obj.effects.damage.model_copy(
+                            corrected_effect = first_damage.model_copy(
                                 update={'target': correction.corrected_target}
                             )
 
-                            logger.info(f"🤖 LLM TARGETING CORRECTION: {resolution_obj.effects.damage.target} -> {correction.corrected_target} (confidence: {correction.confidence})")
+                            logger.info(f"🤖 LLM TARGETING CORRECTION: {first_damage.target} -> {correction.corrected_target} (confidence: {correction.confidence})")
 
                             # Log to JSONL
                             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                                 mechanics.jsonl_logger.log_targeting_validation(
                                     round_num=current_round if current_round else 0,
                                     agent_id=action.get('agent_id', 'unknown'),
-                                    original_target=resolution_obj.effects.damage.target,
+                                    original_target=first_damage.target,
                                     corrected_target=correction.corrected_target,
                                     correction_method='llm_inference',
                                     triggered_by=error.split(':')[0] if ':' in error else 'unknown',
@@ -5747,7 +6150,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                                 mechanics.jsonl_logger.log_targeting_validation(
                                     round_num=current_round if current_round else 0,
                                     agent_id=action.get('agent_id', 'unknown'),
-                                    original_target=resolution_obj.effects.damage.target,
+                                    original_target=first_damage.target,
                                     corrected_target=None,
                                     correction_method='failed',
                                     triggered_by=error.split(':')[0] if ':' in error else 'unknown',
@@ -5760,16 +6163,17 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
                     # Apply corrected effect or clear if validation failed
                     if is_valid and corrected_effect:
-                        resolution_obj.effects.damage = corrected_effect
-                        if corrected_effect.target != resolution_obj.effects.damage.target:
-                            logger.info(f"✓ MECHANICAL CORRECTION: {resolution_obj.effects.damage.target} -> {corrected_effect.target}")
+                        # Update first damage effect in list
+                        resolution_obj.effects.damage[0] = corrected_effect
+                        if first_damage and corrected_effect.target != first_damage.target:
+                            logger.info(f"✓ MECHANICAL CORRECTION: {first_damage.target} -> {corrected_effect.target}")
 
                             # Log mechanical correction
                             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                                 mechanics.jsonl_logger.log_targeting_validation(
                                     round_num=current_round if current_round else 0,
                                     agent_id=action.get('agent_id', 'unknown'),
-                                    original_target=resolution_obj.effects.damage.target,
+                                    original_target=first_damage.target,
                                     corrected_target=corrected_effect.target,
                                     correction_method='mechanical',
                                     triggered_by=error.split(':')[0] if ':' in error else 'unknown',
@@ -5781,7 +6185,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     elif not is_valid:
                         # Clear invalid effect to prevent misapplication
                         logger.error(f"❌ Targeting validation failed - clearing damage effect")
-                        resolution_obj.effects.damage = None
+                        resolution_obj.effects.damage = []  # Clear list instead of setting to None
                         validation_warnings.append(f"Damage effect removed due to unrecoverable targeting error: {error}")
 
                 # Log structured output metrics (for ML analysis)
@@ -5852,6 +6256,44 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                         )
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+                # === PROCESS STRUCTURED DAMAGE EFFECTS (NEW PIPELINE) ===
+                # Apply damage from List[DamageEffect], including barrier interception
+                if resolution_obj.effects and resolution_obj.effects.damage:
+                    logger.debug(f"Processing {len(resolution_obj.effects.damage)} damage effects from structured output")
+
+                    damage_messages = _process_structured_damage_effects(
+                        damage_effects=resolution_obj.effects.damage,
+                        shared_state=self.shared_state,
+                        current_round=current_round if current_round else 0,
+                        mechanics=mechanics if 'mechanics' in locals() else None,
+                        logger_instance=logger
+                    )
+
+                    # Append damage outcome messages to narration
+                    if damage_messages:
+                        additional_narration = "\n\n" + "\n\n".join(damage_messages)
+                        resolution_obj.narration += additional_narration
+                        logger.debug(f"Appended {len(damage_messages)} damage messages to narration")
+
+                # === PROCESS STRUCTURED HEALING EFFECTS (NEW PIPELINE) ===
+                # Apply healing from List[HealingEffect]
+                if resolution_obj.effects and resolution_obj.effects.healing:
+                    logger.debug(f"Processing {len(resolution_obj.effects.healing)} healing effects from structured output")
+
+                    healing_messages = _process_structured_healing_effects(
+                        healing_effects=resolution_obj.effects.healing,
+                        shared_state=self.shared_state,
+                        current_round=current_round if current_round else 0,
+                        mechanics=mechanics if 'mechanics' in locals() else None,
+                        logger_instance=logger
+                    )
+
+                    # Append healing outcome messages to narration
+                    if healing_messages:
+                        additional_narration = "\n\n" + "\n\n".join(healing_messages)
+                        resolution_obj.narration += additional_narration
+                        logger.debug(f"Appended {len(healing_messages)} healing messages to narration")
 
                 return resolution_obj
             else:
@@ -6635,12 +7077,29 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                 if not self.llm_provider:
                     raise RuntimeError("No LLM provider available")
 
-                response = await self.llm_provider.generate(
-                    prompt=prompt,
-                    max_tokens=200,
-                    temperature=0.85
-                )
-                event_text = response.text  # Extract text from LLMResponse object
+                # Retry up to 3 times if response is empty
+                event_text = ""
+                max_retries = 3
+                for attempt in range(max_retries):
+                    response = await self.llm_provider.generate(
+                        prompt=prompt,
+                        max_tokens=2000,  # Increased from 200 - give headroom for atmospheric descriptions
+                        temperature=0.85
+                    )
+                    event_text = response.text.strip()  # Extract text from LLMResponse object
+
+                    if event_text:
+                        # Success - got non-empty response
+                        break
+                    else:
+                        # Empty response - log and retry
+                        logger.warning(f"Eye of Breach generation attempt {attempt + 1}/{max_retries} returned empty")
+                        if attempt < max_retries - 1:
+                            logger.info(f"Retrying Eye of Breach generation...")
+
+                # If still empty after retries, raise exception to trigger fallback
+                if not event_text:
+                    raise RuntimeError(f"Eye of Breach generation returned empty after {max_retries} attempts")
 
                 # Log LLM call for replay
                 if self.llm_logger:
