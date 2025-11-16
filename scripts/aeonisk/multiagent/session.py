@@ -1116,9 +1116,16 @@ class SelfPlayingSession:
                             # Print detailed NPC declaration info
                             health_str = f"{agent.health}/{agent.max_health} HP"
                             disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(agent.disposition, "❓")
-                            reason_short = npc_action.reason[:60] + "..." if len(npc_action.reason) > 60 else npc_action.reason
-                            print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
-                            print(f"         └─ {reason_short}")
+
+                            # For dialogue actions, show the actual dialogue content
+                            if npc_action.action_type == "dialogue" and npc_action.dialogue_content:
+                                print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
+                                print(f'         💬 "{npc_action.dialogue_content}"')
+                            else:
+                                reason_short = npc_action.reason[:60] + "..." if len(npc_action.reason) > 60 else npc_action.reason
+                                print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
+                                print(f"         └─ {reason_short}")
+
                             # Check for self-escalation (NPC declares attack)
                             if npc_action.action_type == "attack":
                                 logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
@@ -1203,7 +1210,8 @@ class SelfPlayingSession:
                                 'intent': npc_action.action_type,
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
-                                'initiative': initiative_score
+                                'initiative': initiative_score,
+                                'dialogue_content': npc_action.dialogue_content  # Include actual dialogue for dialogue actions
                             })
 
                             # Broadcast NPC action to players
@@ -1218,7 +1226,8 @@ class SelfPlayingSession:
                                     'description': npc_action.reason,  # NPC's reasoning for action (10-500 chars)
                                     'intent': npc_action.action_type,
                                     'initiative': initiative_score,
-                                    'agent_type': 'npc'
+                                    'agent_type': 'npc',
+                                    'dialogue_content': npc_action.dialogue_content  # Include actual dialogue for dialogue actions
                                 },
                                 timestamp=datetime.now()
                             )
@@ -2321,13 +2330,19 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                 debrief_text = response.text.strip()
 
-                # Add death marker for dead players
-                if is_dead:
-                    print(f"💀 [{player.character_state.name}] (DYING) {debrief_text}\n")
+                # Check if debrief is empty and log warning
+                if not debrief_text:
+                    print(f"⚠️  [{player.character_state.name}] (debrief generation returned empty response)\n")
+                    # Still add to debriefs so conversation flow isn't broken
+                    debriefs.append((player.character_state.name, "[remained silent]"))
                 else:
-                    print(f"[{player.character_state.name}] {debrief_text}\n")
+                    # Add death marker for dead players
+                    if is_dead:
+                        print(f"💀 [{player.character_state.name}] (DYING) {debrief_text}\n")
+                    else:
+                        print(f"[{player.character_state.name}] {debrief_text}\n")
 
-                debriefs.append((player.character_state.name, debrief_text))
+                    debriefs.append((player.character_state.name, debrief_text))
 
                 # Log debrief to JSONL
                 if mechanics and mechanics.jsonl_logger:
@@ -2593,8 +2608,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Add damage dealt if any
             damage_text = ""
             effects = resolution.get('effects')
-            if effects and hasattr(effects, 'damage') and effects.damage and effects.damage.dealt:
-                damage_text = f" | Damage: {effects.damage.dealt}"
+            # Damage is now List[DamageEffect] - sum all dealt damage for display
+            if effects and hasattr(effects, 'damage') and effects.damage:
+                total_damage = sum(dmg.dealt for dmg in effects.damage)
+                damage_text = f" | Damage: {total_damage}"
             elif isinstance(effects, dict):
                 # Handle dict-based effects (enemy combat format)
                 # Must check that damage is not None before calling .get() on it
@@ -3232,7 +3249,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
             if npc_spawns:
                 # Reconstruct NPCSpawn objects if they were serialized to dicts
-                from .schemas.story_events import NPCSpawn
+                from .schemas.story_events import NPCSpawn, EntityLifecycleResult
+
+                # Create entity lifecycle result to track NPC spawns
+                entity_lifecycle_result = EntityLifecycleResult()
 
                 # Process NPC spawns via DM
                 for npc_spawn in npc_spawns:
@@ -3250,8 +3270,25 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     if dm_agent and hasattr(dm_agent, '_process_npc_spawn'):
                         npc = dm_agent._process_npc_spawn(npc_spawn)
                         print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
+
+                        # Track NPC spawn in lifecycle result
+                        entity_lifecycle_result.npcs_spawned.append(npc.agent_id)
                     else:
                         logger.warning(f"Cannot spawn NPC {npc_spawn.name} - DM not found or missing _process_npc_spawn")
+
+                # Log entity_lifecycle event if NPCs were spawned
+                if entity_lifecycle_result.npcs_spawned:
+                    mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+                    if mechanics and mechanics.jsonl_logger:
+                        lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
+                            round_num=0  # Session start is before Round 1
+                        )
+                        mechanics.jsonl_logger.log_event(
+                            'entity_lifecycle',
+                            lifecycle_dict,
+                            round_num=0
+                        )
+                        logger.info(f"Logged entity_lifecycle event for {len(entity_lifecycle_result.npcs_spawned)} session start NPCs")
 
         self._scenario_ready.set()
 
