@@ -1767,7 +1767,24 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
     def _format_altar_availability(self) -> str:
         """Format altar availability for attunement actions."""
-        return "No altar info available"
+        if not self.shared_state or not hasattr(self.shared_state, 'current_altars'):
+            return "No altars available"
+
+        altars = self.shared_state.current_altars
+        if not altars:
+            return "No altars available (DC 25 for no-equipment attunement, or use Echo-Calibrator if you have one)"
+
+        # Format altar list with IDs, types, quality, and bonuses
+        altar_lines = []
+        for altar in altars:
+            bonus = altar.get_ritual_bonus()
+            location_text = f" at {altar.location}" if altar.location else ""
+            # Bonus is DC reduction, so show as -N DC
+            altar_lines.append(
+                f"  - {altar.altar_id} ({altar.altar_type.value}, quality {altar.quality}, -{bonus} DC){location_text}"
+            )
+
+        return "Altars available:\n" + "\n".join(altar_lines)
 
     def _format_situational_factors(self) -> str:
         """Format situational modifiers for combat actions."""
