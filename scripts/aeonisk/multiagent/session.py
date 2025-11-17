@@ -1439,6 +1439,18 @@ class SelfPlayingSession:
                                 except Exception as e:
                                     logger.error(f"Error processing crafting for {agent.character_state.name}: {e}")
 
+                            # Handle attunement
+                            attunement_effect = effects.get('attunement') if effects else None
+                            if attunement_effect:
+                                try:
+                                    success = mechanics.process_attunement_effect(attunement_effect, agent.character_state)
+                                    if success:
+                                        logger.info(f"Processed attunement for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Attunement processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing attunement for {agent.character_state.name}: {e}")
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 

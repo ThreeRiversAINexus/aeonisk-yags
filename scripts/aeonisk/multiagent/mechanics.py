@@ -3061,6 +3061,94 @@ class MechanicsEngine:
             logger.info(f"Crafting failed for {character_state.name}: {crafting_effect.offering_type}")
             return True  # Still "successful" processing, just failed crafting
 
+    def process_attunement_effect(
+        self,
+        attunement_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process an AttunementEffect from DM structured output.
+
+        Consumes seed from inventory and grants energy currency based on DM adjudication.
+
+        Args:
+            attunement_effect: AttunementEffect object or dict from ActionResolution.effects.attunement
+            character_state: Character performing the attunement
+
+        Returns:
+            True if processing succeeded, False otherwise
+        """
+        if not attunement_effect:
+            logger.debug(f"No attunement effect for {character_state.name}")
+            return False
+
+        # Convert dict to AttunementEffect if needed
+        from .schemas.action_effects import AttunementEffect
+        if isinstance(attunement_effect, dict):
+            try:
+                attunement_effect = AttunementEffect(**attunement_effect)
+                logger.debug(f"Converted dict to AttunementEffect for {character_state.name}")
+            except Exception as e:
+                logger.error(f"Failed to convert attunement effect dict to Pydantic model: {e}")
+                logger.error(f"Attunement effect data: {attunement_effect}")
+                return False
+
+        # Consume the seed (always happens, even on failure)
+        if attunement_effect.seed_consumed:
+            if hasattr(character_state, 'inventory'):
+                current_raw_seeds = character_state.inventory.get('seed_raw', 0)
+                if current_raw_seeds > 0:
+                    character_state.inventory['seed_raw'] = current_raw_seeds - 1
+                    logger.info(f"Consumed 1 Raw Seed from {character_state.name} ({current_raw_seeds} → {current_raw_seeds - 1})")
+                else:
+                    logger.error(f"Failed to consume seed from {character_state.name} - no Raw Seeds in inventory!")
+                    return False
+            else:
+                logger.warning(f"Character {character_state.name} has no inventory")
+                return False
+
+        # Grant energy if successful
+        if attunement_effect.success and attunement_effect.energy_gained > 0:
+            energy_type = attunement_effect.energy_type
+            amount = attunement_effect.energy_gained
+
+            if self.energy_economy:
+                success = self.energy_economy.add_currency(character_state.agent_id, energy_type, amount)
+                if success:
+                    logger.info(f"Granted {amount} {energy_type} to {character_state.name} from successful attunement")
+                else:
+                    logger.error(f"Failed to grant {amount} {energy_type} to {character_state.name}")
+                    return False
+            else:
+                logger.warning("No energy_economy available to grant currency")
+                return False
+
+        # Handle Echo-Calibrator upkeep if paid
+        if attunement_effect.upkeep_paid:
+            if self.energy_economy:
+                success = self.energy_economy.spend_currency(character_state.agent_id, "drip", 1)
+                if success:
+                    logger.info(f"Deducted 1 Drip upkeep from {character_state.name} for Echo-Calibrator 3rd use")
+                else:
+                    logger.error(f"Failed to deduct Echo-Calibrator upkeep from {character_state.name}")
+            else:
+                logger.warning("No energy_economy available for upkeep deduction")
+
+        # Log the outcome
+        if attunement_effect.success:
+            logger.info(
+                f"✓ ATTUNEMENT SUCCESS: {character_state.name} converted 1 Raw Seed → {attunement_effect.energy_gained} {attunement_effect.energy_type} "
+                f"(altar: {attunement_effect.altar_id if attunement_effect.altar_id else 'none'}, "
+                f"bonus: {attunement_effect.altar_bonus if attunement_effect.altar_bonus else 0})"
+            )
+        else:
+            logger.info(
+                f"✗ ATTUNEMENT FAILED: {character_state.name} lost 1 Raw Seed, gained 0 energy "
+                f"(void penalty: {attunement_effect.void_penalty if attunement_effect.void_penalty else 0})"
+            )
+
+        return True
+
     def check_void_trigger(
         self,
         action: str,

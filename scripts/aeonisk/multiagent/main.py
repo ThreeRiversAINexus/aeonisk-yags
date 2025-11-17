@@ -7,6 +7,7 @@ import argparse
 import json
 import logging
 import sys
+import signal
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -119,22 +120,7 @@ async def run_session(config_path: str, random_seed: int = None, log_agents_sepa
         random_seed=random_seed,
         log_agents_separately=log_agents_separately
     )
-
-    try:
-        await session.start_session()
-    except (KeyboardInterrupt, asyncio.CancelledError):
-        # Print session info before cleanup
-        print("\n\n=== Session interrupted by user ===")
-        if session and session.session_id:
-            output_dir = session.config.get('output_dir', './output')
-            jsonl_path = f"{output_dir}/session_{session.session_id}.jsonl"
-            print(f"\nSession ID: {session.session_id}")
-            print(f"JSONL log: {jsonl_path}")
-            if log_agents_separately:
-                print(f"Agent logs: agent_logs/{session.session_id}/")
-        print()
-        raise  # Re-raise so asyncio.run() can clean up
-
+    await session.start_session()
     return session
 
 
@@ -235,14 +221,52 @@ def main():
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
 
-    try:
-        asyncio.run(run_session(
+    # Track session for signal handler
+    session_holder = {'session': None, 'log_agents_separately': args.log_agents_separately}
+
+    def handle_interrupt(signum, frame):
+        """Handle Ctrl-C by printing session info before shutdown."""
+        print("\n\n=== Session interrupted by user ===")
+        session = session_holder.get('session')
+        if session and hasattr(session, 'session_id') and session.session_id:
+            try:
+                output_dir = session.config.get('output_dir', './output')
+                jsonl_path = f"{output_dir}/session_{session.session_id}.jsonl"
+                print(f"\nSession ID: {session.session_id}")
+                print(f"JSONL log: {jsonl_path}")
+                if session_holder['log_agents_separately']:
+                    print(f"Agent logs: agent_logs/{session.session_id}/")
+                print()
+            except:
+                pass
+        # Restore default handler and re-raise to trigger normal shutdown
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        raise KeyboardInterrupt()
+
+    # Install signal handler
+    signal.signal(signal.SIGINT, handle_interrupt)
+
+    async def run_with_tracking():
+        """Wrapper to track session object for signal handler."""
+        if not Path(args.config).exists():
+            print(f"Configuration file not found: {args.config}")
+            print("Use --create-config to generate an example configuration.")
+            return None
+
+        session = SelfPlayingSession(
             args.config,
             random_seed=args.random_seed,
             log_agents_separately=args.log_agents_separately
-        ))
+        )
+        # Track session immediately so signal handler can access it
+        session_holder['session'] = session
+        await session.start_session()
+        return session
+
+    try:
+        asyncio.run(run_with_tracking())
     except KeyboardInterrupt:
-        # Session info already printed in run_session(), just exit cleanly
+        # Session info already printed by signal handler
         pass
 
 
