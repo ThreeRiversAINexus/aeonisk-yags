@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+import random
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 logger = logging.getLogger(__name__)
@@ -14,6 +16,64 @@ if TYPE_CHECKING:
     from .knowledge_retrieval import KnowledgeRetrieval
     from .enemy_combat import EnemyCombatManager
     from .target_ids import TargetIDMapper
+
+
+def generate_altar_id() -> str:
+    """
+    Generate unique altar ID: alt_xxxx
+
+    Format: alt_ + 4 random alphanumeric characters
+    Example: alt_r8k3
+    """
+    import string
+    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"alt_{suffix}"
+
+
+class AltarType(Enum):
+    """Types of ritual altars in Aeonisk."""
+    RITUAL_ALTAR = "ritual_altar"  # Generic ritual space
+    NEXUS_ALTAR = "nexus_altar"  # Sovereign Nexus sanctums (high quality, SC gated)
+    FREEBORN_ALTAR = "freeborn_altar"  # Neutral Zone markets (moderate quality, open access)
+    BLACK_MARKET_ALTAR = "black_market_altar"  # Hidden altars (low quality, risky, accepts Hollows)
+    ABANDONED_ALTAR = "abandoned_altar"  # Discovered altars (random quality, contested)
+
+
+@dataclass
+class Altar:
+    """
+    Represents a ritual altar that provides bonuses to attunement rituals.
+
+    Altars are infrastructure (not vendors) that assist player-performed rituals.
+    """
+    altar_type: AltarType
+    quality: int  # 1-10, determines bonus
+    location: str
+    altar_id: Optional[str] = None
+
+    def __post_init__(self):
+        """Auto-generate altar_id if not provided."""
+        if self.altar_id is None:
+            self.altar_id = generate_altar_id()
+
+    def get_ritual_bonus(self) -> int:
+        """
+        Get ritual bonus based on altar quality.
+
+        Quality 1-3: +1 bonus
+        Quality 4-7: +2 bonus
+        Quality 8-10: +3 bonus
+        """
+        if 1 <= self.quality <= 3:
+            return 1
+        elif 4 <= self.quality <= 7:
+            return 2
+        elif 8 <= self.quality <= 10:
+            return 3
+        else:
+            # Invalid quality, default to +1
+            logger.warning(f"Altar {self.altar_id} has invalid quality {self.quality}, defaulting to +1 bonus")
+            return 1
 
 
 @dataclass
@@ -56,6 +116,9 @@ class SharedState:
 
     # Current vendors present in the scenario (persists across rounds until StoryAdvancement removes them)
     current_vendors: List[Any] = field(default_factory=list)
+
+    # Current altars present in the scenario (ritual infrastructure for attunement)
+    current_altars: List[Altar] = field(default_factory=list)
 
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys
@@ -488,6 +551,65 @@ Generate something DIFFERENT from these recent scenarios.
     def clear_vendors(self) -> None:
         """Remove all vendors from scenario."""
         self.current_vendors.clear()
+
+    # Altar management methods
+
+    def add_altar(self, altar: Altar) -> None:
+        """
+        Add an altar to the scenario.
+
+        Args:
+            altar: Altar instance
+
+        Note:
+            Prevents duplicates by altar_id
+        """
+        # Check if altar with same ID already exists
+        for existing_altar in self.current_altars:
+            if existing_altar.altar_id == altar.altar_id:
+                # Skip duplicate
+                return
+
+        self.current_altars.append(altar)
+
+    def remove_altar(self, altar_id: str) -> bool:
+        """
+        Remove altar by ID.
+
+        Args:
+            altar_id: ID of altar to remove (e.g., "alt_r8k3")
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, altar in enumerate(self.current_altars):
+            if altar.altar_id == altar_id:
+                self.current_altars.pop(i)
+                return True
+        return False
+
+    def get_altar_by_id(self, altar_id: str) -> Optional[Altar]:
+        """
+        Get altar by ID.
+
+        Args:
+            altar_id: ID of altar to find (e.g., "alt_r8k3")
+
+        Returns:
+            Altar object if found, None otherwise
+        """
+        for altar in self.current_altars:
+            if altar.altar_id == altar_id:
+                return altar
+        return None
+
+    def get_all_altars(self) -> List[Altar]:
+        """Get all altars currently present in scenario."""
+        return self.current_altars
+
+    def clear_altars(self) -> None:
+        """Remove all altars from scenario."""
+        self.current_altars.clear()
 
     # Enemy agent management methods (delegate to enemy_combat module)
 

@@ -1,0 +1,189 @@
+version: 1.0.0
+module: player_action_purchase
+description: "Phase 2: PURCHASE action - Vendor transactions, buying items/energy"
+always_load: false
+load_when: action_type_is_purchase
+content: |-
+  # 💰 PURCHASE ACTION: Vendor Transactions
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **purchase action**. Now let's define the mechanical details.
+
+  This involves buying items or energy from vendors.
+
+  ## Purchase Mechanics
+
+  **Process:**
+  1. Identify vendor and item you want to purchase
+  2. Negotiate price (typically a Charisma check)
+  3. Pay with talismanic energy currency (breath, grain, drip, spark)
+  4. Receive item if successful
+
+  **Typical Difficulty:** DC 10-20 (varies by vendor relationship, haggling, item rarity)
+
+  ## REQUIRED Fields (Must Specify)
+
+  ```python
+  PurchaseAction(
+      # Core fields (all required)
+      intent: str,                    # Your Phase 1 intent
+      description: str,               # 50-800 chars - Describe the transaction
+      attribute: str,                 # Usually Charisma or Empathy for negotiation
+      skill: str,                     # Charm, Negotiation, Corporate Influence, etc.
+      difficulty_estimate: int,       # Your DC estimate (consider vendor, relationship)
+      difficulty_justification: str,  # Why that DC?
+
+      # Purchase-specific (BOTH REQUIRED!)
+      action_type: ActionType.PURCHASE,
+      vendor_id: str,                 # MUST specify vendor! (e.g., "vnd_marketplace_01")
+      item_id: str,                   # MUST specify item! (e.g., "itm_incense")
+  )
+  ```
+
+  ## Common Purchase Skills
+
+  **Negotiation/Haggling:**
+  - `Charisma × Charm` - Friendly persuasion, building rapport
+  - `Charisma × Negotiation` - Professional bargaining (if you have this skill)
+  - `Charisma × Corporate Influence` - Leveraging faction connections
+
+  **Information Gathering:**
+  - `Empathy × Charm` - Reading vendor's mood, finding fair price
+  - `Perception × Awareness` - Spotting quality, detecting scams
+
+  **Intimidation (if needed):**
+  - `Charisma × Intimidation` - Pressuring unfriendly vendors (risky!)
+
+  ## Current Context
+
+  **Your Resources:**
+  {currency_display}
+  {seeds_display}
+
+  **Available Vendors:**
+  {vendor_status}
+
+  **Your Social Skills:**
+  - Charisma: {charisma}
+  - Charm: {charm_skill}
+  - Negotiation: {negotiation_skill}
+
+  ## Vendor IDs
+
+  The DM has provided vendor IDs in the scene description. Look for:
+  - `vnd_marketplace_01` - Marketplace vendor
+  - `vnd_black_market` - Illicit trader
+  - `vnd_guild_supplier` - Official guild vendor
+
+  If no vendor ID is provided, use a descriptive identifier like `vnd_incense_merchant`.
+
+  ## Item IDs
+
+  Common items and their typical IDs:
+  - `itm_incense` - Ritual incense (offering)
+  - `itm_crystals` - Ritual crystals (offering)
+  - `itm_raw_seed` - Raw Seed (for attunement)
+  - `itm_scanner` - Portable scanner (tech equipment)
+  - `itm_medkit` - Medical supplies
+  - `itm_breath`, `itm_grain`, `itm_drip`, `itm_spark` - Energy currency
+
+  If purchasing something unique, use descriptive ID like `itm_void_detector`.
+
+  ## Examples
+
+  **Example 1: Routine Purchase (Friendly Vendor)**
+  ```python
+  PurchaseAction(
+      intent="Buy Incense from marketplace vendor",
+      description="I approach the incense merchant's stall and browse their wares. 'I need high-quality ritual incense for astral work. What's your best price for three sticks?' I smile warmly, showing I'm a serious customer.",
+      attribute="Charisma",
+      skill="Charm",
+      difficulty_estimate=12,
+      difficulty_justification="DC 12: Routine transaction, friendly vendor, fair price request. Not haggling aggressively.",
+      action_type=ActionType.PURCHASE,
+      vendor_id="vnd_marketplace_01",
+      item_id="itm_incense"
+  )
+  ```
+
+  **Example 2: Haggling (Tough Negotiation)**
+  ```python
+  PurchaseAction(
+      intent="Negotiate better price for Echo-Calibrator",
+      description="I examine the Echo-Calibrator carefully, pointing out minor wear on the resonance plate. 'This unit's been used - I can see the calibration drift. I'll give you 15 drip, but you throw in a spare resonance crystal to offset the repair cost.'",
+      attribute="Charisma",
+      skill="Charm",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Expensive item, vendor knows its value, but I have legitimate concerns about wear. Asking for significant discount.",
+      action_type=ActionType.PURCHASE,
+      vendor_id="vnd_tech_supplier",
+      item_id="itm_echo_calibrator"
+  )
+  ```
+
+  **Example 3: Black Market Transaction (Risky)**
+  ```python
+  PurchaseAction(
+      intent="Purchase Hollow Seeds from illicit trader",
+      description="I keep my voice low and my hood up, approaching the shady dealer in the back alley. 'I hear you deal in Hollow Seeds. I need three, no questions asked. Name your price.' My hand rests near my weapon, showing I'm prepared for trouble.",
+      attribute="Charisma",
+      skill="Guile",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20: Illegal transaction, dealer is suspicious, high-risk environment. Need to establish trust without revealing too much.",
+      action_type=ActionType.PURCHASE,
+      vendor_id="vnd_black_market_dealer",
+      item_id="itm_hollow_seed"
+  )
+  ```
+
+  **Example 4: Using Faction Influence**
+  ```python
+  PurchaseAction(
+      intent="Acquire ritual supplies using Pantheon Guild credentials",
+      description="I present my Pantheon Guild credentials to the official supplier. 'I'm on assignment and need standard ritual kit - incense, crystals, and blessed salt. Guild account, priority processing.' Professional and matter-of-fact.",
+      attribute="Charisma",
+      skill="Corporate Influence",
+      difficulty_estimate=10,
+      difficulty_justification="DC 10: Official transaction with faction credentials. Straightforward, vendor obligated to comply.",
+      action_type=ActionType.PURCHASE,
+      vendor_id="vnd_pantheon_supplier",
+      item_id="itm_ritual_kit"
+  )
+  ```
+
+  ## Common Mistakes to Avoid
+
+  ❌ **Missing vendor_id** - MUST specify which vendor! (e.g., `vendor_id="vnd_marketplace_01"`)
+  ❌ **Missing item_id** - MUST specify what you're buying! (e.g., `item_id="itm_incense"`)
+  ❌ **Wrong attribute** - Purchases typically use Charisma or Empathy, not Intelligence
+  ❌ **No currency check** - Make sure you have enough energy to pay!
+  ❌ **Unrealistic price negotiation** - Don't lowball established vendors by 90%
+
+  ## Purchase Outcomes
+
+  - **Critical Success:** Great price, bonus items, vendor becomes friendly contact
+  - **Good Success:** Fair price, smooth transaction
+  - **Marginal Success:** Slightly overpaid, but got the item
+  - **Failure:** Vendor refuses, suspicious, or demands higher price
+
+  ## Special Cases
+
+  **Illegal Items:**
+  - Use Guile instead of Charm
+  - Higher DCs (vendor paranoid)
+  - Risk of being scammed or reported
+
+  **Faction Discounts:**
+  - Pantheon Guild members get -2 DC at official suppliers
+  - ACG members get -2 DC at tech vendors
+  - Hostile factions get +5 DC or refused service
+
+  **Bulk Purchases:**
+  - Buying multiple items: One roll, list all in description
+  - Vendor may offer discounts for bulk
+
+  ---
+
+  **Ready? Declare your purchase action with vendor_id and item_id!**

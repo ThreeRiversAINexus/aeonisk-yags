@@ -47,9 +47,21 @@ Converted from `ml_training_scenarios/` directory:
 
 16. **session_config_action_movie_openai.json** - High-octane heist, explosive combat, 4-person crew
 
-### Test Configs (1 config)
+### Test Configs (11 configs)
 
 17. **session_config_openai_test.json** - Basic OpenAI provider integration test
+18. **session_config_attunement_test_openai.json** - Seed attunement system comprehensive test (NEW)
+    - Tests altar bonuses, Echo-Calibrator mechanics, upkeep payment, all energy conversions
+    - See `ATTUNEMENT_TEST_GUIDE.md` for detailed verification checklist
+19. **session_config_purchase_test_openai.json** - Vendor purchase system test
+20. **session_config_purchase_1round_test_openai.json** - Single-round purchase validation
+21. **session_config_item_transfer_test_openai.json** - Item/currency transfer system test
+22. **session_config_transfer_test_openai.json** - Transfer mechanics validation
+23. **session_config_economic_openai.json** - Energy economy and currency operations
+24. **session_config_ritual_progression_test_openai.json** - Void accumulation across rituals
+25. **session_config_sc_gating_test_openai.json** - Soulcredit gating mechanics
+26. **session_config_gymbar_social_openai.json** - Social mechanics and NPC interaction
+27. **session_config_action_movie_openai.json** - High-octane action (also in Action Scenarios)
 
 ## Running OpenAI Sessions
 
@@ -106,5 +118,6 @@ No changes to mechanics, characters, clocks, or scenario design - only LLM provi
 
 ## Version History
 
+- **2025-11-16**: Added comprehensive seed attunement test config with detailed guide
 - **2025-11-15**: Created 16 OpenAI configs from ML training scenarios + action movie
 - **2025-11-14**: Initial OpenAI test config

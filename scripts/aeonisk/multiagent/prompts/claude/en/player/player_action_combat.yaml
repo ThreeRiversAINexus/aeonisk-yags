@@ -1,0 +1,174 @@
+version: 1.0.0
+module: player_action_combat
+description: "Phase 2: COMBAT action - Attacks, defensive maneuvers, tactical combat"
+always_load: false
+load_when: action_type_is_combat
+content: |-
+  # ⚔️ COMBAT ACTION: Attack & Combat Maneuvers
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **combat action**. Now let's define the mechanical details.
+
+  This includes attacks, defensive maneuvers, tactical positioning, and combat-oriented abilities.
+
+  ## Combat Mechanics
+
+  **Process:**
+  1. Declare target (enemy combatant)
+  2. Choose weapon/ability and corresponding skill
+  3. Roll to hit (Attribute + Skill + d20 vs DC)
+  4. DM narrates outcome and determines damage
+
+  **Typical Difficulty:** DC 15-25 (varies by target, cover, distance, etc.)
+
+  ## REQUIRED Fields (Must Specify)
+
+  ```python
+  CombatAction(
+      # Core fields (all required)
+      intent: str,                    # Your Phase 1 intent
+      description: str,               # 50-800 chars - Describe your attack/maneuver
+      attribute: str,                 # Agility (ranged), Strength (melee), Willpower (magic)
+      skill: str,                     # Guns, Melee, Brawl, Combat, Astral Arts, etc.
+      difficulty_estimate: int,       # Your DC estimate (consider target, cover, range)
+      difficulty_justification: str,  # Why that DC?
+
+      # Combat-specific (REQUIRED!)
+      action_type: ActionType.COMBAT,
+      target: str,                    # MUST specify target! (tgt_xxxx or name)
+
+      # Optional combat fields
+      target_position: Optional[Position],        # Desired tactical position after action
+      situational_modifiers: Dict[str, int],      # E.g., {"high_ground": 2, "cover": -2}
+  )
+  ```
+
+  ## Common Combat Skills
+
+  **Ranged Weapons:**
+  - `Agility × Guns` - Firearms, energy weapons, bows
+  - `Agility × Pilot` - Vehicle-mounted weapons
+
+  **Melee Weapons:**
+  - `Agility × Melee` - Blades, swords, precision strikes
+  - `Strength × Melee` - Heavy weapons, power attacks
+  - `Strength × Brawl` - Unarmed, improvised weapons
+
+  **Magic/Astral Arts:**
+  - `Willpower × Astral Arts` - Telekinetic strikes, energy blasts
+  - `Willpower × Attunement` - Void-based attacks (risky!)
+
+  **Tactics:**
+  - `Perception × Combat` - Called shots, tactical maneuvers
+  - `Agility × Combat` - Defensive moves, positioning
+
+  ## Current Context
+
+  **Your Combat Stats:**
+  - Primary combat attribute: {combat_attribute}
+  - Combat skills: {combat_skills}
+  - Current health: {health}/{max_health} ({health_status})
+  - Position: {position}
+
+  **Entities Present:**
+  {entities_present}
+
+  **Situational Factors:**
+  {situational_factors}
+
+  ## Examples
+
+  **Example 1: Ranged Attack (Firearms)**
+  ```python
+  CombatAction(
+      intent="Fire plasma rifle at enemy commander",
+      description="I take careful aim at the enemy leader's center mass, compensating for their movement and partial cover. Squeezing off two controlled bursts from my plasma rifle.",
+      attribute="Agility",
+      skill="Guns",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Moving target with partial cover (+3), but I have stable firing position (-1) and good sightlines",
+      action_type=ActionType.COMBAT,
+      target="tgt_enemy_01",
+      target_position=Position.NEAR_ENEMY,
+      situational_modifiers={"high_ground": 2, "partial_cover": -3}
+  )
+  ```
+
+  **Example 2: Melee Attack (Blades)**
+  ```python
+  CombatAction(
+      intent="Close distance and strike gang enforcer with mono-blade",
+      description="I dash forward, closing the gap in two quick steps, and deliver a precise slash aimed at the enforcer's weapon arm to disarm them.",
+      attribute="Agility",
+      skill="Melee",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20: Called shot to weapon arm (+3), but they're focused on my ally (-2), giving me an opening",
+      action_type=ActionType.COMBAT,
+      target="tgt_enforcer_02",
+      target_position=Position.ENGAGED,
+      situational_modifiers={"called_shot": -3, "target_distracted": 2}
+  )
+  ```
+
+  **Example 3: Magic Combat (Telekinetic Attack)**
+  ```python
+  CombatAction(
+      intent="Launch telekinetic debris at void cultist",
+      description="I channel astral energy to hurl the broken machinery at the cultist with crushing force, burning incense as an offering to keep my casting pure.",
+      attribute="Willpower",
+      skill="Astral Arts",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20: Requires focus to accelerate objects precisely, but I have proper offerings to reduce void risk",
+      action_type=ActionType.COMBAT,
+      target="tgt_cultist_01",
+      is_ritual=True,
+      has_offering=True,
+      offering_type="incense"
+  )
+  ```
+
+  **Example 4: Unarmed Brawl**
+  ```python
+  CombatAction(
+      intent="Tackle and subdue fleeing informant",
+      description="I sprint after the fleeing informant and tackle them to the ground, pinning their arms to prevent escape. Not trying to hurt them, just immobilize.",
+      attribute="Strength",
+      skill="Brawl",
+      difficulty_estimate=15,
+      difficulty_justification="DC 15: They're fleeing not fighting, unarmored civilian, but moving target",
+      action_type=ActionType.COMBAT,
+      target="tgt_informant",
+      situational_modifiers={"non-lethal": 0, "fleeing_target": -2}
+  )
+  ```
+
+  ## Common Mistakes to Avoid
+
+  ❌ **No target specified** - MUST include target! (e.g., `target="tgt_enemy_01"`)
+  ❌ **Wrong skill for weapon** - Guns use Agility, not Strength
+  ❌ **Forgetting unskilled penalty** - If you don't have the skill, add -5 to your total!
+  ❌ **Using magic without offering** - Void corruption risk! Specify `has_offering=True` if you have incense/crystals
+  ❌ **Unrealistic difficulty** - Consider cover, range, target awareness
+
+  ## Tactical Positioning
+
+  Optional `target_position` field for movement during combat:
+
+  - **Engaged:** Melee range (adjacent to target)
+  - **Near-Enemy:** Close but not engaged (10-20 feet)
+  - **Far-Enemy:** Medium range (30-50 feet)
+  - **Extreme-Enemy:** Long range (100+ feet)
+  - **Near-PC / Far-PC / Extreme-PC:** Positioning relative to allies
+
+  ## Success Outcomes
+
+  - **Critical Success:** Maximum damage, tactical advantage
+  - **Good Success:** Full damage, clean hit
+  - **Marginal Success:** Partial damage, glancing blow
+  - **Failure:** Miss, target evades, wasted action
+
+  ---
+
+  **Ready? Declare your combat action with all required fields!**

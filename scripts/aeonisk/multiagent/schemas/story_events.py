@@ -355,6 +355,62 @@ If unsure, choose the CLOSEST match from the valid templates above."""
     )
 
 
+class AltarSpawn(BaseModel):
+    """
+    New ritual altar to spawn during story advancement or round synthesis.
+
+    Altars are infrastructure that provide bonuses to attunement rituals.
+
+    Example:
+    ```python
+    spawn = AltarSpawn(
+        altar_type="ritual_altar",
+        quality=6,
+        location="Hidden Temple",
+        narrative_reason="The party discovers an abandoned shrine"
+    )
+    ```
+    """
+
+    altar_type: str = Field(
+        ...,
+        description="""Altar type - MUST use EXACTLY ONE of these valid types:
+
+⚠️ VALID TYPES (use these exact strings):
+- "ritual_altar": Generic ritual space (quality 3-7)
+- "nexus_altar": Sovereign Nexus sanctum (quality 8-10, SC gated)
+- "freeborn_altar": Neutral Zone market altar (quality 5-7, open access)
+- "black_market_altar": Hidden altar (quality 3-5, risky, accepts Hollows)
+- "abandoned_altar": Discovered altar (quality 1-9, contested)
+
+❌ DO NOT create new types or misspell these"""
+    )
+
+    quality: int = Field(
+        ...,
+        ge=1,
+        le=10,
+        description="""Altar quality (1-10, determines ritual bonus):
+- Quality 1-3: +1 bonus
+- Quality 4-7: +2 bonus
+- Quality 8-10: +3 bonus"""
+    )
+
+    location: str = Field(
+        ...,
+        min_length=5,
+        max_length=100,
+        description="Physical location of the altar (e.g., 'Hidden Temple', 'Market Plaza')"
+    )
+
+    narrative_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Why this altar appears now (e.g., 'Discovery during exploration', 'Ritual site revealed')"
+    )
+
+
 class RoundSynthesis(BaseModel):
     """
     DM's round summary with potential scene pivots and story advancement.
@@ -918,6 +974,24 @@ Use when:
 ⚠️ DO NOT duplicate existing enemies! Check active enemies list first.
 
 Use empty list [] if no new enemies needed."""
+    )
+
+    altar_spawns: List[AltarSpawn] = Field(
+        default_factory=list,
+        description="""New ritual altars discovered/revealed this round.
+
+Use when:
+- Party discovers hidden shrine during exploration
+- NPC reveals secret altar location
+- Ritual site becomes accessible (door unsealed, barrier lifted)
+- Abandoned temple found through investigation
+
+Examples:
+- Freeborn merchant mentions market altar
+- Breaking into temple reveals Nexus sanctum
+- Void cultist lair contains dark altar
+
+Use empty list [] if no new altars discovered."""
     )
 
     npc_departures: List[str] = Field(

@@ -33,6 +33,7 @@ class ActionType(str, Enum):
     SUPPORT = "support"
     PURCHASE = "purchase"  # Vendor transactions (separate from social for ML training)
     TRANSFER = "transfer"  # Energy currency transfers between characters
+    ATTUNE = "attune"  # Seed attunement rituals (separate from general RITUAL for ML training)
     CUSTOM = "custom"
 
 

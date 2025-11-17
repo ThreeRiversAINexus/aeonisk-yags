@@ -356,16 +356,17 @@ class TestInventorySeedOperations:
         assert inv.seeds[2].seed_type == SeedType.ATTUNED
 
     def test_degrade_raw_seeds_to_hollow(self):
-        """Test Raw Seeds degrading to Hollow in inventory."""
-        inv = EnergyPurse()
+        """Test Raw Seeds degrading to Hollow currency."""
+        inv = EnergyPurse(hollow=0)
         inv.add_seed(Seed(seed_type=SeedType.RAW, cycles_remaining=1))
 
         inv.degrade_raw_seeds(1)
 
-        # Should now be Hollow
-        assert inv.seeds[0].seed_type == SeedType.HOLLOW
-        assert inv.count_seeds(SeedType.HOLLOW) == 1
+        # Seed should be removed from inventory
         assert inv.count_seeds(SeedType.RAW) == 0
+        assert len(inv.seeds) == 0
+        # Hollow currency should increase
+        assert inv.hollow == 1
 
 
 class TestInventorySerialization:

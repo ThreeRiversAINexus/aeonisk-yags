@@ -98,6 +98,29 @@ class TransferValidation:
     in_range: bool = False  # True if characters are in same range band
 
 
+@dataclass
+class AttunementValidation:
+    """
+    Result of pre-attunement validation check.
+
+    Used to validate seed attunement requests BEFORE calling the DM,
+    preventing impossible attunements (no seeds, missing altar, insufficient upkeep, etc.).
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    has_raw_seed: bool = False
+    target_energy: Optional[str] = None
+    # Altar-specific fields
+    altar_exists: bool = False
+    altar_bonus: int = 0  # Bonus from altar quality (+1-3)
+    altar_id: Optional[str] = None
+    # Echo-Calibrator fields
+    has_echo_calibrator: bool = False
+    upkeep_required: bool = False
+    has_upkeep_currency: bool = False
+    usage_count: int = 0
+
+
 class OutcomeTier(Enum):
     """Outcome quality tiers based on margin of success."""
     CRITICAL_FAILURE = "critical_failure"  # -20 or worse
@@ -2594,6 +2617,281 @@ class MechanicsEngine:
             sender_items=sender_items,
             in_range=in_range
         )
+
+    def validate_attunement(
+        self,
+        character_state: Any,
+        target_energy: Optional[str],
+        altar_id: Optional[str] = None,
+        use_echo_calibrator: bool = False
+    ) -> AttunementValidation:
+        """
+        Validate seed attunement request BEFORE calling the DM.
+
+        Checks:
+        1. Player has at least one Raw Seed
+        2. target_energy is specified
+        3. If altar_id provided, altar exists and is accessible
+        4. If use_echo_calibrator=True, player has Echo-Calibrator
+        5. If Echo-Calibrator on 3rd use, player has 1 Drip for upkeep
+
+        Args:
+            character_state: Character attempting attunement
+            target_energy: Target energy type ("breath", "grain", "drip", "spark")
+            altar_id: Optional altar ID for bonus
+            use_echo_calibrator: Whether using Echo-Calibrator device
+
+        Returns:
+            AttunementValidation with full details for execution
+        """
+        from .energy_economy import SeedType
+
+        # Check target_energy is specified
+        if not target_energy:
+            return AttunementValidation(
+                is_valid=False,
+                failure_reason="Must specify target_energy (breath, grain, drip, or spark)",
+                target_energy=target_energy
+            )
+
+        # Check player has energy purse
+        if not hasattr(character_state, 'energy_purse') or character_state.energy_purse is None:
+            return AttunementValidation(
+                is_valid=False,
+                failure_reason="Character has no energy purse",
+                target_energy=target_energy
+            )
+
+        energy_purse = character_state.energy_purse
+
+        # Check player has at least one Raw Seed
+        raw_seed_count = energy_purse.count_seeds(SeedType.RAW)
+        if raw_seed_count == 0:
+            return AttunementValidation(
+                is_valid=False,
+                failure_reason="No Raw Seed available for attunement",
+                has_raw_seed=False,
+                target_energy=target_energy
+            )
+
+        # Initialize validation result
+        validation = AttunementValidation(
+            is_valid=True,
+            has_raw_seed=True,
+            target_energy=target_energy
+        )
+
+        # Check altar if specified
+        if altar_id:
+            if not self.shared_state:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason=f"Altar '{altar_id}' not found (no shared state)",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    altar_exists=False,
+                    altar_id=altar_id
+                )
+
+            altar = self.shared_state.get_altar_by_id(altar_id)
+            if not altar:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason=f"Altar '{altar_id}' not found",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    altar_exists=False,
+                    altar_id=altar_id
+                )
+
+            # Altar exists, calculate bonus
+            validation.altar_exists = True
+            validation.altar_id = altar_id
+            validation.altar_bonus = altar.get_ritual_bonus()
+
+        # Check Echo-Calibrator if specified
+        if use_echo_calibrator:
+            # Check player has Echo-Calibrator in item_metadata
+            if not hasattr(character_state, 'item_metadata') or not character_state.item_metadata:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason="No Echo-Calibrator available (not in inventory)",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    has_echo_calibrator=False,
+                    altar_exists=validation.altar_exists,
+                    altar_id=altar_id,
+                    altar_bonus=validation.altar_bonus
+                )
+
+            if "echo_calibrator" not in character_state.item_metadata:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason="No Echo-Calibrator available (not in inventory)",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    has_echo_calibrator=False,
+                    altar_exists=validation.altar_exists,
+                    altar_id=altar_id,
+                    altar_bonus=validation.altar_bonus
+                )
+
+            # Echo-Calibrator exists
+            validation.has_echo_calibrator = True
+            calibrator_data = character_state.item_metadata["echo_calibrator"]
+            usage_count = calibrator_data.get("usage_count", 0)
+            validation.usage_count = usage_count
+
+            # Check if upkeep required (every 3rd use)
+            # Usage count 0, 1 → no upkeep
+            # Usage count 2 → next use (3rd) requires upkeep
+            if usage_count >= 2 and (usage_count + 1) % 3 == 0:
+                validation.upkeep_required = True
+
+                # Check player has 1 Drip for upkeep
+                if energy_purse.drip >= 1:
+                    validation.has_upkeep_currency = True
+                else:
+                    return AttunementValidation(
+                        is_valid=False,
+                        failure_reason="Insufficient Drip for Echo-Calibrator upkeep (need 1 Drip)",
+                        has_raw_seed=True,
+                        target_energy=target_energy,
+                        has_echo_calibrator=True,
+                        upkeep_required=True,
+                        has_upkeep_currency=False,
+                        usage_count=usage_count,
+                        altar_exists=validation.altar_exists,
+                        altar_id=altar_id,
+                        altar_bonus=validation.altar_bonus
+                    )
+
+        # All checks passed!
+        return validation
+
+    def execute_attunement(
+        self,
+        character_state: Any,
+        validation: AttunementValidation,
+        use_echo_calibrator: bool = False
+    ) -> 'AttunementEffect':
+        """
+        Execute seed attunement ritual after validation.
+
+        Process:
+        1. Consume 1 Raw Seed from energy purse
+        2. Handle Echo-Calibrator check if used (DC 16 Dex+Craft/Tech)
+        3. Roll attunement ritual (Willpower × Attunement + d20 + altar_bonus vs DC 20)
+        4. On success: Award energy (100 breath, 50 grain, 20 drip, or 5 spark)
+        5. On failure: No energy, seed still consumed
+        6. Track upkeep and usage
+
+        Args:
+            character_state: Character performing attunement
+            validation: Pre-validated attunement request
+            use_echo_calibrator: Whether using Echo-Calibrator
+
+        Returns:
+            AttunementEffect with full ritual outcome
+        """
+        from .energy_economy import SeedType
+        from .schemas.action_effects import AttunementEffect
+        import random
+
+        energy_purse = character_state.energy_purse
+
+        # Consume Raw Seed
+        seed = None
+        for i, s in enumerate(energy_purse.seeds):
+            if s.seed_type == SeedType.RAW:
+                seed = energy_purse.seeds.pop(i)
+                break
+
+        if not seed:
+            # This should never happen after validation, but be defensive
+            return AttunementEffect(
+                success=False,
+                seed_consumed=False,
+                energy_type=validation.target_energy,
+                energy_gained=0,
+                void_penalty=0
+            )
+
+        # Initialize effect
+        effect = AttunementEffect(
+            success=False,
+            seed_consumed=True,
+            energy_type=validation.target_energy,
+            energy_gained=0,
+            altar_id=validation.altar_id,
+            altar_bonus=validation.altar_bonus,
+            echo_calibrator_used=use_echo_calibrator
+        )
+
+        # Handle Echo-Calibrator if used
+        calibrator_check_passed = True
+        if use_echo_calibrator:
+            # DC 16 Dex + Craft/Tech check
+            dex = character_state.attributes.get('Agility', 0)  # Agility = Dex
+            craft_tech = max(
+                character_state.skills.get('Craft', 0),
+                character_state.skills.get('Tech', 0)
+            )
+            calibrator_roll = random.randint(1, 20)
+            calibrator_total = dex + craft_tech + calibrator_roll
+
+            effect.calibrator_check_success = (calibrator_total >= 16)
+            calibrator_check_passed = effect.calibrator_check_success
+
+            if not calibrator_check_passed:
+                # Failed calibrator check: +1 Void
+                effect.calibrator_void = 1
+                effect.void_penalty += 1
+
+            # Handle upkeep
+            if validation.upkeep_required:
+                energy_purse.spend_currency("drip", 1)
+                effect.upkeep_paid = True
+
+            # Increment usage count
+            if "echo_calibrator" not in character_state.item_metadata:
+                character_state.item_metadata["echo_calibrator"] = {"usage_count": 0}
+            character_state.item_metadata["echo_calibrator"]["usage_count"] += 1
+
+        # Roll attunement ritual (Willpower × Attunement + d20 + bonuses vs DC 20)
+        willpower = character_state.attributes.get('Willpower', 0)
+        attunement_skill = character_state.skills.get('Attunement', 0)
+
+        # Check if unskilled (-5 penalty if skill is 0)
+        skill_modifier = attunement_skill if attunement_skill > 0 else -5
+
+        roll_d20 = random.randint(1, 20)
+        bonuses = validation.altar_bonus  # Altar provides bonus
+        roll_total = willpower + skill_modifier + roll_d20 + bonuses
+
+        effect.roll_total = roll_total
+        effect.roll_margin = roll_total - 20  # DC 20
+
+        # Determine success
+        if roll_total >= 20:
+            effect.success = True
+
+            # Award energy based on type
+            energy_amounts = {
+                "breath": 100,
+                "grain": 50,
+                "drip": 20,
+                "spark": 5
+            }
+            amount = energy_amounts.get(validation.target_energy, 0)
+            energy_purse.add_currency(validation.target_energy, amount)
+            effect.energy_gained = amount
+        else:
+            # Failed ritual: seed consumed, no energy
+            effect.success = False
+            effect.energy_gained = 0
+
+        return effect
 
     def process_purchase_effect(
         self,

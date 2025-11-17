@@ -1,0 +1,79 @@
+version: 1.0.0
+module: player_action_social
+description: "Phase 2: SOCIAL action - Negotiation, intimidation, persuasion, deception"
+always_load: false
+load_when: action_type_is_social
+content: |-
+  # 💬 SOCIAL ACTION: Persuasion & Interaction
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **social action**. Now let's define the mechanical details.
+
+  ## Social Mechanics
+
+  **Process:**
+  1. Identify target person/group
+  2. Choose approach (persuade, intimidate, deceive, charm)
+  3. Roll check (Attribute + Skill + d20 vs DC)
+  4. DM narrates social outcome
+
+  **Typical Difficulty:** DC 10-22 (varies by target disposition, stakes, prior relationship)
+
+  ## REQUIRED Fields
+
+  ```python
+  SocialAction(
+      intent: str,
+      description: str,               # 50-800 chars
+      attribute: str,                 # Charisma, Empathy, Willpower
+      skill: str,                     # Charm, Intimidation, Guile, Negotiation
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.SOCIAL,
+      target: Optional[str]           # Person/group ID (e.g., "tgt_guard")
+  )
+  ```
+
+  ## Common Social Skills
+
+  - `Charisma × Charm` - Friendly persuasion, building rapport
+  - `Charisma × Intimidation` - Threats, displays of power
+  - `Charisma × Guile` - Deception, lying, misdirection
+  - `Empathy × Charm` - Reading emotions, genuine connection
+  - `Willpower × Intimidation` - Mental domination, authority
+
+  ## Examples
+
+  **Negotiation:**
+  ```python
+  SocialAction(
+      intent="Negotiate better price with vendor",
+      description="I lean in with a friendly smile, pointing out the minor wear on the equipment while emphasizing my repeat business. 'We both know this is worth 15 drip, not 20. Let's be fair.'",
+      attribute="Charisma",
+      skill="Charm",
+      difficulty_estimate=16,
+      difficulty_justification="DC 16: Vendor is experienced but I have legitimate concerns and good relationship",
+      action_type=ActionType.SOCIAL,
+      target="tgt_vendor"
+  )
+  ```
+
+  **Intimidation:**
+  ```python
+  SocialAction(
+      intent="Intimidate gang member into talking",
+      description="I step close, hand resting on my weapon, voice low and dangerous. 'Your friends left you here to die. Tell me where they went, and maybe you walk out of this.'",
+      attribute="Willpower",
+      skill="Intimidation",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: They're scared but loyal to gang, needs strong pressure",
+      action_type=ActionType.SOCIAL,
+      target="tgt_gang_member"
+  )
+  ```
+
+  ---
+
+  **Ready? Declare your social action!**

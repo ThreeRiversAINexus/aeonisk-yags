@@ -95,18 +95,19 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
             'reason': pc.reason
         }
 
-    # Extract damage effects
+    # Extract damage effects (damage is now List[DamageEffect])
     damage_effects = []
     if resolution_obj.effects.damage:
-        damage_effects.append({
-            'type': 'damage',
-            'target': resolution_obj.effects.damage.target,
-            'base_damage': resolution_obj.effects.damage.base_damage,
-            'soak': resolution_obj.effects.damage.soak,
-            'dealt': resolution_obj.effects.damage.dealt,
-            'damage_type': resolution_obj.effects.damage.damage_type,
-            'source': 'structured_output'
-        })
+        for dmg in resolution_obj.effects.damage:
+            damage_effects.append({
+                'type': 'damage',
+                'target': dmg.target,
+                'base_damage': dmg.base_damage,
+                'soak': dmg.soak,
+                'dealt': dmg.dealt,
+                'damage_type': dmg.damage_type,
+                'source': 'structured_output'
+            })
 
     # Build state_changes dict (legacy format)
     state_changes = {

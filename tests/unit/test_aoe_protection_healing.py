@@ -444,7 +444,7 @@ class TestHealingIntegration:
             success=True,
             success_tier="good",
             margin=7,
-            narration="You apply the medkit, stabilizing your ally's wounds.",
+            narration="You apply the medkit with practiced efficiency, cleaning and sealing your ally's wounds. The biofoam rapidly expands to staunch the bleeding, while the integrated pain suppressors take immediate effect. Within moments, your ally's breathing steadies and color returns to their face as the advanced medical technology works its wonders.",
             effects=MechanicalEffects(
                 healing=[
                     HealingEffect(target="tgt_7a3f", heal_type="hp", amount=18, source="medkit")
@@ -570,19 +570,20 @@ class TestBarrierDuration:
 
     def test_permanent_barrier_zero_duration(self):
         """
-        Barriers with duration=0 are removed immediately.
-        Note: This is for depleted barriers created during combat.
+        Barriers with duration=1 and protection_amount=0 are marked for removal.
+        Note: Actual duration=0 not allowed (ge=1 constraint).
         """
         depleted = Condition(
             name="Shattered Barrier",
             penalty=0,
-            duration=0,
-            description="Barrier just broke",
+            duration=1,  # Minimum duration, will be removed by cleanup
+            description="Barrier just broke and shatters",
             protection_amount=0
         )
 
-        assert depleted.duration == 0
+        assert depleted.duration == 1
         assert depleted.protection_amount == 0
+        # Implementation will remove conditions with protection_amount=0
 
 
 # ============================================================================
@@ -622,7 +623,7 @@ class TestCombinedEffects:
             success=True,
             success_tier="exceptional",
             margin=12,
-            narration="You create a protective barrier and channel healing energy!",
+            narration="You create a protective barrier around your wounded ally while simultaneously channeling healing energy through the defensive field! The shimmering shield forms first, pulsing with protective power, then the barrier itself begins to glow with restorative light. Your ally's wounds start to close as the dual-purpose ritual works its magic, combining defense and restoration in perfect harmony.",
             effects=MechanicalEffects(
                 conditions=[
                     Condition(
@@ -673,9 +674,9 @@ class TestCombinedEffects:
 
         aoe_attack = MechanicalEffects(
             damage=[
-                DamageEffect(target="tgt_1", base_damage=12, dealt=12),
-                DamageEffect(target="tgt_2", base_damage=12, dealt=10),
-                DamageEffect(target="tgt_3", base_damage=12, dealt=8),
+                DamageEffect(target="tgt_7a3f", base_damage=12, dealt=12),
+                DamageEffect(target="tgt_3c5d", base_damage=12, dealt=10),
+                DamageEffect(target="tgt_2b1c", base_damage=12, dealt=8),
             ],
             soulcredit_changes=[]
         )
@@ -687,7 +688,7 @@ class TestCombinedEffects:
                     target="player_01",
                     penalty=0,
                     duration=2,
-                    description="Blocks 15 damage",
+                    description="Blocks 15 damage from incoming attacks",
                     protection_amount=15
                 )
             ],

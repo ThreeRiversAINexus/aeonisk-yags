@@ -40,6 +40,8 @@ async def generate_dm_resolution_structured(
     max_tokens: int = 2000,
     temperature: float = 0.8,
     fallback_to_text: bool = False,  # Changed default: NO silent fallbacks
+    llm_logger: Optional[Any] = None,  # For token tracking
+    current_round: Optional[int] = None,  # For token tracking
     **kwargs
 ) -> Union[ActionResolution, str]:
     """
@@ -56,6 +58,8 @@ async def generate_dm_resolution_structured(
         max_tokens: Max tokens to generate
         temperature: Sampling temperature
         fallback_to_text: If True, falls back to text generation on error (DEFAULT: False)
+        llm_logger: Optional LLM logger for automatic token tracking
+        current_round: Optional round number for token logging
         **kwargs: Additional provider-specific params
 
     Returns:
@@ -72,7 +76,9 @@ async def generate_dm_resolution_structured(
         resolution = await generate_dm_resolution_structured(
             provider=dm.llm_provider,
             prompt="Resolve: Echo scans void corruption...",
-            system_prompt="You are the DM..."
+            system_prompt="You are the DM...",
+            llm_logger=dm.llm_logger,  # Enable token tracking
+            current_round=3
         )  # Raises exception on any failure
 
         # Permissive mode - falls back to text
@@ -119,6 +125,8 @@ async def generate_dm_resolution_structured(
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
+                llm_logger=llm_logger,  # Pass through for token tracking
+                current_round=current_round,  # Pass through for token tracking
                 **kwargs
             )
             logger.debug(f"✓ Structured resolution: {resolution.success_tier}, {len(resolution.narration)} chars, {len(resolution.effects.void_changes)} void changes")
@@ -166,6 +174,8 @@ async def generate_player_action_structured(
     max_tokens: int = 1000,
     temperature: float = 0.7,
     fallback_to_text: bool = True,
+    llm_logger: Optional[Any] = None,  # For token tracking
+    current_round: Optional[int] = None,  # For token tracking
     **kwargs
 ) -> Union[PlayerAction, Dict[str, Any]]:
     """
@@ -180,6 +190,8 @@ async def generate_player_action_structured(
         max_tokens: Max tokens
         temperature: Sampling temperature
         fallback_to_text: Fall back to dict parsing if structured fails
+        llm_logger: Optional LLM logger for automatic token tracking
+        current_round: Optional round number for token logging
         **kwargs: Additional params
 
     Returns:
@@ -192,7 +204,9 @@ async def generate_player_action_structured(
             prompt="Declare your action",
             system_prompt="You are Ash Vex...",
             character_name="Ash Vex",
-            agent_id="player_ash"
+            agent_id="player_ash",
+            llm_logger=player.llm_logger,  # Enable token tracking
+            current_round=2
         )
 
         if isinstance(action, PlayerAction):
@@ -215,6 +229,8 @@ async def generate_player_action_structured(
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
                 temperature=temperature,
+                llm_logger=llm_logger,  # Pass through for token tracking
+                current_round=current_round,  # Pass through for token tracking
                 **kwargs
             )
             logger.debug(f"✓ Structured action: {action.get_summary()}")
@@ -312,8 +328,10 @@ def extract_effects_from_resolution(
                 }
                 for cond in resolution.effects.conditions
             ],
-            'damage': resolution.effects.damage.dealt if resolution.effects.damage else 0,
-            'damage_target': resolution.effects.damage.target if resolution.effects.damage else None,
+            # Damage is now List[DamageEffect] - sum all dealt damage for legacy format
+            'damage': sum(dmg.dealt for dmg in resolution.effects.damage) if resolution.effects.damage else 0,
+            # For multi-target, return first target or concatenate all targets
+            'damage_target': resolution.effects.damage[0].target if resolution.effects.damage else None,
             'position_changes': [
                 {
                     'character_name': pc.character_name,
@@ -498,8 +516,11 @@ def validate_resolution_completeness(
             warnings.append(f"Condition '{condition.name}' has penalty=0 (narrative-only, or did you forget to set the penalty?)")
 
     # 6. Check if damage was dealt but no target specified
-    if resolution.effects.damage and not resolution.effects.damage.target:
-        warnings.append(f"Damage effect populated but target field is empty (damage won't apply!)")
+    # Damage is now List[DamageEffect] - check each effect
+    if resolution.effects.damage:
+        for dmg_effect in resolution.effects.damage:
+            if not dmg_effect.target:
+                warnings.append(f"Damage effect populated but target field is empty (damage won't apply!)")
 
     # 7. Check if void changes were applied to wrong character
     # Common mistake: applying void to the wrong person in PC-to-PC actions

@@ -5,7 +5,7 @@ Defines structured output for healing effects and agent conversions.
 These are used in action resolution and JSONL logging.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional, Dict, Any
 
 
@@ -72,3 +72,78 @@ class AgentConversion(BaseModel):
         ...,
         description="Agent state at conversion (health, stuns, wounds, conditions) for replay verification"
     )
+
+
+class AttunementEffect(BaseModel):
+    """
+    Track seed attunement outcome.
+
+    Used in ActionResolution to log successful/failed attunement rituals.
+
+    Examples:
+    - AttunementEffect(success=True, seed_consumed=True, energy_type="spark", energy_gained=5, altar_bonus=2)
+    - AttunementEffect(success=False, seed_consumed=True, energy_type="breath", energy_gained=0, void_penalty=0)
+    - AttunementEffect(success=True, seed_consumed=True, energy_type="drip", energy_gained=20, echo_calibrator_used=True, calibrator_void=1)
+    """
+    success: bool = Field(
+        ...,
+        description="Whether attunement ritual succeeded"
+    )
+    seed_consumed: bool = Field(
+        ...,
+        description="Whether Raw Seed was consumed (always True currently)"
+    )
+    energy_type: Literal["breath", "grain", "drip", "spark"] = Field(
+        ...,
+        description="Target energy type for attunement"
+    )
+    energy_gained: int = Field(
+        ...,
+        ge=0,
+        description="Amount of energy added to purse (0 on failure, conversion rate on success)"
+    )
+    # Altar bonuses
+    altar_id: Optional[str] = Field(
+        None,
+        description="Altar ID if used for bonus"
+    )
+    altar_bonus: int = Field(
+        default=0,
+        description="Bonus from altar quality (+1-3)"
+    )
+    # Echo-Calibrator
+    echo_calibrator_used: bool = Field(
+        default=False,
+        description="Whether Echo-Calibrator was used"
+    )
+    calibrator_check_success: Optional[bool] = Field(
+        None,
+        description="Whether DC 16 Dex+Craft/Tech check succeeded (only if echo_calibrator_used=True)"
+    )
+    calibrator_void: int = Field(
+        default=0,
+        description="Void added from failed Echo-Calibrator check (+1 on failure)"
+    )
+    upkeep_paid: bool = Field(
+        default=False,
+        description="Whether 1 Drip upkeep was paid (every 3rd use)"
+    )
+    # Outcome details
+    void_penalty: int = Field(
+        default=0,
+        description="Total void added from ritual (failed ritual or Echo-Calibrator failure)"
+    )
+    roll_total: Optional[int] = Field(
+        None,
+        description="Total roll result (if ritual roll was made)"
+    )
+    roll_margin: Optional[int] = Field(
+        None,
+        description="Margin of success/failure vs DC 20"
+    )
+
+    @field_validator('altar_bonus', 'calibrator_void', 'void_penalty', mode='before')
+    @classmethod
+    def coerce_none_to_zero(cls, v):
+        """Coerce None to 0 for integer fields with defaults (LLM compatibility)."""
+        return 0 if v is None else v

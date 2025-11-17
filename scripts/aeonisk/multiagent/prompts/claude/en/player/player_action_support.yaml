@@ -1,0 +1,79 @@
+version: 1.0.0
+module: player_action_support
+description: "Phase 2: SUPPORT action - Healing, buffs, tactical support for allies"
+always_load: false
+load_when: action_type_is_support
+content: |-
+  # 🩹 SUPPORT ACTION: Healing & Ally Assistance
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **support action**. Now let's define the mechanical details.
+
+  ## Support Mechanics
+
+  **Process:**
+  1. Identify target ally
+  2. Choose support type (heal, buff, tactical assist)
+  3. Roll check (varies by support type)
+  4. DM determines healing/buff effect
+
+  **Typical Difficulty:** DC 12-20 (varies by injury severity, conditions)
+
+  ## REQUIRED Fields
+
+  ```python
+  SupportAction(
+      intent: str,
+      description: str,               # 50-800 chars
+      attribute: str,                 # Intelligence (Medicine), Charisma (Inspire)
+      skill: str,                     # Medicine, Charm, Combat
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.SUPPORT,
+      target: str                     # REQUIRED! Ally target ID (tgt_xxxx)
+  )
+  ```
+
+  ## Common Support Skills
+
+  - `Intelligence × Medicine` - Treating wounds, stabilizing injured
+  - `Charisma × Charm` - Inspiring allies, boosting morale
+  - `Perception × Combat` - Providing tactical guidance, coordinating
+
+  ## Examples
+
+  **Medical Treatment:**
+  ```python
+  SupportAction(
+      intent="Treat ally's gunshot wound",
+      description="I kneel beside my wounded teammate, quickly assessing the injury. Applying pressure to stop bleeding, I inject syn-skin foam into the wound cavity and wrap it with sterile bandages from my medkit.",
+      attribute="Intelligence",
+      skill="Medicine",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Serious ballistic trauma, active bleeding, combat stress",
+      action_type=ActionType.SUPPORT,
+      target="tgt_a7x2"
+  )
+  ```
+
+  **Tactical Coordination:**
+  ```python
+  SupportAction(
+      intent="Direct ally to better firing position",
+      description="I call out to my teammate: 'Ash, move to that crate stack - you'll have clear sight lines and hard cover!' Pointing out the tactical advantage.",
+      attribute="Perception",
+      skill="Combat",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: Simple tactical suggestion in combat, ally trusts my judgment",
+      action_type=ActionType.SUPPORT,
+      target="tgt_ally_ash"
+  )
+  ```
+
+  ---
+
+  **⚠️ IMPORTANT: You MUST specify target ally ID!**
+
+  **Ready? Declare your support action!**

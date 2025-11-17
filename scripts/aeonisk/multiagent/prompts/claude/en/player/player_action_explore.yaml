@@ -1,0 +1,76 @@
+version: 1.0.0
+module: player_action_explore
+description: "Phase 2: EXPLORE action - Navigate, move, search for exits or pathways"
+always_load: false
+load_when: action_type_is_explore
+content: |-
+  # 🗺️ EXPLORE ACTION: Navigation & Movement
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen to **explore**. Now let's define the mechanical details.
+
+  ## Exploration Mechanics
+
+  **Process:**
+  1. Declare where you're going or what you're searching for
+  2. Roll Perception + Awareness (or Survival if outdoors)
+  3. DM narrates what you find and updates your position
+
+  **Typical Difficulty:** DC 10-18 (varies by terrain, visibility, obstacles)
+
+  ## REQUIRED Fields
+
+  ```python
+  ExploreAction(
+      intent: str,
+      description: str,               # 50-800 chars - Where are you going and how?
+      attribute: str,                 # Usually Perception
+      skill: str,                     # Awareness, Survival, Combat (tactical movement)
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.EXPLORE,
+      target_position: Position       # REQUIRED! Where are you moving to?
+  )
+  ```
+
+  ## Common Exploration Skills
+
+  - `Perception × Awareness` - General navigation, finding paths
+  - `Perception × Survival` - Outdoor navigation, tracking
+  - `Agility × Combat` - Tactical movement under fire
+
+  ## Examples
+
+  **Example 1: Search for Exit**
+  ```python
+  ExploreAction(
+      intent="Search eastern corridor for exit",
+      description="I carefully move down the eastern corridor, checking for doorways, passages, or ventilation shafts that might lead out. Staying alert for traps or ambushes.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: Standard corridor search, moderate lighting",
+      action_type=ActionType.EXPLORE,
+      target_position="Eastern-Corridor"
+  )
+  ```
+
+  **Example 2: Move to Cover**
+  ```python
+  ExploreAction(
+      intent="Sprint to cargo crates for cover",
+      description="I sprint across the open warehouse floor toward the stack of cargo crates, using my tactical awareness to minimize exposure time and choose the best route.",
+      attribute="Agility",
+      skill="Combat",
+      difficulty_estimate=12,
+      difficulty_justification="DC 12: Tactical movement under potential threat",
+      action_type=ActionType.EXPLORE,
+      target_position="Cargo-Bay-Cover"
+  )
+  ```
+
+  ---
+
+  **Ready? Declare your exploration!**

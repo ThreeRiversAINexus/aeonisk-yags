@@ -180,6 +180,7 @@ class EnergyPurse:
     - Drip
     - Grain
     - Spark (largest standard unit)
+    - Hollow (illicit void energy, 3x power, +1 Void per use)
 
     Market rate: 1 Spark ≈ 2-5 Drips (varies by location)
     """
@@ -188,6 +189,7 @@ class EnergyPurse:
     drip: int = 10
     grain: int = 3
     spark: int = 2
+    hollow: int = 0  # Void energy (illicit)
 
     # Seeds (list of Seed objects)
     seeds: List[Seed] = field(default_factory=list)
@@ -207,6 +209,8 @@ class EnergyPurse:
             self.grain += amount
         elif currency_type == "spark":
             self.spark += amount
+        elif currency_type == "hollow":
+            self.hollow += amount
         logger.debug(f"Added {amount} {currency_type} to inventory")
 
     def spend_currency(self, currency_type: str, amount: int) -> bool:
@@ -233,6 +237,11 @@ class EnergyPurse:
             if self.spark >= amount:
                 self.spark -= amount
                 logger.debug(f"Spent {amount} spark")
+                return True
+        elif currency_type == "hollow":
+            if self.hollow >= amount:
+                self.hollow -= amount
+                logger.debug(f"Spent {amount} hollow")
                 return True
 
         logger.warning(f"Insufficient {currency_type} (needed {amount})")
@@ -374,15 +383,30 @@ class EnergyPurse:
         """
         Degrade all Raw Seeds by given cycles (1 cycle = 1 session/week).
 
-        Each Raw Seed has an individual timer, so some may become Hollow
-        while others remain viable. Seeds purchased or found might already
-        be partially degraded, adding urgency to attunement.
+        Each Raw Seed has an individual timer. When a seed reaches 0 cycles,
+        it degrades into Hollow energy (void-corrupted, illicit currency).
+
+        Seeds purchased or found might already be partially degraded,
+        adding urgency to attunement.
 
         Called automatically at the start of each game session.
         """
-        for seed in self.seeds:
+        seeds_to_remove = []
+
+        for i, seed in enumerate(self.seeds):
             if seed.seed_type == SeedType.RAW:
-                seed.degrade(cycles)
+                # Degrade the seed
+                seed.cycles_remaining -= cycles
+
+                # If fully degraded, convert to Hollow currency
+                if seed.cycles_remaining <= 0:
+                    self.hollow += 1
+                    seeds_to_remove.append(i)
+                    logger.info(f"Raw Seed degraded into Hollow (origin: {seed.origin})")
+
+        # Remove degraded seeds (reverse order to preserve indices)
+        for i in reversed(seeds_to_remove):
+            self.seeds.pop(i)
 
     def count_seeds(self, seed_type: SeedType, element: Optional[Element] = None) -> int:
         """Count seeds of a given type (and element if specified)."""
@@ -400,13 +424,13 @@ class EnergyPurse:
                 'breath': self.breath,
                 'drip': self.drip,
                 'grain': self.grain,
-                'spark': self.spark
+                'spark': self.spark,
+                'hollow': self.hollow
             },
             'seeds': [seed.as_dict() for seed in self.seeds],
             'seed_counts': {
                 'raw': self.count_seeds(SeedType.RAW),
-                'attuned': self.count_seeds(SeedType.ATTUNED),
-                'hollow': self.count_seeds(SeedType.HOLLOW)
+                'attuned': self.count_seeds(SeedType.ATTUNED)
             }
         }
 
@@ -595,7 +619,7 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Neutral",
         vendor_type=VendorType.HUMAN_TRADER,
         inventory=[
-            VendorItem("Echo-Calibrator", "Tech alternative to altar (DC 16 Dex+Tech)", price_spark=8),
+            VendorItem("Echo-Calibrator", "Portable seed stabilizer (DC 16 Dex+Tech, 1 Drip per 3 uses)", price_spark=8),
             VendorItem("Purification Incense (Bundle)", "High-grade ritual cleansing", price_drip=8, item_type="offering"),
             VendorItem("Talisman Blanks (x5)", "Premium ritual substrates", price_spark=1),
             VendorItem("Attuned Seed (Fire)", "Stable flame-aspected seed", price_spark=2, item_type="seed"),
@@ -718,7 +742,7 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Arcane Genetics",
         vendor_type=VendorType.VENDING_MACHINE,
         inventory=[
-            VendorItem("Echo-Calibrator (Compact)", "Portable seed stabilizer (DC 16)", price_spark=7),
+            VendorItem("Echo-Calibrator", "Portable seed stabilizer (DC 16 Dex+Tech, 1 Drip per 3 uses)", price_spark=8),
             VendorItem("Neural Stimulant", "Cognitive boost (4hr)", price_drip=4),
             VendorItem("Genetic Sample Kit", "DNA collection tools", price_drip=6),
             VendorItem("Resonance Tuner (Portable)", "Adjust personal frequencies", price_spark=3),

@@ -81,25 +81,39 @@ conversion_check_prompt: |
 
   **⚠️ CRITICAL: When this is Entity Lifecycle Phase #2 (after story advancement):**
 
-  Story advancement changes location/situation. **DECIDE which existing NPCs follow to the new scene:**
+  Story advancement changes location/situation. **DEFAULT TO DESPAWNING - only keep NPCs with STRONG story reasons:**
 
-  **Use `npc_departures` to remove NPCs who stayed behind:**
-  - Location-specific NPCs (evacuees who got to safety, guards who stayed at old post)
-  - NPCs whose purpose is complete (medic finished treating wounded, guide led to destination)
-  - Civilians who wouldn't follow into danger (fearful NPCs who stayed in safe zone)
+  **Use `npc_departures` to remove NPCs who stayed behind (AGGRESSIVE - despawn liberally):**
+  - **Location-specific NPCs** → IMMEDIATE DESPAWN (evacuees who got to safety, guards who stayed at old post, shopkeepers in old area)
+  - **NPCs whose purpose is complete** → IMMEDIATE DESPAWN (medic finished treating wounded, guide led to destination, informant delivered intel)
+  - **Civilians who wouldn't follow into danger** → IMMEDIATE DESPAWN (fearful NPCs who stayed in safe zone, non-combatants avoiding conflict)
+  - **Background NPCs** → IMMEDIATE DESPAWN (bartenders, merchants, guards on patrol, civilians going about their day)
+  - **Prisoners/subdued enemies** → IMMEDIATE DESPAWN (unless players explicitly stated they're bringing them along)
+  - **When in doubt** → DESPAWN (default is removal, not persistence)
 
-  **Keep NPCs who logically follow:**
-  - Allied NPCs actively helping players (field medic traveling with team)
-  - NPCs central to ongoing plot (quest-giver, prisoner being escorted)
-  - Authority figures investigating players (Tempest liaison tracking the team)
+  **⚠️ ONLY keep NPCs who meet ALL three criteria:**
+  1. **Traveling with players** - Explicitly helping/following the party (field medic traveling with team, ally NPC fighting alongside)
+  2. **Central to ongoing plot** - Core to active quest/story (quest-giver whose mission is ongoing, prisoner being actively escorted to specific destination)
+  3. **Players would notice absence** - Players explicitly care about this NPC (companion, ally, important witness)
+
+  **🚨 If NPC meets only 1-2 criteria → DESPAWN ANYWAY:**
+  - Guide who led players to destination (purpose complete, not central anymore) → DESPAWN
+  - Medic who finished healing (purpose complete, not central) → DESPAWN
+  - Civilian the players rescued (players would notice, but safe now, not central) → DESPAWN
+  - Shopkeeper players talked to (location-specific, not central) → DESPAWN
 
   **Example:**
-  - Old scene: "Temple Chapel" with "Frightened Worshipper" (fearful civilian)
+  - Old scene: "Temple Chapel" with "Frightened Worshipper" (fearful civilian), "Temple Guard" (neutral guard), "Field Medic" (ally treating wounds)
   - New scene: "Inner Chapel - Breach Nexus" (dangerous void zone)
-  - Decision: Frightened civilian stayed in outer chapel (add to npc_departures)
-  - Keep: Field medic treating wounded (follows to provide aid)
+  - Decisions:
+    - Frightened civilian stayed in outer chapel (fearful, won't follow into danger) → DESPAWN (add to npc_departures)
+    - Temple Guard stayed at post (location-specific, duty is temple defense) → DESPAWN (add to npc_departures)
+    - Field Medic finished treating wounds (purpose complete) → DESPAWN (add to npc_departures)
+    - **Result: All 3 NPCs despawned - fresh start for new scene**
 
   **Then spawn NEW NPCs only if needed for the new scene** (don't duplicate existing functional roles!)
+
+  **🚨 BIAS TOWARD CLEAN SLATE: Story advancement is an opportunity to declutter the NPC roster. When in doubt, remove them.**
 
   ## 🎯 AUTO-CONVERT: Enemy/NPC Actions Requiring Conversion
 
@@ -112,17 +126,44 @@ conversion_check_prompt: |
 
   **NPC Actions → Automatic Departure:**
   - **"Flee" action** → NPC IMMEDIATELY leaves scene (add agent_id to npc_departures)
-  - **"Hide" action** → NPC becomes non-interactive and typically FLEES after 1 round (add agent_id to npc_departures unless strong story reason to stay)
-  - **"Pass" action (1+ rounds)** → NPC is passive/inactive, not contributing to story (add agent_id to npc_departures)
+  - **"Hide" action** → NPC IMMEDIATELY leaves scene (add agent_id to npc_departures) - hiding NPCs are non-interactive and should despawn
+  - **"Pass" action EVEN ONCE** → NPC is passive/inactive, not contributing to story (add agent_id to npc_departures) - don't wait for multiple passes!
   - **Not contributing to story** → If NPC is just standing around, doing background tasks, or has legitimate reason to have left scene, they don't need on-screen presence (add agent_id to npc_departures)
+  - **Accomplished purpose** → NPC completed their task (guided to location, delivered message, finished healing) → IMMEDIATELY depart (add agent_id to npc_departures)
+  - **Out of danger** → NPC was in danger, now safe (rescued from fire, evacuated from combat zone) → IMMEDIATELY depart (add agent_id to npc_departures)
+  - **Background activity** → NPC is doing passive tasks that don't require on-screen presence (tending bar, working at terminal, cleaning, guarding empty hallway) → IMMEDIATELY depart (add agent_id to npc_departures)
 
-  **⚠️ BE AGGRESSIVE: Default to departure unless NPC is:**
-  - Actively engaging in dialogue with players THIS round
-  - About to reveal critical information next round
-  - In immediate danger requiring player decisions
-  - Central to current dramatic moment (hostage, key witness, etc.)
+  **⚠️ BE EXTREMELY AGGRESSIVE: Default to IMMEDIATE departure unless NPC is:**
+  - Actively engaging in dialogue with players THIS round (spoken lines, responding to questions)
+  - About to reveal critical information NEXT round (setup for revelation, dramatic pause before confession)
+  - In IMMEDIATE danger requiring player decisions THIS round (hostage situation, under active attack, about to trigger trap)
+  - Central to CURRENT dramatic moment (hostage being held at gunpoint NOW, key witness testifying NOW, quest-giver offering mission NOW)
 
-  **If NPC just took "Pass" action or is doing passive background work, REMOVE THEM.**
+  **🚨 CRITICAL DESPAWN RULES:**
+  - **1 Pass action = IMMEDIATE DESPAWN** - Don't wait for multiple passes!
+  - **Hide = IMMEDIATE DESPAWN** - Hidden NPCs are narratively gone
+  - **Task complete = IMMEDIATE DESPAWN** - Guide reached destination? Gone. Medic finished healing? Gone.
+  - **Background work = IMMEDIATE DESPAWN** - Bartender pouring drinks? Gone. Guard on empty patrol route? Gone.
+  - **Safe from danger = IMMEDIATE DESPAWN** - Rescued civilian? Gone. Evacuee reached safety? Gone.
+
+  **If NPC is not ACTIVELY DRIVING THE SCENE THIS ROUND, REMOVE THEM NOW.**
+
+  **Examples of NPCs to DESPAWN IMMEDIATELY:**
+  - Frightened civilian who fled to safety (accomplished: got to safety)
+  - Medical NPC who finished treating wounds (accomplished: healing complete)
+  - Guide NPC who led players to destination (accomplished: reached location)
+  - Guard NPC patrolling empty hallway (background work: not interacting with players)
+  - Bartender NPC serving drinks in background (background work: set dressing)
+  - Wounded prisoner NPC who is being guarded passively (not contributing: just sitting there)
+  - Informant NPC who already delivered intel (accomplished: info delivered)
+  - Shopkeeper NPC after transaction complete (accomplished: trade finished)
+
+  **Examples of NPCs to KEEP (only these!):**
+  - Hostage being held at gunpoint RIGHT NOW (immediate danger)
+  - Ally NPC actively helping in THIS combat round (contributing NOW)
+  - Quest-giver NPC offering mission in THIS dialogue (active interaction NOW)
+  - Prisoner being interrogated by players RIGHT NOW (active interaction NOW)
+  - Medic treating critical wounds on dying player RIGHT NOW (immediate need NOW)
 
   **Example - Enemy Declared Surrender:**
   ```

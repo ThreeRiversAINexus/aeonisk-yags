@@ -1,0 +1,78 @@
+version: 1.0.0
+module: player_action_technical
+description: "Phase 2: TECHNICAL action - Hacking systems, repairing equipment, engineering"
+always_load: false
+load_when: action_type_is_technical
+content: |-
+  # 🔧 TECHNICAL ACTION: Systems & Engineering
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **technical action**. Now let's define the mechanical details.
+
+  ## Technical Mechanics
+
+  **Process:**
+  1. Identify target system/equipment
+  2. Choose appropriate skill (Systems, Engineering, Tech, Pilot)
+  3. Roll check (Attribute + Skill + d20 vs DC)
+  4. DM narrates success/failure
+
+  **Typical Difficulty:** DC 12-25 (varies by system complexity, security, time pressure)
+
+  ## REQUIRED Fields
+
+  ```python
+  TechnicalAction(
+      intent: str,
+      description: str,               # 50-800 chars
+      attribute: str,                 # Intelligence, Agility, Perception
+      skill: str,                     # Systems, Engineering, Tech, Pilot
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.TECHNICAL,
+      target: Optional[str],          # System/equipment ID (e.g., "tgt_terminal")
+      target_position: Optional[Position]
+  )
+  ```
+
+  ## Common Technical Skills
+
+  - `Intelligence × Systems` - Hacking, data analysis, network infiltration
+  - `Intelligence × Engineering` - Repairing machinery, structural analysis
+  - `Agility × Tech` - Quick tech fixes, circuit manipulation
+  - `Perception × Pilot` - Vehicle systems, navigation tech
+
+  ## Examples
+
+  **Hacking Terminal:**
+  ```python
+  TechnicalAction(
+      intent="Hack security terminal to disable alarms",
+      description="I connect my portable scanner to the terminal's data port and run intrusion protocols, exploiting known vulnerabilities in the ACG security stack to gain root access and disable alarm triggers.",
+      attribute="Intelligence",
+      skill="Systems",
+      difficulty_estimate=22,
+      difficulty_justification="DC 22: High-security system with active countermeasures, but I have proper tools and time",
+      action_type=ActionType.TECHNICAL,
+      target="tgt_terminal_01"
+  )
+  ```
+
+  **Repairing Equipment:**
+  ```python
+  TechnicalAction(
+      intent="Repair damaged Echo-Calibrator",
+      description="I carefully disassemble the Echo-Calibrator's resonance chamber, replacing the cracked focusing crystal and recalibrating the energy flow pathways.",
+      attribute="Intelligence",
+      skill="Engineering",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Delicate work with specialized equipment, requires precision",
+      action_type=ActionType.TECHNICAL
+  )
+  ```
+
+  ---
+
+  **Ready? Declare your technical action!**

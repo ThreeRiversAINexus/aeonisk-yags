@@ -209,7 +209,8 @@ class TestActionResolution:
         """Test MechanicalEffects can be empty."""
         effects = MechanicalEffects()
 
-        assert effects.damage is None
+        assert effects.damage == []  # Empty list now, not None
+        assert effects.healing == []  # Verify new field exists
         assert effects.void_changes == []
         assert effects.soulcredit_changes == []
         assert effects.clock_updates == []
@@ -218,12 +219,14 @@ class TestActionResolution:
     def test_mechanical_effects_with_damage(self):
         """Test MechanicalEffects with damage."""
         effects = MechanicalEffects(
-            damage=DamageEffect(
-                target="tgt_c003",
-                base_damage=12,
-                soak=4,
-                dealt=8
-            ),
+            damage=[
+                DamageEffect(
+                    target="tgt_c003",
+                    base_damage=12,
+                    soak=4,
+                    dealt=8
+                )
+            ],
             soulcredit_changes=[
                 SoulcreditChange(
                     character_name="Riven",
@@ -233,7 +236,7 @@ class TestActionResolution:
             ]
         )
 
-        assert effects.damage.dealt == 8
+        assert effects.damage[0].dealt == 8
         assert len(effects.soulcredit_changes) == 1
 
     def test_mechanical_effects_multiple_void_changes(self):
@@ -257,7 +260,7 @@ class TestActionResolution:
 
         assert resolution.success_tier == SuccessTier.GOOD
         assert resolution.margin == 10
-        assert resolution.effects.damage is None
+        assert resolution.effects.damage == []  # Empty list, no damage
 
     def test_action_resolution_narration_too_short(self):
         """Test ActionResolution requires min 200 char narration."""
@@ -277,13 +280,15 @@ class TestActionResolution:
             success_tier=SuccessTier.GOOD,
             margin=12,
             effects=MechanicalEffects(
-                damage=DamageEffect(
-                    target="tgt_7a3f",
-                    base_damage=15,
-                    soak=7,
-                    dealt=8,
-                    damage_type="kinetic"
-                ),
+                damage=[
+                    DamageEffect(
+                        target="tgt_7a3f",
+                        base_damage=15,
+                        soak=7,
+                        dealt=8,
+                        damage_type="kinetic"
+                    )
+                ],
                 conditions=[
                     Condition(
                         name="Off-Balance",
@@ -302,7 +307,7 @@ class TestActionResolution:
             )
         )
 
-        assert resolution.effects.damage.dealt == 8
+        assert resolution.effects.damage[0].dealt == 8
         assert len(resolution.effects.conditions) == 1
         assert resolution.effects.conditions[0].name == "Off-Balance"
 
@@ -347,12 +352,7 @@ class TestActionResolution:
             narration="The investigation reveals crucial evidence. Security logs show unauthorized access." * 5,
             success_tier=SuccessTier.GOOD,
             margin=11,
-            character_data={
-                "name": "Echo",
-                "class": "Hacker",
-                "level": 3,
-                "skills": {"Technical": 4, "Notice": 3}
-            },
+            # character_data field is currently commented out in schema
             environment="Corporate server room, dimly lit, security cameras disabled",
             stakes="If caught, Echo faces corporate black-ops team. Success reveals conspiracy.",
             goal="Access security logs without triggering alarms",
@@ -360,7 +360,7 @@ class TestActionResolution:
             rationale="DC 16: moderate security, but cameras disabled (-2 DC). Echo has prep time."
         )
 
-        assert resolution.character_data["name"] == "Echo"
+        # assert resolution.character_data["name"] == "Echo"  # Field commented out in schema
         assert resolution.environment is not None
         assert resolution.stakes is not None
         assert resolution.goal is not None
@@ -393,13 +393,15 @@ class TestActionResolution:
             success_tier=SuccessTier.EXCELLENT,
             margin=18,
             effects=MechanicalEffects(
-                damage=DamageEffect(
-                    target="enemy_001",
-                    base_damage=20,
-                    soak=5,
-                    dealt=15,
-                    damage_type="energy"
-                )
+                damage=[
+                    DamageEffect(
+                        target="enemy_001",
+                        base_damage=20,
+                        soak=5,
+                        dealt=15,
+                        damage_type="energy"
+                    )
+                ]
             ),
             attack_roll=35,
             attack_dc=17,
@@ -458,7 +460,7 @@ class TestFactoryFunctions:
 
         assert isinstance(resolution, CombatResolution)
         assert resolution.success_tier == SuccessTier.GOOD
-        assert resolution.effects.damage.dealt == 12
+        assert resolution.effects.damage[0].dealt == 12
         assert resolution.attack_hit is True
 
     def test_create_combat_resolution_auto_calculate_dealt(self):
@@ -471,7 +473,7 @@ class TestFactoryFunctions:
             soak=4
         )
 
-        assert resolution.effects.damage.dealt == 11  # 15 - 4
+        assert resolution.effects.damage[0].dealt == 11  # 15 - 4
 
     def test_create_combat_resolution_determines_tier(self):
         """Test combat resolution determines correct success tier."""
@@ -554,7 +556,7 @@ class TestSchemaEdgeCases:
 
     def test_narration_max_length(self):
         """Test ActionResolution narration has max length."""
-        long_narration = "A" * 2001  # Over 2000 char limit
+        long_narration = "A" * 3001  # Over 3000 char limit (increased from 2000 for verbose social/ritual scenes)
 
         with pytest.raises(ValidationError) as exc_info:
             ActionResolution(
@@ -572,7 +574,7 @@ class TestSchemaEdgeCases:
             success_tier=SuccessTier.GOOD,
             margin=15,
             effects=MechanicalEffects(
-                damage=DamageEffect(target="tgt", base_damage=10, dealt=10),
+                damage=[DamageEffect(target="tgt", base_damage=10, dealt=10)],
                 void_changes=[VoidChange(character_name="Test", amount=1, reason="Void exposure")],
                 clock_updates=[ClockUpdate(clock_name="Progress", ticks=2, reason="Success")]
             )
@@ -586,7 +588,7 @@ class TestSchemaEdgeCases:
 
         assert restored.narration == original.narration
         assert restored.success_tier == original.success_tier
-        assert restored.effects.damage.dealt == 10
+        assert restored.effects.damage[0].dealt == 10
         assert len(restored.effects.void_changes) == 1
         assert len(restored.effects.clock_updates) == 1
 

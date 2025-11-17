@@ -1,0 +1,84 @@
+version: 1.0.0
+module: player_action_transfer
+description: "Phase 2: TRANSFER action - Giving energy/items to allies"
+always_load: false
+load_when: action_type_is_transfer
+content: |-
+  # 🤝 TRANSFER ACTION: Energy & Item Transfers
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **transfer action**. Now let's define the mechanical details.
+
+  ## Transfer Mechanics
+
+  **Process:**
+  1. Identify recipient ally
+  2. Specify what you're transferring (energy currency or items)
+  3. Simple automatic success (no roll needed usually)
+  4. DM updates inventories
+
+  **Typical Difficulty:** DC 10 (simple hand-off, usually automatic success)
+
+  ## REQUIRED Fields
+
+  ```python
+  TransferAction(
+      intent: str,
+      description: str,               # 50-800 chars
+      attribute: "Charisma",          # Social interaction
+      skill: "Charm",                 # or None for automatic
+      difficulty_estimate: int,       # Usually 10 (automatic)
+      difficulty_justification: str,
+      action_type: ActionType.TRANSFER,
+      transfer_target: str,           # REQUIRED! Ally ID (tgt_xxxx)
+      transfer_currency: Optional[Dict[str, int]],  # {"drip": 10, "spark": 2}
+      transfer_items: Optional[List[str]]           # ["itm_incense", "itm_medkit"]
+  )
+  ```
+
+  ## Energy Currency Types
+
+  - **Breath** - Light, air energies
+  - **Grain** - Earth, growth energies
+  - **Drip** - Water, flow energies
+  - **Spark** - Fire, lightning energies
+
+  ## Examples
+
+  **Transferring Energy:**
+  ```python
+  TransferAction(
+      intent="Give ally 10 drip for ritual supplies purchase",
+      description="I pull out a small containment vial of condensed drip energy and hand it to my teammate. 'Here, take this - should be enough for what you need at the vendor.'",
+      attribute="Charisma",
+      skill="Charm",
+      difficulty_estimate=10,
+      difficulty_justification="DC 10: Simple transfer, willing recipient, no complications",
+      action_type=ActionType.TRANSFER,
+      transfer_target="tgt_ally_ash",
+      transfer_currency={"drip": 10}
+  )
+  ```
+
+  **Transferring Items:**
+  ```python
+  TransferAction(
+      intent="Give medkit to wounded ally",
+      description="I toss my spare medkit to my injured teammate. 'You need this more than I do right now - patch yourself up!'",
+      attribute="Charisma",
+      skill=None,
+      difficulty_estimate=10,
+      difficulty_justification="DC 10: Automatic success, simple item transfer",
+      action_type=ActionType.TRANSFER,
+      transfer_target="tgt_a7x2",
+      transfer_items=["itm_medkit"]
+  )
+  ```
+
+  ---
+
+  **⚠️ IMPORTANT: You MUST specify transfer_target and either transfer_currency or transfer_items!**
+
+  **Ready? Declare your transfer!**

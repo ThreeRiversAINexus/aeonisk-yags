@@ -1,0 +1,78 @@
+version: 1.0.0
+module: player_action_investigate
+description: "Phase 2: INVESTIGATE action - Examining objects, analyzing data, gathering information"
+always_load: false
+load_when: action_type_is_investigate
+content: |-
+  # 🔍 INVESTIGATE ACTION: Examination & Analysis
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen to **investigate**. Now let's define the mechanical details.
+
+  ## Investigation Mechanics
+
+  **Process:**
+  1. Examine target (object, terminal, document, scene)
+  2. Roll Intelligence + relevant skill (Systems, Medicine, etc.)
+  3. DM reveals information based on success tier
+
+  **Typical Difficulty:** DC 12-22 (varies by obscurity, encryption, complexity)
+
+  ## REQUIRED Fields
+
+  ```python
+  InvestigateAction(
+      intent: str,
+      description: str,               # 50-800 chars - What are you examining and how?
+      attribute: str,                 # Usually Intelligence or Perception
+      skill: str,                     # Systems, Medicine, Awareness, etc.
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.INVESTIGATE,
+      target: Optional[str],          # Object/terminal ID (tgt_xxxx) if specific
+      target_position: Optional[Position]  # Location if examining area
+  )
+  ```
+
+  ## Common Investigation Skills
+
+  - `Intelligence × Systems` - Analyzing terminals, data, networks
+  - `Intelligence × Medicine` - Examining bodies, wounds, biological samples
+  - `Perception × Awareness` - Noticing details, hidden clues, patterns
+  - `Intelligence × Engineering` - Understanding mechanisms, structures
+
+  ## Examples
+
+  **Example 1: Terminal Analysis**
+  ```python
+  InvestigateAction(
+      intent="Analyze terminal logs for security breach evidence",
+      description="I access the terminal's system logs and filter for anomalous access patterns. Running integrity checks and timestamp analysis to identify when and how the breach occurred.",
+      attribute="Intelligence",
+      skill="Systems",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Logs may be partially wiped, requires forensic analysis",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_terminal_03"
+  )
+  ```
+
+  **Example 2: Crime Scene Investigation**
+  ```python
+  InvestigateAction(
+      intent="Examine body for cause of death",
+      description="I carefully examine the corpse, checking for entry wounds, toxin indicators, void corruption signs, and time of death markers. Looking for anything that reveals how they died.",
+      attribute="Intelligence",
+      skill="Medicine",
+      difficulty_estimate=16,
+      difficulty_justification="DC 16: Standard forensic examination, fresh corpse",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_corpse_01"
+  )
+  ```
+
+  ---
+
+  **Ready? Declare your investigation!**

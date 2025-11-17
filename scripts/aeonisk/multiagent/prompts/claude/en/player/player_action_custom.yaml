@@ -1,0 +1,90 @@
+version: 1.0.0
+module: player_action_custom
+description: "Phase 2: CUSTOM action - Unique improvised actions not covered by other types"
+always_load: false
+load_when: action_type_is_custom
+content: |-
+  # 🎲 CUSTOM ACTION: Improvised & Creative
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **custom action**. Now let's define the mechanical details.
+
+  Use CUSTOM for unique, creative, or improvised actions that don't fit other categories.
+
+  ## Custom Action Guidelines
+
+  **When to use CUSTOM:**
+  - Combining multiple action types creatively
+  - Unusual environmental interactions
+  - Improvised solutions using available resources
+  - Actions that don't fit standard combat/social/technical categories
+
+  **Process:**
+  1. Describe your creative approach in detail
+  2. Choose appropriate attribute + skill for the roll
+  3. DM determines difficulty and outcome
+
+  **Typical Difficulty:** DC 15-25 (custom actions are often harder due to improvisation)
+
+  ## REQUIRED Fields
+
+  ```python
+  CustomAction(
+      intent: str,
+      description: str,               # 50-800 chars - BE SPECIFIC about method!
+      attribute: str,                 # Choose most appropriate
+      skill: str,                     # Choose most relevant skill
+      difficulty_estimate: int,
+      difficulty_justification: str,  # Explain why this DC for custom action
+      action_type: ActionType.CUSTOM
+  )
+  ```
+
+  ## Examples
+
+  **Environmental Manipulation:**
+  ```python
+  CustomAction(
+      intent="Use cargo crane to drop container on enemies",
+      description="I sprint to the control terminal for the overhead cargo crane, quickly analyzing the controls. Targeting the container directly above the enemy position, I release the magnetic clamps to drop 2 tons of cargo crate onto them.",
+      attribute="Intelligence",
+      skill="Systems",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20: Unfamiliar controls, need precise timing, requires technical knowledge and spatial awareness",
+      action_type=ActionType.CUSTOM
+  )
+  ```
+
+  **Improvised Trap:**
+  ```python
+  CustomAction(
+      intent="Rig door with EMP grenade tripwire",
+      description="I carefully tie monofilament wire across the doorway at ankle height, connecting it to the pin of my EMP grenade positioned above the door frame. When they enter, the wire pulls the pin and drops the grenade.",
+      attribute="Intelligence",
+      skill="Engineering",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Improvised trap requires precision, limited tools, but I have grenades and wire available",
+      action_type=ActionType.CUSTOM
+  )
+  ```
+
+  **Creative Problem Solving:**
+  ```python
+  CustomAction(
+      intent="Use ritual offerings to temporarily mask void corruption signature",
+      description="I burn three sticks of purifying incense simultaneously around my position, creating a dense cloud of sanctified smoke. The offerings should temporarily obscure my void corruption from detection scanners.",
+      attribute="Willpower",
+      skill="Attunement",
+      difficulty_estimate=22,
+      difficulty_justification="DC 22: Novel application of ritual theory, unproven technique, but I understand void mechanics",
+      action_type=ActionType.CUSTOM
+  )
+  ```
+
+  ---
+
+  **💡 TIP: Custom actions reward creativity! Describe your method clearly for best results.**
+
+  **Ready? Describe your improvised action!**

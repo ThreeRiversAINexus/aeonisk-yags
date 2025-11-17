@@ -104,7 +104,9 @@ Generate a structured resolution with:
                 print(f"  - {cu.clock_name}: {cu.ticks:+d} ({cu.reason})")
 
         if resolution.effects.damage:
-            print(f"Damage: {resolution.effects.damage.dealt} to {resolution.effects.damage.target}")
+            print(f"Damage effects: {len(resolution.effects.damage)}")
+            for dmg in resolution.effects.damage:
+                print(f"  - {dmg.dealt} to {dmg.target}")
 
         if resolution.effects.conditions:
             print(f"Conditions: {len(resolution.effects.conditions)}")
@@ -219,7 +221,8 @@ async def test_manual_schema_creation():
         print("Manual Combat Resolution:")
         print(f"  Narration: {resolution.narration[:100]}...")
         print(f"  Success: {resolution.success_tier}")
-        print(f"  Damage: {resolution.effects.damage.dealt} to {resolution.effects.damage.target}")
+        # Damage is now List[DamageEffect]
+        print(f"  Damage: {resolution.effects.damage[0].dealt} to {resolution.effects.damage[0].target}")
 
         # Create a player action manually
         action = PlayerAction(

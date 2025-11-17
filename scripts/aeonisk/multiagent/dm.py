@@ -7281,6 +7281,47 @@ Be vivid and maintain the dark sci-fi atmosphere."""
 
         return npc
 
+    def _process_altar_spawn(self, altar_spawn: 'AltarSpawn'):
+        """
+        Process altar spawn from structured output.
+
+        Creates Altar instance and registers it with SharedState.
+
+        Args:
+            altar_spawn: AltarSpawn schema from RoundSynthesis
+
+        Returns:
+            Created Altar instance
+        """
+        from .shared_state import Altar, AltarType
+        from .schemas.story_events import AltarSpawn
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Parse altar type
+        try:
+            altar_type = AltarType[altar_spawn.altar_type.upper()]
+        except KeyError:
+            logger.warning(f"Invalid altar_type '{altar_spawn.altar_type}', defaulting to RITUAL_ALTAR")
+            altar_type = AltarType.RITUAL_ALTAR
+
+        # Create altar instance
+        altar = Altar(
+            altar_type=altar_type,
+            quality=altar_spawn.quality,
+            location=altar_spawn.location
+        )
+
+        # Add to shared state
+        self.shared_state.add_altar(altar)
+
+        bonus = altar.get_ritual_bonus()
+        logger.info(f"Spawned altar: {altar.location} ({altar_spawn.altar_type}, quality={altar_spawn.quality}, +{bonus} bonus), altar_id={altar.altar_id}")
+        logger.info(f"Reason: {altar_spawn.narrative_reason}")
+
+        return altar
+
     def _process_deescalation(self, deescalation: 'Deescalation', current_round: int) -> 'NPCAgent':
         """
         Process de-escalation from structured output.

@@ -30,6 +30,7 @@ from .vendor_interaction import (
 )
 from .action_effects import (
     HealingEffect,
+    AttunementEffect,
 )
 
 
@@ -135,6 +136,11 @@ class MechanicalEffects(BaseModel):
     currency_transfer: Optional['CurrencyTransfer'] = Field(
         default=None,
         description="Player-to-player energy currency transfer (if action was a transfer). Replaces keyword parsing."
+    )
+
+    attunement: Optional['AttunementEffect'] = Field(
+        default=None,
+        description="Seed attunement result (if action was an attunement ritual). Tracks success/failure, energy gained, altar bonuses, Echo-Calibrator usage."
     )
 
     # Additional metadata
@@ -465,12 +471,14 @@ def create_combat_resolution(
         dealt = base_damage - (soak or 0)
 
     effects = MechanicalEffects(
-        damage=DamageEffect(
-            target=target,
-            base_damage=base_damage,
-            soak=soak,
-            dealt=dealt
-        )
+        damage=[
+            DamageEffect(
+                target=target,
+                base_damage=base_damage,
+                soak=soak,
+                dealt=dealt
+            )
+        ]
     )
 
     # Determine success tier

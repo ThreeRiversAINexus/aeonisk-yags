@@ -122,7 +122,7 @@ class TestOpenAIProviderGenerate:
 
     @pytest.mark.asyncio
     async def test_generate_respects_temperature(self):
-        """Test that generate() uses configured temperature."""
+        """Test that generate() overrides temperature to 1.0 for OpenAI gpt-5-mini."""
         config = LLMConfig(
             provider='openai',
             model='gpt-5-mini',
@@ -140,9 +140,57 @@ class TestOpenAIProviderGenerate:
         with patch.object(provider.client.chat.completions, 'create', return_value=mock_response) as mock_create:
             await provider.generate(prompt="Test")
 
-            # Verify temperature was passed
+            # OpenAI gpt-5-mini requires temperature=1.0, should override config value
             call_kwargs = mock_create.call_args[1]
-            assert call_kwargs['temperature'] == 0.9
+            assert call_kwargs['temperature'] == 1.0
+
+    @pytest.mark.asyncio
+    async def test_generate_handles_none_content(self):
+        """Test that generate() handles None content from OpenAI API."""
+        config = LLMConfig(
+            provider='openai',
+            model='gpt-5-mini',
+            api_key='test-key'
+        )
+        provider = OpenAIProvider(config)
+
+        # Mock OpenAI API returning None content
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = None  # This can happen with OpenAI
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage = None
+
+        with patch.object(provider.client.chat.completions, 'create', return_value=mock_response):
+            response = await provider.generate(prompt="Test prompt")
+
+            # Should handle None gracefully, returning empty string instead of crashing
+            assert isinstance(response, LLMResponse)
+            assert response.text == ""  # Empty string, not None
+
+    @pytest.mark.asyncio
+    async def test_generate_handles_empty_string_content(self):
+        """Test that generate() handles empty string content from OpenAI API."""
+        config = LLMConfig(
+            provider='openai',
+            model='gpt-5-mini',
+            api_key='test-key'
+        )
+        provider = OpenAIProvider(config)
+
+        # Mock OpenAI API returning empty string content
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = ""  # Empty response
+        mock_response.choices[0].finish_reason = "stop"
+        mock_response.usage = None
+
+        with patch.object(provider.client.chat.completions, 'create', return_value=mock_response):
+            response = await provider.generate(prompt="Test prompt")
+
+            # Should preserve empty string
+            assert isinstance(response, LLMResponse)
+            assert response.text == ""
 
 
 class TestOpenAIProviderStructuredOutput:

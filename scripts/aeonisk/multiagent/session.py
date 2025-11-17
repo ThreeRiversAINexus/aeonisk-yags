@@ -124,6 +124,9 @@ class SelfPlayingSession:
         # Initialize persistent vendors from config
         self._initialize_persistent_vendors()
 
+        # Initialize persistent altars from config
+        self._initialize_persistent_altars()
+
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
         self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
@@ -270,6 +273,53 @@ class SelfPlayingSession:
             logger.info(f"Initialized persistent vendor: {vendor.name} ({vendor_type_str}) with {len(inventory_items)} items, vendor_id={vendor.vendor_id}")
 
         print(f"✓ Loaded {len(persistent_vendors_config)} persistent vendor(s)")
+
+    def _initialize_persistent_altars(self):
+        """
+        Initialize persistent altars from session config.
+
+        Spawns altars defined in config['scenario']['altars'] into SharedState.
+        These altars persist across all rounds unless explicitly removed.
+        """
+        scenario_config = self.config.get('scenario', {})
+        altars_config = scenario_config.get('altars', [])
+
+        if not altars_config:
+            logger.debug("No scenario.altars in config")
+            return
+
+        from .shared_state import Altar, AltarType
+
+        for altar_config in altars_config:
+            # Parse altar type
+            altar_type_str = altar_config.get('altar_type', 'ritual_altar')
+            try:
+                altar_type = AltarType[altar_type_str.upper()]
+            except KeyError:
+                logger.warning(f"Unknown altar_type '{altar_type_str}', defaulting to RITUAL_ALTAR")
+                altar_type = AltarType.RITUAL_ALTAR
+
+            # Validate quality
+            quality = altar_config.get('quality', 5)
+            if not (1 <= quality <= 10):
+                logger.warning(f"Altar quality {quality} out of range [1-10], clamping")
+                quality = max(1, min(10, quality))
+
+            # Create altar
+            altar = Altar(
+                altar_type=altar_type,
+                quality=quality,
+                location=altar_config.get('location', 'Unknown'),
+                altar_id=altar_config.get('altar_id')  # None for auto-generation
+            )
+
+            # Add to shared state
+            self.shared_state.add_altar(altar)
+
+            bonus = altar.get_ritual_bonus()
+            logger.info(f"Initialized altar: {altar.location} ({altar_type_str}, quality={quality}, +{bonus} bonus), altar_id={altar.altar_id}")
+
+        print(f"✓ Loaded {len(altars_config)} ritual altar(s)")
 
     # NOTE: _inject_required_items_into_vendors() removed
     #
@@ -3606,6 +3656,106 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     except Exception as e:
                         logger.error(f"Error pre-validating transfer for {agent_id}: {e}")
                         action_payload['transfer_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
+
+        # PRE-VALIDATE AND EXECUTE ATTUNEMENT ACTIONS (before DM sees them)
+        # Similar to purchases/transfers - prevents phantom attunements where DM narrates success but mechanics fail
+        target_energy = action_payload.get('target_energy')
+        altar_id = action_payload.get('altar_id')
+        use_echo_calibrator = action_payload.get('use_echo_calibrator', False)
+
+        # Check if this is an attunement action
+        action_type = action_payload.get('action_type', '')
+        if action_type == 'attune' and not target_energy:
+            # CRITICAL ERROR: attune action without target_energy
+            logger.error(
+                f"❌ ATTUNE action from {agent_id} missing required target_energy field! "
+                f"Intent: {action_payload.get('intent')}. "
+                f"Attunement will NOT be executed - seed will not be consumed, no energy gained."
+            )
+            # Store error on action for DM to see
+            action_payload['attunement_validation'] = {
+                'is_valid': False,
+                'failure_reason': 'Missing required field: target_energy (must specify: breath, grain, drip, or spark)',
+                'executed': False
+            }
+
+        if target_energy:
+            # This is an attunement action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        validation = mechanics.validate_attunement(
+                            character_state=player_agent.character_state,
+                            target_energy=target_energy,
+                            altar_id=altar_id,
+                            use_echo_calibrator=use_echo_calibrator
+                        )
+
+                        # Store validation result on the action for DM to see
+                        action_payload['attunement_validation'] = {
+                            'is_valid': validation.is_valid,
+                            'failure_reason': validation.failure_reason,
+                            'has_raw_seed': validation.has_raw_seed,
+                            'target_energy': validation.target_energy,
+                            'altar_exists': validation.altar_exists,
+                            'altar_bonus': validation.altar_bonus,
+                            'altar_id': validation.altar_id,
+                            'has_echo_calibrator': validation.has_echo_calibrator,
+                            'upkeep_required': validation.upkeep_required,
+                            'has_upkeep_currency': validation.has_upkeep_currency,
+                            'usage_count': validation.usage_count
+                        }
+
+                        if validation.is_valid:
+                            # EXECUTE ATTUNEMENT MECHANICALLY (before DM narrates)
+                            attunement_effect = mechanics.execute_attunement(
+                                character_state=player_agent.character_state,
+                                validation=validation,
+                                use_echo_calibrator=use_echo_calibrator
+                            )
+
+                            # Store attunement effect for DM to include in ActionResolution
+                            action_payload['attunement_effect'] = {
+                                'success': attunement_effect.success,
+                                'seed_consumed': attunement_effect.seed_consumed,
+                                'energy_type': attunement_effect.energy_type,
+                                'energy_gained': attunement_effect.energy_gained,
+                                'altar_id': attunement_effect.altar_id,
+                                'altar_bonus': attunement_effect.altar_bonus,
+                                'echo_calibrator_used': attunement_effect.echo_calibrator_used,
+                                'calibrator_check_success': attunement_effect.calibrator_check_success,
+                                'calibrator_void': attunement_effect.calibrator_void,
+                                'upkeep_paid': attunement_effect.upkeep_paid,
+                                'void_penalty': attunement_effect.void_penalty,
+                                'roll_total': attunement_effect.roll_total,
+                                'roll_margin': attunement_effect.roll_margin
+                            }
+
+                            # Apply void penalty if any
+                            if attunement_effect.void_penalty > 0:
+                                player_agent.character_state.void_score += attunement_effect.void_penalty
+                                logger.debug(f"Void added: +{attunement_effect.void_penalty} (attunement), new total: {player_agent.character_state.void_score}/10")
+
+                            conversion_rates = {"breath": 100, "grain": 50, "drip": 20, "spark": 5}
+                            expected = conversion_rates.get(target_energy, 0)
+                            logger.info(f"✓ ATTUNEMENT EXECUTED: {player_agent.character_state.name} converted 1 Raw Seed → {attunement_effect.energy_gained}/{expected} {target_energy} ({'success' if attunement_effect.success else 'failed'})")
+                            action_payload['attunement_validation']['executed'] = True
+                        else:
+                            logger.warning(f"Attunement pre-validation FAILED: {validation.failure_reason}")
+                            action_payload['attunement_validation']['executed'] = False
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating attunement for {agent_id}: {e}")
+                        import traceback
+                        traceback.print_exc()
+                        action_payload['attunement_validation'] = {
                             'is_valid': False,
                             'failure_reason': f"Validation error: {str(e)}",
                             'executed': False

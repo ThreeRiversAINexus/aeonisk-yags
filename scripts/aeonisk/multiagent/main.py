@@ -112,20 +112,30 @@ async def run_session(config_path: str, random_seed: int = None, log_agents_sepa
     if not Path(config_path).exists():
         print(f"Configuration file not found: {config_path}")
         print("Use --create-config to generate an example configuration.")
-        return
+        return None
+
+    session = SelfPlayingSession(
+        config_path,
+        random_seed=random_seed,
+        log_agents_separately=log_agents_separately
+    )
 
     try:
-        session = SelfPlayingSession(
-            config_path,
-            random_seed=random_seed,
-            log_agents_separately=log_agents_separately
-        )
         await session.start_session()
-    except KeyboardInterrupt:
-        print("\nSession interrupted by user")
-    except Exception as e:
-        logging.error(f"Session error: {e}", exc_info=True)
-        print(f"Session failed: {e}")
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        # Print session info before cleanup
+        print("\n\n=== Session interrupted by user ===")
+        if session and session.session_id:
+            output_dir = session.config.get('output_dir', './output')
+            jsonl_path = f"{output_dir}/session_{session.session_id}.jsonl"
+            print(f"\nSession ID: {session.session_id}")
+            print(f"JSONL log: {jsonl_path}")
+            if log_agents_separately:
+                print(f"Agent logs: agent_logs/{session.session_id}/")
+        print()
+        raise  # Re-raise so asyncio.run() can clean up
+
+    return session
 
 
 def main():
@@ -225,11 +235,15 @@ def main():
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
 
-    asyncio.run(run_session(
-        args.config,
-        random_seed=args.random_seed,
-        log_agents_separately=args.log_agents_separately
-    ))
+    try:
+        asyncio.run(run_session(
+            args.config,
+            random_seed=args.random_seed,
+            log_agents_separately=args.log_agents_separately
+        ))
+    except KeyboardInterrupt:
+        # Session info already printed in run_session(), just exit cleanly
+        pass
 
 
 if __name__ == "__main__":

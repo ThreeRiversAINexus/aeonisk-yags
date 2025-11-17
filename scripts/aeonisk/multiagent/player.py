@@ -32,6 +32,7 @@ class CharacterState:
     pronouns: str = "they/them"  # Default to gender-neutral
     inventory: Dict[str, int] = None
     energy_purse: Optional['EnergyPurse'] = None
+    item_metadata: Dict[str, Dict[str, Any]] = None  # Tracks usage counts, durability, etc.
 
     def __post_init__(self):
         """Initialize default inventory and energy purse if not provided."""
@@ -76,6 +77,11 @@ class CharacterState:
                 'data_slate': 0,
                 'comm_unit': 0,
             }
+
+        if self.item_metadata is None:
+            self.item_metadata = {}
+            # Initialize metadata for items that need tracking
+            # Echo-Calibrator usage will be tracked when purchased
 
     def has_offering(self, offering_type: str = None) -> bool:
         """Check if character has any offering."""
@@ -234,6 +240,45 @@ class AIPlayerAgent(Agent):
             self.character_state.energy_purse.drip = starting_currency.get('drip', self.character_state.energy_purse.drip)
             self.character_state.energy_purse.grain = starting_currency.get('grain', self.character_state.energy_purse.grain)
             self.character_state.energy_purse.spark = starting_currency.get('spark', self.character_state.energy_purse.spark)
+
+        # Override seeds with starting_seeds from config if provided
+        starting_seeds = self.character_config.get('starting_seeds')
+        if starting_seeds:
+            from .energy_economy import Seed, SeedType, Element, create_raw_seed
+            # Clear auto-generated seeds
+            self.character_state.energy_purse.seeds = []
+            # Add seeds from config
+            for seed_config in starting_seeds:
+                if isinstance(seed_config, dict):
+                    # Explicit seed configuration
+                    seed_type_str = seed_config.get('seed_type', 'RAW')
+                    seed_type = SeedType[seed_type_str] if isinstance(seed_type_str, str) else seed_type_str
+
+                    if seed_type == SeedType.RAW:
+                        freshness = seed_config.get('freshness', 'fresh')
+                        origin = seed_config.get('origin', 'config_specified')
+                        seed = create_raw_seed(origin=origin, freshness=freshness)
+                    elif seed_type == SeedType.ATTUNED:
+                        element_str = seed_config.get('element', 'SPIRIT')
+                        element = Element[element_str] if isinstance(element_str, str) else element_str
+                        origin = seed_config.get('origin', 'config_specified')
+                        seed = Seed(seed_type=SeedType.ATTUNED, element=element, origin=origin)
+                    elif seed_type == SeedType.HOLLOW:
+                        origin = seed_config.get('origin', 'config_specified')
+                        seed = Seed(seed_type=SeedType.HOLLOW, origin=origin)
+                    else:
+                        raise ValueError(f"Unknown seed_type: {seed_type}")
+
+                    # Override seed ID if provided
+                    if 'id' in seed_config:
+                        seed.id = seed_config['id']
+                    if 'cycles_remaining' in seed_config and seed_type == SeedType.RAW:
+                        seed.cycles_remaining = seed_config['cycles_remaining']
+
+                    self.character_state.energy_purse.add_seed(seed)
+                else:
+                    # Simple string format: "RAW" or "HOLLOW" or "ATTUNED:SPIRIT"
+                    raise ValueError("starting_seeds must be list of dicts, not strings")
 
         # Initialize combat attributes (for enemy attacks to work)
         # Health = Size × 2 + Endurance (YAGS-compliant toughness bonus)
@@ -1312,99 +1357,510 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
         return content
 
-    async def _generate_player_action_pydantic(self, prompt: str):
+    async def _generate_action_intent(self) -> Optional['ActionIntent']:
         """
-        Generate player action using Pydantic AI structured output (Phase 3).
-        Returns ActionDeclaration if structured output succeeds, or None to fall back to legacy.
+        Phase 1: Generate lightweight action type selection.
+        Returns ActionIntent with chosen action type, or None on failure.
         """
+        from .schemas.player_action import ActionIntent
+        from .enhanced_prompts import _format_tiered_skills
+
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
-            logger.debug(f"Player {self.character_state.name}: No llm_provider available, will use legacy text parsing")
+            logger.debug(f"Player {self.character_state.name}: No llm_provider for Phase 1 (action intent)")
             return None
 
         try:
-            from .schemas.player_action import PlayerAction
-            from .action_schema import ActionDeclaration
+            # Build comprehensive context for Phase 1 (needs most info from legacy prompt)
+            from .enhanced_prompts import _format_tiered_skills
 
-            logger.debug(f"Player {self.character_state.name}: Attempting structured output for action declaration")
+            # Format attributes
+            attributes_text = "\n".join([
+                f"- {attr}: {val}"
+                for attr, val in self.character_state.attributes.items()
+            ])
 
-            # Generate structured action using Pydantic AI
-            player_action: PlayerAction = await self.llm_provider.generate_structured(
-                prompt=prompt,
-                result_type=PlayerAction,
-                system_prompt=f"You are {self.character_state.name}, a player character in Aeonisk YAGS.",
-                max_tokens=self.llm_config.get('max_tokens', 3000),  # Increased for OpenAI's verbose output + complex schema
-                temperature=self.llm_config.get('temperature', 0.8)
+            # Format skills using tiered display
+            skills_text = _format_tiered_skills(self.character_state.skills)
+
+            # Top 3 skills (for skill awareness)
+            skills_sorted = sorted(
+                self.character_state.skills.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:3]
+            top_skills_list = ", ".join([f"{skill} ({val})" for skill, val in skills_sorted])
+
+            # Calculate health status
+            health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
+            if health_pct >= 75:
+                health_status = "Healthy"
+            elif health_pct >= 50:
+                health_status = "Wounded"
+            elif health_pct >= 25:
+                health_status = "Bloodied"
+            else:
+                health_status = "CRITICAL"
+
+            # Format inventory (seeds + currency) for Phase 1
+            mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+            if mechanics and hasattr(mechanics, 'energy_economy'):
+                energy_inv = mechanics.energy_economy.get_inventory(self.agent_id)
+                raw_count = self.character_state.inventory.get('seed_raw', 0)
+                hollow_count = self.character_state.inventory.get('seed_hollow', 0)
+                currency_display = f"Breath: {energy_inv.breath}, Grain: {energy_inv.grain}, Drip: {energy_inv.drip}, Spark: {energy_inv.spark}"
+                seeds_display = f"Raw Seeds: {raw_count}, Hollow Seeds: {hollow_count}"
+            else:
+                currency_display = "No currency available"
+                seeds_display = "No seeds available"
+
+            # Build goals text
+            goals_text = "\n".join([f"- {goal}" for goal in self.character_state.goals]) if self.character_state.goals else "- No specific goals defined"
+
+            # Build void warning if needed
+            void_warning = ""
+            if self.character_state.void_score >= 5:
+                void_warning = f"⚠️ Void: {self.character_state.void_score}/10 (significantly corrupted)"
+
+            # Wound status annotation
+            if self.wounds >= 4:
+                wound_status = "(HEAVY WOUNDS -15)"
+            elif self.wounds >= 2:
+                wound_status = "(WOUNDED -5)"
+            else:
+                wound_status = ""
+
+            # Low attributes (< 4)
+            low_attrs = [
+                f"{attr} ({val})"
+                for attr, val in self.character_state.attributes.items()
+                if val < 4
+            ]
+            low_attributes_list = ", ".join(low_attrs) if low_attrs else "None (all attributes 4+)"
+
+            # Build personality guidance
+            risk_tolerance = self.personality.get('riskTolerance', 5)
+            void_curiosity = self.personality.get('voidCuriosity', 5)
+            bond_preference = self.personality.get('bondPreference', 'neutral')
+            ritual_conservatism = self.personality.get('ritualConservatism', 5)
+
+            risk_guidance = "Take bold, proactive actions" if risk_tolerance > 6 else "Be cautious and methodical"
+            void_curiosity_guidance = "Actively investigate void phenomena" if void_curiosity > 6 else "Avoid void-related risks"
+
+            if bond_preference == 'seeks':
+                bond_guidance = "Seek to form and protect formal Bonds"
+            elif bond_preference == 'avoids':
+                bond_guidance = "Avoid formal Bond commitments (but teamwork is fine)"
+            else:
+                bond_guidance = "Pragmatic about formal Bonds"
+
+            # Get other players for dialogue prompts
+            other_players = []
+            if self.shared_state and self.shared_state.player_agents:
+                other_players = [
+                    agent.character_state.name
+                    for agent in self.shared_state.player_agents
+                    if agent.agent_id != self.agent_id
+                ]
+
+            # Build dialogue goal text
+            dialogue_goal_text = ""
+            if other_players:
+                party_members_str = ", ".join(other_players)
+                dialogue_goal_text = f"💬 Coordinate with {party_members_str} (dialogue is a FREE ACTION!)"
+
+            # Check for failure loop warning
+            failure_loop_warning = ""
+            high_void_warning = ""
+            if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                session = self.shared_state.session
+                if self.character_state.name in session._character_action_history:
+                    history = session._character_action_history[self.character_state.name]
+
+                    if len(history) >= 2:
+                        last_actions = history[-3:]
+                        failure_types = {}
+                        for action_type, success_tier, void_change, _ in last_actions:
+                            is_failure = success_tier in ['CRITICAL_FAILURE', 'FAILURE'] or void_change > 0
+                            if is_failure:
+                                failure_types[action_type] = failure_types.get(action_type, 0) + 1
+
+                        for action_type, count in failure_types.items():
+                            if count >= 2:
+                                failure_list_items = []
+                                for at, st, vc, rnd in last_actions:
+                                    if at == action_type:
+                                        void_text = f", Void +{vc}" if vc > 0 else ""
+                                        failure_list_items.append(f"Round {rnd}: {at} ({st}{void_text})")
+                                failures_text = ", ".join(failure_list_items)
+                                failure_loop_warning = f"🚨 FAILURE LOOP: {count} {action_type} failures ({failures_text}) - CHOOSE DIFFERENT ACTION TYPE!"
+                                break
+
+                if self.character_state.void_score >= 8:
+                    high_void_warning = f"⚠️ VOID CRITICAL ({self.character_state.void_score}/10) - Avoid risky actions! Use offerings to reduce void!"
+
+            # Build variables for Phase 1 prompt
+            variables = {
+                # Character identity
+                "character_name": self.character_state.name,
+                "pronouns": self.character_state.pronouns,
+                # Stats
+                "attributes_text": attributes_text,
+                "skills_text": skills_text,
+                "top_skills_list": top_skills_list,
+                "low_attributes_list": low_attributes_list,
+                # Health/status
+                "current_round": str(getattr(self, 'current_round', 0)),
+                "health": str(self.health),
+                "max_health": str(self.max_health),
+                "health_status": health_status,
+                "wounds": str(self.wounds),
+                "wound_status": wound_status,
+                "stuns": str(self.stuns),
+                "void_score": str(self.character_state.void_score),
+                "void_warning": void_warning,
+                "soulcredit": str(self.character_state.soulcredit),
+                "position": str(self.position) if hasattr(self, 'position') else "Unknown",
+                # Goals & personality
+                "goals_text": goals_text,
+                "dialogue_goal_text": dialogue_goal_text,
+                "risk_tolerance": str(risk_tolerance),
+                "void_curiosity": str(void_curiosity),
+                "bond_preference": bond_preference,
+                "ritual_conservatism": str(ritual_conservatism),
+                "risk_guidance": risk_guidance,
+                "void_curiosity_guidance": void_curiosity_guidance,
+                "bond_guidance": bond_guidance,
+                # Warnings
+                "failure_loop_warning": failure_loop_warning,
+                "high_void_warning": high_void_warning,
+                # Include recent events from narrative context
+                "recent_events": self.last_round_synthesis if self.last_round_synthesis else "Round starting...",
+                # Unified entity awareness (allies + enemies + NPCs)
+                "entities_present": self._format_entities_present(),
+                # Legacy fields (for backward compat with old prompts)
+                "ally_status": self._format_ally_status(),
+                "threat_status": self._format_threat_status(),
+                # Inventory for attunement/purchase decisions
+                "currency_display": currency_display,
+                "seeds_display": seeds_display,
+                # Environment features (altars, vendors, situational factors)
+                "altar_availability": self._format_altar_availability(),
+                "vendor_status": self._format_vendor_status()
+            }
+
+            # Load Phase 1 prompt (player_intent.yaml) from player/ subdirectory
+            from .prompt_loader import load_modular_prompt
+            loaded_prompt = load_modular_prompt(
+                agent_type="player",
+                module_names=["player_intent"],  # Loads player/player_intent.yaml
+                provider="claude",
+                language="en",
+                variables=variables
             )
 
-            # Populate identity fields from player object (LLM doesn't generate these)
-            player_action.character_name = self.character_state.name
-            player_action.agent_id = self.agent_id
+            logger.debug(f"Player {self.character_state.name}: Phase 1 (action intent) - generating...")
 
-            logger.debug(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
-
-            # Log LLM call for replay (CRITICAL: without this, replay cache is empty!)
-            if self.llm_logger:
-                # Serialize PlayerAction to JSON for the response field
-                import json
-                response_text = player_action.model_dump_json(indent=2)
-
-                self.llm_logger._log_llm_call(
-                    messages=[{"role": "user", "content": prompt}],
-                    response=response_text,
-                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                    temperature=self.llm_config.get('temperature', 0.8),
-                    tokens={'input': 0, 'output': 0},  # Pydantic AI doesn't expose token counts easily
-                    current_round=getattr(self, 'current_round', None),
-                    call_sequence=self.llm_logger.call_count
-                )
-                self.llm_logger.call_count += 1
-                logger.debug(f"✓ Logged player LLM call for replay (sequence {self.llm_logger.call_count - 1})")
-
-            # Also log to human-readable agent prompt log if enabled
-            if self.agent_prompt_logger:
-                try:
-                    # System prompt + user prompt combined
-                    full_prompt = f"System: You are {self.character_state.name}, a player character in Aeonisk YAGS.\n\n{prompt}"
-                    response_text = player_action.model_dump_json(indent=2)
-
-                    self.agent_prompt_logger.log_llm_call(
-                        agent_id=self.agent_id,
-                        round_num=getattr(self, 'current_round', None),
-                        call_sequence=getattr(self.llm_logger, 'call_count', 0) - 1 if self.llm_logger else 0,
-                        prompt=full_prompt,
-                        response=response_text,
-                        model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                        temperature=self.llm_config.get('temperature', 0.8),
-                        metadata={'note': 'Pydantic AI structured output (PlayerAction schema)'}
-                    )
-                except Exception as e:
-                    logger.error(f"Player {self.agent_id}: Failed to log to agent prompt logger: {e}")
-
-            # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
-            action_declaration = ActionDeclaration(
-                intent=player_action.intent,
-                description=player_action.description,
-                attribute=player_action.attribute,
-                skill=player_action.skill,
-                difficulty_estimate=player_action.difficulty_estimate,
-                difficulty_justification=player_action.difficulty_justification,
-                character_name=self.character_state.name,
-                agent_id=self.agent_id,
-                action_type=player_action.action_type,
-                target=player_action.target,
-                target_position=player_action.target_position,
-                vendor_id=player_action.vendor_id,  # Preserve purchase fields
-                item_id=player_action.item_id,
-                transfer_target=player_action.transfer_target,  # Preserve transfer fields
-                transfer_currency=player_action.transfer_currency,
-                transfer_items=player_action.transfer_items
+            # Generate ActionIntent
+            action_intent: ActionIntent = await self.llm_provider.generate_structured(
+                prompt=loaded_prompt.content,
+                result_type=ActionIntent,
+                system_prompt=f"You are {self.character_state.name}, choosing your next action type.",
+                max_tokens=self.llm_config.get('max_tokens', 2000),  # Phase 1: Simple schema but OpenAI needs headroom
+                temperature=self.llm_config.get('temperature', 0.8),
+                llm_logger=self.llm_logger,
+                current_round=getattr(self, 'current_round', None)
             )
 
-            return action_declaration
+            logger.debug(f"✓ Player {self.character_state.name} Phase 1: {action_intent.action_type} - {action_intent.intent}")
+            return action_intent
 
         except Exception as e:
-            logger.error(f"Player {self.character_state.name}: Structured output failed: {type(e).__name__}: {e}")
+            logger.error(f"Player {self.character_state.name}: Phase 1 (action intent) failed: {e}")
             return None
+
+    async def _generate_action_details(self, intent: 'ActionIntent') -> Optional[Any]:
+        """
+        Phase 2: Generate action-specific details based on Phase 1 action type.
+        Uses discriminated union routing to call appropriate schema.
+        Returns action-specific schema instance (e.g., AttuneAction, CombatAction), or None on failure.
+        """
+        from .schemas.player_action import ACTION_TYPE_SCHEMA_MAP
+        from .enhanced_prompts import _format_tiered_skills
+
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            logger.debug(f"Player {self.character_state.name}: No llm_provider for Phase 2 (action details)")
+            return None
+
+        # Get the correct schema for this action type
+        schema_class = ACTION_TYPE_SCHEMA_MAP.get(intent.action_type)
+        if not schema_class:
+            logger.error(f"Player {self.character_state.name}: No schema found for action type {intent.action_type}")
+            return None
+
+        try:
+            # Map action type to prompt module name (e.g., ATTUNE → player_action_attune)
+            action_type_lower = intent.action_type.value.lower()
+            prompt_module = f"player_action_{action_type_lower}"
+
+            # Build comprehensive context for Phase 2 (action-specific guidance)
+            # Format attributes
+            attributes_text = "\n".join([
+                f"- {attr}: {val}"
+                for attr, val in self.character_state.attributes.items()
+            ])
+
+            # Format skills using tiered display
+            skills_text = _format_tiered_skills(self.character_state.skills)
+
+            # Format currency display
+            energy_inv = self.character_state.energy_purse
+            if energy_inv:
+                currency_display = f"""- Breath: {energy_inv.breath}
+- Drip: {energy_inv.drip}
+- Grain: {energy_inv.grain}
+- Spark: {energy_inv.spark}"""
+
+                raw_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.RAW)
+                seeds_display = f"- Raw Seeds: {raw_count}"
+            else:
+                currency_display = "- No currency available"
+                seeds_display = "- No seeds available"
+
+            # Calculate health status
+            health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
+            if health_pct >= 75:
+                health_status = "Healthy"
+            elif health_pct >= 50:
+                health_status = "Wounded"
+            elif health_pct >= 25:
+                health_status = "Bloodied"
+            else:
+                health_status = "CRITICAL"
+
+            # Build variables for Phase 2 prompt (include Phase 1 context)
+            variables = {
+                # Phase 1 context (so Phase 2 knows what the user already decided)
+                "phase1_intent": intent.intent,
+                "phase1_reasoning": intent.reasoning or "No reasoning provided",
+                # Character context
+                "character_name": self.character_state.name,
+                "attributes_text": attributes_text,
+                "skills_text": skills_text,
+                "currency_display": currency_display,
+                "seeds_display": seeds_display,
+                "void_score": str(self.character_state.void_score),
+                "health": str(self.health),
+                "max_health": str(self.max_health),
+                "health_status": health_status,
+                "position": str(self.position) if hasattr(self, 'position') else "Unknown",
+                # Combat-specific context (if applicable)
+                "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
+                "combat_skills": str(self.character_state.skills.get('Guns', 0)),
+                # Social-specific context (if applicable)
+                "charisma": str(self.character_state.attributes.get('Charisma', 0)),
+                "charm_skill": str(self.character_state.skills.get('Charm', 0)),
+                "negotiation_skill": str(self.character_state.skills.get('Negotiation', 0)),
+                # Attunement-specific context (if applicable)
+                "willpower": str(self.character_state.attributes.get('Willpower', 0)),
+                "attunement_skill": str(self.character_state.skills.get('Attunement', 0)),
+                "attunement_total": str(self.character_state.attributes.get('Willpower', 0) + self.character_state.skills.get('Attunement', 0)),
+                "unskilled_warning": "" if self.character_state.skills.get('Attunement', 0) > 0 else "⚠️ Unskilled (-5 penalty)",
+                # Environment context (unified + legacy)
+                "entities_present": self._format_entities_present(),
+                "vendor_status": self._format_vendor_status(),
+                "threat_status": self._format_threat_status(),  # Legacy
+                "altar_availability": self._format_altar_availability(),
+                "void_warning": "Low void risk" if self.character_state.void_score < 5 else f"⚠️ Void score: {self.character_state.void_score}/10",
+                "situational_factors": self._format_situational_factors()
+            }
+
+            # Load Phase 2 action-specific prompt from player/ subdirectory
+            from .prompt_loader import load_modular_prompt
+            loaded_prompt = load_modular_prompt(
+                agent_type="player",
+                module_names=[prompt_module],  # e.g., "player_action_attune" → player/player_action_attune.yaml
+                provider="claude",
+                language="en",
+                variables=variables
+            )
+
+            logger.debug(f"Player {self.character_state.name}: Phase 2 ({intent.action_type}) - generating with {schema_class.__name__}...")
+
+            # Generate action-specific details
+            action_details = await self.llm_provider.generate_structured(
+                prompt=loaded_prompt.content,
+                result_type=schema_class,  # Route to correct schema (AttuneAction, CombatAction, etc.)
+                system_prompt=f"You are {self.character_state.name}, declaring the detailed mechanics of your {intent.action_type} action.",
+                max_tokens=self.llm_config.get('max_tokens', 3000),  # Phase 2: Complex schemas, OpenAI verbose
+                temperature=self.llm_config.get('temperature', 0.8),
+                llm_logger=self.llm_logger,
+                current_round=getattr(self, 'current_round', None)
+            )
+
+            logger.debug(f"✓ Player {self.character_state.name} Phase 2: {action_details.attribute} × {action_details.skill} (DC {action_details.difficulty_estimate})")
+            return action_details
+
+        except Exception as e:
+            logger.error(f"Player {self.character_state.name}: Phase 2 (action details) failed: {e}")
+            return None
+
+    def _format_entities_present(self) -> str:
+        """Format all entities in the scene (allies, enemies, NPCs) for tactical awareness."""
+        entities = []
+
+        # Get target ID mapper if available
+        target_mapper = self.shared_state.target_id_mapper if self.shared_state else None
+
+        # Add player allies (with target IDs for combat)
+        if self.shared_state and self.shared_state.player_agents:
+            for agent in self.shared_state.player_agents:
+                if agent.agent_id == self.agent_id:
+                    continue  # Skip self
+
+                name = agent.character_state.name if hasattr(agent, 'character_state') else agent.agent_id
+                health = getattr(agent, 'health', '?')
+                max_health = getattr(agent, 'max_health', '?')
+
+                # Get target ID from mapper
+                target_id = target_mapper.get_target_id(agent.agent_id) if target_mapper else agent.agent_id
+                entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+        # Add active enemies (with target IDs for combat)
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+            enemy_combat = self.shared_state.enemy_combat
+            if enemy_combat and enemy_combat.enabled:
+                # Use get_active_enemies to safely get non-defeated enemies
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                for enemy in active_enemies:
+                    # Get target ID from mapper
+                    target_id = target_mapper.get_target_id(enemy.agent_id) if target_mapper else enemy.agent_id
+                    entities.append(
+                        f"- {enemy.name} (ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
+                    )
+
+        # Add NPCs (with target IDs for combat)
+        if self.shared_state and self.shared_state.npc_agents:
+            for npc in self.shared_state.npc_agents:
+                name = npc.character_state.name if hasattr(npc, 'character_state') else npc.agent_id
+                health = getattr(npc, 'health', '?')
+                max_health = getattr(npc, 'max_health', '?')
+
+                # Get target ID from mapper
+                target_id = target_mapper.get_target_id(npc.agent_id) if target_mapper else npc.agent_id
+                entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+        return "\n".join(entities) if entities else "You are alone"
+
+    def _format_ally_status(self) -> str:
+        """Legacy method - use _format_entities_present() instead."""
+        return self._format_entities_present()
+
+    def _format_threat_status(self) -> str:
+        """Legacy method - use _format_entities_present() instead."""
+        return self._format_entities_present()
+
+    def _format_vendor_status(self) -> str:
+        """Format vendor availability for purchase actions."""
+        return "No vendor info available"
+
+    def _format_altar_availability(self) -> str:
+        """Format altar availability for attunement actions."""
+        return "No altar info available"
+
+    def _format_situational_factors(self) -> str:
+        """Format situational modifiers for combat actions."""
+        return "Standard conditions"
+
+    async def _generate_player_action_pydantic(self, prompt: str):
+        """
+        Generate player action using two-phase structured output (Phase 1: Intent, Phase 2: Details).
+        Returns ActionDeclaration if structured output succeeds.
+
+        Raises RuntimeError if either phase fails (no legacy fallback).
+
+        NOTE: The 'prompt' parameter is preserved for backward compatibility but not used.
+        Phase 1 and Phase 2 build their own prompts using compose_sections().
+        """
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            raise RuntimeError(f"Player {self.character_state.name}: No llm_provider configured - cannot generate actions")
+
+        from .action_schema import ActionDeclaration
+
+        logger.debug(f"Player {self.character_state.name}: Two-phase structured output (Phase 1: Intent, Phase 2: Details)")
+
+        # ===== PHASE 1: Action Intent (lightweight action type selection) =====
+        action_intent = await self._generate_action_intent()
+        if not action_intent:
+            raise RuntimeError(f"Player {self.character_state.name}: Phase 1 (action intent) failed after retries")
+
+        # ===== PHASE 2: Action Details (action-specific schema with routing) =====
+        action_details = await self._generate_action_details(action_intent)
+        if not action_details:
+            raise RuntimeError(
+                f"Player {self.character_state.name}: Phase 2 (action details) failed for {action_intent.action_type}. "
+                f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
+            )
+
+        # Populate identity fields from player object (LLM doesn't generate these)
+        action_details.character_name = self.character_state.name
+        action_details.agent_id = self.agent_id
+
+        logger.debug(f"✓ Player {self.character_state.name} two-phase action complete: {action_details.action_type}, {action_details.attribute} × {action_details.skill}")
+
+        # Increment call count for TWO LLM calls (Phase 1 + Phase 2)
+        # (Both phases already logged tokens automatically via generate_structured)
+        if self.llm_logger:
+            self.llm_logger.call_count += 2  # Two separate LLM calls
+
+        # Also log to human-readable agent prompt log if enabled
+        # Log Phase 2 result (most detailed) - Phase 1 already logged internally
+        if self.agent_prompt_logger:
+            try:
+                # Log final merged result
+                response_text = action_details.model_dump_json(indent=2)
+
+                self.agent_prompt_logger.log_llm_call(
+                    agent_id=self.agent_id,
+                    round_num=getattr(self, 'current_round', None),
+                    call_sequence=getattr(self.llm_logger, 'call_count', 0) - 1 if self.llm_logger else 0,
+                    prompt=f"Two-phase action generation (Phase 1: {action_intent.action_type}, Phase 2: details)",
+                    response=response_text,
+                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                    temperature=self.llm_config.get('temperature', 0.8),
+                    metadata={'note': 'Two-phase Pydantic AI structured output (Phase 1: ActionIntent, Phase 2: action-specific schema)'}
+                )
+            except Exception as e:
+                logger.error(f"Player {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+        # Convert action-specific schema (AttuneAction, CombatAction, etc.) to ActionDeclaration (legacy format)
+        # ActionDeclaration expects all fields from PlayerAction, so we need to extract them
+        action_declaration = ActionDeclaration(
+            intent=action_details.intent,
+            description=action_details.description,
+            attribute=action_details.attribute,
+            skill=action_details.skill,
+            difficulty_estimate=action_details.difficulty_estimate,
+            difficulty_justification=action_details.difficulty_justification,
+            character_name=self.character_state.name,
+            agent_id=self.agent_id,
+            action_type=action_details.action_type,
+            # Action-specific fields (may be None for non-applicable action types)
+            target=getattr(action_details, 'target', None),
+            target_position=getattr(action_details, 'target_position', None),
+            vendor_id=getattr(action_details, 'vendor_id', None),
+            item_id=getattr(action_details, 'item_id', None),
+            transfer_target=getattr(action_details, 'transfer_target', None),
+            transfer_currency=getattr(action_details, 'transfer_currency', None),
+            transfer_items=getattr(action_details, 'transfer_items', None),
+            # Attunement-specific fields
+            target_energy=getattr(action_details, 'target_energy', None),
+            altar_id=getattr(action_details, 'altar_id', None),
+            use_echo_calibrator=getattr(action_details, 'use_echo_calibrator', None)
+        )
+
+        return action_declaration
 
     async def _generate_llm_action_structured(self, recent_intents: List[str], exclude_dialogue: bool = False):
         """Generate structured action using LLM with enhanced prompts."""
@@ -1939,13 +2395,13 @@ DESCRIPTION: [narrative description]
 
         # Try structured output first (Phase 3: Pydantic AI migration)
         if hasattr(self, 'llm_provider') and self.llm_provider is not None:
-            try:
-                structured_action = await self._generate_player_action_pydantic(prompt)
-                if structured_action:
-                    logger.debug(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
-                    return structured_action
-            except Exception as e:
-                logger.warning(f"Player {self.character_state.name}: Structured output failed ({e}), falling back to legacy")
+            # NO FALLBACK - if structured output fails, we want to know immediately
+            structured_action = await self._generate_player_action_pydantic(prompt)
+            if structured_action:
+                logger.debug(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
+                return structured_action
+            else:
+                raise RuntimeError(f"Player {self.character_state.name}: Structured output returned None (should have raised error)")
 
         # Legacy text parsing fallback
         try:

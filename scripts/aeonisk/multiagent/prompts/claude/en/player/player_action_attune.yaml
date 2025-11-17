@@ -1,0 +1,147 @@
+version: 1.0.0
+module: player_action_attune
+description: "Phase 2: ATTUNE action - Seed attunement rituals to create energy currency"
+always_load: false
+load_when: action_type_is_attune
+content: |-
+  # ⚗️ ATTUNE ACTION: Seed Attunement Rituals
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen to perform a **seed attunement ritual**. Now let's define the mechanical details.
+
+  This action converts Raw Seeds into talismanic energy currency.
+
+  ## Attunement Mechanics
+
+  **Process:**
+  1. Place Raw Seed on altar or use portable Echo-Calibrator
+  2. Channel willpower to align seed resonance with target energy type
+  3. Success creates 1-100 energy units (based on roll tier)
+  4. Failure consumes seed, grants no energy
+
+  **Base Difficulty:** DC 20 (moderate)
+  **Skill:** Willpower × Attunement (unskilled: Willpower - 5)
+
+  **Modifiers:**
+  - Basic Altar (-1 DC) → DC 19
+  - Advanced Altar (-2 DC) → DC 18
+  - Echo-Calibrator (portable, no altar) → DC 20
+  - No altar, no calibrator → DC 25 (very hard!)
+
+  ## REQUIRED Fields (Must Specify)
+
+  ```python
+  AttuneAction(
+      # Core fields (all required)
+      intent: str,                    # Your Phase 1 intent
+      description: str,               # 50-800 chars - Describe the ritual
+      attribute: "Willpower",         # Attunement uses Willpower
+      skill: "Attunement",            # Or None for unskilled (-5 penalty!)
+      difficulty_estimate: int,       # Your DC estimate (consider modifiers!)
+      difficulty_justification: str,  # Why that DC? (e.g., "DC 19 with altar bonus")
+
+      # Attunement-specific (REQUIRED!)
+      action_type: ActionType.ATTUNE,
+      target_energy: Literal["breath", "grain", "drip", "spark"],  # MUST specify!
+
+      # Optional attunement fields
+      altar_id: Optional[str],        # Altar ID if using altar (e.g., "alt_marketplace_01")
+      use_echo_calibrator: bool,      # True if using portable calibrator
+  )
+  ```
+
+  ## Energy Types
+
+  Choose ONE target energy type:
+
+  - **Breath** - Light, air, speed energies
+  - **Grain** - Earth, growth, stability energies
+  - **Drip** - Water, flow, adaptability energies
+  - **Spark** - Fire, lightning, transformation energies
+
+  ## Current Context
+
+  **Your Stats:**
+  - Willpower: {willpower}
+  - Attunement skill: {attunement_skill}
+  - Roll bonus: {willpower} + {attunement_skill} = **+{attunement_total}**
+  {unskilled_warning}
+
+  **Available Equipment:**
+  {seeds_display}
+  {altar_availability}
+
+  **Void Warning:** {void_warning}
+  - Void risk: Attunement rituals have LOW void risk (clean process)
+  - No offerings needed for attunement (not a traditional ritual)
+
+  ## Examples
+
+  **Example 1: Using Basic Altar**
+  ```python
+  AttuneAction(
+      intent="Attune Raw Seed to Drip at marketplace altar",
+      description="I place the Raw Seed on the altar's resonance plate and focus my willpower, channeling drip energy through the crystalline matrix. The altar hums softly as energy flows into the seed structure.",
+      attribute="Willpower",
+      skill="Attunement",
+      difficulty_estimate=19,
+      difficulty_justification="DC 20 base reduced to 19 with basic altar bonus",
+      action_type=ActionType.ATTUNE,
+      target_energy="drip",
+      altar_id="alt_marketplace_01",
+      use_echo_calibrator=False
+  )
+  ```
+
+  **Example 2: Using Echo-Calibrator (Portable)**
+  ```python
+  AttuneAction(
+      intent="Attune Raw Seed to Spark using Echo-Calibrator",
+      description="Without access to an altar, I activate my portable Echo-Calibrator and attune the seed in field conditions. The calibrator's resonance guides spark energy into the seed, though without altar amplification it's more challenging.",
+      attribute="Willpower",
+      skill="Attunement",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20 base, no altar bonus but using portable calibrator",
+      action_type=ActionType.ATTUNE,
+      target_energy="spark",
+      altar_id=None,
+      use_echo_calibrator=True
+  )
+  ```
+
+  **Example 3: No Equipment (Desperate)**
+  ```python
+  AttuneAction(
+      intent="Attune Raw Seed to Breath without equipment",
+      description="In desperate circumstances without altar or calibrator, I attempt raw attunement through pure willpower. I hold the seed and mentally align my breath with its resonance, trying to force the transformation through sheer focus.",
+      attribute="Willpower",
+      skill="Attunement",
+      difficulty_estimate=25,
+      difficulty_justification="DC 25 without any equipment bonuses - very challenging",
+      action_type=ActionType.ATTUNE,
+      target_energy="breath",
+      altar_id=None,
+      use_echo_calibrator=False
+  )
+  ```
+
+  ## Common Mistakes to Avoid
+
+  ❌ **Forgetting target_energy** - MUST specify: breath, grain, drip, or spark
+  ❌ **Wrong attribute** - Attunement uses Willpower (not Intelligence/Perception)
+  ❌ **Ignoring altar bonuses** - Reduce DC estimate if you have altar access!
+  ❌ **No description** - Must be 50+ chars describing the ritual process
+  ❌ **Wrong skill name** - Use exact skill name "Attunement" from your character sheet
+
+  ## Success Outcomes
+
+  - **Critical Success (margin 10+):** 80-100 energy units
+  - **Good Success (margin 5-9):** 50-79 energy units
+  - **Marginal Success (margin 0-4):** 20-49 energy units
+  - **Failure:** Seed consumed, no energy gained
+
+  ---
+
+  **Ready? Declare your attunement action with all required fields!**

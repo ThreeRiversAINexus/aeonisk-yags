@@ -139,6 +139,30 @@ class NPCAction(BaseModel):
         """
     )
     target: Optional[str] = Field(None, description="Target agent ID for dialogue/assist/attack")
+    dialogue_content: Optional[str] = Field(
+        None,
+        min_length=5,
+        max_length=500,
+        description="""ACTUAL WORDS SPOKEN by the NPC (REQUIRED when action_type='dialogue').
+
+        When choosing dialogue action, you MUST provide what the NPC actually says.
+        - ✅ CORRECT: "The vault is in the basement, past the security checkpoint."
+        - ❌ WRONG: None (leaving this empty for dialogue actions)
+        - ❌ WRONG: "Responding to the question" (this is the reason, not the dialogue)
+
+        Use first-person perspective (what you say, not what "the NPC says").
+        Keep it concise (5-500 characters).
+        """
+    )
+
+    def model_post_init(self, __context):
+        """Validate that dialogue actions have dialogue_content."""
+        if self.action_type == "dialogue" and not self.dialogue_content:
+            raise ValueError(
+                f"dialogue_content is REQUIRED when action_type='dialogue'. "
+                f"You must provide what the NPC actually says, not just the reason. "
+                f"Example: dialogue_content='The vault is in the basement.'"
+            )
 
 
 class NPCLLMClient:
@@ -269,7 +293,7 @@ class NPCLLMClient:
 - hide: Take cover, avoid attention
 - plead: Beg for mercy, express fear
 - comply: Follow instructions, cooperate
-- dialogue: Speak, answer questions, negotiate
+- **dialogue: Speak, answer questions, negotiate - REQUIRES dialogue_content field with ACTUAL WORDS SPOKEN**
 - assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
 - **attack: Attack players or others (if threatened, paranoid, or hostile)**
 - pass: Do nothing this turn (use when situation doesn't involve you)
@@ -279,11 +303,16 @@ class NPCLLMClient:
 2. Prisoners plead or comply when threatened
 3. Allies assist or provide dialogue
 4. **For assist/dialogue actions: ALWAYS use target IDs (tgt_xxxx) from the combatant list**
-5. Pass when nothing relevant is happening (opportunistic acting)
-5. Low health → prioritize fleeing/hiding
-6. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
-7. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
-8. If players seem hostile (armed, aggressive, threatening), you CAN attack first
+5. **CRITICAL: For dialogue actions, you MUST populate dialogue_content with what you actually say**
+   - ✅ CORRECT: dialogue_content="The vault is in the basement, past the security checkpoint."
+   - ❌ WRONG: Leaving dialogue_content empty or null
+   - Use first-person (what you say, not "the NPC says...")
+   - Keep it concise (5-500 characters)
+6. Pass when nothing relevant is happening (opportunistic acting)
+7. Low health → prioritize fleeing/hiding
+8. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
+9. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
+10. If players seem hostile (armed, aggressive, threatening), you CAN attack first
 
 **When to use "attack":**
 - You're paranoid and see armed threats (even if they haven't acted yet)

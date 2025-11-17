@@ -1,0 +1,73 @@
+version: 1.0.0
+module: player_action_perception
+description: "Phase 2: PERCEPTION action - Detecting hidden threats, awareness checks, sensing danger"
+always_load: false
+load_when: action_type_is_perception
+content: |-
+  # 👁️ PERCEPTION ACTION: Awareness & Detection
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+
+  You've chosen a **perception action**. Now let's define the mechanical details.
+
+  ## Perception Mechanics
+
+  **Process:**
+  1. Declare what you're trying to detect
+  2. Roll Perception + Awareness (or similar)
+  3. DM reveals hidden threats/details based on success
+
+  **Typical Difficulty:** DC 12-22 (varies by concealment, distance, conditions)
+
+  ## REQUIRED Fields
+
+  ```python
+  PerceptionAction(
+      intent: str,
+      description: str,               # 50-800 chars
+      attribute: "Perception",        # Almost always Perception
+      skill: str,                     # Awareness, Survival, Combat
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.PERCEPTION
+  )
+  ```
+
+  ## Common Perception Skills
+
+  - `Perception × Awareness` - General alertness, spotting hidden things
+  - `Perception × Combat` - Detecting ambushes, tactical awareness
+  - `Perception × Survival` - Tracking, natural dangers (if you have this)
+
+  ## Examples
+
+  **Detecting Ambush:**
+  ```python
+  PerceptionAction(
+      intent="Scan rooftops for snipers before crossing plaza",
+      description="I pause at the plaza edge, eyes scanning the surrounding rooftops and windows for glints of metal, movement, or anything out of place that might indicate hostile overwatch.",
+      attribute="Perception",
+      skill="Combat",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Professional snipers know how to hide, urban clutter provides concealment",
+      action_type=ActionType.PERCEPTION
+  )
+  ```
+
+  **Sensing Void Corruption:**
+  ```python
+  PerceptionAction(
+      intent="Detect void corruption sources in chamber",
+      description="I close my eyes and extend my senses, feeling for the characteristic cold prickle of void corruption - looking for concentrated sources or corrupted objects.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=15,
+      difficulty_justification="DC 15: Ambient void level 3 creates background noise, but strong sources should stand out",
+      action_type=ActionType.PERCEPTION
+  )
+  ```
+
+  ---
+
+  **Ready? Declare what you're trying to perceive!**
