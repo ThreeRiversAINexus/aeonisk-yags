@@ -612,6 +612,7 @@ class AIDMAgent(Agent):
         # Always load core modules
         modules.append('dm_core')
         modules.append('dm_structured_output')
+        modules.append('dm_attunement')  # Seed attunement mechanics
 
         # Always load dm_commands (contains NPC/enemy spawning, escalation triggers)
         # DM needs to know it CAN spawn NPCs and WHEN to escalate even if none present yet
