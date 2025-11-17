@@ -2639,6 +2639,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                     outcome_tiers_with_narratives = None
                     purchase_data = None
                     crafting_data = None
+                    attunement_data = None
                     if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                         if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                             # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -2658,6 +2659,9 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                             if hasattr(effects_data, 'crafting') and effects_data.crafting:
                                 # Convert Pydantic model to dict for JSON serialization
                                 crafting_data = effects_data.crafting.model_dump()
+                            if hasattr(effects_data, 'attunement') and effects_data.attunement:
+                                # Convert Pydantic model to dict for JSON serialization
+                                attunement_data = effects_data.attunement.model_dump()
 
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
@@ -2672,6 +2676,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                         inventory_changes=inventory_changes,  # Pass offering consumption tracking
                         purchase_data=purchase_data,  # Pass purchase transaction data
                         crafting_data=crafting_data,  # Pass crafting attempt data
+                        attunement_data=attunement_data,  # Pass attunement ritual data
                         # ML training fields (dataset guidelines compliance)
                         # character_data removed - redundant with character_state events
                         environment=environment,
@@ -4359,9 +4364,10 @@ The following actions ALREADY resolved (faster initiative):
                         'status_effects': effects_data.status_effects if hasattr(effects_data, 'status_effects') else [],
                         'inventory_changes': [],
                         'purchase': effects_data.purchase.model_dump() if effects_data.purchase else None,
-                        'crafting': effects_data.crafting.model_dump() if effects_data.crafting else None
+                        'crafting': effects_data.crafting.model_dump() if effects_data.crafting else None,
+                        'attunement': effects_data.attunement.model_dump() if effects_data.attunement else None
                     }
-                    logger.debug(f"Extracted effects from structured output: damage_count={len(damage_list) if damage_list else 0}, purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}")
+                    logger.debug(f"Extracted effects from structured output: damage_count={len(damage_list) if damage_list else 0}, purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}, attunement={effects_dict['attunement'] is not None}")
 
                 # Skill mismatch detection
                 declared_skill = action.get('skill')
@@ -6511,6 +6517,20 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             # The caller will handle extracting effects from the structured object
             # For now, we store it as a temp attribute so the caller can access it
             self._last_structured_resolution = structured_resolution
+
+            # CRITICAL VALIDATION: Attune actions MUST populate attunement field
+            if action:
+                logger.debug(f"Validating structured output for action_type={action.get('action_type')}")
+            if action and action.get('action_type') == 'attune':
+                logger.debug(f"Checking attunement field: effects={structured_resolution.effects is not None}, attunement={structured_resolution.effects.attunement if structured_resolution.effects else None}")
+                if not structured_resolution.effects or not structured_resolution.effects.attunement:
+                    raise ValueError(
+                        f"DM failed to populate effects.attunement for attune action! "
+                        f"LLM must follow instructions to populate AttunementEffect for action_type='attune'. "
+                        f"Action: {action.get('intent', 'unknown')}, target_energy: {action.get('target_energy', 'unknown')}"
+                    )
+                logger.debug(f"✓ Attunement field validated: {structured_resolution.effects.attunement.energy_type}, success={structured_resolution.effects.attunement.success}")
+
             return structured_resolution.narration
 
         # Fall back to legacy text generation

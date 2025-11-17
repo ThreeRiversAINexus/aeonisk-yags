@@ -316,6 +316,7 @@ class JSONLLogger:
         inventory_changes: List[Dict[str, Any]] = None,
         purchase_data: Dict[str, Any] = None,
         crafting_data: Dict[str, Any] = None,
+        attunement_data: Dict[str, Any] = None,
         # New ML training fields (dataset guidelines compliance)
         # character_data removed - redundant with character_state events (saves ~7,200 tokens/session)
         environment: str = None,
@@ -353,7 +354,8 @@ class JSONLLogger:
             "status_effects": ["Barrier fails; backlash ripples"],
             "inventory_changes": [{"item": "incense", "delta": -1}],
             "purchase": {"success": true, "vendor_name": "S4CU", "items_purchased": ["Med Kit"], "currency_spent": {"spark": 1}},
-            "crafting": {"offering_type": "blood_offering", "materials_used": ["blood_sample"], "success": true}
+            "crafting": {"offering_type": "blood_offering", "materials_used": ["blood_sample"], "success": true},
+            "attunement": {"success": true, "energy_type": "drip", "amount": 20, "seed_consumed": "raw", "altar_id": "alt_test_basic"}
           }
         }
         """
@@ -414,7 +416,8 @@ class JSONLLogger:
                 "status_effects": effects,  # Renamed from top-level effects for clarity
                 "inventory_changes": inventory_changes or [],  # New: track offering consumption, item pickups, etc.
                 "purchase": purchase_data,  # Purchase transaction details (vendor, items, currency)
-                "crafting": crafting_data  # Crafting attempt details (offering type, materials, success)
+                "crafting": crafting_data,  # Crafting attempt details (offering type, materials, success)
+                "attunement": attunement_data  # Attunement ritual details (energy type, amount, seed consumed, altar)
             }
         }
 
@@ -2711,8 +2714,8 @@ class MechanicsEngine:
 
         # Check Echo-Calibrator if specified
         if use_echo_calibrator:
-            # Check player has Echo-Calibrator in item_metadata
-            if not hasattr(character_state, 'item_metadata') or not character_state.item_metadata:
+            # First check if player has Echo-Calibrator in inventory (capitalized with hyphen)
+            if not hasattr(character_state, 'inventory') or not character_state.inventory:
                 return AttunementValidation(
                     is_valid=False,
                     failure_reason="No Echo-Calibrator available (not in inventory)",
@@ -2724,7 +2727,7 @@ class MechanicsEngine:
                     altar_bonus=validation.altar_bonus
                 )
 
-            if "echo_calibrator" not in character_state.item_metadata:
+            if character_state.inventory.get("Echo-Calibrator", 0) <= 0:
                 return AttunementValidation(
                     is_valid=False,
                     failure_reason="No Echo-Calibrator available (not in inventory)",
@@ -2736,8 +2739,15 @@ class MechanicsEngine:
                     altar_bonus=validation.altar_bonus
                 )
 
-            # Echo-Calibrator exists
+            # Echo-Calibrator exists in inventory
             validation.has_echo_calibrator = True
+
+            # Initialize item_metadata if needed (for usage tracking)
+            if not hasattr(character_state, 'item_metadata') or character_state.item_metadata is None:
+                character_state.item_metadata = {}
+            if "echo_calibrator" not in character_state.item_metadata:
+                character_state.item_metadata["echo_calibrator"] = {"usage_count": 0}
+
             calibrator_data = character_state.item_metadata["echo_calibrator"]
             usage_count = calibrator_data.get("usage_count", 0)
             validation.usage_count = usage_count
@@ -3095,44 +3105,47 @@ class MechanicsEngine:
 
         # Consume the seed (always happens, even on failure)
         if attunement_effect.seed_consumed:
-            if hasattr(character_state, 'inventory'):
-                current_raw_seeds = character_state.inventory.get('seed_raw', 0)
-                if current_raw_seeds > 0:
-                    character_state.inventory['seed_raw'] = current_raw_seeds - 1
-                    logger.info(f"Consumed 1 Raw Seed from {character_state.name} ({current_raw_seeds} → {current_raw_seeds - 1})")
-                else:
-                    logger.error(f"Failed to consume seed from {character_state.name} - no Raw Seeds in inventory!")
-                    return False
+            # Get energy purse directly from character state
+            if not hasattr(character_state, 'energy_purse') or not character_state.energy_purse:
+                logger.error(f"No energy purse found for {character_state.name}")
+                return False
+
+            energy_purse = character_state.energy_purse
+
+            # Use EnergyPurse.consume_seed() method
+            from .energy_economy import SeedType
+            seed = energy_purse.consume_seed(SeedType.RAW)
+            if seed:
+                logger.info(f"Consumed 1 Raw Seed from {character_state.name} (had {seed.cycles_remaining} cycles remaining, origin: {seed.origin})")
             else:
-                logger.warning(f"Character {character_state.name} has no inventory")
+                logger.error(f"Failed to consume seed from {character_state.name} - no Raw Seeds in energy purse!")
                 return False
 
         # Grant energy if successful
         if attunement_effect.success and attunement_effect.energy_gained > 0:
+            if not hasattr(character_state, 'energy_purse') or not character_state.energy_purse:
+                logger.error(f"No energy purse found for {character_state.name}")
+                return False
+
+            energy_purse = character_state.energy_purse
             energy_type = attunement_effect.energy_type
             amount = attunement_effect.energy_gained
 
-            if self.energy_economy:
-                success = self.energy_economy.add_currency(character_state.agent_id, energy_type, amount)
-                if success:
-                    logger.info(f"Granted {amount} {energy_type} to {character_state.name} from successful attunement")
-                else:
-                    logger.error(f"Failed to grant {amount} {energy_type} to {character_state.name}")
-                    return False
-            else:
-                logger.warning("No energy_economy available to grant currency")
-                return False
+            # Use EnergyPurse.add_currency() method
+            energy_purse.add_currency(energy_type, amount)
+            logger.info(f"Granted {amount} {energy_type} to {character_state.name} from successful attunement")
 
         # Handle Echo-Calibrator upkeep if paid
         if attunement_effect.upkeep_paid:
-            if self.energy_economy:
-                success = self.energy_economy.spend_currency(character_state.agent_id, "drip", 1)
+            if not hasattr(character_state, 'energy_purse') or not character_state.energy_purse:
+                logger.warning(f"No energy purse for upkeep deduction from {character_state.name}")
+            else:
+                energy_purse = character_state.energy_purse
+                success = energy_purse.spend_currency("drip", 1)
                 if success:
                     logger.info(f"Deducted 1 Drip upkeep from {character_state.name} for Echo-Calibrator 3rd use")
                 else:
                     logger.error(f"Failed to deduct Echo-Calibrator upkeep from {character_state.name}")
-            else:
-                logger.warning("No energy_economy available for upkeep deduction")
 
         # Log the outcome
         if attunement_effect.success:

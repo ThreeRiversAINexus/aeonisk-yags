@@ -614,7 +614,12 @@ class TestAttunementValidation:
         )
         character.energy_purse.add_seed(create_raw_seed("test", freshness="fresh"))
 
-        # Add Echo-Calibrator to inventory
+        # Add Echo-Calibrator to inventory (inventory key is "Echo-Calibrator", metadata key is "echo_calibrator")
+        if not hasattr(character, 'inventory') or character.inventory is None:
+            character.inventory = {}
+        character.inventory["Echo-Calibrator"] = 1
+
+        # Initialize metadata for usage tracking
         if not character.item_metadata:
             character.item_metadata = {}
         character.item_metadata["echo_calibrator"] = {"usage_count": 0}
@@ -677,6 +682,11 @@ class TestAttunementValidation:
         character.energy_purse.add_seed(create_raw_seed("test", freshness="fresh"))
         character.energy_purse.add_currency("drip", 5)
 
+        # Add Echo-Calibrator to inventory
+        if not hasattr(character, 'inventory') or character.inventory is None:
+            character.inventory = {}
+        character.inventory["Echo-Calibrator"] = 1
+
         # Echo-Calibrator on 2nd use (3rd use will trigger upkeep)
         character.item_metadata = {"echo_calibrator": {"usage_count": 2}}
 
@@ -711,6 +721,11 @@ class TestAttunementValidation:
 
         # Clear Drip currency (character auto-generates some in __post_init__)
         character.energy_purse.drip = 0
+
+        # Add Echo-Calibrator to inventory
+        if not hasattr(character, 'inventory') or character.inventory is None:
+            character.inventory = {}
+        character.inventory["Echo-Calibrator"] = 1
 
         # Echo-Calibrator on 2nd use (3rd use needs upkeep)
         character.item_metadata = {"echo_calibrator": {"usage_count": 2}}

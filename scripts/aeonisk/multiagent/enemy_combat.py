@@ -1029,22 +1029,23 @@ class EnemyCombatManager:
                     if hasattr(target, 'check_death_save'):
                         alive, status = target.check_death_save()
 
+                        target_name = target.name if hasattr(target, 'name') else str(target_id)
                         if not alive:
                             # Player died - mark as defeated
-                            result['narration'] += " - KILLED!"
-                            logger.warning(f"{target.name if hasattr(target, 'name') else target_id} KILLED by {enemy.name}")
+                            result['narration'] += f" - {target_name} KILLED!"
+                            logger.warning(f"{target_name} KILLED by {enemy.name}")
                             resolution_state.mark_defeated(target_id)
                             result['target_defeated'] = True
                         elif status == "unconscious":
                             # Player unconscious - mark as defeated (can't act)
-                            result['narration'] += " - UNCONSCIOUS!"
-                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} falls unconscious")
+                            result['narration'] += f" - {target_name} falls UNCONSCIOUS!"
+                            logger.info(f"{target_name} falls unconscious")
                             resolution_state.mark_defeated(target_id)
                             result['target_defeated'] = True
                         elif status == "conscious":
                             # Player critically wounded but still fighting - NOT defeated
-                            result['narration'] += " - CRITICALLY WOUNDED but still conscious!"
-                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} critically wounded but fighting on")
+                            result['narration'] += f" - {target_name} CRITICALLY WOUNDED but still conscious!"
+                            logger.info(f"{target_name} critically wounded but fighting on")
                             # DO NOT mark as defeated - they can still act!
                             result['target_defeated'] = False
                     else:

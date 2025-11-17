@@ -3258,8 +3258,26 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         
         with open(yaml_path, 'w') as f:
             yaml.dump(safe_data, f, default_flow_style=False)
-            
+
         print(f"Session data saved to {json_path}")
+
+        # Print session summary for easy copy-paste
+        print(f"\n{'='*60}")
+        print(f"Session ID: {self.session_id}")
+
+        # JSONL log path
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+            print(f"JSONL log:  {mechanics.jsonl_logger.log_file}")
+        else:
+            jsonl_path = output_dir / f"session_{self.session_id}.jsonl"
+            print(f"JSONL log:  {jsonl_path}")
+
+        # Agent logs path (if enabled)
+        if self.log_agents_separately:
+            print(f"Agent logs: agent_logs/{self.session_id}/")
+
+        print(f"{'='*60}\n")
         
     async def _shutdown_agents(self):
         """Shutdown all agents."""
@@ -3673,105 +3691,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             'executed': False
                         }
 
-        # PRE-VALIDATE AND EXECUTE ATTUNEMENT ACTIONS (before DM sees them)
-        # Similar to purchases/transfers - prevents phantom attunements where DM narrates success but mechanics fail
-        target_energy = action_payload.get('target_energy')
-        altar_id = action_payload.get('altar_id')
-        use_echo_calibrator = action_payload.get('use_echo_calibrator', False)
-
-        # Check if this is an attunement action
-        action_type = action_payload.get('action_type', '')
-        if action_type == 'attune' and not target_energy:
-            # CRITICAL ERROR: attune action without target_energy
-            logger.error(
-                f"❌ ATTUNE action from {agent_id} missing required target_energy field! "
-                f"Intent: {action_payload.get('intent')}. "
-                f"Attunement will NOT be executed - seed will not be consumed, no energy gained."
-            )
-            # Store error on action for DM to see
-            action_payload['attunement_validation'] = {
-                'is_valid': False,
-                'failure_reason': 'Missing required field: target_energy (must specify: breath, grain, drip, or spark)',
-                'executed': False
-            }
-
-        if target_energy:
-            # This is an attunement action - validate AND execute BEFORE DM narration
-            if self.shared_state and self.shared_state.mechanics_engine:
-                mechanics = self.shared_state.mechanics_engine
-                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
-
-                if player_agent:
-                    try:
-                        validation = mechanics.validate_attunement(
-                            character_state=player_agent.character_state,
-                            target_energy=target_energy,
-                            altar_id=altar_id,
-                            use_echo_calibrator=use_echo_calibrator
-                        )
-
-                        # Store validation result on the action for DM to see
-                        action_payload['attunement_validation'] = {
-                            'is_valid': validation.is_valid,
-                            'failure_reason': validation.failure_reason,
-                            'has_raw_seed': validation.has_raw_seed,
-                            'target_energy': validation.target_energy,
-                            'altar_exists': validation.altar_exists,
-                            'altar_bonus': validation.altar_bonus,
-                            'altar_id': validation.altar_id,
-                            'has_echo_calibrator': validation.has_echo_calibrator,
-                            'upkeep_required': validation.upkeep_required,
-                            'has_upkeep_currency': validation.has_upkeep_currency,
-                            'usage_count': validation.usage_count
-                        }
-
-                        if validation.is_valid:
-                            # EXECUTE ATTUNEMENT MECHANICALLY (before DM narrates)
-                            attunement_effect = mechanics.execute_attunement(
-                                character_state=player_agent.character_state,
-                                validation=validation,
-                                use_echo_calibrator=use_echo_calibrator
-                            )
-
-                            # Store attunement effect for DM to include in ActionResolution
-                            action_payload['attunement_effect'] = {
-                                'success': attunement_effect.success,
-                                'seed_consumed': attunement_effect.seed_consumed,
-                                'energy_type': attunement_effect.energy_type,
-                                'energy_gained': attunement_effect.energy_gained,
-                                'altar_id': attunement_effect.altar_id,
-                                'altar_bonus': attunement_effect.altar_bonus,
-                                'echo_calibrator_used': attunement_effect.echo_calibrator_used,
-                                'calibrator_check_success': attunement_effect.calibrator_check_success,
-                                'calibrator_void': attunement_effect.calibrator_void,
-                                'upkeep_paid': attunement_effect.upkeep_paid,
-                                'void_penalty': attunement_effect.void_penalty,
-                                'roll_total': attunement_effect.roll_total,
-                                'roll_margin': attunement_effect.roll_margin
-                            }
-
-                            # Apply void penalty if any
-                            if attunement_effect.void_penalty > 0:
-                                player_agent.character_state.void_score += attunement_effect.void_penalty
-                                logger.debug(f"Void added: +{attunement_effect.void_penalty} (attunement), new total: {player_agent.character_state.void_score}/10")
-
-                            conversion_rates = {"breath": 100, "grain": 50, "drip": 20, "spark": 5}
-                            expected = conversion_rates.get(target_energy, 0)
-                            logger.info(f"✓ ATTUNEMENT EXECUTED: {player_agent.character_state.name} converted 1 Raw Seed → {attunement_effect.energy_gained}/{expected} {target_energy} ({'success' if attunement_effect.success else 'failed'})")
-                            action_payload['attunement_validation']['executed'] = True
-                        else:
-                            logger.warning(f"Attunement pre-validation FAILED: {validation.failure_reason}")
-                            action_payload['attunement_validation']['executed'] = False
-
-                    except Exception as e:
-                        logger.error(f"Error pre-validating attunement for {agent_id}: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        action_payload['attunement_validation'] = {
-                            'is_valid': False,
-                            'failure_reason': f"Validation error: {str(e)}",
-                            'executed': False
-                        }
+        # NOTE: Attunement actions are NOT pre-executed like purchases/transfers
+        # Unlike deterministic transactions, attunements involve dice rolls and DM adjudication
+        # The DM rolls the ritual check, determines success/failure, and populates AttunementEffect
+        # The mechanics layer processes the DM's AttunementEffect during resolution phase
+        # This ensures seed consumption and energy grants happen AFTER DM adjudication, not before
 
         # Log the declaration
         if self.shared_state and self.shared_state.mechanics_engine:
