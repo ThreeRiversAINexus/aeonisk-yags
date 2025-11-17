@@ -964,16 +964,18 @@ class EnemyCombatManager:
         target_defence = 15  # Simplified
         hit = attack_total >= target_defence
 
+        target_name = target.name if hasattr(target, 'name') else str(target_id)
+
         result = {
             'enemy_id': enemy.agent_id,
             'character_name': enemy.name,
             'action': 'attack',
-            'target': target.name if hasattr(target, 'name') else str(target_id),
+            'target': target_name,
             'weapon': weapon.name,
             'range': range_name,
             'hit': hit,
             'attack_roll': attack_total,
-            'narration': f"{enemy.name} attacks {target.name if hasattr(target, 'name') else 'target'} with {weapon.name}"
+            'narration': f"{enemy.name} attacks {target_name} with {weapon.name}"
         }
 
         if hit:
@@ -986,13 +988,13 @@ class EnemyCombatManager:
             total_damage = int(base_damage * 0.85)
 
             result['damage'] = total_damage
-            result['narration'] += f" - HIT! {total_damage} damage"
 
             # Apply damage to target (if target has health tracking)
             if hasattr(target, 'health') and hasattr(target, 'soak'):
                 damage_dealt = max(0, total_damage - target.soak)
                 result['damage_dealt'] = damage_dealt
-                result['narration'] += f" ({damage_dealt} after soak)"
+                # Start building clearer narration: Attacker HIT Target with Weapon for X damage
+                result['narration'] = f"{enemy.name} HIT {target_name} with {weapon.name} for {total_damage} damage ({damage_dealt} after soak)"
 
                 # Track damage for round summary
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
@@ -1006,22 +1008,28 @@ class EnemyCombatManager:
                 if damage_dealt > 0:
                     if damage_type == "stun":
                         damage_result = apply_stun_damage(target, damage_dealt)
-                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns ({damage_result['old_stuns']} → {damage_result['new_stuns']}) - {damage_result['effect']['name']}")
+                        logger.info(f"{target_name} took {damage_result['stuns_dealt']} stuns ({damage_result['old_stuns']} → {damage_result['new_stuns']}) - {damage_result['effect']['name']}")
                         result['damage_type'] = 'stun'
                         result['stuns_dealt'] = damage_result['stuns_dealt']
+                        # Add stun info to narration
+                        result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns ({damage_result['effect']['name']})"
                     elif damage_type == "wound":
                         damage_result = apply_wound_damage(target, damage_dealt)
                         # Only log if actual wounds were dealt (not just HP damage)
                         if damage_result['wounds_dealt'] > 0:
-                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
+                            logger.info(f"{target_name} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
                         result['damage_type'] = 'wound'
                         result['wounds_dealt'] = damage_result['wounds_dealt']
+                        # Add wound info to narration
+                        result['narration'] += f" - {target_name} took {damage_result['wounds_dealt']} wounds ({damage_result['effect']['name']})"
                     elif damage_type == "mixed":
                         damage_result = apply_mixed_damage(target, damage_dealt)
-                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds (mixed)")
+                        logger.info(f"{target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds (mixed)")
                         result['damage_type'] = 'mixed'
                         result['stuns_dealt'] = damage_result['stuns_dealt']
                         result['wounds_dealt'] = damage_result['wounds_dealt']
+                        # Add mixed damage info to narration
+                        result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds ({damage_result['effect']['name']})"
 
                 # Mark target as defeated if killed or unconscious
                 if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
@@ -1029,22 +1037,21 @@ class EnemyCombatManager:
                     if hasattr(target, 'check_death_save'):
                         alive, status = target.check_death_save()
 
-                        target_name = target.name if hasattr(target, 'name') else str(target_id)
                         if not alive:
                             # Player died - mark as defeated
-                            result['narration'] += f" - {target_name} KILLED!"
+                            result['narration'] += f" - {target_name} KILLED"
                             logger.warning(f"{target_name} KILLED by {enemy.name}")
                             resolution_state.mark_defeated(target_id)
                             result['target_defeated'] = True
                         elif status == "unconscious":
                             # Player unconscious - mark as defeated (can't act)
-                            result['narration'] += f" - {target_name} falls UNCONSCIOUS!"
+                            result['narration'] += f" - {target_name} UNCONSCIOUS"
                             logger.info(f"{target_name} falls unconscious")
                             resolution_state.mark_defeated(target_id)
                             result['target_defeated'] = True
                         elif status == "conscious":
                             # Player critically wounded but still fighting - NOT defeated
-                            result['narration'] += f" - {target_name} CRITICALLY WOUNDED but still conscious!"
+                            result['narration'] += f" - {target_name} CRITICALLY WOUNDED (still conscious)"
                             logger.info(f"{target_name} critically wounded but fighting on")
                             # DO NOT mark as defeated - they can still act!
                             result['target_defeated'] = False
