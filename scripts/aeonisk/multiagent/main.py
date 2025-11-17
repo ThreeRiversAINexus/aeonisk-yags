@@ -226,19 +226,21 @@ def main():
 
     def handle_interrupt(signum, frame):
         """Handle Ctrl-C by printing session info before shutdown."""
-        print("\n\n=== Session interrupted by user ===")
+        print("\n\n=== Session interrupted by user ===", file=sys.stderr, flush=True)
         session = session_holder.get('session')
         if session and hasattr(session, 'session_id') and session.session_id:
             try:
                 output_dir = session.config.get('output_dir', './output')
                 jsonl_path = f"{output_dir}/session_{session.session_id}.jsonl"
-                print(f"\nSession ID: {session.session_id}")
-                print(f"JSONL log: {jsonl_path}")
+                print(f"\nSession ID: {session.session_id}", file=sys.stderr, flush=True)
+                print(f"JSONL log: {jsonl_path}", file=sys.stderr, flush=True)
                 if session_holder['log_agents_separately']:
-                    print(f"Agent logs: agent_logs/{session.session_id}/")
-                print()
-            except:
-                pass
+                    print(f"Agent logs: agent_logs/{session.session_id}/", file=sys.stderr, flush=True)
+                print("", file=sys.stderr, flush=True)
+            except Exception as e:
+                print(f"Error getting session info: {e}", file=sys.stderr, flush=True)
+        else:
+            print("(Session not yet initialized)", file=sys.stderr, flush=True)
         # Restore default handler and re-raise to trigger normal shutdown
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         raise KeyboardInterrupt()
