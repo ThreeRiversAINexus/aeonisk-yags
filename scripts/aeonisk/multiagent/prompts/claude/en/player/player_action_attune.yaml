@@ -73,6 +73,9 @@ content: |-
   {seeds_display}
   {altar_availability}
 
+  **IMPORTANT: If using an altar, specify the EXACT altar_id from the environment context above!**
+  Do NOT use example IDs like "alt_marketplace_01" - use the actual IDs shown in the scenario.
+
   **Void Warning:** {void_warning}
   - Void risk: Attunement rituals have LOW void risk (clean process)
   - No offerings needed for attunement (not a traditional ritual)
@@ -82,7 +85,7 @@ content: |-
   **Example 1: Using Basic Altar**
   ```python
   AttuneAction(
-      intent="Attune Raw Seed to Drip at marketplace altar",
+      intent="Attune Raw Seed to Drip at basic altar",
       description="I place the Raw Seed on the altar's resonance plate and focus my willpower, channeling drip energy through the crystalline matrix. The altar hums softly as energy flows into the seed structure.",
       attribute="Willpower",
       skill="Attunement",
@@ -90,7 +93,7 @@ content: |-
       difficulty_justification="DC 20 base reduced to 19 with basic altar bonus",
       action_type=ActionType.ATTUNE,
       target_energy="drip",
-      altar_id="alt_marketplace_01",
+      altar_id="<ACTUAL_ALTAR_ID_FROM_SCENARIO>",  # Replace with real altar_id!
       use_echo_calibrator=False
   )
   ```
