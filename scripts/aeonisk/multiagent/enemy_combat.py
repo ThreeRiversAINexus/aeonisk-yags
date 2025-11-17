@@ -1028,8 +1028,10 @@ class EnemyCombatManager:
                         result['damage_type'] = 'mixed'
                         result['stuns_dealt'] = damage_result['stuns_dealt']
                         result['wounds_dealt'] = damage_result['wounds_dealt']
-                        # Add mixed damage info to narration
-                        result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds ({damage_result['effect']['name']})"
+                        # Add mixed damage info to narration (mixed has separate stun_effect and wound_effect)
+                        stun_status = damage_result['stun_effect']['name']
+                        wound_status = damage_result['wound_effect']['name']
+                        result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds ({stun_status}/{wound_status})"
 
                 # Mark target as defeated if killed or unconscious
                 if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
