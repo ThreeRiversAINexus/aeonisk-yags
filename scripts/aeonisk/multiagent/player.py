@@ -1462,22 +1462,16 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             # Build declared actions context (what allies/enemies have declared THIS round)
             declared_actions_text = ""
             if self.declared_actions_this_round:
-                # Filter to only show agents who declared before this player (lower initiative = declared first)
-                current_init = getattr(self, 'current_initiative', 0)
-                filtered_declarations = {
-                    char_name: action_data
-                    for char_name, action_data in self.declared_actions_this_round.items()
-                    if action_data[-1] < current_init  # initiative is always last element
-                }
+                # Show ALL declarations from this round (don't filter by initiative)
+                # Sort by initiative (highest first, matching declaration order)
+                sorted_declarations = sorted(
+                    self.declared_actions_this_round.items(),
+                    key=lambda x: x[1][-1],  # initiative is always last element
+                    reverse=True  # Highest initiative (fastest actors) first
+                )
 
-                if filtered_declarations:
-                    # Sort by initiative (slowest first, matching declaration order)
-                    sorted_declarations = sorted(
-                        filtered_declarations.items(),
-                        key=lambda x: x[1][-1]  # initiative is always last element
-                    )
-
-                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (you see what slower combatants declared before you):**\n"
+                if sorted_declarations:
+                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (Initiative Order):**\n"
                     for char_name, action_data in sorted_declarations:
                         # Current format: (description, action_intent, target, weapon, reasoning, initiative)
                         if len(action_data) == 6:
@@ -1719,22 +1713,16 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             # Build declared actions context (what allies/enemies have declared THIS round)
             declared_actions_text = ""
             if self.declared_actions_this_round:
-                # Filter to only show agents who declared before this player (lower initiative = declared first)
-                current_init = getattr(self, 'current_initiative', 0)
-                filtered_declarations = {
-                    char_name: action_data
-                    for char_name, action_data in self.declared_actions_this_round.items()
-                    if action_data[-1] < current_init  # initiative is always last element
-                }
+                # Show ALL declarations from this round (don't filter by initiative)
+                # Sort by initiative (highest first, matching declaration order)
+                sorted_declarations = sorted(
+                    self.declared_actions_this_round.items(),
+                    key=lambda x: x[1][-1],  # initiative is always last element
+                    reverse=True  # Highest initiative (fastest actors) first
+                )
 
-                if filtered_declarations:
-                    # Sort by initiative (slowest first, matching declaration order)
-                    sorted_declarations = sorted(
-                        filtered_declarations.items(),
-                        key=lambda x: x[1][-1]  # initiative is always last element
-                    )
-
-                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (you see what slower combatants declared before you):**\n"
+                if sorted_declarations:
+                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (Initiative Order):**\n"
                     for char_name, action_data in sorted_declarations:
                         # Current format: (description, action_intent, target, weapon, reasoning, initiative)
                         if len(action_data) == 6:
