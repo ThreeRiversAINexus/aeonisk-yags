@@ -3700,18 +3700,29 @@ story_advancement=StoryAdvancement(
 - Your job is to WEAVE these resolutions together, not re-narrate them from scratch
 - If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
 
-**What to include for richness (aim for 1200+ chars):**
-- **Quoted dialogue** from key character interactions, negotiations, pleas
-- **Sensory details** - sounds, sights, atmosphere, tension
-- **Timing & Initiative flow** - Actions resolved fastest → slowest, show the sequence
-- **Interactions** - How did each person's success/failure affect the others?
-- **Conflicts** - If multiple people tried similar things, who got there first? What did slower actors encounter?
-- **Cause and effect** - How did earlier successes/failures change the situation?
-- **Overall outcome** - What's the new situation now that dust has settled?
-- **Emotional beats** - Character reactions, desperation if failing, relief if succeeding
-- **IMPORTANT**: If objectives (clocks) are not advancing despite actions, acknowledge this! Show the pressure of marginal success or outright failure.
+**Storytelling Elements - Make it NARRATIVE, not just reportage:**
 
-Be vivid, cinematic, and VERBOSE. Show how these actions interacted and created a dynamic scene. Describe the final state after all actions resolved. Shorter narrations feel rushed - aim for rich, detailed storytelling.
+**SHOW, Don't Tell:**
+- ✅ "Her hands shake as the calibrator stutters, void-light flickering"
+- ❌ "She attempts to calibrate the device"
+- ✅ "'Back off or bleed,' he growls, hand on the grip"
+- ❌ "He threatens them"
+- ✅ "The broker's smile fractures, ink signatures suddenly worthless"
+- ❌ "The negotiation succeeds"
+
+**Include for richness (1200+ chars):**
+- **Quoted dialogue** - Actual words spoken during confrontations, pleas, negotiations
+- **Character body language** - Trembling hands, locked jaws, exhaled relief, predatory smiles
+- **Sensory atmosphere** - Ozone smell, humming machinery, crackling energy, whispered deals
+- **Consequences unfolding** - Show immediate results (signatures blink, crowds part, alarms trip)
+- **Timing & rhythm** - Fastest actor moves first, creates conditions for next, cascading effects
+- **Emotional arcs** - Desperation → relief, confidence → shock, tension → resolution
+- **Stakes manifest** - If clocks don't advance, show frustration/fear; if they fill, show consequences happening
+- **Scene-ending snapshot** - Final tableau showing new status quo after dust settles
+
+**Narrative voice:** Write like a novel, not a combat log. Use metaphor, imagery, active verbs. Make readers *feel* the scene.
+
+Be vivid, cinematic, and VERBOSE. Shorter narrations feel rushed - aim for rich, detailed storytelling that immerses readers.
 
 If the team is failing their objectives (clocks not advancing or bad clocks filling), your narration should reflect the growing desperation, consequences, and danger.
 
@@ -4122,25 +4133,45 @@ Read the action intent to understand WHY this transfer is happening:
                 if action.get('dialogue_content'):
                     dialogue_info = f"\n\n**NPC's Actual Words:** \"{action['dialogue_content']}\"\n\n⚠️ IMPORTANT: Include this dialogue in your narration. You may quote it verbatim, paraphrase it naturally, or weave it into the description."
 
-                npc_prompt = f"""Generate vivid narration for this NPC action (200-500 characters):
+                npc_prompt = f"""Generate vivid, dialogue-rich narration for this NPC action (400-800 characters):
 
-NPC: {character_name}
-Action Type: {npc_action_type}
-Intent: {intent}
-Target: {target if target else 'None'}{dialogue_info}
+**NPC:** {character_name}
+**Action Type:** {npc_action_type}
+**Intent:** {intent}
+**Target:** {target if target else 'None'}{dialogue_info}
 
-Describe what the NPC does in atmospheric detail. Focus on their behavior, body language, and immediate effects.
-For dialogue/plead actions, incorporate what the NPC actually says into your narration.
+**IMPORTANT - Make it NARRATIVE with dialogue and movement:**
 
-Return ONLY the narration text, nothing else."""
+For **dialogue/plead/negotiate actions**, include:
+- The NPC's actual spoken words (quoted dialogue) - expand on what they say
+- Their tone of voice, delivery, emphasis
+- Body language while speaking (gestures, posture, facial expressions)
+- How others react to their words (visual cues, responses)
+
+For **other actions** (flee, hide, assist, attack):
+- Physical movements in detail (how they move, where they go, what they touch)
+- Emotional state visible in their actions (panic, determination, calculation)
+- Immediate consequences of their action
+
+**Examples:**
+
+❌ TOO BRIEF: "He threatens them."
+
+✅ GOOD: "He rises from his seat, cuff links catching the light as he folds his hands deliberately. 'My client will bid fifty thousand—no higher,' he announces, voice smooth as silk but edged with finality. A ripple of held breath and hurried pen scratches marks the room's small surrender."
+
+❌ TOO BRIEF: "She flees in panic."
+
+✅ GOOD: "Her breath comes in ragged gasps as she stumbles backward, hands fumbling for the door panel. 'No—no, I didn't sign up for this!' The words tear out half-sob, half-scream. She spins, robes tangling around her ankles, and bolts for the nearest exit arch."
+
+**Write 400-800 characters.** Be cinematic, include dialogue for social actions, show body language and reactions."""
 
                 try:
                     # Call LLM for simple text narration (not structured output - faster and smaller)
                     from pydantic import BaseModel, Field
 
                     class SimpleNarration(BaseModel):
-                        """Simple narration text for NPC actions."""
-                        text: str = Field(..., min_length=200, max_length=800, description="Atmospheric narration of NPC action (include dialogue for dialogue/plead actions)")
+                        """Narrative text for NPC actions with dialogue and movement."""
+                        text: str = Field(..., min_length=400, max_length=1000, description="Cinematic narration of NPC action with quoted dialogue, body language, and consequences (400-1000 chars)")
 
                     # Token tracking now handled internally
                     npc_narration_response = await self.llm_provider.generate_structured(
@@ -4197,9 +4228,14 @@ Return ONLY the narration text, nothing else."""
 
                 except Exception as e:
                     logger.warning(f"NPC LLM narration failed: {e}, using fallback")
-                    narration = f"{character_name} {description}. The NPC action completes successfully."
-                    if len(narration) < 200:
-                        narration = narration + " " * (200 - len(narration))
+                    # Create more substantial fallback narration
+                    base_narration = f"{character_name} {description}. The NPC's action completes, their presence shifting the dynamics of the scene."
+                    if action.get('dialogue_content'):
+                        base_narration = f"{character_name} speaks: \"{action['dialogue_content']}\" Their words hang in the air as the scene unfolds around them."
+                    # Pad to minimum 400 chars
+                    if len(base_narration) < 400:
+                        base_narration = base_narration + " The moment passes, leaving ripples in its wake." + " " * (400 - len(base_narration) - 45)
+                    narration = base_narration
                     npc_resolution = ActionResolution(
                         narration=narration,
                         success_tier=SuccessTier.MODERATE,
