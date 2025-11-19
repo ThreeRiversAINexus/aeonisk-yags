@@ -1,0 +1,184 @@
+@startuml Session Flow
+title Multi-Agent Session Flow (Single Round)
+
+participant "run_multiagent_session.py" as Entry
+participant SessionCoordinator as Coord
+participant SharedState as State
+participant MechanicsEngine as Mech
+participant DMAgent as DM
+participant PlayerAgent as Player
+participant EnemyAgent as Enemy
+participant NPCAgent as NPC
+participant JSONLLogger as Logger
+
+== Session Initialization ==
+
+Entry -> Coord: create(config)
+Coord -> State: initialize()
+Coord -> Mech: initialize(state)
+Coord -> Logger: initialize(session_id)
+Coord -> DM: create(llm_config)
+loop for each player in config
+    Coord -> Player: create(character, llm_config)
+end
+
+Coord -> Logger: log_session_start(config)
+
+== Scenario Generation (Round 0) ==
+
+Coord -> DM: generate_scenario(config)
+DM -> DM: load_scenario_prompt()
+DM -> DM: call_llm(scenario_prompt)
+DM --> Coord: Scenario(description, void_level, enemies)
+
+Coord -> State: update_void_level(scenario.void_level)
+
+alt if scenario has initial enemies
+    loop for each enemy template
+        Coord -> Mech: spawn_enemy(template)
+        Mech -> State: add_enemy(enemy)
+        Coord -> Logger: log_enemy_spawn(enemy)
+        Coord -> Enemy: create(enemy_data)
+    end
+end
+
+alt if config has starting_clocks
+    loop for each clock
+        Coord -> State: add_clock(clock)
+    end
+end
+
+Coord -> Logger: log_scenario(scenario)
+
+== Main Round Loop ==
+
+loop while not session_end
+
+    note over Coord: === DM Turn ===
+
+    Coord -> DM: synthesize_round(state)
+    DM -> State: get_character_states()
+    DM -> State: get_scene_clocks()
+    DM -> State: get_combat_state()
+    DM -> DM: call_llm(synthesis_prompt)
+    DM --> Coord: RoundSynthesis
+
+    Coord -> Coord: process_round_synthesis(synthesis)
+
+    alt if synthesis has npc_spawns
+        loop for each npc_spawn
+            Coord -> NPC: create_npc(spawn_data)
+            Coord -> State: add_npc(npc)
+        end
+    end
+
+    alt if synthesis has deescalations
+        loop for each deescalation
+            Coord -> Coord: deescalate_enemy_to_npc(enemy)
+            Coord -> State: remove_enemy(enemy)
+            Coord -> State: add_npc(npc)
+        end
+    end
+
+    alt if synthesis has escalations
+        loop for each escalation
+            Coord -> Coord: escalate_npc_to_enemy(npc)
+            Coord -> State: remove_npc(npc)
+            Coord -> State: add_enemy(enemy)
+        end
+    end
+
+    Coord -> Logger: log_round_synthesis(synthesis)
+
+    note over Coord: === Player Turns ===
+
+    loop for each player
+        Coord -> Player: declare_action(state)
+        Player -> State: get_character_state(player_id)
+        Player -> State: get_available_targets()
+        Player -> Player: call_llm(action_prompt)
+        Player --> Coord: PlayerAction
+
+        Coord -> DM: resolve_action(action, state)
+        DM -> State: get_context()
+        DM -> DM: call_llm(resolution_prompt)
+        DM --> Coord: ActionResolution
+
+        Coord -> Mech: process_action_effects(resolution)
+        Mech -> State: apply_damage(effects)
+        Mech -> State: apply_void_changes(effects)
+        Mech -> State: update_clocks(effects)
+        Mech -> Logger: log_action_declaration(action)
+        Mech -> Logger: log_action_resolution(resolution)
+
+        alt if character defeated
+            Coord -> State: mark_defeated(character)
+            Coord -> Logger: log_character_state(character)
+        end
+    end
+
+    note over Coord: === Enemy Turns ===
+
+    loop for each active enemy
+        Coord -> Enemy: declare_action(state)
+        Enemy -> State: get_character_state(enemy_id)
+        Enemy -> State: get_available_targets()
+        Enemy -> Enemy: call_llm(tactical_prompt)
+        Enemy --> Coord: EnemyAction
+
+        Coord -> DM: resolve_action(action, state)
+        DM --> Coord: ActionResolution
+
+        Coord -> Mech: process_action_effects(resolution)
+        Mech -> State: apply_effects()
+        Mech -> Logger: log_combat_action(action, resolution)
+
+        alt if enemy defeated in counterattack
+            Coord -> State: mark_defeated(enemy)
+            Coord -> Logger: log_enemy_defeat(enemy)
+        end
+    end
+
+    note over Coord: === NPC Turns ===
+
+    loop for each active NPC
+        Coord -> NPC: declare_action(state)
+        NPC -> State: get_character_state(npc_id)
+        NPC -> NPC: call_llm(npc_prompt)
+        NPC --> Coord: NPCAction
+
+        alt if action is not "pass"
+            Coord -> DM: resolve_action(action, state)
+            DM --> Coord: ActionResolution
+            Coord -> Mech: process_action_effects(resolution)
+        end
+
+        Mech -> Logger: log_action_declaration(action)
+    end
+
+    note over Coord: === Round End ===
+
+    Coord -> DM: summarize_round(state)
+    DM -> DM: call_llm(summary_prompt)
+    DM --> Coord: RoundSummary
+
+    Coord -> Logger: log_round_summary(summary)
+
+    alt if victory or defeat or max_turns
+        Coord -> Coord: end_session = true
+    end
+
+    Coord -> Coord: round += 1
+end
+
+== Session End ==
+
+Coord -> DM: generate_mission_debrief(state)
+DM --> Coord: MissionDebrief
+
+Coord -> Logger: log_mission_debrief(debrief)
+Coord -> Logger: close()
+
+Entry -> Entry: display_session_paths()
+
+@enduml

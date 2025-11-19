@@ -944,12 +944,17 @@ class SelfPlayingSession:
                 declaration_event = asyncio.Event()
                 self._pending_declarations[agent.agent_id] = declaration_event
 
+                # Get current round from mechanics engine
+                current_round = 0
+                if self.shared_state and self.shared_state.mechanics_engine:
+                    current_round = getattr(self.shared_state.mechanics_engine, 'current_round', 0)
+
                 turn_message = Message(
                     id=f"turn_{datetime.now().isoformat()}_{agent.agent_id}",
                     type=MessageType.TURN_REQUEST,
                     sender='coordinator',
                     recipient=agent.agent_id,
-                    payload={'phase': 'declaration', 'initiative': initiative_score},
+                    payload={'phase': 'declaration', 'initiative': initiative_score, 'round': current_round},
                     timestamp=datetime.now()
                 )
 
@@ -972,7 +977,8 @@ class SelfPlayingSession:
                         dm_agent.llm_config,
                         jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                         agent_id=agent.agent_id,
-                        session_id=self.session_id
+                        session_id=self.session_id,
+                        agent_prompt_logger=self.agent_prompt_logger
                     )
 
                     logger.debug(f"Calling declare_single_enemy for {agent.name}")

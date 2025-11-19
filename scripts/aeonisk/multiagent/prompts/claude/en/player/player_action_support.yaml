@@ -15,6 +15,7 @@ content: |-
 
   **Process:**
   1. Identify target ally
+     ⚠️ **CRITICAL:** Only target allies actually present in the scene. Do NOT target characters mentioned only in narrative.
   2. Choose support type (heal, buff, tactical assist)
   3. Roll check (varies by support type)
   4. DM determines healing/buff effect

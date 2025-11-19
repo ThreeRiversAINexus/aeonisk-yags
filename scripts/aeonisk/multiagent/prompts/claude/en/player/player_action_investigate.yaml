@@ -73,6 +73,24 @@ content: |-
   )
   ```
 
+  **Example 3: Hybrid Action with Synergy Bonus**
+  ```python
+  InvestigateAction(
+      intent="Examine void-corrupted artifact using occult knowledge",
+      description="I analyze the artifact's void-corrupted glyphs and energy patterns. My understanding of void theory helps me recognize dangerous resonance signatures that pure technical analysis might miss.",
+      attribute="Perception",
+      skill="Awareness",  # PRIMARY skill
+      difficulty_estimate=17,
+      difficulty_justification="DC 17: Complex void patterns, requires occult interpretation",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_artifact",
+      situational_modifiers={"synergy_magick_theory": 2}  # +2 synergy from Magick Theory assisting Awareness
+  )
+  ```
+
+  💡 **Hybrid Actions:** When a secondary skill logically assists your primary skill, use `situational_modifiers`
+  to add a +2 synergy bonus. Example: Using Magick Theory knowledge to enhance Awareness checks on void artifacts.
+
   ---
 
   **Ready? Declare your investigation!**

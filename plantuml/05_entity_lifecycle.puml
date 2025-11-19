@@ -1,0 +1,119 @@
+@startuml Entity Lifecycle
+title Entity Lifecycle & NPC Conversion System
+
+state "Non-Existent" as None
+
+state "Enemy Agent" as Enemy {
+    state "Spawned" as ESpawn
+    state "Active" as EActive
+    state "Defeated" as EDefeat
+    state "Surrendered" as ESurr
+
+    ESpawn --> EActive : combat begins
+    EActive --> EDefeat : HP ≤ 0
+    EActive --> ESurr : morale break
+    EActive --> EActive : takes turns
+}
+
+state "NPC Agent" as NPC {
+    state "Spawned" as NSpawn
+    state "Active" as NActive
+    state "Prisoner" as NPrisoner
+    state "Ally" as NAlly
+    state "Hostile" as NHostile
+
+    NSpawn --> NActive : introduced
+    NActive --> NPrisoner : subdued
+    NActive --> NAlly : befriended
+    NActive --> NHostile : betrayal
+    NActive --> NActive : takes turns (opportunistic)
+}
+
+' Creation paths
+None --> Enemy : DM spawns via\nRoundSynthesis.enemy_spawns
+None --> NPC : DM spawns via\nRoundSynthesis.npc_spawns
+
+' Conversion paths (CRITICAL: agent_id preserved!)
+Enemy --> NPC : deescalate_enemy_to_npc()\nvia Deescalation schema
+NPC --> Enemy : escalate_npc_to_enemy()\nvia Escalation schema
+
+' Specific conversion triggers
+EActive --> NPrisoner : subdue_enemy_to_prisoner()\n(non-lethal defeat)
+ESurr --> NPrisoner : deescalation with\ndisposition="prisoner"
+EActive --> NAlly : deescalation with\ndisposition="ally"
+
+NHostile --> EActive : escalation with\ntemplate="desperate_fighter"
+NActive --> EActive : attacked by players
+
+note right of Enemy
+    Full combat capabilities:
+    - Tactical AI (personality-based)
+    - Attack/defend/tactical actions
+    - Target prioritization
+    - Morale tracking
+
+    LLM prompts: ~2000 tokens
+    Action set: attack, defend, tactical,
+                special abilities
+
+    agent_id: STABLE across conversions
+    Example: "ene_a1b2c3d4"
+end note
+
+note right of NPC
+    Limited capabilities:
+    - Simple LLM client (~500 tokens)
+    - No tactical AI
+    - No attack actions
+    - Opportunistic acting (pass when boring)
+
+    Action set: flee, hide, plead, comply,
+                dialogue, assist, pass
+
+    agent_id: STABLE across conversions
+    Example: "npc_a1b2c3d4" OR "ene_a1b2c3d4"
+              (preserves enemy ID if converted)
+end note
+
+note bottom of None
+    Conversion mechanics:
+    - agent_id NEVER changes
+    - Health/void/wounds preserved
+    - Disposition tracked (prisoner/ally/hostile)
+    - NO keyword detection - all via Pydantic schemas
+end note
+
+state "Conversion Process" as Conv {
+    state "DM declares in RoundSynthesis" as DMDeclare
+    state "Coordinator processes" as CoordProc
+    state "State updated" as StateUpd
+
+    DMDeclare --> CoordProc : deescalations/escalations/npc_spawns
+    CoordProc --> StateUpd : agent_conversion.py functions
+}
+
+Enemy ..> Conv : triggers
+NPC ..> Conv : triggers
+
+note left of Conv
+    Conversion schemas:
+
+    NPCSpawn:
+    - agent_id (new)
+    - name, description
+    - disposition
+
+    Deescalation:
+    - agent_id (existing enemy)
+    - reason
+    - disposition
+    - outcome_description
+
+    Escalation:
+    - agent_id (existing NPC)
+    - reason
+    - enemy_template
+    - outcome_description
+end note
+
+@enduml

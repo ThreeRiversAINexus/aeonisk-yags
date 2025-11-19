@@ -1,0 +1,194 @@
+@startuml LLM Provider Architecture
+title LLM Provider Architecture & Multi-Provider Support
+
+package "LLM Client Layer" {
+    abstract class "BaseLLMClient" {
+        +provider: str
+        +model: str
+        +temperature: float
+        +call_llm(prompt, schema)
+        #_build_messages()
+        #_parse_response()
+    }
+
+    class "DMLLMClient" {
+        +max_concurrent_requests: 3
+        +min_request_interval: 0.8s
+        +call_anthropic_with_retry()
+        +generate_scenario()
+        +synthesize_round()
+        +resolve_action()
+        +summarize_round()
+    }
+
+    class "PlayerLLMClient" {
+        +declare_action()
+        +analyze_intent()
+    }
+
+    class "EnemyLLMClient" {
+        +declare_action()
+        +tactical_analysis()
+    }
+
+    class "NPCLLMClient" {
+        +declare_action()
+        (simplified prompts)
+    }
+
+    BaseLLMClient <|-- DMLLMClient
+    BaseLLMClient <|-- PlayerLLMClient
+    BaseLLMClient <|-- EnemyLLMClient
+    BaseLLMClient <|-- NPCLLMClient
+}
+
+package "Provider Implementations" {
+    class "AnthropicProvider" {
+        +rate_limit: 75 req/min
+        +concurrent_requests: 3
+        +request_interval: 0.8s
+        +call(messages, schema)
+        +retry_on: [500, 529]
+        +exponential_backoff()
+    }
+
+    class "OpenAIProvider" {
+        +rate_limit: 400 req/min
+        +concurrent_requests: 10
+        +request_interval: 0.15s
+        +call(messages, schema)
+        +retry_on: [500, 503]
+    }
+
+    class "LocalProvider" {
+        +concurrent_requests: 1
+        +request_interval: 0s
+        +call(messages, schema)
+        (not implemented)
+    }
+
+    note right of AnthropicProvider
+        Models:
+        - claude-sonnet-4-5
+        - claude-3-5-haiku
+
+        Pricing (per 1M tokens):
+        - $3.00 input
+        - $15.00 output
+
+        Rate limits:
+        - 3 concurrent
+        - 0.8s interval
+        - Auto-retry 500/529
+    end note
+
+    note right of OpenAIProvider
+        Models:
+        - gpt-5-mini (recommended)
+        - gpt-4.1
+        - o-series
+
+        Pricing (per 1M tokens):
+        - $0.25 input
+        - $2.00 output
+
+        Rate limits:
+        - 10 concurrent
+        - 0.15s interval
+        - 8x cheaper output!
+    end note
+}
+
+package "Pydantic AI Framework" {
+    component [Agent] as PydAgent
+    component [RunContext] as RunCtx
+    component [ModelResponse] as ModelResp
+
+    note right of PydAgent
+        Provider-agnostic:
+        - Single schema definition
+        - Works with Anthropic/OpenAI
+        - Structured output validation
+    end note
+}
+
+package "Schema Definitions" {
+    class "Scenario" {
+        +description: str
+        +void_level: int
+        +enemies: List[Enemy]
+    }
+
+    class "PlayerAction" {
+        +agent_id: str
+        +action_type: str
+        +action_description: str
+        +target_id: Optional[str]
+    }
+
+    class "ActionResolution" {
+        +narration: str
+        +roll: Optional[RollResult]
+        +effects: ActionEffects
+        +void_changes: List[VoidChange]
+    }
+
+    class "RoundSynthesis" {
+        +summary: str
+        +npc_spawns: List[NPCSpawn]
+        +deescalations: List[Deescalation]
+        +escalations: List[Escalation]
+        +clock_updates: List[ClockUpdate]
+    }
+}
+
+' Client to Provider connections
+DMLLMClient ..> AnthropicProvider : uses
+DMLLMClient ..> OpenAIProvider : uses
+PlayerLLMClient ..> AnthropicProvider : uses
+PlayerLLMClient ..> OpenAIProvider : uses
+EnemyLLMClient ..> AnthropicProvider : uses
+EnemyLLMClient ..> OpenAIProvider : uses
+NPCLLMClient ..> AnthropicProvider : uses
+NPCLLMClient ..> OpenAIProvider : uses
+
+' Provider to Pydantic AI
+AnthropicProvider --> PydAgent : creates
+OpenAIProvider --> PydAgent : creates
+LocalProvider --> PydAgent : creates
+
+PydAgent --> RunCtx : executes
+PydAgent --> ModelResp : returns
+
+' Schema usage
+DMLLMClient ..> Scenario : generates
+DMLLMClient ..> ActionResolution : generates
+DMLLMClient ..> RoundSynthesis : generates
+PlayerLLMClient ..> PlayerAction : generates
+EnemyLLMClient ..> PlayerAction : generates
+NPCLLMClient ..> PlayerAction : generates
+
+note top of BaseLLMClient
+    Configuration from session_config.json:
+    {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    }
+
+    Environment variables:
+    - ANTHROPIC_API_KEY
+    - OPENAI_API_KEY
+end note
+
+note bottom of PydAgent
+    Provider switching is transparent:
+    1. Change config "provider" field
+    2. Set appropriate API key
+    3. Rate limits auto-adjust
+    4. Same Pydantic schemas work
+end note
+
+@enduml

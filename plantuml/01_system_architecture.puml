@@ -1,0 +1,136 @@
+@startuml System Architecture
+!define RECTANGLE class
+
+title Multi-Agent RPG System - High-Level Architecture
+
+package "Entry Point" {
+    [run_multiagent_session.py] as Entry
+}
+
+package "Core Orchestration" {
+    [SessionCoordinator] as Coordinator
+    [SharedState] as State
+    [TurnManager] as TurnMgr
+}
+
+package "Agent Layer" {
+    package "AI Agents" {
+        [DMAgent] as DM
+        [PlayerAgent] as Player
+        [EnemyAgent] as Enemy
+        [NPCAgent] as NPC
+    }
+
+    package "LLM Clients" {
+        [DMLLMClient] as DMLlm
+        [PlayerLLMClient] as PlayerLlm
+        [EnemyLLMClient] as EnemyLlm
+        [NPCLLMClient] as NPCLlm
+    }
+}
+
+package "LLM Provider Layer" {
+    [AnthropicProvider] as Anthropic
+    [OpenAIProvider] as OpenAI
+    [LocalProvider] as Local
+    note right of Local: Not implemented yet
+}
+
+package "Game Systems" {
+    [MechanicsEngine] as Mechanics
+    [TargetIDMapper] as Targeting
+    [AgentConversion] as Conversion
+    [SceneClocks] as Clocks
+}
+
+package "Data Layer" {
+    [JSONLLogger] as Logger
+    [PromptLoader] as Prompts
+    database "JSONL Files" as JSONL
+    database "YAML Prompts" as YAML
+}
+
+' Entry connections
+Entry --> Coordinator : creates
+
+' Coordinator connections
+Coordinator --> State : manages
+Coordinator --> TurnMgr : uses
+Coordinator --> Mechanics : initializes
+Coordinator --> Logger : uses
+Coordinator --> DM : orchestrates
+Coordinator --> Player : manages
+Coordinator --> Enemy : manages
+Coordinator --> NPC : manages
+
+' State connections
+State ..> Mechanics : provides via\nget_mechanics_engine()
+State --> Targeting : manages
+State --> Clocks : manages
+
+' Agent to LLM Client connections
+DM --> DMLlm : uses
+Player --> PlayerLlm : uses
+Enemy --> EnemyLlm : uses
+NPC --> NPCLlm : uses
+
+' LLM Client to Provider connections
+DMLlm --> Anthropic : calls
+DMLlm --> OpenAI : calls
+PlayerLlm --> Anthropic : calls
+PlayerLlm --> OpenAI : calls
+EnemyLlm --> Anthropic : calls
+EnemyLlm --> OpenAI : calls
+NPCLlm --> Anthropic : calls
+NPCLlm --> OpenAI : calls
+
+' Mechanics connections
+Mechanics --> Logger : logs to
+DM --> Mechanics : queries state
+Player --> Mechanics : queries state
+Enemy --> Mechanics : queries state
+
+' Conversion system
+Conversion --> Enemy : converts to/from
+Conversion --> NPC : converts to/from
+DM --> Conversion : triggers
+
+' Data layer connections
+Logger --> JSONL : writes
+Prompts --> YAML : reads
+DMLlm --> Prompts : loads
+PlayerLlm --> Prompts : loads
+EnemyLlm --> Prompts : loads
+NPCLlm --> Prompts : loads
+
+note right of Coordinator
+  Central orchestrator managing:
+  - Turn flow (DM → Players → Enemies → NPCs)
+  - Agent lifecycle
+  - State synchronization
+end note
+
+note right of State
+  Singleton state container:
+  - Character stats
+  - Combat state
+  - Scene clocks
+  - Environment (void_level)
+end note
+
+note right of Mechanics
+  Authoritative game engine:
+  - Damage/healing
+  - Void changes
+  - Roll calculations
+  - Status effects
+end note
+
+note right of Logger
+  ML training data:
+  - 10 event types
+  - Structured JSONL
+  - Replay fixtures
+end note
+
+@enduml

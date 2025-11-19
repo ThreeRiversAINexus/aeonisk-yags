@@ -24,12 +24,15 @@ content: |-
   **Goals:**
   {goals_text}
 
-  ## Current Situation
+  ## Current Scenario
+
+  **Location:** {location}
+  **Situation:** {situation}
+
+  ## Your Status
 
   **Round {current_round}** | **Health:** {health}/{max_health} ({health_status}) {wound_status} | **Void:** {void_score}/10 {void_warning} | **Position:** {position}
-
   {failure_loop_warning}
-
   {high_void_warning}
 
   **Inventory:**
@@ -42,10 +45,11 @@ content: |-
 
   **Recent Context:**
   {recent_events}
+  {recent_action_outcomes}
+  {declared_actions_this_round}
 
   **Entities Present:**
   {entities_present}
-
   {dialogue_goal_text}
 
   **Your Personality:**

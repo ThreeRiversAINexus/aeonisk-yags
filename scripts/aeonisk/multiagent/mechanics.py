@@ -3670,11 +3670,15 @@ class MechanicsEngine:
         else:
             return Difficulty.MODERATE.value  # Default
 
-    def format_resolution_for_narration(self, resolution: ActionResolution) -> str:
+    def format_resolution_for_narration(self, resolution: ActionResolution, modifiers: dict = None) -> str:
         """
         Format resolution for DM narration with full transparency.
 
         Codex Nexum guidance: Always emit Attribute × Skill, d20, total, DC, margin, tier.
+
+        Args:
+            resolution: ActionResolution object with roll details
+            modifiers: Optional dict of situational modifiers (e.g., {"high_ground": 2, "cover": -3})
         """
         # Defensive attribute access for old vs new ActionResolution schema
         skill = getattr(resolution, 'skill', None)
@@ -3702,11 +3706,21 @@ class MechanicsEngine:
         success = getattr(resolution, 'success', False)
         narrative = getattr(resolution, 'narrative', getattr(resolution, 'narration', ''))
 
+        # Format modifiers if present
+        modifiers_line = ""
+        if modifiers:
+            modifier_parts = []
+            net_modifier = 0
+            for name, value in modifiers.items():
+                modifier_parts.append(f"{name}: {value:+d}")
+                net_modifier += value
+            modifiers_line = f"Modifiers: [{', '.join(modifier_parts)}] → Net: {net_modifier:+d}\n"
+
         return f"""
 **{intent}**
 Roll: {skill_text}
 Calculation: {formula} = **{total}**
-DC: {difficulty} | Margin: {margin:+d} | Tier: **{outcome_tier_value.upper()}** {'✓' if success else '✗'}
+{modifiers_line}DC: {difficulty} | Margin: {margin:+d} | Tier: **{outcome_tier_value.upper()}** {'✓' if success else '✗'}
 {narrative}
 """.strip()
 

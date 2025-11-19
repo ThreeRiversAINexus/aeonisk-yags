@@ -2,12 +2,7 @@ version: 2.0.0
 module: dm_commands
 description: Session control markers (SPAWN_ENEMY, ADVANCE_STORY, etc)
 load_when: session_control_needed
-content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power to\
-  \ control scenario flow using special markers:\n\n**1. Session Ending:**\nUse when\
-  \ the scenario has reached a definitive conclusion (victory, defeat, or draw):\n\
-  - `[SESSION_END: VICTORY]` - Team achieved their objective\n- `[SESSION_END: DEFEAT]`\
-  \ - Team failed catastrophically or was captured/killed\n- `[SESSION_END: DRAW]`\
-  \ - Stalemate or escape with incomplete objectives\n\n**2. Spawn New Clocks:**\n\nClocks create dynamic pressure and drive scenario evolution. Spawn them liberally during synthesis!\n\n**When to spawn new clocks (use ScenePivot.new_clocks):**\n\
+content: "# Scenario Control (Advanced DM Tools)\n\nYou control scenario flow using structured output in RoundSynthesis.\n\n**1. Spawn New Clocks:**\n\nClocks create dynamic pressure and drive scenario evolution. Spawn them liberally during synthesis!\n\n**When to spawn new clocks (use ScenePivot.new_clocks):**\n\
 - ✅ Failed actions in hostile environments → \"Security Response\" (6 ticks)\n\
 - ✅ Successful loud actions → \"ACG Investigation\" (8 ticks)\n\
 - ✅ Filled clocks create cascading consequences → \"Alarm\" fills → \"Reinforcements\" spawns\n\
@@ -62,9 +57,8 @@ story_advancement=StoryAdvancement(\n\
     ]\n\
 )\n\
 ```\n\n\
-**Note:** All clock spawning uses Pydantic structured output (ScenePivot/StoryAdvancement schemas).\n\
-NO marker parsing ([NEW_CLOCK:...] is deprecated and removed as of Nov 2024).\n\n\
-**3. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
+**Note:** All clock spawning uses Pydantic structured output (ScenePivot/StoryAdvancement schemas).\n\n\
+**2. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
   \ use `StoryAdvancement` in RoundSynthesis\n\n**With Structured Output (`StoryAdvancement`\
   \ schema):**\nUse the `new_void_level` field to update environmental void when story\
   \ beats justify it.\n\n**When to REDUCE void_level:**\n- Purification clocks completed\
@@ -144,8 +138,7 @@ NO marker parsing ([NEW_CLOCK:...] is deprecated and removed as of Nov 2024).\n\
   \    effects=MechanicalEffects(\n        conditions=[\n            Condition(\n \
   \               target=\"tgt_c6jt\",\n                name=\"Surrendered\",\n   \
   \             penalty=-999,\n                description=\"Disarmed and compliant\"\
-  \n            )\n        ]\n    )\n)\n```\n**Problem:** Enemy agents don't check\
-  \ conditions before declaring actions. They'll keep attacking!\n\n**6. NPC Management:**\n\
+  \n            )\n        ]\n    )\n)\n```\n**Why this fails:** Enemy agents continue to act normally until converted via enemy_conversions.\n\n**6. NPC Management:**\n\
   \n**Enemy conversions handle de-escalation automatically. No separate deescalations\
   \ field needed.**\n\n**Dispositions:**\n- `\"prisoner\"`: Captured, restrained,\
   \ under guard\n- `\"wary\"`: Suspicious, will flee if threatened\n- `\"neutral\"\

@@ -58,7 +58,7 @@ conversion_check_prompt: |
   - ❌ DON'T ignore filled clocks in your decision-making
   - ❌ DON'T spawn contradictory threats (escape clock filled → DON'T spawn blockers)
 
-  ## Available Combatants
+  ## Available Characters
 
   **ACTIVE ENEMIES (use the agent_id shown below, NOT target IDs from resolutions):**
   {available_enemies}
@@ -418,7 +418,7 @@ conversion_check_prompt: |
   npc_spawns=[]
   reasoning="No conversions warranted. All enemies at viable HP."
   ```
-  **Problem:** Ignores context - failed actions in hostile zone SHOULD spawn responses!
+  **Why this fails:** Ignores context - failed actions in hostile zone SHOULD spawn responses!
 
   **Examples:**
   ```python

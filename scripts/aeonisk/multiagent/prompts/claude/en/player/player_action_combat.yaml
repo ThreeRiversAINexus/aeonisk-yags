@@ -16,7 +16,8 @@ content: |-
   ## Combat Mechanics
 
   **Process:**
-  1. Declare target (enemy combatant)
+  1. Declare target (any combatant - ally, enemy, or NPC)
+     ⚠️ **CRITICAL:** Only target characters from the {entities_present} list shown below. Do NOT target characters mentioned only in narrative.
   2. Choose weapon/ability and corresponding skill
   3. Roll to hit (Attribute + Skill + d20 vs DC)
   4. DM narrates outcome and determines damage
@@ -66,11 +67,16 @@ content: |-
 
   ## Current Context
 
+  **Location:** {location}
+  **Situation:** {situation}
+
   **Your Combat Stats:**
   - Primary combat attribute: {combat_attribute}
   - Combat skills: {combat_skills}
   - Current health: {health}/{max_health} ({health_status})
   - Position: {position}
+
+  {declared_actions_this_round}
 
   **Entities Present:**
   {entities_present}
@@ -141,6 +147,21 @@ content: |-
       action_type=ActionType.COMBAT,
       target="tgt_informant",
       situational_modifiers={"non-lethal": 0, "fleeing_target": -2}
+  )
+  ```
+
+  **Example 5: Targeting an NPC (Surrendered Combatant)**
+  ```python
+  CombatAction(
+      intent="Restrain the surrendered gang member attempting to escape",
+      description="I see the surrendered gang member reaching for a weapon. I quickly move in and strike their hand with my baton to disarm them, then pin them against the wall.",
+      attribute="Agility",
+      skill="Brawl",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: NPC is already wounded and off-balance, but desperate which makes them unpredictable",
+      action_type=ActionType.COMBAT,
+      target="tgt_prisoner_01",  # NPCs can be targeted just like enemies
+      situational_modifiers={"target_wounded": 2, "non-lethal": 0}
   )
   ```
 

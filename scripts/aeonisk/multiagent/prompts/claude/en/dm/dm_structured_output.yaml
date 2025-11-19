@@ -213,6 +213,10 @@ content: |-
      - **TIP:** Aim for 1000 chars to be safe - quality over quantity!
 
   2. **Narration = Creative Storytelling** (freeform, vivid, atmospheric)
+     - **For social/dialogue actions**: Include actual quoted dialogue! Show what characters say.
+     - **For negotiations/arguments**: Include back-and-forth exchanges, emotional responses.
+     - **For NPC interactions**: If NPC declared dialogue, incorporate their actual words (verbatim or paraphrased).
+
   3. **Effects = Structured Mechanics** (explicit fields, no guessing)
   4. **Always Populate Relevant Fields** (omitting fields triggers fallback parsing - bad for ML!)
   5. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)

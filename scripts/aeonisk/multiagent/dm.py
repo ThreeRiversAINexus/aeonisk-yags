@@ -2818,15 +2818,18 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
 
             logger.debug("DM: Attempting structured output for round synthesis")
 
-            system_prompt = "You are the DM for Aeonisk YAGS, synthesizing a round of actions."
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
             max_tokens = self.llm_config.get('max_tokens', 4000)  # Increased for RoundSynthesis with verbose LLMs
             temperature = self.llm_config.get('temperature', 0.8)
 
-            # Get current round for logging
+            # Get current round for logging and display
             current_round = None
             if self.shared_state and self.shared_state.mechanics_engine:
                 current_round = self.shared_state.mechanics_engine.current_round
+
+            # Include round number in system prompt to help DM track pacing
+            round_display = f" **Session Round {current_round}**" if current_round is not None else ""
+            system_prompt = f"You are the DM for Aeonisk YAGS, synthesizing a round of actions.{round_display}"
 
             # Generate structured synthesis using Pydantic AI
             # Token tracking now handled internally
@@ -4110,14 +4113,19 @@ Read the action intent to understand WHY this transfer is happening:
                 )
             else:
                 # All other NPC actions: Generate LLM narration
-                npc_prompt = f"""Generate vivid narration for this NPC action (200-400 characters):
+                dialogue_info = ""
+                if action.get('dialogue_content'):
+                    dialogue_info = f"\n\n**NPC's Actual Words:** \"{action['dialogue_content']}\"\n\n⚠️ IMPORTANT: Include this dialogue in your narration. You may quote it verbatim, paraphrase it naturally, or weave it into the description."
+
+                npc_prompt = f"""Generate vivid narration for this NPC action (200-500 characters):
 
 NPC: {character_name}
 Action Type: {npc_action_type}
 Intent: {intent}
-Target: {target if target else 'None'}
+Target: {target if target else 'None'}{dialogue_info}
 
 Describe what the NPC does in atmospheric detail. Focus on their behavior, body language, and immediate effects.
+For dialogue/plead actions, incorporate what the NPC actually says into your narration.
 
 Return ONLY the narration text, nothing else."""
 
@@ -4127,7 +4135,7 @@ Return ONLY the narration text, nothing else."""
 
                     class SimpleNarration(BaseModel):
                         """Simple narration text for NPC actions."""
-                        text: str = Field(..., min_length=200, max_length=500, description="Atmospheric narration of NPC action")
+                        text: str = Field(..., min_length=200, max_length=800, description="Atmospheric narration of NPC action (include dialogue for dialogue/plead actions)")
 
                     # Token tracking now handled internally
                     npc_narration_response = await self.llm_provider.generate_structured(
@@ -4260,6 +4268,10 @@ Return ONLY the narration text, nothing else."""
             if coordination_bonus > 0:
                 modifiers['coordination'] = coordination_bonus
 
+            # Include player's situational modifiers if present
+            if action.get('situational_modifiers'):
+                modifiers.update(action['situational_modifiers'])
+
             resolution = mechanics.resolve_action(
                 intent=intent,
                 attribute=attribute,
@@ -4271,8 +4283,8 @@ Return ONLY the narration text, nothing else."""
                 modifiers=modifiers if modifiers else None
             )
 
-            # Format mechanical resolution
-            mechanical_text = mechanics.format_resolution_for_narration(resolution)
+            # Format mechanical resolution (pass modifiers for display)
+            mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers if modifiers else None)
 
             # Build context from previous resolutions this round (for narrative consistency)
             if previous_resolutions:
@@ -5231,8 +5243,11 @@ The following actions ALREADY resolved (faster initiative):
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
 
+            # Get modifiers for display (if any)
+            display_modifiers = action.get('situational_modifiers', {}) if action.get('situational_modifiers') else None
+
             # Format mechanical resolution
-            mechanical_text = mechanics.format_resolution_for_narration(resolution)
+            mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=display_modifiers)
 
             # Generate narrative description using LLM
             llm_narration = await self._generate_llm_response(
@@ -6790,41 +6805,6 @@ When adjudicating:
                     clock_lines.append(f"  - {name}: {status}")
                 if clock_lines:
                     clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
-                    clock_context += "\n\n**EXPLICIT STATE MARKERS** - Mark state changes at the end of your narration:\n"
-                    clock_context += "\n📊 [Clock Name]: +X or -X (reason) - Advance/regress a scene clock"
-                    clock_context += "\n⚫ Void: +X (reason) - Character gains void corruption"
-                    clock_context += "\n⚖️ Soulcredit: +X or -X (reason) - Character's spiritual trust/morality changes"
-                    clock_context += "\n\nExamples:"
-                    clock_context += "\n  📊 Evidence Collection: +2 (found hidden documents)"
-                    clock_context += "\n  ⚫ Void: +1 (ritual backfire)"
-                    clock_context += "\n  ⚖️ Soulcredit: +0 (neutral combat action)"
-                    clock_context += "\n  ⚖️ Soulcredit: -2 (deceived officials)"
-                    clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
-                    clock_context += "\n**ALWAYS mark soulcredit for every action, even when +0 (neutral).**"
-                    clock_context += "\n\nSC Scoring Rules (consider CONTEXT and INTENT):"
-                    clock_context += "\n  • Combat CONTEXT matters:"
-                    clock_context += "\n    - Fighting justified enemies: ⚖️ Soulcredit: +0 (neutral combat)"
-                    clock_context += "\n    - Fighting own faction/allies: ⚖️ Soulcredit: -2 (betrayal)"
-                    clock_context += "\n    - Attacking innocents/excessive force: ⚖️ Soulcredit: -1 to -3 (unjust violence)"
-                    clock_context += "\n    - Protecting innocents in combat: ⚖️ Soulcredit: +1 (protective action)"
-                    clock_context += "\n  • Deception INTENT matters:"
-                    clock_context += "\n    - Lying for personal gain: ⚖️ Soulcredit: -1 to -2 (selfish deception)"
-                    clock_context += "\n    - Lying to protect innocents: ⚖️ Soulcredit: +0 or +1 (complex morality)"
-                    clock_context += "\n    - Fraud/identity theft: ⚖️ Soulcredit: -2 (serious deception)"
-                    clock_context += "\n  • Neutral actions: ⚖️ Soulcredit: +0"
-                    clock_context += "\n    - Exploration, investigation, normal purchases, following protocols"
-                    clock_context += "\n  • Success/failure doesn't determine SC - only moral choice matters"
-                    clock_context += "\n\nExamples (showing moral complexity):"
-                    clock_context += "\n  • Shooting hostile Tempest operatives: ⚖️ Soulcredit: +0 (justified combat)"
-                    clock_context += "\n  • Attacking own Pantheon allies: ⚖️ Soulcredit: -2 (betrayal of faction)"
-                    clock_context += "\n  • Lying to save innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)"
-                    clock_context += "\n  • Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)"
-                    clock_context += "\n  • Creating Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)"
-                    clock_context += "\n  • Fulfilling contracts honorably: ⚖️ Soulcredit: +1 (upheld agreement)"
-                    clock_context += "\n  • Protecting civilians in crossfire: ⚖️ Soulcredit: +1 (selfless protection)"
-                    clock_context += "\n  • Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)"
-                    clock_context += "\n  • Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust violence)"
-                    clock_context += "\n  • Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)"
 
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False

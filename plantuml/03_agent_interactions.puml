@@ -1,0 +1,134 @@
+@startuml Agent Interactions
+title Agent Interaction Patterns
+
+package "DM Agent" {
+    component [Scenario Generation] as ScenGen
+    component [Action Resolution] as ActRes
+    component [Round Synthesis] as RndSyn
+    component [Round Summary] as RndSum
+    component [Mission Debrief] as Debrief
+}
+
+package "Player Agent" {
+    component [Action Declaration] as PlayerAct
+    component [Intent Analysis] as Intent
+    component [Combat Actions] as PlayerCombat
+}
+
+package "Enemy Agent" {
+    component [Tactical Analysis] as EnemyTac
+    component [Target Selection] as EnemyTgt
+    component [Combat Actions] as EnemyCombat
+}
+
+package "NPC Agent" {
+    component [Simple Actions] as NPCAct
+    note right of NPCAct
+        Limited action set:
+        - flee, hide, plead
+        - comply, dialogue
+        - assist, pass
+        (NO attack/tactical)
+    end note
+}
+
+package "Shared State" {
+    database [Character States] as CharState
+    database [Combat State] as CombatState
+    database [Scene Clocks] as Clocks
+    database [Environment] as Env
+}
+
+package "Mechanics Engine" {
+    component [Damage Processing] as Damage
+    component [Void Processing] as Void
+    component [Roll Calculation] as Rolls
+    component [Effect Application] as Effects
+}
+
+' DM interactions
+ScenGen --> Env : sets void_level
+ScenGen --> CombatState : spawns enemies
+RndSyn --> CharState : reads all states
+RndSyn --> Clocks : reads/updates
+ActRes --> Damage : extracts from narration
+ActRes --> Void : extracts from narration
+ActRes --> Effects : declares effects
+
+' Player interactions
+PlayerAct --> CharState : reads own state
+PlayerAct --> CombatState : reads targets
+Intent ..> PlayerAct : informs
+PlayerCombat ..> PlayerAct : implements
+PlayerAct --> ActRes : sends action
+ActRes --> Damage : processes
+ActRes --> CharState : updates
+
+' Enemy interactions
+EnemyTac --> CombatState : analyzes threats
+EnemyTgt --> CharState : selects targets
+EnemyCombat --> ActRes : sends action
+ActRes --> Damage : processes
+ActRes --> CharState : updates
+
+' NPC interactions
+NPCAct --> CharState : reads own state
+NPCAct --> ActRes : sends simple action
+ActRes --> CharState : updates (if not pass)
+
+' Mechanics flow
+ActRes --> Effects : declares
+Effects --> Damage : applies
+Effects --> Void : applies
+Effects --> Rolls : validates
+Damage --> CharState : updates HP/wounds
+Void --> CharState : updates void_score
+Effects --> Clocks : updates ticks
+
+note top of ScenGen
+    DM Phase 1: Generate scenario
+    - Theme, location
+    - Initial void_level
+    - Spawn initial enemies
+    - Set starting clocks
+end note
+
+note top of RndSyn
+    DM Phase 2: Synthesize round
+    - Entity conversions (NPC ↔ Enemy)
+    - Clock updates
+    - Environmental changes
+    - Story advancement
+end note
+
+note top of ActRes
+    DM Phase 3: Resolve actions
+    - Narrate outcome
+    - Declare mechanical effects
+    - Extract damage/void/etc
+    - Update character states
+end note
+
+note top of RndSum
+    DM Phase 4: Summarize round
+    - Tactical situation
+    - Story developments
+    - Clock status
+end note
+
+note bottom of CharState
+    Authoritative state:
+    - HP, wounds, stun
+    - Void score
+    - Soul credits
+    - Status effects
+end note
+
+note bottom of Clocks
+    Bidirectional clocks:
+    - Progress (0→max)
+    - Countdown (max→0)
+    - Per-round tick rates
+end note
+
+@enduml

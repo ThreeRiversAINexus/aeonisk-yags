@@ -130,8 +130,11 @@ class NPCAction(BaseModel):
     reason: str = Field(
         ...,
         min_length=10,
-        max_length=500,
-        description="""Why NPC chose this action.
+        max_length=1500,
+        description="""Why NPC chose this action (10-1500 chars).
+
+        For dialogue/plead actions, this should be detailed enough to capture your intent,
+        emotional state, and tactical considerations.
 
         ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES, NOT target IDs.
         - ✅ CORRECT: "Fleeing from Ash who is approaching with weapon drawn"

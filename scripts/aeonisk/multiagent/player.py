@@ -17,6 +17,9 @@ from .prompt_loader import load_agent_prompt, compose_sections
 
 logger = logging.getLogger(__name__)
 
+# Constants for prompt text
+DECLARED_ACTIONS_HEADER = "Declared Actions This Round"
+
 
 @dataclass
 class CharacterState:
@@ -545,7 +548,8 @@ class AIPlayerAgent(Agent):
         self.free_action_used = False
         # NOTE: declared_actions_this_round is now cleared at round start (session.py), not here
 
-        # Store current initiative for filtering declared actions (passed in payload)
+        # Store current round and initiative from payload
+        self.current_round = message.payload.get('round', 0)
         self.current_initiative = message.payload.get('initiative', 0)
 
         if self.human_controlled:
@@ -1402,16 +1406,42 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 health_status = "CRITICAL"
 
             # Format inventory (seeds + currency) for Phase 1
-            mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
-            if mechanics and hasattr(mechanics, 'energy_economy'):
-                energy_inv = mechanics.energy_economy.get_inventory(self.agent_id)
-                raw_count = self.character_state.inventory.get('seed_raw', 0)
-                hollow_count = self.character_state.inventory.get('seed_hollow', 0)
-                currency_display = f"Breath: {energy_inv.breath}, Grain: {energy_inv.grain}, Drip: {energy_inv.drip}, Spark: {energy_inv.spark}"
-                seeds_display = f"Raw Seeds: {raw_count}, Hollow Seeds: {hollow_count}"
+            energy_purse = getattr(self.character_state, 'energy_purse', None)
+            if energy_purse:
+                # Count seeds by type
+                raw_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.RAW']
+                hollow_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.HOLLOW']
+                attuned_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.ATTUNED']
+
+                # Energy currencies + hollow (hollow are energy currency)
+                energy_parts = [
+                    f"Breath: {energy_purse.breath}",
+                    f"Grain: {energy_purse.grain}",
+                    f"Drip: {energy_purse.drip}",
+                    f"Spark: {energy_purse.spark}"
+                ]
+                if hollow_seeds:
+                    energy_parts.append(f"Hollow: {len(hollow_seeds)}")
+                currency_display = ", ".join(energy_parts)
+
+                # Physical seeds (raw and attuned only)
+                seed_parts = []
+                if raw_seeds:
+                    seed_parts.append(f"Raw: {len(raw_seeds)}")
+                if attuned_seeds:
+                    seed_parts.append(f"Attuned: {len(attuned_seeds)}")
+
+                seeds_display = ", ".join(seed_parts) if seed_parts else "No physical seeds"
             else:
-                currency_display = "No currency available"
-                seeds_display = "No seeds available"
+                # No energy purse - show equipment instead
+                equipment_list = []
+                if hasattr(self.character_state, 'weapons') and self.character_state.weapons:
+                    equipment_list.append(f"Weapons: {', '.join(self.character_state.weapons)}")
+                if hasattr(self.character_state, 'armor') and self.character_state.armor:
+                    equipment_list.append(f"Armor: {self.character_state.armor}")
+
+                currency_display = " | ".join(equipment_list) if equipment_list else "Standard loadout"
+                seeds_display = "(No seeds)"
 
             # Build goals text
             goals_text = "\n".join([f"- {goal}" for goal in self.character_state.goals]) if self.character_state.goals else "- No specific goals defined"
@@ -1428,6 +1458,57 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 wound_status = "(WOUNDED -5)"
             else:
                 wound_status = ""
+
+            # Build declared actions context (what allies/enemies have declared THIS round)
+            declared_actions_text = ""
+            if self.declared_actions_this_round:
+                # Filter to only show agents who declared before this player (lower initiative = declared first)
+                current_init = getattr(self, 'current_initiative', 0)
+                filtered_declarations = {
+                    char_name: action_data
+                    for char_name, action_data in self.declared_actions_this_round.items()
+                    if action_data[-1] < current_init  # initiative is always last element
+                }
+
+                if filtered_declarations:
+                    # Sort by initiative (slowest first, matching declaration order)
+                    sorted_declarations = sorted(
+                        filtered_declarations.items(),
+                        key=lambda x: x[1][-1]  # initiative is always last element
+                    )
+
+                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (you see what slower combatants declared before you):**\n"
+                    for char_name, action_data in sorted_declarations:
+                        # Current format: (description, action_intent, target, weapon, reasoning, initiative)
+                        if len(action_data) == 6:
+                            description, action_intent, target, weapon, reasoning_text, init_score = action_data
+
+                            # Format action with targeting info if available
+                            if description:
+                                action_text = description
+                            else:
+                                action_text = action_intent
+                                if target:
+                                    action_text += f" targeting {target}"
+                                if weapon:
+                                    action_text += f" with {weapon}"
+
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_text}\n"
+                        elif len(action_data) == 3:
+                            # Legacy format (description, action_intent, initiative)
+                            description, action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {description if description else action_intent}\n"
+                        else:
+                            # Very old format (action_intent, initiative)
+                            action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
+
+            # Build recent action outcomes (detailed narrations from recent actions)
+            recent_outcomes_text = ""
+            if self.recent_narrations:
+                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
+                    recent_outcomes_text += f"{i}. {narration}\n"
 
             # Low attributes (< 4)
             low_attrs = [
@@ -1466,7 +1547,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             dialogue_goal_text = ""
             if other_players:
                 party_members_str = ", ".join(other_players)
-                dialogue_goal_text = f"💬 Coordinate with {party_members_str} (dialogue is a FREE ACTION!)"
+                dialogue_goal_text = f"\n💬 Coordinate with {party_members_str} (dialogue is a FREE ACTION!)"
 
             # Check for failure loop warning
             failure_loop_warning = ""
@@ -1492,11 +1573,11 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                                         void_text = f", Void +{vc}" if vc > 0 else ""
                                         failure_list_items.append(f"Round {rnd}: {at} ({st}{void_text})")
                                 failures_text = ", ".join(failure_list_items)
-                                failure_loop_warning = f"🚨 FAILURE LOOP: {count} {action_type} failures ({failures_text}) - CHOOSE DIFFERENT ACTION TYPE!"
+                                failure_loop_warning = f"\n🚨 FAILURE LOOP: {count} {action_type} failures ({failures_text}) - CHOOSE DIFFERENT ACTION TYPE!\n"
                                 break
 
                 if self.character_state.void_score >= 8:
-                    high_void_warning = f"⚠️ VOID CRITICAL ({self.character_state.void_score}/10) - Avoid risky actions! Use offerings to reduce void!"
+                    high_void_warning = f"\n⚠️ VOID CRITICAL ({self.character_state.void_score}/10) - Avoid risky actions! Use offerings to reduce void!\n"
 
             # Build variables for Phase 1 prompt
             variables = {
@@ -1520,6 +1601,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "void_warning": void_warning,
                 "soulcredit": str(self.character_state.soulcredit),
                 "position": str(self.position) if hasattr(self, 'position') else "Unknown",
+                # Scenario context (current location and situation)
+                "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
+                "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
+                "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
                 # Goals & personality
                 "goals_text": goals_text,
                 "dialogue_goal_text": dialogue_goal_text,
@@ -1535,6 +1620,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "high_void_warning": high_void_warning,
                 # Include recent events from narrative context
                 "recent_events": self.last_round_synthesis if self.last_round_synthesis else "Round starting...",
+                # NEW: What allies/enemies have declared THIS round (tactical coordination)
+                "declared_actions_this_round": declared_actions_text,
+                # NEW: Recent action outcomes (detailed narrations)
+                "recent_action_outcomes": recent_outcomes_text,
                 # Unified entity awareness (allies + enemies + NPCs)
                 "entities_present": self._format_entities_present(),
                 # Legacy fields (for backward compat with old prompts)
@@ -1560,16 +1649,39 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
             logger.debug(f"Player {self.character_state.name}: Phase 1 (action intent) - generating...")
 
+            # Capture prompts for logging
+            phase1_system_prompt = f"You are {self.character_state.name}, choosing your next action type."
+            phase1_user_prompt = loaded_prompt.content
+
             # Generate ActionIntent
             action_intent: ActionIntent = await self.llm_provider.generate_structured(
-                prompt=loaded_prompt.content,
+                prompt=phase1_user_prompt,
                 result_type=ActionIntent,
-                system_prompt=f"You are {self.character_state.name}, choosing your next action type.",
+                system_prompt=phase1_system_prompt,
                 max_tokens=self.llm_config.get('max_tokens', 2000),  # Phase 1: Simple schema but OpenAI needs headroom
                 temperature=self.llm_config.get('temperature', 0.8),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
             )
+
+            # Log Phase 1 prompts to agent prompt logger
+            if self.agent_prompt_logger:
+                try:
+                    full_prompt = f"System: {phase1_system_prompt}\n\nUser: {phase1_user_prompt}"
+                    response_text = action_intent.model_dump_json(indent=2)
+
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=getattr(self, 'current_round', None),
+                        call_sequence=getattr(self.llm_logger, 'call_count', 0) if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=response_text,
+                        model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                        temperature=self.llm_config.get('temperature', 0.8),
+                        metadata={'phase': 'Phase 1: Action Intent', 'note': 'Pydantic AI structured output (ActionIntent schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"Player {self.agent_id}: Failed to log Phase 1 to agent prompt logger: {e}")
 
             logger.debug(f"✓ Player {self.character_state.name} Phase 1: {action_intent.action_type} - {action_intent.intent}")
             return action_intent
@@ -1603,6 +1715,58 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             prompt_module = f"player_action_{action_type_lower}"
 
             # Build comprehensive context for Phase 2 (action-specific guidance)
+
+            # Build declared actions context (what allies/enemies have declared THIS round)
+            declared_actions_text = ""
+            if self.declared_actions_this_round:
+                # Filter to only show agents who declared before this player (lower initiative = declared first)
+                current_init = getattr(self, 'current_initiative', 0)
+                filtered_declarations = {
+                    char_name: action_data
+                    for char_name, action_data in self.declared_actions_this_round.items()
+                    if action_data[-1] < current_init  # initiative is always last element
+                }
+
+                if filtered_declarations:
+                    # Sort by initiative (slowest first, matching declaration order)
+                    sorted_declarations = sorted(
+                        filtered_declarations.items(),
+                        key=lambda x: x[1][-1]  # initiative is always last element
+                    )
+
+                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (you see what slower combatants declared before you):**\n"
+                    for char_name, action_data in sorted_declarations:
+                        # Current format: (description, action_intent, target, weapon, reasoning, initiative)
+                        if len(action_data) == 6:
+                            description, action_intent, target, weapon, reasoning_text, init_score = action_data
+
+                            # Format action with targeting info if available
+                            if description:
+                                action_text = description
+                            else:
+                                action_text = action_intent
+                                if target:
+                                    action_text += f" targeting {target}"
+                                if weapon:
+                                    action_text += f" with {weapon}"
+
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_text}\n"
+                        elif len(action_data) == 3:
+                            # Legacy format (description, action_intent, initiative)
+                            description, action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {description if description else action_intent}\n"
+                        else:
+                            # Very old format (action_intent, initiative)
+                            action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
+
+            # Build recent action outcomes (detailed narrations from recent actions)
+            recent_outcomes_text = ""
+            if self.recent_narrations:
+                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
+                    recent_outcomes_text += f"{i}. {narration}\n"
+
             # Format attributes
             attributes_text = "\n".join([
                 f"- {attr}: {val}"
@@ -1612,19 +1776,43 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
             # Format skills using tiered display
             skills_text = _format_tiered_skills(self.character_state.skills)
 
-            # Format currency display
-            energy_inv = self.character_state.energy_purse
-            if energy_inv:
-                currency_display = f"""- Breath: {energy_inv.breath}
-- Drip: {energy_inv.drip}
-- Grain: {energy_inv.grain}
-- Spark: {energy_inv.spark}"""
+            # Format currency display (compact format, same as Phase 1)
+            energy_purse = getattr(self.character_state, 'energy_purse', None)
+            if energy_purse:
+                # Count seeds by type
+                raw_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.RAW']
+                hollow_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.HOLLOW']
+                attuned_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.ATTUNED']
 
-                raw_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.RAW)
-                seeds_display = f"- Raw Seeds: {raw_count}"
+                # Energy currencies + hollow (hollow are energy currency)
+                energy_parts = [
+                    f"Breath: {energy_purse.breath}",
+                    f"Grain: {energy_purse.grain}",
+                    f"Drip: {energy_purse.drip}",
+                    f"Spark: {energy_purse.spark}"
+                ]
+                if hollow_seeds:
+                    energy_parts.append(f"Hollow: {len(hollow_seeds)}")
+                currency_display = ", ".join(energy_parts)
+
+                # Physical seeds (raw and attuned only)
+                seed_parts = []
+                if raw_seeds:
+                    seed_parts.append(f"Raw: {len(raw_seeds)}")
+                if attuned_seeds:
+                    seed_parts.append(f"Attuned: {len(attuned_seeds)}")
+
+                seeds_display = ", ".join(seed_parts) if seed_parts else "No physical seeds"
             else:
-                currency_display = "- No currency available"
-                seeds_display = "- No seeds available"
+                # No energy purse - show equipment instead (compact format)
+                equipment_list = []
+                if hasattr(self.character_state, 'weapons') and self.character_state.weapons:
+                    equipment_list.append(f"Weapons: {', '.join(self.character_state.weapons)}")
+                if hasattr(self.character_state, 'armor') and self.character_state.armor:
+                    equipment_list.append(f"Armor: {self.character_state.armor}")
+
+                currency_display = " | ".join(equipment_list) if equipment_list else "Standard loadout"
+                seeds_display = "(No seeds)"
 
             # Calculate health status
             health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
@@ -1653,6 +1841,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "max_health": str(self.max_health),
                 "health_status": health_status,
                 "position": str(self.position) if hasattr(self, 'position') else "Unknown",
+                # Scenario context (current location and situation)
+                "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
+                "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
+                "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
                 # Combat-specific context (if applicable)
                 "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
                 "combat_skills": str(self.character_state.skills.get('Guns', 0)),
@@ -1671,7 +1863,11 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "threat_status": self._format_threat_status(),  # Legacy
                 "altar_availability": self._format_altar_availability(),
                 "void_warning": "Low void risk" if self.character_state.void_score < 5 else f"⚠️ Void score: {self.character_state.void_score}/10",
-                "situational_factors": self._format_situational_factors()
+                "situational_factors": self._format_situational_factors(),
+                # NEW: What allies/enemies have declared THIS round (tactical coordination)
+                "declared_actions_this_round": declared_actions_text,
+                # NEW: Recent action outcomes (detailed narrations)
+                "recent_action_outcomes": recent_outcomes_text
             }
 
             # Load Phase 2 action-specific prompt from player/ subdirectory
@@ -1686,16 +1882,39 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
             logger.debug(f"Player {self.character_state.name}: Phase 2 ({intent.action_type}) - generating with {schema_class.__name__}...")
 
+            # Capture prompts for logging
+            phase2_system_prompt = f"You are {self.character_state.name}, declaring the detailed mechanics of your {intent.action_type} action."
+            phase2_user_prompt = loaded_prompt.content
+
             # Generate action-specific details
             action_details = await self.llm_provider.generate_structured(
-                prompt=loaded_prompt.content,
+                prompt=phase2_user_prompt,
                 result_type=schema_class,  # Route to correct schema (AttuneAction, CombatAction, etc.)
-                system_prompt=f"You are {self.character_state.name}, declaring the detailed mechanics of your {intent.action_type} action.",
+                system_prompt=phase2_system_prompt,
                 max_tokens=self.llm_config.get('max_tokens', 3000),  # Phase 2: Complex schemas, OpenAI verbose
                 temperature=self.llm_config.get('temperature', 0.8),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
             )
+
+            # Log Phase 2 prompts to agent prompt logger
+            if self.agent_prompt_logger:
+                try:
+                    full_prompt = f"System: {phase2_system_prompt}\n\nUser: {phase2_user_prompt}"
+                    response_text = action_details.model_dump_json(indent=2)
+
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=getattr(self, 'current_round', None),
+                        call_sequence=getattr(self.llm_logger, 'call_count', 0) if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=response_text,
+                        model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                        temperature=self.llm_config.get('temperature', 0.8),
+                        metadata={'phase': f'Phase 2: {intent.action_type} Details', 'schema': schema_class.__name__, 'note': f'Pydantic AI structured output ({schema_class.__name__} schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"Player {self.agent_id}: Failed to log Phase 2 to agent prompt logger: {e}")
 
             logger.debug(f"✓ Player {self.character_state.name} Phase 2: {action_details.attribute} × {action_details.skill} (DC {action_details.difficulty_estimate})")
             return action_details
@@ -1721,9 +1940,19 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 health = getattr(agent, 'health', '?')
                 max_health = getattr(agent, 'max_health', '?')
 
+                # Extract pronouns if available
+                pronouns = None
+                if hasattr(agent, 'character_state'):
+                    pronouns = getattr(agent.character_state, 'pronouns', None)
+
                 # Get target ID from mapper
                 target_id = target_mapper.get_target_id(agent.agent_id) if target_mapper else agent.agent_id
-                entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+                # Format with optional pronouns
+                if pronouns:
+                    entities.append(f"- {name} ({pronouns}, ID: {target_id}, HP: {health}/{max_health})")
+                else:
+                    entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
 
         # Add active enemies (with target IDs for combat)
         if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
@@ -1743,13 +1972,28 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         # Add NPCs (with target IDs for combat)
         if self.shared_state and self.shared_state.npc_agents:
             for npc in self.shared_state.npc_agents:
-                name = npc.character_state.name if hasattr(npc, 'character_state') else npc.agent_id
+                # NPCs have .name directly (dataclass), not .character_state.name
+                name = getattr(npc, 'name', None)
+                if not name and hasattr(npc, 'character_state'):
+                    name = getattr(npc.character_state, 'name', None)
+                if not name:
+                    name = npc.agent_id  # Fallback
                 health = getattr(npc, 'health', '?')
                 max_health = getattr(npc, 'max_health', '?')
 
+                # Extract pronouns if available (NPCs don't currently have pronouns field, but futureproof)
+                pronouns = getattr(npc, 'pronouns', None)
+                if not pronouns and hasattr(npc, 'character_state'):
+                    pronouns = getattr(npc.character_state, 'pronouns', None)
+
                 # Get target ID from mapper
                 target_id = target_mapper.get_target_id(npc.agent_id) if target_mapper else npc.agent_id
-                entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+                # Format with optional pronouns
+                if pronouns:
+                    entities.append(f"- {name} ({pronouns}, ID: {target_id}, HP: {health}/{max_health})")
+                else:
+                    entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
 
         return "\n".join(entities) if entities else "You are alone"
 
@@ -1827,29 +2071,12 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         logger.debug(f"✓ Player {self.character_state.name} two-phase action complete: {action_details.action_type}, {action_details.attribute} × {action_details.skill}")
 
         # Increment call count for TWO LLM calls (Phase 1 + Phase 2)
-        # (Both phases already logged tokens automatically via generate_structured)
+        # (Both phases already logged tokens automatically via generate_structured, and prompts logged in individual phase methods)
         if self.llm_logger:
             self.llm_logger.call_count += 2  # Two separate LLM calls
 
-        # Also log to human-readable agent prompt log if enabled
-        # Log Phase 2 result (most detailed) - Phase 1 already logged internally
-        if self.agent_prompt_logger:
-            try:
-                # Log final merged result
-                response_text = action_details.model_dump_json(indent=2)
-
-                self.agent_prompt_logger.log_llm_call(
-                    agent_id=self.agent_id,
-                    round_num=getattr(self, 'current_round', None),
-                    call_sequence=getattr(self.llm_logger, 'call_count', 0) - 1 if self.llm_logger else 0,
-                    prompt=f"Two-phase action generation (Phase 1: {action_intent.action_type}, Phase 2: details)",
-                    response=response_text,
-                    model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=self.llm_config.get('temperature', 0.8),
-                    metadata={'note': 'Two-phase Pydantic AI structured output (Phase 1: ActionIntent, Phase 2: action-specific schema)'}
-                )
-            except Exception as e:
-                logger.error(f"Player {self.agent_id}: Failed to log to agent prompt logger: {e}")
+        # NOTE: Agent prompt logging now happens in _generate_action_intent() and _generate_action_details()
+        # to capture the actual prompts sent to the LLM (not just summaries)
 
         # Convert action-specific schema (AttuneAction, CombatAction, etc.) to ActionDeclaration (legacy format)
         # ActionDeclaration expects all fields from PlayerAction, so we need to extract them
@@ -2354,7 +2581,7 @@ Available non-combat actions:
                     key=lambda x: x[1][-1]  # initiative is always last element
                 )
 
-                narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+                narrative_context += f"## 🎯 {DECLARED_ACTIONS_HEADER} (Initiative Order):\n"
                 narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
                 for char_name, action_data in sorted_declarations:
                     # Current format: (description, intent, target, weapon, reasoning, initiative)

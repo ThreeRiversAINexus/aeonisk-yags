@@ -58,8 +58,7 @@ def _format_tiered_skills(character_skills: Dict[str, int]) -> str:
         lines.append("")  # Blank line between categories
 
     # Section 2: Available skills (brief, categorized)
-    lines.append("\n**OTHER AVAILABLE SKILLS (can attempt untrained at -50%):**")
-    lines.append("Use [LOOKUP: skill name] for detailed guidance on any skill.\n")
+    lines.append("\n**OTHER AVAILABLE SKILLS (can attempt untrained - roll is halved):**")
 
     for category in sorted(missing_skills_by_category.keys()):
         if missing_skills_by_category[category]:
@@ -346,15 +345,17 @@ Then the system will give you a FREE second action for your main task!
 Further void exposure may have severe consequences.
 """
 
-    pronouns = character_stats.get('pronouns', 'they/them')
+    pronouns = character_stats.get('pronouns')
 
-    return f"""You are playing {character_name} ({pronouns}) in an Aeonisk YAGS game.
+    # Conditional pronoun display - only show if explicitly provided
+    pronoun_intro = f" ({pronouns})" if pronouns else ""
+    pronoun_section = f"**Pronouns:** {pronouns}\n\n" if pronouns else ""
+
+    return f"""You are playing {character_name}{pronoun_intro} in an Aeonisk YAGS game.
 
 # Character Sheet
 
-**Pronouns:** {pronouns}
-
-**Attributes:**
+{pronoun_section}**Attributes:**
 {attributes_text}
 
 **Skills:**

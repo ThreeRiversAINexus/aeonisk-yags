@@ -482,6 +482,8 @@ class RoundSynthesis(BaseModel):
         - Show consequences of each action
         - Build tension and momentum
         - Paint vivid scene transitions
+        - **Include key dialogue exchanges** - Show what characters said during negotiations, arguments, pleas
+        - **Quote important NPC/PC interactions** - Capture the actual words spoken, not just "they talked"
 
         Shorter narrations feel rushed. Longer narrations feel cinematic.
 
