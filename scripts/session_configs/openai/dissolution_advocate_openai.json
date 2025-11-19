@@ -89,7 +89,7 @@
         "llm": {
           "provider": "openai",
           "model": "gpt-5-mini",
-          "temperature": 0.8
+          "temperature": 1.0
         },
         "personality": {
           "riskTolerance": 10,
@@ -149,7 +149,7 @@
         "llm": {
           "provider": "openai",
           "model": "gpt-5-mini",
-          "temperature": 0.8
+          "temperature": 1.0
         },
         "personality": {
           "riskTolerance": 4,
@@ -211,7 +211,7 @@
         "llm": {
           "provider": "openai",
           "model": "gpt-5-mini",
-          "temperature": 0.8
+          "temperature": 1.0
         },
         "personality": {
           "riskTolerance": 6,

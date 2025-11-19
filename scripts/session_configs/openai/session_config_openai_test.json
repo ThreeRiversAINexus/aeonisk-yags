@@ -32,7 +32,7 @@
       "llm": {
         "provider": "openai",
         "model": "gpt-5-mini",
-        "temperature": 0.7
+        "temperature": 1.0
       },
       "_comment": "DM uses OpenAI GPT-5-mini (when available - fallback to gpt-4o-mini)"
     },
@@ -44,7 +44,7 @@
       "llm": {
         "provider": "openai",
         "model": "gpt-5-mini",
-        "temperature": 0.8
+        "temperature": 1.0
       },
       "_comment": "Player uses OpenAI GPT-5-mini",
       "personality": {
