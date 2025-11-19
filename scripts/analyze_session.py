@@ -344,6 +344,7 @@ class SessionAnalyzer:
                 if event_type == 'session_start':
                     self.stats['session_id'] = event.get('session')
                     self.stats['config'] = event.get('config', {})
+                    self.stats['git_commit'] = event.get('git_commit', 'unknown')  # Git commit at event level, not config
 
                 # Scenario info
                 elif event_type == 'scenario':
@@ -409,7 +410,9 @@ class SessionAnalyzer:
 
         # Basic info
         session_name = config.get('session_name', 'unknown')
-        git_commit = config.get('git_commit', 'unknown')[:7]
+        git_commit = self.stats.get('git_commit', 'unknown')
+        if git_commit != 'unknown' and len(git_commit) > 7:
+            git_commit = git_commit[:7]  # Truncate to short hash
         print(f"Session: {session_name} | Git: {git_commit}")
         print(f"Rounds: {self.stats['rounds']} | Total Events: {self.stats['total_events']}")
 
