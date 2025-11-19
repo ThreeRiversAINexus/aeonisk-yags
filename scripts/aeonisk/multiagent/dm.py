@@ -4173,6 +4173,28 @@ Return ONLY the narration text, nothing else."""
                         margin=5,
                         effects=effects
                     )
+
+                    # Log successful NPC action resolution
+                    if self.shared_state and self.shared_state.mechanics_engine:
+                        mechanics = self.shared_state.mechanics_engine
+                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            current_round = mechanics.current_round
+                            mechanics.jsonl_logger.log_action_resolution(
+                                round_num=current_round,
+                                phase="adjudicate_npc",
+                                agent_name=character_name,
+                                action=intent,
+                                resolution=npc_resolution.model_dump(),
+                                economy_changes={},
+                                clock_states={},
+                                effects={},
+                                context={
+                                    "action_type": npc_action_type,
+                                    "is_npc": True,
+                                    "dialogue_content": action.get('dialogue_content')
+                                }
+                            )
+
                 except Exception as e:
                     logger.warning(f"NPC LLM narration failed: {e}, using fallback")
                     narration = f"{character_name} {description}. The NPC action completes successfully."
@@ -4184,6 +4206,28 @@ Return ONLY the narration text, nothing else."""
                         margin=5,
                         effects=MechanicalEffects()
                     )
+
+                    # Log fallback NPC action resolution
+                    if self.shared_state and self.shared_state.mechanics_engine:
+                        mechanics = self.shared_state.mechanics_engine
+                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            current_round = mechanics.current_round
+                            mechanics.jsonl_logger.log_action_resolution(
+                                round_num=current_round,
+                                phase="adjudicate_npc",
+                                agent_name=character_name,
+                                action=intent,
+                                resolution=npc_resolution.model_dump(),
+                                economy_changes={},
+                                clock_states={},
+                                effects={},
+                                context={
+                                    "action_type": npc_action_type,
+                                    "is_npc": True,
+                                    "dialogue_content": action.get('dialogue_content'),
+                                    "fallback": True
+                                }
+                            )
 
             # Return lightweight resolution matching player format (with outcome dict)
             return {
