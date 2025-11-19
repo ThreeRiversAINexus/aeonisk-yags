@@ -146,11 +146,12 @@ class NPCAction(BaseModel):
         None,
         min_length=5,
         max_length=500,
-        description="""ACTUAL WORDS SPOKEN by the NPC (REQUIRED when action_type='dialogue').
+        description="""ACTUAL WORDS SPOKEN by the NPC (REQUIRED when action_type='dialogue' or 'plead').
 
-        When choosing dialogue action, you MUST provide what the NPC actually says.
-        - ✅ CORRECT: "The vault is in the basement, past the security checkpoint."
-        - ❌ WRONG: None (leaving this empty for dialogue actions)
+        When choosing dialogue or plead action, you MUST provide what the NPC actually says.
+        - ✅ CORRECT (dialogue): "The vault is in the basement, past the security checkpoint."
+        - ✅ CORRECT (plead): "Please, don't shoot! I have a family!"
+        - ❌ WRONG: None (leaving this empty for dialogue/plead actions)
         - ❌ WRONG: "Responding to the question" (this is the reason, not the dialogue)
 
         Use first-person perspective (what you say, not what "the NPC says").
@@ -159,12 +160,12 @@ class NPCAction(BaseModel):
     )
 
     def model_post_init(self, __context):
-        """Validate that dialogue actions have dialogue_content."""
-        if self.action_type == "dialogue" and not self.dialogue_content:
+        """Validate that dialogue and plead actions have dialogue_content."""
+        if self.action_type in ["dialogue", "plead"] and not self.dialogue_content:
             raise ValueError(
-                f"dialogue_content is REQUIRED when action_type='dialogue'. "
+                f"dialogue_content is REQUIRED when action_type='{self.action_type}'. "
                 f"You must provide what the NPC actually says, not just the reason. "
-                f"Example: dialogue_content='The vault is in the basement.'"
+                f"Example: dialogue_content='Please don't shoot, I surrender!'"
             )
 
 
@@ -244,7 +245,7 @@ class NPCLLMClient:
                 prompt=prompt,
                 result_type=NPCAction,
                 system_prompt=self._get_system_prompt(),
-                max_tokens=1000,  # Increased for OpenAI structured output overhead
+                max_tokens=2000,  # Increased for dialogue_content (500) + reason (1500) + OpenAI overhead
                 temperature=self.temperature
             )
 

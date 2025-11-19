@@ -472,11 +472,11 @@ class RoundSynthesis(BaseModel):
     # Narrative summary
     narration: str = Field(
         ...,
-        min_length=300,
+        min_length=800,
         max_length=3000,
-        description="""DM's cohesive narrative summarizing the round (300-3000 chars).
+        description="""DM's cohesive narrative summarizing the round (800-3000 chars).
 
-        IMPORTANT: Be generous with detail! Aim for 800-1500 characters.
+        IMPORTANT: Be generous with detail! Aim for 1200-1800 characters.
         - Describe action flow chronologically
         - Include sensory details (sounds, sights, atmosphere)
         - Show consequences of each action
