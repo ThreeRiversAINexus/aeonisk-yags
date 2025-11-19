@@ -79,6 +79,9 @@ content: |-
 
   ---
 
-  **⚠️ IMPORTANT: You MUST specify transfer_target and either transfer_currency or transfer_items!**
+  **Entities Present (valid targets):**
+  {entities_present}
+
+  ⚠️ **IMPORTANT:** You MUST specify transfer_target (from list above) and either transfer_currency or transfer_items!
 
   **Ready? Declare your transfer!**

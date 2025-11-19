@@ -77,4 +77,9 @@ content: |-
 
   ---
 
+  **Entities Present (valid targets):**
+  {entities_present}
+
+  ⚠️ Use the exact ID shown above (e.g., tgt_xxxx) for your target field.
+
   **Ready? Declare your social action!**

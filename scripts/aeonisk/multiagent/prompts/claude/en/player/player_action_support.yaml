@@ -75,6 +75,9 @@ content: |-
 
   ---
 
-  **⚠️ IMPORTANT: You MUST specify target ally ID!**
+  **Entities Present (valid targets):**
+  {entities_present}
+
+  ⚠️ **IMPORTANT:** You MUST specify target ally ID from the list above (e.g., tgt_xxxx)!
 
   **Ready? Declare your support action!**
