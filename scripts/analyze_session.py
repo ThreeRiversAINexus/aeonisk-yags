@@ -602,18 +602,20 @@ class SessionAnalyzer:
     def _get_default_fields(self, event_type: str) -> List[str]:
         """Get smart default fields for an event type."""
         defaults = {
-            'action_resolution': ['round', 'agent', 'action', 'roll.success', 'roll.margin'],
-            'action_declaration': ['round', 'character_name', 'initiative', 'action.intent'],
+            'action_resolution': ['round', 'agent_name', 'action', 'resolution.success_tier', 'resolution.margin', 'context.is_npc', 'context.dialogue_content'],
+            'action_declaration': ['round', 'character_name', 'initiative', 'action.intent', 'action.action_type'],
             'scenario': ['scenario.theme', 'scenario.location', 'scenario.void_level'],
             'round_start': ['round'],
-            'round_synthesis': ['round'],
+            'round_synthesis': ['round', 'synthesis'],  # synthesis field, not narration (legacy format)
             'enemy_spawn': ['round', 'context.template', 'context.count'],
             'enemy_defeat': ['round', 'context.enemy_name'],
-            'session_start': ['config.session_name', 'config.git_commit'],
+            'session_start': ['config.session_name', 'git_commit'],  # git_commit is at top level, not in config
             'session_end': ['session'],
             'clock_advancement': ['round', 'data.clock_name', 'data.before_ticks', 'data.after_ticks', 'data.maximum_ticks', 'data.delta', 'data.filled'],
             'clock_completion': ['round', 'data.clock_name', 'data.final_ticks', 'data.maximum_ticks'],
             'clock_removal': ['round', 'data.clock_name', 'data.current_ticks', 'data.maximum_ticks', 'data.removal_reason', 'data.expiration_type', 'data.filled'],
+            'npc_departure': ['round', 'npc_name', 'reason'],
+            'entity_lifecycle': ['round', 'lifecycle_type', 'affected_entities'],
         }
         return defaults.get(event_type, ['event_type', 'round'])
 
