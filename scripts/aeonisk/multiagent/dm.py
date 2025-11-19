@@ -3689,7 +3689,9 @@ story_advancement=StoryAdvancement(
 
 **Remember:** Clocks drive dynamic tension! Spawn them liberally when justified by narrative consequences.
 
-**Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
+**Your task:** Write a cohesive, DETAILED narrative (800-1800 characters, aim for 1200+) synthesizing these individual resolutions into a unified round outcome.
+
+**⚠️ LENGTH REQUIREMENT: 800+ characters minimum! Be generous with detail, dialogue, and atmosphere.**
 
 **⚠️ CRITICAL - NARRATIVE CONSISTENCY:**
 - Each "Resolution:" above shows what you ALREADY narrated for that action
@@ -3698,15 +3700,18 @@ story_advancement=StoryAdvancement(
 - Your job is to WEAVE these resolutions together, not re-narrate them from scratch
 - If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
 
-**Consider:**
-- Timing: Actions resolved fastest → slowest based on initiative
-- Interactions: How did each person's success/failure affect the others?
-- Conflicts: If multiple people tried similar things, who got there first? What did the slower person encounter?
-- Cause and effect: How did earlier successes/failures change the situation for later actors?
-- Overall outcome: What's the new situation now that the dust has settled?
-- **IMPORTANT**: If objectives (clocks) are not advancing despite actions, acknowledge this! Characters should feel the pressure of marginal success or outright failure.
+**What to include for richness (aim for 1200+ chars):**
+- **Quoted dialogue** from key character interactions, negotiations, pleas
+- **Sensory details** - sounds, sights, atmosphere, tension
+- **Timing & Initiative flow** - Actions resolved fastest → slowest, show the sequence
+- **Interactions** - How did each person's success/failure affect the others?
+- **Conflicts** - If multiple people tried similar things, who got there first? What did slower actors encounter?
+- **Cause and effect** - How did earlier successes/failures change the situation?
+- **Overall outcome** - What's the new situation now that dust has settled?
+- **Emotional beats** - Character reactions, desperation if failing, relief if succeeding
+- **IMPORTANT**: If objectives (clocks) are not advancing despite actions, acknowledge this! Show the pressure of marginal success or outright failure.
 
-Be vivid and cinematic. Show how these actions interacted and created a dynamic scene. Describe the final state of the situation after all actions resolved.
+Be vivid, cinematic, and VERBOSE. Show how these actions interacted and created a dynamic scene. Describe the final state after all actions resolved. Shorter narrations feel rushed - aim for rich, detailed storytelling.
 
 If the team is failing their objectives (clocks not advancing or bad clocks filling), your narration should reflect the growing desperation, consequences, and danger.
 
