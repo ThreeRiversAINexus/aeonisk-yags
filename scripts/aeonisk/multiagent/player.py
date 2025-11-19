@@ -857,6 +857,12 @@ class AIPlayerAgent(Agent):
             void_state = mechanics.get_void_state(self.agent_id)
             self.character_state.void_score = void_state.score
 
+            # Sync soulcredit from mechanics engine (parallel to void sync)
+            # Fix for bug: soulcredit changes were applied to mechanics.soulcredit_states
+            # but not synced to character_state.soulcredit before JSONL logging
+            sc_state = mechanics.get_soulcredit_state(self.agent_id)
+            self.character_state.soulcredit = sc_state.score
+
             # Note: Void changes are already displayed in DM narration (⚫ Void: X → Y)
             # Suppressing duplicate player-side print to avoid repetition
             # if len(void_state.history) > 0:
