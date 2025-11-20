@@ -2513,6 +2513,13 @@ class MechanicsEngine:
         receiver_state = None
 
         if self.shared_state:
+            # Check for multi-target syntax (commas) - not supported
+            if ',' in transfer_target:
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Multi-target transfers not supported. Transfer to one recipient at a time. Got: '{transfer_target}'"
+                )
+
             # First, try to resolve target_id if it looks like one (tgt_xxxx format)
             if transfer_target.startswith('tgt_') and self.shared_state.target_id_mapper:
                 receiver_agent = self.shared_state.target_id_mapper.resolve_target(transfer_target)
@@ -2526,12 +2533,26 @@ class MechanicsEngine:
                         failure_reason=f"Target ID '{transfer_target}' not found in combat mapper"
                     )
             else:
-                # Try to find by agent_id or character name
+                # Try to find by agent_id or character name in players
                 for agent in self.shared_state.player_agents:
                     if agent.agent_id == transfer_target or agent.character_state.name.lower() == transfer_target.lower():
                         receiver_agent = agent
                         receiver_state = agent.character_state
                         break
+
+                # If not found in players, check NPCs
+                if receiver_agent is None and hasattr(self.shared_state, 'npc_agents'):
+                    for npc in self.shared_state.npc_agents:
+                        # NPCs may have .name directly or in .character_state
+                        npc_name = getattr(npc, 'name', None)
+                        if not npc_name and hasattr(npc, 'character_state'):
+                            npc_name = getattr(npc.character_state, 'name', None)
+
+                        if npc.agent_id == transfer_target or (npc_name and npc_name.lower() == transfer_target.lower()):
+                            receiver_agent = npc
+                            # NPCs may or may not have character_state
+                            receiver_state = npc.character_state if hasattr(npc, 'character_state') else npc
+                            break
 
         if receiver_state is None:
             return TransferValidation(
@@ -2539,7 +2560,7 @@ class MechanicsEngine:
                 failure_reason=f"Target character '{transfer_target}' not found"
             )
 
-        # Check range if positions available
+        # Check range if positions available (only in tactical combat)
         in_range = True
         if sender_position and hasattr(receiver_agent, 'position') and receiver_agent.position:
             # Both must be in same range band for physical transfer
@@ -2548,16 +2569,19 @@ class MechanicsEngine:
             receiver_range = getattr(receiver_agent.position, 'ring', None)
             receiver_side = getattr(receiver_agent.position, 'side', None)
 
-            if sender_range != receiver_range or sender_side != receiver_side:
-                in_range = False
-                return TransferValidation(
-                    is_valid=False,
-                    failure_reason=f"Out of range: {sender_state.name} and {receiver_state.name} are not in same range band",
-                    sender_name=sender_state.name,
-                    receiver_name=receiver_state.name,
-                    receiver_agent_id=receiver_agent.agent_id,
-                    in_range=False
-                )
+            # Only enforce range if BOTH have combat positions (ring/side)
+            # In non-combat scenarios (marketplace, social), positions may be None
+            if sender_range is not None and receiver_range is not None:
+                if sender_range != receiver_range or sender_side != receiver_side:
+                    in_range = False
+                    return TransferValidation(
+                        is_valid=False,
+                        failure_reason=f"Out of range: {sender_state.name} and {receiver_state.name} are not in same range band",
+                        sender_name=sender_state.name,
+                        receiver_name=receiver_state.name,
+                        receiver_agent_id=receiver_agent.agent_id,
+                        in_range=False
+                    )
 
         # Check sender has energy purse (if transferring currency)
         sender_currency = {}
