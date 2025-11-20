@@ -4084,6 +4084,51 @@ Read the action intent to understand WHY this transfer is happening:
             }
         }
 
+    def _resolve_target_name(self, target_id: str) -> Optional[str]:
+        """
+        Resolve a target ID (tgt_xxxx or agent_id) to a character name.
+
+        Args:
+            target_id: Target ID or agent ID
+
+        Returns:
+            Character name if found, None otherwise
+        """
+        if not target_id:
+            return None
+
+        # Try target ID mapper first (resolves tgt_xxxx to actual agent)
+        if target_id.startswith('tgt_') and self.shared_state.target_id_mapper:
+            agent = self.shared_state.target_id_mapper.resolve_target(target_id)
+            if agent:
+                # Player agent
+                if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'name'):
+                    return agent.character_state.name
+                # NPC or enemy agent
+                elif hasattr(agent, 'name'):
+                    return agent.name
+                # Fallback to agent_id
+                return agent.agent_id
+
+        # Try direct agent_id lookup in players
+        for player in self.shared_state.player_agents:
+            if player.agent_id == target_id:
+                return player.character_state.name
+
+        # Try NPCs
+        if hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                if npc.agent_id == target_id:
+                    return npc.name
+
+        # Try enemies
+        if hasattr(self.shared_state, 'enemy_combat') and self.shared_state.enemy_combat:
+            for enemy in self.shared_state.enemy_combat.enemy_agents:
+                if enemy.agent_id == target_id:
+                    return enemy.name
+
+        return None
+
     async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any], previous_resolutions=None) -> Dict[str, Any]:
         """
         Resolve a single action mechanically (rolls, difficulty, narration).
@@ -4118,7 +4163,17 @@ Read the action intent to understand WHY this transfer is happening:
             character_name = action.get('character_name', 'NPC')
             npc_action_type = action.get('action_type', 'unknown')  # action_type is in the action dict
             target = action.get('target')
-            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent} (type: {npc_action_type})")
+
+            # Resolve target ID to character name for dialogue/plead actions
+            target_display = 'None'
+            if target:
+                target_name = self._resolve_target_name(target)
+                if target_name:
+                    target_display = f"{target_name} ({target})"
+                else:
+                    target_display = target
+
+            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent} (type: {npc_action_type}, target: {target_display})")
 
             # Import required schema types
             from .schemas.action_resolution import SuccessTier, MechanicalEffects
@@ -4148,7 +4203,7 @@ Read the action intent to understand WHY this transfer is happening:
 **NPC:** {character_name}
 **Action Type:** {npc_action_type}
 **NPC's Intent/Reasoning:** {description if description else intent}
-**Target:** {target if target else 'None'}{dialogue_info}
+**Target:** {target_display}{dialogue_info}
 
 **IMPORTANT - Make it NARRATIVE with dialogue and movement:**
 
