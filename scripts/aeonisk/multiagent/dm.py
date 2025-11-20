@@ -4129,6 +4129,55 @@ Read the action intent to understand WHY this transfer is happening:
 
         return None
 
+    async def _resolve_failed_attunement(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve an attunement action that failed pre-validation (no dice roll needed).
+
+        Args:
+            action: Action dict with attunement_validation showing failure
+
+        Returns:
+            Resolution dict with auto-failure narration
+        """
+        from .schemas.action_resolution import ActionResolution, SuccessTier, MechanicalEffects
+
+        validation = action.get('attunement_validation', {})
+        failure_reason = validation.get('failure_reason', 'Prerequisites not met')
+        character_name = action.get('character_name', 'Character')
+        intent = action.get('intent', 'attune a seed')
+
+        # Generate simple auto-failure narration
+        narration = (
+            f"{character_name} attempts to {intent}, but {failure_reason.lower()}. "
+            f"The ritual cannot proceed without the necessary components. "
+            f"No energy is expended and no seed is consumed."
+        )
+
+        # Pad to minimum 200 chars
+        if len(narration) < 200:
+            narration = narration + " " * (200 - len(narration))
+
+        failed_resolution = ActionResolution(
+            narration=narration,
+            success_tier=SuccessTier.FAILURE,
+            margin=-999,  # Automatic failure
+            effects=MechanicalEffects()  # No effects
+        )
+
+        # Store structured resolution for later extraction
+        self._last_structured_resolution = failed_resolution
+
+        logger.info(f"✗ Attunement auto-failed for {character_name}: {failure_reason}")
+
+        return {
+            'narration': narration,
+            'success': False,
+            'outcome_tier': 'FAILURE',
+            'margin': -999,
+            'validation_failure': True,
+            'failure_reason': failure_reason
+        }
+
     async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any], previous_resolutions=None) -> Dict[str, Any]:
         """
         Resolve a single action mechanically (rolls, difficulty, narration).
@@ -4154,6 +4203,12 @@ Read the action intent to understand WHY this transfer is happening:
         transfer_validation = action.get('transfer_validation', {})
         if action_type == 'transfer' and transfer_validation:
             return await self._resolve_transfer_transaction(action)
+
+        # Check if this is a pre-validated attunement that FAILED validation
+        # (no need for dice rolls - auto-fail)
+        attunement_validation = action.get('attunement_validation', {})
+        if action_type == 'attune' and attunement_validation and not attunement_validation.get('is_valid'):
+            return await self._resolve_failed_attunement(action)
 
         # Check if this is an NPC action (lightweight adjudication)
         if action.get('is_npc'):
