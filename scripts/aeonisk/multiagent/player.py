@@ -821,6 +821,11 @@ class AIPlayerAgent(Agent):
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
+        # Defensive: Check if payload is actually a dict
+        if not isinstance(message.payload, dict):
+            logger.error(f"Player {self.character_state.name}: Received non-dict payload in ACTION_RESOLVED: {type(message.payload)} = {message.payload}")
+            return
+
         outcome = message.payload.get('outcome', {})
         narration = message.payload.get('narration', '')
         resolved_agent_id = message.payload.get('agent_id')
