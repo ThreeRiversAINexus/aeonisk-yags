@@ -3527,7 +3527,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                         # LOG PURCHASE ATTEMPT (both success and failure)
                         if mechanics.jsonl_logger:
-                            vendor = self.shared_state.get_vendor_by_id(vendor_id)
+                            # Try NPC vendor first (unified system), then fall back to legacy vendor
+                            vendor = self.shared_state.get_npc_by_vendor_id(vendor_id)
+                            if not vendor:
+                                vendor = self.shared_state.get_vendor_by_id(vendor_id)
                             vendor_name = vendor.name if vendor else "Unknown Vendor"
 
                             mechanics.jsonl_logger.log_purchase_attempt(

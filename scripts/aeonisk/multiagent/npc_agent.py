@@ -40,10 +40,18 @@ class NPCAgent:
     - Take damage (triggers escalation potential)
     - Dialogue with players via simple LLM
     - Have position on tactical grid (preserved during conversions)
+    - Act as vendors (sell items, accept currency) if is_vendor=True
 
     NPCs cannot:
     - Use combat tactics (no tactical AI)
     - Declare attack actions (only if escalated to enemy)
+
+    Vendor NPCs:
+    - Can hold inventory for sale (vendor_inventory)
+    - Accept purchases via is_vendor=True + accepts_purchases=True
+    - Can dialogue (human traders) OR be static (vending machines via can_act=False)
+    - Can be damaged, converted to enemies, flee during danger
+    - Unified with regular NPCs (no separate Vendor class)
 
     Critical: agent_id is STABLE across conversions (never changes).
     Position is STABLE across conversions (preserves location).
@@ -96,6 +104,14 @@ class NPCAgent:
     # LLM provider (for creating NPCLLMClient)
     llm_provider: Optional['LLMProvider'] = None  # LLM provider instance (OpenAI, Anthropic, etc.)
 
+    # Vendor functionality (optional - enables NPCs to sell items/services)
+    is_vendor: bool = False
+    vendor_inventory: List = field(default_factory=list)  # List[VendorItem] - items for sale
+    vendor_greeting: Optional[str] = None  # Vendor-specific greeting (overrides general dialogue)
+    vendor_type: Optional[str] = None  # "human_trader", "vending_machine", "supply_drone", etc.
+    accepts_purchases: bool = False  # Whether this NPC actually processes purchases
+    energy_purse: Optional['EnergyPurse'] = None  # For receiving payment (if needed for two-way trading)
+
     def __post_init__(self):
         """Initialize LLM client if not provided."""
         if self.llm_client is None and self.can_act:
@@ -109,6 +125,22 @@ class NPCAgent:
             except Exception as e:
                 logger.warning(f"Failed to initialize NPCLLMClient for {self.name}: {e}. NPC will use fallback actions.")
                 self.can_act = False  # Disable acting if LLM client fails
+
+    def get_vendor_item_by_id(self, item_id: str):
+        """
+        Get vendor item by ID (for purchase processing).
+
+        Returns:
+            VendorItem if found, None otherwise
+        """
+        if not self.is_vendor:
+            logger.warning(f"get_vendor_item_by_id called on non-vendor NPC {self.name}")
+            return None
+
+        for item in self.vendor_inventory:
+            if hasattr(item, 'item_id') and item.item_id == item_id:
+                return item
+        return None
 
 
 class NPCAction(BaseModel):

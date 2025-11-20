@@ -656,8 +656,9 @@ class NPCSpawn(BaseModel):
     - Enemy surrenders/negotiates (DM marks conversion)
     - Scene requires dialogue NPCs
     - Quest-givers, guides, civilians appear
+    - Spawning vendors (human traders, vending machines, etc.)
 
-    Example:
+    Example (regular NPC):
     ```python
     spawn = NPCSpawn(
         name="Freeborn Navigator",
@@ -669,6 +670,26 @@ class NPCSpawn(BaseModel):
         health=20,
         soak=2,
         skills={"perception": 5, "astral_arts": 3}
+    )
+    ```
+
+    Example (vendor NPC):
+    ```python
+    vendor_spawn = NPCSpawn(
+        name="Black Market Dealer",
+        faction="Freeborn",
+        entity_type="neutral",
+        threat_level="armed_neutral",
+        disposition="wary",
+        description="Hooded figure with cybernetic eyes, counting currency chips",
+        health=30,
+        soak=3,
+        skills={"guile": 8, "awareness": 6},
+        is_vendor=True,
+        vendor_type="human_trader",
+        vendor_greeting="Keep your voice down. What do you need?",
+        vendor_inventory=[...],  # VendorItem list
+        accepts_purchases=True
     )
     ```
     """
@@ -736,6 +757,29 @@ If unsure, choose the CLOSEST match from the 6 valid options above."""
     converted_from_enemy_id: Optional[str] = Field(
         None,
         description="If NPC was converted from enemy, track original agent_id"
+    )
+
+    # Optional: vendor functionality (enables NPC to sell items/services)
+    is_vendor: bool = Field(
+        False,
+        description="Whether this NPC functions as a vendor (can sell items to players)"
+    )
+    vendor_inventory: List = Field(
+        default_factory=list,
+        description="Items for sale (List[VendorItem]). Only populated if is_vendor=True. Example: [VendorItem(name='Medkit', price_drip=5, ...)]"
+    )
+    vendor_greeting: Optional[str] = Field(
+        None,
+        max_length=300,
+        description="Vendor-specific greeting shown to players (overrides general NPC dialogue). Example: 'Welcome to my shop, traveler. What can I get you?'"
+    )
+    vendor_type: Optional[str] = Field(
+        None,
+        description="Type of vendor: 'human_trader', 'vending_machine', 'supply_drone', 'emergency_cache', etc. Affects behavior and presentation."
+    )
+    accepts_purchases: bool = Field(
+        False,
+        description="Whether this vendor actively processes purchase actions. Set False for vendors who only provide context/atmosphere."
     )
 
 

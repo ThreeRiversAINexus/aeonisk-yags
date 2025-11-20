@@ -2371,23 +2371,28 @@ class MechanicsEngine:
         item_id: str
     ) -> PurchaseValidation:
         """
-        Validate purchase using vendor_id and item_id (NEW mechanical system).
+        Validate purchase using vendor_id and item_id (unified vendor-NPC system).
 
         This is the ID-based validation for the mechanical purchase system.
         Checks BEFORE DM narration to prevent phantom purchases.
+        Supports both legacy Vendor objects and unified NPC vendors.
 
         Args:
             character_state: Character attempting purchase
-            vendor_id: Vendor ID (vnd_xxxx)
+            vendor_id: Vendor ID (can be NPC agent_id like "npc_xxxx" or legacy "vnd_xxxx")
             item_id: Item ID (itm_xxxx)
 
         Returns:
             PurchaseValidation with full details for mechanical execution
         """
-        # Get vendor by ID from shared state
+        # Get vendor by ID from shared state (try NPC vendor first, then legacy vendor)
         vendor = None
         if self.shared_state:
-            vendor = self.shared_state.get_vendor_by_id(vendor_id)
+            # Try unified NPC vendor system first
+            vendor = self.shared_state.get_npc_by_vendor_id(vendor_id)
+            # Fall back to legacy vendor system
+            if not vendor:
+                vendor = self.shared_state.get_vendor_by_id(vendor_id)
 
         if vendor is None:
             return PurchaseValidation(
@@ -2396,8 +2401,8 @@ class MechanicsEngine:
                 vendor_accessible=False
             )
 
-        # Get item by ID from vendor
-        item = vendor.get_item_by_id(item_id)
+        # Get item by ID from vendor (works for both NPC vendors and legacy vendors)
+        item = vendor.get_vendor_item_by_id(item_id) if hasattr(vendor, 'get_vendor_item_by_id') else vendor.get_item_by_id(item_id)
         if item is None:
             return PurchaseValidation(
                 is_valid=False,
@@ -2407,7 +2412,10 @@ class MechanicsEngine:
         # Check Soulcredit threshold
         character_sc = getattr(character_state, 'soulcredit', 0)
 
-        if vendor.vendor_type == VendorType.VENDING_MACHINE:
+        # Handle both VendorType enum (legacy) and string (NPC vendors)
+        vendor_type_str = vendor.vendor_type.value if hasattr(vendor.vendor_type, 'value') else str(vendor.vendor_type) if vendor.vendor_type else None
+
+        if vendor_type_str == "vending_machine":
             if character_sc < -2:
                 return PurchaseValidation(
                     is_valid=False,

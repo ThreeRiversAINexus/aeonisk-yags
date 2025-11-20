@@ -531,7 +531,7 @@ Generate something DIFFERENT from these recent scenarios.
 
     def get_vendor_by_id(self, vendor_id: str) -> Optional[Any]:
         """
-        Get vendor by ID (NEW mechanical purchase system).
+        Get vendor by ID (legacy vendor system).
 
         Args:
             vendor_id: Vendor ID to find (e.g., "vnd_a1b2")
@@ -542,6 +542,28 @@ Generate something DIFFERENT from these recent scenarios.
         for vendor in self.current_vendors:
             if hasattr(vendor, 'vendor_id') and vendor.vendor_id == vendor_id:
                 return vendor
+        return None
+
+    def get_npc_by_vendor_id(self, vendor_id: str) -> Optional[Any]:
+        """
+        Get NPC vendor by agent ID (unified vendor-NPC system).
+
+        This supports the vendor→NPC unification where NPCs can act as vendors.
+        Purchase system uses agent_id as the unified identifier (no separate vendor_id).
+
+        Args:
+            vendor_id: NPC agent ID to find (e.g., "npc_xxxx")
+
+        Returns:
+            NPCAgent object if found and is_vendor=True, None otherwise
+        """
+        for npc in self.npc_agents:
+            if not hasattr(npc, 'is_vendor') or not npc.is_vendor:
+                continue
+
+            if hasattr(npc, 'agent_id') and npc.agent_id == vendor_id:
+                return npc
+
         return None
 
     def get_all_vendors(self) -> List[Any]:
