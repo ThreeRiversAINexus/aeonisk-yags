@@ -74,7 +74,7 @@ content: |
   - **total**: 0 (no roll)
   - **difficulty**: 0 (no roll)
   - **margin**: 0 (no roll)
-  - **outcome_tier**: "marginal" if success, "failure" if failed
+  - **success_tier**: "marginal" if success, "failure" if failed
   - **narrative**: Your transfer narration (2-4 sentences)
   - **attribute**: "None" (transfers don't use attributes)
   - **skill**: null (transfers don't use skills)

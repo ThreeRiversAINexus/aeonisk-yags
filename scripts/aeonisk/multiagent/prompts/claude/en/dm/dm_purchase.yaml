@@ -61,7 +61,7 @@ content: |
   - **total**: 0 (no roll)
   - **difficulty**: 0 (no roll)
   - **margin**: 0 (no roll)
-  - **outcome_tier**: "marginal" if success, "failure" if failed
+  - **success_tier**: "marginal" if success, "failure" if failed
   - **narrative**: Your transaction narration (2-3 sentences)
   - **attribute**: "None" (purchases don't use attributes)
   - **skill**: null (purchases don't use skills)
