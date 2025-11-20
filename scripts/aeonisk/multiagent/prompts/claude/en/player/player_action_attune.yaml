@@ -13,6 +13,21 @@ content: |-
 
   This action converts Raw Seeds into talismanic energy currency.
 
+  ## ⚠️ CRITICAL PREREQUISITE CHECK - READ THIS FIRST
+
+  **REQUIRED:** You MUST possess at least ONE Raw Seed to attempt attunement.
+
+  **CHECK YOUR INVENTORY NOW (seeds_display section below):**
+  - If you see "⚠️ **NO RAW SEEDS AVAILABLE**" → You CANNOT perform this action!
+  - If you see "Raw Seeds: 0" → You CANNOT perform this action!
+  - If you see "Raw Seeds: 1" or higher → You CAN proceed with attunement
+
+  **If you have zero Raw Seeds:**
+  - This action will be REJECTED during validation
+  - You will waste an action declaring something impossible
+  - Choose a different action instead: search for seeds, purchase from vendor, explore, investigate
+  - You MUST acquire a Raw Seed before attempting attunement
+
   ## Attunement Mechanics
 
   **Process:**

@@ -85,7 +85,7 @@ content: |-
   **Technical & Specialized:**
   - **TECHNICAL:** Hack systems, repair equipment, use tech/engineering
   - **RITUAL:** Cast spells, perform astral arts (requires ritual components)
-  - **ATTUNE:** Seed attunement rituals to create energy currency
+  - **ATTUNE:** Seed attunement rituals to create energy currency (⚠️ requires Raw Seed in inventory - check Seeds section above!)
 
   **Economy:**
   - **PURCHASE:** Buy items/energy from vendors (requires vendor_id)
