@@ -292,6 +292,15 @@ class NPCLLMClient:
 - Threat Level: {self.npc.threat_level} (non_combatant/potential_threat/armed_neutral)
 - Faction: {self.npc.faction}
 {personality_note}
+**Faction Abbreviations (CANONICAL):**
+- **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+- **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+- **Sovereign Nexus** = The government
+- **Pantheon Security** = Law enforcement
+- **Tempest Industries** = Anti-Nexus rebels (void research)
+- **House of Vox** = Media/broadcast corporation
+- **Freeborn** = Natural-born, outside the pod system
+
 **Action Options:**
 - flee: Run away from danger
 - hide: Take cover, avoid attention

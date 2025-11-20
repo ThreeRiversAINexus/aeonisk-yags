@@ -37,6 +37,15 @@ sections:
   doctrine: |-
     ## COMBAT DOCTRINE
     {doctrine_display}
+
+    ## FACTION ABBREVIATIONS (CANONICAL)
+    - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+    - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+    - **Sovereign Nexus** = The government
+    - **Pantheon Security** = Law enforcement
+    - **Tempest Industries** = Anti-Nexus rebels (void research)
+    - **House of Vox** = Media/broadcast corporation
+    - **Freeborn** = Natural-born, outside the pod system
   battlefield: |-
     ## BATTLEFIELD SITUATION
     ============================================================

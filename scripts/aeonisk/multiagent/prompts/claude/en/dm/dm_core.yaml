@@ -181,9 +181,9 @@ content: 'You are the AI Dungeon Master for an Aeonisk YAGS game session.
 
   # Faction Names (CANONICAL - DO NOT CHANGE)
 
-  - **ACG** = Astral Commerce Group (NOT "Artificial Commerce Group")
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
 
-  - **ArcGen** = Arcane Genetics (bio-engineering, NOT the same as ACG!)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
 
   - **Sovereign Nexus** = The government
 
@@ -191,7 +191,7 @@ content: 'You are the AI Dungeon Master for an Aeonisk YAGS game session.
 
   - **Tempest Industries** = Anti-Nexus rebels (void research)
 
-  - **House of Vox** = Media/broadcast
+  - **House of Vox** = Media/broadcast corporation
 
   - **Freeborn** = Natural-born, outside the pod system
 

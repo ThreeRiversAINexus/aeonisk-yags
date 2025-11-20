@@ -73,7 +73,23 @@ content: |-
   )
   ```
 
-  **Example 3: Hybrid Action with Synergy Bonus**
+  **Example 3: Vendor Browsing (Free Action)**
+  ```python
+  InvestigateAction(
+      intent="Browse the vending machine's inventory",
+      description="I examine the vending machine's display screen, reviewing the available items, their descriptions, and prices. Just looking at what's in stock.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=0,
+      difficulty_justification="DC 0: Free action - browsing vendor inventory requires no roll",
+      action_type=ActionType.INVESTIGATE,
+      target="vnd_s4cu_001"  # Vendor ID from entities_present
+  )
+  ```
+
+  💡 **Vendor Browsing:** Investigating vendors to see their inventory is a **free action** - no roll required, the DM simply lists what's available.
+
+  **Example 4: Hybrid Action with Synergy Bonus**
   ```python
   InvestigateAction(
       intent="Examine void-corrupted artifact using occult knowledge",
@@ -90,6 +106,16 @@ content: |-
 
   💡 **Hybrid Actions:** When a secondary skill logically assists your primary skill, use `situational_modifiers`
   to add a +2 synergy bonus. Example: Using Magick Theory knowledge to enhance Awareness checks on void artifacts.
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
 
   ---
 

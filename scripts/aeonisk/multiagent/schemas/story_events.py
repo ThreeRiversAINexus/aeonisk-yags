@@ -257,6 +257,11 @@ Shorter descriptions feel rushed and unsatisfying. Longer descriptions create im
         description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
     )
 
+    altar_removals: List[str] = Field(
+        default_factory=list,
+        description="Altar IDs to remove from scenario (e.g., ['alt_nexus_001', 'alt_ritual_002']). Altars are destroyed, desecrated, or left behind when story advances."
+    )
+
     # NOTE: npc_departures removed - NPC lifecycle is handled in Entity Lifecycle Phase #2 (after story advancement)
     # The DM determines which NPCs follow to the new scene vs. stay behind in ConversionDecisions.npc_departures
 

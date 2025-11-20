@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.2.0
 module: player_intent
 description: "Phase 1: Lightweight action type selection. Routes to action-specific prompts in Phase 2."
 always_load: true
@@ -57,6 +57,15 @@ content: |-
   - Void Curiosity: {void_curiosity}/10 ({void_curiosity_guidance})
   - Bond Preference: {bond_guidance}
 
+  **Faction Abbreviations (CANONICAL):**
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
   ## Available Action Types
 
   Choose the action type that best matches your intent:
@@ -97,9 +106,9 @@ content: |-
   )
   ```
 
-  ## Examples
+  ## Examples (All 12 Action Types)
 
-  **Example 1: Combat**
+  **COMBAT - Attack enemies**
   ```python
   ActionIntent(
       intent="Fire plasma rifle at enemy leader",
@@ -108,16 +117,43 @@ content: |-
   )
   ```
 
-  **Example 2: Attunement**
+  **SUPPORT - Help allies**
   ```python
   ActionIntent(
-      intent="Attune Raw Seed to Drip at marketplace altar",
-      action_type=ActionType.ATTUNE,
-      reasoning="Need drip currency to purchase ritual supplies from vendor"
+      intent="Stabilize wounded teammate with medkit",
+      action_type=ActionType.SUPPORT,
+      reasoning="Ally is critically injured and will bleed out without immediate medical attention"
   )
   ```
 
-  **Example 3: Social**
+  **EXPLORE - Navigate and move**
+  ```python
+  ActionIntent(
+      intent="Search eastern corridor for escape route",
+      action_type=ActionType.EXPLORE,
+      reasoning="Need to find exit before enemy reinforcements arrive"
+  )
+  ```
+
+  **INVESTIGATE - Examine and analyze**
+  ```python
+  ActionIntent(
+      intent="Analyze terminal logs for security breach evidence",
+      action_type=ActionType.INVESTIGATE,
+      reasoning="Understanding how they infiltrated will reveal vulnerabilities we can exploit"
+  )
+  ```
+
+  **PERCEPTION - Detect and sense**
+  ```python
+  ActionIntent(
+      intent="Scan rooftops for hidden snipers",
+      action_type=ActionType.PERCEPTION,
+      reasoning="Open plaza is perfect ambush zone - need to detect threats before crossing"
+  )
+  ```
+
+  **SOCIAL - Persuade and interact**
   ```python
   ActionIntent(
       intent="Negotiate peaceful surrender with gang leader",
@@ -126,12 +162,57 @@ content: |-
   )
   ```
 
-  **Example 4: Technical**
+  **TECHNICAL - Hack and engineer**
   ```python
   ActionIntent(
       intent="Hack security terminal to disable alarms",
       action_type=ActionType.TECHNICAL,
       reasoning="Stealthy approach using Systems skill instead of loud combat"
+  )
+  ```
+
+  **RITUAL - Cast spells and magic**
+  ```python
+  ActionIntent(
+      intent="Perform astral healing on ally's void-tainted wound",
+      action_type=ActionType.RITUAL,
+      reasoning="Wound is spiritually corrupted - conventional Medicine won't work, need ritual healing"
+  )
+  ```
+
+  **ATTUNE - Convert seeds to energy**
+  ```python
+  ActionIntent(
+      intent="Attune Raw Seed to Drip at marketplace altar",
+      action_type=ActionType.ATTUNE,
+      reasoning="Need drip currency to purchase ritual supplies from vendor"
+  )
+  ```
+
+  **PURCHASE - Buy from vendors**
+  ```python
+  ActionIntent(
+      intent="Buy ritual incense from marketplace vendor",
+      action_type=ActionType.PURCHASE,
+      reasoning="Need offerings to reduce void risk for upcoming ritual"
+  )
+  ```
+
+  **TRANSFER - Give to allies**
+  ```python
+  ActionIntent(
+      intent="Give 10 drip energy to teammate for their purchase",
+      action_type=ActionType.TRANSFER,
+      reasoning="Ally needs currency but I'm better positioned to fight than shop"
+  )
+  ```
+
+  **CUSTOM - Improvise creatively**
+  ```python
+  ActionIntent(
+      intent="Use cargo crane to drop container on enemies",
+      action_type=ActionType.CUSTOM,
+      reasoning="Environmental advantage - can eliminate multiple enemies with one creative action"
   )
   ```
 

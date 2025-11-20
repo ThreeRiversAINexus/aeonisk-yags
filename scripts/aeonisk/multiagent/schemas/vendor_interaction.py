@@ -9,7 +9,7 @@ Philosophy:
 - All currency changes logged explicitly
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Dict, List
 
 
@@ -108,7 +108,9 @@ class CurrencyTransfer(BaseModel):
     """
     Player-to-player currency transfer (pooling resources).
 
-    Tracked for JSONL logging (currently invisible in training data).
+    Supports multi-currency transfers (e.g., 15 drip + 1 grain in single action).
+    At least one currency field must be > 0.
+    Tracked for JSONL logging.
     """
     from_character: str = Field(
         ...,
@@ -124,16 +126,29 @@ class CurrencyTransfer(BaseModel):
         description="Character receiving currency"
     )
 
-    currency_type: str = Field(
-        ...,
-        pattern="^(breath|drip|grain|spark)$",
-        description="Currency type transferred (Breath/Drip/Grain/Spark, NOT 'credits')"
+    # Multi-currency support (at least one must be > 0)
+    spark: int = Field(
+        default=0,
+        ge=0,
+        description="Spark transferred (0 if not transferring Spark)"
     )
 
-    amount: int = Field(
-        ...,
-        ge=1,
-        description="Amount transferred (must be positive)"
+    grain: int = Field(
+        default=0,
+        ge=0,
+        description="Grain transferred (0 if not transferring Grain)"
+    )
+
+    drip: int = Field(
+        default=0,
+        ge=0,
+        description="Drip transferred (0 if not transferring Drip)"
+    )
+
+    breath: int = Field(
+        default=0,
+        ge=0,
+        description="Breath transferred (0 if not transferring Breath)"
     )
 
     purpose: Optional[str] = Field(
@@ -141,3 +156,60 @@ class CurrencyTransfer(BaseModel):
         max_length=200,
         description="Why transferring (e.g., 'Pooling funds for Echo-Calibrator purchase')"
     )
+
+    @model_validator(mode='after')
+    def validate_at_least_one_currency(self) -> 'CurrencyTransfer':
+        """Ensure at least one currency type has amount > 0."""
+        total = self.spark + self.grain + self.drip + self.breath
+        if total == 0:
+            raise ValueError(
+                "At least one currency type must have amount > 0 for transfer"
+            )
+        return self
+
+
+class ItemTransfer(BaseModel):
+    """
+    Player-to-player item transfer (sharing equipment, supplies).
+
+    Supports multi-item transfers (e.g., 2 medkits + 1 scanner in single action).
+    At least one item must have quantity > 0.
+    Tracked for JSONL logging.
+    """
+    from_character: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Character giving items"
+    )
+
+    to_character: str = Field(
+        ...,
+        min_length=1,
+        max_length=100,
+        description="Character receiving items"
+    )
+
+    items: Dict[str, int] = Field(
+        ...,
+        description="Items transferred with quantities (e.g., {'Medkit': 2, 'Scanner': 1}). Item names as keys, quantities as values."
+    )
+
+    purpose: Optional[str] = Field(
+        default=None,
+        max_length=200,
+        description="Why transferring (e.g., 'Sharing medical supplies with wounded ally')"
+    )
+
+    @model_validator(mode='after')
+    def validate_at_least_one_item(self) -> 'ItemTransfer':
+        """Ensure at least one item has quantity > 0."""
+        if not self.items:
+            raise ValueError("Items dict must contain at least one item for transfer")
+
+        total = sum(qty for qty in self.items.values() if qty > 0)
+        if total == 0:
+            raise ValueError(
+                "At least one item must have quantity > 0 for transfer"
+            )
+        return self

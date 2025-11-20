@@ -2000,8 +2000,45 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         return self._format_entities_present()
 
     def _format_vendor_status(self) -> str:
-        """Format vendor availability for purchase actions."""
-        return "No vendor info available"
+        """Format vendor availability for purchase actions with IDs and inventory."""
+        if not self.shared_state or not hasattr(self.shared_state, 'current_vendors'):
+            return "No vendors present"
+
+        vendors = self.shared_state.current_vendors
+        if not vendors:
+            return "No vendors present"
+
+        vendor_lines = []
+        for vendor in vendors:
+            # Format vendor header with ID
+            vendor_line = f"**{vendor.name}** (ID: `{vendor.vendor_id}`, Type: {vendor.vendor_type.value})"
+            vendor_lines.append(vendor_line)
+            vendor_lines.append(f"  Greeting: \"{vendor.greeting}\"")
+
+            # Format inventory with item IDs
+            if vendor.inventory:
+                vendor_lines.append(f"  **Inventory ({len(vendor.inventory)} items):**")
+                for item in vendor.inventory:
+                    price_parts = []
+                    if item.price_spark > 0:
+                        price_parts.append(f"{item.price_spark} Spark")
+                    if item.price_grain > 0:
+                        price_parts.append(f"{item.price_grain} Grain")
+                    if item.price_drip > 0:
+                        price_parts.append(f"{item.price_drip} Drip")
+                    if item.price_breath > 0:
+                        price_parts.append(f"{item.price_breath} Breath")
+                    if item.seed_barter:
+                        price_parts.append("OR 1 Raw Seed")
+
+                    price_str = " + ".join(price_parts) if price_parts else "FREE"
+                    vendor_lines.append(f"    - {item.name} (ID: `{item.item_id}`) - {item.description} - **Price:** {price_str}")
+            else:
+                vendor_lines.append("  (No items in stock)")
+
+            vendor_lines.append("")  # Blank line between vendors
+
+        return "\n".join(vendor_lines)
 
     def _format_altar_availability(self) -> str:
         """Format altar availability for attunement actions."""

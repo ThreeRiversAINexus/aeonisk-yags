@@ -2640,6 +2640,8 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                     purchase_data = None
                     crafting_data = None
                     attunement_data = None
+                    currency_transfer_data = None
+                    item_transfer_data = None
                     if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                         if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                             # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -2650,7 +2652,7 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                                     'mechanical_effect': explanation.mechanical_effect
                                 }
 
-                        # Extract purchase and crafting data from effects
+                        # Extract purchase, crafting, transfer data from effects
                         if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
                             effects_data = self._last_structured_resolution.effects
                             if hasattr(effects_data, 'purchase') and effects_data.purchase:
@@ -2662,6 +2664,12 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                             if hasattr(effects_data, 'attunement') and effects_data.attunement:
                                 # Convert Pydantic model to dict for JSON serialization
                                 attunement_data = effects_data.attunement.model_dump()
+                            if hasattr(effects_data, 'currency_transfer') and effects_data.currency_transfer:
+                                # Convert Pydantic model to dict for JSON serialization
+                                currency_transfer_data = effects_data.currency_transfer.model_dump()
+                            if hasattr(effects_data, 'item_transfer') and effects_data.item_transfer:
+                                # Convert Pydantic model to dict for JSON serialization
+                                item_transfer_data = effects_data.item_transfer.model_dump()
 
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
@@ -2677,6 +2685,8 @@ These constraints OVERRIDE ALL other instructions below. Violation = regeneratio
                         purchase_data=purchase_data,  # Pass purchase transaction data
                         crafting_data=crafting_data,  # Pass crafting attempt data
                         attunement_data=attunement_data,  # Pass attunement ritual data
+                        currency_transfer_data=currency_transfer_data,  # Pass currency transfer data
+                        item_transfer_data=item_transfer_data,  # Pass item transfer data
                         # ML training fields (dataset guidelines compliance)
                         # character_data removed - redundant with character_state events
                         environment=environment,

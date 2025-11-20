@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.1.0
 module: player_action_ritual
 description: "Phase 2: RITUAL action - Spellcasting, astral arts, void manipulation"
 always_load: false
@@ -77,8 +77,37 @@ content: |-
   )
   ```
 
+  **Astral Healing (Major Ritual - High DC!):**
+  ```python
+  RitualAction(
+      intent="Perform astral healing ritual to close ally's void-tainted wound",
+      description="I lay purifying incense around my wounded ally and place my hands above the corrupted injury. Channeling astral energy through protective glyphs, I attempt to seal the wound at a spiritual level - the flesh will follow if the astral pattern holds.",
+      attribute="Willpower",
+      skill="Astral Arts",
+      difficulty_estimate=22,
+      difficulty_justification="DC 22: Major ritual (astral healing), void-tainted wound resists conventional medicine, requires offerings to avoid corruption feedback",
+      action_type=ActionType.RITUAL,
+      is_ritual=True,
+      has_offering=True,
+      offering_type="incense",
+      ritual_components="Purifying incense, protective glyphs, focused will"
+  )
+  ```
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
   ---
 
   **⚠️ WARNING: Always use offerings when possible to reduce void corruption risk!**
+
+  **💡 NOTE: Ritual healing is for spiritual/curse wounds (DC 20-22). For conventional injuries, use Medicine (SUPPORT) instead - lower DC, no void risk!**
 
   **Ready? Declare your ritual!**

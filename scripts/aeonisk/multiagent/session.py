@@ -1847,7 +1847,7 @@ class SelfPlayingSession:
                             if npc:
                                 enemy = escalate_npc_to_enemy(
                                     npc=npc,
-                                    template=escalation.template,
+                                    template_override=escalation.template,
                                     current_round=mechanics.current_round if mechanics else 0
                                 )
 
@@ -3907,6 +3907,16 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         print(f"   Vendor departed: {vendor_name}")
                     else:
                         logger.warning(f"Failed to remove vendor '{vendor_name}' - not found in current_vendors")
+
+            # Remove departing altars
+            if adv.altar_removals and self.shared_state:
+                for altar_id in adv.altar_removals:
+                    removed = self.shared_state.remove_altar(altar_id)
+                    if removed:
+                        logger.info(f"🏛️ Altar removed: {altar_id}")
+                        print(f"   Altar removed: {altar_id}")
+                    else:
+                        logger.warning(f"Failed to remove altar '{altar_id}' - not found in current_altars")
 
             # NOTE: NPC departures are now handled in Entity Lifecycle Phase #2 (below)
             # This allows DM to decide which NPCs follow to new scene in ConversionDecisions

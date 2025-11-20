@@ -70,14 +70,11 @@ content: |-
   - Charm: {charm_skill}
   - Negotiation: {negotiation_skill}
 
-  ## Vendor IDs
+  ## Vendors & Items Available
 
-  The DM has provided vendor IDs in the scene description. Look for:
-  - `vnd_marketplace_01` - Marketplace vendor
-  - `vnd_black_market` - Illicit trader
-  - `vnd_guild_supplier` - Official guild vendor
+  {vendor_status}
 
-  If no vendor ID is provided, use a descriptive identifier like `vnd_incense_merchant`.
+  ⚠️ **CRITICAL:** You MUST use the exact `vendor_id` and `item_id` shown above in backticks!
 
   ## Item IDs
 
@@ -183,6 +180,16 @@ content: |-
   **Bulk Purchases:**
   - Buying multiple items: One roll, list all in description
   - Vendor may offer discounts for bulk
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
 
   ---
 

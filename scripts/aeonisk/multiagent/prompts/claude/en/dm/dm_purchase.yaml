@@ -8,6 +8,16 @@ content: |
 
   You are narrating a **pre-validated purchase transaction**. The mechanical execution (currency deduction, item addition) has ALREADY happened. Your job is to provide atmospheric narration of the transaction.
 
+  ## Note: Vendor Browsing (INVESTIGATE Actions)
+
+  When players use INVESTIGATE actions to browse vendor inventory (not purchases), treat it as a **free action**:
+  - **NO roll required** - browsing is automatic
+  - **List full inventory** - show all items with names, descriptions, and prices
+  - **Keep it concise** - 2-4 sentences of narration + itemized list
+  - **Example**: "You approach the vending machine. Its display flickers to life, listing available items: Health Kit (5 Drip), Ammo Pack (3 Drip), Energy Bar (1 Drip)."
+
+  Vendor inventories are already provided in `active_vendors` context with full details.
+
   ## Purchase Validation Data
 
   The action includes `purchase_validation` with:

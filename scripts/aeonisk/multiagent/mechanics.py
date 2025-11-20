@@ -317,6 +317,8 @@ class JSONLLogger:
         purchase_data: Dict[str, Any] = None,
         crafting_data: Dict[str, Any] = None,
         attunement_data: Dict[str, Any] = None,
+        currency_transfer_data: Dict[str, Any] = None,
+        item_transfer_data: Dict[str, Any] = None,
         # New ML training fields (dataset guidelines compliance)
         # character_data removed - redundant with character_state events (saves ~7,200 tokens/session)
         environment: str = None,
@@ -355,7 +357,9 @@ class JSONLLogger:
             "inventory_changes": [{"item": "incense", "delta": -1}],
             "purchase": {"success": true, "vendor_name": "S4CU", "items_purchased": ["Med Kit"], "currency_spent": {"spark": 1}},
             "crafting": {"offering_type": "blood_offering", "materials_used": ["blood_sample"], "success": true},
-            "attunement": {"success": true, "energy_type": "drip", "amount": 20, "seed_consumed": "raw", "altar_id": "alt_test_basic"}
+            "attunement": {"success": true, "energy_type": "drip", "amount": 20, "seed_consumed": "raw", "altar_id": "alt_test_basic"},
+            "currency_transfer": {"from_character": "Ash", "to_character": "Echo", "drip": 15, "grain": 1, "purpose": "Pooling funds"},
+            "item_transfer": {"from_character": "Ash", "to_character": "Echo", "items": {"Medkit": 2}, "purpose": "Sharing supplies"}
           }
         }
         """
@@ -417,7 +421,9 @@ class JSONLLogger:
                 "inventory_changes": inventory_changes or [],  # New: track offering consumption, item pickups, etc.
                 "purchase": purchase_data,  # Purchase transaction details (vendor, items, currency)
                 "crafting": crafting_data,  # Crafting attempt details (offering type, materials, success)
-                "attunement": attunement_data  # Attunement ritual details (energy type, amount, seed consumed, altar)
+                "attunement": attunement_data,  # Attunement ritual details (energy type, amount, seed consumed, altar)
+                "currency_transfer": currency_transfer_data,  # Currency transfer details (from, to, amounts, purpose)
+                "item_transfer": item_transfer_data  # Item transfer details (from, to, items, purpose)
             }
         }
 
@@ -2494,17 +2500,30 @@ class MechanicsEngine:
         transfer_items = transfer_items or {}
         from .shared_state import SharedState
 
-        # Get receiver by name or agent_id from shared state
+        # Get receiver by name, agent_id, or target_id from shared state
         receiver_agent = None
         receiver_state = None
 
         if self.shared_state:
-            # Try to find by agent_id first
-            for agent in self.shared_state.player_agents:
-                if agent.agent_id == transfer_target or agent.character_state.name.lower() == transfer_target.lower():
-                    receiver_agent = agent
-                    receiver_state = agent.character_state
-                    break
+            # First, try to resolve target_id if it looks like one (tgt_xxxx format)
+            if transfer_target.startswith('tgt_') and self.shared_state.target_id_mapper:
+                receiver_agent = self.shared_state.target_id_mapper.resolve_target(transfer_target)
+                if receiver_agent:
+                    # Successfully resolved target ID to agent
+                    receiver_state = receiver_agent.character_state if hasattr(receiver_agent, 'character_state') else None
+                else:
+                    # Target ID not found in mapper
+                    return TransferValidation(
+                        is_valid=False,
+                        failure_reason=f"Target ID '{transfer_target}' not found in combat mapper"
+                    )
+            else:
+                # Try to find by agent_id or character name
+                for agent in self.shared_state.player_agents:
+                    if agent.agent_id == transfer_target or agent.character_state.name.lower() == transfer_target.lower():
+                        receiver_agent = agent
+                        receiver_state = agent.character_state
+                        break
 
         if receiver_state is None:
             return TransferValidation(

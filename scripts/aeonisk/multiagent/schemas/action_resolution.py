@@ -27,6 +27,7 @@ from .vendor_interaction import (
     PurchaseEffect,
     CraftingAttempt,
     CurrencyTransfer,
+    ItemTransfer,
 )
 from .action_effects import (
     HealingEffect,
@@ -136,6 +137,11 @@ class MechanicalEffects(BaseModel):
     currency_transfer: Optional['CurrencyTransfer'] = Field(
         default=None,
         description="Player-to-player energy currency transfer (if action was a transfer). Replaces keyword parsing."
+    )
+
+    item_transfer: Optional['ItemTransfer'] = Field(
+        default=None,
+        description="Player-to-player item transfer (if action was a transfer). Tracks who gave what items to whom and why."
     )
 
     attunement: Optional['AttunementEffect'] = Field(
