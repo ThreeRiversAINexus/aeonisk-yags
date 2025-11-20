@@ -1115,7 +1115,15 @@ class AIPlayerAgent(Agent):
             raw_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.RAW)
             attuned_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.ATTUNED)
             hollow_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.HOLLOW)
-            seeds_display = f"""- Raw Seeds: {raw_count} (degrade over time, need attunement)
+
+            # Warn if no Raw Seeds available (prevents invalid attunement attempts)
+            if raw_count == 0:
+                seeds_display = f"""⚠️ **NO RAW SEEDS AVAILABLE** - You CANNOT perform attunement!
+- Raw Seeds: 0 (REQUIRED for attunement - acquire more via search/purchase)
+- Attuned Seeds: {attuned_count} (stable, ritual fuel)
+- Hollow Seeds: {hollow_count} (illicit, black market commodity)"""
+            else:
+                seeds_display = f"""- Raw Seeds: {raw_count} (degrade over time, need attunement)
 - Attuned Seeds: {attuned_count} (stable, ritual fuel)
 - Hollow Seeds: {hollow_count} (illicit, black market commodity)"""
         else:
@@ -2001,42 +2009,85 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
     def _format_vendor_status(self) -> str:
         """Format vendor availability for purchase actions with IDs and inventory."""
-        if not self.shared_state or not hasattr(self.shared_state, 'current_vendors'):
-            return "No vendors present"
-
-        vendors = self.shared_state.current_vendors
-        if not vendors:
+        if not self.shared_state:
             return "No vendors present"
 
         vendor_lines = []
-        for vendor in vendors:
-            # Format vendor header with ID
-            vendor_line = f"**{vendor.name}** (ID: `{vendor.vendor_id}`, Type: {vendor.vendor_type.value})"
-            vendor_lines.append(vendor_line)
-            vendor_lines.append(f"  Greeting: \"{vendor.greeting}\"")
 
-            # Format inventory with item IDs
-            if vendor.inventory:
-                vendor_lines.append(f"  **Inventory ({len(vendor.inventory)} items):**")
-                for item in vendor.inventory:
-                    price_parts = []
-                    if item.price_spark > 0:
-                        price_parts.append(f"{item.price_spark} Spark")
-                    if item.price_grain > 0:
-                        price_parts.append(f"{item.price_grain} Grain")
-                    if item.price_drip > 0:
-                        price_parts.append(f"{item.price_drip} Drip")
-                    if item.price_breath > 0:
-                        price_parts.append(f"{item.price_breath} Breath")
-                    if item.seed_barter:
-                        price_parts.append("OR 1 Raw Seed")
+        # Check legacy vendors (backward compatibility)
+        if hasattr(self.shared_state, 'current_vendors') and self.shared_state.current_vendors:
+            for vendor in self.shared_state.current_vendors:
+                # Format vendor header with ID
+                vendor_line = f"**{vendor.name}** (ID: `{vendor.vendor_id}`, Type: {vendor.vendor_type.value})"
+                vendor_lines.append(vendor_line)
+                vendor_lines.append(f"  Greeting: \"{vendor.greeting}\"")
 
-                    price_str = " + ".join(price_parts) if price_parts else "FREE"
-                    vendor_lines.append(f"    - {item.name} (ID: `{item.item_id}`) - {item.description} - **Price:** {price_str}")
-            else:
-                vendor_lines.append("  (No items in stock)")
+                # Format inventory with item IDs
+                if vendor.inventory:
+                    vendor_lines.append(f"  **Inventory ({len(vendor.inventory)} items):**")
+                    for item in vendor.inventory:
+                        price_parts = []
+                        if item.price_spark > 0:
+                            price_parts.append(f"{item.price_spark} Spark")
+                        if item.price_grain > 0:
+                            price_parts.append(f"{item.price_grain} Grain")
+                        if item.price_drip > 0:
+                            price_parts.append(f"{item.price_drip} Drip")
+                        if item.price_breath > 0:
+                            price_parts.append(f"{item.price_breath} Breath")
+                        if item.seed_barter:
+                            price_parts.append("OR 1 Raw Seed")
 
-            vendor_lines.append("")  # Blank line between vendors
+                        price_str = " + ".join(price_parts) if price_parts else "FREE"
+                        vendor_lines.append(f"    - {item.name} (ID: `{item.item_id}`) - {item.description} - **Price:** {price_str}")
+                else:
+                    vendor_lines.append("  (No items in stock)")
+
+                vendor_lines.append("")  # Blank line between vendors
+
+        # Check NPC vendors (unified vendor system)
+        if hasattr(self.shared_state, 'npc_agents') and self.shared_state.npc_agents:
+            for npc in self.shared_state.npc_agents:
+                # Only include NPCs with is_vendor=True
+                if not getattr(npc, 'is_vendor', False):
+                    continue
+
+                # Format NPC vendor header with agent_id
+                vendor_type = getattr(npc, 'vendor_type', 'human_trader')
+                vendor_line = f"**{npc.name}** (ID: `{npc.agent_id}`, Type: {vendor_type})"
+                vendor_lines.append(vendor_line)
+
+                # Greeting (optional for NPC vendors)
+                greeting = getattr(npc, 'vendor_greeting', None)
+                if greeting:
+                    vendor_lines.append(f"  Greeting: \"{greeting}\"")
+
+                # Format inventory with item IDs
+                inventory = getattr(npc, 'vendor_inventory', [])
+                if inventory:
+                    vendor_lines.append(f"  **Inventory ({len(inventory)} items):**")
+                    for item in inventory:
+                        price_parts = []
+                        if item.price_spark > 0:
+                            price_parts.append(f"{item.price_spark} Spark")
+                        if item.price_grain > 0:
+                            price_parts.append(f"{item.price_grain} Grain")
+                        if item.price_drip > 0:
+                            price_parts.append(f"{item.price_drip} Drip")
+                        if item.price_breath > 0:
+                            price_parts.append(f"{item.price_breath} Breath")
+                        if item.seed_barter:
+                            price_parts.append("OR 1 Raw Seed")
+
+                        price_str = " + ".join(price_parts) if price_parts else "FREE"
+                        vendor_lines.append(f"    - {item.name} (ID: `{item.item_id}`) - {item.description} - **Price:** {price_str}")
+                else:
+                    vendor_lines.append("  (No items in stock)")
+
+                vendor_lines.append("")  # Blank line between vendors
+
+        if not vendor_lines:
+            return "No vendors present"
 
         return "\n".join(vendor_lines)
 
