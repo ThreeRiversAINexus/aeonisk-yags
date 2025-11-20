@@ -4208,10 +4208,11 @@ Read the action intent to understand WHY this transfer is happening:
 **IMPORTANT - Make it NARRATIVE with dialogue and movement:**
 
 For **dialogue/plead/negotiate actions**, include:
+- WHO the NPC is addressing (use target name from above - be specific!)
 - The NPC's actual spoken words (quoted dialogue) - expand on what they say
 - Their tone of voice, delivery, emphasis
 - Body language while speaking (gestures, posture, facial expressions)
-- How others react to their words (visual cues, responses)
+- How the TARGET reacts to their words (visual cues, responses)
 
 For **other actions** (flee, hide, assist, attack):
 - Physical movements in detail (how they move, where they go, what they touch)
@@ -4222,11 +4223,15 @@ For **other actions** (flee, hide, assist, attack):
 
 ❌ TOO BRIEF: "He threatens them."
 
-✅ GOOD: "He rises from his seat, cuff links catching the light as he folds his hands deliberately. 'My client will bid fifty thousand—no higher,' he announces, voice smooth as silk but edged with finality. A ripple of held breath and hurried pen scratches marks the room's small surrender."
+✅ GOOD (dialogue with target): "He turns toward Ash, cuff links catching the light as he folds his hands deliberately. 'Ash, my client will bid fifty thousand—no higher,' he announces, voice smooth as silk but edged with finality. Ash's eyes narrow, but he gives a curt nod. A ripple of held breath and hurried pen scratches marks the room's small surrender."
+
+❌ TOO BRIEF (plead): "She pleads with them."
+
+✅ GOOD (plead with target): "Her breath comes in ragged gasps as she stumbles backward toward Sera, hands raised in supplication. 'Sera—please, I didn't sign up for this!' The words tear out half-sob, half-scream, her eyes locked on Sera's face, searching for mercy. Sera's grip on her weapon tightens, but her expression flickers with uncertainty."
 
 ❌ TOO BRIEF: "She flees in panic."
 
-✅ GOOD: "Her breath comes in ragged gasps as she stumbles backward, hands fumbling for the door panel. 'No—no, I didn't sign up for this!' The words tear out half-sob, half-scream. She spins, robes tangling around her ankles, and bolts for the nearest exit arch."
+✅ GOOD (flee): "Her breath comes in ragged gasps as she stumbles backward, hands fumbling for the door panel. 'No—no, I didn't sign up for this!' The words tear out half-sob, half-scream. She spins, robes tangling around her ankles, and bolts for the nearest exit arch."
 
 **Write 400-800 characters.** Be cinematic, include dialogue for social actions, show body language and reactions."""
 
