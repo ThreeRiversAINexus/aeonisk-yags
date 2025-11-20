@@ -5,12 +5,18 @@ Session Analyzer - Lightweight tool for analyzing JSONL session logs.
 Usage:
     python scripts/analyze_session.py <session.jsonl> [--mode=summary|clocks|void|actions|timeline]
     python scripts/analyze_session.py <session.jsonl> --validate-fixture
+    python scripts/analyze_session.py --discover <directory> [--complete-only] [--min-rounds N]
 
 Modes:
     summary (default) - Quick overview (~30-40 lines)
     clocks           - Clock progression detail (~5-30 lines)
     void             - Void trajectory (~10-20 lines)
     validate-fixture - Validate schema and replay-readiness (exit 0=pass, 1=fail)
+
+Discovery:
+    --discover <dir> - Scan directory for sessions, rank by interestingness
+    --complete-only  - Only show complete sessions (with session_end)
+    --min-rounds N   - Filter sessions with at least N rounds
 
 Output is designed to be concise (<2000 tokens) for use in development/debugging
 without blowing up context windows.
@@ -297,6 +303,202 @@ class FixtureValidator:
             print("\n⚠ VALIDATION PASSED WITH WARNINGS")
         else:
             print("\n✓ VALIDATION PASSED")
+
+        print()
+
+
+class SessionDiscovery:
+    """Scan directories for sessions and rank by interestingness."""
+
+    def __init__(self, directory: Path):
+        self.directory = directory
+        self.sessions = []
+
+    def scan(self, complete_only: bool = False, min_rounds: int = 0) -> List[Dict[str, Any]]:
+        """Scan directory for session files and extract metadata."""
+        jsonl_files = sorted(self.directory.glob("session_*.jsonl"))
+
+        for jsonl_file in jsonl_files:
+            metadata = self._extract_metadata(jsonl_file)
+
+            # Apply filters
+            if complete_only and not metadata['complete']:
+                continue
+            if min_rounds > 0 and metadata['rounds'] < min_rounds:
+                continue
+
+            self.sessions.append(metadata)
+
+        return self.sessions
+
+    def _extract_metadata(self, jsonl_file: Path) -> Dict[str, Any]:
+        """Extract key metadata from a session file."""
+        metadata = {
+            'file': jsonl_file.name,
+            'path': jsonl_file,
+            'complete': False,
+            'rounds': 0,
+            'events': 0,
+            'size': jsonl_file.stat().st_size,
+            'scenario': None,
+            'enemies_spawned': 0,
+            'enemies_defeated': 0,
+            'actions': 0,
+            'clocks': set(),
+            'deescalations': 0,
+            'npcs': 0,
+            'player_count': 0,
+            'void_start': None,
+            'void_end': None,
+        }
+
+        try:
+            with open(jsonl_file) as f:
+                for line in f:
+                    event = json.loads(line)
+                    metadata['events'] += 1
+                    event_type = event.get('event_type')
+
+                    if event_type == 'session_end':
+                        metadata['complete'] = True
+                    elif event_type == 'scenario':
+                        metadata['scenario'] = event.get('scenario', {})
+                        void_level = metadata['scenario'].get('void_level')
+                        if void_level is not None and metadata['void_start'] is None:
+                            metadata['void_start'] = void_level
+                    elif event_type == 'action_resolution':
+                        metadata['actions'] += 1
+                        # Track clocks
+                        clocks = event.get('clocks', {})
+                        metadata['clocks'].update(clocks.keys())
+                    elif event_type == 'enemy_spawn':
+                        metadata['enemies_spawned'] += event.get('context', {}).get('count', 1)
+                    elif event_type == 'enemy_defeat':
+                        metadata['enemies_defeated'] += 1
+                    elif event_type == 'round_synthesis':
+                        # Check for deescalations/NPCs
+                        synthesis = event.get('data', {})
+                        if 'deescalations' in synthesis:
+                            metadata['deescalations'] += len(synthesis.get('deescalations', []))
+                        if 'npc_spawns' in synthesis:
+                            metadata['npcs'] += len(synthesis.get('npc_spawns', []))
+                    elif event_type == 'session_start':
+                        config = event.get('config', {})
+                        metadata['player_count'] = config.get('party_size', 0)
+
+                    # Track max round
+                    r = event.get('round')
+                    if r and r > metadata['rounds']:
+                        metadata['rounds'] = r
+
+                    # Track environmental void at end
+                    if event_type == 'round_synthesis':
+                        synthesis = event.get('data', {})
+                        if 'new_void_level' in synthesis:
+                            metadata['void_end'] = synthesis['new_void_level']
+
+        except Exception as e:
+            print(f"Warning: Error reading {jsonl_file.name}: {e}")
+
+        metadata['clocks'] = len(metadata['clocks'])
+        return metadata
+
+    def calculate_interestingness(self, session: Dict[str, Any]) -> float:
+        """
+        Calculate an interestingness score for story generation.
+
+        Factors:
+        - Longer sessions (more rounds)
+        - Combat variety (enemies)
+        - Story complexity (clocks, NPCs, deescalations)
+        - Completeness (has ending)
+        """
+        score = 0.0
+
+        # Rounds (linear scaling, max bonus at 10+ rounds)
+        score += min(session['rounds'] * 10, 100)
+
+        # Combat engagement
+        if session['enemies_spawned'] > 0:
+            score += 30
+            score += min(session['enemies_defeated'] * 5, 30)
+
+        # Story complexity
+        score += session['clocks'] * 15  # Clocks indicate dynamic story
+        score += session['deescalations'] * 20  # Deescalations = interesting social dynamics
+        score += session['npcs'] * 10  # NPCs add depth
+
+        # Actions indicate engagement
+        score += min(session['actions'] * 2, 50)
+
+        # Completeness bonus (big!)
+        if session['complete']:
+            score += 100
+
+        # Void changes (interesting dynamics)
+        if session['void_start'] is not None and session['void_end'] is not None:
+            void_delta = abs(session['void_end'] - session['void_start'])
+            score += void_delta * 5
+
+        return score
+
+    def print_ranked_sessions(self, limit: int = 20):
+        """Print sessions ranked by interestingness."""
+        # Calculate scores
+        for session in self.sessions:
+            session['score'] = self.calculate_interestingness(session)
+
+        # Sort by score
+        self.sessions.sort(key=lambda x: x['score'], reverse=True)
+
+        # Print header
+        total = len(self.sessions)
+        complete = sum(1 for s in self.sessions if s['complete'])
+        print(f"\n=== DISCOVERED {total} SESSIONS ({complete} complete) ===\n")
+
+        # Print top sessions
+        shown = min(limit, len(self.sessions))
+        for i, s in enumerate(self.sessions[:shown], 1):
+            self._print_session_summary(i, s)
+
+        if len(self.sessions) > limit:
+            print(f"\n({len(self.sessions) - limit} more sessions not shown)")
+
+    def _print_session_summary(self, rank: int, s: Dict[str, Any]):
+        """Print a single session summary."""
+        status = "✓" if s['complete'] else "⚠"
+        theme = s['scenario'].get('theme', 'Unknown')[:70] if s['scenario'] else 'Unknown'
+        location = s['scenario'].get('location', 'Unknown')[:50] if s['scenario'] else 'Unknown'
+        size_mb = s['size'] / (1024 * 1024)
+
+        print(f"{rank}. {status} {s['file']} (score: {s['score']:.0f})")
+        print(f"   {theme}")
+        print(f"   Location: {location}")
+
+        # Stats line
+        stats = []
+        stats.append(f"{s['rounds']} rounds")
+        stats.append(f"{s['actions']} actions")
+        if s['enemies_spawned'] > 0:
+            stats.append(f"{s['enemies_spawned']} enemies ({s['enemies_defeated']} defeated)")
+        if s['clocks'] > 0:
+            stats.append(f"{s['clocks']} clocks")
+        if s['deescalations'] > 0:
+            stats.append(f"{s['deescalations']} deescalations")
+        if s['npcs'] > 0:
+            stats.append(f"{s['npcs']} NPCs")
+        stats.append(f"{size_mb:.1f}MB")
+
+        print(f"   {' | '.join(stats)}")
+
+        # Void info
+        if s['void_start'] is not None:
+            if s['void_end'] is not None:
+                delta = s['void_end'] - s['void_start']
+                delta_str = f"{delta:+d}" if delta != 0 else "0"
+                print(f"   Void: {s['void_start']}/10 → {s['void_end']}/10 ({delta_str})")
+            else:
+                print(f"   Void: {s['void_start']}/10")
 
         print()
 
@@ -769,13 +971,35 @@ Examples:
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution round=2
   python scripts/analyze_session.py session.jsonl --search event_type=scenario --fields scenario.void_level,scenario.location
 
+  # Discovery mode (find interesting stories)
+  python scripts/analyze_session.py --discover multiagent_output/
+  python scripts/analyze_session.py --discover multiagent_output/ --complete-only
+  python scripts/analyze_session.py --discover multiagent_output/ --min-rounds 5 --limit 10
+
   # Utilities
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --count
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --index
   python scripts/analyze_session.py session.jsonl --line 5
         """
     )
-    parser.add_argument('jsonl_file', type=Path, help='Path to JSONL session file')
+    parser.add_argument('jsonl_file', nargs='?', type=Path, help='Path to JSONL session file (optional if using --discover)')
+    parser.add_argument(
+        '--discover',
+        type=Path,
+        metavar='DIR',
+        help='Scan directory for sessions and rank by interestingness'
+    )
+    parser.add_argument(
+        '--complete-only',
+        action='store_true',
+        help='Only show complete sessions (with session_end)'
+    )
+    parser.add_argument(
+        '--min-rounds',
+        type=int,
+        default=0,
+        help='Minimum rounds required for discovery results'
+    )
     parser.add_argument(
         '--mode',
         choices=['summary', 'clocks', 'void'],
@@ -825,6 +1049,26 @@ Examples:
     )
 
     args = parser.parse_args()
+
+    # Handle --discover mode (scans directory)
+    if args.discover:
+        if not args.discover.exists():
+            print(f"Error: Directory not found: {args.discover}")
+            return 1
+        if not args.discover.is_dir():
+            print(f"Error: Not a directory: {args.discover}")
+            return 1
+
+        discovery = SessionDiscovery(args.discover)
+        discovery.scan(complete_only=args.complete_only, min_rounds=args.min_rounds)
+        discovery.print_ranked_sessions(limit=args.limit)
+        return 0
+
+    # For non-discover modes, require jsonl_file
+    if not args.jsonl_file:
+        print("Error: Either provide a JSONL file or use --discover <directory>")
+        parser.print_help()
+        return 1
 
     if not args.jsonl_file.exists():
         print(f"Error: File not found: {args.jsonl_file}")

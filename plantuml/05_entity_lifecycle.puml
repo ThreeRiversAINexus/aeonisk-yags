@@ -21,12 +21,16 @@ state "NPC Agent" as NPC {
     state "Prisoner" as NPrisoner
     state "Ally" as NAlly
     state "Hostile" as NHostile
+    state "Vendor" as NVendor
 
     NSpawn --> NActive : introduced
+    NSpawn --> NVendor : is_vendor=True
     NActive --> NPrisoner : subdued
     NActive --> NAlly : befriended
     NActive --> NHostile : betrayal
     NActive --> NActive : takes turns (opportunistic)
+    NVendor --> NVendor : accepts purchases\ncan_act=False (static)
+    NVendor --> NActive : can_act=True (dynamic)
 }
 
 ' Creation paths
@@ -70,6 +74,13 @@ note right of NPC
     Action set: flee, hide, plead, comply,
                 dialogue, assist, pass
 
+    Vendor capabilities (optional):
+    - is_vendor=True flag
+    - vendor_inventory (List[VendorItem])
+    - vendor_type (human_trader, vending_machine, etc.)
+    - accepts_purchases flag
+    - can_act=False for static vendors (no LLM)
+
     agent_id: STABLE across conversions
     Example: "npc_a1b2c3d4" OR "ene_a1b2c3d4"
               (preserves enemy ID if converted)
@@ -102,6 +113,10 @@ note left of Conv
     - agent_id (new)
     - name, description
     - disposition
+    - is_vendor (optional)
+    - vendor_inventory (optional)
+    - vendor_type (optional)
+    - accepts_purchases (optional)
 
     Deescalation:
     - agent_id (existing enemy)

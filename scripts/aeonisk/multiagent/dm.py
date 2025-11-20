@@ -4147,7 +4147,7 @@ Read the action intent to understand WHY this transfer is happening:
 
 **NPC:** {character_name}
 **Action Type:** {npc_action_type}
-**Intent:** {intent}
+**NPC's Intent/Reasoning:** {description if description else intent}
 **Target:** {target if target else 'None'}{dialogue_info}
 
 **IMPORTANT - Make it NARRATIVE with dialogue and movement:**

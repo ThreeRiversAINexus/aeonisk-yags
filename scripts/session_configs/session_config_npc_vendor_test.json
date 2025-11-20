@@ -1,0 +1,122 @@
+{
+  "session_name": "npc_vendor_integration_test",
+  "max_turns": 2,
+  "mission_theme": "test",
+  "starting_location": "Abandoned Station Market",
+  "starting_situation": "You encounter a vendor selling supplies.",
+  "void_level": 2,
+  "party_size": 1,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Ash",
+        "faction": "Freeborn",
+        "attributes": {
+          "intelligence": 4,
+          "perception": 3,
+          "willpower": 3
+        },
+        "skills": {
+          "Negotiate": 3,
+          "Investigate": 2
+        },
+        "void_score": 1,
+        "soulcredit": 0,
+        "bonds": ["Find valuable supplies"],
+        "goals": ["Purchase healing item from vendor"],
+        "pronouns": "they/them",
+        "energy_purse": {
+          "breath": 10,
+          "drip": 15,
+          "grain": 3,
+          "spark": 1
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        }
+      }
+    ]
+  },
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "npc_spawns": [
+    {
+      "name": "Supply Trader Vex",
+      "faction": "Neutral",
+      "entity_type": "neutral",
+      "disposition": "neutral",
+      "threat_level": "non_combatant",
+      "description": "Grizzled trader with cybernetic eyes and a worn ACG jacket, selling medical supplies and tools from a portable stall",
+      "health": 25,
+      "soak": 2,
+      "skills": {
+        "Negotiate": 4,
+        "Appraise": 3
+      },
+      "is_vendor": true,
+      "vendor_inventory": [
+        {
+          "name": "Medkit",
+          "description": "Standard medical supplies - bandages, antiseptic, painkillers",
+          "price_drip": 5,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Void Scanner",
+          "description": "Handheld device for detecting void anomalies",
+          "price_drip": 8,
+          "price_grain": 1,
+          "item_type": "tool"
+        },
+        {
+          "name": "Emergency Rations",
+          "description": "Preserved food, good for a week",
+          "price_drip": 3,
+          "item_type": "consumable"
+        }
+      ],
+      "vendor_greeting": "Looking for supplies? I've got what you need. Prices are fair, no haggling.",
+      "vendor_type": "human_trader",
+      "accepts_purchases": true
+    },
+    {
+      "name": "S4CU Vending Node Alpha-7",
+      "faction": "Neutral",
+      "entity_type": "neutral",
+      "disposition": "neutral",
+      "threat_level": "non_combatant",
+      "description": "Battered vending machine with flickering display, dispensing basic supplies",
+      "health": 80,
+      "soak": 8,
+      "skills": {},
+      "is_vendor": true,
+      "vendor_inventory": [
+        {
+          "name": "Energy Bar",
+          "description": "Nutrient ration bar",
+          "price_drip": 1,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Water Canteen",
+          "description": "Sealed water container",
+          "price_drip": 2,
+          "item_type": "consumable"
+        }
+      ],
+      "vendor_greeting": "[BEEP] Insert currency. Select item. [BEEP]",
+      "vendor_type": "vending_machine",
+      "accepts_purchases": true
+    }
+  ],
+  "_design_notes": "Test NPC vendor unification system - human trader + vending machine NPCs"
+}
