@@ -3460,10 +3460,12 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Get agent_id early (needed for validation checks below)
         agent_id = message.sender
 
-        # PRE-VALIDATE ATTUNEMENT ACTIONS (check inventory before buffering)
-        # Unlike purchases/transfers (which are pre-executed), attunement involves dice rolls
-        # We validate prerequisites (seeds, altar, equipment) but don't execute until DM rolls
+        # PRE-VALIDATE ATTUNEMENT ACTIONS (check prerequisites, store result)
+        # Similar to purchases - validates inventory/equipment but doesn't execute (DM rolls dice)
+        # Validation result stored in action payload for DM to see
         action_type = message.payload.get('action_type')
+        action_payload = message.payload  # Get reference to payload for modification
+
         if action_type == 'attune':
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
@@ -3472,9 +3474,9 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 if player_agent:
                     try:
                         # Extract attunement parameters from action payload
-                        target_energy = message.payload.get('target_energy')
-                        altar_id = message.payload.get('altar_id')
-                        use_echo_calibrator = message.payload.get('use_echo_calibrator', False)
+                        target_energy = action_payload.get('target_energy')
+                        altar_id = action_payload.get('altar_id')
+                        use_echo_calibrator = action_payload.get('use_echo_calibrator', False)
 
                         # Validate prerequisites (inventory, equipment, altar existence)
                         validation = mechanics.validate_attunement(
@@ -3484,29 +3486,38 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             use_echo_calibrator=use_echo_calibrator
                         )
 
+                        # Store validation result on the action for DM to see
+                        action_payload['attunement_validation'] = {
+                            'is_valid': validation.is_valid,
+                            'failure_reason': validation.failure_reason,
+                            'has_seed': validation.has_seed if hasattr(validation, 'has_seed') else None,
+                            'has_equipment': validation.has_equipment if hasattr(validation, 'has_equipment') else None,
+                            'altar_found': validation.altar_found if hasattr(validation, 'altar_found') else None
+                        }
+
                         if not validation.is_valid:
-                            # REJECT action - don't buffer it, don't send to DM
+                            # Log validation failure but still buffer action for coordinator
                             logger.warning(
-                                f"❌ ATTUNEMENT REJECTED for {player_agent.character_state.name}: "
+                                f"❌ ATTUNEMENT VALIDATION FAILED for {player_agent.character_state.name}: "
                                 f"{validation.failure_reason}"
                             )
 
-                            # Print error message to console for player visibility
+                            # Print warning to console for player visibility
                             print(
-                                f"\n❌ [{player_agent.character_state.name}] Attunement action INVALID: "
+                                f"\n⚠️  [{player_agent.character_state.name}] Attunement validation failed: "
                                 f"{validation.failure_reason}"
                             )
-                            print("   └─ Please choose a different action (search, purchase, etc.)\n")
-
-                            # TODO: Send message back to player agent to trigger re-declaration
-                            # For now, early return prevents buffering and DM sees nothing
-                            return
+                            print("   └─ DM will narrate automatic failure (no roll needed)\n")
+                        else:
+                            logger.info(f"✓ Attunement validated for {player_agent.character_state.name}")
 
                     except Exception as e:
                         logger.error(f"Error validating attunement for {agent_id}: {e}")
-                        print(f"\n❌ [{player_agent.character_state.name if player_agent else agent_id}] Attunement validation error: {e}\n")
-                        # On validation error, reject action to prevent undefined behavior
-                        return
+                        # Store error in validation result
+                        action_payload['attunement_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}"
+                        }
 
         # Buffer the action (supports multiple actions per agent for free action system)
         # Note: message.payload IS the action dict (not nested under 'action' key)
