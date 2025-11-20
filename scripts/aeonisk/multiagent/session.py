@@ -3457,9 +3457,60 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             )
             return
 
+        # Get agent_id early (needed for validation checks below)
+        agent_id = message.sender
+
+        # PRE-VALIDATE ATTUNEMENT ACTIONS (check inventory before buffering)
+        # Unlike purchases/transfers (which are pre-executed), attunement involves dice rolls
+        # We validate prerequisites (seeds, altar, equipment) but don't execute until DM rolls
+        action_type = message.payload.get('action_type')
+        if action_type == 'attune':
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        # Extract attunement parameters from action payload
+                        target_energy = message.payload.get('target_energy')
+                        altar_id = message.payload.get('altar_id')
+                        use_echo_calibrator = message.payload.get('use_echo_calibrator', False)
+
+                        # Validate prerequisites (inventory, equipment, altar existence)
+                        validation = mechanics.validate_attunement(
+                            character_state=player_agent.character_state,
+                            target_energy=target_energy,
+                            altar_id=altar_id,
+                            use_echo_calibrator=use_echo_calibrator
+                        )
+
+                        if not validation.is_valid:
+                            # REJECT action - don't buffer it, don't send to DM
+                            logger.warning(
+                                f"❌ ATTUNEMENT REJECTED for {player_agent.character_state.name}: "
+                                f"{validation.failure_reason}"
+                            )
+
+                            # Print error message to console for player visibility
+                            print(
+                                f"\n❌ [{player_agent.character_state.name}] Attunement action INVALID: "
+                                f"{validation.failure_reason}"
+                            )
+                            print("   └─ Please choose a different action (search, purchase, etc.)\n")
+
+                            # TODO: Send message back to player agent to trigger re-declaration
+                            # For now, early return prevents buffering and DM sees nothing
+                            return
+
+                    except Exception as e:
+                        logger.error(f"Error validating attunement for {agent_id}: {e}")
+                        print(f"\n❌ [{player_agent.character_state.name if player_agent else agent_id}] Attunement validation error: {e}\n")
+                        # On validation error, reject action to prevent undefined behavior
+                        return
+
         # Buffer the action (supports multiple actions per agent for free action system)
         # Note: message.payload IS the action dict (not nested under 'action' key)
-        agent_id = message.sender
+        # (agent_id already extracted above for validation checks)
 
         # Initialize list if this is the first action from this agent
         if agent_id not in self._declared_actions:
