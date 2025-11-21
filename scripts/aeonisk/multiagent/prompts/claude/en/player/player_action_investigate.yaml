@@ -1,24 +1,36 @@
 version: 1.0.0
 module: player_action_investigate
-description: "Phase 2: INVESTIGATE action - Examining objects, analyzing data, gathering information"
+description: "Phase 2: INVESTIGATE action - Searching for items, looting, examining objects for tangible rewards"
 always_load: false
 load_when: action_type_is_investigate
 content: |-
-  # 🔍 INVESTIGATE ACTION: Examination & Analysis
+  # 🔍 INVESTIGATE ACTION: Search & Loot
 
   **Your Intent:** {phase1_intent}
   **Your Reasoning:** {phase1_reasoning}
 
-  You've chosen to **investigate**. Now let's define the mechanical details.
+  You've chosen to **investigate**. This is for **SEARCHING** and **FINDING ITEMS**.
+
+  ## INVESTIGATE vs PERCEPTION - IMPORTANT DISTINCTION
+
+  | INVESTIGATE | PERCEPTION |
+  |-------------|------------|
+  | **Search** for items, loot, seeds | **Detect** threats, dangers, weak points |
+  | **Find** tangible rewards | **Notice** hidden enemies, traps |
+  | Uses: Intelligence × Investigation | Uses: Perception × Awareness |
+  | Example: "Search corpse for loot" | Example: "Scan for ambushes" |
+
+  **Use INVESTIGATE when you want to FIND and TAKE something.**
+  **Use PERCEPTION when you want to DETECT and SENSE something.**
 
   ## Investigation Mechanics
 
   **Process:**
-  1. Examine target (object, terminal, document, scene)
-  2. Roll Intelligence + relevant skill (Systems, Medicine, etc.)
-  3. DM reveals information based on success tier
+  1. Search target (container, corpse, plant, cache, terminal)
+  2. Roll Intelligence × Investigation (or Perception × Awareness for quick searches)
+  3. **DM awards items via item_discovery** based on success tier
 
-  **Typical Difficulty:** DC 12-22 (varies by obscurity, encryption, complexity)
+  **Typical Difficulty:** DC 10-18 (varies by concealment, complexity)
 
   ## REQUIRED Fields
 
@@ -106,6 +118,36 @@ content: |-
 
   💡 **Hybrid Actions:** When a secondary skill logically assists your primary skill, use `situational_modifiers`
   to add a +2 synergy bonus. Example: Using Magick Theory knowledge to enhance Awareness checks on void artifacts.
+
+  **Example 5: Environmental Discovery (Leyline Plant Search)**
+  ```python
+  InvestigateAction(
+      intent="Search leyline-corrupted plant for Raw Seeds",
+      description="I carefully examine the leyline-corrupted plant, looking for intact seed pods. Checking which seeds are still fresh versus withered, avoiding void-corrupted sections that might be dangerous to handle.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: Plant is accessible but requires discerning fresh seeds from aged/corrupted ones",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_leyline_plant"
+  )
+  ```
+
+  💡 **Item Discovery:** Successful investigation of environmental features (leyline plants, supply caches, corpses, abandoned containers) can yield Raw Seeds, currency, or items. The DM determines what you find based on your roll quality and the context.
+
+  **Example 6: Corpse Loot**
+  ```python
+  InvestigateAction(
+      intent="Search fallen enemy for supplies",
+      description="I quickly pat down the corpse, checking pockets, belt pouches, and any equipment they were carrying. Looking for currency, ammunition, medkits, or anything useful before we need to move.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=10,
+      difficulty_justification="DC 10: Basic corpse search, no special concealment",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_enemy_fallen"
+  )
+  ```
 
   ## Faction Abbreviations (CANONICAL)
 

@@ -1,0 +1,162 @@
+version: 2.0.0
+module: dm_resolution_perception
+description: Perception action resolution - awareness, threat detection, tactical info (NO item discovery)
+load_when: action_type_perception
+content: |-
+  # PERCEPTION ACTION RESOLUTION
+
+  You are resolving a **PERCEPTION** action. This is about AWARENESS and SENSING, NOT searching for items.
+
+  ## WHAT PERCEPTION IS FOR
+
+  - Detecting threats, ambushes, hidden enemies
+  - Noticing tactical opportunities (weak points, cover positions)
+  - Sensing environmental hazards (traps, void anomalies)
+  - Passive awareness of surroundings
+
+  ## WHAT PERCEPTION IS NOT FOR
+
+  **PERCEPTION does NOT find items, loot, seeds, or currency.**
+
+  If the player wants to SEARCH for items, they should use INVESTIGATE instead.
+  - "Search the corpse for loot" → INVESTIGATE (finds items)
+  - "Scan the area for threats" → PERCEPTION (no items)
+
+  ## REQUIRED FIELDS
+
+  **1. soulcredit_changes (REQUIRED - even if amount=0)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Kade",
+      amount=0,
+      reason="neutral observation"
+  )]
+  ```
+
+  ## OPTIONAL FIELDS
+
+  **2. clock_updates - for detection/alert clocks**
+  ```python
+  clock_updates=[ClockUpdate(
+      clock_name="Enemy Awareness",
+      ticks=1,
+      reason="noticed patrol approaching"
+  )]
+  ```
+
+  **3. conditions - for tactical advantages discovered**
+  ```python
+  conditions=[Condition(
+      name="Tactical Awareness",
+      penalty=2,              # Positive = bonus
+      duration=2,
+      description="+2 to next attack from spotted weak point"
+  )]
+  ```
+
+  **4. void_changes - ONLY for sensing void anomalies in high-void areas**
+  ```python
+  void_changes=[VoidChange(
+      character_name="Echo",
+      amount=1,
+      reason="psychic backlash from sensing void presence"
+  )]
+  ```
+
+  ## PERCEPTION EXAMPLES
+
+  **Example 1: Threat Detection (margin +6)**
+  ```python
+  ActionResolution(
+      narration="Your senses sharpen as you scan the shadows. There - movement behind the rusted containers. Two figures, armed, waiting. You catch the glint of a rifle barrel before they notice you looking.",
+      success_tier=SuccessTier.MODERATE,
+      margin=6,
+      effects=MechanicalEffects(
+          clock_updates=[ClockUpdate(
+              clock_name="Enemy Awareness",
+              ticks=-1,
+              reason="spotted ambush before sprung"
+          )],
+          conditions=[Condition(
+              name="Forewarned",
+              penalty=2,
+              duration=1,
+              description="+2 initiative, not surprised",
+              target="tgt_kade"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="neutral observation"
+          )]
+      )
+  )
+  ```
+
+  **Example 2: Weak Point Analysis (margin +8)**
+  ```python
+  ActionResolution(
+      narration="You study the Remnant's movements, watching for patterns. There - the servo housing on its left side sparks intermittently. A vulnerability, if you can exploit it before it closes the distance.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          conditions=[Condition(
+              name="Spotted Weakness",
+              penalty=3,
+              duration=2,
+              description="+3 damage to target's weak point",
+              target="tgt_remnant1"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="tactical analysis"
+          )]
+      )
+  )
+  ```
+
+  **Example 3: Environmental Hazard Detection (margin +4)**
+  ```python
+  ActionResolution(
+      narration="A faint hum draws your attention to the floor panels ahead. Trip filaments, nearly invisible, strung between the debris. One wrong step would trigger... something. You mark the safe path in your mind.",
+      success_tier=SuccessTier.MARGINAL,
+      margin=4,
+      effects=MechanicalEffects(
+          clock_updates=[ClockUpdate(
+              clock_name="Trap Awareness",
+              ticks=1,
+              reason="identified trip filament hazard"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Echo",
+              amount=0,
+              reason="hazard identification"
+          )]
+      )
+  )
+  ```
+
+  **Example 4: Failed Perception**
+  ```python
+  ActionResolution(
+      narration="You sweep your gaze across the chamber, but the shadows yield nothing. The ambient void hum makes it hard to focus, and you can't shake the feeling you're missing something important.",
+      success_tier=SuccessTier.FAILURE,
+      margin=-3,
+      effects=MechanicalEffects(
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=0,
+              reason="failed awareness check"
+          )]
+      )
+  )
+  ```
+
+  ## NARRATION TIPS FOR PERCEPTION
+
+  - Describe sensory details: sounds, movement, light changes
+  - Show what the character NOTICES, not what they FIND/TAKE
+  - For successes, reveal tactical information
+  - For failures, convey uncertainty and missed details
+  - **NEVER mention finding items, loot, or seeds** - that's INVESTIGATE

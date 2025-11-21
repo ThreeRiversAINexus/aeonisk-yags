@@ -121,6 +121,36 @@ class AttunementValidation:
     usage_count: int = 0
 
 
+@dataclass
+class ConsumptionValidation:
+    """
+    Result of pre-consumption validation check.
+
+    Used to validate food consumption requests BEFORE calling the DM,
+    preventing impossible consumption (no item, not food, already at full HP, etc.).
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+
+
+@dataclass
+class DiscoveryValidation:
+    """
+    Result of item discovery validation check.
+
+    Used to validate discovery requests BEFORE applying ItemEffect,
+    preventing abuse (daily limits exceeded, invalid source, etc.).
+
+    Configurable limits via session config:
+    - discovery_limits.max_seeds_per_session (default: 3)
+    - discovery_limits.max_currency_per_session (default: 50 drip)
+    - discovery_limits.quest_rewards_bypass_limits (default: True)
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    capped_items: Optional[Dict[str, int]] = None  # Items after applying limits
+
+
 class OutcomeTier(Enum):
     """Outcome quality tiers based on margin of success."""
     CRITICAL_FAILURE = "critical_failure"  # -20 or worse
@@ -319,6 +349,7 @@ class JSONLLogger:
         attunement_data: Dict[str, Any] = None,
         currency_transfer_data: Dict[str, Any] = None,
         item_transfer_data: Dict[str, Any] = None,
+        item_discovery_data: Dict[str, Any] = None,
         # New ML training fields (dataset guidelines compliance)
         # character_data removed - redundant with character_state events (saves ~7,200 tokens/session)
         environment: str = None,
@@ -423,7 +454,8 @@ class JSONLLogger:
                 "crafting": crafting_data,  # Crafting attempt details (offering type, materials, success)
                 "attunement": attunement_data,  # Attunement ritual details (energy type, amount, seed consumed, altar)
                 "currency_transfer": currency_transfer_data,  # Currency transfer details (from, to, amounts, purpose)
-                "item_transfer": item_transfer_data  # Item transfer details (from, to, items, purpose)
+                "item_transfer": item_transfer_data,  # Item transfer details (from, to, items, purpose)
+                "item_discovery": item_discovery_data  # Item discovery (seeds, currency, items found via investigate/social)
             }
         }
 
@@ -749,6 +781,7 @@ class JSONLLogger:
         position: str,
         conditions: List[str] = None,
         is_defeated: bool = False,
+        death_state: str = "alive",
         agent: str = 'player'
     ):
         """
@@ -766,6 +799,7 @@ class JSONLLogger:
             position: Tactical position (e.g., "Near-PC")
             conditions: List of active conditions (debuffs, buffs)
             is_defeated: Whether character is defeated
+            death_state: "alive", "unconscious" (0 HP, wounds < 6), or "dead" (wounds >= 6)
             agent: Agent type ('player', 'enemy', 'npc') for filtering in analysis
         """
         event = {
@@ -783,6 +817,7 @@ class JSONLLogger:
             "position": position,
             "conditions": conditions or [],
             "is_defeated": is_defeated,
+            "death_state": death_state,  # NEW: Track death vs unconscious
             "agent": agent
         }
         self._write_event(event)
@@ -2513,8 +2548,8 @@ class MechanicsEngine:
         receiver_state = None
 
         if self.shared_state:
-            # Check for multi-target syntax (commas) - not supported
-            if ',' in transfer_target:
+            # Check for multi-target syntax (commas or semicolons) - not supported
+            if ',' in transfer_target or ';' in transfer_target:
                 return TransferValidation(
                     is_valid=False,
                     failure_reason=f"Multi-target transfers not supported. Transfer to one recipient at a time. Got: '{transfer_target}'"
@@ -2778,7 +2813,16 @@ class MechanicsEngine:
                     altar_bonus=validation.altar_bonus
                 )
 
-            if character_state.inventory.get("Echo-Calibrator", 0) <= 0:
+            # Check for both purchased and rental Echo-Calibrators
+            # Purchased: "Echo-Calibrator" (display name from vendor)
+            # Rental: "echo_calibrator_rental" (inventory_key from config) OR "Echo Calibrator Rental" (alternate format)
+            has_purchased = character_state.inventory.get("Echo-Calibrator", 0) > 0
+            has_rental = (
+                character_state.inventory.get("echo_calibrator_rental", 0) > 0 or
+                character_state.inventory.get("Echo Calibrator Rental", 0) > 0
+            )
+
+            if not (has_purchased or has_rental):
                 return AttunementValidation(
                     is_valid=False,
                     failure_reason="No Echo-Calibrator available (not in inventory)",
@@ -2953,6 +2997,355 @@ class MechanicsEngine:
             effect.energy_gained = 0
 
         return effect
+
+    def validate_consumption(
+        self,
+        character_state: Any,
+        item_id: str,
+        food_item: Any
+    ) -> ConsumptionValidation:
+        """
+        Validate food consumption BEFORE calling DM.
+
+        Checks:
+        1. Item exists in character inventory
+        2. Item is food (item_type="food")
+        3. Character health < max_health (has room for healing)
+
+        Args:
+            character_state: CharacterState with inventory
+            item_id: Item ID being consumed (itm_xxxx)
+            food_item: VendorItem instance (for validation)
+
+        Returns:
+            ConsumptionValidation with is_valid and optional failure_reason
+        """
+        # Check if item is food
+        if food_item.item_type != "food":
+            return ConsumptionValidation(
+                is_valid=False,
+                failure_reason=f"Cannot consume {food_item.name}: item_type is '{food_item.item_type}', must be 'food'"
+            )
+
+        # Check if character has item in inventory
+        inventory_key = food_item.inventory_key
+        quantity = character_state.inventory.get(inventory_key, 0)
+        if quantity <= 0:
+            return ConsumptionValidation(
+                is_valid=False,
+                failure_reason=f"Character doesn't have {food_item.name} in inventory"
+            )
+
+        # Check if character needs healing
+        if character_state.health >= character_state.max_health:
+            return ConsumptionValidation(
+                is_valid=False,
+                failure_reason=f"Character is already at full health ({character_state.health}/{character_state.max_health} HP)"
+            )
+
+        # All checks passed
+        return ConsumptionValidation(is_valid=True)
+
+    def process_consumption_effect(
+        self,
+        consumption_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process food consumption effect.
+
+        Applies healing and removes item from inventory.
+
+        Args:
+            consumption_effect: ConsumptionEffect with item_id, inventory_key, healing
+            character_state: CharacterState being updated
+
+        Returns:
+            True if consumption succeeded
+        """
+        from .schemas.action_effects import ConsumptionEffect
+
+        # Validate it's a ConsumptionEffect
+        if not isinstance(consumption_effect, ConsumptionEffect):
+            logger.error(f"Invalid consumption_effect type: {type(consumption_effect)}")
+            return False
+
+        # Get inventory key and current quantity
+        inventory_key = consumption_effect.inventory_key
+        current_quantity = character_state.inventory.get(inventory_key, 0)
+
+        # Validate item exists
+        if current_quantity <= 0:
+            logger.error(f"Cannot consume {inventory_key}: quantity is {current_quantity}")
+            return False
+
+        # Remove item from inventory
+        character_state.inventory[inventory_key] = current_quantity - 1
+        logger.info(f"{character_state.name} consumed {inventory_key} ({current_quantity - 1} remaining)")
+
+        # Apply healing (capped at max_health)
+        hp_before = character_state.health
+        character_state.health = min(
+            character_state.health + consumption_effect.healing,
+            character_state.max_health
+        )
+        hp_gained = character_state.health - hp_before
+
+        logger.info(
+            f"{character_state.name} healed {hp_gained} HP from consuming {inventory_key} "
+            f"({hp_before} → {character_state.health}/{character_state.max_health})"
+        )
+
+        return True
+
+    def validate_item_discovery(
+        self,
+        character_state: Any,
+        item_effect: Any,
+        player_id: str
+    ) -> DiscoveryValidation:
+        """
+        Validate item discovery BEFORE applying ItemEffect.
+
+        Checks configurable daily limits and prevents abuse.
+
+        Configurable limits (via session config discovery_limits):
+        - max_seeds_per_session (default: 3)
+        - max_currency_per_session (default: 50 drip equivalent)
+        - quest_rewards_bypass_limits (default: True)
+
+        Args:
+            character_state: CharacterState receiving items
+            item_effect: ItemEffect with items_added and source
+            player_id: Player ID for tracking daily limits
+
+        Returns:
+            DiscoveryValidation with is_valid, failure_reason, and optional capped_items
+        """
+        from .schemas.action_effects import ItemEffect
+
+        # Validate it's an ItemEffect
+        if not isinstance(item_effect, ItemEffect):
+            return DiscoveryValidation(
+                is_valid=False,
+                failure_reason=f"Invalid item_effect type: {type(item_effect)}"
+            )
+
+        # Get discovery limits from config (with defaults)
+        config = getattr(self.shared_state, 'session_config', {})
+        limits = config.get('discovery_limits', {})
+        max_seeds_per_session = limits.get('max_seeds_per_session', 3)
+        max_currency_per_session = limits.get('max_currency_per_session', 50)
+        quest_rewards_bypass = limits.get('quest_rewards_bypass_limits', True)
+
+        # Quest rewards bypass limits
+        if quest_rewards_bypass and item_effect.source in ['quest_reward', 'dm_award', 'bonus_for_success']:
+            return DiscoveryValidation(is_valid=True, capped_items=item_effect.items_added)
+
+        # Initialize discovery tracking if needed
+        if not hasattr(self.shared_state, 'discovery_tracking'):
+            self.shared_state.discovery_tracking = {}
+
+        if player_id not in self.shared_state.discovery_tracking:
+            self.shared_state.discovery_tracking[player_id] = {
+                'seeds_discovered': 0,
+                'currency_discovered': 0
+            }
+
+        tracking = self.shared_state.discovery_tracking[player_id]
+        capped_items = item_effect.items_added.copy()
+
+        # Count seeds in this discovery (only Raw Seeds - attunement creates currency, not Attuned Seeds)
+        seed_keys = ['raw_seed_fresh', 'raw_seed_aged']
+        seeds_in_discovery = sum(capped_items.get(key, 0) for key in seed_keys if key in capped_items)
+
+        # Check seed limit
+        if seeds_in_discovery > 0:
+            seeds_after = tracking['seeds_discovered'] + seeds_in_discovery
+            if seeds_after > max_seeds_per_session:
+                remaining_seeds = max_seeds_per_session - tracking['seeds_discovered']
+                if remaining_seeds <= 0:
+                    return DiscoveryValidation(
+                        is_valid=False,
+                        failure_reason=f"Daily seed discovery limit reached ({max_seeds_per_session}/session)"
+                    )
+
+                # Cap seeds to remaining limit
+                logger.warning(
+                    f"{character_state.name} seed discovery capped: {seeds_in_discovery} → {remaining_seeds} "
+                    f"(limit: {max_seeds_per_session}/session)"
+                )
+
+                # Distribute remaining seeds across seed types (prioritize first keys found)
+                seeds_to_distribute = remaining_seeds
+                for key in seed_keys:
+                    if key in capped_items and seeds_to_distribute > 0:
+                        original = capped_items[key]
+                        capped_items[key] = min(original, seeds_to_distribute)
+                        seeds_to_distribute -= capped_items[key]
+
+        # Count currency (convert all to drip equivalent)
+        currency_keys = {'breath': 1, 'grain': 1, 'drip': 1, 'spark': 1, 'hollow': 5}  # hollow = 5 drip
+        currency_in_discovery = sum(
+            capped_items.get(key, 0) * multiplier
+            for key, multiplier in currency_keys.items()
+            if key in capped_items
+        )
+
+        # Check currency limit
+        if currency_in_discovery > 0:
+            currency_after = tracking['currency_discovered'] + currency_in_discovery
+            if currency_after > max_currency_per_session:
+                remaining_currency = max_currency_per_session - tracking['currency_discovered']
+                if remaining_currency <= 0:
+                    return DiscoveryValidation(
+                        is_valid=False,
+                        failure_reason=f"Daily currency discovery limit reached ({max_currency_per_session} drip equivalent/session)"
+                    )
+
+                # Cap currency proportionally
+                logger.warning(
+                    f"{character_state.name} currency discovery capped: {currency_in_discovery} → {remaining_currency} drip equivalent "
+                    f"(limit: {max_currency_per_session}/session)"
+                )
+
+                scale_factor = remaining_currency / currency_in_discovery
+                for key in currency_keys.keys():
+                    if key in capped_items:
+                        capped_items[key] = int(capped_items[key] * scale_factor)
+
+        # All checks passed (with capping applied)
+        return DiscoveryValidation(is_valid=True, capped_items=capped_items)
+
+    def process_item_effect(
+        self,
+        item_effect: Any,
+        character_state: Any,
+        player_id: str
+    ) -> bool:
+        """
+        Process ItemEffect from DM structured output.
+
+        Adds items/seeds/currency to character inventory and energy purse.
+        Special seed keys are converted to Seed objects.
+
+        Seed keys (converted to Seed objects in energy_purse.seeds):
+        - raw_seed_fresh → Seed(RAW, cycles=10-14, origin=source)
+        - raw_seed_aged → Seed(RAW, cycles=3-6, origin=source)
+
+        Note: Attunement converts Raw Seeds → Currency (breath/grain/drip/spark), NOT Attuned Seeds.
+        Attuned Seeds are legacy/unused in current economy.
+
+        Currency keys (added directly to EnergyPurse attributes):
+        - breath, grain, drip, spark, hollow
+
+        Standard items (added to inventory Dict[str, int]):
+        - Any other key → item_name: quantity
+
+        Args:
+            item_effect: ItemEffect with items_added and source
+            character_state: Character receiving items
+            player_id: Player ID for tracking discovery limits
+
+        Returns:
+            True if processing succeeded
+        """
+        from .schemas.action_effects import ItemEffect
+        from .energy_economy import Seed, SeedType, Element
+
+        # Convert dict to ItemEffect if needed (dm.py passes dict via model_dump())
+        if isinstance(item_effect, dict):
+            try:
+                item_effect = ItemEffect(**item_effect)
+                logger.debug(f"Converted dict to ItemEffect: {item_effect}")
+            except Exception as e:
+                logger.error(f"Failed to convert dict to ItemEffect: {e}")
+                return False
+        elif not isinstance(item_effect, ItemEffect):
+            logger.error(f"Invalid item_effect type: {type(item_effect)}")
+            return False
+
+        # Validate discovery (applies daily limits, returns capped items)
+        validation = self.validate_item_discovery(character_state, item_effect, player_id)
+        if not validation.is_valid:
+            logger.error(f"Discovery validation failed for {character_state.name}: {validation.failure_reason}")
+            return False
+
+        # Use capped items (after applying limits)
+        items_to_add = validation.capped_items
+
+        # Track discovery for limits
+        tracking = self.shared_state.discovery_tracking[player_id]
+        seed_keys = ['raw_seed_fresh', 'raw_seed_aged']
+        currency_keys = {'breath': 1, 'grain': 1, 'drip': 1, 'spark': 1, 'hollow': 5}
+
+        seeds_added = sum(items_to_add.get(key, 0) for key in seed_keys if key in items_to_add)
+        currency_added = sum(
+            items_to_add.get(key, 0) * mult
+            for key, mult in currency_keys.items()
+            if key in items_to_add
+        )
+
+        tracking['seeds_discovered'] += seeds_added
+        tracking['currency_discovered'] += currency_added
+
+        # Process each item
+        for item_key, quantity in items_to_add.items():
+            if quantity <= 0:
+                continue
+
+            # Seed conversion
+            if item_key == 'raw_seed_fresh':
+                for _ in range(quantity):
+                    seed = Seed(
+                        seed_type=SeedType.RAW,
+                        cycles_remaining=random.randint(10, 14),
+                        origin=item_effect.source
+                    )
+                    character_state.energy_purse.seeds.append(seed)
+                logger.info(f"{character_state.name} found {quantity}x Fresh Raw Seeds (source: {item_effect.source})")
+
+            elif item_key == 'raw_seed_aged':
+                for _ in range(quantity):
+                    seed = Seed(
+                        seed_type=SeedType.RAW,
+                        cycles_remaining=random.randint(3, 6),
+                        origin=item_effect.source
+                    )
+                    character_state.energy_purse.seeds.append(seed)
+                logger.info(f"{character_state.name} found {quantity}x Aged Raw Seeds (source: {item_effect.source})")
+
+            # Currency addition
+            elif item_key == 'breath':
+                character_state.energy_purse.breath += quantity
+                logger.info(f"{character_state.name} found {quantity} Breath (source: {item_effect.source})")
+
+            elif item_key == 'grain':
+                character_state.energy_purse.grain += quantity
+                logger.info(f"{character_state.name} found {quantity} Grain (source: {item_effect.source})")
+
+            elif item_key == 'drip':
+                character_state.energy_purse.drip += quantity
+                logger.info(f"{character_state.name} found {quantity} Drip (source: {item_effect.source})")
+
+            elif item_key == 'spark':
+                character_state.energy_purse.spark += quantity
+                logger.info(f"{character_state.name} found {quantity} Spark (source: {item_effect.source})")
+
+            elif item_key == 'hollow':
+                character_state.energy_purse.hollow += quantity
+                logger.info(f"{character_state.name} found {quantity} Hollow (source: {item_effect.source})")
+
+            # Standard inventory items
+            else:
+                current_quantity = character_state.inventory.get(item_key, 0)
+                character_state.inventory[item_key] = current_quantity + quantity
+                logger.info(
+                    f"{character_state.name} found {quantity}x {item_key} "
+                    f"({current_quantity} → {current_quantity + quantity}, source: {item_effect.source})"
+                )
+
+        return True
 
     def process_purchase_effect(
         self,
@@ -4322,3 +4715,55 @@ def apply_healing(
 
     else:
         raise ValueError(f"Invalid heal_type: {heal_type}. Must be 'stun', 'wound', or 'hp'.")
+
+
+# ==============================================================================
+# Module-level wrappers for testing
+# ==============================================================================
+
+def validate_consumption(character_state, item_id, food_item) -> ConsumptionValidation:
+    """
+    Module-level wrapper for validate_consumption (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the validation method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.validate_consumption(character_state, item_id, food_item)
+
+
+def process_consumption_effect(consumption_effect, character_state) -> bool:
+    """
+    Module-level wrapper for process_consumption_effect (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the execution method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.process_consumption_effect(consumption_effect, character_state)
+
+
+def validate_item_discovery(character_state, item_effect, player_id) -> DiscoveryValidation:
+    """
+    Module-level wrapper for validate_item_discovery (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the validation method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.validate_item_discovery(character_state, item_effect, player_id)
+
+
+def process_item_effect(item_effect, character_state, player_id) -> bool:
+    """
+    Module-level wrapper for process_item_effect (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the execution method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.process_item_effect(item_effect, character_state, player_id)

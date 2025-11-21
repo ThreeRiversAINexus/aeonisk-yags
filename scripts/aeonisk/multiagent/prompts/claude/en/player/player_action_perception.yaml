@@ -1,6 +1,6 @@
 version: 1.0.0
 module: player_action_perception
-description: "Phase 2: PERCEPTION action - Detecting hidden threats, awareness checks, sensing danger"
+description: "Phase 2: PERCEPTION action - Detecting threats, awareness checks, sensing danger (NOT for finding items)"
 always_load: false
 load_when: action_type_is_perception
 content: |-
@@ -9,14 +9,29 @@ content: |-
   **Your Intent:** {phase1_intent}
   **Your Reasoning:** {phase1_reasoning}
 
-  You've chosen a **perception action**. Now let's define the mechanical details.
+  You've chosen a **perception action**. This is for **DETECTING** and **SENSING**.
+
+  ## PERCEPTION vs INVESTIGATE - IMPORTANT DISTINCTION
+
+  | PERCEPTION | INVESTIGATE |
+  |------------|-------------|
+  | **Detect** threats, dangers, weak points | **Search** for items, loot, seeds |
+  | **Notice** hidden enemies, traps | **Find** tangible rewards |
+  | **No items found** - awareness only | **Items awarded** via item_discovery |
+  | Example: "Scan for ambushes" | Example: "Search corpse for loot" |
+
+  **Use PERCEPTION when you want to DETECT and SENSE something.**
+  **Use INVESTIGATE when you want to FIND and TAKE something.**
+
+  ⚠️ **PERCEPTION DOES NOT FIND ITEMS.** If you want to loot a corpse, search a plant for seeds,
+  or find currency in a cache, use **INVESTIGATE** instead.
 
   ## Perception Mechanics
 
   **Process:**
-  1. Declare what you're trying to detect
-  2. Roll Perception + Awareness (or similar)
-  3. DM reveals hidden threats/details based on success
+  1. Declare what you're trying to detect (threats, traps, weak points)
+  2. Roll Perception × Awareness (or Perception × Combat for tactical awareness)
+  3. DM reveals tactical information based on success (NOT items)
 
   **Typical Difficulty:** DC 12-22 (varies by concealment, distance, conditions)
 

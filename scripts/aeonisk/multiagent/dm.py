@@ -600,19 +600,46 @@ class AIDMAgent(Agent):
         """Cleanup on shutdown."""
         logger.debug(f"AI DM {self.agent_id} shutting down")
 
-    def _get_required_dm_modules(self) -> List[str]:
+    def _get_required_dm_modules(self, action_type: str = None) -> List[str]:
         """
-        Determine which DM prompt modules to load based on current game state.
+        Determine which DM prompt modules to load based on current game state and action type.
+
+        Args:
+            action_type: The action type being resolved (combat, investigate, social, etc.)
+                        If None, loads generic modules only (for non-resolution contexts).
 
         Returns:
-            List of module names to load (e.g., ['dm_core', 'dm_combat'])
+            List of module names to load (e.g., ['dm_core', 'dm_resolution_combat'])
         """
         modules = []
 
         # Always load core modules
         modules.append('dm_core')
-        modules.append('dm_structured_output')
-        modules.append('dm_attunement')  # Seed attunement mechanics
+        modules.append('dm_structured_output_base')  # Slim base schema (replaces monolithic dm_structured_output)
+
+        # Action-type-specific resolution guidance (reduces prompt size, improves LLM focus)
+        if action_type:
+            action_type_lower = action_type.lower()
+            resolution_map = {
+                'combat': 'dm_resolution_combat',
+                'investigate': 'dm_resolution_investigate',  # Item discovery, looting, searching
+                'social': 'dm_resolution_social',
+                'ritual': 'dm_resolution_ritual',
+                'attune': 'dm_attunement',          # Already specialized
+                'support': 'dm_resolution_support',
+                'explore': 'dm_resolution_movement',
+                'perception': 'dm_resolution_perception',   # Awareness, threat detection (NO items)
+                'technical': 'dm_resolution_investigate',   # Hacking can find data/items
+                'purchase': 'dm_purchase',          # Already specialized
+                'transfer': 'dm_transfer',          # Already specialized
+                'consume': 'dm_consumption',        # Already specialized
+            }
+            if action_type_lower in resolution_map:
+                modules.append(resolution_map[action_type_lower])
+                logger.debug(f"DM: Loading action-specific module for {action_type}: {resolution_map[action_type_lower]}")
+            else:
+                # Unknown action type - load generic discovery for fallback
+                logger.debug(f"DM: Unknown action type '{action_type}', no action-specific module")
 
         # Always load dm_commands (contains NPC/enemy spawning, escalation triggers)
         # DM needs to know it CAN spawn NPCs and WHEN to escalate even if none present yet
@@ -2901,7 +2928,7 @@ Apply this narrative style to:
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def check_conversions(self, round_number: int, resolution_summary: str):
+    async def check_conversions(self, round_number: int, resolution_summary: str, pre_round: bool = False, existing_entities: dict = None):
         """
         Separate conversion check phase - determine which enemies/NPCs should convert.
 
@@ -2909,9 +2936,14 @@ Apply this narrative style to:
         This allows the DM to focus solely on conversion decisions without
         mixing narrative synthesis responsibilities.
 
+        Can also be called in PRE-ROUND mode (before round 1) to populate the scene
+        with additional entities based on the scenario.
+
         Args:
-            round_number: Current round number
+            round_number: Current round number (0 for pre-round)
             resolution_summary: Summary of all action resolutions this round
+            pre_round: If True, this is pre-round setup (no combat yet)
+            existing_entities: Dict with 'npcs' and 'enemies' lists of already-spawned IDs
 
         Returns:
             ConversionDecisions with enemy_conversions, escalations, npc_spawns
@@ -2923,7 +2955,33 @@ Apply this narrative style to:
         import yaml
         import os
 
-        logger.debug(f"DM: Running conversion check for round {round_number}")
+        mode_str = "pre-round setup" if pre_round else f"round {round_number}"
+        logger.debug(f"DM: Running conversion check for {mode_str}")
+
+        # For pre-round mode, modify resolution_summary to indicate setup phase
+        if pre_round:
+            # Build context about what's already been spawned from config
+            existing_context = ""
+            if existing_entities:
+                if existing_entities.get('npcs'):
+                    existing_context += f"\nAlready spawned NPCs: {', '.join(existing_entities['npcs'])}"
+                if existing_entities.get('enemies'):
+                    existing_context += f"\nAlready spawned enemies: {', '.join(existing_entities['enemies'])}"
+
+            resolution_summary = f"""PRE-ROUND SETUP PHASE
+No combat has occurred yet. The scenario has just been established.
+
+Your task is to populate the scene with appropriate entities that would naturally be present:
+- Vendors, merchants, or service providers appropriate to the location
+- Bystanders, civilians, or background NPCs that add atmosphere
+- Environmental objects that players can interact with (terminals, containers, etc.)
+- Patrols or guards that would logically be present (as enemies if hostile)
+
+IMPORTANT: Do NOT spawn entities that duplicate what's already present.
+{existing_context}
+
+Focus on what makes sense for the location and scenario theme.
+Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
 
         # 1. Build available enemies list
         available_enemies = []
@@ -4605,9 +4663,10 @@ The following actions ALREADY resolved (faster initiative):
                         'inventory_changes': [],
                         'purchase': effects_data.purchase.model_dump() if effects_data.purchase else None,
                         'crafting': effects_data.crafting.model_dump() if effects_data.crafting else None,
-                        'attunement': effects_data.attunement.model_dump() if effects_data.attunement else None
+                        'attunement': effects_data.attunement.model_dump() if effects_data.attunement else None,
+                        'item_discovery': effects_data.item_discovery.model_dump() if effects_data.item_discovery else None
                     }
-                    logger.debug(f"Extracted effects from structured output: damage_count={len(damage_list) if damage_list else 0}, purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}, attunement={effects_dict['attunement'] is not None}")
+                    logger.debug(f"Extracted effects from structured output: damage_count={len(damage_list) if damage_list else 0}, purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}, attunement={effects_dict['attunement'] is not None}, item_discovery={effects_dict['item_discovery'] is not None}")
 
                 # Skill mismatch detection
                 declared_skill = action.get('skill')
@@ -5857,6 +5916,7 @@ The following actions ALREADY resolved (faster initiative):
                 outcome_tiers_with_narratives = None
                 purchase_data = None
                 crafting_data = None
+                item_discovery_data = None
                 if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                     if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                         # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -5867,7 +5927,7 @@ The following actions ALREADY resolved (faster initiative):
                                 'mechanical_effect': explanation.mechanical_effect
                             }
 
-                    # Extract purchase and crafting data from effects
+                    # Extract purchase, crafting, and item_discovery data from effects
                     if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
                         effects_data = self._last_structured_resolution.effects
                         if hasattr(effects_data, 'purchase') and effects_data.purchase:
@@ -5876,6 +5936,9 @@ The following actions ALREADY resolved (faster initiative):
                         if hasattr(effects_data, 'crafting') and effects_data.crafting:
                             # Convert Pydantic model to dict for JSON serialization
                             crafting_data = effects_data.crafting.model_dump()
+                        if hasattr(effects_data, 'item_discovery') and effects_data.item_discovery:
+                            # Convert Pydantic model to dict for JSON serialization
+                            item_discovery_data = effects_data.item_discovery.model_dump()
 
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
@@ -5890,6 +5953,7 @@ The following actions ALREADY resolved (faster initiative):
                     inventory_changes=inventory_changes,  # Pass offering consumption tracking
                     purchase_data=purchase_data,  # Pass purchase transaction data
                     crafting_data=crafting_data,  # Pass crafting attempt data
+                    item_discovery_data=item_discovery_data,  # Pass item discovery data (seeds, currency, items)
                     # ML training fields (dataset guidelines compliance)
                     # character_data removed - redundant with character_state events
                     environment=environment,
@@ -6260,8 +6324,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
             # Load DM system prompt with conditional modules
             try:
-                # Determine which modules to load based on game state
-                required_modules = self._get_required_dm_modules()
+                # Determine which modules to load based on game state AND action type
+                required_modules = self._get_required_dm_modules(action_type=action_type)
 
                 # Load modular prompt with variables
                 system_prompt_obj = load_modular_prompt(
@@ -6312,9 +6376,9 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 from .structured_output_helpers import validate_resolution_completeness
                 validation_warnings = validate_resolution_completeness(resolution_obj, action)
                 if validation_warnings:
-                    logger.warning(f"🔍 Structured output validation found {len(validation_warnings)} issue(s):")
+                    logger.info(f"🔍 Structured output validation found {len(validation_warnings)} issue(s):")
                     for warning in validation_warnings:
-                        logger.warning(f"   - {warning}")
+                        logger.info(f"   - {warning}")
                 else:
                     logger.debug("✓ Structured output validation passed (all expected fields populated)")
 
