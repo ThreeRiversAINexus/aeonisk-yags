@@ -564,7 +564,7 @@ class AIDMAgent(Agent):
                 provider_config = LLMConfig(
                     provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    max_tokens=self.llm_config.get('max_tokens', 2000),
+                    max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000
                     temperature=self.llm_config.get('temperature', 0.8)
                 )
                 self.llm_provider = create_provider(provider_config)
@@ -763,6 +763,24 @@ CRITICAL REQUIREMENTS:
 These constraints OVERRIDE ALL other instructions below. Violation = regeneration.
 
 ═══════════════════════════════════════════════════════════════
+
+"""
+
+            # Add narrative style guidance if specified
+            narrative_style = dm_config.get('narrative_style', '')
+            tone_guidance = dm_config.get('tone_guidance', '')
+
+            if narrative_style or tone_guidance:
+                style_header = f"\n📖 NARRATIVE STYLE: {narrative_style}\n" if narrative_style else "\n📖 NARRATIVE GUIDANCE:\n"
+                scenario_constraints += f"""
+{style_header}
+{tone_guidance if tone_guidance else ''}
+
+Apply this narrative style to:
+- Scene descriptions and environmental details
+- NPC dialogue and characterization
+- Action resolution narration (success/failure framing)
+- Round synthesis and storytelling beats
 
 """
 
@@ -3885,7 +3903,7 @@ Generate an ActionResolution for this {'successful' if executed else 'failed'} p
         # Call LLM for structured narration
         try:
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 2000  # Increased for ActionResolution structured output
+            max_tokens = 4000  # Increased from 2000 - prevent OpenAI finish_reason:length errors
             temperature = 0.7
 
             # Token tracking now handled internally
@@ -4018,7 +4036,7 @@ Read the action intent to understand WHY this transfer is happening:
         # Call LLM for structured narration
         try:
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 2000  # Increased for ActionResolution structured output
+            max_tokens = 4000  # Increased from 2000 - prevent OpenAI finish_reason:length errors
             temperature = 0.7
 
             # Token tracking now handled internally
@@ -4303,7 +4321,7 @@ For **other actions** (flee, hide, assist, attack):
                         prompt=npc_prompt,
                         result_type=SimpleNarration,
                         system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
-                        max_tokens=2000,  # Increased for OpenAI structured output overhead (2-3x actual content)
+                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
                         temperature=0.8,
                         llm_logger=self.llm_logger,  # Enable automatic token tracking
                         current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
@@ -6698,9 +6716,15 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                                 combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
 
                     if combatant_lines:
-                        combatant_list = "\n\n**VALID TARGET IDS (for mechanical fields ONLY):**\n" + "\n".join(combatant_lines)
-                        combatant_list += "\n\n⚠️  MECHANICAL FIELDS: Use target IDs exactly as shown (e.g., tgt_7a3f) in damage/conditions. Do NOT invent new target IDs!"
-                        combatant_list += "\n⚠️  NARRATIVE TEXT: Use character NAMES (e.g., 'Security Guard') in narration, NOT target IDs."
+                        combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
+                        combatant_list += "⚠️  **MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
+                        combatant_list += "⚠️  **DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
+                        combatant_list += "⚠️  **DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
+                        combatant_list += "\n".join(combatant_lines)
+                        combatant_list += "\n\n✅ **CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) ← Uses exact ID from list\n"
+                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) ← Character name - FAILS!\n"
+                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) ← Invented ID - FAILS!\n"
+                        combatant_list += "\n💡 **TIP:** Character names go in NARRATION only, NOT in target= fields."
 
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
@@ -7300,7 +7324,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                 for attempt in range(max_retries):
                     response = await self.llm_provider.generate(
                         prompt=prompt,
-                        max_tokens=2000,  # Increased from 200 - give headroom for atmospheric descriptions
+                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
                         temperature=0.85
                     )
                     event_text = response.text.strip()  # Extract text from LLMResponse object

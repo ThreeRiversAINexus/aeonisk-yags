@@ -59,15 +59,28 @@ content: |-
 
   ## 🎯 TARGET ID USAGE (CRITICAL FOR FREE TARGETING MODE)
 
+  **🚨 COMMON ERROR - THIS WILL FAIL VALIDATION:**
+  ```python
+  # ❌ WRONG - Using character name instead of target ID
+  DamageEffect(target="Vex Solais", base=10, ...)          # FAILS! - name not ID
+  DamageEffect(target="Tempest Enforcer", base=8, ...)     # FAILS! - name not ID
+  StatusEffect(target="Kess Thren", name="Wounded", ...)   # FAILS! - name not ID
+
+  # ✅ CORRECT - Using target ID from VALID TARGET IDS list
+  DamageEffect(target="tgt_7a3f", base=10, ...)            # ✓ Works!
+  StatusEffect(target="tgt_9k2m", name="Wounded", ...)     # ✓ Works!
+  ```
+
   **SEPARATION OF CONCERNS:**
-  - **Narrative fields** (narration, tactical_reasoning) → Use CHARACTER NAMES
-  - **Mechanical fields** (target, defence_token, damage.target) → Use TARGET IDs (tgt_xxxx)
+  - **Narrative fields** (narration, tactical_reasoning) → Use CHARACTER NAMES ← "Vex fires..."
+  - **Mechanical fields** (target, defence_token, damage.target) → Use TARGET IDs ← "tgt_7a3f"
 
   ✅ **CORRECT narrative**: "Ash fires at the security guard, who dives for cover..."
   ❌ **WRONG narrative**: "tgt_3c5d fires at tgt_7a3f, who dives for cover..."
 
   **When you see a "VALID TARGET IDS" list in the prompt:**
 
+  ❌ **NEVER USE CHARACTER NAMES** - `target="Vex Solais"` or `target="Enforcer"` will FAIL!
   ❌ **NEVER INVENT TARGET IDS** - Don't create `tgt_grd1`, `tgt_sec1`, etc. from enemy names
   ✅ **COPY EXACT IDs** - Use IDs exactly as shown: `[tgt_7a3f] Security Guard #1` → `target="tgt_7a3f"`
 
