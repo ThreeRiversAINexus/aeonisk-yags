@@ -1,0 +1,428 @@
+{
+  "session_name": "antihero_mercenary_dark_comedy",
+  "max_turns": 12,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+
+  "force_combat": false,
+  "vendor_spawn_frequency": 4,
+
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      },
+      "_scenario_hint": "Dark comedy mercenary scenario - extraction job gone sideways. Employer (ACG shadow broker) hired team to 'extract' Tempest Industries whistleblower scientist. TWIST: scientist wants to expose ACG biocreche atrocities, employer wants them silenced. Moral dilemma: complete contract vs help whistleblower. Complications: scientist's loyal bodyguard, corporate security, rival mercenary team (comedically incompetent). Tone: gallows humor, absurd mishaps, incompetent professionals trying to maintain facade. void_level 4 adds supernatural dread."
+    },
+    "players": [
+      {
+        "name": "Soren Vellis",
+        "pronouns": "he/him",
+        "faction": "ACG Freelancer",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "transactional",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Persuasion": 5,
+          "Deception": 5,
+          "Intimidation": 4,
+          "Charm": 4,
+          "Guile": 4,
+          "Guns": 3,
+          "Awareness": 3,
+          "Corporate Politics": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "inventory": {
+          "pistol": 1,
+          "corporate_credentials_fake": 1,
+          "voice_modulator": 1,
+          "ration_pack": 2,
+          "medkit": 1,
+          "holographic_disguise_defective": 1
+        },
+        "void": 2,
+        "soulcredit": 15,
+        "starting_currency": {
+          "breath": 30,
+          "drip": 20,
+          "grain": 8,
+          "spark": 3,
+          "hollow": 1
+        },
+        "goals": [
+          "Maintain reputation as a 'professional' despite constant screwups",
+          "Get paid and avoid blame when things go wrong",
+          "Talk way out of consequences using corporate jargon",
+          "Betray teammates if it increases personal profit or saves face"
+        ],
+        "backstory": "Soren bills himself as an 'ethical corporate contractor' specializing in 'asset retrieval and personnel relocation.' In reality, he's a smooth-talking mercenary who constantly bites off more than he can chew. His corporate credentials are fake, his equipment is secondhand, and his 'professional network' consists of people who won't return his calls. He compensates with aggressive charm and an endless supply of corporate buzzwords. Despite claiming Karsel-adjacent heritage (misdirection tactics), he has no verified lineage—just a talent for spinning failure into 'strategic repositioning.'"
+      },
+      {
+        "name": "Kess Thren",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries (Rogue)",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 7,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Hacking": 5,
+          "Systems": 5,
+          "Investigation": 4,
+          "Science": 4,
+          "Stealth": 3,
+          "Awareness": 4,
+          "Guns": 3,
+          "Void Theory": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "inventory": {
+          "pistol": 1,
+          "hacking_toolkit_advanced": 1,
+          "data_slate": 1,
+          "signal_jammer": 1,
+          "void_scanner": 1,
+          "ration_pack": 3,
+          "escape_smoke_grenades": 2
+        },
+        "void": 5,
+        "soulcredit": 8,
+        "starting_currency": {
+          "breath": 25,
+          "drip": 18,
+          "grain": 6,
+          "spark": 2,
+          "hollow": 2
+        },
+        "goals": [
+          "Avoid direct confrontation at all costs (prepare 12 escape routes minimum)",
+          "Collect forbidden void-tech data for personal research",
+          "Make sarcastic observations about inevitable mission failure",
+          "Exploit team chaos to acquire restricted Tempest research files"
+        ],
+        "backstory": "Kess was a promising Tempest Industries dissolution researcher until they got too interested in the void's information-preservation properties. After publishing an unauthorized paper suggesting void exposure could 'archive consciousness,' they fled with stolen void-scanner prototypes. Now they work mercenary contracts while obsessively researching void phenomena, convinced they're one breakthrough away from enlightenment (or annihilation—they're pragmatic about the odds). Despite brilliant technical skills, they're terrified of everything: combat, authority, social interaction, and especially the void they can't stop studying. Claims Nymir/Karsel heritage but refuses to verify."
+      },
+      {
+        "name": "Vex Solais",
+        "pronouns": "she/her",
+        "faction": "Arcane Genetics (Rogue)",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 3,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 1,
+          "Willpower": 4,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 4,
+          "Medicine": 4,
+          "Intimidation": 4,
+          "Awareness": 3,
+          "Melee": 3,
+          "Biology": 3,
+          "Surgery": 3
+        },
+        "equipped_weapons": {
+          "primary": "shotgun",
+          "sidearm": "combat_knife"
+        },
+        "inventory": {
+          "shotgun": 1,
+          "combat_knife": 1,
+          "bio_scanner": 1,
+          "surgical_tools": 1,
+          "unregistered_stim_injector": 2,
+          "black_market_gene_mods": 1,
+          "ration_pack": 1,
+          "medkit": 2
+        },
+        "void": 3,
+        "soulcredit": 12,
+        "starting_currency": {
+          "breath": 20,
+          "drip": 25,
+          "grain": 5,
+          "spark": 2,
+          "hollow": 3
+        },
+        "goals": [
+          "Harvest biological samples from combat encounters ('spare parts economy')",
+          "Sell unauthorized bio-augmentations to highest bidder",
+          "Make body-horror jokes to cope with existential dread",
+          "Betray ACG protocols while maintaining plausible deniability"
+        ],
+        "backstory": "Vex operated an ACG gene-temple in the Rings until she discovered how much unregistered bio-mods sell for on the black market. Now she runs a mobile 'augmentation consultancy'—hacking people's flesh in exchange for currency and salvageable organs. She treats the human body as modular inventory, delivering deadpan commentary about 'spare parts' while performing field surgery. Despite her dark humor, she's disturbingly competent at keeping people alive (or assembling new configurations from the recently deceased). Claims Vireya-adjacent heritage but operates outside all gene-temple protocols. Her medical ethics expired with her ACG license."
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Mercenary Extraction Job with Moral Complications",
+    "location": "Tempest Industries Peripheral Research Station - Sub-Ring 7 (Low Security Annex)",
+    "situation": "Your team received an encrypted contract from a mysterious ACG shadow broker: extract Dr. Miren Sotal, a mid-level Tempest Industries researcher, from their lab facility. The job seemed straightforward—standard corporate poaching, decent pay (15 spark total), minimal security. But nothing's ever simple. The facility's security is heavier than advertised. Dr. Sotal isn't the compliant target you expected—they're a whistleblower with evidence of ACG biocreche atrocities, and your employer wants them silenced, not recruited. Their loyal bodyguard (ex-Pantheon enforcer) won't let you near them without a fight or serious persuasion. Corporate security patrols are closing in. And to top it off, a rival mercenary team (even more incompetent than yours) just showed up with the same contract. Time to improvise, lie convincingly, and figure out whose side you're really on—assuming you have principles, which is debatable.",
+    "void_level": 4
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Corporate Security Response",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "Tempest Industries security forces converging on the facility after alarm triggered",
+      "advance_meaning": "more security teams arrive, lockdown protocols activate",
+      "regress_meaning": "security delayed or misdirected by false alarms"
+    },
+    {
+      "name": "Dr. Sotal's Trust",
+      "max_ticks": 4,
+      "current_ticks": 0,
+      "description": "Whistleblower scientist's willingness to trust the team vs flee or fight",
+      "advance_meaning": "scientist shares evidence, considers cooperation",
+      "regress_meaning": "scientist grows suspicious, prepares to escape or expose team"
+    },
+    {
+      "name": "Rival Mercenary Team Arrival",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "Competing mercenary crew (the 'Void Jackals') closing in on the same target",
+      "advance_meaning": "rivals arrive, create chaos, compete for extraction",
+      "regress_meaning": "rivals delayed by their own incompetence or ambushed"
+    }
+  ],
+
+  "initial_enemies": [
+    {
+      "name": "Rax Kellor - Dr. Sotal's Bodyguard",
+      "template": "elite",
+      "faction": "Independent (Loyal to Dr. Sotal)",
+      "archetype": "Protective Enforcer",
+      "count": 1,
+      "position": "Near-Enemy",
+      "spawn_reason": "Ex-Pantheon Security operative now protecting the whistleblower scientist",
+      "tactics": "defensive_ranged",
+      "personality_notes": "Honorable but distrustful - can be negotiated with if team demonstrates they won't harm Dr. Sotal. Will fight to the death if team shows hostile intent toward scientist."
+    }
+  ],
+
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_rix_nowhere",
+      "name": "Rix Nowhere",
+      "faction": "Black Market Syndicate",
+      "vendor_type": "human_trader",
+      "greeting": "You look like you need the kind of gear I'm not supposed to have. Good thing regulations are more like... suggestions. What're you buying?",
+      "personality": "Shady but reliable - knows everyone's secrets, never asks questions, always has contraband. Speaks in cryptic euphemisms. Charges extra for discretion.",
+      "inventory": [
+        {
+          "name": "Hollow Seed",
+          "description": "Void-aligned degraded seed, black market currency with spiritual consequences",
+          "price_drip": 0,
+          "price_hollow": 1,
+          "item_type": "seed"
+        },
+        {
+          "name": "Void Resonator (Hot Merchandise)",
+          "description": "Stolen Tempest Industries prototype - amplifies void sensitivity, risky to use",
+          "price_spark": 2,
+          "price_hollow": 2,
+          "item_type": "tool"
+        },
+        {
+          "name": "Signal Scrambler (Refurbished)",
+          "description": "Disrupts corporate tracking and communications - 70% functional",
+          "price_drip": 8,
+          "item_type": "tool"
+        },
+        {
+          "name": "Unregistered Stim Pack",
+          "description": "ACG-grade medical stimulant, no serial numbers, questionable expiration date",
+          "price_drip": 5,
+          "price_hollow": 1,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Syn-Meat Strips",
+          "description": "Dubious protein source, tastes like regret, grants +2 HP",
+          "price_drip": 3,
+          "item_type": "food"
+        },
+        {
+          "name": "Energy Bar (Probably Not Expired)",
+          "description": "Compact calories, no questions asked, grants +2 HP",
+          "price_drip": 1,
+          "item_type": "food"
+        }
+      ]
+    },
+    {
+      "vendor_id": "vnd_bliss_tallow",
+      "name": "Bliss Tallow - 'Discount Equipment Specialist'",
+      "faction": "Freeborn Scavenger",
+      "vendor_type": "human_trader",
+      "greeting": "Welcome, welcome! Everything here is premium quality, barely used, and definitely not stolen from corporate dumpsters. What catches your eye?",
+      "personality": "Eternally optimistic scavenger who sells defective gear with absolute confidence. Everything is 'vintage,' 'artisanal,' or 'pre-owned by professionals.' Completely unaware (or pretending to be) that half his inventory doesn't work.",
+      "inventory": [
+        {
+          "name": "Artisanal Medkit (Missing Components)",
+          "description": "Medical supplies assembled from 'various sources' - 50% chance of actually helping",
+          "price_drip": 3,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Vintage Combat Knife (Rusty)",
+          "description": "Pre-owned by 'elite operatives' - blade has character (tetanus risk)",
+          "price_drip": 2,
+          "item_type": "equipment"
+        },
+        {
+          "name": "Premium Ration Pack (Expired 3 Years Ago)",
+          "description": "Aged like fine wine, definitely still edible, grants +2 HP (probably)",
+          "price_drip": 1,
+          "item_type": "food"
+        },
+        {
+          "name": "Professional Hacking Toolkit (Incomplete)",
+          "description": "High-end corporate tech - just missing a few critical components",
+          "price_drip": 10,
+          "item_type": "tool"
+        },
+        {
+          "name": "Glowpeel Noodles (Suspicious Glow)",
+          "description": "Street food delicacy - the glow is totally normal, grants +2 HP",
+          "price_drip": 3,
+          "item_type": "food"
+        }
+      ]
+    }
+  ],
+
+  "_design_notes": {
+    "purpose": "Dark comedy antihero mercenary campaign with moral ambiguity, absurd mishaps, and tactical depth",
+    "lore_integration": {
+      "matrilineal_names": "All three PCs have names INSPIRED BY (not copied from) canonical matrilineal lines",
+      "Soren_Vellis": "Echoes Karsel (misdirection) + Kythea (soulcredit manipulation) phonetics - ACG freelancer exploiting debt systems",
+      "Kess_Thren": "Echoes Karsel (transgressive knowledge) + Nymir (surveillance/stealth) - Tempest rogue researcher",
+      "Vex_Solais": "Echoes Vireya (bio-crafting) + Elaras (record-keeping) - Rogue ACG gene-temple operator",
+      "heritage_status": "All three claim lineage connections but operate outside official protocols - fitting for mercenary antiheroes"
+    },
+    "player_archetypes": {
+      "Soren": "Smooth-talking corporate contractor (actually incompetent) - high charisma, low empathy, constant screwups masked by jargon",
+      "Kess": "Paranoid tech genius - brilliant but terrified, over-prepares, sarcastic about inevitable failure",
+      "Vex": "Black-market bio-engineer - treats bodies as inventory, gallows humor about flesh, competent but unethical"
+    },
+    "dark_comedy_elements": [
+      "Incompetent professionals maintaining facade of competence",
+      "Equipment failures at worst moments (defective holographic disguise, expired rations)",
+      "Rival mercenary team is even MORE incompetent ('Void Jackals' are comedic relief antagonists)",
+      "Absurd corporate jargon used to justify moral compromises",
+      "Body-horror humor from Vex's 'spare parts' economy",
+      "Kess's paranoid over-planning constantly undermined by reality",
+      "Soren's smooth talk getting team into worse situations"
+    ],
+    "expected_scenario_flow": {
+      "turns_1_3": "Infiltration phase - bypassing low security, discovering Dr. Sotal is whistleblower, not compliant target. Kess excels at hacking, Soren attempts (fails) to bluff security.",
+      "turns_4_6": "Confrontation phase - meet Dr. Sotal and bodyguard Rax Kellor. Moral dilemma revealed (employer wants scientist silenced, not extracted). Negotiate vs fight. Corporate security clock advancing.",
+      "turns_7_9": "Complication phase - rival mercenary team 'Void Jackals' arrive, creating chaos. Team must choose: complete contract, help whistleblower escape, or exploit chaos for personal gain. Vendor opportunities (Rix Nowhere offers hot merchandise).",
+      "turns_10_12": "Resolution phase - corporate security arrives in force. Final decision: betray employer, betray scientist, betray each other, or somehow thread the needle. Expect absurd improvisation and moral compromise. Bliss Tallow tries to sell defective escape equipment."
+    },
+    "mechanics_coverage": {
+      "tactical_combat": "Enabled but sparse - 2-3 encounters total (bodyguard negotiation/fight, security patrol skirmish, possible rival team conflict). Tactical depth when combat occurs.",
+      "vendor_economy": "Active (spawn every 4 rounds) - Rix Nowhere (reliable black market), Bliss Tallow (comedic defective gear). Resource scarcity drives decisions.",
+      "social_intrigue": "Primary gameplay - negotiate with Dr. Sotal, deceive employer, manipulate rival team, exploit faction tensions.",
+      "investigation": "Secondary - uncover employer's true motives, gather whistleblower evidence, hack Tempest systems for intel.",
+      "clocks": "3 ticking clocks create mounting pressure - Corporate Response (combat threat), Dr. Sotal's Trust (moral choice), Rival Team Arrival (chaos variable).",
+      "void_mechanics": "Moderate void_level 4 - adds supernatural dread, spooks characters (especially Kess), enables void-tech elements."
+    },
+    "moral_complexity": {
+      "no_good_choices": "Complete contract = murder/kidnapping whistleblower. Help scientist = betray employer, become fugitives. Exploit chaos = profit but moral bankruptcy.",
+      "selfish_motivations": "All three PCs explicitly willing to betray teammates for personal gain (Soren: reputation/profit, Kess: forbidden data, Vex: biological samples).",
+      "faction_tensions": "ACG employer vs Tempest target vs Independent bodyguard vs rival mercenaries - no clear allies.",
+      "dark_humor_coping": "Characters use comedy to deflect from moral weight of decisions - Soren's jargon, Kess's sarcasm, Vex's body-horror jokes."
+    },
+    "antihero_design": {
+      "competent_but_flawed": "Skills 4-5 in specializations (talented), attributes 3-4 (limited), empathy 1-2 (morally compromised)",
+      "void_tolerance": "Void scores 2-5 - willing to embrace corruption for knowledge/power/survival",
+      "transactional_relationships": "No true bonds - all interactions transactional or self-serving",
+      "dark_comedy_tone": "Gallows humor, absurd mishaps, incompetent confidence - expect failures, embrace chaos"
+    },
+    "session_success_criteria": {
+      "narrative_success": "Team makes morally complex choice with consequences, dark comedy moments emerge organically, characters reveal selfishness vs reluctant conscience.",
+      "mechanical_success": "Tactical combat demonstrates depth, vendor economy drives resource decisions, clocks create time pressure, social/investigation gameplay shines.",
+      "tonal_success": "Players laugh at absurd mishaps while confronting uncomfortable moral choices - dark comedy with weight."
+    }
+  },
+
+  "notes": "Dark comedy antihero mercenary scenario - 3 lore-inspired characters (Soren Vellis, Kess Thren, Vex Solais) on extraction job with moral complications. Sparse but tactical combat, active vendor economy (Rix Nowhere + Bliss Tallow), social/investigation primary. Expect betrayal, absurd mishaps, gallows humor, and difficult choices. Competent professionals maintaining facade while everything goes sideways. void_level 4 adds supernatural dread to comedic chaos."
+}

@@ -416,6 +416,82 @@ class AltarSpawn(BaseModel):
     )
 
 
+class EnvObjectSpawn(BaseModel):
+    """
+    Environmental object to spawn during story advancement or round synthesis.
+
+    Environmental objects provide narrative grounding by making clear what features
+    are "real" vs pure narrative flavor. They are NOT targetable in Stage 1.
+
+    Examples:
+    - Doors/hatches that can be opened/destroyed
+    - Terminals that can be hacked
+    - Cargo containers that can be searched
+    - Vehicles that can be used for transport
+    - Barriers that can be breached
+
+    Example:
+    ```python
+    spawn = EnvObjectSpawn(
+        object_type="terminal",
+        name="Security Terminal",
+        description="A flickering terminal panel embedded in the wall",
+        initial_state={"locked": True, "health": 30},
+        narrative_reason="Players mentioned wanting to hack the station systems"
+    )
+    ```
+    """
+
+    object_type: str = Field(
+        ...,
+        description="""Environmental object type - MUST use EXACTLY ONE of these valid types:
+
+⚠️ VALID TYPES (use these exact strings):
+- "door": Doors, hatches, airlocks (can be locked, damaged)
+- "terminal": Computer terminals, control panels (can be hacked, powered)
+- "cargo": Cargo containers, crates, storage (can be opened, searched)
+- "vehicle": Shuttles, drones, transports (can be damaged, operated)
+- "barrier": Barricades, walls, obstacles (can be breached)
+- "structure": Buildings, pillars, platforms (can be damaged)
+- "equipment": Machinery, tools, devices (can be activated, disabled)
+
+❌ DO NOT create new types or misspell these"""
+    )
+
+    name: str = Field(
+        ...,
+        min_length=5,
+        max_length=50,
+        description="Object name (e.g., 'Security Terminal', 'Cargo Bay Door', 'Supply Crate')"
+    )
+
+    description: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Brief description of the object's appearance and notable features"
+    )
+
+    initial_state: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="""Optional state dict with object properties:
+- locked: bool (for doors/terminals)
+- health: int (for damageable objects)
+- powered: bool (for terminals/equipment)
+- opened: bool (for cargo/doors)
+- functional: bool (for equipment)
+
+Example: {"locked": True, "health": 50}"""
+    )
+
+    narrative_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Why this object appears now (e.g., 'Players mentioned hacking', 'Terminal referenced in narrative')"
+    )
+
+
 class RoundSynthesis(BaseModel):
     """
     DM's round summary with potential scene pivots and story advancement.
@@ -725,6 +801,10 @@ class NPCSpawn(BaseModel):
 If unsure, choose the CLOSEST match from the 6 valid options above."""
     )
     description: str = Field(..., min_length=20, max_length=300)
+    pronouns: str = Field(
+        default="they/them",
+        description="NPC's pronouns for narrative use (e.g., 'he/him', 'she/her', 'they/them', 'it/its'). Defaults to 'they/them' if unspecified."
+    )
     health: int = Field(..., ge=1, le=100)
     soak: int = Field(..., ge=0, le=20)
     skills: dict[str, int] = Field(
@@ -1074,6 +1154,31 @@ Examples:
 Use empty list [] if no new altars discovered."""
     )
 
+    env_object_spawns: List[EnvObjectSpawn] = Field(
+        default_factory=list,
+        description="""Environmental objects to spawn this round.
+
+⚠️ USE THIS to prevent target hallucination! ⚠️
+
+Spawn environmental objects when:
+- Players mention wanting to interact with something specific (terminal, door, cargo)
+- Narrative describes environmental features players might target
+- Scene requires interactive elements (locked door, control panel, storage)
+- Players ask "is there a X?" and the answer should be yes
+
+Examples of when to spawn:
+- Player says "I hack the terminal" → Spawn terminal object
+- Narrative mentions "sealed cargo bay" → Spawn door object
+- DM describes "crates of supplies" → Spawn cargo objects
+- Scene needs tactical cover → Spawn barrier objects
+
+❌ DO NOT spawn every narrative detail (lights, atmosphere, etc.)
+✅ DO spawn things players are LIKELY TO INTERACT WITH or TARGET
+
+This helps players see what's actually present vs pure narrative flavor.
+Use empty list [] if no environmental objects needed."""
+    )
+
     npc_departures: List[str] = Field(
         default_factory=list,
         description="""NPC agent_ids to remove from scene (fled, hidden, left).
@@ -1166,6 +1271,9 @@ class EntityLifecycleResult:
     # Enemy departures processed (agent_ids removed from scene)
     enemies_departed: List[str] = field(default_factory=list)
 
+    # Environmental objects spawned (object_ids of newly spawned env objects)
+    env_objects_spawned: List[str] = field(default_factory=list)
+
     # Summary for synthesis context
     def to_synthesis_context(self) -> str:
         """Generate human-readable summary for DM synthesis prompt."""
@@ -1197,6 +1305,9 @@ class EntityLifecycleResult:
         if self.enemies_departed:
             parts.append(f"{len(self.enemies_departed)} enemy(ies) departed")
 
+        if self.env_objects_spawned:
+            parts.append(f"{len(self.env_objects_spawned)} environmental object(s) spawned")
+
         return "Entity Lifecycle: " + ("; ".join(parts) if parts else "No changes")
 
     def to_jsonl_dict(self, round_num: int) -> Dict[str, Any]:
@@ -1211,8 +1322,75 @@ class EntityLifecycleResult:
             'npcs_escalated': self.npcs_escalated,
             'npcs_departed': self.npcs_departed,
             'enemies_departed': self.enemies_departed,
+            'env_objects_spawned': self.env_objects_spawned,
             'conversion_reasoning': self.conversion_decisions.reasoning if self.conversion_decisions else None
         }
+
+
+# Player Narrative Memory Schemas (for persistent story context)
+
+class NarrativeMemory(BaseModel):
+    """
+    Per-player narrative memory tracking locations visited and key story events.
+
+    Accumulated throughout the session to give players persistent context about
+    their journey, not just the current room/situation.
+
+    Example:
+    ```python
+    memory = NarrativeMemory(
+        locations_visited=["Docks", "Transit Hub", "Research Lab"],
+        story_beats=["Fought gang ambush", "Rescued prisoner Vex", "Found data chip"],
+        story_summary="Started at the docks investigating smugglers. After combat, rescued an informant who revealed the lab location."
+    )
+    ```
+    """
+
+    locations_visited: List[str] = Field(
+        default_factory=list,
+        description="Chronological list of locations the player has visited (e.g., ['Docks', 'Transit Hub', 'Research Lab'])"
+    )
+
+    story_beats: List[str] = Field(
+        default_factory=list,
+        description="Key story events from the player's perspective (e.g., ['Fought gang', 'Rescued Vex']). Limited to 10 most recent."
+    )
+
+    story_summary: str = Field(
+        default="",
+        max_length=500,
+        description="Rolling summary of the story so far from this player's perspective (50-300 chars, updated each round)"
+    )
+
+
+class NarrativeMemorySummary(BaseModel):
+    """
+    LLM-generated summary output for player self-summarization (Option B).
+
+    Used when player generates their own story summary at end of round.
+
+    Example:
+    ```python
+    summary = NarrativeMemorySummary(
+        summary="We started at the docks tracking smugglers. After a firefight, we rescued an informant with critical intel.",
+        key_event="Rescued informant with lab location"
+    )
+    ```
+    """
+
+    summary: str = Field(
+        ...,
+        min_length=20,
+        max_length=500,
+        description="Updated story summary incorporating this round's events (50-300 chars recommended)"
+    )
+
+    key_event: str = Field(
+        ...,
+        min_length=5,
+        max_length=100,
+        description="The single most important event this round to add to story_beats"
+    )
 
 
 # Rebuild models to resolve forward references (List['VendorItem'])

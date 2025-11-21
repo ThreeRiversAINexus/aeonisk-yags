@@ -308,6 +308,7 @@ class EnemyAgent:
 
     # Fields with defaults (must come after required fields)
     faction: str = "Unknown"  # Faction allegiance (e.g., "Nexus", "Tempest", "Freeborn")
+    pronouns: str = "they/them"  # Default to gender-neutral
     stuns: int = 0  # Stun damage (YAGS)
     fatigue: int = 0  # Fatigue levels (YAGS)
     defence_token: Optional[str] = None  # Which PC agent_id are they watching?

@@ -14,6 +14,7 @@ from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
 from .energy_economy import EnergyPurse, Seed, SeedType, Element, create_raw_seed
 from .prompt_loader import load_agent_prompt, compose_sections
+from .schemas.story_events import NarrativeMemory
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,13 @@ class AIPlayerAgent(Agent):
         # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
         # {character_name: (description, intent, target, weapon, reasoning, initiative_score)}
         self.declared_actions_this_round: Dict[str, Tuple[str, str, Optional[str], Optional[str], str, int]] = {}
+
+        # Persistent narrative memory (tracks journey across session)
+        self.narrative_memory = NarrativeMemory(
+            locations_visited=[],
+            story_beats=[],
+            story_summary=""
+        )
 
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
@@ -487,6 +495,13 @@ class AIPlayerAgent(Agent):
         self.current_scenario = message.payload.get('scenario', {})
         opening = message.payload.get('opening_narration', '')
 
+        # Initialize narrative memory with starting location
+        starting_location = self.current_scenario.get('location', 'Unknown')
+        if starting_location and starting_location not in self.narrative_memory.locations_visited:
+            self.narrative_memory.locations_visited.append(starting_location)
+            # Initialize summary with opening context
+            self.narrative_memory.story_summary = f"Started at {starting_location}."
+
         # Scenario is now printed once by session.py, not per-player
         # Only print if human controlled (to notify the human player)
         if self.human_controlled:
@@ -497,21 +512,28 @@ class AIPlayerAgent(Agent):
             print(f"\n[HUMAN - {self.character_state.name}] Waiting for your input...")
 
     async def _handle_scenario_update(self, message: Message):
-        """Handle mid-game scenario pivot from DM."""
+        """Handle mid-game scenario pivot or story advancement from DM."""
         new_theme = message.payload.get('new_theme', 'Unknown')
         new_situation = message.payload.get('new_situation', '')
         pivot_narration = message.payload.get('pivot_narration', '')
+        new_location = message.payload.get('new_location', '')  # Story advancement
 
         # Update scenario with new theme while preserving location
         if self.current_scenario:
             self.current_scenario['theme'] = new_theme
             if new_situation:
                 self.current_scenario['situation'] = new_situation
+            if new_location:
+                self.current_scenario['location'] = new_location
         else:
             self.current_scenario = {
                 'theme': new_theme,
                 'situation': new_situation
             }
+
+        # Add new location to narrative memory (story advancement)
+        if new_location and new_location not in self.narrative_memory.locations_visited:
+            self.narrative_memory.locations_visited.append(new_location)
 
         # Scenario pivot is now printed once by session.py, not per-player
         # Only print if human controlled
@@ -853,6 +875,9 @@ class AIPlayerAgent(Agent):
 
         print(f"\n[{self.character_state.name}] Received resolution")
 
+        # Extract story beat from own significant actions
+        self._extract_story_beat(original_action, outcome, narration)
+
         # NOTE: Offering consumption now happens BEFORE DM narration in dm.py (mechanics-first architecture)
         # No need to consume here anymore - mechanics layer handles it pre-narration
 
@@ -978,6 +1003,68 @@ class AIPlayerAgent(Agent):
 
             # Remove from pending
             self.shared_state.pending_transfers.remove(transfer)
+
+    def _extract_story_beat(self, original_action: Dict[str, Any], outcome: Dict[str, Any], narration: str):
+        """
+        Extract a story beat from a significant action for narrative memory.
+
+        Only captures notable events (combat victories, discoveries, social successes).
+        Keeps story_beats list to max 10 entries (FIFO).
+        """
+        # Skip if no narration or trivial action
+        if not narration or len(narration) < 20:
+            return
+
+        action_type = original_action.get('action_type', '').upper()
+        success = outcome.get('success', False)
+        intent = original_action.get('intent', '')
+
+        # Determine if this action is significant enough to be a story beat
+        beat = None
+
+        # Combat victories are always notable
+        if action_type == 'COMBAT' and success:
+            # Try to extract target from action
+            target = original_action.get('target_name', original_action.get('target', ''))
+            if target:
+                beat = f"Defeated {target} in combat"
+            else:
+                beat = f"Won combat engagement"
+
+        # Social successes (negotiation, intimidation, persuasion)
+        elif action_type == 'SOCIAL' and success:
+            # Shorten the intent to a beat
+            if 'negotiate' in intent.lower() or 'persuade' in intent.lower():
+                beat = f"Negotiated successfully: {intent[:50]}..."
+            elif 'intimidate' in intent.lower():
+                beat = f"Intimidated target: {intent[:50]}..."
+            else:
+                beat = f"Social success: {intent[:50]}..."
+
+        # Investigation discoveries
+        elif action_type == 'INVESTIGATE' and success:
+            beat = f"Discovered: {intent[:60]}..."
+
+        # Ritual/magic successes
+        elif action_type == 'RITUAL' and success:
+            beat = f"Completed ritual: {intent[:50]}..."
+
+        # Technical/hacking successes
+        elif action_type == 'TECHNICAL' and success:
+            beat = f"Tech success: {intent[:50]}..."
+
+        # Critical failures (dramatic moments)
+        tier = outcome.get('tier', outcome.get('outcome_tier', ''))
+        if tier in ['CRITICAL_FAILURE', 'CATASTROPHIC'] and not beat:
+            beat = f"Critical failure: {intent[:50]}..."
+
+        # Add the beat if significant
+        if beat:
+            # Keep only last 10 story beats (FIFO)
+            if len(self.narrative_memory.story_beats) >= 10:
+                self.narrative_memory.story_beats.pop(0)
+            self.narrative_memory.story_beats.append(beat)
+            logger.debug(f"Player {self.character_state.name}: Added story beat: {beat}")
 
     async def _handle_dm_narration(self, message: Message):
         """Handle general DM narration."""
@@ -1618,6 +1705,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
                 "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
                 "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
+                # Narrative memory (persistent journey context)
+                "journey_locations": " → ".join(self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
+                "journey_beats": "\n".join(f"- {beat}" for beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
+                "journey_summary": self.narrative_memory.story_summary if self.narrative_memory.story_summary else "Journey just beginning...",
                 # Goals & personality
                 "goals_text": goals_text,
                 "dialogue_goal_text": dialogue_goal_text,
@@ -1671,7 +1762,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 prompt=phase1_user_prompt,
                 result_type=ActionIntent,
                 system_prompt=phase1_system_prompt,
-                max_tokens=self.llm_config.get('max_tokens', 2000),  # Phase 1: Simple schema but OpenAI needs headroom
+                max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000 - prevent OpenAI finish_reason:length errors
                 temperature=self.llm_config.get('temperature', 0.8),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
@@ -1852,6 +1943,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
                 "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
                 "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
+                # Narrative memory (persistent journey context)
+                "journey_locations": " → ".join(self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
+                "journey_beats": "\n".join(f"- {beat}" for beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
+                "journey_summary": self.narrative_memory.story_summary if self.narrative_memory.story_summary else "Journey just beginning...",
                 # Combat-specific context (if applicable)
                 "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
                 "combat_skills": str(self.character_state.skills.get('Guns', 0)),
@@ -1972,9 +2067,19 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 for enemy in active_enemies:
                     # Get target ID from mapper
                     target_id = target_mapper.get_target_id(enemy.agent_id) if target_mapper else enemy.agent_id
-                    entities.append(
-                        f"- {enemy.name} (ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
-                    )
+
+                    # Extract pronouns if available
+                    pronouns = getattr(enemy, 'pronouns', None)
+
+                    # Format with optional pronouns
+                    if pronouns:
+                        entities.append(
+                            f"- {enemy.name} ({pronouns}, ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
+                        )
+                    else:
+                        entities.append(
+                            f"- {enemy.name} (ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
+                        )
 
         # Add NPCs (with target IDs for combat)
         if self.shared_state and self.shared_state.npc_agents:
@@ -2001,6 +2106,29 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                     entities.append(f"- {name} ({pronouns}, ID: {target_id}, HP: {health}/{max_health})")
                 else:
                     entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+        # Add environmental objects (non-targetable, narrative grounding)
+        if self.shared_state and self.shared_state.current_env_objects:
+            if entities:  # Only add separator if there are already entities
+                entities.append("")  # Blank line separator
+                entities.append("**Environmental Features:**")
+            else:
+                entities.append("**Environmental Features:**")
+
+            for env_obj in self.shared_state.current_env_objects:
+                # Format state info if present
+                state_str = ""
+                if env_obj.state:
+                    state_parts = []
+                    for key, value in env_obj.state.items():
+                        if isinstance(value, bool):
+                            state_parts.append(f"{key}: {'Yes' if value else 'No'}")
+                        else:
+                            state_parts.append(f"{key}: {value}")
+                    if state_parts:
+                        state_str = f" ({', '.join(state_parts)})"
+
+                entities.append(f"- {env_obj.name} [ID: {env_obj.object_id}]{state_str}")
 
         return "\n".join(entities) if entities else "You are alone"
 

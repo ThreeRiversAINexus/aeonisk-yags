@@ -74,7 +74,8 @@ class NPCAgent:
     soak: int
     void_score: int
 
-    # Skills and damage (with defaults)
+    # Fields with defaults (must come after required fields)
+    pronouns: str = "they/them"  # Default to gender-neutral
     skills: Dict[str, int] = field(default_factory=dict)
 
     # Tactical state (preserved across conversions) - with sensible default
@@ -277,7 +278,7 @@ class NPCLLMClient:
                 prompt=prompt,
                 result_type=NPCAction,
                 system_prompt=self._get_system_prompt(),
-                max_tokens=2000,  # Increased for dialogue_content (500) + reason (1500) + OpenAI overhead
+                max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
                 temperature=self.temperature
             )
 

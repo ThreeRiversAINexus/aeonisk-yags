@@ -7555,6 +7555,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             disposition=npc_spawn.disposition,
             threat_level=npc_spawn.threat_level,
             description=npc_spawn.description,
+            pronouns=getattr(npc_spawn, 'pronouns', 'they/them'),  # Pass pronouns for narrative use
             health=npc_spawn.health,
             max_health=npc_spawn.health,  # Max health = starting health
             soak=npc_spawn.soak,
