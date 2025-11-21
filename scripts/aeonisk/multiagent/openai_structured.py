@@ -203,7 +203,7 @@ async def generate_structured_openai_native(
     """
     # OpenAI structured output REQUIRES temperature=1.0
     if temperature != 1.0:
-        logger.warning(f"OpenAI structured output requires temperature=1.0, overriding {temperature}")
+        logger.debug(f"OpenAI structured output requires temperature=1.0, normalizing from {temperature}")
         temperature = 1.0
 
     # Build messages array

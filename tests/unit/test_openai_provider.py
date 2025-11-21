@@ -484,3 +484,46 @@ class TestOpenAIProviderLiveAPI:
         assert response.provider == 'openai'
 
         print(f"\nLive API response: {response.text}")
+
+
+class TestProviderFactory:
+    """Test the create_provider factory function."""
+
+    def test_anthropic_alias_maps_to_claude(self, monkeypatch):
+        """Test that 'anthropic' provider name is aliased to 'claude'."""
+        monkeypatch.setenv('ANTHROPIC_API_KEY', 'test-anthropic-key-123')
+
+        config = LLMConfig(provider='anthropic', model='claude-sonnet-4-5')
+        provider = create_provider(config)
+
+        # Should create ClaudeProvider, not fail with "Unknown provider"
+        assert provider is not None
+        assert provider.provider_name == 'claude'
+        assert provider.config.model == 'claude-sonnet-4-5'
+
+    def test_claude_provider_still_works(self, monkeypatch):
+        """Test that 'claude' provider name still works directly."""
+        monkeypatch.setenv('ANTHROPIC_API_KEY', 'test-anthropic-key-456')
+
+        config = LLMConfig(provider='claude', model='claude-sonnet-4-5')
+        provider = create_provider(config)
+
+        assert provider is not None
+        assert provider.provider_name == 'claude'
+
+    def test_openai_provider_unchanged(self, monkeypatch):
+        """Test that openai provider is not affected by alias."""
+        monkeypatch.setenv('OPENAI_API_KEY', 'test-openai-key-789')
+
+        config = LLMConfig(provider='openai', model='gpt-5-mini')
+        provider = create_provider(config)
+
+        assert provider is not None
+        assert provider.provider_name == 'openai'
+
+    def test_unknown_provider_still_raises_error(self):
+        """Test that truly unknown providers still raise ValueError."""
+        config = LLMConfig(provider='invalid_provider', model='some-model')
+
+        with pytest.raises(ValueError, match="Unknown provider: invalid_provider"):
+            create_provider(config)

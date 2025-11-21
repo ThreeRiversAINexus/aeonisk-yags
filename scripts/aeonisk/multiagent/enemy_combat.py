@@ -184,7 +184,7 @@ class EnemyCombatManager:
                     config = LLMConfig(
                         provider=provider,
                         model=model,
-                        max_tokens=1500,  # Increased for headroom with verbose LLMs
+                        max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
                         temperature=0.7  # Enemy agents use fixed temp for consistency
                     )
                     self.llm_provider = create_provider(config)
@@ -528,7 +528,7 @@ class EnemyCombatManager:
             response = await llm_client.generate_async(
                 prompt=prompt,
                 temperature=0.7,
-                max_tokens=1500  # Increased for headroom with verbose LLMs
+                max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
             )
             declaration_text = response.get('content', '')
 
@@ -594,7 +594,7 @@ class EnemyCombatManager:
                 prompt=prompt,
                 result_type=EnemyDecision,
                 system_prompt=system_prompt,
-                max_tokens=1500,  # Increased for headroom with verbose LLMs
+                max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
                 temperature=0.7
             )
 
@@ -722,7 +722,7 @@ class EnemyCombatManager:
                     response = await llm_client.generate_async(
                         prompt=legacy_prompt,
                         temperature=0.7,
-                        max_tokens=1500  # Increased for headroom with verbose LLMs
+                        max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
                     )
                     declaration_text = response.get('content', '')
 

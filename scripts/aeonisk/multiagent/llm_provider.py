@@ -913,7 +913,7 @@ class OpenAIProvider(LLMProvider):
 
         # OpenAI gpt-5-mini and newer models require temperature=1.0
         if temperature != 1.0:
-            logger.warning(f"OpenAI {self.config.model} requires temperature=1.0, overriding {temperature}")
+            logger.debug(f"OpenAI {self.config.model} requires temperature=1.0, normalizing from {temperature}")
             temperature = 1.0
 
         # Build messages
@@ -1237,6 +1237,10 @@ def create_provider(config: LLMConfig) -> LLMProvider:
         ValueError: If provider not found
     """
     provider_name = config.provider.lower()
+
+    # Map "anthropic" alias to "claude" for backward compatibility
+    if provider_name == "anthropic":
+        provider_name = "claude"
 
     if provider_name not in PROVIDERS:
         available = ", ".join(PROVIDERS.keys())

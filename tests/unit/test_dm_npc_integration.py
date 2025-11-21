@@ -561,3 +561,44 @@ def test_enemy_conversion_fallback_for_npc_escalation():
 
     # Verify escalation would work
     assert expected_escalation.npc_id == npc.agent_id
+
+
+def test_npc_spawn_has_llm_provider():
+    """DM-spawned NPCs should receive DM's llm_provider for LLM-based actions."""
+    from scripts.aeonisk.multiagent.dm import AIDMAgent
+    from scripts.aeonisk.multiagent.llm_provider import LLMConfig, create_provider
+
+    # Create mock LLM provider
+    mock_llm_config = LLMConfig(provider='openai', model='gpt-5-mini')
+    mock_llm_provider = Mock()
+
+    # Create DM with LLM provider
+    dm = AIDMAgent(
+        agent_id="dm_test",
+        socket_path="/tmp/test.sock",
+        llm_config=mock_llm_config,
+        shared_state=create_mock_shared_state()
+    )
+    dm.llm_provider = mock_llm_provider  # Inject mock
+
+    npc_spawn = NPCSpawn(
+        name="Test Trader",
+        faction="Independent",
+        entity_type="neutral",
+        threat_level="non_combatant",
+        disposition="neutral",
+        description="Merchant selling supplies from a portable stall",
+        health=25,
+        soak=2
+    )
+
+    # Process spawn
+    dm._process_npc_spawn(npc_spawn)
+
+    # Verify NPC was created with llm_provider
+    assert len(dm.shared_state.add_npc.call_args_list) == 1
+    created_npc = dm.shared_state.add_npc.call_args[0][0]
+
+    assert isinstance(created_npc, NPCAgent)
+    assert created_npc.llm_provider is mock_llm_provider, "NPC should receive DM's llm_provider"
+    assert created_npc.name == "Test Trader"
