@@ -145,7 +145,7 @@ class ScenePivot(BaseModel):
     situation_change: Optional[str] = Field(
         default=None,
         min_length=20,
-        max_length=500,
+        max_length=1500,  # Increased from 500 - allow detailed scene descriptions
         description="How the situation has changed (tactical shift, environment change)"
     )
 
@@ -219,8 +219,8 @@ class StoryAdvancement(BaseModel):
 
     situation: Optional[str] = Field(
         default=None,
-        min_length=100,
-        max_length=1500,
+        min_length=50,  # Reduced from 100 - avoid retry waste
+        max_length=3000,  # Increased from 1500 - allow detail
         description="""New situation description (if advancing).
 
 ⚠️ IMPORTANT: Be GENEROUS with detail! Aim for 400-800 characters.
@@ -477,8 +477,8 @@ class RoundSynthesis(BaseModel):
     # Narrative summary
     narration: str = Field(
         ...,
-        min_length=800,
-        max_length=3000,
+        min_length=100,  # Reduced from 800 - avoid retry waste
+        max_length=4000,  # Increased from 3000 - allow detail
         description="""DM's cohesive narrative summarizing the round (800-3000 chars).
 
         IMPORTANT: Be generous with detail! Aim for 1200-1800 characters.
@@ -764,9 +764,9 @@ If unsure, choose the CLOSEST match from the 6 valid options above."""
         False,
         description="Whether this NPC functions as a vendor (can sell items to players)"
     )
-    vendor_inventory: List = Field(
+    vendor_inventory: List['VendorItem'] = Field(
         default_factory=list,
-        description="Items for sale (List[VendorItem]). Only populated if is_vendor=True. Example: [VendorItem(name='Medkit', price_drip=5, ...)]"
+        description="Items for sale (List[VendorItem]). Only populated if is_vendor=True. Example: [VendorItem(name='Medkit', description='Medical supplies', price_drip=5, item_type='consumable')]"
     )
     vendor_greeting: Optional[str] = Field(
         None,
@@ -781,6 +781,35 @@ If unsure, choose the CLOSEST match from the 6 valid options above."""
         False,
         description="Whether this vendor actively processes purchase actions. Set False for vendors who only provide context/atmosphere."
     )
+
+    @field_validator('vendor_inventory')
+    @classmethod
+    def validate_vendor_inventory(cls, v: List) -> List:
+        """
+        Validate that vendor_inventory only contains VendorItem instances.
+
+        Prevents:
+        - String lists (["Medkit", "Ammo"])
+        - Dict lists ([{"name": "Medkit"}])
+        - Mixed types ([VendorItem(...), "Food"])
+
+        Raises ValueError with clear message if invalid types found.
+        """
+        if not v:  # Empty list is OK
+            return v
+
+        # Import here to avoid circular dependency
+        from ..energy_economy import VendorItem
+
+        for i, item in enumerate(v):
+            if not isinstance(item, VendorItem):
+                raise ValueError(
+                    f"vendor_inventory item {i} has invalid type: {type(item).__name__}. "
+                    f"Expected VendorItem instance, got {type(item).__name__}. "
+                    f"Example: VendorItem(name='Medkit', description='Medical supplies', price_drip=5)"
+                )
+
+        return v
 
 
 class EnemyConversion(BaseModel):
@@ -1184,3 +1213,17 @@ class EntityLifecycleResult:
             'enemies_departed': self.enemies_departed,
             'conversion_reasoning': self.conversion_decisions.reasoning if self.conversion_decisions else None
         }
+
+
+# Rebuild models to resolve forward references (List['VendorItem'])
+# This must be called after VendorItem is imported and available
+def _rebuild_models():
+    """Rebuild Pydantic models to resolve forward references."""
+    try:
+        from ..energy_economy import VendorItem  # noqa: F401
+        NPCSpawn.model_rebuild()
+    except ImportError:
+        # VendorItem not available yet (during early imports)
+        pass
+
+_rebuild_models()
