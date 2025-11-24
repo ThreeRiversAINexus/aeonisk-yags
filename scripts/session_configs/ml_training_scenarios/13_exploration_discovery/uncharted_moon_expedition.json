@@ -1,0 +1,265 @@
+{
+  "_role": "ml_training_scenario",
+  "_purpose": "Test exploration mechanics, unknown territory discovery, environmental challenges without predetermined solutions, artifact interaction risks, information control decisions (what to report?), mapping/surveying, Pilot/Investigation/Attunement synergy",
+  "session_name": "Expedition Mu-12 - The Forgotten Moon",
+  "max_turns": 20,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Unknown Hazards May Include Combat) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Remote Expedition) ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: EXPLORATION/DISCOVERY ===",
+  "_scenario_hint": "Uncharted Moon Mu-12 (void_level unknown, pre-Covenant ruins detected), team hired by Tempest to survey, map, and assess commercial/research value. Unknown challenges: unstable terrain, ancient security systems, alien ecosystem, pre-Covenant artifacts with unpredictable effects, reality distortions. Discovery opportunities: technology, historical records, Seed deposits, void phenomena. Information control: what to report to Tempest? What to suppress? What to sell to highest bidder? Each faction wants different intel (Tempest: void tech, Nexus: suppress dangerous knowledge, Freeborn: liberate discoveries). Exploration tests: Pilot (navigation, terrain traversal), Investigation (mapping, analysis), Attunement (artifact interaction), Systems (tech reverse-engineering), Awareness (hazard detection).",
+  "_design_notes": {
+    "ml_training_value": "Exploration/discovery gameplay, unknown territory mapping, environmental challenges without predetermined solutions, artifact interaction with unpredictable effects, information control decisions (factional loyalty vs. profit vs. public good), surveying mechanics (Investigation + Pilot + Systems synergy), unknown hazard management, discovery-driven narrative (DM improvises based on PC exploration choices)",
+    "mechanics_tested": [
+      "Exploration/mapping",
+      "Unknown hazard management",
+      "Artifact interaction",
+      "Information control",
+      "Discovery clocks",
+      "Terrain traversal",
+      "Environmental storytelling",
+      "Factional information brokering"
+    ],
+    "character_innovation": "Pilot specialist (navigation, ship ops), archaeologist (Investigation 6, artifact analysis), attunement specialist (interface with ancient tech), comprehensive surveying equipment"
+  },
+  "starting_clocks": [
+    {
+      "name": "Territory Mapping",
+      "current_ticks": 0,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Moon surface surveyed and documented. At 10 ticks: comprehensive map complete, commercial value assessed.",
+      "advance_meaning": "territory mapping progresses",
+      "regress_meaning": "territory mapping setback or reversal"
+    },
+    {
+      "name": "Artifact Activation Risk",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Interaction with pre-Covenant technology. At 5 ticks: artifact partially activated. At 8 ticks: full activation (consequences unknown).",
+      "advance_meaning": "artifact activation risk progresses",
+      "regress_meaning": "artifact activation risk setback or reversal"
+    },
+    {
+      "name": "Tempest Rival Expedition Arrival",
+      "current_ticks": 12,
+      "max_ticks": 12,
+      "direction": "countdown",
+      "description": "Competing expedition ETA. At 0 ticks: rivals arrive, claim contested discoveries.",
+      "advance_meaning": "tempest rival expedition arrival worsens or time runs out",
+      "regress_meaning": "tempest rival expedition arrival improves or delayed"
+    },
+    {
+      "name": "Discovery Significance",
+      "current_ticks": 0,
+      "max_ticks": 12,
+      "direction": "progress",
+      "description": "Major findings accumulated. At 12 ticks: paradigm-shifting discovery (void origin? Dissolution truth? Ancient civilization evidence?).",
+      "advance_meaning": "discovery significance progresses",
+      "regress_meaning": "discovery significance setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Expedition Pilot Arden Vex",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 6,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 5,
+          "Endurance": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Pilot": 6,
+          "Systems": 5,
+          "Awareness": 6,
+          "Investigation": 5,
+          "Athletics": 5,
+          "Engineering": 4,
+          "Combat": 3
+        },
+        "void": 2,
+        "soulcredit": -1,
+        "goals": [
+          "Navigate moon terrain safely and map territory",
+          "Decide what discoveries to report to Tempest vs. sell independently",
+          "Profit from expedition while maintaining autonomy"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "ship_access_chip": 1,
+          "navigation_array": 1,
+          "terrain_scanner": 1,
+          "data_slate": 1,
+          "survival_kit": 1,
+          "climbing_gear": 1,
+          "comm_unit": 1,
+          "repair_kit": 1,
+          "fuel_reserves": 2,
+          "encrypted_data_storage": 1
+        }
+      },
+      {
+        "name": "Archaeologist Lyss Kain",
+        "pronouns": "she/her",
+        "faction": "Fractal Praxis",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 8,
+          "bondPreference": "avoids",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Science": 6,
+          "Magick Theory": 5,
+          "Awareness": 5,
+          "Systems": 5,
+          "Void Lore": 5,
+          "Astral Arts": 4
+        },
+        "void": 3,
+        "soulcredit": 1,
+        "goals": [
+          "Study pre-Covenant ruins for historical/scientific value",
+          "Document artifact functions and origins",
+          "Publish findings to advance understanding (vs. suppress knowledge)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "fractal_lens": 1,
+          "pattern_recorder": 1,
+          "artifact_analysis_kit": 1,
+          "sample_collection_kit": 1,
+          "data_slate": 1,
+          "research_journal": 1,
+          "void_scanner": 1,
+          "diagnostic_scanner": 1,
+          "memory_crystal": 6,
+          "carbon_dating_equipment": 1,
+          "translation_database": 1
+        }
+      },
+      {
+        "name": "Artifact Interface Specialist Kael Rift",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 9,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 5,
+          "Charisma": 2
+        },
+        "skills": {
+          "Attunement": 6,
+          "Astral Arts": 6,
+          "Systems": 5,
+          "Magick Theory": 5,
+          "Void Lore": 5,
+          "Engineering": 4,
+          "Investigation": 4
+        },
+        "void": 4,
+        "soulcredit": -2,
+        "goals": [
+          "Activate and reverse-engineer ancient artifacts for Tempest",
+          "Discover void technology or pre-Covenant power sources",
+          "Take calculated risks with artifact activation"
+        ],
+        "equipped_weapons": {
+          "primary": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "combat_knife": 1,
+          "neural_interface_module": 2,
+          "attunement_amplifier": 1,
+          "void_scanner": 1,
+          "data_slate": 1,
+          "artifact_activation_toolkit": 1,
+          "reality_anchor_talisman": 3,
+          "containment_vessel": 3,
+          "hollow_seed": 4,
+          "breach_compass": 1,
+          "emergency_shutdown_device": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Exploration/discovery mechanics in unknown territory, environmental challenges without predetermined solutions (DM improvises based on player choices), artifact interaction with unpredictable effects (Attunement + Systems checks, risk/reward), information control decisions (report to Tempest? Sell to rivals? Publish publicly?), mapping/surveying (Investigation + Pilot synergy), terrain traversal (Athletics + Pilot), unknown hazard management (Awareness + Science), factional information brokering. Tests underrepresented exploration gameplay, discovery-driven narrative, environmental storytelling, artifact analysis, information control ethics, surveying skill synergies. Long campaign (20 turns) allows thorough exploration, multiple discoveries, artifact experimentation, rival competition tension, information control drama. Features Pilot 6 (navigation specialist), Investigation 6 + Science 6 (archaeologist), Attunement 6 + Astral Arts 6 (artifact interface), comprehensive surveying gear (terrain scanners, analysis kits, translation databases). Pre-Covenant mystery allows ML training on speculative discovery responses."
+}

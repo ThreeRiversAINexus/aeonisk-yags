@@ -1,0 +1,166 @@
+version: 1.0.0
+module: player_action_investigate
+description: "Phase 2: INVESTIGATE action - Searching for items, looting, examining objects for tangible rewards"
+always_load: false
+load_when: action_type_is_investigate
+content: |-
+  # 🔍 INVESTIGATE ACTION: Search & Loot
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
+
+  You've chosen to **investigate**. This is for **SEARCHING** and **FINDING ITEMS**.
+
+  ## INVESTIGATE vs PERCEPTION - IMPORTANT DISTINCTION
+
+  | INVESTIGATE | PERCEPTION |
+  |-------------|------------|
+  | **Search** for items, loot, seeds | **Detect** threats, dangers, weak points |
+  | **Find** tangible rewards | **Notice** hidden enemies, traps |
+  | Uses: Intelligence × Investigation | Uses: Perception × Awareness |
+  | Example: "Search corpse for loot" | Example: "Scan for ambushes" |
+
+  **Use INVESTIGATE when you want to FIND and TAKE something.**
+  **Use PERCEPTION when you want to DETECT and SENSE something.**
+
+  ## Investigation Mechanics
+
+  **Process:**
+  1. Search target (container, corpse, plant, cache, terminal)
+  2. Roll Intelligence × Investigation (or Perception × Awareness for quick searches)
+  3. **DM awards items via item_discovery** based on success tier
+
+  **Typical Difficulty:** DC 10-18 (varies by concealment, complexity)
+
+  ## REQUIRED Fields
+
+  ```python
+  InvestigateAction(
+      intent: str,
+      description: str,               # 50-800 chars - What are you examining and how?
+      attribute: str,                 # Usually Intelligence or Perception
+      skill: str,                     # Systems, Medicine, Awareness, etc.
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.INVESTIGATE,
+      target: Optional[str],          # Object/terminal ID (tgt_xxxx) if specific
+      target_position: Optional[Position]  # Location if examining area
+  )
+  ```
+
+  ## Common Investigation Skills
+
+  - `Intelligence × Systems` - Analyzing terminals, data, networks
+  - `Intelligence × Medicine` - Examining bodies, wounds, biological samples
+  - `Perception × Awareness` - Noticing details, hidden clues, patterns
+  - `Intelligence × Engineering` - Understanding mechanisms, structures
+
+  ## Examples
+
+  **Example 1: Terminal Analysis**
+  ```python
+  InvestigateAction(
+      intent="Analyze terminal logs for security breach evidence",
+      description="I access the terminal's system logs and filter for anomalous access patterns. Running integrity checks and timestamp analysis to identify when and how the breach occurred.",
+      attribute="Intelligence",
+      skill="Systems",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Logs may be partially wiped, requires forensic analysis",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_terminal_03"
+  )
+  ```
+
+  **Example 2: Crime Scene Investigation**
+  ```python
+  InvestigateAction(
+      intent="Examine body for cause of death",
+      description="I carefully examine the corpse, checking for entry wounds, toxin indicators, void corruption signs, and time of death markers. Looking for anything that reveals how they died.",
+      attribute="Intelligence",
+      skill="Medicine",
+      difficulty_estimate=16,
+      difficulty_justification="DC 16: Standard forensic examination, fresh corpse",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_corpse_01"
+  )
+  ```
+
+  **Example 3: Vendor Browsing (Free Action)**
+  ```python
+  InvestigateAction(
+      intent="Browse the vending machine's inventory",
+      description="I examine the vending machine's display screen, reviewing the available items, their descriptions, and prices. Just looking at what's in stock.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=0,
+      difficulty_justification="DC 0: Free action - browsing vendor inventory requires no roll",
+      action_type=ActionType.INVESTIGATE,
+      target="vnd_s4cu_001"  # Vendor ID from entities_present
+  )
+  ```
+
+  💡 **Vendor Browsing:** Investigating vendors to see their inventory is a **free action** - no roll required, the DM simply lists what's available.
+
+  **Example 4: Hybrid Action with Synergy Bonus**
+  ```python
+  InvestigateAction(
+      intent="Examine void-corrupted artifact using occult knowledge",
+      description="I analyze the artifact's void-corrupted glyphs and energy patterns. My understanding of void theory helps me recognize dangerous resonance signatures that pure technical analysis might miss.",
+      attribute="Perception",
+      skill="Awareness",  # PRIMARY skill
+      difficulty_estimate=17,
+      difficulty_justification="DC 17: Complex void patterns, requires occult interpretation",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_artifact",
+      situational_modifiers={"synergy_magick_theory": 2}  # +2 synergy from Magick Theory assisting Awareness
+  )
+  ```
+
+  💡 **Hybrid Actions:** When a secondary skill logically assists your primary skill, use `situational_modifiers`
+  to add a +2 synergy bonus. Example: Using Magick Theory knowledge to enhance Awareness checks on void artifacts.
+
+  **Example 5: Environmental Discovery (Leyline Plant Search)**
+  ```python
+  InvestigateAction(
+      intent="Search leyline-corrupted plant for Raw Seeds",
+      description="I carefully examine the leyline-corrupted plant, looking for intact seed pods. Checking which seeds are still fresh versus withered, avoiding void-corrupted sections that might be dangerous to handle.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: Plant is accessible but requires discerning fresh seeds from aged/corrupted ones",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_leyline_plant"
+  )
+  ```
+
+  💡 **Item Discovery:** Successful investigation of environmental features (leyline plants, supply caches, corpses, abandoned containers) can yield Raw Seeds, currency, or items. The DM determines what you find based on your roll quality and the context.
+
+  **Example 6: Corpse Loot**
+  ```python
+  InvestigateAction(
+      intent="Search fallen enemy for supplies",
+      description="I quickly pat down the corpse, checking pockets, belt pouches, and any equipment they were carrying. Looking for currency, ammunition, medkits, or anything useful before we need to move.",
+      attribute="Perception",
+      skill="Awareness",
+      difficulty_estimate=10,
+      difficulty_justification="DC 10: Basic corpse search, no special concealment",
+      action_type=ActionType.INVESTIGATE,
+      target="tgt_enemy_fallen"
+  )
+  ```
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
+  ---
+
+  **Ready? Declare your investigation!**

@@ -1,0 +1,254 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test external deadline pressure (NOT clock-based countdown), competing objectives under time limit, resource allocation choices, sacrifice decisions, triage mechanics, evacuation logistics, moral choice under time constraint (save who?) ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "Evacuation Protocol - 10 Rounds to Breach (OpenAI)",
+  "max_turns": 10,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Rear Guard Combat) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 20,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: EXTERNAL DEADLINE ===",
+  "_scenario_hint": "Mining Station Omega-7 (void_level 8, critical breach imminent), void breach will destroy entire station in EXACTLY 10 rounds (external countdown, not scene clock). Three competing objectives: evacuate 50 civilian NPCs (requires 6 rounds), seal breach with ritual (requires 4 rounds + sacrifice of PC void score), recover critical Tempest research data (requires 3 rounds). Ship capacity: 40 NPCs maximum. Cannot achieve all objectives - must choose: maximize lives saved, preserve research, attempt risky seal (may fail and waste time), prioritize VIPs vs. random civilians. Void manifestations attack evacuation routes. Time is absolute - at round 10 END, station explodes regardless of completion.",
+  "_design_notes": {
+    "ml_training_value": "External deadline (10 rounds HARD limit), competing objectives impossible to all achieve, resource allocation under time pressure, sacrifice decisions (who to leave behind?), triage mechanics (VIPs vs. civilians), evacuation logistics, moral choice under time constraint, rear guard combat while evacuating, absolute consequence (failure = death)",
+    "mechanics_tested": [
+      "External deadline (not clock)",
+      "Competing objectives",
+      "Resource allocation",
+      "Triage decisions",
+      "Evacuation logistics",
+      "Sacrifice mechanics",
+      "Time-limited combat",
+      "Absolute consequences"
+    ],
+    "character_innovation": "Pilot specialist (ship operation), combat specialist (rear guard), ritualist (breach seal option), heavy weapons (Breach Hammer, Shrike Cannon), ship access chips",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Civilian Evacuation Progress",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "NPCs evacuated to ship. At 6 ticks: 40 civilians boarded (ship at capacity, 10 left behind).",
+      "advance_meaning": "civilian evacuation progress progresses",
+      "regress_meaning": "civilian evacuation progress setback or reversal"
+    },
+    {
+      "name": "Research Data Recovery",
+      "current_ticks": 0,
+      "max_ticks": 3,
+      "direction": "progress",
+      "description": "Critical Tempest data extracted. At 3 ticks: research secured.",
+      "advance_meaning": "research data recovery progresses",
+      "regress_meaning": "research data recovery setback or reversal"
+    },
+    {
+      "name": "Breach Seal Ritual Preparation",
+      "current_ticks": 0,
+      "max_ticks": 4,
+      "direction": "progress",
+      "description": "Ritual components gathered and consecrated. At 4 ticks: ready to attempt seal (requires PC void sacrifice, 50% success chance).",
+      "advance_meaning": "breach seal ritual preparation progresses",
+      "regress_meaning": "breach seal ritual preparation setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Pilot Commander Jex Varn",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 5,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 4
+        },
+        "skills": {
+          "Pilot": 6,
+          "Systems": 5,
+          "Awareness": 5,
+          "Combat": 4,
+          "Athletics": 5,
+          "Engineering": 4,
+          "Guns": 4
+        },
+        "void": 1,
+        "soulcredit": 0,
+        "goals": [
+          "Evacuate maximum civilians within ship capacity (40 max)",
+          "Escape before 10-round deadline",
+          "Decide who lives and who stays behind"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "ship_access_chip": 1,
+          "pilot_credentials": 1,
+          "emergency_beacon": 1,
+          "comm_unit": 1,
+          "evacuation_protocol_manual": 1,
+          "passenger_manifest": 1,
+          "repair_kit": 1,
+          "med_kit": 2
+        }
+      },
+      {
+        "name": "Rear Guard Thresh",
+        "pronouns": "they/them",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 5,
+          "Agility": 4,
+          "Endurance": 5,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 6,
+          "Melee": 5,
+          "Athletics": 5,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Brawl": 5
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Hold evacuation route against void manifestations",
+          "Ensure civilians reach ship safely",
+          "Be last one aboard (or stay behind if necessary)"
+        ],
+        "equipped_weapons": {
+          "primary": "shrike_cannon",
+          "sidearm": "breach_hammer"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "shrike_cannon": 1,
+          "breach_hammer": 1,
+          "combat_knife": 1,
+          "riot_carapace": 1,
+          "purification_incense": 4,
+          "med_kit": 3,
+          "comm_unit": 1,
+          "smoke_grenades": 4,
+          "barricade_charges": 2
+        }
+      },
+      {
+        "name": "Seal Ritualist Veyra Lune",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 5,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 5,
+          "Charisma": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 6,
+          "Magick Theory": 5,
+          "Investigation": 4,
+          "Systems": 4,
+          "Counsel": 4
+        },
+        "void": 2,
+        "soulcredit": 2,
+        "goals": [
+          "Attempt breach seal ritual to save station (requires sacrificing void score)",
+          "Balance seal attempt vs. evacuation time",
+          "Accept personal sacrifice if seal can save more lives"
+        ],
+        "equipped_weapons": {
+          "primary": "ritual_staff"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_staff": 1,
+          "ritual_altar_portable": 1,
+          "attuned_seed_spirit": 4,
+          "purification_incense": 10,
+          "crystal_focus": 2,
+          "reality_anchor_talisman": 4,
+          "consecration_oil": 2,
+          "blood_offering": 6,
+          "breach_seal_ritual_scroll": 1,
+          "void_scanner": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: External deadline (10 rounds HARD limit, not clock-based), competing objectives impossible to all achieve (evacuate 50 NPCs requires 6 rounds but ship holds 40, research recovery 3 rounds, seal ritual 4 rounds + sacrifice), resource allocation under time pressure, triage decisions (who to leave behind? VIPs vs. random civilians?), evacuation logistics, sacrifice mechanics (seal ritual requires PC void sacrifice, 50% success chance), rear guard combat while evacuating, absolute consequence (round 10 = station explodes). Tests underrepresented time-pressure decision-making, triage ethics, resource allocation, sacrifice choices, logistics management. Features heavy weapons (Shrike Cannon +6 DMG, Breach Hammer +7 DMG), pilot specialist (Pilot 6, Systems 5), ritualist with seal option (Astral Arts 6, Attunement 6). Hard deadline creates urgency unlike clock-based scenarios. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

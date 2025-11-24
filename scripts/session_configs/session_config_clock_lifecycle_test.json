@@ -3,7 +3,6 @@
   "max_turns": 4,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": false,
   "force_combat": true,
   "vendor_spawn_frequency": 0,
 

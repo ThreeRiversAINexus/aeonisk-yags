@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import logging
+import random
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .mechanics import MechanicsEngine, SceneClock
@@ -11,6 +16,114 @@ if TYPE_CHECKING:
     from .knowledge_retrieval import KnowledgeRetrieval
     from .enemy_combat import EnemyCombatManager
     from .target_ids import TargetIDMapper
+
+
+def generate_altar_id() -> str:
+    """
+    Generate unique altar ID: alt_xxxx
+
+    Format: alt_ + 4 random alphanumeric characters
+    Example: alt_r8k3
+    """
+    import string
+    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"alt_{suffix}"
+
+
+def generate_env_object_id() -> str:
+    """
+    Generate unique environmental object ID: env_xxxx
+
+    Format: env_ + 4 random alphanumeric characters
+    Example: env_k3r8
+    """
+    import string
+    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"env_{suffix}"
+
+
+class AltarType(Enum):
+    """Types of ritual altars in Aeonisk."""
+    RITUAL_ALTAR = "ritual_altar"  # Generic ritual space
+    NEXUS_ALTAR = "nexus_altar"  # Sovereign Nexus sanctums (high quality, SC gated)
+    FREEBORN_ALTAR = "freeborn_altar"  # Neutral Zone markets (moderate quality, open access)
+    BLACK_MARKET_ALTAR = "black_market_altar"  # Hidden altars (low quality, risky, accepts Hollows)
+    ABANDONED_ALTAR = "abandoned_altar"  # Discovered altars (random quality, contested)
+
+
+class EnvironmentalObjectType(Enum):
+    """Types of environmental objects that can be spawned in scenarios."""
+    DOOR = "door"  # Doors, hatches, airlocks
+    TERMINAL = "terminal"  # Computer terminals, control panels
+    CARGO = "cargo"  # Cargo containers, crates, storage
+    VEHICLE = "vehicle"  # Shuttles, drones, transports
+    BARRIER = "barrier"  # Barricades, walls, obstacles
+    STRUCTURE = "structure"  # Buildings, pillars, platforms
+    EQUIPMENT = "equipment"  # Machinery, tools, devices
+
+
+@dataclass
+class Altar:
+    """
+    Represents a ritual altar that provides bonuses to attunement rituals.
+
+    Altars are infrastructure (not vendors) that assist player-performed rituals.
+    """
+    altar_type: AltarType
+    quality: int  # 1-10, determines bonus
+    location: str
+    altar_id: Optional[str] = None
+
+    def __post_init__(self):
+        """Auto-generate altar_id if not provided."""
+        if self.altar_id is None:
+            self.altar_id = generate_altar_id()
+
+    def get_ritual_bonus(self) -> int:
+        """
+        Get ritual bonus based on altar quality.
+
+        Quality 1-3: +1 bonus
+        Quality 4-7: +2 bonus
+        Quality 8-10: +3 bonus
+        """
+        if 1 <= self.quality <= 3:
+            return 1
+        elif 4 <= self.quality <= 7:
+            return 2
+        elif 8 <= self.quality <= 10:
+            return 3
+        else:
+            # Invalid quality, default to +1
+            logger.warning(f"Altar {self.altar_id} has invalid quality {self.quality}, defaulting to +1 bonus")
+            return 1
+
+
+@dataclass
+class EnvironmentalObject:
+    """
+    Represents an environmental object that exists in the scenario.
+
+    Environmental objects are non-targetable entities that provide narrative grounding.
+    They make clear what environmental features are "real" vs pure narrative flavor.
+
+    Examples:
+        - Doors/hatches (locked, health, can be destroyed)
+        - Terminals/panels (hacked, powered, functional)
+        - Cargo/crates (opened, searched, looted)
+        - Vehicles (damaged, operational, docked)
+        - Barriers (breached, intact, reinforced)
+    """
+    object_type: EnvironmentalObjectType
+    name: str
+    description: str
+    state: Dict[str, Any] = field(default_factory=dict)  # e.g., {"locked": True, "health": 50}
+    object_id: Optional[str] = None
+
+    def __post_init__(self):
+        """Auto-generate object_id if not provided."""
+        if self.object_id is None:
+            self.object_id = generate_env_object_id()
 
 
 @dataclass
@@ -50,6 +163,15 @@ class SharedState:
 
     # NPC agents (non-combatant agents with simple LLM)
     npc_agents: List[Any] = field(default_factory=list)
+
+    # Current vendors present in the scenario (persists across rounds until StoryAdvancement removes them)
+    current_vendors: List[Any] = field(default_factory=list)
+
+    # Current altars present in the scenario (ritual infrastructure for attunement)
+    current_altars: List[Altar] = field(default_factory=list)
+
+    # Current environmental objects present in the scenario (narrative grounding)
+    current_env_objects: List[EnvironmentalObject] = field(default_factory=list)
 
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys
@@ -237,7 +359,7 @@ Generate something DIFFERENT from these recent scenarios.
         """Initialize mechanics systems if not already done."""
         if self.mechanics_engine is None:
             from .mechanics import MechanicsEngine
-            self.mechanics_engine = MechanicsEngine()
+            self.mechanics_engine = MechanicsEngine(shared_state=self)  # FIX: Pass self for vendor lookup
 
         if self.action_validator is None:
             from .action_schema import ActionValidator
@@ -393,3 +515,275 @@ Generate something DIFFERENT from these recent scenarios.
                     return enemy
 
         return None
+
+    # Vendor management methods
+
+    def add_vendor(self, vendor: Any) -> None:
+        """
+        Add vendor to current scenario (persists across rounds).
+
+        Prevents duplicates by name - if vendor with same name exists, skip.
+        This prevents session.py + dm.py from both loading persistent_vendors.
+
+        Args:
+            vendor: Vendor instance from energy_economy.py
+        """
+        # Check if vendor with same name already exists
+        for existing_vendor in self.current_vendors:
+            if existing_vendor.name == vendor.name:
+                # Skip duplicate - already have this vendor
+                return
+
+        self.current_vendors.append(vendor)
+
+    def remove_vendor(self, vendor_name: str) -> bool:
+        """
+        Remove vendor by name (via StoryAdvancement.vendor_departures).
+
+        Args:
+            vendor_name: Name of vendor to remove
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, vendor in enumerate(self.current_vendors):
+            if vendor.name == vendor_name:
+                self.current_vendors.pop(i)
+                return True
+        return False
+
+    def get_vendor(self, vendor_name: str) -> Optional[Any]:
+        """
+        Get vendor by name.
+
+        Args:
+            vendor_name: Name of vendor to find
+
+        Returns:
+            Vendor object if found, None otherwise
+        """
+        for vendor in self.current_vendors:
+            if vendor.name == vendor_name:
+                return vendor
+        return None
+
+    def get_npc_by_id(self, npc_id: str) -> Optional[Any]:
+        """
+        Get NPC by agent ID.
+
+        Args:
+            npc_id: NPC agent ID to find (e.g., "npc_civilian_a3f2")
+
+        Returns:
+            NPCAgent object if found, None otherwise
+        """
+        for npc in self.npc_agents:
+            if hasattr(npc, 'agent_id') and npc.agent_id == npc_id:
+                return npc
+        return None
+
+    def get_vendor_by_id(self, vendor_id: str) -> Optional[Any]:
+        """
+        Get vendor by ID (legacy vendor system).
+
+        Args:
+            vendor_id: Vendor ID to find (e.g., "vnd_a1b2")
+
+        Returns:
+            Vendor object if found, None otherwise
+        """
+        for vendor in self.current_vendors:
+            if hasattr(vendor, 'vendor_id') and vendor.vendor_id == vendor_id:
+                return vendor
+        return None
+
+    def get_npc_by_vendor_id(self, vendor_id: str) -> Optional[Any]:
+        """
+        Get NPC vendor by agent ID (unified vendor-NPC system).
+
+        This supports the vendor→NPC unification where NPCs can act as vendors.
+        Purchase system uses agent_id as the unified identifier (no separate vendor_id).
+
+        Args:
+            vendor_id: NPC agent ID to find (e.g., "npc_xxxx")
+
+        Returns:
+            NPCAgent object if found and is_vendor=True, None otherwise
+        """
+        for npc in self.npc_agents:
+            if not hasattr(npc, 'is_vendor') or not npc.is_vendor:
+                continue
+
+            if hasattr(npc, 'agent_id') and npc.agent_id == vendor_id:
+                return npc
+
+        return None
+
+    def get_all_vendors(self) -> List[Any]:
+        """Get all vendors currently present in scenario."""
+        return self.current_vendors
+
+    def clear_vendors(self) -> None:
+        """Remove all vendors from scenario."""
+        self.current_vendors.clear()
+
+    # Altar management methods
+
+    def add_altar(self, altar: Altar) -> None:
+        """
+        Add an altar to the scenario.
+
+        Args:
+            altar: Altar instance
+
+        Note:
+            Prevents duplicates by altar_id
+        """
+        # Check if altar with same ID already exists
+        for existing_altar in self.current_altars:
+            if existing_altar.altar_id == altar.altar_id:
+                # Skip duplicate
+                return
+
+        self.current_altars.append(altar)
+
+    def remove_altar(self, altar_id: str) -> bool:
+        """
+        Remove altar by ID.
+
+        Args:
+            altar_id: ID of altar to remove (e.g., "alt_r8k3")
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, altar in enumerate(self.current_altars):
+            if altar.altar_id == altar_id:
+                self.current_altars.pop(i)
+                return True
+        return False
+
+    def get_altar_by_id(self, altar_id: str) -> Optional[Altar]:
+        """
+        Get altar by ID.
+
+        Args:
+            altar_id: ID of altar to find (e.g., "alt_r8k3")
+
+        Returns:
+            Altar object if found, None otherwise
+        """
+        for altar in self.current_altars:
+            if altar.altar_id == altar_id:
+                return altar
+        return None
+
+    def get_all_altars(self) -> List[Altar]:
+        """Get all altars currently present in scenario."""
+        return self.current_altars
+
+    def clear_altars(self) -> None:
+        """Remove all altars from scenario."""
+        self.current_altars.clear()
+
+    # Environmental object management methods
+
+    def add_env_object(self, env_object: EnvironmentalObject) -> None:
+        """
+        Add an environmental object to the scenario.
+
+        Args:
+            env_object: EnvironmentalObject instance
+
+        Note:
+            Prevents duplicates by object_id
+        """
+        # Check if object with same ID already exists
+        for existing_obj in self.current_env_objects:
+            if existing_obj.object_id == env_object.object_id:
+                # Skip duplicate
+                return
+
+        self.current_env_objects.append(env_object)
+
+    def remove_env_object(self, object_id: str) -> bool:
+        """
+        Remove environmental object by ID.
+
+        Args:
+            object_id: ID of object to remove (e.g., "env_k3r8")
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, obj in enumerate(self.current_env_objects):
+            if obj.object_id == object_id:
+                self.current_env_objects.pop(i)
+                return True
+        return False
+
+    def get_env_object_by_id(self, object_id: str) -> Optional[EnvironmentalObject]:
+        """
+        Get environmental object by ID.
+
+        Args:
+            object_id: ID of object to find (e.g., "env_k3r8")
+
+        Returns:
+            EnvironmentalObject if found, None otherwise
+        """
+        for obj in self.current_env_objects:
+            if obj.object_id == object_id:
+                return obj
+        return None
+
+    def get_all_env_objects(self) -> List[EnvironmentalObject]:
+        """Get all environmental objects currently present in scenario."""
+        return self.current_env_objects
+
+    def clear_env_objects(self) -> None:
+        """Remove all environmental objects from scenario."""
+        self.current_env_objects.clear()
+
+    # Enemy agent management methods (delegate to enemy_combat module)
+
+    def get_enemy(self, agent_id: str) -> Optional[Any]:
+        """
+        Get enemy by agent_id (delegates to enemy_combat module).
+
+        Args:
+            agent_id: Enemy agent ID to find
+
+        Returns:
+            Enemy agent if found, None otherwise
+        """
+        if not self.enemy_combat:
+            return None
+
+        # enemy_combat stores enemies in enemy_agents list
+        enemy_agents = getattr(self.enemy_combat, 'enemy_agents', [])
+        for enemy in enemy_agents:
+            if getattr(enemy, 'agent_id', None) == agent_id:
+                return enemy
+        return None
+
+    def remove_enemy(self, agent_id: str) -> bool:
+        """
+        Remove enemy by agent_id (delegates to enemy_combat module).
+
+        Args:
+            agent_id: Enemy agent ID to remove
+
+        Returns:
+            True if removed, False if not found
+        """
+        if not self.enemy_combat:
+            return False
+
+        # enemy_combat stores enemies in enemy_agents list
+        enemy_agents = getattr(self.enemy_combat, 'enemy_agents', [])
+        for i, enemy in enumerate(enemy_agents):
+            if getattr(enemy, 'agent_id', None) == agent_id:
+                enemy_agents.pop(i)
+                return True
+        return False

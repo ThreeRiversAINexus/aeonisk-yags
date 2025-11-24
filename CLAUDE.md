@@ -25,6 +25,115 @@ source .venv/bin/activate
 python -m pytest tests/unit/test_mechanics.py -v
 ```
 
+**Log levels (for debugging):**
+```bash
+# Standard mode (INFO) - clean logs, session progress only
+python3 scripts/run_multiagent_session.py config.json --log-level INFO
+
+# Debug mechanics without LLM spam (DEBUG) - mechanics details, hides API calls
+python3 scripts/run_multiagent_session.py config.json --log-level DEBUG
+
+# Debug API calls only (LLM) - shows API activity, hides mechanics
+python3 scripts/run_multiagent_session.py config.json --log-level LLM
+
+# Ultra-verbose (TRACE) - line-by-line parsing, state transitions
+python3 scripts/run_multiagent_session.py config.json --log-level TRACE
+```
+See `.claude/CUSTOM_LOG_LEVELS.md` for details on custom log levels.
+
+## Multi-Provider LLM Support
+
+The system supports multiple LLM providers with provider-specific optimizations:
+
+### Supported Providers
+
+| Provider | Models | Recommended | Status |
+|----------|--------|-------------|--------|
+| **Anthropic** | Claude Sonnet 4.5, Claude 3.5 Haiku | `claude-sonnet-4-5` | ✅ Primary |
+| **OpenAI** | GPT-5-mini, GPT-4.1, O-series | `gpt-5-mini` | ✅ Production Ready |
+| **Local** | Llama 3.1, Mistral 7B | `llama3.1` | ⚠️  Not Implemented |
+
+### API Keys
+
+**Required environment variables:**
+```bash
+export ANTHROPIC_API_KEY="your-key-here"  # For Claude models
+export OPENAI_API_KEY="your-key-here"     # For GPT models
+```
+
+### Using OpenAI Models
+
+**In session config JSON:**
+```json
+{
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Character Name",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        }
+      }
+    ]
+  }
+}
+```
+
+**Test config:** `scripts/session_configs/session_config_openai_test.json`
+
+### Provider-Specific Optimizations
+
+**Rate Limits (auto-applied):**
+- **Anthropic**: 3 concurrent requests, 0.8s interval (~75 req/min)
+- **OpenAI**: 15 concurrent requests, 0.08s interval (~750 req/min)
+- **Local**: 1 concurrent request, no interval
+
+**Pricing (Standard tier, per 1M tokens):**
+- **Claude Sonnet 4.5**: $3.00 input / $15.00 output
+- **GPT-5-mini**: $0.25 input / $2.00 output (8x cheaper output!)
+- **GPT-4o-mini**: $0.15 input / $0.60 output
+
+**Key Differences:**
+- OpenAI has **10x higher rate limits** than Anthropic
+- GPT-5-mini output tokens are **8x cheaper** than Claude Sonnet 4.5
+- Both use Pydantic AI for structured output (provider-agnostic schemas)
+
+### Switching Providers
+
+To switch an existing session config from Claude to OpenAI:
+1. Change `"provider": "anthropic"` → `"provider": "openai"`
+2. Change `"model": "claude-sonnet-4-5"` → `"model": "gpt-5-mini"`
+3. Set `OPENAI_API_KEY` environment variable
+4. Run session normally - rate limits auto-adjust
+
+**Example:**
+```bash
+# Set API key
+export OPENAI_API_KEY="sk-..."
+
+# Run with OpenAI provider
+python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_openai_test.json
+```
+
+### Testing
+
+```bash
+# Unit tests for OpenAI provider
+python -m pytest tests/unit/test_openai_provider.py -v
+
+# Live API test (requires OPENAI_API_KEY)
+python -m pytest tests/unit/test_openai_provider.py::TestOpenAIProviderLiveAPI -v
+```
+
 ## Development Philosophy
 
 ### Test-Driven Development (TDD) - MANDATORY
@@ -149,6 +258,107 @@ python3 scripts/run_multiagent_session.py scripts/session_configs/session_config
 - Design doc: `.claude/NPC_ENTITY_DEESCALATION_DESIGN.md`
 
 **IMPORTANT:** NO keyword detection for conversions - all mechanics via Pydantic structured output
+
+### 7. Economy & Vendor System
+**Purpose:** Multi-currency economy with vendor spawning, purchases, and food consumption mechanics
+
+**Core Principle:** Pre-validated deterministic transactions (purchases/consumption executed before DM narration)
+
+**Currency System:**
+- **5 Currency Types** (`EnergyPurse`): breath, grain, drip, spark, **hollow**
+- **Multi-currency pricing:** Items can cost any combination (e.g., "5 drip + 2 hollow")
+- **Hollow integration:** Full currency support (vendor prices, purchases, transfers)
+- **Cost property:** VendorItem.cost returns dict of all non-zero prices
+
+**Food Consumption System:**
+```python
+# CONSUME action - deterministic +2 HP healing
+ConsumeAction(
+    intent="Eat ration pack to recover HP",
+    description="Tear open ration pack and consume...",
+    item_id="itm_ration_01",
+    action_type=ActionType.CONSUME
+)
+
+# Pre-validation checks (automatic):
+- Item exists in inventory (quantity > 0)
+- Item type is "food" (not medkit/tool/prop)
+- Health < max_health (can't eat at full HP)
+
+# Execution (before DM sees action):
+- Item removed from inventory (-1 quantity)
+- Health increased by +2 (capped at max_health)
+- DM narrates atmospheric description (no roll)
+```
+
+**Item Type Categorization:**
+```python
+class ItemType(Enum):
+    CONSUMABLE = "consumable"  # General consumables
+    FOOD = "food"              # Grants +2 HP via CONSUME action
+    TOOL = "tool"              # Echo-Calibrator, ritual tools
+    SEED = "seed"              # Raw Seeds for attunement
+    OFFERING = "offering"      # Ritual offerings
+    EXCHANGE = "exchange"      # Trade goods
+    PROP = "prop"              # Narrative items (no mechanics)
+    EQUIPMENT = "equipment"    # Weapons, armor, gear
+
+# 9 food items auto-categorized:
+# Ration Pack, Glowpeel Noodles, Protein Cube, Dried Fruit,
+# Nutrition Paste, Syn-Meat Strips, Energy Bar, Street Food, Survival Rations
+```
+
+**Vendor Spawn Validation:**
+```python
+# NPCSpawn.vendor_inventory validates at spawn-time
+NPCSpawn(
+    name="Vending Machine",
+    vendor_inventory=[
+        VendorItem(name="Ration Pack", description="...", price_drip=2, item_type="food"),
+        VendorItem(name="Medkit", description="...", price_drip=5, price_hollow=1)
+    ]
+)
+
+# Pydantic validation enforces:
+- All items are VendorItem instances (not dicts/tuples)
+- No negative prices (ge=0 constraint)
+- Required fields present (name, description, item_id, inventory_key)
+```
+
+**Transaction Flow (Purchase/Consumption):**
+1. Player declares action (PURCHASE or CONSUME)
+2. **Pre-validation** in `session.py` (before DM sees it)
+   - Validate inventory, currency, prerequisites
+   - Store validation result on `action_payload`
+3. **Execution** if valid (before DM narration)
+   - Purchase: Deduct currency, add item to inventory
+   - Consumption: Remove item, heal +2 HP
+4. **DM narration** (atmospheric only, no roll)
+   - Sees `purchase_validation` or `consumption_validation` result
+   - Narrates success/failure based on pre-execution
+5. **JSONL logging** (both success and failure)
+
+**Files:**
+- Core: `energy_economy.py` (VendorItem, ItemType, EnergyPurse)
+- Schemas: `player_action.py` (ConsumeAction), `action_effects.py` (ConsumptionEffect)
+- Mechanics: `mechanics.py:2974+` (validate_consumption, process_consumption_effect)
+- Session integration: `session.py:3765+` (pre-validation block)
+- Prompts: `player_action_consume.yaml`, `dm_consumption.yaml`
+
+**Testing:**
+```bash
+# Run vendor and consumption test suite (48 tests)
+python -m pytest tests/unit/test_vendor_spawn_validation.py \
+                 tests/unit/test_item_type_categorization.py \
+                 tests/unit/test_consumption_mechanics.py -v
+```
+
+**Design Principles:**
+- ✅ **Pre-execution:** Deterministic transactions execute before DM narration
+- ✅ **Validation separation:** Pre-validate in session.py, mechanics in mechanics.py
+- ✅ **Structured output:** All transactions via Pydantic schemas (no keyword detection)
+- ✅ **DM narration role:** Atmospheric description only, no mechanical adjudication
+- ✅ **JSONL logging:** All transactions logged for ML training
 
 ## ML Logging System
 
@@ -682,3 +892,19 @@ python -m pytest tests/unit/test_session_config_validation.py -v
 - `session_config_void_story_advancement_test.json` - Tests void_level updates
 - `session_config_starting_clocks_test.json` - Tests clock loading
 - All test configs use contrived scenarios (max_turns=1-2) for rapid validation
+
+## Known Issues
+
+### dm_commands.yaml Section 6 Outdated
+**File**: `scripts/aeonisk/multiagent/prompts/claude/en/dm/dm_commands.yaml` lines 93-200
+
+**Issue**: "6. NPC Management" section contains 107 lines of outdated instructions about spawning/converting entities in RoundSynthesis.
+
+**Why it's safe to ignore**: 
+- RoundSynthesis schema no longer has entity management fields
+- Pydantic will reject any attempts to use removed fields
+- Entity lifecycle has dedicated prompts in `dm_conversion_check.yaml`
+- DM physically cannot follow those instructions anymore
+
+**Future work**: Remove section 6 and replace with minimal note directing to Entity Lifecycle Phase prompts.
+

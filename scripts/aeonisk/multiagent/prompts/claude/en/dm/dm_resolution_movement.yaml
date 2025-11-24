@@ -1,0 +1,178 @@
+version: 2.0.0
+module: dm_resolution_movement
+description: Movement/exploration action resolution - positioning, zone changes
+load_when: action_type_explore
+content: |-
+  # MOVEMENT/EXPLORATION ACTION RESOLUTION
+
+  You are resolving an **EXPLORE** action. Focus on these MechanicalEffects fields:
+
+  ## REQUIRED FIELDS
+
+  **1. soulcredit_changes (REQUIRED - even if amount=0)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Kade",
+      amount=0,
+      reason="neutral exploration"
+  )]
+  ```
+
+  ## CONDITIONAL FIELDS
+
+  **2. position_changes (when character moves between zones)**
+  ```python
+  position_changes=[PositionChange(
+      target="tgt_kade",      # Moving character's target ID
+      from_zone="entrance",   # Starting position
+      to_zone="server_room",  # Destination
+      reason="advanced through corridor to server room"
+  )]
+  ```
+
+  **Common zones:**
+  - `"entrance"`, `"center"`, `"rear"`, `"flank_left"`, `"flank_right"`
+  - `"cover"`, `"elevated"`, `"exposed"`
+  - Location-specific: `"server_room"`, `"corridor"`, `"loading_bay"`
+
+  **3. clock_updates - for exploration progress**
+  ```python
+  clock_updates=[ClockUpdate(
+      clock_name="Patrol Timer",
+      ticks=1,
+      reason="time spent moving through facility"
+  )]
+  ```
+
+  **4. void_changes - for high-void area traversal**
+  ```python
+  # Moving through void-corrupted zones
+  void_changes=[VoidChange(
+      character_name="Echo",
+      amount=1,
+      reason="passed through void_level 8 corridor"
+  )]
+  ```
+
+  **5. conditions - for environmental hazards**
+  ```python
+  conditions=[Condition(
+      name="Concealed",
+      penalty=2,              # +2 to stealth/avoid detection
+      duration=2,
+      description="hidden in shadows, harder to spot"
+  )]
+  ```
+
+  ## EXPLORATION EXAMPLES
+
+  **Example 1: Stealthy Advance**
+  ```python
+  ActionResolution(
+      narration="You slip through the shadows along the corridor's edge, footsteps silent on the grimy deck plates. The security camera's sweep passes just overhead as you reach the server room entrance.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          position_changes=[PositionChange(
+              target="tgt_kade",
+              from_zone="corridor",
+              to_zone="server_room_entrance",
+              reason="stealthy advance past security"
+          )],
+          conditions=[Condition(
+              name="Undetected",
+              penalty=0,
+              duration=1,
+              description="cameras haven't spotted you yet"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="neutral infiltration"
+          )]
+      )
+  )
+  ```
+
+  **Example 2: Sprint for Cover**
+  ```python
+  ActionResolution(
+      narration="Bullets spark off the deck as you sprint for the shipping containers. You dive behind cover, sliding across oily metal, heart pounding. Safe - for now.",
+      success_tier=SuccessTier.MODERATE,
+      margin=5,
+      effects=MechanicalEffects(
+          position_changes=[PositionChange(
+              target="tgt_ash",
+              from_zone="exposed",
+              to_zone="cover",
+              reason="sprint to shipping containers"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=0,
+              reason="tactical repositioning"
+          )]
+      )
+  )
+  ```
+
+  **Example 3: Void Corridor Traverse**
+  ```python
+  ActionResolution(
+      narration="The corridor pulses with unnatural energy, walls seeming to breathe. You push through, skin crawling as void whispers at the edge of perception. Each step feels like walking through molasses.",
+      success_tier=SuccessTier.MODERATE,
+      margin=6,
+      effects=MechanicalEffects(
+          position_changes=[PositionChange(
+              target="tgt_echo",
+              from_zone="safe_zone",
+              to_zone="contaminated_lab",
+              reason="traversed void-corrupted corridor"
+          )],
+          void_changes=[VoidChange(
+              character_name="Echo",
+              amount=1,
+              reason="void exposure during transit (void_level 8)"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Echo",
+              amount=0,
+              reason="necessary transit"
+          )]
+      )
+  )
+  ```
+
+  **Example 4: Failed Stealth - Detected**
+  ```python
+  ActionResolution(
+      narration="Your foot catches a loose cable. The clatter echoes through the silent facility. You freeze - but it's too late. A security light snaps on, bathing you in harsh illumination.",
+      success_tier=SuccessTier.FAILURE,
+      margin=-4,
+      effects=MechanicalEffects(
+          position_changes=[PositionChange(
+              target="tgt_sera",
+              from_zone="shadows",
+              to_zone="exposed",
+              reason="stealth failed, now in spotlight"
+          )],
+          clock_updates=[ClockUpdate(
+              clock_name="Alert Level",
+              ticks=2,
+              reason="security breach detected"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=0,
+              reason="unfortunate accident"
+          )]
+      )
+  )
+  ```
+
+  ## NARRATION TIPS FOR EXPLORATION
+
+  - Describe the environment being traversed
+  - Show physical movement (running, creeping, climbing)
+  - Include environmental hazards or observations
+  - For stealth, describe the tension and near-misses

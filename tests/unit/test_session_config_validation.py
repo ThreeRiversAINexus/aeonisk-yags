@@ -21,9 +21,17 @@ SESSION_CONFIGS_DIR = Path(__file__).parent.parent.parent / "scripts" / "session
 def get_all_session_configs():
     """Get all session config JSON files (excluding character_library.json)."""
     configs = []
+    # Get configs from root directory
     for config_file in SESSION_CONFIGS_DIR.glob("*.json"):
         if config_file.name != "character_library.json":
             configs.append(config_file)
+
+    # Get configs from ml_training_scenarios subdirectories
+    ml_scenarios_dir = SESSION_CONFIGS_DIR / "ml_training_scenarios"
+    if ml_scenarios_dir.exists():
+        for config_file in ml_scenarios_dir.glob("*/*.json"):
+            configs.append(config_file)
+
     return configs
 
 
@@ -96,6 +104,48 @@ class TestTacticalModuleDependencies:
         if enemy_agents_enabled and not tactical_module_enabled:
             pytest.fail(
                 f"{config_path.name}: enemy_agents_enabled=true requires tactical_module_enabled=true"
+            )
+
+
+class TestWeaponLibrary:
+    """Test that weapons used in configs exist in codebase."""
+
+    @pytest.mark.parametrize("config_path", get_all_session_configs())
+    def test_weapons_exist_in_library(self, config_path):
+        """All weapons referenced in configs must exist in weapons.py WEAPON_LIBRARY."""
+        config = load_config(config_path)
+
+        # Import weapon library
+        import sys
+        from pathlib import Path
+        weapons_module_path = Path(__file__).parent.parent.parent / "scripts" / "aeonisk" / "multiagent"
+        sys.path.insert(0, str(weapons_module_path))
+        from weapons import WEAPON_LIBRARY
+
+        # Collect all weapon references from players
+        weapon_refs = []
+        for idx, player in enumerate(config["agents"]["players"]):
+            # Skip character_ref
+            if "character_ref" in player:
+                continue
+
+            # Check equipped_weapons
+            if "equipped_weapons" in player:
+                for slot, weapon_id in player["equipped_weapons"].items():
+                    if weapon_id and weapon_id != "fists":  # "fists" is implicit, not in library
+                        weapon_refs.append((idx, player.get("name", "unnamed"), slot, weapon_id))
+
+            # Check carried_weapons
+            if "carried_weapons" in player:
+                for weapon_id in player["carried_weapons"]:
+                    if weapon_id and weapon_id != "fists":
+                        weapon_refs.append((idx, player.get("name", "unnamed"), "carried", weapon_id))
+
+        # Validate each weapon exists
+        for idx, char_name, slot, weapon_id in weapon_refs:
+            assert weapon_id in WEAPON_LIBRARY, (
+                f"{config_path.name}: Player {idx} ({char_name}) has {slot} weapon '{weapon_id}' "
+                f"not found in WEAPON_LIBRARY. Add it to scripts/aeonisk/multiagent/weapons.py"
             )
 
 
@@ -256,6 +306,22 @@ class TestStartingClocks:
             assert isinstance(maximum, int), f"{config_path.name}: Clock {idx} max value must be int"
             assert 0 <= current <= maximum, (
                 f"{config_path.name}: Clock {idx} current ({current}) must be between 0 and max ({maximum})"
+            )
+
+            # Required fields for clock meaning (added after schema validation errors)
+            assert "advance_meaning" in clock, (
+                f"{config_path.name}: Clock {idx} ('{clock.get('name', 'unnamed')}') missing required 'advance_meaning' field"
+            )
+            assert "regress_meaning" in clock, (
+                f"{config_path.name}: Clock {idx} ('{clock.get('name', 'unnamed')}') missing required 'regress_meaning' field"
+            )
+
+            # Validate advance_meaning and regress_meaning are non-empty strings
+            assert isinstance(clock["advance_meaning"], str) and clock["advance_meaning"].strip(), (
+                f"{config_path.name}: Clock {idx} 'advance_meaning' must be non-empty string"
+            )
+            assert isinstance(clock["regress_meaning"], str) and clock["regress_meaning"].strip(), (
+                f"{config_path.name}: Clock {idx} 'regress_meaning' must be non-empty string"
             )
 
 

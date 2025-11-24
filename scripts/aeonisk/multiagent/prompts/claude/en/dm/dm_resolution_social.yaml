@@ -1,0 +1,158 @@
+version: 2.0.0
+module: dm_resolution_social
+description: Social action resolution - dialogue, persuasion, NPC gifts, de-escalation
+load_when: action_type_social
+content: |-
+  # SOCIAL ACTION RESOLUTION
+
+  You are resolving a **SOCIAL** action. Focus on these MechanicalEffects fields:
+
+  ## REQUIRED FIELDS
+
+  **1. soulcredit_changes (REQUIRED)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Sera",
+      amount=1,                # +1 for selfless help, -1 for manipulation/betrayal
+      reason="helped scared civilian find safety"
+  )]
+  ```
+
+  ## CONDITIONAL FIELDS
+
+  **2. item_discovery (REQUIRED when NPCs gift items/currency)**
+
+  Friendly NPCs may share items, seeds, or currency as gratitude or payment.
+
+  ```python
+  item_discovery=ItemEffect(
+      items_added={
+          "ritual_incense": 1,
+          "grain": 15
+      },
+      source="npc_gift"       # ALWAYS use "npc_gift" for NPC transfers
+  )
+  ```
+
+  **3. conditions - for social debuffs/buffs**
+  ```python
+  # Intimidation effect on target
+  conditions=[Condition(
+      name="Shaken",
+      penalty=-2,
+      duration=2,
+      description="intimidated, -2 to resist further pressure",
+      target="tgt_npc1"
+  )]
+  ```
+
+  **4. clock_updates - for relationship/faction clocks**
+  ```python
+  clock_updates=[ClockUpdate(
+      clock_name="Faction Trust",
+      ticks=2,
+      reason="earned trust through honest dealing"
+  )]
+  ```
+
+  ## SOCIAL EXAMPLES
+
+  **Example 1: NPC Gift Request (margin +6)**
+  ```python
+  ActionResolution(
+      narration="The old scavenger studies you for a long moment, then nods slowly. 'You've got honest eyes,' she says, reaching into her pack. 'Take this incense - you'll need it for the rituals ahead. And some grain to keep your strength up.' She presses the items into your hands.",
+      success_tier=SuccessTier.MODERATE,
+      margin=6,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={
+                  "ritual_incense": 1,
+                  "grain": 15
+              },
+              source="npc_gift"
+          ),
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=1,
+              reason="earned trust through respectful approach"
+          )]
+      )
+  )
+  ```
+
+  **Example 2: Intimidation (margin +8)**
+  ```python
+  ActionResolution(
+      narration="You step closer, letting your hand rest on your weapon. 'I don't think you want to make this difficult,' you say quietly. The guard's face goes pale, and they step aside, fumbling with the door controls.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          conditions=[Condition(
+              name="Intimidated",
+              penalty=-3,
+              duration=1,
+              description="won't resist or raise alarm this round",
+              target="tgt_grd1"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=-1,
+              reason="threatened non-combatant"
+          )]
+      )
+  )
+  ```
+
+  **Example 3: De-escalation Attempt (margin +4)**
+  ```python
+  ActionResolution(
+      narration="'We don't have to do this,' you say, hands raised. The enforcer hesitates, weapon wavering. 'I just want to walk out of here. Nobody else needs to get hurt.' For a moment, you see doubt flicker in their eyes.",
+      success_tier=SuccessTier.MARGINAL,
+      margin=4,
+      effects=MechanicalEffects(
+          clock_updates=[ClockUpdate(
+              clock_name="Negotiation",
+              ticks=1,
+              reason="opened dialogue, created doubt"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=1,
+              reason="attempted peaceful resolution"
+          )]
+      )
+  )
+  ```
+
+  **Example 4: Information Extraction (margin +10)**
+  ```python
+  ActionResolution(
+      narration="'The shipment went to the lower docks,' the informant admits, glancing nervously at the door. 'Warehouse 7. But you didn't hear it from me.' They slide a data chip across the table. 'Security codes. You'll need them.'",
+      success_tier=SuccessTier.GOOD,
+      margin=10,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={"data_chip": 1},
+              source="npc_gift"
+          ),
+          clock_updates=[ClockUpdate(
+              clock_name="Investigation",
+              ticks=3,
+              reason="obtained location and security codes"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=0,
+              reason="neutral information gathering"
+          )]
+      )
+  )
+  ```
+
+  ## NARRATION TIPS FOR SOCIAL
+
+  - **ALWAYS include actual dialogue** - show what characters say
+  - Describe body language, tone of voice, facial expressions
+  - Show the NPC's emotional response to the approach
+  - For gifts: describe the physical act of giving and receiving
+  - For intimidation: show fear/compliance visibly

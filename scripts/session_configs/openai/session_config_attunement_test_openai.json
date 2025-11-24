@@ -1,0 +1,191 @@
+{
+  "session_name": "seed_attunement_system_test (OpenAI)",
+  "max_turns": 5,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "_comment_test": "=== SEED ATTUNEMENT SYSTEM TEST - COMPREHENSIVE FIXTURE ===",
+  "_comment_goal": "Test all attunement mechanics: altar bonuses, Echo-Calibrator, upkeep, multiple energy types",
+  "_comment_flow": "5 rounds testing: basic altar attunement → Echo-Calibrator → high-quality altar → upkeep payment → multiple energy types",
+  "_comment_expected": "Raw Seeds converted to hollow energy (100 breath, 50 grain, 20 drip, 5 spark), Echo-Calibrator upkeep every 3rd use",
+  "_comment_events": "JSONL should show action_resolution with attunement effects, energy_purse updates, seed consumption",
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Seed Keeper Zephyr",
+        "pronouns": "they/them",
+        "faction": "Hollow Merchant Guild",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Test seed attunement system mechanics comprehensively",
+          "Round 1: Attune Raw Seed to Drip at basic altar (quality 2, expect +1 bonus, DC 20 → 19)",
+          "Round 2: Attune Raw Seed to Spark with Echo-Calibrator (test DC 16 Dex+Tech check, portable attunement)",
+          "Round 3: Attune Raw Seed to Breath at high-quality altar (quality 7, expect +2 bonus, DC 20 → 18)",
+          "Round 4: Attune Raw Seed to Grain with Echo-Calibrator (3rd use, test upkeep payment: 1 Drip consumed)",
+          "Round 5: Test final attunement with remaining seed (verify all conversion rates work)"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 5,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Attunement": 4,
+          "Craft": 3,
+          "Tech": 4,
+          "Ritual Lore": 3,
+          "Trade": 4,
+          "Awareness": 3,
+          "Persuasion": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Echo-Calibrator": 1,
+          "Ritual Focus": 1,
+          "Merchant's Ledger": 1,
+          "Seed Container": 1
+        },
+        "starting_currency": {
+          "breath": 0,
+          "grain": 0,
+          "drip": 25,
+          "spark": 0
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_test_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_test_02",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_test_03",
+            "seed_type": "RAW",
+            "cycles_remaining": 6,
+            "freshness": "aged"
+          },
+          {
+            "id": "seed_test_04",
+            "seed_type": "RAW",
+            "cycles_remaining": 5,
+            "freshness": "aged"
+          },
+          {
+            "id": "seed_test_05",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          }
+        ],
+        "void": 1
+      }
+    ]
+  },
+  "scenario": {
+    "theme": "Seed Attunement Workshop",
+    "location": "Hollow Exchange Testing Chamber",
+    "situation": "You're in a specialized testing chamber at the Hollow Exchange, equipped with multiple attunement altars of varying quality. Your task is to systematically test the seed attunement system by converting Raw Seeds into hollow energy currencies.\n\nAvailable facilities:\n- **Basic Altar** (alt_test_basic, quality 2, +1 bonus): Standard conversion altar\n- **Master Altar** (alt_test_master, quality 7, +2 bonus): High-quality altar for difficult attunements\n- **Echo-Calibrator**: Portable attunement device in your inventory\n\nYou have 5 Raw Seeds ready for conversion. Test plan:\n1. Drip conversion at basic altar (baseline test)\n2. Spark conversion with Echo-Calibrator (portable test)\n3. Breath conversion at master altar (high-quality bonus test)\n4. Grain conversion with Echo-Calibrator (upkeep payment test, 3rd use)\n5. Final conversion with remaining seed (validation test)\n\nConversion rates to verify:\n- 1 Raw Seed → 100 Breath\n- 1 Raw Seed → 50 Grain\n- 1 Raw Seed → 20 Drip\n- 1 Raw Seed → 5 Spark\n\nEcho-Calibrator requires DC 16 Agility+Tech check and 1 Drip upkeep every 3rd use. Track your energy gains carefully.",
+    "void_level": 3,
+    "altars": [
+      {
+        "altar_id": "alt_test_basic",
+        "altar_type": "freeborn_altar",
+        "quality": 2,
+        "location": "Testing Chamber - Basic Altar",
+        "description": "A simple stone altar with faint void resonance patterns. Functional but unremarkable. Typical Freeborn market quality."
+      },
+      {
+        "altar_id": "alt_test_master",
+        "altar_type": "nexus_altar",
+        "quality": 7,
+        "location": "Testing Chamber - Master Altar",
+        "description": "An exquisitely crafted master altar with pristine void channels and resonance amplifiers. Sovereign Nexus construction, high-quality sanctified work."
+      }
+    ]
+  },
+  "_test_notes": {
+    "purpose": "Generate comprehensive fixture for attunement system integration tests",
+    "expected_flow": [
+      "Round 1: Basic altar attunement (Drip) → seed consumed, +20 Drip, +1 altar bonus (roll vs DC 19)",
+      "Round 2: Echo-Calibrator attunement (Spark) → DC 16 check, seed consumed, +5 Spark, track usage (1/3)",
+      "Round 3: Master altar attunement (Breath) → seed consumed, +100 Breath, +2 altar bonus (roll vs DC 18)",
+      "Round 4: Echo-Calibrator attunement (Grain) → DC 16 check, seed consumed, +50 Grain, usage (3/3), -1 Drip upkeep",
+      "Round 5: Final attunement → verify any conversion rate works, seed consumed"
+    ],
+    "verification": {
+      "jsonl_events": [
+        "action_resolution: attunement field shows success/failure, energy_gained, altar_bonus",
+        "action_resolution: attunement.seed_consumed=true for each attunement",
+        "action_resolution: attunement.echo_calibrator_used=true for rounds 2 & 4",
+        "action_resolution: attunement.upkeep_paid=true for round 4",
+        "character_data: energy_purse shows accumulated hollow currency",
+        "character_data: seeds array decreases by 1 each round"
+      ],
+      "integration_test_focus": [
+        "Verify seed consumption (5 seeds → 0 seeds)",
+        "Verify energy gains (Drip +20, Spark +5, Breath +100, Grain +50)",
+        "Verify altar bonuses (quality 2 = +1, quality 7 = +2)",
+        "Verify Echo-Calibrator DC 16 checks and upkeep payment",
+        "Verify usage tracking (3rd use triggers upkeep)",
+        "Verify Drip balance after upkeep (25 initial + 20 round 1 - 1 round 4 = 44)"
+      ]
+    },
+    "success_criteria": [
+      "5 attunement action_resolution events logged",
+      "Each resolution shows attunement.seed_consumed=true",
+      "energy_purse shows correct accumulated amounts",
+      "seeds array goes from 5 → 0",
+      "Echo-Calibrator usage tracked correctly (rounds 2 & 4)",
+      "Upkeep payment logged in round 4 (attunement.upkeep_paid=true)",
+      "Altar bonuses applied correctly (+1 for quality 2, +2 for quality 7)",
+      "No Raw Seeds remain at session end"
+    ],
+    "expected_final_state": {
+      "energy_purse": {
+        "breath": 100,
+        "grain": 50,
+        "drip": 44,
+        "spark": 5,
+        "seeds": []
+      },
+      "item_metadata": {
+        "Echo-Calibrator": {
+          "usage_count": 2
+        }
+      },
+      "void": "1-3 (may increase slightly from Echo-Calibrator failures)"
+    }
+  }
+}

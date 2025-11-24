@@ -351,25 +351,53 @@ Forces a specific combat template from the DM's scenario list.
 
 ### `_scenario_hint` (String, Optional)
 
-Provides guidance to the DM for scenario generation (not a strict requirement).
+**🛑 BINDING CONSTRAINTS** for DM scenario generation with **automatic validation enforcement**.
 
-**Example:**
+When provided, these constraints **OVERRIDE all other scenario generation instructions** and are validated post-generation. If validation fails, scenario generation automatically retries (up to 3 attempts).
+
+**What gets validated:**
+- `void_level` - Must match exactly if specified (e.g., "void_level 6" → scenario.void_level == 6)
+- Prohibited elements - "NO SPAWN_ENEMY" → zero enemies in scenario
+- Required locations - "Terminus Outpost" → location must contain keywords "terminus" and "outpost"
+
+**Example (test scenario - mechanical constraints):**
 ```json
 {
   "agents": {
     "dm": {
-      "_scenario_hint": "Generate a three-way battle between Tempest, Nexus, and Pantheon factions fighting over a void artifact. Start with enemies already spawned from all three factions."
+      "_scenario_hint": "Pure PvP scenario - NO SPAWN_ENEMY, NO NPCs, just two PCs competing for single objective. Absolutely zero enemies or bystanders."
+    }
+  }
+}
+```
+
+**Example (ML training scenario - detailed blueprint):**
+```json
+{
+  "agents": {
+    "dm": {
+      "_scenario_hint": "Terminus Outpost (void_level 6) - mysterious void-tainted plague spreading through mining station workers. 12 sick NPCs need stabilization, limited medical supplies. Competing player goals: Healer wants to save everyone, Enforcer wants quarantine, Researcher wants to study contagion. Clock pressure: illness spreading, supply depletion, evacuation deadline."
     }
   }
 }
 ```
 
 **Use cases:**
-- Complex multi-faction scenarios
-- Specific narrative setups
-- Test scenarios requiring particular conditions
+- **Test scenarios** - Enforce specific mechanical setups (PvP, IFF, no enemies)
+- **ML training scenarios** - Detailed blueprints with void_level, NPCs, clocks, moral dilemmas
+- **Prohibited elements** - Prevent specific mechanics (NO SPAWN_ENEMY, NO combat, etc.)
+- **Location requirements** - Force specific canonical locations
 
-**Behavior:** DM receives this as context but may interpret creatively based on other config options (`force_combat`, `force_vendor_gate`, etc.).
+**Validation behavior:**
+- If hint provided: DM generates scenario → validates constraints → retries if violated (max 3 attempts)
+- If validation fails 3 times: Raises RuntimeError with violation details
+- Violations logged as warnings for debugging
+
+**Constraint format tips:**
+- Be explicit: "void_level 6" not "high void"
+- Use keywords: "NO SPAWN_ENEMY" triggers enemy prohibition check
+- Specify locations: "Terminus Outpost" triggers location keyword validation
+- Length: 50-900 characters (short for tests, detailed for ML training)
 
 ---
 
@@ -422,7 +450,79 @@ Provides guidance to the DM for scenario generation (not a strict requirement).
 **Required character fields:**
 - `name` - Character name
 - `faction` - Faction affiliation
-- `llm` - LLM provider config (`provider`, `model`, `temperature`)
+- `llm` - LLM provider config (see **LLM Configuration** below)
+
+### LLM Configuration
+
+Each agent (DM and players) requires an LLM configuration block:
+
+```json
+{
+  "llm": {
+    "provider": "openai",           // "anthropic", "openai", or "local"
+    "model": "gpt-5-mini",          // Model name for chosen provider
+    "temperature": 0.7              // 0.0-1.0 (higher = more creative)
+  }
+}
+```
+
+**Supported Providers:**
+
+| Provider | Recommended Model | Pricing (per 1M tokens) | Rate Limit |
+|----------|------------------|-------------------------|------------|
+| `anthropic` | `claude-sonnet-4-5` | $3/$15 (input/output) | ~75 req/min |
+| `openai` | `gpt-5-mini` | $0.25/$2 (input/output) | ~400 req/min |
+| `local` | `llama3.1` | Free | Varies |
+
+**Provider-Specific Models:**
+
+**Anthropic:**
+- `claude-sonnet-4-5` (recommended - balanced quality/cost)
+- `claude-3-5-haiku-20241022` (faster, cheaper)
+- `claude-3-opus-20240229` (highest quality, expensive)
+
+**OpenAI:**
+- `gpt-5-mini` (recommended - best cost/performance)
+- `gpt-5` (highest quality)
+- `gpt-4.1-mini` (GPT-4 family, cheaper)
+- `gpt-4o` (GPT-4 optimized)
+- `o3-mini` (reasoning model)
+
+**Temperature Guidelines:**
+- **DM**: 0.6-0.8 (balanced creativity for storytelling)
+- **Players**: 0.7-0.9 (higher variance for diverse player behavior)
+- **Enemies**: 0.7 (tactical variety)
+
+**Environment Variables Required:**
+```bash
+export ANTHROPIC_API_KEY="your-key"  # For Claude models
+export OPENAI_API_KEY="your-key"     # For OpenAI models
+```
+
+**Example - Mixed Providers:**
+```json
+{
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Character 1",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        }
+      }
+    ]
+  }
+}
+```
 
 **Recommended fields:**
 - `pronouns` - Character pronouns (e.g., "she/her", "they/them")
@@ -503,6 +603,7 @@ For complex or reference configurations, use the `_design_notes` field to docume
 - **Drip** (Water) - Emotion, secrecy, flow, healing
 - **Grain** (Earth) - Stability, structure, grounding
 - **Spark** (Fire) - Action, force, urgency, will
+- **Hollow** - Void-aligned currency, illicit economy
 
 **Conversion Rates:**
 - 10 Breath = 1 Drip
@@ -510,6 +611,14 @@ For complex or reference configurations, use the `_design_notes` field to docume
 - 10 Grain = 1 Spark
 
 *Market rates vary by location (1 Spark ≈ 2-5 Drips in practice)*
+
+**Hollow Currency:**
+- **NOT part of standard conversion hierarchy** (no fixed exchange rate)
+- Used in black markets, void cults, illegal trade
+- Derived from Hollow Seeds (shattered/degraded seeds)
+- **Risky to possess** in Nexus jurisdictions (illegal)
+- Accepted by underground vendors, Tempest Industries contacts
+- Items can cost multiple currencies (e.g., "5 drip + 2 hollow")
 
 ### Seeds
 
@@ -552,6 +661,102 @@ The system includes 4 vendor categories:
    - Free emergency supplies in dire situations
 
 **11 Pre-Configured Vendors** available across all types.
+
+### Food Consumption & Item Types
+
+**CONSUME Action** - Players can eat food items for minor HP recovery
+
+**Mechanics:**
+- **Deterministic healing:** +2 HP per food item consumed (no roll required)
+- **Pre-validated:** System checks inventory and health before DM narration
+- **Capped at max_health:** Cannot eat when at full health
+- **Item removed:** Food is consumed (removed from inventory) on success
+
+**Item Type Categories:**
+```python
+ItemType.CONSUMABLE  # General consumables (no mechanics)
+ItemType.FOOD        # Grants +2 HP via CONSUME action ✅
+ItemType.TOOL        # Echo-Calibrator, ritual tools
+ItemType.SEED        # Raw Seeds for attunement
+ItemType.OFFERING    # Ritual offerings
+ItemType.EXCHANGE    # Trade goods
+ItemType.PROP        # Narrative items (fluff, no mechanics)
+ItemType.EQUIPMENT   # Weapons, armor, gear
+```
+
+**Available Food Items (9 items, all grant +2 HP):**
+1. **Ration Pack** (`itm_ration_01`) - 2 drip - Military survival food
+2. **Glowpeel Noodles** (`itm_noodles_01`) - 3 drip - Street food, bioluminescent
+3. **Protein Cube** (`itm_protein_cube_01`) - 1 drip - Compressed nutrients
+4. **Dried Fruit** (`itm_dried_fruit_01`) - 2 drip - Rare treat
+5. **Nutrition Paste** (`itm_nutrition_paste_01`) - 1 drip - Astronaut food
+6. **Syn-Meat Strips** (`itm_syn_meat_01`) - 3 drip - Lab-grown jerky
+7. **Energy Bar** (`itm_energy_bar_01`) - 1 drip - Civilian rations
+8. **Street Food** (`itm_street_food_01`) - 2 drip - Local cuisine
+9. **Survival Rations** (`itm_survival_rations_01`) - 2 drip - Emergency food
+
+**Usage Pattern:**
+```json
+// Player starts with food in inventory
+"inventory": {
+  "ration_pack": 2,
+  "protein_cube": 1
+}
+
+// Player declares CONSUME action
+ConsumeAction(
+  intent="Eat ration pack to recover HP",
+  description="I tear open the ration pack and consume...",
+  item_id="itm_ration_01",
+  action_type=ActionType.CONSUME
+)
+
+// System validates and executes:
+// - Check: Player has ration_pack in inventory (quantity > 0) ✅
+// - Check: item_type is "food" ✅
+// - Check: health < max_health ✅
+// - Execute: Remove 1 ration_pack from inventory
+// - Execute: Heal +2 HP (capped at max_health)
+// - DM narrates atmospheric description (no roll)
+```
+
+**Food vs Medicine:**
+- **Food (CONSUME):** Fixed +2 HP, no roll, deterministic, minor recovery
+- **Medicine (SUPPORT):** Variable healing based on roll (DC 12-20), treats serious injuries
+- **Ritual Healing (RITUAL):** Major healing but requires offerings, +1-3 void risk
+
+**Vendor Inventory Example:**
+```json
+"vendor_inventory": [
+  {
+    "name": "Ration Pack",
+    "description": "Military-grade survival food...",
+    "price_drip": 2,
+    "item_type": "food",
+    "item_id": "itm_ration_01",
+    "inventory_key": "ration_pack"
+  },
+  {
+    "name": "Med Kit",
+    "description": "First aid supplies...",
+    "price_drip": 5,
+    "price_hollow": 1,
+    "item_type": "consumable",
+    "item_id": "itm_medkit_01",
+    "inventory_key": "medkit"
+  }
+]
+```
+
+**Multi-Currency Pricing:**
+Items can now cost combinations of currencies:
+- `price_drip` - Cost in Drip
+- `price_grain` - Cost in Grain
+- `price_spark` - Cost in Spark
+- `price_breath` - Cost in Breath
+- `price_hollow` - Cost in Hollow (black market currency)
+
+Example: "5 drip + 2 hollow" for illicit goods
 
 ---
 
@@ -606,11 +811,11 @@ The system includes 4 vendor categories:
 
 ### Player Currency Tracking
 
-Characters automatically initialize with `EnergyInventory`:
+Characters automatically initialize with `EnergyPurse`:
 
 ```python
 # Default starting currency
-energy_inventory = EnergyInventory(
+energy_purse = EnergyPurse(
     breath=5,
     drip=10,
     grain=3,
@@ -679,7 +884,7 @@ When `force_vendor_gate: true`, DM generates scenarios like:
 ### Currency Not Showing in Logs
 
 **Check:**
-1. `EnergyInventory` initialized for players
+1. `EnergyPurse` initialized for players
 2. JSONL logging enabled in session
 3. Currency transactions use `.spend_currency()` and `.add_currency()` methods
 
@@ -739,6 +944,45 @@ Load pre-configured scene clocks at session start.
 - **Timed scenarios**: Start with urgency clock already ticking
 - **Ongoing situations**: Players arrive mid-crisis
 - **Test scenarios**: Set up specific clock states for validation
+
+### `scenario.void_level` (Integer, 0-10, Default=0) **UPDATED**
+
+Environmental void corruption level for the scenario.
+
+**Default:** `0` (normal reality, no void corruption)
+
+**Semantic Levels:**
+- **0**: Normal reality - no void presence
+- **1-2**: Subtle void taint - minor distortions, unease
+- **3-4**: Noticeable corruption - reality feels thin
+- **5-6**: Significant void presence - physical manifestations
+- **7-8**: Dangerous corruption - mental effects, **+1 void per scene** (environmental exposure)
+- **9-10**: Catastrophic void breach - **+1 void per round** (immediate corruption)
+
+**When to Use:**
+- `void_level=0`: Most scenarios (combat, investigation, social) - **recommended default**
+- `void_level=3-5`: Void-themed missions, corrupted facilities
+- `void_level=6-8`: Void breach zones, forbidden rituals
+- `void_level=9-10`: Apocalyptic void events
+
+**Example:**
+```json
+{
+  "scenario": {
+    "theme": "Void Corruption",
+    "location": "Corrupted Research Station",
+    "void_level": 8
+  }
+}
+```
+
+**Important Notes:**
+- Environmental `void_level` provides narrative atmosphere
+- Character void gain comes from **actions** (ritual failures, void exposure, oath-breaking, void-forged weapons)
+- At `void_level 7+`, environmental exposure automatically triggers void gain via structured output
+- See "Environmental Void Level Updates" below for dynamic void_level changes during story progression
+
+---
 
 ### Environmental Void Level Updates **NEW**
 

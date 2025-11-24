@@ -1,0 +1,114 @@
+{
+  "session_name": "attunement_validation_test",
+  "max_turns": 2,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "_test_purpose": "Verify that players with ZERO Raw Seeds cannot declare attunement actions. Player should choose alternative actions (search, purchase, etc.) when attunement is invalid.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Sera Vex",
+        "pronouns": "she/her",
+        "faction": "Aeon Seeker",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 6,
+          "bondPreference": "mystic",
+          "ritualConservatism": 4
+        },
+        "goals": [
+          "Acquire Raw Seeds and attune them to power rituals"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 5,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Attunement": 4,
+          "Astral Rituals": 3,
+          "Awareness": 3,
+          "Search": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Astral Focus": 1,
+          "Incense": 2,
+          "Data Slate": 1
+        },
+        "energy_purse": {
+          "breath": 10,
+          "drip": 5,
+          "grain": 3,
+          "spark": 0,
+          "seeds": []
+        },
+        "void": 3
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Seed Attunement Test - No Seeds Available",
+    "location": "Abandoned Ritual Chamber (with functioning altar)",
+    "situation": "You stand before an intact attunement altar in an abandoned chamber. The altar hums with residual energy, perfectly functional and ready for use. However, you check your pouches and realize you have NO Raw Seeds to attune. You need to find or acquire seeds before you can use this altar. The chamber shows signs of recent activity - there may be seeds hidden here, or a vendor nearby.",
+    "void_level": 3,
+    "altars": [
+      {
+        "id": "altar_chamber_01",
+        "name": "Resonance Altar",
+        "quality": 5,
+        "description": "A well-maintained attunement altar, quality 5 (DC -2 bonus)"
+      }
+    ]
+  },
+
+  "_expected_behavior": [
+    "1. Player sees seeds_display showing 'Raw Seeds: 0' with warning",
+    "2. Player prompt shows: ⚠️ **NO RAW SEEDS AVAILABLE** - You CANNOT perform attunement!",
+    "3. If player attempts attunement anyway, session.py rejects the action before DM sees it",
+    "4. Player should choose alternative: search for seeds, explore chamber, etc.",
+    "5. JSONL logs should NOT show attunement action reaching DM",
+    "6. Console should show validation rejection message"
+  ],
+
+  "_design_notes": {
+    "scenario_hints": [
+      "Chamber has functioning altar (makes attunement tempting)",
+      "Player has high Willpower + Attunement (would normally attune)",
+      "Player's goal explicitly mentions attunement (tests decision-making)",
+      "Scenario text suggests alternatives (search, vendor)",
+      "Zero seeds in energy_purse.seeds (hard requirement violation)"
+    ],
+    "validation_triggers": [
+      "action_type == 'attune'",
+      "energy_purse.seeds is empty list",
+      "validate_attunement() should return is_valid=False",
+      "Reason: 'No Raw Seeds available in energy purse'"
+    ]
+  }
+}

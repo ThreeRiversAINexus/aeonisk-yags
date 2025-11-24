@@ -3,14 +3,13 @@
   "_purpose": "Canonical pool of 21 pre-built characters across 10 factions. Use this file as a reference when creating new configs or reusing character definitions.",
 
   "session_name": "full_spectrum_test",
-  "max_turns": 5,
+  "max_turns": 20,
   "party_size": 3,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
 
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds). Vendors offer equipment, ritual supplies, seeds, and services.",
-  "vendor_spawn_frequency": 5,
+  "vendor_spawn_frequency": 2,
 
   "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
   "tactical_module_enabled": true,

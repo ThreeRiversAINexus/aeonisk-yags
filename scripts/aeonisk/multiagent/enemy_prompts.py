@@ -106,6 +106,71 @@ def generate_tactical_prompt(
     return "\n\n".join(sections)
 
 
+def generate_tactical_prompt_structured(
+    enemy: EnemyAgent,
+    player_agents: List[Any],
+    enemy_agents: List[EnemyAgent],
+    shared_intel: SharedIntel,
+    available_tokens: List[str],
+    current_round: int,
+    target_id_mapper=None,
+    free_targeting: bool = False,
+    recent_narrations: List[str] = None
+) -> str:
+    """
+    Generate tactical prompt for structured output mode (no text format instructions).
+
+    This version excludes the declaration format requirements section since structured
+    output mode expects JSON conforming to the EnemyDecision schema, not text format.
+
+    Args:
+        Same as generate_tactical_prompt()
+
+    Returns:
+        Tactical prompt suitable for structured output mode
+    """
+    sections = []
+
+    # Header
+    sections.append(_format_header(enemy))
+
+    # Status
+    sections.append(_format_status(enemy))
+
+    # Recent Action Outcomes
+    if recent_narrations:
+        sections.append(_format_recent_outcomes(recent_narrations))
+
+    # Combat Doctrine
+    sections.append(_format_doctrine(enemy))
+
+    # Battlefield Situation
+    sections.append(_format_battlefield(enemy, player_agents, enemy_agents, available_tokens, target_id_mapper, free_targeting))
+
+    # Tactical Options
+    sections.append(_format_tactical_options(enemy))
+
+    # Tactical Analysis
+    sections.append(_format_tactical_analysis(enemy, player_agents))
+
+    # Shared Intel
+    if shared_intel:
+        intel_section = _format_shared_intel(shared_intel, current_round)
+        if intel_section:
+            sections.append(intel_section)
+
+    # Retreat Assessment
+    sections.append(_format_retreat_assessment(enemy))
+
+    # NO declaration format requirements - schema defines the structure
+    sections.append("## YOUR DECISION\n\nProvide your tactical decision as structured output conforming to the EnemyDecision schema. Include your tactical reasoning.")
+
+    # Footer
+    sections.append(_format_footer())
+
+    return "\n\n".join(sections)
+
+
 # =============================================================================
 # SECTION FORMATTERS
 # =============================================================================
@@ -246,14 +311,19 @@ def _format_battlefield(
         section += f"\n\n**YOUR UNIT**: {enemy.name}"
         section += f"\n**YOUR FACTION**: {enemy.faction}"
         section += "\n\n⚠️  **CRITICAL TARGETING INSTRUCTIONS** ⚠️"
+        section += "\n**MECHANICAL TARGETING (for target/defence_token fields):**"
         section += "\n- Each person has a unique ID in brackets: [tgt_XXXX]"
-        section += "\n- You MUST use the target ID when targeting, NOT the name"
-        section += "\n- CORRECT: TARGET: tgt_7a3f"
-        section += "\n- WRONG: TARGET: Kiran Voss (this will FAIL!)"
+        section += "\n- You MUST use the target ID in mechanical fields (target, defence_token)"
+        section += "\n- ✅ CORRECT: target='tgt_7a3f'"
+        section += "\n- ❌ WRONG: target='Kiran Voss' (this will FAIL!)"
+        section += "\n\n**NARRATIVE TEXT (for tactical_reasoning/shared_intel):**"
+        section += "\n- Use CHARACTER NAMES in your tactical reasoning and intel sharing"
+        section += "\n- ✅ CORRECT tactical_reasoning: 'Targeting Kiran Voss because they are wounded...'"
+        section += "\n- ❌ WRONG tactical_reasoning: 'Targeting tgt_7a3f because they are wounded...'"
         section += f"\n\n**How to decide who to target:**"
         section += "\n1. Read the names to identify faction allegiance"
         section += f"\n2. Consider your faction relationships ({enemy.faction})"
-        section += "\n3. Use the target ID (in brackets) when declaring your target"
+        section += "\n3. Use the target ID (in brackets) in mechanical fields, character name in narrative"
         section += "\n\n⚠️  **WARNING**: You can target ANYONE on this list. Choose wisely!"
 
     else:
@@ -724,7 +794,7 @@ TARGET: [For Attack/Charge: PC agent_id | For Shift/Shift_2: destination positio
 WEAPON: [weapon name if attacking]
 MINOR_ACTION: [Shift / Claim_Token / Reload / Disengage / None]
 TOKEN_TARGET: [token name if claiming]
-TACTICAL_REASONING: [1-2 sentences explaining your choice]
+TACTICAL_REASONING: [explain your choice with as much detail as needed]
 SHARE_INTEL: [Optional: info to share with allied enemies]
 
 ### Example Declarations:

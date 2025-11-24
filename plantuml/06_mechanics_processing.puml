@@ -1,0 +1,183 @@
+@startuml Mechanics Processing
+title Mechanics Engine - Action Resolution Flow
+
+participant DMAgent as DM
+participant ActionResolution as ActRes
+participant MechanicsEngine as Mech
+participant SharedState as State
+participant JSONLLogger as Logger
+
+== DM Generates Action Resolution ==
+
+DM -> DM: generate_action_resolution(action, state)
+DM -> DM: call_llm(resolution_prompt)
+DM -> DM: LLM returns ActionResolution schema
+
+create ActRes
+DM --> ActRes: ActionResolution(\n  narration,\n  roll,\n  effects,\n  void_changes\n)
+
+note right of ActRes
+    ActionResolution schema:
+    - narration: str (freeform)
+    - roll: Optional[RollResult]
+      - success: bool
+      - total: int
+      - margin: int
+      - tier: int
+    - effects: ActionEffects
+      - damage: DamageEffect
+      - healing: HealingEffect
+      - void_changes: List[VoidChange]
+      - clock_updates: List[ClockUpdate]
+end note
+
+== Mechanics Engine Processing ==
+
+DM -> Mech: process_action_effects(resolution)
+
+alt if resolution.roll exists
+    Mech -> Mech: validate_roll(roll)
+    Mech -> Mech: calculate_tier(margin)
+    note right
+        Tier calculation:
+        - margin ≥ 20: tier 4 (exceptional)
+        - margin ≥ 10: tier 3 (great)
+        - margin ≥ 0: tier 2 (success)
+        - margin < 0: tier 1 (failure)
+    end note
+end
+
+alt if effects.damage exists
+    Mech -> Mech: extract_damage_from_effects(effects.damage)
+
+    loop for each damage entry
+        Mech -> State: get_character(target_id)
+        State --> Mech: character
+
+        Mech -> Mech: calculate_wound_threshold(character)
+        note right
+            Wound threshold = Health / 3
+            Example: 12 HP → 4 damage = 1 wound
+        end note
+
+        Mech -> Mech: apply_damage(character, damage)
+
+        alt if damage >= wound_threshold
+            Mech -> State: add_wound(character)
+        end
+
+        alt if HP ≤ 0
+            Mech -> State: mark_defeated(character)
+            Mech -> Logger: log_enemy_defeat(character)
+        else
+            Mech -> State: update_hp(character, new_hp)
+        end
+    end
+end
+
+alt if effects.healing exists
+    Mech -> Mech: extract_healing_from_effects(effects.healing)
+
+    loop for each healing entry
+        Mech -> State: get_character(target_id)
+        State --> Mech: character
+
+        Mech -> Mech: apply_healing(character, healing)
+
+        alt if healing_type == "stabilize"
+            Mech -> State: remove_wounds(character, count)
+            Mech -> State: remove_stun(character)
+        else
+            Mech -> State: restore_hp(character, amount)
+        end
+    end
+end
+
+alt if effects.void_changes exists
+    Mech -> Mech: extract_void_changes(effects.void_changes)
+
+    loop for each void_change
+        Mech -> State: get_character(target_id)
+        State --> Mech: character
+
+        Mech -> Mech: apply_void_change(character, void_change)
+
+        note right
+            Void change sources:
+            - Corruption exposure
+            - Void abilities usage
+            - Environmental effects
+            - DM story events
+        end note
+
+        alt if void_change.amount > 0
+            Mech -> State: increase_void(character, amount)
+
+            alt if new_void >= 8
+                Mech -> Mech: log_high_void_warning(character)
+            end
+
+            alt if new_void >= 10
+                Mech -> State: mark_corrupted(character)
+            end
+        else
+            Mech -> State: decrease_void(character, amount)
+        end
+    end
+end
+
+alt if effects.clock_updates exists
+    Mech -> Mech: extract_clock_updates(effects.clock_updates)
+
+    loop for each clock_update
+        Mech -> State: get_clock(clock_id)
+        State --> Mech: clock
+
+        Mech -> Mech: update_clock_ticks(clock, ticks)
+
+        alt if clock is countdown && ticks == 0
+            Mech -> State: trigger_clock_event(clock)
+            Mech -> Logger: log_clock_completion(clock)
+        end
+
+        alt if clock is progress && ticks == max_ticks
+            Mech -> State: trigger_clock_event(clock)
+            Mech -> Logger: log_clock_completion(clock)
+        end
+
+        Mech -> State: update_clock(clock, new_ticks)
+    end
+end
+
+== State Updates & Logging ==
+
+Mech -> State: commit_all_changes()
+Mech -> Logger: log_action_resolution(\n  action,\n  resolution,\n  final_state\n)
+
+note right of Logger
+    JSONL event structure:
+    {
+      "event_type": "action_resolution",
+      "round": 3,
+      "agent": "Ash",
+      "action": "Search terminal...",
+      "roll": {
+        "success": true,
+        "total": 18,
+        "margin": 5,
+        "tier": 2
+      },
+      "effects": {
+        "damage": {...},
+        "void_changes": [...]
+      }
+    }
+end note
+
+alt if character state changed significantly
+    Mech -> Logger: log_character_state(character)
+end
+
+Mech --> DM: processing_complete
+
+@enduml

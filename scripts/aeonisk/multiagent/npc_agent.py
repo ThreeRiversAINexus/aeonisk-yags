@@ -40,10 +40,18 @@ class NPCAgent:
     - Take damage (triggers escalation potential)
     - Dialogue with players via simple LLM
     - Have position on tactical grid (preserved during conversions)
+    - Act as vendors (sell items, accept currency) if is_vendor=True
 
     NPCs cannot:
     - Use combat tactics (no tactical AI)
     - Declare attack actions (only if escalated to enemy)
+
+    Vendor NPCs:
+    - Can hold inventory for sale (vendor_inventory)
+    - Accept purchases via is_vendor=True + accepts_purchases=True
+    - Can dialogue (human traders) OR be static (vending machines via can_act=False)
+    - Can be damaged, converted to enemies, flee during danger
+    - Unified with regular NPCs (no separate Vendor class)
 
     Critical: agent_id is STABLE across conversions (never changes).
     Position is STABLE across conversions (preserves location).
@@ -66,7 +74,8 @@ class NPCAgent:
     soak: int
     void_score: int
 
-    # Skills and damage (with defaults)
+    # Fields with defaults (must come after required fields)
+    pronouns: str = "they/them"  # Default to gender-neutral
     skills: Dict[str, int] = field(default_factory=dict)
 
     # Tactical state (preserved across conversions) - with sensible default
@@ -93,15 +102,46 @@ class NPCAgent:
     # Logging
     agent_prompt_logger: Optional['AgentPromptLogger'] = None  # Human-readable prompt/response logging
 
+    # LLM provider (for creating NPCLLMClient)
+    llm_provider: Optional['LLMProvider'] = None  # LLM provider instance (OpenAI, Anthropic, etc.)
+
+    # Vendor functionality (optional - enables NPCs to sell items/services)
+    is_vendor: bool = False
+    vendor_inventory: List = field(default_factory=list)  # List[VendorItem] - items for sale
+    vendor_greeting: Optional[str] = None  # Vendor-specific greeting (overrides general dialogue)
+    vendor_type: Optional[str] = None  # "human_trader", "vending_machine", "supply_drone", etc.
+    accepts_purchases: bool = False  # Whether this NPC actually processes purchases
+    energy_purse: Optional['EnergyPurse'] = None  # For receiving payment (if needed for two-way trading)
+
     def __post_init__(self):
         """Initialize LLM client if not provided."""
         if self.llm_client is None and self.can_act:
             try:
-                self.llm_client = NPCLLMClient(self, agent_prompt_logger=self.agent_prompt_logger)
+                self.llm_client = NPCLLMClient(
+                    self,
+                    llm_provider=self.llm_provider,
+                    agent_prompt_logger=self.agent_prompt_logger
+                )
                 logger.debug(f"NPCLLMClient initialized for {self.name} ({self.agent_id})")
             except Exception as e:
                 logger.warning(f"Failed to initialize NPCLLMClient for {self.name}: {e}. NPC will use fallback actions.")
                 self.can_act = False  # Disable acting if LLM client fails
+
+    def get_vendor_item_by_id(self, item_id: str):
+        """
+        Get vendor item by ID (for purchase processing).
+
+        Returns:
+            VendorItem if found, None otherwise
+        """
+        if not self.is_vendor:
+            logger.warning(f"get_vendor_item_by_id called on non-vendor NPC {self.name}")
+            return None
+
+        for item in self.vendor_inventory:
+            if hasattr(item, 'item_id') and item.item_id == item_id:
+                return item
+        return None
 
 
 class NPCAction(BaseModel):
@@ -120,8 +160,46 @@ class NPCAction(BaseModel):
     """
 
     action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "pass"]
-    reason: str = Field(..., min_length=10, max_length=500, description="Why NPC chose this action")
+    reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=1500,
+        description="""Why NPC chose this action (10-1500 chars).
+
+        For dialogue/plead actions, this should be detailed enough to capture your intent,
+        emotional state, and tactical considerations.
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES, NOT target IDs.
+        - ✅ CORRECT: "Fleeing from Ash who is approaching with weapon drawn"
+        - ❌ WRONG: "Fleeing from tgt_3c5d who is approaching..."
+        """
+    )
     target: Optional[str] = Field(None, description="Target agent ID for dialogue/assist/attack")
+    dialogue_content: Optional[str] = Field(
+        None,
+        min_length=5,
+        max_length=500,
+        description="""ACTUAL WORDS SPOKEN by the NPC (REQUIRED when action_type='dialogue' or 'plead').
+
+        When choosing dialogue or plead action, you MUST provide what the NPC actually says.
+        - ✅ CORRECT (dialogue): "The vault is in the basement, past the security checkpoint."
+        - ✅ CORRECT (plead): "Please, don't shoot! I have a family!"
+        - ❌ WRONG: None (leaving this empty for dialogue/plead actions)
+        - ❌ WRONG: "Responding to the question" (this is the reason, not the dialogue)
+
+        Use first-person perspective (what you say, not what "the NPC says").
+        Keep it concise (5-500 characters).
+        """
+    )
+
+    def model_post_init(self, __context):
+        """Validate that dialogue and plead actions have dialogue_content."""
+        if self.action_type in ["dialogue", "plead"] and not self.dialogue_content:
+            raise ValueError(
+                f"dialogue_content is REQUIRED when action_type='{self.action_type}'. "
+                f"You must provide what the NPC actually says, not just the reason. "
+                f"Example: dialogue_content='Please don't shoot, I surrender!'"
+            )
 
 
 class NPCLLMClient:
@@ -138,7 +216,7 @@ class NPCLLMClient:
     def __init__(
         self,
         npc: 'NPCAgent',
-        model: str = "claude-sonnet-4-5-20250929",
+        llm_provider=None,
         temperature: float = 1.0,
         agent_prompt_logger=None
     ):
@@ -147,16 +225,20 @@ class NPCLLMClient:
 
         Args:
             npc: The NPC this client represents
-            model: Anthropic model ID
+            llm_provider: LLMProvider instance (OpenAI, Anthropic, etc.)
             temperature: Sampling temperature (1.0 = balanced)
             agent_prompt_logger: Optional AgentPromptLogger for human-readable logging
         """
         self.npc = npc
-        self.model = model
+        self.llm_provider = llm_provider
         self.temperature = temperature
         self.agent_prompt_logger = agent_prompt_logger
         self.call_count = 0  # Track LLM call sequence
-        logger.debug(f"✅ NPCLLMClient initialized for {npc.name} with model {model}")
+
+        if llm_provider:
+            logger.debug(f"✅ NPCLLMClient initialized for {npc.name} with provider {type(llm_provider).__name__}")
+        else:
+            logger.warning(f"⚠️  NPCLLMClient initialized for {npc.name} WITHOUT LLM provider - will use fallback actions")
 
     async def declare_action(self, context: str) -> NPCAction:
         """
@@ -185,28 +267,20 @@ class NPCLLMClient:
         # Build prompt based on NPC state
         prompt = self._build_prompt(context)
 
-        # Call LLM with Pydantic AI
+        # Check if LLM provider available
+        if not self.llm_provider:
+            logger.warning(f"No LLM provider for NPC {self.npc.name}, using fallback")
+            return self._get_fallback_action(context)
+
+        # Call LLM with provider
         try:
-            from pydantic_ai import Agent
-            from os import getenv
-
-            # Create agent with structured output
-            # Note: Pydantic AI 1.9.0+ uses 'output_type' not 'result_type'
-            agent = Agent(
-                f'anthropic:{self.model}',
-                output_type=NPCAction,
-                system_prompt=self._get_system_prompt()
+            action = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=NPCAction,
+                system_prompt=self._get_system_prompt(),
+                max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+                temperature=self.temperature
             )
-
-            # Get API key
-            api_key = getenv("ANTHROPIC_API_KEY")
-            if not api_key:
-                logger.warning(f"No ANTHROPIC_API_KEY for NPC {self.npc.name}, using fallback")
-                return self._get_fallback_action(context)
-
-            # Run agent
-            result = await agent.run(prompt, model_settings={"temperature": self.temperature})
-            action = result.output
 
             # Log to human-readable agent prompt log if enabled
             if self.agent_prompt_logger:
@@ -221,9 +295,9 @@ class NPCLLMClient:
                         call_sequence=self.call_count,
                         prompt=full_prompt,
                         response=response_text,
-                        model=self.model,
+                        model=getattr(self.llm_provider, 'model_name', 'unknown'),
                         temperature=self.temperature,
-                        metadata={'purpose': 'npc_action_declaration', 'note': 'Pydantic AI structured output (NPCAction schema)'}
+                        metadata={'purpose': 'npc_action_declaration', 'note': 'Structured output (NPCAction schema)'}
                     )
                     self.call_count += 1
                 except Exception as e:
@@ -251,13 +325,22 @@ class NPCLLMClient:
 - Threat Level: {self.npc.threat_level} (non_combatant/potential_threat/armed_neutral)
 - Faction: {self.npc.faction}
 {personality_note}
+**Faction Abbreviations (CANONICAL):**
+- **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+- **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+- **Sovereign Nexus** = The government
+- **Pantheon Security** = Law enforcement
+- **Tempest Industries** = Anti-Nexus rebels (void research)
+- **House of Vox** = Media/broadcast corporation
+- **Freeborn** = Natural-born, outside the pod system
+
 **Action Options:**
 - flee: Run away from danger
 - hide: Take cover, avoid attention
 - plead: Beg for mercy, express fear
 - comply: Follow instructions, cooperate
-- dialogue: Speak, answer questions, negotiate
-- assist: Help players with tasks (if friendly)
+- **dialogue: Speak, answer questions, negotiate - REQUIRES dialogue_content field with ACTUAL WORDS SPOKEN**
+- assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
 - **attack: Attack players or others (if threatened, paranoid, or hostile)**
 - pass: Do nothing this turn (use when situation doesn't involve you)
 
@@ -265,11 +348,17 @@ class NPCLLMClient:
 1. Non-combatants flee or hide during combat (but can attack if cornered/panicked)
 2. Prisoners plead or comply when threatened
 3. Allies assist or provide dialogue
-4. Pass when nothing relevant is happening (opportunistic acting)
-5. Low health → prioritize fleeing/hiding
-6. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
-7. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
-8. If players seem hostile (armed, aggressive, threatening), you CAN attack first
+4. **For assist/dialogue actions: ALWAYS use target IDs (tgt_xxxx) from the combatant list**
+5. **CRITICAL: For dialogue actions, you MUST populate dialogue_content with what you actually say**
+   - ✅ CORRECT: dialogue_content="The vault is in the basement, past the security checkpoint."
+   - ❌ WRONG: Leaving dialogue_content empty or null
+   - Use first-person (what you say, not "the NPC says...")
+   - Keep it concise (5-500 characters)
+6. Pass when nothing relevant is happening (opportunistic acting)
+7. Low health → prioritize fleeing/hiding
+8. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
+9. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
+10. If players seem hostile (armed, aggressive, threatening), you CAN attack first
 
 **When to use "attack":**
 - You're paranoid and see armed threats (even if they haven't acted yet)

@@ -1,0 +1,158 @@
+version: 1.0.0
+module: dm_attunement
+description: Specialized DM prompt for adjudicating seed attunement rituals
+always_load: true
+load_when: always
+content: |
+  # Seed Attunement Ritual Adjudication
+
+  When a player declares an **attunement** action (action_type="attune"), you must adjudicate the seed attunement ritual and populate the `attunement` field in your structured output.
+
+  ## Attunement Mechanics
+
+  The player action includes these attunement fields:
+  - `target_energy`: "breath" | "grain" | "drip" | "spark" (REQUIRED)
+  - `altar_id`: Altar ID if using altar (e.g., "alt_marketplace_01")
+  - `use_echo_calibrator`: Whether using portable Echo-Calibrator device
+
+  ## Your Task
+
+  1. **Roll the attunement check** - Willpower × Attunement skill vs DC (see modifiers below)
+  2. **Determine success/failure** based on roll margin
+  3. **Consume the Raw Seed** (ALWAYS consumed, even on failure)
+  4. **Grant energy** if successful (conversion rates below)
+  5. **Add void** if failed or Echo-Calibrator malfunction
+  6. **Populate the `attunement` field** in your ActionResolution structured output
+
+  ## Difficulty Calculation
+
+  **Base DC:** 20 (moderate attunement ritual)
+
+  **Modifiers:**
+  - **Altar bonus:** -1 to -3 DC based on altar quality (check scenario.altars for quality rating)
+    - Quality 1-3: -1 DC (basic altar)
+    - Quality 4-6: -2 DC (standard altar)
+    - Quality 7-10: -3 DC (master altar)
+  - **Echo-Calibrator:** No DC bonus (DC 20), but requires DC 16 Agility×Tech check first
+  - **No equipment:** +5 DC (DC 25) - desperate attunement without tools
+
+  **Examples:**
+  - Basic altar (quality 2) → DC 19
+  - Master altar (quality 8) → DC 17
+  - Echo-Calibrator → DC 20, plus DC 16 device check
+  - No equipment → DC 25
+
+  ## Conversion Rates
+
+  **Success:** Raw Seed → hollow energy based on type:
+  - **100 Breath** (least valuable, air/light energy)
+  - **50 Grain** (common, earth/growth energy)
+  - **20 Drip** (moderate, water/flow energy)
+  - **5 Spark** (most valuable, fire/lightning energy)
+
+  **Failure:** Raw Seed consumed, 0 energy gained, +1 void penalty
+
+  ## Echo-Calibrator Special Rules
+
+  If `use_echo_calibrator: true`:
+  1. First roll DC 16 Agility×Tech check (or Craft if no Tech skill)
+  2. If device check fails: Seed consumed, 0 energy, +1 void from calibrator malfunction
+  3. If device check succeeds: Proceed with normal DC 20 attunement check
+  4. Track usage: Every 3rd use requires 1 Drip upkeep payment (deducted automatically)
+
+  ## Narration Guidelines
+
+  ### If successful attunement:
+  1. Character performs ritual (offerings, breathing, willpower focus)
+  2. Seed pulses/resonates with void energy
+  3. Conversion happens (visual: seed unraveling, energy coalescing)
+  4. Hollow energy materializes (100 breath / 50 grain / 20 drip / 5 spark)
+  5. Brief sensory aftermath (cold touch, void echo, etc.)
+
+  **Example (altar attunement, success):**
+  "You place the Raw Seed on the altar's sigil-etched bowl, incense smoke curling around carved void channels. Your breathing slows, willpower threading through the Attunement resonance. The altar responds—a low, bell-like hum that builds into a clean harmonic. The seed unspools, its husk dissolving into a shower of shimmering Drip droplets that pool in the collector. Twenty Drip materialize, cold and precise. The resonance fades, leaving only a faint void echo in your bones."
+
+  **Example (Echo-Calibrator, success):**
+  "You cradle the Raw Seed in the Echo-Calibrator's resonance chamber, fingers steady on the alignment dials. Sapphire filaments trace the seed's grain signature as you guide the conversion toward Spark. A DC 16 check passes—the device hums approval. The seed flares amber, then fractures into five crystalline Spark motes that drop into the collector with musical chimes. Portable attunement, clean and controlled."
+
+  ### If success = false (Failed Attunement):
+  Narrate the failure based on the mechanics:
+
+  - **Seed consumed, no energy**: Ritual failed, seed wasted
+  - **void_penalty > 0**: Ritual backfire, void corruption added
+  - **Echo-Calibrator failure**: Device malfunction, feedback pulse
+
+  **Example (ritual failure, altar):**
+  "You set the Raw Seed on the altar and begin the breathing pattern, but the resonance stutters. The seed pulses weakly, channels flickering as your focus wavers. For a moment you sense the Breath signature—then it collapses. The seed crumbles into ash, consumed by the failed ritual. No energy flows. The altar's void channels dim, and you feel a cold whisper of corruption threading through the failure (+1 Void)."
+
+  **Example (Echo-Calibrator failure):**
+  "The Echo-Calibrator's filaments hunt for the Spark signature, but the alignment shorts. Coils overheat, and a thin acrid flash gutters across the cradle. The DC 16 Agility+Tech check fails—the seed's pattern collapses into dead shimmer. No Spark emerges. The device coughs fine soot and locks for cooldown. The raw seed is ruined, and you feel the miscalibration scratch at reality's seam (+1 Void from calibrator feedback)."
+
+  ## Structured Output
+
+  Generate ActionResolution with:
+  - **success_tier**: Based on margin (0-4: marginal, 5-9: success, 10+: excellent, negative: failure)
+  - **margin**: Roll result - DC
+  - **narration**: Your ritual narration (200-800 chars, atmospheric but concise)
+  - **effects.attunement**: REQUIRED for attune actions
+    ```python
+    attunement=AttunementEffect(
+        success=True,  # or False if roll failed
+        seed_consumed=True,  # ALWAYS True - seeds always consumed
+        energy_type="drip",  # From action.target_energy
+        energy_gained=20,  # Conversion rate (100/50/20/5) if success, 0 if failure
+        altar_id="alt_marketplace_01",  # From action.altar_id if provided
+        altar_bonus=1,  # Bonus from altar quality (0 if no altar)
+        echo_calibrator_used=False,  # From action.use_echo_calibrator
+        calibrator_check_success=None,  # True/False/None (only if echo_calibrator_used)
+        calibrator_void=0,  # +1 if calibrator check failed, else 0
+        upkeep_paid=False,  # True if this was 3rd calibrator use
+        void_penalty=0,  # +1 if ritual failed OR calibrator failed
+        roll_total=24,  # Your ritual roll result
+        roll_margin=5  # roll_total - DC
+    )
+    ```
+  - **effects.void_changes**: Include if void_penalty > 0
+    ```python
+    void_changes=[VoidChange(character_name=character_name, amount=void_penalty, reason="failed attunement ritual")]
+    ```
+  - **effects.inventory_changes**: REQUIRED - consume seed
+    ```python
+    inventory_changes=[InventoryChange(item="seed_raw", delta=-1, reason="consumed in attunement ritual")]
+    ```
+  - **soulcredit_changes**: Usually +0 (routine ritual in sanctioned facility)
+
+  ## Conversion Rates Reference
+
+  For narrative accuracy:
+  - **100 Breath** (least valuable hollow currency)
+  - **50 Grain** (common trade currency)
+  - **20 Drip** (moderate value)
+  - **5 Spark** (most valuable, rare)
+
+  ## Altar Quality Bonuses
+
+  - Quality 1-3: +1 bonus (minor shrine)
+  - Quality 4-7: +2 bonus (standard altar)
+  - Quality 8-10: +3 bonus (master altar)
+
+  ## Important Rules
+
+  - **Seed is ALWAYS consumed** - even on failure, the raw seed is destroyed
+  - **NO re-rolling** - the ritual roll already happened, just narrate the result
+  - **Respect the mechanics** - if attunement_effect says 0 energy gained, narrate zero output
+  - **Void penalties are automatic** - failed rituals and Echo-Calibrator malfunctions add void
+  - **Echo-Calibrator requires DC 16 Agility+Tech check** - this check is pre-validated
+  - **Upkeep is 1 Drip every 3rd Echo-Calibrator use** - system handles this automatically
+  - **Altars provide bonuses** - higher quality = better success chance (already factored into roll_total)
+
+  ## Atmospheric Guidelines
+
+  - **Void resonance**: Seeds pulse, shimmer, resonate with void frequencies
+  - **Sensory details**: Cold touch, metallic taste, bell-like hums, ozone scent
+  - **Altar rituals**: Incense, sigils, breathing patterns, willpower focus
+  - **Echo-Calibrator**: Sapphire filaments, alignment dials, diagnostic readouts, mechanical precision
+  - **Failure aesthetics**: Stuttering harmonics, soot, ash, feedback pulses, corruption whispers
+  - **Success aesthetics**: Clean tones, precise conversions, calculated droplets, measured energy
+
+  Keep it concise but evocative. This is sacred ritual work in a hollow economy—respect the precision and danger.

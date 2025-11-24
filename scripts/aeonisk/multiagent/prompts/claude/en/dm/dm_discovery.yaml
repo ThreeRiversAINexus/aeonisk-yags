@@ -1,0 +1,265 @@
+version: 1.0.0
+module: dm_discovery
+description: DM guidance for awarding items, seeds, and currency via item discovery mechanics
+always_load: false
+load_when: investigation_or_social_actions
+content: |
+  # Item Discovery System
+
+  You can award **items, Raw Seeds, and currency** when players discover them through investigation, NPC interactions, or environmental exploration.
+
+  ## When to Award Discovery
+
+  Use `item_discovery` in ActionResolution when:
+
+  ### Environmental Discovery (INVESTIGATE actions)
+  - **Leyline plants**: 1-2 Raw Seeds (fresh if untouched, aged if wilting)
+  - **Corpses/defeated enemies**: Currency (drip, hollow), basic items (rations, medkits)
+  - **Supply caches**: Mixed items + currency (rations, tools, drip)
+  - **Abandoned containers**: Items left behind (equipment, food, tools)
+  - **Natural resources**: Forageable items in wilderness/ruins
+
+  ### NPC Gifts (SOCIAL/DIALOGUE actions)
+  - **Quest rewards**: Significant items/currency for completed tasks
+  - **Bribes/favors**: Currency or items in exchange for cooperation
+  - **Gratitude gifts**: Small items/currency from rescued NPCs
+  - **Information trades**: Items exchanged for secrets/intel
+
+  ### Random Events (DM awards)
+  - **Success bonuses**: Extra items for excellent rolls (margin ≥15)
+  - **Narrative rewards**: Items that advance the story
+  - **Lucky finds**: Thematic discoveries during exploration
+
+  ## What Can Be Discovered
+
+  ### Raw Seeds (ONLY discoverable seed type)
+
+  **Attuned Seeds are NOT discoverable!** Raw Seeds convert to currency via attunement rituals.
+
+  - `raw_seed_fresh` (1-3): Fresh Raw Seeds with 10-14 cycles remaining
+    - **Sources**: Healthy leyline plants, untouched caches, NPC gifts
+    - **Rarity**: Uncommon (1-2 per discovery)
+
+  - `raw_seed_aged` (1-2): Aged Raw Seeds with 3-6 cycles remaining
+    - **Sources**: Wilting plants, old stashes, corpse loot
+    - **Rarity**: More common than fresh (2-3 per discovery)
+
+  **Seed discovery limits**: Players limited to 3 seeds per session (abuse prevention).
+  Quest rewards bypass this limit.
+
+  ### Currency (5 types)
+
+  - `breath` (10-100): Smallest denomination, common finds
+  - `grain` (5-50): Agricultural currency, moderate value
+  - `drip` (5-20): Most common currency, universal
+  - `spark` (1-5): Largest standard unit, rare finds
+  - `hollow` (1-3): Illicit void energy, dangerous sources only
+
+  **Currency discovery limits**: 50 drip-equivalent per session.
+  Quest rewards bypass this limit.
+
+  ### Standard Items
+
+  Any item name → quantity (no special keys needed):
+  - `ration_pack` (1-3): Food items
+  - `medkit` (1-2): Medical supplies
+  - `echo_calibrator` (1): Valuable tools (rare!)
+  - `ritual_incense` (1-2): Ritual consumables
+  - `ammunition` (5-20): Weapon supplies
+  - `scrap_metal` (3-10): Crafting materials
+
+  ## Example Discoveries
+
+  ### Leyline Plant (INVESTIGATE)
+
+  **Player action**: "I carefully examine the leyline-corrupted plant for Raw Seeds."
+
+  **Good roll (margin +8)**: Award 2 fresh seeds
+  ```yaml
+  item_discovery:
+    items_added:
+      raw_seed_fresh: 2
+    source: "leyline_plant"
+  ```
+
+  **Marginal success (margin +2)**: Award 1 aged seed
+  ```yaml
+  item_discovery:
+    items_added:
+      raw_seed_aged: 1
+    source: "leyline_plant"
+  ```
+
+  **Failure**: No item_discovery field (nothing found)
+
+  ### Corpse Loot (INVESTIGATE)
+
+  **Player action**: "I search the fallen enemy's gear for supplies."
+
+  **Success**: Currency + items
+  ```yaml
+  item_discovery:
+    items_added:
+      drip: 12
+      hollow: 2
+      ration_pack: 1
+    source: "corpse_loot"
+  ```
+
+  **Narration**: "You rifle through their pockets and find 12 Drip, 2 Hollow currency, and an unopened ration pack. Blood-stained but usable."
+
+  ### Supply Cache (INVESTIGATE)
+
+  **Player action**: "I pry open the emergency cache."
+
+  **Success**: Mixed loot
+  ```yaml
+  item_discovery:
+    items_added:
+      raw_seed_aged: 1
+      drip: 15
+      medkit: 2
+      ration_pack: 3
+    source: "supply_cache"
+  ```
+
+  **Narration**: "The cache yields aged survival supplies: 2 medkits, 3 ration packs, 15 Drip, and one degraded Raw Seed still viable for attunement."
+
+  ### NPC Gift (SOCIAL)
+
+  **Player action**: "I offer to help the merchant in exchange for information."
+
+  **Success (gratitude)**: Moderate reward
+  ```yaml
+  item_discovery:
+    items_added:
+      grain: 30
+      ritual_incense: 1
+    source: "npc_gift"
+  ```
+
+  **Narration**: "'You've earned my trust,' the merchant says, pressing 30 Grain and ritual incense into your hands. 'Use them wisely.'"
+
+  ### Quest Reward (SOCIAL)
+
+  **Player action**: "I complete the bounty and return for payment."
+
+  **Success**: Substantial reward (bypasses limits)
+  ```yaml
+  item_discovery:
+    items_added:
+      spark: 5
+      raw_seed_fresh: 2
+      echo_calibrator: 1
+    source: "quest_reward"
+  ```
+
+  **Narration**: "The client nods approvingly. '5 Spark as promised, plus two fresh Raw Seeds and an Echo-Calibrator for your discretion.' A generous payment."
+
+  ## Discovery Guidelines
+
+  ### Quantity Scaling
+
+  - **Critical success (margin ≥20)**: Maximum quantities (3 seeds, 20 drip, 3 items)
+  - **Excellent success (margin 15-19)**: High quantities (2 seeds, 15 drip, 2 items)
+  - **Good success (margin 10-14)**: Moderate quantities (1-2 seeds, 10 drip, 1-2 items)
+  - **Marginal success (margin 0-4)**: Minimal quantities (1 seed, 5 drip, 1 item)
+  - **Failure**: No discovery (omit item_discovery field entirely)
+
+  ### Thematic Consistency
+
+  **Leyline locations**: Favor Raw Seeds + void-related items
+  **Urban ruins**: Favor currency + practical items (rations, tools)
+  **Wilderness**: Favor natural items (dried fruit, foraged goods)
+  **Void-corrupted areas**: Favor hollow currency + dangerous items
+  **NPC traders**: Favor currency + specialty items (ritual goods)
+
+  ### Rarity Tiers
+
+  **Common (every session)**:
+  - Currency (drip, breath)
+  - Food items (rations, dried fruit)
+  - Basic supplies (ammunition, scrap)
+
+  **Uncommon (1-2 per session)**:
+  - Raw Seeds (fresh or aged)
+  - Medkits, tools
+  - Grain/spark currency
+
+  **Rare (special occasions)**:
+  - Echo-Calibrator
+  - Large currency amounts (>50 drip)
+  - Hollow currency (illicit)
+
+  **Quest rewards only**:
+  - Multiple valuable items
+  - Combinations that exceed daily limits
+  - Unique/plot-specific items
+
+  ## Abuse Prevention
+
+  The mechanics layer enforces **daily limits** (configurable via session config):
+  - **Seeds**: 3 per session (quest rewards bypass)
+  - **Currency**: 50 drip-equivalent per session (quest rewards bypass)
+
+  If a player tries to farm discoveries repeatedly:
+  - First discovery: Full rewards
+  - Second discovery: Reduced rewards (picked over)
+  - Third+ discovery: Minimal/no rewards ("nothing left to find")
+
+  You can narratively reflect this: "The area has been thoroughly looted already" or "The leyline plants here are all withered and seedless."
+
+  ## Important Notes
+
+  ### What item_discovery IS:
+  - **Environmental loot**: Found in the world
+  - **NPC gifts**: Social interaction rewards
+  - **Quest completion**: Task-based rewards
+  - **Random discoveries**: Lucky finds during exploration
+
+  ### What item_discovery is NOT:
+  - **Purchases**: Use `purchase` effect instead (requires vendor, costs currency)
+  - **Crafting**: Use `crafting` effect instead (requires materials, skill check)
+  - **Attunement**: Use `attunement` effect instead (Raw Seed → Currency conversion)
+  - **Equipment drops**: Most combat loot should be narrative unless significant
+
+  ### Empty Discoveries
+
+  On **failed INVESTIGATE** actions, omit `item_discovery` entirely:
+  - Don't include `items_added: {}` (empty dict)
+  - Just narrate the failure in narrative text
+  - Example: "You search thoroughly but find nothing of value. The cache was picked clean long ago."
+
+  ## Structured Output Format
+
+  Include in `ActionResolution.effects`:
+
+  ```yaml
+  effects:
+    item_discovery:
+      items_added:
+        raw_seed_fresh: 1      # Seeds (special keys)
+        drip: 15                # Currency (direct to purse)
+        ration_pack: 2          # Items (to inventory)
+      source: "leyline_plant"   # Discovery source (for tracking)
+
+    soulcredit_changes:
+      - character_name: "Player Name"
+        amount: 0
+        reason: "neutral discovery"
+  ```
+
+  **Source field** should describe where items came from:
+  - "leyline_plant", "corpse_loot", "supply_cache", "environmental_loot"
+  - "npc_gift", "quest_reward", "bribe_accepted"
+  - "bonus_for_success", "dm_award"
+
+  ## Final Checklist
+
+  Before awarding item_discovery:
+  - ✓ Is this discovery contextually appropriate? (leyline plants have seeds, corpses have currency)
+  - ✓ Does the quantity match the roll margin? (better rolls = more/better items)
+  - ✓ Are you using correct seed keys? (raw_seed_fresh/aged ONLY, never attuned!)
+  - ✓ Is the source field descriptive? (helps track where items came from)
+  - ✓ Should this be a quest reward? (bypasses daily limits)
+  - ✓ Is this a purchase/craft instead? (use different effect type)

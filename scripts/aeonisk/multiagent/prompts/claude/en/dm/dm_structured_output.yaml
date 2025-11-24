@@ -11,7 +11,7 @@ content: |-
 
   ```python
   ActionResolution(
-      narration: str,        # 200-2000 chars - FREEFORM creative storytelling
+      narration: str,        # TARGET: 800-1500 chars (MAX: 3000) - FREEFORM creative storytelling
       success_tier: SuccessTier,  # CRITICAL_FAILURE → EXCEPTIONAL
       margin: int,           # Success/failure margin
       effects: MechanicalEffects {  # ⚠️ STRUCTURE ALL MECHANICS HERE ⚠️
@@ -21,6 +21,7 @@ content: |-
           conditions: List[Condition],         # REQUIRED for status effects
           soulcredit_changes: List[SoulcreditChange],  # REQUIRED for EVERY action
           position_changes: List[PositionChange],      # REQUIRED for movement
+          item_discovery: Optional[ItemEffect],        # REQUIRED for INVESTIGATE/SOCIAL when items found
           notes: List[str]                     # Optional additional effects
       }
   )
@@ -52,15 +53,53 @@ content: |-
   conditions=[Condition(name="Stunned", penalty=-5, duration=2, description="cannot act")]
   ```
 
+  **⚠️ CONDITION CONFLICT RULES - Never assign contradictory conditions to same target:**
+  - "Tactical Advantage" ↔ "Pinned" / "Suppressed" / "Off-Balance" (cannot be advantaged AND suppressed)
+  - "Inspired" ↔ "Demoralized" / "Panicked" / "Shaken" (cannot be both)
+  - "Mobile" ↔ "Pinned" / "Restrained" / "Immobilized" (cannot move freely AND be immobilized)
+
+  **If suppressing fire targets someone, they get "Pinned" - NOT "Tactical Advantage"**
+
   **5. SOULCREDIT → REQUIRED FOR EVERY ACTION (even if amount=0)**
   ```python
   soulcredit_changes=[SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")]
   ```
 
+  **6. ITEM DISCOVERY → Populate `item_discovery` when INVESTIGATE/SOCIAL finds items**
+  - Successful searches of leyline plants → raw_seed_fresh or raw_seed_aged
+  - Looting corpses/caches → currency (drip, hollow, etc.) + items (ration_pack, medkit)
+  - NPC gifts → items, currency, or seeds from friendly NPCs
+  ```python
+  item_discovery=ItemEffect(
+      items_added={"raw_seed_fresh": 2, "drip": 15, "ration_pack": 1},
+      source="leyline_plant"  # or "corpse_loot", "npc_gift", "supply_cache", "quest_reward"
+  )
+  ```
+
   ## 🎯 TARGET ID USAGE (CRITICAL FOR FREE TARGETING MODE)
+
+  **🚨 COMMON ERROR - THIS WILL FAIL VALIDATION:**
+  ```python
+  # ❌ WRONG - Using character name instead of target ID
+  DamageEffect(target="Vex Solais", base=10, ...)          # FAILS! - name not ID
+  DamageEffect(target="Tempest Enforcer", base=8, ...)     # FAILS! - name not ID
+  StatusEffect(target="Kess Thren", name="Wounded", ...)   # FAILS! - name not ID
+
+  # ✅ CORRECT - Using target ID from VALID TARGET IDS list
+  DamageEffect(target="tgt_7a3f", base=10, ...)            # ✓ Works!
+  StatusEffect(target="tgt_9k2m", name="Wounded", ...)     # ✓ Works!
+  ```
+
+  **SEPARATION OF CONCERNS:**
+  - **Narrative fields** (narration, tactical_reasoning) → Use CHARACTER NAMES ← "Vex fires..."
+  - **Mechanical fields** (target, defence_token, damage.target) → Use TARGET IDs ← "tgt_7a3f"
+
+  ✅ **CORRECT narrative**: "Ash fires at the security guard, who dives for cover..."
+  ❌ **WRONG narrative**: "tgt_3c5d fires at tgt_7a3f, who dives for cover..."
 
   **When you see a "VALID TARGET IDS" list in the prompt:**
 
+  ❌ **NEVER USE CHARACTER NAMES** - `target="Vex Solais"` or `target="Enforcer"` will FAIL!
   ❌ **NEVER INVENT TARGET IDS** - Don't create `tgt_grd1`, `tgt_sec1`, etc. from enemy names
   ✅ **COPY EXACT IDs** - Use IDs exactly as shown: `[tgt_7a3f] Security Guard #1` → `target="tgt_7a3f"`
 
@@ -82,12 +121,13 @@ content: |-
   **Example 1: Combat Action**
   ```python
   ActionResolution(
-      narration="Your bullet punches through their shoulder guard, spinning them sideways. Blood sprays across corroded metal as they stagger back.",
+      narration="Your bullet punches through the security guard's shoulder, spinning them sideways. Blood sprays across corroded metal as they stagger back.",
+      # ☝️ NOTICE: Narration uses "security guard" (character name/description), NOT "tgt_7a3f"
       success_tier=SuccessTier.GOOD,
       margin=12,
       effects=MechanicalEffects(
           damage=DamageEffect(
-              target="tgt_7a3f",  # ✅ COPIED from [tgt_7a3f] in combatant list - NOT invented!
+              target="tgt_7a3f",  # ✅ Target ID ONLY in mechanical fields
               base_damage=15,
               soak=7,
               dealt=8,
@@ -99,7 +139,7 @@ content: |-
                   penalty=-2,
                   duration=1,
                   description="next attack at -2",
-                  target="tgt_7a3f"  # ✅ Same target ID for condition
+                  target="tgt_7a3f"  # ✅ Target ID in mechanical field
               )
           ],
           soulcredit_changes=[
@@ -112,7 +152,7 @@ content: |-
   )
   ```
 
-  **Example 2: Void Ritual**
+  **Example 2: Void Ritual (Cleansing)**
   ```python
   ActionResolution(
       narration="You channel purifying energy, but inverted resonance fights back. Pain sears through your neural pathways as corruption resists.",
@@ -133,11 +173,106 @@ content: |-
   )
   ```
 
+  **Example 3: Void-Forged Weapon Use**
+  ```python
+  ActionResolution(
+      narration="Your void-forged rifle screams as it discharges, reality rippling around the barrel. The shot tears through your target, but you feel the weapon's corruption seeping into your spirit.",
+      success_tier=SuccessTier.GOOD,
+      margin=11,
+      effects=MechanicalEffects(
+          damage=DamageEffect(
+              target="tgt_2k9m",
+              base_damage=18,
+              soak=6,
+              dealt=12,
+              weapon="Void-Forged Kinetic Rifle"
+          ),
+          void_changes=[
+              VoidChange(character_name="Kade", amount=2, reason="used void-forged weapon in combat")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Kade", amount=0, reason="justified combat")
+          ]
+      )
+  )
+  ```
+
+  **Example 4: Environmental Void Exposure**
+  ```python
+  ActionResolution(
+      narration="As you search the corrupted chamber, void energy presses against your consciousness. Every breath tastes of unreality.",
+      success_tier=SuccessTier.MODERATE,
+      margin=6,
+      effects=MechanicalEffects(
+          void_changes=[
+              VoidChange(character_name="Echo", amount=1, reason="environmental exposure (void_level 9)")
+          ],
+          clock_updates=[
+              ClockUpdate(clock_name="Evidence Collection", ticks=2, reason="found corrupted logs")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Echo", amount=0, reason="neutral investigation")
+          ]
+      )
+  )
+  ```
+
+  **Example 5: Breaking Sacred Oath**
+  ```python
+  ActionResolution(
+      narration="You break your sworn word to the Pantheon, lying to your faction contact about the artifact's location. The betrayal weighs on your spirit.",
+      success_tier=SuccessTier.GOOD,
+      margin=13,
+      effects=MechanicalEffects(
+          void_changes=[
+              VoidChange(character_name="Riven", amount=3, reason="broke sacred oath to Pantheon")
+          ],
+          clock_updates=[
+              ClockUpdate(clock_name="Deception", ticks=3, reason="successfully deceived faction")
+          ],
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Riven", amount=-2, reason="betrayed sworn oath")
+          ]
+      )
+  )
+  ```
+
+  **Example 6: Environmental Item Discovery (INVESTIGATE)**
+  ```python
+  ActionResolution(
+      narration="You carefully search the leyline-corrupted plant, finding two intact seed pods with faint bioluminescence. A small cache nearby yields a few currency chips and an emergency ration pack.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={
+                  "raw_seed_fresh": 2,
+                  "drip": 12,
+                  "ration_pack": 1
+              },
+              source="leyline_plant"
+          ),
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Kade", amount=0, reason="neutral scavenging")
+          ]
+      )
+  )
+  ```
+
   ## ✅ BEST PRACTICES
 
-  1. **Narration = Creative Storytelling** (freeform, vivid, atmospheric)
-  2. **Effects = Structured Mechanics** (explicit fields, no guessing)
-  3. **Always Populate Relevant Fields** (omitting fields triggers fallback parsing - bad for ML!)
-  4. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)
+  1. **Narration Length: Target 800-1500 characters**
+     - Complex scenes can use up to 2000 chars
+     - HARD LIMIT: 3000 chars (validation will FAIL if exceeded)
+     - **TIP:** Aim for 1000 chars to be safe - quality over quantity!
+
+  2. **Narration = Creative Storytelling** (freeform, vivid, atmospheric)
+     - **For social/dialogue actions**: Include actual quoted dialogue! Show what characters say.
+     - **For negotiations/arguments**: Include back-and-forth exchanges, emotional responses.
+     - **For NPC interactions**: If NPC declared dialogue, incorporate their actual words (verbatim or paraphrased).
+
+  3. **Effects = Structured Mechanics** (explicit fields, no guessing)
+  4. **Always Populate Relevant Fields** (omitting fields triggers fallback parsing - bad for ML!)
+  5. **Use Empty Lists for Unused Fields** (e.g., `void_changes=[]` for non-void actions)
 
   **CRITICAL:** If you skip required fields (damage, void_changes, soulcredit_changes), fallback systems generate inferior data from keyword detection. Always use structured fields!

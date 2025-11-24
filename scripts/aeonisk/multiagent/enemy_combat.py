@@ -151,18 +151,8 @@ class EnemyCombatManager:
         self.config: Dict[str, Any] = {}
         self.shared_state = shared_state  # Reference to shared state for logging
 
-        # LLM Provider for structured output (Phase 4: Pydantic AI migration)
-        from .llm_provider import create_claude_provider
-        try:
-            self.llm_provider = create_claude_provider(
-                model='claude-sonnet-4-5',
-                max_tokens=500,
-                temperature=0.7
-            )
-            logger.debug("EnemyCombatManager: Structured output provider initialized")
-        except Exception as e:
-            logger.warning(f"EnemyCombatManager: Failed to create structured output provider: {e}")
-            self.llm_provider = None
+        # LLM Provider for structured output - initialized later from session config
+        self.llm_provider = None
 
     def initialize(self, session_config: Dict[str, Any]):
         """
@@ -178,6 +168,37 @@ class EnemyCombatManager:
 
         if self.enabled:
             self.config = session_config.get('enemy_agent_config', {})
+
+            # Initialize LLM provider from DM config (enemies use same provider as DM)
+            from .llm_provider import create_provider
+            try:
+                dm_config = session_config.get('agents', {}).get('dm', {})
+                llm_config = dm_config.get('llm', {})
+
+                if llm_config:
+                    from .llm_provider import LLMConfig
+
+                    provider = llm_config.get('provider', 'anthropic')
+                    model = llm_config.get('model', 'claude-sonnet-4-5')
+
+                    config = LLMConfig(
+                        provider=provider,
+                        model=model,
+                        max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
+                        temperature=0.7  # Enemy agents use fixed temp for consistency
+                    )
+                    self.llm_provider = create_provider(config)
+                    logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
+                    logger.debug(f"EnemyCombatManager: llm_provider type = {type(self.llm_provider)}, is_none = {self.llm_provider is None}")
+                else:
+                    logger.warning("EnemyCombatManager: No DM LLM config found, structured output disabled")
+                    self.llm_provider = None
+            except Exception as e:
+                import traceback
+                logger.warning(f"EnemyCombatManager: Failed to create structured output provider: {e}")
+                logger.warning(f"Traceback: {traceback.format_exc()}")
+                self.llm_provider = None
+
             logger.debug("Enemy combat manager initialized (ENABLED)")
         else:
             logger.debug("Enemy combat manager initialized (DISABLED)")
@@ -198,10 +219,8 @@ class EnemyCombatManager:
         if not self.enabled:
             return []
 
-        logger.warning(
-            "process_dm_narration() called but legacy marker parsing has been removed. "
-            "Use RoundSynthesis.enemy_spawns with spawn_from_structured() instead."
-        )
+        # Note: This method is still called for auto-despawn functionality
+        # Enemy spawning now uses RoundSynthesis.enemy_spawns with spawn_from_structured()
 
         # Still handle auto-despawn for defeated enemies
         notifications = []
@@ -280,7 +299,8 @@ class EnemyCombatManager:
                                 template=spawn.template,
                                 stats=stats,
                                 position=str(enemy.position),
-                                tactics=enemy.tactics
+                                tactics=enemy.tactics,
+                                count=spawn.count  # Number of enemies spawned in this batch
                             )
 
         return notifications
@@ -330,10 +350,12 @@ class EnemyCombatManager:
                         disposition = "prisoner"  # Knocked out, incapacitated
 
                     # Convert enemy to NPC
+                    # NPCs use same LLM provider as enemies
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition=disposition,
-                        current_round=self.current_round
+                        current_round=self.current_round,
+                        llm_provider=self.llm_provider if hasattr(self, 'llm_provider') else None
                     )
 
                     # Add NPC to shared state
@@ -506,7 +528,7 @@ class EnemyCombatManager:
             response = await llm_client.generate_async(
                 prompt=prompt,
                 temperature=0.7,
-                max_tokens=500
+                max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
             )
             declaration_text = response.get('content', '')
 
@@ -560,37 +582,55 @@ class EnemyCombatManager:
 
         try:
             from .schemas.enemy_decision import EnemyDecision
-            from .enemy_declaration import EnemyDeclaration
+            # EnemyDeclaration is defined in this file at line 43, no import needed
 
             logger.debug(f"Enemy {enemy.name}: Attempting structured output for tactical decision")
 
             # Generate structured decision using Pydantic AI
+            # Note: LLM only generates tactical fields, we populate identity after
+            system_prompt = f"You are {enemy.name}, an enemy combatant making tactical decisions."
+
             enemy_decision: EnemyDecision = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=EnemyDecision,
-                system_prompt=f"You are {enemy.name}, an enemy combatant making tactical decisions.",
-                max_tokens=500,
+                system_prompt=system_prompt,
+                max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
                 temperature=0.7
             )
 
-            logger.debug(f"✓ Enemy {enemy.name} structured decision: {enemy_decision.major_action}, target={enemy_decision.target}")
+            # Log the raw decision object for debugging
+            logger.debug(f"Enemy {enemy.name} raw decision object: {enemy_decision}")
+            logger.debug(f"Enemy {enemy.name} decision type: {type(enemy_decision)}")
+
+            if enemy_decision is None:
+                logger.error(f"Enemy {enemy.name}: Structured output returned None!")
+                return None
+
+            logger.debug(f"✓ Enemy {enemy.name} structured decision: major_action={enemy_decision.major_action}, target={enemy_decision.target}")
 
             # Convert EnemyDecision (Pydantic) to EnemyDeclaration (legacy format)
+            # Use enemy object's identity fields directly (not from LLM output)
             enemy_declaration = EnemyDeclaration(
+                agent_id=enemy.agent_id,
+                character_name=enemy.name,
+                initiative=enemy.initiative,
                 major_action=enemy_decision.major_action,
                 minor_action=enemy_decision.minor_action or "None",
                 target=enemy_decision.target or "None",
                 weapon=enemy_decision.weapon or "None",
                 defence_token=enemy_decision.defence_token or "None",
-                movement=enemy_decision.movement or "None",
-                reasoning=enemy_decision.reasoning,
+                token_target=enemy_decision.token_target or "None",
+                reasoning=enemy_decision.tactical_reasoning,
                 shared_intel=enemy_decision.shared_intel
             )
 
+            logger.debug(f"✓ Enemy {enemy.name} converted to EnemyDeclaration: {enemy_declaration.major_action}")
             return enemy_declaration
 
         except Exception as e:
+            import traceback
             logger.error(f"Enemy {enemy.name}: Structured output failed: {type(e).__name__}: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return None
 
     async def declare_actions(
@@ -626,21 +666,36 @@ class EnemyCombatManager:
 
         for enemy in active_enemies:
             logger.debug(f"Generating declaration for {enemy.name} (ID: {enemy.agent_id})")
-            # Generate tactical prompt
-            prompt = generate_tactical_prompt(
-                enemy=enemy,
-                player_agents=player_agents,
-                enemy_agents=active_enemies,
-                shared_intel=self.shared_intel,
-                available_tokens=available_tokens,
-                current_round=self.current_round
-            )
+
+            # Collect context once for all prompt variants
+            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+            free_targeting = self.shared_state.config.get('free_targeting_mode', True) if self.shared_state else True
+            recent_narrations = []
+            for player_agent in player_agents:
+                if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
+                    recent_narrations.extend(player_agent.recent_narrations)
 
             # Try structured output first (Phase 4: Pydantic AI migration)
             parsed = None
+            logger.debug(f"Enemy {enemy.name}: llm_provider check - hasattr={hasattr(self, 'llm_provider')}, value={getattr(self, 'llm_provider', 'NOT_SET')}, is_none={self.llm_provider is None if hasattr(self, 'llm_provider') else 'N/A'}")
             if hasattr(self, 'llm_provider') and self.llm_provider is not None:
                 try:
-                    parsed = await self._generate_enemy_decision_structured(enemy, prompt)
+                    # Use structured-output-compatible prompt (no text format instructions)
+                    from .enemy_prompts import generate_tactical_prompt_structured
+
+                    structured_prompt = generate_tactical_prompt_structured(
+                        enemy=enemy,
+                        player_agents=player_agents,
+                        enemy_agents=active_enemies,
+                        shared_intel=self.shared_intel,
+                        available_tokens=available_tokens,
+                        current_round=self.current_round,
+                        target_id_mapper=target_id_mapper,
+                        free_targeting=free_targeting,
+                        recent_narrations=recent_narrations if recent_narrations else None
+                    )
+
+                    parsed = await self._generate_enemy_decision_structured(enemy, structured_prompt)
                     if parsed:
                         logger.debug(f"✓ Enemy {enemy.name} structured decision: {parsed.major_action}")
                 except Exception as e:
@@ -649,10 +704,25 @@ class EnemyCombatManager:
             # Legacy text parsing fallback
             if not parsed:
                 try:
+                    # Generate legacy prompt with text format instructions
+                    from .enemy_prompts import generate_tactical_prompt
+
+                    legacy_prompt = generate_tactical_prompt(
+                        enemy=enemy,
+                        player_agents=player_agents,
+                        enemy_agents=active_enemies,
+                        shared_intel=self.shared_intel,
+                        available_tokens=available_tokens,
+                        current_round=self.current_round,
+                        target_id_mapper=target_id_mapper,
+                        free_targeting=free_targeting,
+                        recent_narrations=recent_narrations if recent_narrations else None
+                    )
+
                     response = await llm_client.generate_async(
-                        prompt=prompt,
+                        prompt=legacy_prompt,
                         temperature=0.7,
-                        max_tokens=500
+                        max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
                     )
                     declaration_text = response.get('content', '')
 
@@ -758,6 +828,8 @@ class EnemyCombatManager:
             return self._execute_charge(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         elif 'retreat' in major_action:
             return self._execute_retreat(enemy, declaration, resolution_state)
+        elif 'surrender' in major_action:
+            return self._execute_surrender(enemy, declaration, resolution_state)
         elif 'grenade' in major_action or 'throw' in major_action:
             return self._execute_grenade(enemy, declaration, player_agents, mechanics_engine, resolution_state)
         else:
@@ -841,7 +913,11 @@ class EnemyCombatManager:
             }
 
         # Find weapon
-        weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        if weapon_name:
+            weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        else:
+            weapon = None
+
         if not weapon:
             weapon = enemy.weapons[0] if enemy.weapons else None
 
@@ -888,16 +964,18 @@ class EnemyCombatManager:
         target_defence = 15  # Simplified
         hit = attack_total >= target_defence
 
+        target_name = target.name if hasattr(target, 'name') else str(target_id)
+
         result = {
             'enemy_id': enemy.agent_id,
             'character_name': enemy.name,
             'action': 'attack',
-            'target': target.name if hasattr(target, 'name') else str(target_id),
+            'target': target_name,
             'weapon': weapon.name,
             'range': range_name,
             'hit': hit,
             'attack_roll': attack_total,
-            'narration': f"{enemy.name} attacks {target.name if hasattr(target, 'name') else 'target'} with {weapon.name}"
+            'narration': f"{enemy.name} attacks {target_name} with {weapon.name}"
         }
 
         if hit:
@@ -910,13 +988,13 @@ class EnemyCombatManager:
             total_damage = int(base_damage * 0.85)
 
             result['damage'] = total_damage
-            result['narration'] += f" - HIT! {total_damage} damage"
 
             # Apply damage to target (if target has health tracking)
             if hasattr(target, 'health') and hasattr(target, 'soak'):
                 damage_dealt = max(0, total_damage - target.soak)
                 result['damage_dealt'] = damage_dealt
-                result['narration'] += f" ({damage_dealt} after soak)"
+                # Start building clearer narration: Attacker HIT Target with Weapon for X damage
+                result['narration'] = f"{enemy.name} HIT {target_name} with {weapon.name} for {total_damage} damage ({damage_dealt} after soak)"
 
                 # Track damage for round summary
                 if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
@@ -930,22 +1008,30 @@ class EnemyCombatManager:
                 if damage_dealt > 0:
                     if damage_type == "stun":
                         damage_result = apply_stun_damage(target, damage_dealt)
-                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns ({damage_result['old_stuns']} → {damage_result['new_stuns']}) - {damage_result['effect']['name']}")
+                        logger.info(f"{target_name} took {damage_result['stuns_dealt']} stuns ({damage_result['old_stuns']} → {damage_result['new_stuns']}) - {damage_result['effect']['name']}")
                         result['damage_type'] = 'stun'
                         result['stuns_dealt'] = damage_result['stuns_dealt']
+                        # Add stun info to narration
+                        result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns ({damage_result['effect']['name']})"
                     elif damage_type == "wound":
                         damage_result = apply_wound_damage(target, damage_dealt)
                         # Only log if actual wounds were dealt (not just HP damage)
                         if damage_result['wounds_dealt'] > 0:
-                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
+                            logger.info(f"{target_name} took {damage_result['wounds_dealt']} wounds ({damage_result['old_wounds']} → {damage_result['new_wounds']}) - {damage_result['effect']['name']}")
                         result['damage_type'] = 'wound'
                         result['wounds_dealt'] = damage_result['wounds_dealt']
+                        # Add wound info to narration
+                        result['narration'] += f" - {target_name} took {damage_result['wounds_dealt']} wounds ({damage_result['effect']['name']})"
                     elif damage_type == "mixed":
                         damage_result = apply_mixed_damage(target, damage_dealt)
-                        logger.info(f"{target.name if hasattr(target, 'name') else target_id} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds (mixed)")
+                        logger.info(f"{target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds (mixed)")
                         result['damage_type'] = 'mixed'
                         result['stuns_dealt'] = damage_result['stuns_dealt']
                         result['wounds_dealt'] = damage_result['wounds_dealt']
+                        # Add mixed damage info to narration (mixed has separate stun_effect and wound_effect)
+                        stun_status = damage_result['stun_effect']['name']
+                        wound_status = damage_result['wound_effect']['name']
+                        result['narration'] += f" - {target_name} took {damage_result['stuns_dealt']} stuns + {damage_result['wounds_dealt']} wounds ({stun_status}/{wound_status})"
 
                 # Mark target as defeated if killed or unconscious
                 if target.health <= 0 or (damage_result and damage_result.get('unconscious_check_needed')):
@@ -955,20 +1041,20 @@ class EnemyCombatManager:
 
                         if not alive:
                             # Player died - mark as defeated
-                            result['narration'] += " - KILLED!"
-                            logger.warning(f"{target.name if hasattr(target, 'name') else target_id} KILLED by {enemy.name}")
+                            result['narration'] += f" - {target_name} KILLED"
+                            logger.warning(f"{target_name} KILLED by {enemy.name}")
                             resolution_state.mark_defeated(target_id)
                             result['target_defeated'] = True
                         elif status == "unconscious":
                             # Player unconscious - mark as defeated (can't act)
-                            result['narration'] += " - UNCONSCIOUS!"
-                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} falls unconscious")
+                            result['narration'] += f" - {target_name} UNCONSCIOUS"
+                            logger.info(f"{target_name} falls unconscious")
                             resolution_state.mark_defeated(target_id)
                             result['target_defeated'] = True
                         elif status == "conscious":
                             # Player critically wounded but still fighting - NOT defeated
-                            result['narration'] += " - CRITICALLY WOUNDED but still conscious!"
-                            logger.info(f"{target.name if hasattr(target, 'name') else target_id} critically wounded but fighting on")
+                            result['narration'] += f" - {target_name} CRITICALLY WOUNDED (still conscious)"
+                            logger.info(f"{target_name} critically wounded but fighting on")
                             # DO NOT mark as defeated - they can still act!
                             result['target_defeated'] = False
                     else:
@@ -1123,7 +1209,11 @@ class EnemyCombatManager:
             }
 
         # Find weapon
-        weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        if weapon_name:
+            weapon = next((w for w in enemy.weapons if w.name.lower() == weapon_name.lower()), None)
+        else:
+            weapon = None
+
         if not weapon:
             weapon = enemy.weapons[0] if enemy.weapons else None
 
@@ -1503,6 +1593,36 @@ class EnemyCombatManager:
 
         return attack_result
 
+    def _execute_surrender(self, enemy: EnemyAgent, declaration: EnemyDeclaration, resolution_state: ResolutionState) -> Dict[str, Any]:
+        """
+        Execute enemy surrender action.
+
+        Enemy has decided to surrender (morale broken, negotiation, overwhelming odds).
+        This marks them for conversion to prisoner NPC in conversion check phase.
+        """
+        # Mark enemy as surrendered (will be converted to NPC prisoner by DM conversion check)
+        enemy.is_active = False
+        enemy.is_prisoner = True
+        enemy.despawned_round = self.current_round
+
+        # Mark in resolution state so conversion check knows they surrendered
+        resolution_state.mark_defeated(enemy.agent_id)
+
+        # Add to shared intel
+        intel_msg = f"{enemy.name} surrendering - {declaration.reasoning[:100]}"
+        resolution_state.add_shared_intel(intel_msg)
+
+        logger.info(f"✓ {enemy.name} surrendered (will convert to prisoner NPC)")
+
+        return {
+            'enemy_id': enemy.agent_id,
+            'character_name': enemy.name,
+            'action': 'surrender',
+            'result': 'success',
+            'narration': f"{enemy.name} lowers their weapon and surrenders",
+            'surrender': True  # Signal for conversion check
+        }
+
     def _execute_retreat(self, enemy: EnemyAgent, declaration: EnemyDeclaration, resolution_state: ResolutionState) -> Dict[str, Any]:
         """Execute enemy retreat action."""
         # Validate retreat prerequisites
@@ -1671,17 +1791,15 @@ class EnemyCombatManager:
             'narration': f"{enemy.name} throws grenade at {target_location} (affects: {', '.join(a[1] for a in affected)})"
         }
 
-    def cleanup_round(self) -> List[Dict[str, Any]]:
+    def check_morale_all(self) -> List[Dict[str, Any]]:
         """
-        Perform end-of-round cleanup.
+        Check morale for all active enemies.
 
-        - Apply group attrition
-        - Auto-despawn defeated enemies
-        - Clear old shared intel
-        - Generate loot suggestions
+        Called during Entity Lifecycle phase (before synthesis) so DM can narrate
+        morale breaks immediately.
 
         Returns:
-            List of cleanup events
+            List of morale events (panicked, surrender)
         """
         if not self.enabled:
             return []
@@ -1755,6 +1873,28 @@ class EnemyCombatManager:
                             'narration': f"{enemy.name} morale breaks! They're panicked and will attempt to flee ({morale_trigger})"
                         })
                         logger.info(f"{enemy.name} is now panicked (morale broken: {morale_trigger})")
+
+        return events
+
+    def cleanup_round(self) -> List[Dict[str, Any]]:
+        """
+        Perform end-of-round cleanup.
+
+        - Tick down debuff/status durations
+        - Auto-despawn defeated enemies
+        - Clear old shared intel
+        - Generate loot suggestions
+
+        NOTE: Morale checks have been moved to check_morale_all() which is called
+        during Entity Lifecycle phase (before synthesis).
+
+        Returns:
+            List of cleanup events
+        """
+        if not self.enabled:
+            return []
+
+        events = []
 
         # Tick down debuff/status durations
         for enemy in get_active_enemies(self.enemy_agents):

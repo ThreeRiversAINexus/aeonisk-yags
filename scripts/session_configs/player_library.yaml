@@ -1,0 +1,773 @@
+_comment: Player character library - extracted from session configs
+_usage: Reference this from session configs using character_ref feature (when implemented)
+characters:
+- name: Creche Technician Vara Lux
+  faction: Arcane Genetics
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Gene-Wright Solus
+  faction: Arcane Genetics
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 4
+    bondPreference: avoids
+    ritualConservatism: 5
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Master Ritualist Vera
+  faction: Arcanists Guild
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 5
+    bondPreference: professional
+    ritualConservatism: 9
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.7
+- name: ACG Auditor Kress Valen
+  faction: Astral Commerce Group
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 6
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Ledger Agent Mira Sol
+  faction: Astral Commerce Group
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Vesper Karsel
+  faction: Astral Commerce Group
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Pattern-Seeker Iros
+  faction: Fractal Praxis
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 6
+    bondPreference: avoids
+    ritualConservatism: 4
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Recursionist Vale
+  faction: Fractal Praxis
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 7
+    bondPreference: avoids
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Ash Reeve
+  faction: Freeborn
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 5
+    bondPreference: neutral
+    ritualConservatism: 4
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Freeborn Trader Mira Seln
+  faction: Freeborn
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 4
+    bondPreference: avoids
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Kress Vohl
+  faction: Freeborn
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Nova Shadow
+  faction: Freeborn
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 2
+    bondPreference: avoids
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Savvy Trader Quinn
+  faction: Freeborn
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 2
+    bondPreference: avoids
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Drifter Sable
+  faction: Freeborn Loner
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 5
+    bondPreference: avoids
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Unbound Jex
+  faction: Freeborn Loner
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 4
+    bondPreference: avoids
+    ritualConservatism: 5
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Spark
+  faction: Freeborn Technologist
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 7
+    bondPreference: neutral
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Broadcaster Nyx Thren
+  faction: House of Vox
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 3
+    bondPreference: seeks
+    ritualConservatism: 6
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Propagandist Echo-7
+  faction: House of Vox
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Corrupted Ritualist
+  faction: Independent
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 2
+    bondPreference: neutral
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Healer Ash
+  faction: Independent
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 3
+    bondPreference: cooperative
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Reckless Kade
+  faction: Independent
+  personality:
+    riskTolerance: 9
+    voidCuriosity: 9
+    bondPreference: independent
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.9
+- name: Scout Raven
+  faction: Independent
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 5
+    bondPreference: loyal
+    ritualConservatism: 4
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Test Agent
+  faction: Independent
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Test Caster
+  faction: Independent
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 5
+    bondPreference: neutral
+    ritualConservatism: 5
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Test Ritualist
+  faction: Independent
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 7
+    bondPreference: neutral
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Test Striker
+  faction: Independent
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 5
+    bondPreference: neutral
+    ritualConservatism: 5
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Void Researcher Nova
+  faction: Independent Scholar
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 9
+    bondPreference: neutral
+    ritualConservatism: 1
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Interrogator Ash
+  faction: Pantheon Intelligence
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 6
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Negotiator Wei Lin
+  faction: Pantheon Mediator
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 6
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Combat Medic Wei Lin
+  faction: Pantheon Medical Corps
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: CorpSec Raze
+  faction: Pantheon Security
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 2
+    bondPreference: neutral
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Enforcer Kael Dren
+  faction: Pantheon Security
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 1
+    bondPreference: neutral
+    ritualConservatism: 9
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Enforcer Marcus Rhys
+  faction: Pantheon Security
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 1
+    bondPreference: neutral
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Jax Torren
+  faction: Pantheon Security
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 2
+    bondPreference: neutral
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Marcus Steel
+  faction: Pantheon Security
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 1
+    bondPreference: neutral
+    ritualConservatism: 9
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Thresh Ireveth
+  faction: Pantheon Security
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 1
+    bondPreference: neutral
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Dr. Ash Kaine
+  faction: Resonance Communes
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 4
+    bondPreference: seeks
+    ritualConservatism: 6
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Echo Resonance
+  faction: Resonance Communes
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Mediator Mercy
+  faction: Resonance Communes
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 4
+    bondPreference: seeks
+    ritualConservatism: 5
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Mira Seln
+  faction: Resonance Communes
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 5
+    bondPreference: seeks
+    ritualConservatism: 6
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Riven Ashglow
+  faction: Resonance Communes
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 5
+    bondPreference: avoids
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Cipher Vex
+  faction: Sovereign Nexus
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Codex Scribe Tavin Mereth
+  faction: Sovereign Nexus
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 9
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Gestator Lyss Veln
+  faction: Sovereign Nexus
+  personality:
+    riskTolerance: 2
+    voidCuriosity: 1
+    bondPreference: seeks
+    ritualConservatism: 10
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Sable Echo
+  faction: Sovereign Nexus
+  personality:
+    riskTolerance: 5
+    voidCuriosity: 3
+    bondPreference: seeks
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Medic Aria Vex
+  faction: Sovereign Union Medical Corps
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 2
+    bondPreference: seeks
+    ritualConservatism: 7
+    combat_style: support_non_lethal
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Echo
+  faction: Tech Collective
+  personality:
+    riskTolerance: 4
+    voidCuriosity: 1
+    bondPreference: cautious
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Tempest Operative Vex
+  faction: Tempest Coalition
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 5
+    combat_style: void_hunter
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Ash Vex
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 8
+    bondPreference: avoids
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Bumbling Tempest Thug 'Brick'
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 9
+    voidCuriosity: 3
+    bondPreference: aggressive
+    ritualConservatism: 8
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.9
+- name: Hotheaded Enforcer 'Scorch'
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 10
+    voidCuriosity: 5
+    bondPreference: ruthless
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.9
+- name: Kiran Rift
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 9
+    voidCuriosity: 10
+    bondPreference: avoids
+    ritualConservatism: 1
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Kiran Voss
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 8
+    bondPreference: avoids
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Opportunist Mage Riven
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 5
+    bondPreference: opportunistic
+    ritualConservatism: 1
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Riven Shard
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 8
+    bondPreference: avoids
+    ritualConservatism: 3
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Rogue Agent Syx
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 8
+    bondPreference: ruthless
+    ritualConservatism: 1
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.9
+- name: Tempest Combat Op Marcus
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 6
+    voidCuriosity: 3
+    bondPreference: neutral
+    ritualConservatism: 7
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Tempest Enforcer Kade
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 9
+    voidCuriosity: 7
+    bondPreference: aggressive
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.9
+- name: Tempest Infiltrator Ash
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 6
+    bondPreference: neutral
+    ritualConservatism: 4
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Void Archive Researcher Cipher
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 3
+    voidCuriosity: 9
+    bondPreference: neutral
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Void Theorist Kiran Rift
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 9
+    voidCuriosity: 10
+    bondPreference: avoids
+    ritualConservatism: 1
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Zara Nightwhisper
+  faction: Tempest Industries
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 9
+    bondPreference: avoids
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Sable
+  faction: Unaffiliated Mercenary
+  personality:
+    riskTolerance: 8
+    voidCuriosity: 3
+    bondPreference: selective
+    ritualConservatism: 5
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.8
+- name: Nyx
+  faction: Void Seeker
+  personality:
+    riskTolerance: 7
+    voidCuriosity: 9
+    bondPreference: intense
+    ritualConservatism: 2
+  top_skills: []
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-5
+    temperature: 0.9

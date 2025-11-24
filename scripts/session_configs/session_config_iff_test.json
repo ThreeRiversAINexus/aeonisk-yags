@@ -3,7 +3,6 @@
   "max_turns": 8,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
   "force_combat": true,
 
   "_comment_iff_test": "=== IFF/ROE TESTING ===",

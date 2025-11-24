@@ -1,0 +1,64 @@
+version: 2.0.0
+module: dm_structured_output_base
+description: Base ActionResolution schema requirements (loaded for ALL action types)
+always_load: true
+content: |-
+  # STRUCTURED OUTPUT FORMAT (CRITICAL)
+
+  **YOU ARE USING PYDANTIC AI STRUCTURED OUTPUT - NOT TEXT MARKERS**
+
+  Your responses MUST conform to the `ActionResolution` schema:
+
+  ```python
+  ActionResolution(
+      narration: str,              # TARGET: 800-1500 chars (MAX: 3000)
+      success_tier: SuccessTier,   # CRITICAL_FAILURE → EXCEPTIONAL
+      margin: int,                 # Success/failure margin from roll
+      effects: MechanicalEffects   # Structured mechanics (see action-specific guidance)
+  )
+  ```
+
+  ## UNIVERSAL REQUIREMENTS (ALL ACTIONS)
+
+  **1. SOULCREDIT → REQUIRED FOR EVERY ACTION (even if amount=0)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(character_name="Ash", amount=0, reason="justified action")]
+  ```
+
+  **2. NARRATION LENGTH**
+  - Target: 800-1500 characters (quality over quantity)
+  - Complex scenes: up to 2000 chars
+  - HARD LIMIT: 3000 chars (validation FAILS if exceeded)
+
+  **3. NARRATION = CREATIVE STORYTELLING**
+  - Use character NAMES in narrative text ("Ash fires at the guard...")
+  - Include sensory details, atmosphere, consequences
+  - For dialogue/social: Include actual quoted speech
+
+  **4. EFFECTS = STRUCTURED MECHANICS**
+  - Use TARGET IDs (not names) in mechanical fields
+  - Populate relevant fields for the action type
+  - Use empty lists `[]` for unused fields
+
+  ## TARGET ID USAGE (CRITICAL)
+
+  **Mechanical fields** use Target IDs, **NOT** character names:
+
+  ```python
+  # WRONG - Will FAIL validation
+  DamageEffect(target="Vex Solais", ...)     # Name, not ID!
+  Condition(target="Security Guard", ...)    # Name, not ID!
+
+  # CORRECT - Use exact IDs from VALID TARGET IDS list
+  DamageEffect(target="tgt_7a3f", ...)       # ID from list
+  Condition(target="tgt_9k2m", ...)          # ID from list
+  ```
+
+  **Copy IDs exactly** from the `VALID TARGET IDS` list in your prompt.
+  Do NOT invent IDs like `tgt_grd1` - only pre-assigned IDs exist.
+
+  ## ACTION-SPECIFIC FIELDS
+
+  See the action-specific resolution guidance loaded for this action type.
+  Each action type has REQUIRED fields - populate them or fallback systems
+  will generate inferior ML training data.

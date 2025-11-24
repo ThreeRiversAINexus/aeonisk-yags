@@ -1,0 +1,145 @@
+{
+  "session_name": "item_discovery_test",
+  "max_turns": 3,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "discovery_limits": {
+    "max_seeds_per_session": 3,
+    "max_currency_per_session": 50,
+    "quest_rewards_bypass_limits": true
+  },
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Kade",
+        "pronouns": "he/him",
+        "faction": "Independent Scavenger",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "pragmatic",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Use INVESTIGATE actions to search leyline plants for Raw Seeds (raw_seed_fresh/raw_seed_aged)",
+          "Use INVESTIGATE actions to loot corpses and supply caches for currency and items",
+          "Use SOCIAL actions to request gifts from friendly NPC scavengers"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 5,
+          "Size": 5
+        },
+        "skills": {
+          "Awareness": 5,
+          "Charm": 4,
+          "Investigation": 5
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "energy_purse": {
+          "breath": 10,
+          "grain": 5,
+          "drip": 8,
+          "spark": 0,
+          "hollow": 0,
+          "seeds": []
+        },
+        "void": 3
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Leyline Scavenging and Trade",
+    "location": "Abandoned Leyline Garden",
+    "situation": "You're exploring an abandoned leyline-corrupted garden where void-touched plants grow. The area is littered with abandoned supply caches and corpses from a previous conflict. A friendly scavenger NPC is also present, willing to trade items.",
+    "void_level": 4,
+    "_scenario_hint": "DM should spawn: (1) leyline plant with Raw Seeds (DC 14 Awareness check), (2) corpse with currency/items (DC 10 Awareness check), (3) supply cache with mixed loot (DC 16 Investigation check), (4) friendly NPC scavenger willing to gift minor items if asked nicely (DC 12 Charm check)"
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Collect Raw Seeds from leyline plants",
+      "type": "investigation",
+      "required": false
+    },
+    {
+      "description": "Scavenge supplies from environmental sources",
+      "type": "investigation",
+      "required": false
+    },
+    {
+      "description": "Trade with friendly NPCs for items",
+      "type": "social",
+      "required": false
+    }
+  ],
+
+  "_test_notes": {
+    "purpose": "Test item discovery system (ItemEffect schema, discovery validation, daily limits)",
+    "test_scenarios": [
+      "Environmental discovery: Leyline plant → raw_seed_fresh (1-2), raw_seed_aged (1-2)",
+      "Environmental discovery: Corpse → drip currency (5-15), hollow (1-3), ration_pack (1)",
+      "Environmental discovery: Supply cache → mixed items/seeds/currency",
+      "NPC gift: Friendly scavenger → ritual_incense (1), grain (10-20) via SOCIAL action",
+      "Daily limits: Should cap seeds at 3/session, currency at 50 drip-equivalent/session"
+    ],
+    "expected_behavior": [
+      "Player can INVESTIGATE leyline plants for Raw Seeds",
+      "Player can INVESTIGATE corpses/caches for currency and items",
+      "Player can use SOCIAL actions to request items from friendly NPCs",
+      "DM awards items via ItemEffect in ActionResolution.effects",
+      "Mechanics layer validates discovery and applies daily limits",
+      "Items/seeds/currency added to player inventory/energy_purse"
+    ],
+    "verification": {
+      "console_output": "Should see 'Processed item discovery for Kade' messages",
+      "logs": "Check game.log for discovery validation and processing",
+      "jsonl": "Check session JSONL for item_discovery effects in action_resolution events",
+      "character_state": "Verify seeds added to energy_purse.seeds, items to inventory, currency to purse"
+    },
+    "success_criteria": [
+      "ItemEffect schema correctly populated by DM",
+      "Seed keys (raw_seed_fresh/aged) converted to Seed objects",
+      "Currency added directly to energy_purse (breath/grain/drip/spark/hollow)",
+      "Standard items added to inventory Dict[str, int]",
+      "Daily limits enforced (max 3 seeds, max 50 drip per session)",
+      "NPC gifts work via SOCIAL actions",
+      "No errors during discovery processing"
+    ],
+    "dm_guidance": [
+      "Spawn leyline plant, corpse, supply cache as investigatable targets",
+      "Spawn friendly NPC scavenger (disposition: friendly) willing to share items",
+      "Award ItemEffect on successful INVESTIGATE/SOCIAL actions",
+      "Use proper seed keys: 'raw_seed_fresh', 'raw_seed_aged' (NOT attuned_seed_*)",
+      "Award quantity based on roll margin: margin 0-4 = minimal, 5-9 = moderate, 10+ = high",
+      "Example: INVESTIGATE leyline plant (margin +8) → raw_seed_fresh: 2",
+      "Example: SOCIAL with NPC (margin +6) → ritual_incense: 1, grain: 15"
+    ]
+  }
+}

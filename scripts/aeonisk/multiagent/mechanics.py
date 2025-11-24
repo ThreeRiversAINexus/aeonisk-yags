@@ -6,6 +6,7 @@ Implements core dice mechanics, rituals, void progression, and scene clocks.
 import random
 import logging
 import json
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
@@ -14,14 +15,140 @@ from enum import Enum
 
 logger = logging.getLogger(__name__)
 
+
+def _resolution_success(resolution) -> bool:
+    """
+    Safely check if ActionResolution succeeded.
+
+    Handles both old dataclass (has .success field) and new Pydantic schema (has .success_tier enum).
+    For new schema, success = success_tier in (MODERATE, GOOD, EXCELLENT, EXCEPTIONAL).
+    """
+    # Old schema: has .success field
+    if hasattr(resolution, 'success'):
+        return resolution.success
+
+    # New schema: derive from success_tier
+    if hasattr(resolution, 'success_tier'):
+        from .schemas.action_resolution import SuccessTier
+        success_tiers = {SuccessTier.MODERATE, SuccessTier.GOOD, SuccessTier.EXCELLENT, SuccessTier.EXCEPTIONAL, SuccessTier.MARGINAL}
+        return resolution.success_tier in success_tiers
+
+    # Fallback: assume success if we can't determine
+    return True
+
+
 # Import energy economy types for seed attunement
 try:
-    from .energy_economy import SeedType, Element, Seed
+    from .energy_economy import SeedType, Element, Seed, Vendor, VendorItem, VendorType
 except ImportError:
     logger.warning("energy_economy module not found, seed attunement will not be available")
     SeedType = None
     Element = None
     Seed = None
+    Vendor = None
+    VendorItem = None
+    VendorType = None
+
+
+@dataclass
+class PurchaseValidation:
+    """
+    Result of pre-purchase validation check.
+
+    Used to validate purchase requests BEFORE calling the DM, preventing
+    LLM hallucinations about successful purchases when player lacks funds.
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    shortage: Optional[Dict[str, int]] = None  # {currency_type: amount_short}
+    sc_blocked: bool = False  # True if purchase blocked by Soulcredit threshold
+    vendor_accessible: bool = True  # True if vendor exists and is accessible
+    # New fields for mechanical purchase system
+    can_afford: bool = False  # Alias for is_valid
+    item_name: str = ""
+    inventory_key: str = ""
+    cost: Dict[str, int] = field(default_factory=dict)
+    player_currency: Dict[str, int] = field(default_factory=dict)
+    surplus: Optional[Dict[str, int]] = None  # How much extra currency player has
+
+    def __post_init__(self):
+        """Sync can_afford with is_valid."""
+        self.can_afford = self.is_valid
+
+
+@dataclass
+class TransferValidation:
+    """
+    Result of pre-transfer validation check.
+
+    Used to validate energy transfers and item transfers BEFORE calling the DM,
+    preventing impossible transfers (out of range, insufficient currency/items, etc.).
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    sender_name: str = ""
+    receiver_name: str = ""
+    receiver_agent_id: str = ""
+    currency: Dict[str, int] = field(default_factory=dict)
+    items: Dict[str, int] = field(default_factory=dict)
+    shortage: Optional[Dict[str, int]] = None  # {currency_type: amount_short}
+    item_shortage: Optional[Dict[str, int]] = None  # {item_name: amount_short}
+    sender_currency: Dict[str, int] = field(default_factory=dict)
+    sender_items: Dict[str, int] = field(default_factory=dict)
+    in_range: bool = False  # True if characters are in same range band
+
+
+@dataclass
+class AttunementValidation:
+    """
+    Result of pre-attunement validation check.
+
+    Used to validate seed attunement requests BEFORE calling the DM,
+    preventing impossible attunements (no seeds, missing altar, insufficient upkeep, etc.).
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    has_raw_seed: bool = False
+    target_energy: Optional[str] = None
+    # Altar-specific fields
+    altar_exists: bool = False
+    altar_bonus: int = 0  # Bonus from altar quality (+1-3)
+    altar_id: Optional[str] = None
+    # Echo-Calibrator fields
+    has_echo_calibrator: bool = False
+    upkeep_required: bool = False
+    has_upkeep_currency: bool = False
+    usage_count: int = 0
+
+
+@dataclass
+class ConsumptionValidation:
+    """
+    Result of pre-consumption validation check.
+
+    Used to validate food consumption requests BEFORE calling the DM,
+    preventing impossible consumption (no item, not food, already at full HP, etc.).
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+
+
+@dataclass
+class DiscoveryValidation:
+    """
+    Result of item discovery validation check.
+
+    Used to validate discovery requests BEFORE applying ItemEffect,
+    preventing abuse (daily limits exceeded, invalid source, etc.).
+
+    Configurable limits via session config:
+    - discovery_limits.max_seeds_per_session (default: 3)
+    - discovery_limits.max_currency_per_session (default: 50 drip)
+    - discovery_limits.quest_rewards_bypass_limits (default: True)
+    """
+    is_valid: bool
+    failure_reason: Optional[str] = None
+    capped_items: Optional[Dict[str, int]] = None  # Items after applying limits
 
 
 class OutcomeTier(Enum):
@@ -66,19 +193,28 @@ class JSONLLogger:
         self.output_dir.mkdir(exist_ok=True)
         self.log_file = self.output_dir / f"session_{session_id}.jsonl"
 
+        # Event causal chain tracking
+        self.current_parent_event_id: Optional[str] = None  # Last event ID (for parent_event_id)
+        self.current_correlation_id: Optional[str] = None  # Current round/group ID
+
         # Get git commit hash for reproducibility tracking
         git_commit = self._get_git_commit()
 
         # Initialize log file with session start event
-        self._write_event({
+        session_start_event = {
             "event_type": "session_start",
+            "event_id": str(uuid.uuid4()),  # Generate unique event ID
+            "parent_event_id": None,  # Root event has no parent
+            "correlation_id": None,  # Session start not part of a round
             "ts": datetime.now().isoformat(),
             "session": session_id,
             "config": config or {},
             "random_seed": random_seed,  # For deterministic replay
             "git_commit": git_commit,  # Track codebase version
-            "version": "1.0.0"
-        })
+            "version": "1.2.0"  # BREAKING CHANGE: Added event_id, parent_event_id, correlation_id
+        }
+        self._write_event(session_start_event)
+        self.current_parent_event_id = session_start_event["event_id"]  # Session start is parent of first events
 
     def _get_git_commit(self) -> Optional[str]:
         """Get current git commit hash for version tracking."""
@@ -98,8 +234,37 @@ class JSONLLogger:
             pass
         return None
 
+    def start_round(self, round_num: int):
+        """Start a new round - sets correlation_id for all events in this round."""
+        self.current_correlation_id = f"round_{round_num}_{uuid.uuid4().hex[:8]}"
+
+    def _add_event_chain_fields(self, event: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Add event_id, parent_event_id, correlation_id to event.
+
+        Returns modified event dict.
+        """
+        # Generate new event ID
+        event_id = str(uuid.uuid4())
+        event["event_id"] = event_id
+
+        # Set parent (previous event)
+        event["parent_event_id"] = self.current_parent_event_id
+
+        # Set correlation (current round/group)
+        event["correlation_id"] = self.current_correlation_id
+
+        # Update parent for next event
+        self.current_parent_event_id = event_id
+
+        return event
+
     def _write_event(self, event: Dict[str, Any]):
-        """Write a single event as a JSON line."""
+        """Write a single event as a JSON line with causal chain metadata."""
+        # Add event chain fields if not already present (session_start sets them manually)
+        if "event_id" not in event:
+            event = self._add_event_chain_fields(event)
+
         with open(self.log_file, 'a') as f:
             f.write(json.dumps(event, default=str) + '\n')
 
@@ -124,8 +289,13 @@ class JSONLLogger:
         - excellent_success: Roll = DC+20 (margin +10 to +14)
         - exceptional_success: Roll = DC+30+ (margin +15+)
         """
-        ability = resolution.attribute_value * resolution.skill_value if resolution.skill_value > 0 else resolution.attribute_value - 5
-        dc = resolution.difficulty
+        # Defensive attribute access for old vs new ActionResolution schema
+        attribute_value = getattr(resolution, 'attribute_value', 0)
+        skill_value = getattr(resolution, 'skill_value', 0)
+        difficulty = getattr(resolution, 'difficulty', 0)
+
+        ability = attribute_value * skill_value if skill_value > 0 else (attribute_value - 5 if attribute_value > 0 else 0)
+        dc = difficulty
 
         tiers = {
             "critical_failure": {
@@ -174,8 +344,14 @@ class JSONLLogger:
         effects: List[str],
         context: Dict[str, Any] = None,
         inventory_changes: List[Dict[str, Any]] = None,
+        purchase_data: Dict[str, Any] = None,
+        crafting_data: Dict[str, Any] = None,
+        attunement_data: Dict[str, Any] = None,
+        currency_transfer_data: Dict[str, Any] = None,
+        item_transfer_data: Dict[str, Any] = None,
+        item_discovery_data: Dict[str, Any] = None,
         # New ML training fields (dataset guidelines compliance)
-        character_data: Dict[str, Any] = None,
+        # character_data removed - redundant with character_state events (saves ~7,200 tokens/session)
         environment: str = None,
         stakes: str = None,
         goal: str = None,
@@ -206,14 +382,27 @@ class JSONLLogger:
           "economy": {"void_delta": +1, "soulcredit_delta": 0,
                       "offering_used": false, "bonds_applied": []},
           "clocks": {"core_access": "7/8", "infection": "2/6"},
-          "effects": ["Barrier fails; backlash ripples"]
+          "effects": {
+            "damage": {"target": "enemy_123", "dealt": 8},
+            "status_effects": ["Barrier fails; backlash ripples"],
+            "inventory_changes": [{"item": "incense", "delta": -1}],
+            "purchase": {"success": true, "vendor_name": "S4CU", "items_purchased": ["Med Kit"], "currency_spent": {"spark": 1}},
+            "crafting": {"offering_type": "blood_offering", "materials_used": ["blood_sample"], "success": true},
+            "attunement": {"success": true, "energy_type": "drip", "amount": 20, "seed_consumed": "raw", "altar_id": "alt_test_basic"},
+            "currency_transfer": {"from_character": "Ash", "to_character": "Echo", "drip": 15, "grain": 1, "purpose": "Pooling funds"},
+            "item_transfer": {"from_character": "Ash", "to_character": "Echo", "items": {"Medkit": 2}, "purpose": "Sharing supplies"}
+          }
         }
         """
-        # Calculate ability score
-        if resolution.skill and resolution.skill_value > 0:
-            ability = resolution.attribute_value * resolution.skill_value
+        # Calculate ability score (defensive checks for old vs new ActionResolution schema)
+        skill = getattr(resolution, 'skill', None)
+        skill_value = getattr(resolution, 'skill_value', 0)
+        attribute_value = getattr(resolution, 'attribute_value', 0)
+
+        if skill and skill_value > 0:
+            ability = attribute_value * skill_value
         else:
-            ability = resolution.attribute_value - 5  # Unskilled penalty
+            ability = attribute_value - 5 if attribute_value > 0 else 0  # Unskilled penalty
 
         # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
@@ -229,6 +418,21 @@ class JSONLLogger:
                 "source": "structured_output"
             }
 
+        # Build roll dict with defensive attribute access (handles both old dataclass and new Pydantic schema)
+        roll_dict = {
+            "attr": getattr(resolution, 'attribute', None),
+            "attr_val": attribute_value,
+            "skill": skill,
+            "skill_val": skill_value,
+            "ability": ability,
+            "d20": getattr(resolution, 'roll', None),
+            "total": getattr(resolution, 'total', None),
+            "dc": getattr(resolution, 'difficulty', None),
+            "margin": getattr(resolution, 'margin', 0),
+            "tier": getattr(resolution.outcome_tier, 'value', None) if hasattr(resolution, 'outcome_tier') else None,
+            "success": getattr(resolution, 'success', None)
+        }
+
         event = {
             "event_type": "action_resolution",
             "ts": datetime.now().isoformat(),
@@ -238,32 +442,25 @@ class JSONLLogger:
             "agent": agent_name,
             "action": action,
             "context": context or {},
-            "roll": {
-                "attr": resolution.attribute,
-                "attr_val": resolution.attribute_value,
-                "skill": resolution.skill,
-                "skill_val": resolution.skill_value,
-                "ability": ability,
-                "d20": resolution.roll,
-                "total": resolution.total,
-                "dc": resolution.difficulty,
-                "margin": resolution.margin,
-                "tier": resolution.outcome_tier.value,
-                "success": resolution.success
-            },
+            "roll": roll_dict,
             "outcome_tiers": outcome_tiers,  # Threshold-based (backward compat)
             "economy": economy_changes,
             "clocks": clock_states,
             "effects": {
                 "damage": damage_dealt,  # NEW: Damage dealt to targets (for ML training)
                 "status_effects": effects,  # Renamed from top-level effects for clarity
-                "inventory_changes": inventory_changes or []  # New: track offering consumption, item pickups, etc.
+                "inventory_changes": inventory_changes or [],  # New: track offering consumption, item pickups, etc.
+                "purchase": purchase_data,  # Purchase transaction details (vendor, items, currency)
+                "crafting": crafting_data,  # Crafting attempt details (offering type, materials, success)
+                "attunement": attunement_data,  # Attunement ritual details (energy type, amount, seed consumed, altar)
+                "currency_transfer": currency_transfer_data,  # Currency transfer details (from, to, amounts, purpose)
+                "item_transfer": item_transfer_data,  # Item transfer details (from, to, items, purpose)
+                "item_discovery": item_discovery_data  # Item discovery (seeds, currency, items found via investigate/social)
             }
         }
 
         # Add ML training fields if provided (dataset guidelines compliance)
-        if character_data:
-            event["character_data"] = character_data
+        # character_data removed - redundant with character_state events
 
         if environment:
             event["environment"] = environment
@@ -284,6 +481,83 @@ class JSONLLogger:
             # Full outcome tiers with narrative + mechanical_effect (dataset format)
             event["outcome_tiers_full"] = outcome_tiers_with_narratives
 
+        self._write_event(event)
+
+    def log_enemy_action(
+        self,
+        round_num: int,
+        enemy_id: str,
+        enemy_name: str,
+        action_type: str,
+        result: str,
+        narration: str,
+        target_id: str = None,
+        target_name: str = None,
+        damage_dealt: int = None,
+        roll_data: Dict[str, Any] = None,
+        effects: Dict[str, Any] = None
+    ):
+        """
+        Log an enemy action resolution event.
+
+        Enemy actions are executed locally (not via DM adjudication) so they use
+        a simplified format compared to player action_resolution events.
+
+        Args:
+            round_num: Current round number
+            enemy_id: Enemy agent ID
+            enemy_name: Enemy display name
+            action_type: Type of action (attack, suppress, flee, charge, etc.)
+            result: Result string (success, miss, hit, invalid target, etc.)
+            narration: Narrative description of the action
+            target_id: Target agent ID (if applicable)
+            target_name: Target display name (if applicable)
+            damage_dealt: Damage dealt (if combat action)
+            roll_data: Roll details if available (d20, total, dc, etc.)
+            effects: Additional effects (status changes, positioning, etc.)
+        """
+        event = {
+            "event_type": "action_resolution",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "phase": "enemy_execution",
+            "agent": enemy_name,
+            "action": narration[:200] if narration else action_type,  # Truncate for consistency
+            "context": {
+                "action_type": action_type,
+                "is_enemy": True,
+                "enemy_id": enemy_id,
+                "result": result
+            },
+            "roll": roll_data or {
+                "attr": None,
+                "attr_val": 0,
+                "skill": None,
+                "skill_val": 0,
+                "ability": 0,
+                "d20": None,
+                "total": None,
+                "dc": None,
+                "margin": 0,
+                "tier": None,
+                "success": result in ('success', 'hit')
+            },
+            "outcome_tiers": {},  # No tier calculation for enemies (fixed behaviors)
+            "economy": {},
+            "clocks": {},
+            "effects": {
+                "damage": {"target": target_id, "dealt": damage_dealt, "target_name": target_name} if damage_dealt else None,
+                "status_effects": effects.get('status_effects', []) if effects else [],
+                "inventory_changes": [],
+                "purchase": None,
+                "crafting": None,
+                "attunement": None,
+                "currency_transfer": None,
+                "item_transfer": None,
+                "item_discovery": None
+            }
+        }
         self._write_event(event)
 
     def log_clock_event(
@@ -413,16 +687,49 @@ class JSONLLogger:
         }
         self._write_event(event)
 
-    def log_clock_spawn(self, clock_name: str, max_ticks: int, description: str):
-        """Log spawning of a new scene clock."""
+    def log_clock_spawn(
+        self,
+        clock_name: str,
+        max_ticks: int,
+        description: str,
+        round_num: Optional[int] = None,
+        current_ticks: int = 0,
+        advance_meaning: Optional[str] = None,
+        regress_meaning: Optional[str] = None,
+        filled_consequence: Optional[str] = None
+    ):
+        """
+        Log spawning of a new scene clock.
+
+        Args:
+            clock_name: Clock identifier
+            max_ticks: Maximum ticks before fill
+            description: What the clock represents
+            round_num: Round when clock was created (None for session start)
+            current_ticks: Starting tick value (default 0)
+            advance_meaning: What advancing the clock represents
+            regress_meaning: What regressing the clock represents
+            filled_consequence: What happens when clock fills
+        """
         event = {
             "event_type": "clock_spawn",
             "ts": datetime.now().isoformat(),
             "session": self.session_id,
+            "round": round_num,
             "clock_name": clock_name,
             "max_ticks": max_ticks,
+            "current_ticks": current_ticks,
             "description": description
         }
+
+        # Add semantic fields if provided
+        if advance_meaning:
+            event["advance_meaning"] = advance_meaning
+        if regress_meaning:
+            event["regress_meaning"] = regress_meaning
+        if filled_consequence:
+            event["filled_consequence"] = filled_consequence
+
         self._write_event(event)
 
     def log_synthesis(self, round_num: int, synthesis: str, structured_synthesis=None):
@@ -465,19 +772,9 @@ class JSONLLogger:
                     "new_clocks": [clock.model_dump() for clock in structured_synthesis.scene_pivot.new_clocks]
                 }
 
-            # Add enemy management fields
-            if structured_synthesis.enemy_spawns:
-                event["enemy_spawns"] = [spawn.model_dump() for spawn in structured_synthesis.enemy_spawns]
-
-            if structured_synthesis.enemy_conversions:
-                event["enemy_conversions"] = [conv.model_dump() for conv in structured_synthesis.enemy_conversions]
-
-            # Add NPC management fields
-            if structured_synthesis.npc_spawns:
-                event["npc_spawns"] = [npc.model_dump() for npc in structured_synthesis.npc_spawns]
-
-            if structured_synthesis.escalations:
-                event["escalations"] = [esc.model_dump() for esc in structured_synthesis.escalations]
+            # NOTE: Enemy/NPC management fields removed from RoundSynthesis
+            # (moved to Entity Lifecycle Phase)
+            # These are now in ConversionDecisions and logged via entity_lifecycle event
 
             # Add clock lifecycle fields
             if structured_synthesis.clocks_filled:
@@ -560,7 +857,9 @@ class JSONLLogger:
         soulcredit: int,
         position: str,
         conditions: List[str] = None,
-        is_defeated: bool = False
+        is_defeated: bool = False,
+        death_state: str = "alive",
+        agent: str = 'player'
     ):
         """
         Log character state snapshot (typically at round end).
@@ -577,6 +876,8 @@ class JSONLLogger:
             position: Tactical position (e.g., "Near-PC")
             conditions: List of active conditions (debuffs, buffs)
             is_defeated: Whether character is defeated
+            death_state: "alive", "unconscious" (0 HP, wounds < 6), or "dead" (wounds >= 6)
+            agent: Agent type ('player', 'enemy', 'npc') for filtering in analysis
         """
         event = {
             "event_type": "character_state",
@@ -592,7 +893,9 @@ class JSONLLogger:
             "soulcredit": soulcredit,
             "position": position,
             "conditions": conditions or [],
-            "is_defeated": is_defeated
+            "is_defeated": is_defeated,
+            "death_state": death_state,  # NEW: Track death vs unconscious
+            "agent": agent
         }
         self._write_event(event)
 
@@ -604,7 +907,8 @@ class JSONLLogger:
         template: str,
         stats: Dict[str, Any],
         position: str,
-        tactics: str
+        tactics: str,
+        count: int = 1
     ):
         """
         Log enemy spawn event.
@@ -617,6 +921,7 @@ class JSONLLogger:
             stats: Dict with health, attributes, skills, weapons, armor
             position: Spawn position
             tactics: Tactical behavior (aggressive_melee, tactical_ranged, etc.)
+            count: Number of enemies spawned in this group (1-5)
         """
         event = {
             "event_type": "enemy_spawn",
@@ -628,7 +933,8 @@ class JSONLLogger:
             "template": template,
             "stats": stats,
             "position": position,
-            "tactics": tactics
+            "tactics": tactics,
+            "count": count
         }
         self._write_event(event)
 
@@ -659,6 +965,33 @@ class JSONLLogger:
             "enemy_name": enemy_name,
             "defeat_reason": defeat_reason,
             "rounds_survived": rounds_survived
+        }
+        self._write_event(event)
+
+    def log_npc_departure(
+        self,
+        round_num: int,
+        npc_id: str,
+        npc_name: str,
+        departure_reason: str
+    ):
+        """
+        Log NPC departure/removal from scene.
+
+        Args:
+            round_num: Current round
+            npc_id: NPC agent ID
+            npc_name: Display name
+            departure_reason: Reason for departure (fled, hidden, dismissed, left, story_advanced)
+        """
+        event = {
+            "event_type": "npc_departure",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "npc_id": npc_id,
+            "npc_name": npc_name,
+            "departure_reason": departure_reason
         }
         self._write_event(event)
 
@@ -701,6 +1034,63 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_targeting_validation(
+        self,
+        round_num: int,
+        agent_id: str,
+        original_target: str,
+        corrected_target: Optional[str],
+        correction_method: str,
+        triggered_by: str,
+        success: bool,
+        confidence: Optional[str] = None,
+        reasoning: Optional[str] = None,
+        error: Optional[str] = None,
+        declared_target: Optional[str] = None,
+        effect_type: str = "damage",
+        model_used: Optional[str] = None,
+        validation_time_ms: Optional[float] = None
+    ):
+        """
+        Log targeting validation event (triggered when DM targeting errors detected).
+
+        Args:
+            round_num: Current round
+            agent_id: Agent whose action triggered validation
+            original_target: Target ID/name in DM's output (invalid)
+            corrected_target: Corrected target ID (if successful)
+            correction_method: 'mechanical', 'llm_inference', or 'failed'
+            triggered_by: Error type ('missing_target', 'invalid_format', 'name_instead_of_id', 'unresolvable_id')
+            success: Whether targeting was successfully corrected
+            confidence: LLM confidence level ('high', 'medium', 'low') if using LLM
+            reasoning: LLM's reasoning for correction if using LLM
+            error: Error description if correction failed
+            declared_target: Target from action declaration (for comparison)
+            effect_type: Type of effect ('damage', 'healing', 'void_change', etc.)
+            model_used: LLM model used for correction ('claude-haiku-4', etc.)
+            validation_time_ms: Time taken for validation (milliseconds)
+        """
+        event = {
+            "event_type": "targeting_validation",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "original_target": original_target,
+            "declared_target": declared_target,
+            "original_effect_type": effect_type,
+            "triggered_by": triggered_by,
+            "correction_method": correction_method,
+            "corrected_target": corrected_target,
+            "model_used": model_used,
+            "confidence": confidence,
+            "reasoning": reasoning,
+            "success": success,
+            "error_description": error,
+            "validation_time_ms": validation_time_ms
+        }
+        self._write_event(event)
+
     def log_round_summary(
         self,
         round_num: int,
@@ -720,8 +1110,11 @@ class JSONLLogger:
                 - damage_taken_by_players: Total damage taken by players
                 - void_gained: Total void gained this round
                 - void_lost: Total void lost this round
-                - clocks_advanced: Number of clock advancement events
+                - clocks_advanced: Number of clocks that advanced this round
+                - clocks_regressed: Number of clocks that regressed this round
                 - clocks_filled: Number of clocks that filled
+                - total_ticks_advanced: Total ticks advanced across all clocks
+                - total_ticks_regressed: Total ticks regressed across all clocks
                 - active_enemies: Enemy count at round end
                 - player_wounds_total: Sum of all player wounds
         """
@@ -739,9 +1132,86 @@ class JSONLLogger:
             "void_gained": summary.get('void_gained', 0),
             "void_lost": summary.get('void_lost', 0),
             "clocks_advanced": summary.get('clocks_advanced', 0),
+            "clocks_regressed": summary.get('clocks_regressed', 0),
             "clocks_filled": summary.get('clocks_filled', 0),
+            "total_ticks_advanced": summary.get('total_ticks_advanced', 0),
+            "total_ticks_regressed": summary.get('total_ticks_regressed', 0),
             "active_enemies": summary.get('active_enemies', 0),
             "player_wounds_total": summary.get('player_wounds_total', 0)
+        }
+        self._write_event(event)
+
+    def log_purchase_attempt(
+        self,
+        round_num: int,
+        player_id: str,
+        character_name: str,
+        vendor_id: str,
+        vendor_name: str,
+        item_id: str,
+        item_name: str,
+        cost: Dict[str, int],
+        player_currency: Dict[str, int],
+        success: bool,
+        failure_reason: Optional[str] = None,
+        shortage: Optional[Dict[str, int]] = None
+    ):
+        """
+        Log purchase attempt (both success and failure).
+
+        Critical for ML training - logs ALL attempts, not just successes.
+
+        Args:
+            round_num: Current round
+            player_id: Agent ID (e.g., 'player_mira')
+            character_name: Character name (e.g., 'Mira Seln')
+            vendor_id: Vendor ID (e.g., 'vnd_a1b2')
+            vendor_name: Vendor name (e.g., 'Test Shop')
+            item_id: Item ID (e.g., 'itm_c3d4')
+            item_name: Item name (e.g., 'Health Kit')
+            cost: Required currency (e.g., {'drip': 5, 'spark': 1})
+            player_currency: Player's current currency (e.g., {'drip': 10, 'spark': 0})
+            success: Whether purchase succeeded
+            failure_reason: Why it failed (if applicable)
+            shortage: How much short (if applicable)
+
+        JSONL Schema:
+        ```json
+        {
+          "event_type": "purchase_attempt",
+          "ts": "2025-01-15T10:30:00",
+          "session": "session_abc123",
+          "round": 2,
+          "player_id": "player_mira",
+          "character_name": "Mira Seln",
+          "vendor_id": "vnd_a1b2",
+          "vendor_name": "Test Shop",
+          "item_id": "itm_c3d4",
+          "item_name": "Health Kit",
+          "cost": {"drip": 5},
+          "player_currency": {"spark": 0, "drip": 4},
+          "success": false,
+          "failure_reason": "Insufficient currency: need 5 Drip, have 4 Drip",
+          "shortage": {"drip": 1}
+        }
+        ```
+        """
+        event = {
+            "event_type": "purchase_attempt",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "player_id": player_id,
+            "character_name": character_name,
+            "vendor_id": vendor_id,
+            "vendor_name": vendor_name,
+            "item_id": item_id,
+            "item_name": item_name,
+            "cost": cost,
+            "player_currency": player_currency,
+            "success": success,
+            "failure_reason": failure_reason,
+            "shortage": shortage
         }
         self._write_event(event)
 
@@ -906,6 +1376,129 @@ class JSONLLogger:
             "validation_issues_count": len(validation_warnings),
             "completeness_score": completeness_score,
             "is_complete": len(validation_warnings) == 0 and not fallback_triggered
+        }
+        self._write_event(event)
+
+    def log_pydantic_validation_failure(
+        self,
+        round_num: int,
+        agent_type: str,
+        agent_id: str,
+        schema_name: str,
+        exception_type: str,
+        error_message: str,
+        attempt_number: int,
+        max_attempts: int,
+        raw_model_response: Optional[str] = None,
+        underlying_error: Optional[str] = None,
+        action_context: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Log detailed Pydantic AI validation failure for debugging.
+
+        Captures comprehensive information about why structured output failed,
+        including the raw model response that couldn't be validated.
+
+        Args:
+            round_num: Current round number
+            agent_type: 'dm', 'player', or 'enemy'
+            agent_id: Specific agent identifier
+            schema_name: Pydantic schema that failed (e.g., 'ActionResolution')
+            exception_type: Exception class name (e.g., 'UnexpectedModelBehavior')
+            error_message: Full error message
+            attempt_number: Which retry attempt this was (1-based)
+            max_attempts: Maximum retries configured
+            raw_model_response: Raw JSON/text from model (if available)
+            underlying_error: Underlying Pydantic validation error (if available)
+            action_context: Optional context about what was being resolved
+
+        Example:
+            ```python
+            logger.log_pydantic_validation_failure(
+                round_num=5,
+                agent_type='dm',
+                agent_id='dm_narrator',
+                schema_name='ActionResolution',
+                exception_type='UnexpectedModelBehavior',
+                error_message='Exceeded maximum retries (1) for output validation',
+                attempt_number=3,
+                max_attempts=4,
+                raw_model_response='{"narration": "...", "success_tier": "INVALID_VALUE"}',
+                underlying_error='ValidationError: Invalid enum value',
+                action_context={'action_type': 'social', 'player_id': 'player_01'}
+            )
+            ```
+        """
+        event = {
+            "event_type": "pydantic_validation_failure",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_type": agent_type,
+            "agent_id": agent_id,
+            "schema_name": schema_name,
+            "exception_type": exception_type,
+            "error_message": error_message[:1000],  # Truncate very long errors
+            "attempt_number": attempt_number,
+            "max_attempts": max_attempts,
+            "is_final_attempt": attempt_number >= max_attempts,
+            "raw_model_response": raw_model_response[:2000] if raw_model_response else None,  # Truncate
+            "underlying_error": underlying_error[:500] if underlying_error else None,
+            "action_context": action_context
+        }
+        self._write_event(event)
+
+    def log_narrative_memory(
+        self,
+        round_num: int,
+        agent_id: str,
+        character_name: str,
+        locations_visited: List[str],
+        story_beats: List[str],
+        story_summary: str
+    ):
+        """
+        Log player narrative memory state (for ML training).
+
+        Logged at end of each round to capture accumulated story context.
+
+        Args:
+            round_num: Current round
+            agent_id: Player agent ID (e.g., 'player_ash')
+            character_name: Display name (e.g., 'Ash')
+            locations_visited: List of locations visited so far
+            story_beats: List of key story events (max 10)
+            story_summary: Rolling summary of story so far
+
+        JSONL Schema:
+        ```json
+        {
+          "event_type": "narrative_memory",
+          "ts": "2025-01-15T10:30:00",
+          "session": "session_abc123",
+          "round": 3,
+          "agent_id": "player_ash",
+          "character_name": "Ash",
+          "memory": {
+            "locations_visited": ["Docks", "Transit Hub"],
+            "story_beats": ["Fought gang", "Found data chip"],
+            "story_summary": "Started at docks, moved to hub after combat."
+          }
+        }
+        ```
+        """
+        event = {
+            "event_type": "narrative_memory",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "character_name": character_name,
+            "memory": {
+                "locations_visited": locations_visited,
+                "story_beats": story_beats,
+                "story_summary": story_summary
+            }
         }
         self._write_event(event)
 
@@ -1232,7 +1825,7 @@ class MechanicsEngine:
         "Intelligence", "Empathy", "Willpower", "Charisma"
     ]
 
-    def __init__(self, jsonl_logger: Optional[JSONLLogger] = None):
+    def __init__(self, jsonl_logger: Optional[JSONLLogger] = None, shared_state: Optional[Any] = None):
         self.scene_clocks: Dict[str, SceneClock] = {}
         self.void_states: Dict[str, VoidState] = {}  # agent_id -> VoidState
         self.soulcredit_states: Dict[str, SoulcreditState] = {}  # agent_id -> SoulcreditState
@@ -1242,6 +1835,7 @@ class MechanicsEngine:
         self.jsonl_logger: Optional[JSONLLogger] = jsonl_logger  # Machine-readable event log
         self.current_round: int = 0  # Track current round for logging
         self._last_clock_increment_round: int = -1  # Track last round we incremented clocks
+        self.shared_state: Optional[Any] = shared_state  # NEW: For vendor lookup in purchase validation
 
         # Clock update queue - prevents cascade fills during resolution
         # Queued updates are applied batch during synthesis phase
@@ -1516,7 +2110,7 @@ class MechanicsEngine:
         )
 
         # Apply tier downgrade if no offering and successful
-        if ritual_effects.get('tier_downgrade') and resolution.success:
+        if ritual_effects.get('tier_downgrade') and _resolution_success(resolution):
             # Downgrade outcome tier by one level
             tier_map = {
                 OutcomeTier.EXCEPTIONAL: OutcomeTier.EXCELLENT,
@@ -1600,21 +2194,21 @@ class MechanicsEngine:
         # Fulfill Ritual Contract/Oath (+1) - formal, witnessed
         if any(keyword in action_text for keyword in ['fulfill contract', 'fulfill oath', 'complete contract',
                                                         'honor oath', 'uphold contract', 'fulfill agreement']):
-            if resolution.success:
+            if _resolution_success(resolution):
                 delta += 1
                 reasons.append("Fulfilled ritual contract/oath (+1 SC)")
 
         # Aid Another's Ritual with Offering (+1)
         if any(keyword in action_text for keyword in ['aid ritual', 'help ritual', 'assist ritual',
                                                         'support ritual', 'join ritual']):
-            if has_offering and resolution.success:
+            if has_offering and _resolution_success(resolution):
                 delta += 1
                 reasons.append("Aided another's ritual with offering (+1 SC)")
 
         # Void Cleansing Ritual (+2-3) - intentional SC improvement action
         if any(keyword in action_text for keyword in ['cleanse void', 'purify void', 'remove void',
                                                         'void cleansing', 'spiritual cleansing']):
-            if resolution.success:
+            if _resolution_success(resolution):
                 # +3 for Strong Resonance+ (margin 10+), +2 otherwise
                 cleanse_bonus = 3 if resolution.margin >= 10 else 2
                 delta += cleanse_bonus
@@ -1622,7 +2216,7 @@ class MechanicsEngine:
 
         # Public Ritual aligned with Bond/Will (+2) - witnessed, significant, Solid+ margin
         if any(keyword in action_text for keyword in ['public ritual', 'witnessed ritual', 'ceremonial ritual']):
-            if resolution.success and resolution.margin >= 5:  # Solid margin
+            if _resolution_success(resolution) and resolution.margin >= 5:  # Solid margin
                 delta += 2
                 reasons.append("Public ritual aligned with principles (+2 SC)")
 
@@ -1641,13 +2235,13 @@ class MechanicsEngine:
 
             if faction in faction_keywords:
                 if any(keyword in action_text for keyword in faction_keywords[faction]):
-                    if resolution.success and 'at cost' in action_text or 'sacrifice' in action_text:
+                    if _resolution_success(resolution) and 'at cost' in action_text or 'sacrifice' in action_text:
                         delta += 1
                         reasons.append(f"Upheld {faction} tenets at personal cost (+1 SC)")
 
         # Ritual Success with Strong Resonance+ (+1) - margin 10+
         # NOTE: This is a minor bonus compared to the social actions above
-        if is_ritual and resolution.success and resolution.margin >= 10:
+        if is_ritual and _resolution_success(resolution) and resolution.margin >= 10:
             # Only award if not already awarded for cleansing or public ritual
             if not any('cleansing' in r or 'Public ritual' in r for r in reasons):
                 delta += 1
@@ -1689,7 +2283,7 @@ class MechanicsEngine:
 
         # Ritual Failure from Negligence (-1) - GM call
         # Only applies if ritual failed AND there's evidence of lack of preparation
-        if is_ritual and not resolution.success:
+        if is_ritual and not _resolution_success(resolution):
             negligence_indicators = ['unprepared', 'no offering', 'rushed', 'careless', 'negligent']
             if any(indicator in action_text for indicator in negligence_indicators):
                 delta -= 1
@@ -1762,6 +2356,1394 @@ class MechanicsEngine:
         logger.info(f"Consumed 1 {offering_type} from {character_state.name}'s inventory (remaining: {quantity - 1})")
 
         return offering_type
+
+    def craft_offering(
+        self,
+        character_state: Any,
+        offering_type: str,
+        materials: List[str]
+    ) -> tuple[bool, str, Optional[str]]:
+        """
+        Craft an offering from raw materials using Attunement skill.
+
+        Simple conversion (not full ritual) using Willpower × Attunement vs DC 15.
+        Materials are consumed on attempt (success or failure).
+
+        Args:
+            character_state: Character attempting crafting
+            offering_type: Offering to craft ('blood_offering', 'incense', 'crystals')
+            materials: List of material keys to consume (e.g., ['blood_sample', 'herbs'])
+
+        Returns:
+            tuple: (success: bool, message: str, offering_name: str or None)
+
+        Examples:
+            - blood_sample → blood_offering
+            - herbs → incense
+            - raw_crystal → crystals
+        """
+        # Validate inventory exists
+        if not hasattr(character_state, 'inventory'):
+            return (False, "Character has no inventory", None)
+
+        # Validate offering type is recognized
+        valid_offerings = ['blood_offering', 'incense', 'crystals', 'purification_incense']
+        if offering_type not in valid_offerings:
+            return (False, f"Unknown offering type: {offering_type}", None)
+
+        # Check if character has required materials
+        for material in materials:
+            if character_state.inventory.get(material, 0) <= 0:
+                return (False, f"Missing required material: {material}", None)
+
+        # Get Attunement skill and Willpower attribute
+        attunement_skill = character_state.skills.get('attunement', 0)
+        willpower_attr = character_state.attributes.get('willpower', 0)
+
+        # Calculate skill pool (Attribute × Skill)
+        skill_pool = willpower_attr + attunement_skill
+
+        # Roll 2d8 (YAGS dice pool: 2 dice for skill check)
+        die1 = random.randint(1, 8)
+        die2 = random.randint(1, 8)
+        total = skill_pool + die1 + die2
+
+        # DC 15 base (simple conversion)
+        dc = 15
+
+        # Consume materials (happens regardless of success)
+        for material in materials:
+            character_state.inventory[material] -= 1
+            logger.debug(f"Consumed 1 {material} for crafting attempt")
+
+        # Determine success
+        success = total >= dc
+        margin = total - dc
+
+        if success:
+            # Add crafted offering to inventory
+            current = character_state.inventory.get(offering_type, 0)
+            character_state.inventory[offering_type] = current + 1
+
+            message = f"Successfully crafted {offering_type} (roll: {total} vs DC {dc}, margin: +{margin})"
+            logger.info(f"{character_state.name} crafted {offering_type}: {willpower_attr}+{attunement_skill}+{die1}+{die2}={total} vs DC {dc}")
+
+            return (True, message, offering_type)
+        else:
+            message = f"Failed to craft {offering_type} (roll: {total} vs DC {dc}, margin: {margin}). Materials consumed."
+            logger.info(f"{character_state.name} failed crafting {offering_type}: {willpower_attr}+{attunement_skill}+{die1}+{die2}={total} vs DC {dc}")
+
+            return (False, message, None)
+
+    def validate_purchase_request(
+        self,
+        item_name: str,
+        vendor: Optional['Vendor'],
+        character_state: Any
+    ) -> PurchaseValidation:
+        """
+        Validate a purchase request BEFORE calling the DM.
+
+        Checks:
+        1. Vendor exists and is accessible
+        2. Item exists in vendor inventory
+        3. Character has sufficient currency
+        4. Soulcredit threshold met (vendor-specific)
+
+        Args:
+            item_name: Name of item being purchased
+            vendor: Vendor object (or None if vendor doesn't exist)
+            character_state: Character making purchase
+
+        Returns:
+            PurchaseValidation with validation results
+        """
+        # Check vendor exists
+        if vendor is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason="Vendor not found",
+                vendor_accessible=False
+            )
+
+        # Check Soulcredit threshold (vendor-specific gating)
+        character_sc = getattr(character_state, 'soulcredit', 0)
+        vendor_type = getattr(vendor, 'vendor_type', VendorType.HUMAN_TRADER) if VendorType else None
+
+        # SC gating rules
+        if vendor_type == VendorType.VENDING_MACHINE:
+            # Automated Nexus vendors require SC ≥ -2
+            if character_sc < -2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too low for vending machine (need ≥-2, have {character_sc})",
+                    sc_blocked=True
+                )
+        elif hasattr(vendor, 'vendor_type') and str(vendor.vendor_type).lower() == 'tempest_drone':
+            # Tempest Supply Drones have INVERTED SC (prefer low SC, block high SC)
+            if character_sc >= 2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too high for Tempest drone (need <2, have {character_sc})",
+                    sc_blocked=True
+                )
+
+        # Find item in vendor inventory
+        vendor_item = None
+        for item in vendor.inventory:
+            if item.name.lower() == item_name.lower():
+                vendor_item = item
+                break
+
+        if vendor_item is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Item '{item_name}' not available from this vendor"
+            )
+
+        # Check currency sufficiency
+        if not hasattr(character_state, 'energy_purse') or character_state.energy_purse is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason="Character has no energy purse"
+            )
+
+        energy_purse = character_state.energy_purse
+        shortage = {}
+
+        # Check each currency type in item cost
+        for currency_type, required_amount in vendor_item.cost.items():
+            available_amount = getattr(energy_purse, currency_type, 0)
+            if available_amount < required_amount:
+                shortage[currency_type] = required_amount - available_amount
+
+        if shortage:
+            # Build failure message
+            shortage_parts = [f"{amt} {curr}" for curr, amt in shortage.items()]
+            shortage_str = ", ".join(shortage_parts)
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Insufficient currency (need {shortage_str} more)",
+                shortage=shortage
+            )
+
+        # All checks passed
+        return PurchaseValidation(is_valid=True)
+
+    def validate_purchase(
+        self,
+        character_state: Any,
+        vendor_id: str,
+        item_id: str
+    ) -> PurchaseValidation:
+        """
+        Validate purchase using vendor_id and item_id (unified vendor-NPC system).
+
+        This is the ID-based validation for the mechanical purchase system.
+        Checks BEFORE DM narration to prevent phantom purchases.
+        Supports both legacy Vendor objects and unified NPC vendors.
+
+        Args:
+            character_state: Character attempting purchase
+            vendor_id: Vendor ID (can be NPC agent_id like "npc_xxxx" or legacy "vnd_xxxx")
+            item_id: Item ID (itm_xxxx)
+
+        Returns:
+            PurchaseValidation with full details for mechanical execution
+        """
+        # Get vendor by ID from shared state (try NPC vendor first, then legacy vendor)
+        vendor = None
+        if self.shared_state:
+            # Try unified NPC vendor system first
+            vendor = self.shared_state.get_npc_by_vendor_id(vendor_id)
+            # Fall back to legacy vendor system
+            if not vendor:
+                vendor = self.shared_state.get_vendor_by_id(vendor_id)
+
+        if vendor is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Vendor {vendor_id} not found",
+                vendor_accessible=False
+            )
+
+        # Get item by ID from vendor (works for both NPC vendors and legacy vendors)
+        item = vendor.get_vendor_item_by_id(item_id) if hasattr(vendor, 'get_vendor_item_by_id') else vendor.get_item_by_id(item_id)
+        if item is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Item {item_id} not in {vendor.name} inventory"
+            )
+
+        # Check Soulcredit threshold
+        character_sc = getattr(character_state, 'soulcredit', 0)
+
+        # Handle both VendorType enum (legacy) and string (NPC vendors)
+        vendor_type_str = vendor.vendor_type.value if hasattr(vendor.vendor_type, 'value') else str(vendor.vendor_type) if vendor.vendor_type else None
+
+        if vendor_type_str == "vending_machine":
+            if character_sc < -2:
+                return PurchaseValidation(
+                    is_valid=False,
+                    failure_reason=f"Soulcredit too low for vending machine (need ≥-2, have {character_sc})",
+                    sc_blocked=True,
+                    item_name=item.name,
+                    inventory_key=item.inventory_key
+                )
+
+        # Check currency
+        if not hasattr(character_state, 'energy_purse') or character_state.energy_purse is None:
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason="Character has no energy purse",
+                item_name=item.name,
+                inventory_key=item.inventory_key
+            )
+
+        energy_purse = character_state.energy_purse
+        cost = item.cost
+        player_currency = {
+            'spark': energy_purse.spark,
+            'grain': energy_purse.grain,
+            'drip': energy_purse.drip,
+            'breath': energy_purse.breath
+        }
+
+        # Check affordability
+        shortage = {}
+        for currency_type, required_amount in cost.items():
+            available_amount = player_currency.get(currency_type, 0)
+            if available_amount < required_amount:
+                shortage[currency_type] = required_amount - available_amount
+
+        if shortage:
+            shortage_parts = [f"{amt} {curr.title()}" for curr, amt in shortage.items()]
+            shortage_str = ", ".join(shortage_parts)
+            return PurchaseValidation(
+                is_valid=False,
+                failure_reason=f"Insufficient currency: need {shortage_str}",
+                shortage=shortage,
+                item_name=item.name,
+                inventory_key=item.inventory_key,
+                cost=cost,
+                player_currency=player_currency
+            )
+
+        # Calculate surplus
+        surplus = {}
+        for currency_type, required_amount in cost.items():
+            available_amount = player_currency.get(currency_type, 0)
+            surplus[currency_type] = available_amount - required_amount
+
+        # Success!
+        return PurchaseValidation(
+            is_valid=True,
+            item_name=item.name,
+            inventory_key=item.inventory_key,
+            cost=cost,
+            player_currency=player_currency,
+            surplus=surplus
+        )
+
+    def validate_transfer(
+        self,
+        sender_state: Any,
+        transfer_target: str,
+        transfer_currency: Dict[str, int] = None,
+        transfer_items: Dict[str, int] = None,
+        sender_position: Any = None
+    ) -> TransferValidation:
+        """
+        Validate energy and/or item transfer using target name/ID and amounts.
+
+        This is pre-validation for the mechanical transfer system.
+        Checks BEFORE DM narration to prevent impossible transfers.
+
+        Args:
+            sender_state: Character attempting transfer
+            transfer_target: Target character name or agent_id
+            transfer_currency: Currency amounts to transfer, e.g. {"drip": 5, "spark": 2} (optional)
+            transfer_items: Item amounts to transfer, e.g. {"Incense": 2, "Crystals": 1} (optional)
+            sender_position: Position object for range checking (optional)
+
+        Returns:
+            TransferValidation with full details for mechanical execution
+        """
+        # Default to empty dicts if not provided
+        transfer_currency = transfer_currency or {}
+        transfer_items = transfer_items or {}
+        from .shared_state import SharedState
+
+        # Get receiver by name, agent_id, or target_id from shared state
+        receiver_agent = None
+        receiver_state = None
+
+        if self.shared_state:
+            # Check for multi-target syntax (commas or semicolons) - not supported
+            if ',' in transfer_target or ';' in transfer_target:
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Multi-target transfers not supported. Transfer to one recipient at a time. Got: '{transfer_target}'"
+                )
+
+            # First, try to resolve target_id if it looks like one (tgt_xxxx format)
+            if transfer_target.startswith('tgt_') and self.shared_state.target_id_mapper:
+                receiver_agent = self.shared_state.target_id_mapper.resolve_target(transfer_target)
+                if receiver_agent:
+                    # Successfully resolved target ID to agent
+                    receiver_state = receiver_agent.character_state if hasattr(receiver_agent, 'character_state') else None
+                else:
+                    # Target ID not found in mapper
+                    return TransferValidation(
+                        is_valid=False,
+                        failure_reason=f"Target ID '{transfer_target}' not found in combat mapper"
+                    )
+            else:
+                # Try to find by agent_id or character name in players
+                for agent in self.shared_state.player_agents:
+                    if agent.agent_id == transfer_target or agent.character_state.name.lower() == transfer_target.lower():
+                        receiver_agent = agent
+                        receiver_state = agent.character_state
+                        break
+
+                # If not found in players, check NPCs
+                if receiver_agent is None and hasattr(self.shared_state, 'npc_agents'):
+                    for npc in self.shared_state.npc_agents:
+                        # NPCs may have .name directly or in .character_state
+                        npc_name = getattr(npc, 'name', None)
+                        if not npc_name and hasattr(npc, 'character_state'):
+                            npc_name = getattr(npc.character_state, 'name', None)
+
+                        if npc.agent_id == transfer_target or (npc_name and npc_name.lower() == transfer_target.lower()):
+                            receiver_agent = npc
+                            # NPCs may or may not have character_state
+                            receiver_state = npc.character_state if hasattr(npc, 'character_state') else npc
+                            break
+
+        if receiver_state is None:
+            return TransferValidation(
+                is_valid=False,
+                failure_reason=f"Target character '{transfer_target}' not found"
+            )
+
+        # Check range if positions available (only in tactical combat)
+        in_range = True
+        if sender_position and hasattr(receiver_agent, 'position') and receiver_agent.position:
+            # Both must be in same range band for physical transfer
+            sender_range = getattr(sender_position, 'ring', None)
+            sender_side = getattr(sender_position, 'side', None)
+            receiver_range = getattr(receiver_agent.position, 'ring', None)
+            receiver_side = getattr(receiver_agent.position, 'side', None)
+
+            # Only enforce range if BOTH have combat positions (ring/side)
+            # In non-combat scenarios (marketplace, social), positions may be None
+            if sender_range is not None and receiver_range is not None:
+                if sender_range != receiver_range or sender_side != receiver_side:
+                    in_range = False
+                    return TransferValidation(
+                        is_valid=False,
+                        failure_reason=f"Out of range: {sender_state.name} and {receiver_state.name} are not in same range band",
+                        sender_name=sender_state.name,
+                        receiver_name=receiver_state.name,
+                        receiver_agent_id=receiver_agent.agent_id,
+                        in_range=False
+                    )
+
+        # Check sender has energy purse (if transferring currency)
+        sender_currency = {}
+        if transfer_currency:
+            if not hasattr(sender_state, 'energy_purse') or sender_state.energy_purse is None:
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason="Sender has no energy purse",
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id
+                )
+
+            energy_purse = sender_state.energy_purse
+            sender_currency = {
+                'spark': energy_purse.spark,
+                'grain': energy_purse.grain,
+                'drip': energy_purse.drip,
+                'breath': energy_purse.breath
+            }
+
+            # Check sender has sufficient currency
+            shortage = {}
+            for currency_type, amount in transfer_currency.items():
+                available = sender_currency.get(currency_type, 0)
+                if available < amount:
+                    shortage[currency_type] = amount - available
+
+            if shortage:
+                shortage_parts = [f"{amt} {curr.title()}" for curr, amt in shortage.items()]
+                shortage_str = ", ".join(shortage_parts)
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Insufficient currency: need {shortage_str}",
+                    shortage=shortage,
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id,
+                    currency=transfer_currency,
+                    sender_currency=sender_currency
+                )
+
+        # Check sender has items (if transferring items)
+        sender_items = {}
+        if transfer_items:
+            if not hasattr(sender_state, 'inventory') or sender_state.inventory is None:
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason="Sender has no inventory",
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id
+                )
+
+            sender_items = dict(sender_state.inventory) if sender_state.inventory else {}
+
+            # Check sender has sufficient items
+            item_shortage = {}
+            for item_name, amount in transfer_items.items():
+                available = sender_items.get(item_name, 0)
+                if available < amount:
+                    item_shortage[item_name] = amount - available
+
+            if item_shortage:
+                shortage_parts = [f"{amt} {item}" for item, amt in item_shortage.items()]
+                shortage_str = ", ".join(shortage_parts)
+                return TransferValidation(
+                    is_valid=False,
+                    failure_reason=f"Insufficient items: need {shortage_str}",
+                    item_shortage=item_shortage,
+                    sender_name=sender_state.name,
+                    receiver_name=receiver_state.name,
+                    receiver_agent_id=receiver_agent.agent_id,
+                    items=transfer_items,
+                    sender_items=sender_items
+                )
+
+        # Success!
+        return TransferValidation(
+            is_valid=True,
+            sender_name=sender_state.name,
+            receiver_name=receiver_state.name,
+            receiver_agent_id=receiver_agent.agent_id,
+            currency=transfer_currency,
+            items=transfer_items,
+            sender_currency=sender_currency,
+            sender_items=sender_items,
+            in_range=in_range
+        )
+
+    def validate_attunement(
+        self,
+        character_state: Any,
+        target_energy: Optional[str],
+        altar_id: Optional[str] = None,
+        use_echo_calibrator: bool = False
+    ) -> AttunementValidation:
+        """
+        Validate seed attunement request BEFORE calling the DM.
+
+        Checks:
+        1. Player has at least one Raw Seed
+        2. target_energy is specified
+        3. If altar_id provided, altar exists and is accessible
+        4. If use_echo_calibrator=True, player has Echo-Calibrator
+        5. If Echo-Calibrator on 3rd use, player has 1 Drip for upkeep
+
+        Args:
+            character_state: Character attempting attunement
+            target_energy: Target energy type ("breath", "grain", "drip", "spark")
+            altar_id: Optional altar ID for bonus
+            use_echo_calibrator: Whether using Echo-Calibrator device
+
+        Returns:
+            AttunementValidation with full details for execution
+        """
+        from .energy_economy import SeedType
+
+        # Check target_energy is specified
+        if not target_energy:
+            return AttunementValidation(
+                is_valid=False,
+                failure_reason="Must specify target_energy (breath, grain, drip, or spark)",
+                target_energy=target_energy
+            )
+
+        # Check player has energy purse
+        if not hasattr(character_state, 'energy_purse') or character_state.energy_purse is None:
+            return AttunementValidation(
+                is_valid=False,
+                failure_reason="Character has no energy purse",
+                target_energy=target_energy
+            )
+
+        energy_purse = character_state.energy_purse
+
+        # Check player has at least one Raw Seed
+        raw_seed_count = energy_purse.count_seeds(SeedType.RAW)
+        if raw_seed_count == 0:
+            return AttunementValidation(
+                is_valid=False,
+                failure_reason="No Raw Seed available for attunement",
+                has_raw_seed=False,
+                target_energy=target_energy
+            )
+
+        # Initialize validation result
+        validation = AttunementValidation(
+            is_valid=True,
+            has_raw_seed=True,
+            target_energy=target_energy
+        )
+
+        # Check altar if specified
+        if altar_id:
+            if not self.shared_state:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason=f"Altar '{altar_id}' not found (no shared state)",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    altar_exists=False,
+                    altar_id=altar_id
+                )
+
+            altar = self.shared_state.get_altar_by_id(altar_id)
+            if not altar:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason=f"Altar '{altar_id}' not found",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    altar_exists=False,
+                    altar_id=altar_id
+                )
+
+            # Altar exists, calculate bonus
+            validation.altar_exists = True
+            validation.altar_id = altar_id
+            validation.altar_bonus = altar.get_ritual_bonus()
+
+        # Check Echo-Calibrator if specified
+        if use_echo_calibrator:
+            # First check if player has Echo-Calibrator in inventory (capitalized with hyphen)
+            if not hasattr(character_state, 'inventory') or not character_state.inventory:
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason="No Echo-Calibrator available (not in inventory)",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    has_echo_calibrator=False,
+                    altar_exists=validation.altar_exists,
+                    altar_id=altar_id,
+                    altar_bonus=validation.altar_bonus
+                )
+
+            # Check for all Echo-Calibrator inventory key variants
+            # The same item can appear under different keys depending on source:
+            # - "Echo-Calibrator" (display name with hyphen)
+            # - "Echo Calibrator" (display name with space, shown in console)
+            # - "echo_calibrator" (snake_case from session config inventory)
+            # - "echo_calibrator_rental" (rental variant, snake_case)
+            # - "Echo Calibrator Rental" (rental variant, display format)
+            has_purchased = (
+                character_state.inventory.get("Echo-Calibrator", 0) > 0 or
+                character_state.inventory.get("Echo Calibrator", 0) > 0 or
+                character_state.inventory.get("echo_calibrator", 0) > 0
+            )
+            has_rental = (
+                character_state.inventory.get("echo_calibrator_rental", 0) > 0 or
+                character_state.inventory.get("Echo Calibrator Rental", 0) > 0
+            )
+
+            if not (has_purchased or has_rental):
+                return AttunementValidation(
+                    is_valid=False,
+                    failure_reason="No Echo-Calibrator available (not in inventory)",
+                    has_raw_seed=True,
+                    target_energy=target_energy,
+                    has_echo_calibrator=False,
+                    altar_exists=validation.altar_exists,
+                    altar_id=altar_id,
+                    altar_bonus=validation.altar_bonus
+                )
+
+            # Echo-Calibrator exists in inventory
+            validation.has_echo_calibrator = True
+
+            # Initialize item_metadata if needed (for usage tracking)
+            if not hasattr(character_state, 'item_metadata') or character_state.item_metadata is None:
+                character_state.item_metadata = {}
+            if "echo_calibrator" not in character_state.item_metadata:
+                character_state.item_metadata["echo_calibrator"] = {"usage_count": 0}
+
+            calibrator_data = character_state.item_metadata["echo_calibrator"]
+            usage_count = calibrator_data.get("usage_count", 0)
+            validation.usage_count = usage_count
+
+            # Check if upkeep required (every 3rd use)
+            # Usage count 0, 1 → no upkeep
+            # Usage count 2 → next use (3rd) requires upkeep
+            if usage_count >= 2 and (usage_count + 1) % 3 == 0:
+                validation.upkeep_required = True
+
+                # Check player has 1 Drip for upkeep
+                if energy_purse.drip >= 1:
+                    validation.has_upkeep_currency = True
+                else:
+                    return AttunementValidation(
+                        is_valid=False,
+                        failure_reason="Insufficient Drip for Echo-Calibrator upkeep (need 1 Drip)",
+                        has_raw_seed=True,
+                        target_energy=target_energy,
+                        has_echo_calibrator=True,
+                        upkeep_required=True,
+                        has_upkeep_currency=False,
+                        usage_count=usage_count,
+                        altar_exists=validation.altar_exists,
+                        altar_id=altar_id,
+                        altar_bonus=validation.altar_bonus
+                    )
+
+        # All checks passed!
+        return validation
+
+    def execute_attunement(
+        self,
+        character_state: Any,
+        validation: AttunementValidation,
+        use_echo_calibrator: bool = False
+    ) -> 'AttunementEffect':
+        """
+        Execute seed attunement ritual after validation.
+
+        Process:
+        1. Consume 1 Raw Seed from energy purse
+        2. Handle Echo-Calibrator check if used (DC 16 Dex+Craft/Tech)
+        3. Roll attunement ritual (Willpower × Attunement + d20 + altar_bonus vs DC 20)
+        4. On success: Award energy (100 breath, 50 grain, 20 drip, or 5 spark)
+        5. On failure: No energy, seed still consumed
+        6. Track upkeep and usage
+
+        Args:
+            character_state: Character performing attunement
+            validation: Pre-validated attunement request
+            use_echo_calibrator: Whether using Echo-Calibrator
+
+        Returns:
+            AttunementEffect with full ritual outcome
+        """
+        from .energy_economy import SeedType
+        from .schemas.action_effects import AttunementEffect
+        import random
+
+        energy_purse = character_state.energy_purse
+
+        # Consume Raw Seed
+        seed = None
+        for i, s in enumerate(energy_purse.seeds):
+            if s.seed_type == SeedType.RAW:
+                seed = energy_purse.seeds.pop(i)
+                break
+
+        if not seed:
+            # This should never happen after validation, but be defensive
+            return AttunementEffect(
+                success=False,
+                seed_consumed=False,
+                energy_type=validation.target_energy,
+                energy_gained=0,
+                void_penalty=0
+            )
+
+        # Initialize effect
+        effect = AttunementEffect(
+            success=False,
+            seed_consumed=True,
+            energy_type=validation.target_energy,
+            energy_gained=0,
+            altar_id=validation.altar_id,
+            altar_bonus=validation.altar_bonus,
+            echo_calibrator_used=use_echo_calibrator
+        )
+
+        # Handle Echo-Calibrator if used
+        calibrator_check_passed = True
+        if use_echo_calibrator:
+            # DC 16 Dex + Craft/Tech check
+            dex = character_state.attributes.get('Agility', 0)  # Agility = Dex
+            craft_tech = max(
+                character_state.skills.get('Craft', 0),
+                character_state.skills.get('Tech', 0)
+            )
+            calibrator_roll = random.randint(1, 20)
+            calibrator_total = dex + craft_tech + calibrator_roll
+
+            effect.calibrator_check_success = (calibrator_total >= 16)
+            calibrator_check_passed = effect.calibrator_check_success
+
+            if not calibrator_check_passed:
+                # Failed calibrator check: +1 Void
+                effect.calibrator_void = 1
+                effect.void_penalty += 1
+
+            # Handle upkeep
+            if validation.upkeep_required:
+                energy_purse.spend_currency("drip", 1)
+                effect.upkeep_paid = True
+
+            # Increment usage count
+            if "echo_calibrator" not in character_state.item_metadata:
+                character_state.item_metadata["echo_calibrator"] = {"usage_count": 0}
+            character_state.item_metadata["echo_calibrator"]["usage_count"] += 1
+
+        # Roll attunement ritual (Willpower × Attunement + d20 + bonuses vs DC 20)
+        willpower = character_state.attributes.get('Willpower', 0)
+        attunement_skill = character_state.skills.get('Attunement', 0)
+
+        # Check if unskilled (-5 penalty if skill is 0)
+        skill_modifier = attunement_skill if attunement_skill > 0 else -5
+
+        roll_d20 = random.randint(1, 20)
+        bonuses = validation.altar_bonus  # Altar provides bonus
+        roll_total = willpower + skill_modifier + roll_d20 + bonuses
+
+        effect.roll_total = roll_total
+        effect.roll_margin = roll_total - 20  # DC 20
+
+        # Determine success
+        if roll_total >= 20:
+            effect.success = True
+
+            # Award energy based on type
+            energy_amounts = {
+                "breath": 100,
+                "grain": 50,
+                "drip": 20,
+                "spark": 5
+            }
+            amount = energy_amounts.get(validation.target_energy, 0)
+            energy_purse.add_currency(validation.target_energy, amount)
+            effect.energy_gained = amount
+        else:
+            # Failed ritual: seed consumed, no energy
+            effect.success = False
+            effect.energy_gained = 0
+
+        return effect
+
+    def validate_consumption(
+        self,
+        character_state: Any,
+        item_id: str,
+        food_item: Any
+    ) -> ConsumptionValidation:
+        """
+        Validate food consumption BEFORE calling DM.
+
+        Checks:
+        1. Item exists in character inventory
+        2. Item is food (item_type="food")
+        3. Character health < max_health (has room for healing)
+
+        Args:
+            character_state: CharacterState with inventory
+            item_id: Item ID being consumed (itm_xxxx)
+            food_item: VendorItem instance (for validation)
+
+        Returns:
+            ConsumptionValidation with is_valid and optional failure_reason
+        """
+        # Check if item is food
+        if food_item.item_type != "food":
+            return ConsumptionValidation(
+                is_valid=False,
+                failure_reason=f"Cannot consume {food_item.name}: item_type is '{food_item.item_type}', must be 'food'"
+            )
+
+        # Check if character has item in inventory
+        inventory_key = food_item.inventory_key
+        quantity = character_state.inventory.get(inventory_key, 0)
+        if quantity <= 0:
+            return ConsumptionValidation(
+                is_valid=False,
+                failure_reason=f"Character doesn't have {food_item.name} in inventory"
+            )
+
+        # Check if character needs healing
+        if character_state.health >= character_state.max_health:
+            return ConsumptionValidation(
+                is_valid=False,
+                failure_reason=f"Character is already at full health ({character_state.health}/{character_state.max_health} HP)"
+            )
+
+        # All checks passed
+        return ConsumptionValidation(is_valid=True)
+
+    def process_consumption_effect(
+        self,
+        consumption_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process food consumption effect.
+
+        Applies healing and removes item from inventory.
+
+        Args:
+            consumption_effect: ConsumptionEffect with item_id, inventory_key, healing
+            character_state: CharacterState being updated
+
+        Returns:
+            True if consumption succeeded
+        """
+        from .schemas.action_effects import ConsumptionEffect
+
+        # Validate it's a ConsumptionEffect
+        if not isinstance(consumption_effect, ConsumptionEffect):
+            logger.error(f"Invalid consumption_effect type: {type(consumption_effect)}")
+            return False
+
+        # Get inventory key and current quantity
+        inventory_key = consumption_effect.inventory_key
+        current_quantity = character_state.inventory.get(inventory_key, 0)
+
+        # Validate item exists
+        if current_quantity <= 0:
+            logger.error(f"Cannot consume {inventory_key}: quantity is {current_quantity}")
+            return False
+
+        # Remove item from inventory
+        character_state.inventory[inventory_key] = current_quantity - 1
+        logger.info(f"{character_state.name} consumed {inventory_key} ({current_quantity - 1} remaining)")
+
+        # Apply healing (capped at max_health)
+        hp_before = character_state.health
+        character_state.health = min(
+            character_state.health + consumption_effect.healing,
+            character_state.max_health
+        )
+        hp_gained = character_state.health - hp_before
+
+        logger.info(
+            f"{character_state.name} healed {hp_gained} HP from consuming {inventory_key} "
+            f"({hp_before} → {character_state.health}/{character_state.max_health})"
+        )
+
+        return True
+
+    def validate_item_discovery(
+        self,
+        character_state: Any,
+        item_effect: Any,
+        player_id: str
+    ) -> DiscoveryValidation:
+        """
+        Validate item discovery BEFORE applying ItemEffect.
+
+        Checks configurable daily limits and prevents abuse.
+
+        Configurable limits (via session config discovery_limits):
+        - max_seeds_per_session (default: 3)
+        - max_currency_per_session (default: 50 drip equivalent)
+        - quest_rewards_bypass_limits (default: True)
+
+        Args:
+            character_state: CharacterState receiving items
+            item_effect: ItemEffect with items_added and source
+            player_id: Player ID for tracking daily limits
+
+        Returns:
+            DiscoveryValidation with is_valid, failure_reason, and optional capped_items
+        """
+        from .schemas.action_effects import ItemEffect
+
+        # Validate it's an ItemEffect
+        if not isinstance(item_effect, ItemEffect):
+            return DiscoveryValidation(
+                is_valid=False,
+                failure_reason=f"Invalid item_effect type: {type(item_effect)}"
+            )
+
+        # Get discovery limits from config (with defaults)
+        config = getattr(self.shared_state, 'session_config', {})
+        limits = config.get('discovery_limits', {})
+        max_seeds_per_session = limits.get('max_seeds_per_session', 3)
+        max_currency_per_session = limits.get('max_currency_per_session', 50)
+        quest_rewards_bypass = limits.get('quest_rewards_bypass_limits', True)
+
+        # Quest rewards bypass limits
+        if quest_rewards_bypass and item_effect.source in ['quest_reward', 'dm_award', 'bonus_for_success']:
+            return DiscoveryValidation(is_valid=True, capped_items=item_effect.items_added)
+
+        # Initialize discovery tracking if needed
+        if not hasattr(self.shared_state, 'discovery_tracking'):
+            self.shared_state.discovery_tracking = {}
+
+        if player_id not in self.shared_state.discovery_tracking:
+            self.shared_state.discovery_tracking[player_id] = {
+                'seeds_discovered': 0,
+                'currency_discovered': 0
+            }
+
+        tracking = self.shared_state.discovery_tracking[player_id]
+        capped_items = item_effect.items_added.copy()
+
+        # Count seeds in this discovery (only Raw Seeds - attunement creates currency, not Attuned Seeds)
+        seed_keys = ['raw_seed_fresh', 'raw_seed_aged']
+        seeds_in_discovery = sum(capped_items.get(key, 0) for key in seed_keys if key in capped_items)
+
+        # Check seed limit
+        if seeds_in_discovery > 0:
+            seeds_after = tracking['seeds_discovered'] + seeds_in_discovery
+            if seeds_after > max_seeds_per_session:
+                remaining_seeds = max_seeds_per_session - tracking['seeds_discovered']
+                if remaining_seeds <= 0:
+                    return DiscoveryValidation(
+                        is_valid=False,
+                        failure_reason=f"Daily seed discovery limit reached ({max_seeds_per_session}/session)"
+                    )
+
+                # Cap seeds to remaining limit
+                logger.warning(
+                    f"{character_state.name} seed discovery capped: {seeds_in_discovery} → {remaining_seeds} "
+                    f"(limit: {max_seeds_per_session}/session)"
+                )
+
+                # Distribute remaining seeds across seed types (prioritize first keys found)
+                seeds_to_distribute = remaining_seeds
+                for key in seed_keys:
+                    if key in capped_items and seeds_to_distribute > 0:
+                        original = capped_items[key]
+                        capped_items[key] = min(original, seeds_to_distribute)
+                        seeds_to_distribute -= capped_items[key]
+
+        # Count currency (convert all to drip equivalent)
+        currency_keys = {'breath': 1, 'grain': 1, 'drip': 1, 'spark': 1, 'hollow': 5}  # hollow = 5 drip
+        currency_in_discovery = sum(
+            capped_items.get(key, 0) * multiplier
+            for key, multiplier in currency_keys.items()
+            if key in capped_items
+        )
+
+        # Check currency limit
+        if currency_in_discovery > 0:
+            currency_after = tracking['currency_discovered'] + currency_in_discovery
+            if currency_after > max_currency_per_session:
+                remaining_currency = max_currency_per_session - tracking['currency_discovered']
+                if remaining_currency <= 0:
+                    return DiscoveryValidation(
+                        is_valid=False,
+                        failure_reason=f"Daily currency discovery limit reached ({max_currency_per_session} drip equivalent/session)"
+                    )
+
+                # Cap currency proportionally
+                logger.warning(
+                    f"{character_state.name} currency discovery capped: {currency_in_discovery} → {remaining_currency} drip equivalent "
+                    f"(limit: {max_currency_per_session}/session)"
+                )
+
+                scale_factor = remaining_currency / currency_in_discovery
+                for key in currency_keys.keys():
+                    if key in capped_items:
+                        capped_items[key] = int(capped_items[key] * scale_factor)
+
+        # All checks passed (with capping applied)
+        return DiscoveryValidation(is_valid=True, capped_items=capped_items)
+
+    def process_item_effect(
+        self,
+        item_effect: Any,
+        character_state: Any,
+        player_id: str
+    ) -> bool:
+        """
+        Process ItemEffect from DM structured output.
+
+        Adds items/seeds/currency to character inventory and energy purse.
+        Special seed keys are converted to Seed objects.
+
+        Seed keys (converted to Seed objects in energy_purse.seeds):
+        - raw_seed_fresh → Seed(RAW, cycles=10-14, origin=source)
+        - raw_seed_aged → Seed(RAW, cycles=3-6, origin=source)
+
+        Note: Attunement converts Raw Seeds → Currency (breath/grain/drip/spark), NOT Attuned Seeds.
+        Attuned Seeds are legacy/unused in current economy.
+
+        Currency keys (added directly to EnergyPurse attributes):
+        - breath, grain, drip, spark, hollow
+
+        Standard items (added to inventory Dict[str, int]):
+        - Any other key → item_name: quantity
+
+        Args:
+            item_effect: ItemEffect with items_added and source
+            character_state: Character receiving items
+            player_id: Player ID for tracking discovery limits
+
+        Returns:
+            True if processing succeeded
+        """
+        from .schemas.action_effects import ItemEffect
+        from .energy_economy import Seed, SeedType, Element
+
+        # Convert dict to ItemEffect if needed (dm.py passes dict via model_dump())
+        if isinstance(item_effect, dict):
+            try:
+                item_effect = ItemEffect(**item_effect)
+                logger.debug(f"Converted dict to ItemEffect: {item_effect}")
+            except Exception as e:
+                logger.error(f"Failed to convert dict to ItemEffect: {e}")
+                return False
+        elif not isinstance(item_effect, ItemEffect):
+            logger.error(f"Invalid item_effect type: {type(item_effect)}")
+            return False
+
+        # Validate discovery (applies daily limits, returns capped items)
+        validation = self.validate_item_discovery(character_state, item_effect, player_id)
+        if not validation.is_valid:
+            logger.error(f"Discovery validation failed for {character_state.name}: {validation.failure_reason}")
+            return False
+
+        # Use capped items (after applying limits)
+        items_to_add = validation.capped_items
+
+        # Track discovery for limits
+        tracking = self.shared_state.discovery_tracking[player_id]
+        seed_keys = ['raw_seed_fresh', 'raw_seed_aged']
+        currency_keys = {'breath': 1, 'grain': 1, 'drip': 1, 'spark': 1, 'hollow': 5}
+
+        seeds_added = sum(items_to_add.get(key, 0) for key in seed_keys if key in items_to_add)
+        currency_added = sum(
+            items_to_add.get(key, 0) * mult
+            for key, mult in currency_keys.items()
+            if key in items_to_add
+        )
+
+        tracking['seeds_discovered'] += seeds_added
+        tracking['currency_discovered'] += currency_added
+
+        # Process each item
+        for item_key, quantity in items_to_add.items():
+            if quantity <= 0:
+                continue
+
+            # Seed conversion
+            if item_key == 'raw_seed_fresh':
+                for _ in range(quantity):
+                    seed = Seed(
+                        seed_type=SeedType.RAW,
+                        cycles_remaining=random.randint(10, 14),
+                        origin=item_effect.source
+                    )
+                    character_state.energy_purse.seeds.append(seed)
+                logger.info(f"{character_state.name} found {quantity}x Fresh Raw Seeds (source: {item_effect.source})")
+
+            elif item_key == 'raw_seed_aged':
+                for _ in range(quantity):
+                    seed = Seed(
+                        seed_type=SeedType.RAW,
+                        cycles_remaining=random.randint(3, 6),
+                        origin=item_effect.source
+                    )
+                    character_state.energy_purse.seeds.append(seed)
+                logger.info(f"{character_state.name} found {quantity}x Aged Raw Seeds (source: {item_effect.source})")
+
+            # Currency addition
+            elif item_key == 'breath':
+                character_state.energy_purse.breath += quantity
+                logger.info(f"{character_state.name} found {quantity} Breath (source: {item_effect.source})")
+
+            elif item_key == 'grain':
+                character_state.energy_purse.grain += quantity
+                logger.info(f"{character_state.name} found {quantity} Grain (source: {item_effect.source})")
+
+            elif item_key == 'drip':
+                character_state.energy_purse.drip += quantity
+                logger.info(f"{character_state.name} found {quantity} Drip (source: {item_effect.source})")
+
+            elif item_key == 'spark':
+                character_state.energy_purse.spark += quantity
+                logger.info(f"{character_state.name} found {quantity} Spark (source: {item_effect.source})")
+
+            elif item_key == 'hollow':
+                character_state.energy_purse.hollow += quantity
+                logger.info(f"{character_state.name} found {quantity} Hollow (source: {item_effect.source})")
+
+            # Standard inventory items
+            else:
+                current_quantity = character_state.inventory.get(item_key, 0)
+                character_state.inventory[item_key] = current_quantity + quantity
+                logger.info(
+                    f"{character_state.name} found {quantity}x {item_key} "
+                    f"({current_quantity} → {current_quantity + quantity}, source: {item_effect.source})"
+                )
+
+        return True
+
+    def process_purchase_effect(
+        self,
+        purchase_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process a PurchaseEffect from DM structured output.
+
+        Deducts currency and adds items to inventory based on DM adjudication.
+
+        Args:
+            purchase_effect: PurchaseEffect object or dict from ActionResolution.effects.purchase
+            character_state: Character making the purchase
+
+        Returns:
+            True if processing succeeded, False otherwise
+        """
+        if not purchase_effect:
+            logger.debug(f"No purchase effect for {character_state.name}")
+            return False
+
+        # Convert dict to PurchaseEffect if needed
+        from .schemas.vendor_interaction import PurchaseEffect
+        if isinstance(purchase_effect, dict):
+            try:
+                purchase_effect = PurchaseEffect(**purchase_effect)
+                logger.debug(f"Converted dict to PurchaseEffect for {character_state.name}")
+            except Exception as e:
+                logger.error(f"Failed to convert purchase effect dict to Pydantic model: {e}")
+                logger.error(f"Purchase effect data: {purchase_effect}")
+                return False
+
+        if not purchase_effect.success:
+            logger.info(f"Purchase failed for {character_state.name}: {purchase_effect.failure_reason if purchase_effect.failure_reason else 'Unknown reason'}")
+            return False
+
+        # Deduct currency
+        for currency_type, amount in purchase_effect.currency_spent.items():
+            if hasattr(character_state, 'energy_purse') and character_state.energy_purse:
+                success = character_state.energy_purse.spend_currency(currency_type, amount)
+                if not success:
+                    logger.error(f"Failed to deduct {amount} {currency_type} from {character_state.name} - insufficient funds!")
+                    return False
+                logger.info(f"Deducted {amount} {currency_type} from {character_state.name}")
+            else:
+                logger.warning(f"Character {character_state.name} has no energy_purse")
+                return False
+
+        # Add items to inventory
+        for item_name in purchase_effect.items_purchased:
+            inventory_key = self._map_vendor_item_to_inventory_key(item_name)
+
+            if hasattr(character_state, 'inventory'):
+                current = character_state.inventory.get(inventory_key, 0)
+                character_state.inventory[inventory_key] = current + 1
+                logger.info(f"Added {item_name} → {inventory_key} to {character_state.name}'s inventory (now: {current + 1})")
+            else:
+                logger.warning(f"Character {character_state.name} has no inventory")
+                return False
+
+        logger.info(f"Successfully processed purchase for {character_state.name}: {purchase_effect.items_purchased} from {purchase_effect.vendor_name}")
+        return True
+
+    # Canonical mapping of vendor item names to inventory keys
+    VENDOR_ITEM_TO_INVENTORY = {
+        # Ritual items
+        "Blood Offering": "blood_offering",
+        "Blood Offering (Sanctified)": "blood_offering",
+        "Incense Bundle": "incense",
+        "Incense": "incense",
+        "Raw Crystal": "raw_crystal",
+        "Crystals": "raw_crystal",
+
+        # Tech items
+        "Echo-Calibrator": "echo_calibrator",
+        "Echo Calibrator": "echo_calibrator",
+        "Resonance Dampener": "resonance_dampener",
+        "Portable Ley Anchor": "portable_ley_anchor",
+        "Scrambled ID Chip": "scrambled_id_chip",
+        "Data Slate (Encrypted)": "data_slate_encrypted",
+
+        # Medical
+        "Health Kit": "med_kit",
+        "Medkit": "med_kit",
+        "Med Kit": "med_kit",
+
+        # Seeds
+        "Attuned Seed (Fire)": "attuned_seed_fire",
+        "Attuned Seed (Water)": "attuned_seed_water",
+        "Attuned Seed (Earth)": "attuned_seed_earth",
+        "Attuned Seed (Air)": "attuned_seed_air",
+        "Attuned Seed (Spirit)": "attuned_seed_spirit",
+        "Raw Seed": "raw_seed",
+        "Hollow Seed": "hollow_seed",
+
+        # Financial
+        "Bond Insurance Policy": "bond_insurance_policy",
+    }
+
+    def _map_vendor_item_to_inventory_key(self, item_name: str) -> str:
+        """
+        Map vendor item name to character inventory key.
+
+        Uses canonical mapping table with fallback normalization.
+
+        Args:
+            item_name: Vendor's name for the item (e.g., "Echo-Calibrator")
+
+        Returns:
+            Inventory key (e.g., "echo_calibrator")
+        """
+        # Check canonical mapping first
+        if item_name in self.VENDOR_ITEM_TO_INVENTORY:
+            return self.VENDOR_ITEM_TO_INVENTORY[item_name]
+
+        # Fallback: normalize name
+        normalized = item_name.lower().replace(' ', '_').replace('-', '_').replace('(', '').replace(')', '')
+        logger.debug(f"No canonical mapping for '{item_name}', using normalized: '{normalized}'")
+        return normalized
+
+    def process_crafting_effect(
+        self,
+        crafting_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process a CraftingAttempt from DM structured output.
+
+        Note: Materials should already be consumed by craft_offering() before DM narration.
+        This just logs the outcome and ensures inventory is updated correctly.
+
+        Args:
+            crafting_effect: CraftingAttempt object or dict from ActionResolution.effects.crafting
+            character_state: Character who attempted crafting
+
+        Returns:
+            True if processing succeeded, False otherwise
+        """
+        if not crafting_effect:
+            logger.debug(f"No crafting effect for {character_state.name}")
+            return False
+
+        # Convert dict to CraftingAttempt if needed
+        from .schemas.vendor_interaction import CraftingAttempt
+        if isinstance(crafting_effect, dict):
+            try:
+                crafting_effect = CraftingAttempt(**crafting_effect)
+                logger.debug(f"Converted dict to CraftingAttempt for {character_state.name}")
+            except Exception as e:
+                logger.error(f"Failed to convert crafting effect dict to Pydantic model: {e}")
+                logger.error(f"Crafting effect data: {crafting_effect}")
+                return False
+
+        if crafting_effect.success:
+            # Verify offering was added (should already be done by craft_offering)
+            offering_type = crafting_effect.offering_type
+            if hasattr(character_state, 'inventory'):
+                quantity = character_state.inventory.get(offering_type, 0)
+                logger.info(f"Crafting success verified: {character_state.name} has {quantity} {offering_type}")
+                return True
+            else:
+                logger.warning(f"Character {character_state.name} has no inventory")
+                return False
+        else:
+            # Crafting failed - materials already consumed by craft_offering()
+            logger.info(f"Crafting failed for {character_state.name}: {crafting_effect.offering_type}")
+            return True  # Still "successful" processing, just failed crafting
+
+    def process_attunement_effect(
+        self,
+        attunement_effect: Any,
+        character_state: Any
+    ) -> bool:
+        """
+        Process an AttunementEffect from DM structured output.
+
+        Consumes seed from inventory and grants energy currency based on DM adjudication.
+
+        Args:
+            attunement_effect: AttunementEffect object or dict from ActionResolution.effects.attunement
+            character_state: Character performing the attunement
+
+        Returns:
+            True if processing succeeded, False otherwise
+        """
+        if not attunement_effect:
+            logger.debug(f"No attunement effect for {character_state.name}")
+            return False
+
+        # Convert dict to AttunementEffect if needed
+        from .schemas.action_effects import AttunementEffect
+        if isinstance(attunement_effect, dict):
+            try:
+                attunement_effect = AttunementEffect(**attunement_effect)
+                logger.debug(f"Converted dict to AttunementEffect for {character_state.name}")
+            except Exception as e:
+                logger.error(f"Failed to convert attunement effect dict to Pydantic model: {e}")
+                logger.error(f"Attunement effect data: {attunement_effect}")
+                return False
+
+        # Consume the seed (always happens, even on failure)
+        if attunement_effect.seed_consumed:
+            # Get energy purse directly from character state
+            if not hasattr(character_state, 'energy_purse') or not character_state.energy_purse:
+                logger.error(f"No energy purse found for {character_state.name}")
+                return False
+
+            energy_purse = character_state.energy_purse
+
+            # Use EnergyPurse.consume_seed() method
+            from .energy_economy import SeedType
+            seed = energy_purse.consume_seed(SeedType.RAW)
+            if seed:
+                logger.info(f"Consumed 1 Raw Seed from {character_state.name} (had {seed.cycles_remaining} cycles remaining, origin: {seed.origin})")
+            else:
+                logger.error(f"Failed to consume seed from {character_state.name} - no Raw Seeds in energy purse!")
+                return False
+
+        # Grant energy if successful
+        if attunement_effect.success and attunement_effect.energy_gained > 0:
+            if not hasattr(character_state, 'energy_purse') or not character_state.energy_purse:
+                logger.error(f"No energy purse found for {character_state.name}")
+                return False
+
+            energy_purse = character_state.energy_purse
+            energy_type = attunement_effect.energy_type
+            amount = attunement_effect.energy_gained
+
+            # Use EnergyPurse.add_currency() method
+            energy_purse.add_currency(energy_type, amount)
+            logger.info(f"Granted {amount} {energy_type} to {character_state.name} from successful attunement")
+
+        # Handle Echo-Calibrator upkeep if paid
+        if attunement_effect.upkeep_paid:
+            if not hasattr(character_state, 'energy_purse') or not character_state.energy_purse:
+                logger.warning(f"No energy purse for upkeep deduction from {character_state.name}")
+            else:
+                energy_purse = character_state.energy_purse
+                success = energy_purse.spend_currency("drip", 1)
+                if success:
+                    logger.info(f"Deducted 1 Drip upkeep from {character_state.name} for Echo-Calibrator 3rd use")
+                else:
+                    logger.error(f"Failed to deduct Echo-Calibrator upkeep from {character_state.name}")
+
+        # Log the outcome
+        if attunement_effect.success:
+            logger.info(
+                f"✓ ATTUNEMENT SUCCESS: {character_state.name} converted 1 Raw Seed → {attunement_effect.energy_gained} {attunement_effect.energy_type} "
+                f"(altar: {attunement_effect.altar_id if attunement_effect.altar_id else 'none'}, "
+                f"bonus: {attunement_effect.altar_bonus if attunement_effect.altar_bonus else 0})"
+            )
+        else:
+            logger.info(
+                f"✗ ATTUNEMENT FAILED: {character_state.name} lost 1 Raw Seed, gained 0 energy "
+                f"(void penalty: {attunement_effect.void_penalty if attunement_effect.void_penalty else 0})"
+            )
+
+        return True
 
     def check_void_trigger(
         self,
@@ -1901,6 +3883,24 @@ class MechanicsEngine:
         filled = getattr(self, '_filled_clocks_this_round', [])
         self._filled_clocks_this_round = []
         return filled
+
+    def get_all_clocks(self) -> List[Dict[str, Any]]:
+        """
+        Get all active scene clocks as list of dicts.
+
+        Returns:
+            List of clock dicts with keys: name, current_ticks, max_ticks, description, filled
+        """
+        clock_list = []
+        for name, clock in self.scene_clocks.items():
+            clock_list.append({
+                'name': name,
+                'current_ticks': clock.current,
+                'max_ticks': clock.maximum,
+                'description': clock.description,
+                'filled': clock.filled  # Include filled flag so conversion check can see it
+            })
+        return clock_list
 
     def queue_clock_update(self, clock_name: str, ticks: int, reason: str):
         """
@@ -2162,7 +4162,7 @@ class MechanicsEngine:
 
         # Saboteur Exposure - advances on successful investigation/detection
         if "Saboteur Exposure" in self.scene_clocks:
-            if resolution.success:
+            if _resolution_success(resolution):
                 # Broad investigation keywords
                 investigation_keywords = [
                     'investigate', 'analyze', 'trace', 'scan', 'search', 'examine',
@@ -2179,7 +4179,7 @@ class MechanicsEngine:
         if "Communal Stability" in self.scene_clocks:
             # Success at healing/stabilizing improves stability
             healing_keywords = ['stabiliz', 'heal', 'mend', 'repair', 'bond', 'harmoniz', 'protective', 'barrier']
-            if resolution.success and any(kw in intent_lower for kw in healing_keywords):
+            if _resolution_success(resolution) and any(kw in intent_lower for kw in healing_keywords):
                 # Stability clock tracks degradation, so successful healing REGRESSES it (improves stability)
                 self.scene_clocks["Communal Stability"].regress(1)
             # Failures at healing or any critical failure degrades stability
@@ -2253,29 +4253,58 @@ class MechanicsEngine:
         else:
             return Difficulty.MODERATE.value  # Default
 
-    def format_resolution_for_narration(self, resolution: ActionResolution) -> str:
+    def format_resolution_for_narration(self, resolution: ActionResolution, modifiers: dict = None) -> str:
         """
         Format resolution for DM narration with full transparency.
 
         Codex Nexum guidance: Always emit Attribute × Skill, d20, total, DC, margin, tier.
-        """
-        # Format skill text - never show "×None"
-        if resolution.skill and resolution.skill_value > 0:
-            skill_text = f"{resolution.attribute} × {resolution.skill}"
-            ability = resolution.attribute_value * resolution.skill_value
-            formula = f"{resolution.attribute_value} × {resolution.skill_value} + d20({resolution.roll})"
-        else:
-            skill_text = f"{resolution.attribute} (unskilled)"
-            ability = resolution.attribute_value - 5
-            formula = f"{resolution.attribute_value} + d20({resolution.roll}) - 5"
 
-        # Transparent roll display
+        Args:
+            resolution: ActionResolution object with roll details
+            modifiers: Optional dict of situational modifiers (e.g., {"high_ground": 2, "cover": -3})
+        """
+        # Defensive attribute access for old vs new ActionResolution schema
+        skill = getattr(resolution, 'skill', None)
+        skill_value = getattr(resolution, 'skill_value', 0)
+        attribute = getattr(resolution, 'attribute', 'Unknown')
+        attribute_value = getattr(resolution, 'attribute_value', 0)
+        roll = getattr(resolution, 'roll', 0)
+        intent = getattr(resolution, 'intent', 'Action')
+
+        # Format skill text - never show "×None"
+        if skill and skill_value > 0:
+            skill_text = f"{attribute} × {skill}"
+            ability = attribute_value * skill_value
+            formula = f"{attribute_value} × {skill_value} + d20({roll})"
+        else:
+            skill_text = f"{attribute} (unskilled)"
+            ability = attribute_value - 5 if attribute_value > 0 else 0
+            formula = f"{attribute_value} + d20({roll}) - 5" if attribute_value > 0 else "Unknown"
+
+        # Transparent roll display (with defensive access for new Pydantic schema)
+        total = getattr(resolution, 'total', 0)
+        difficulty = getattr(resolution, 'difficulty', 0)
+        margin = getattr(resolution, 'margin', 0)
+        outcome_tier_value = getattr(resolution.outcome_tier, 'value', 'unknown') if hasattr(resolution, 'outcome_tier') else 'unknown'
+        success = getattr(resolution, 'success', False)
+        narrative = getattr(resolution, 'narrative', getattr(resolution, 'narration', ''))
+
+        # Format modifiers if present
+        modifiers_line = ""
+        if modifiers:
+            modifier_parts = []
+            net_modifier = 0
+            for name, value in modifiers.items():
+                modifier_parts.append(f"{name}: {value:+d}")
+                net_modifier += value
+            modifiers_line = f"Modifiers: [{', '.join(modifier_parts)}] → Net: {net_modifier:+d}\n"
+
         return f"""
-**{resolution.intent}**
+**{intent}**
 Roll: {skill_text}
-Calculation: {formula} = **{resolution.total}**
-DC: {resolution.difficulty} | Margin: {resolution.margin:+d} | Tier: **{resolution.outcome_tier.value.upper()}** {'✓' if resolution.success else '✗'}
-{resolution.narrative}
+Calculation: {formula} = **{total}**
+{modifiers_line}DC: {difficulty} | Margin: {margin:+d} | Tier: **{outcome_tier_value.upper()}** {'✓' if success else '✗'}
+{narrative}
 """.strip()
 
     def get_state_summary(self) -> Dict[str, Any]:
@@ -2495,17 +4524,20 @@ Margin: {margin:+d}
 
         # Log to JSONL if available
         if self.jsonl_logger:
-            self.jsonl_logger.log_event({
-                'event_type': 'seed_attunement',
-                'player_id': player_id,
-                'element': element_lower,
-                'method': method,
-                'success': success,
-                'margin': margin,
-                'tier': tier.value,
-                'void_gain': result['void_gain'],
-                'soulcredit_gain': result['soulcredit_gain']
-            })
+            self.jsonl_logger.log_event(
+                'seed_attunement',
+                {
+                    'player_id': player_id,
+                    'element': element_lower,
+                    'method': method,
+                    'success': success,
+                    'margin': margin,
+                    'tier': tier.value,
+                    'void_gain': result['void_gain'],
+                    'soulcredit_gain': result['soulcredit_gain']
+                },
+                self.current_round
+            )
 
         return result
 
@@ -2515,7 +4547,7 @@ Margin: {margin:+d}
         gear_name: str,
         fuel_type: str = "spark",
         fuel_amount: int = 1,
-        energy_inventory = None
+        energy_purse = None
     ) -> Dict[str, Any]:
         """
         Lightweight optional gear fuel consumption.
@@ -2528,12 +4560,12 @@ Margin: {margin:+d}
             gear_name: Name of gear being used
             fuel_type: Type of fuel ("spark", "drip", "breath", "grain")
             fuel_amount: Amount of fuel consumed per use
-            energy_inventory: EnergyInventory instance (from CharacterState)
+            energy_purse: EnergyPurse instance (from CharacterState)
 
         Returns:
             Dict with success (bool), consumed (int), narrative (str)
         """
-        if energy_inventory is None:
+        if energy_purse is None:
             # No inventory provided, assume fuel is not required
             return {
                 'success': True,
@@ -2542,11 +4574,11 @@ Margin: {margin:+d}
             }
 
         # Attempt to spend fuel
-        fuel_available = getattr(energy_inventory, fuel_type, 0)
+        fuel_available = getattr(energy_purse, fuel_type, 0)
 
         if fuel_available >= fuel_amount:
             # Consume fuel
-            success = energy_inventory.spend_currency(fuel_type, fuel_amount)
+            success = energy_purse.spend_currency(fuel_type, fuel_amount)
 
             if success:
                 narrative = f"{gear_name} consumes {fuel_amount} {fuel_type.capitalize()} and activates."
@@ -2564,19 +4596,22 @@ Margin: {margin:+d}
             'consumed': fuel_amount if success else 0,
             'narrative': narrative,
             'fuel_type': fuel_type,
-            'fuel_remaining': getattr(energy_inventory, fuel_type, 0)
+            'fuel_remaining': getattr(energy_purse, fuel_type, 0)
         }
 
         # Log to JSONL if available
         if self.jsonl_logger and success:
-            self.jsonl_logger.log_event({
-                'event_type': 'gear_fuel_consumption',
-                'player_id': player_id,
-                'gear_name': gear_name,
-                'fuel_type': fuel_type,
-                'amount': fuel_amount,
-                'remaining': result['fuel_remaining']
-            })
+            self.jsonl_logger.log_event(
+                'gear_fuel_consumption',
+                {
+                    'player_id': player_id,
+                    'gear_name': gear_name,
+                    'fuel_type': fuel_type,
+                    'amount': fuel_amount,
+                    'remaining': result['fuel_remaining']
+                },
+                self.current_round
+            )
 
         return result
 
@@ -2819,3 +4854,55 @@ def apply_healing(
 
     else:
         raise ValueError(f"Invalid heal_type: {heal_type}. Must be 'stun', 'wound', or 'hp'.")
+
+
+# ==============================================================================
+# Module-level wrappers for testing
+# ==============================================================================
+
+def validate_consumption(character_state, item_id, food_item) -> ConsumptionValidation:
+    """
+    Module-level wrapper for validate_consumption (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the validation method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.validate_consumption(character_state, item_id, food_item)
+
+
+def process_consumption_effect(consumption_effect, character_state) -> bool:
+    """
+    Module-level wrapper for process_consumption_effect (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the execution method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.process_consumption_effect(consumption_effect, character_state)
+
+
+def validate_item_discovery(character_state, item_effect, player_id) -> DiscoveryValidation:
+    """
+    Module-level wrapper for validate_item_discovery (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the validation method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.validate_item_discovery(character_state, item_effect, player_id)
+
+
+def process_item_effect(item_effect, character_state, player_id) -> bool:
+    """
+    Module-level wrapper for process_item_effect (for testing).
+
+    Creates a temporary MechanicsEngine instance and calls the execution method.
+    """
+    from .shared_state import SharedState
+    shared_state = SharedState()
+    mechanics = MechanicsEngine(shared_state=shared_state)
+    return mechanics.process_item_effect(item_effect, character_state, player_id)

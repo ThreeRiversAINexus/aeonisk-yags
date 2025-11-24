@@ -18,6 +18,468 @@ from .prompt_loader import load_agent_prompt, compose_sections, load_modular_pro
 logger = logging.getLogger(__name__)
 
 
+def _resolution_success(resolution) -> bool:
+    """
+    Safely check if ActionResolution succeeded.
+
+    Handles both old dataclass (has .success field) and new Pydantic schema (has .success_tier enum).
+    For new schema, success = success_tier in (MODERATE, GOOD, EXCELLENT, EXCEPTIONAL).
+    """
+    # Old schema: has .success field
+    if hasattr(resolution, 'success'):
+        return resolution.success
+
+    # New schema: derive from success_tier
+    if hasattr(resolution, 'success_tier'):
+        from .schemas.action_resolution import SuccessTier
+        success_tiers = {SuccessTier.MODERATE, SuccessTier.GOOD, SuccessTier.EXCELLENT, SuccessTier.EXCEPTIONAL, SuccessTier.MARGINAL}
+        return resolution.success_tier in success_tiers
+
+    # Fallback: assume success if we can't determine
+    return True
+
+
+def _get_active_protections(entity) -> List['Condition']:
+    """
+    Get active protection barriers/shields for an entity.
+
+    Returns list of Condition objects that have protection_amount set (barriers/shields).
+    Used for damage interception logic.
+
+    Args:
+        entity: PlayerAgent, EnemyAgent, or NPCAgent with status_effects
+
+    Returns:
+        List of protection Conditions sorted by application order (FIFO)
+    """
+    if not hasattr(entity, 'status_effects'):
+        return []
+
+    from .schemas.shared_types import Condition
+    protections = []
+
+    for effect in entity.status_effects:
+        # Check if this is a protection barrier (has protection_amount)
+        if hasattr(effect, 'protection_amount') and effect.protection_amount is not None and effect.protection_amount > 0:
+            protections.append(effect)
+
+    return protections
+
+
+def _intercept_damage_with_barriers(damage_amount: int, entity, logger_instance=None) -> tuple[int, List[str]]:
+    """
+    Intercept damage with active protection barriers, applying FIFO depletion.
+
+    Args:
+        damage_amount: Incoming damage before barrier absorption
+        entity: Target entity with status_effects (PlayerAgent/EnemyAgent/NPCAgent)
+        logger_instance: Logger for debug output
+
+    Returns:
+        Tuple of (remaining_damage_after_barriers, list_of_barrier_deplete_messages)
+
+    Example:
+        >>> remaining, messages = _intercept_damage_with_barriers(15, entity)
+        >>> # Entity has "Astral Barrier" with protection_amount=10
+        >>> remaining  # 5 (10 absorbed by barrier)
+        >>> messages   # ["Astral Barrier absorbed 10 damage (depleted)"]
+    """
+    if logger_instance is None:
+        logger_instance = logger
+
+    remaining_damage = damage_amount
+    messages = []
+
+    # Get active protections (FIFO order)
+    protections = _get_active_protections(entity)
+
+    if not protections:
+        return remaining_damage, messages
+
+    # Process barriers in order until damage is absorbed or barriers depleted
+    for barrier in protections:
+        if remaining_damage <= 0:
+            break
+
+        absorbed = min(barrier.protection_amount, remaining_damage)
+        barrier.protection_amount -= absorbed
+        remaining_damage -= absorbed
+
+        entity_name = getattr(entity, 'name', getattr(entity, 'agent_id', 'Unknown'))
+
+        if barrier.protection_amount <= 0:
+            # Barrier depleted
+            messages.append(f"**{barrier.name}** absorbed {absorbed} damage (depleted)")
+            logger_instance.info(f"🛡️ {entity_name}'s {barrier.name} absorbed {absorbed} damage and was depleted")
+
+            # Mark barrier for removal (duration=0 triggers cleanup)
+            barrier.duration = 0
+        else:
+            # Barrier still active
+            messages.append(f"**{barrier.name}** absorbed {absorbed} damage ({barrier.protection_amount} protection remaining)")
+            logger_instance.info(f"🛡️ {entity_name}'s {barrier.name} absorbed {absorbed} damage ({barrier.protection_amount} left)")
+
+    return remaining_damage, messages
+
+
+def _process_structured_damage_effects(
+    damage_effects: List['DamageEffect'],
+    shared_state: 'SharedState',
+    current_round: int,
+    mechanics: Any = None,
+    logger_instance: logging.Logger = None
+) -> List[str]:
+    """
+    Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
+
+    This is the NEW damage processing pipeline for structured output. Replaces legacy
+    keyword-based damage parsing.
+
+    Args:
+        damage_effects: List of DamageEffect objects from ActionResolution.effects.damage
+        shared_state: SharedState for entity resolution
+        current_round: Current round number for logging
+        mechanics: Mechanics engine for JSONL logging (optional)
+        logger_instance: Logger instance (optional)
+
+    Returns:
+        List of narrative messages describing damage outcomes (for appending to DM narration)
+
+    Example:
+        >>> damage_effects = [DamageEffect(target="tgt_7a3f", base_damage=15, dealt=15)]
+        >>> messages = _process_structured_damage_effects(damage_effects, shared_state, 1)
+        >>> messages  # ["⚔️ Enemy takes 15 damage! (8 health → 0, +3 wounds)", "💀 Enemy is defeated!"]
+    """
+    if logger_instance is None:
+        logger_instance = logger
+
+    if not damage_effects:
+        return []
+
+    messages = []
+    target_id_mapper = shared_state.get_target_id_mapper() if shared_state else None
+
+    for damage_effect in damage_effects:
+        target_identifier = damage_effect.target
+        damage_amount = damage_effect.dealt  # Use final damage (post-soak)
+
+        # Resolve target entity
+        target_entity = None
+        target_name = None
+        is_friendly_fire = False
+
+        if target_identifier.startswith('tgt_'):
+            # Target ID resolution (free targeting mode)
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                # Check if target is a player (friendly fire)
+                if target_entity and target_id_mapper.is_player(target_identifier):
+                    is_friendly_fire = True
+                    target_name = getattr(target_entity.character_state, 'name', 'Unknown') if hasattr(target_entity, 'character_state') else 'Unknown'
+                    logger_instance.warning(f"🔥 FRIENDLY FIRE: Structured damage targeting PC {target_name} (ID: {target_identifier})")
+                elif target_entity:
+                    target_name = target_entity.name
+        else:
+            # Character name resolution (legacy fallback)
+            target_name = target_identifier
+
+            # Try to find entity by name
+            if shared_state:
+                # Try enemies first
+                enemy_combat = shared_state.enemy_combat
+                if enemy_combat:
+                    from .enemy_spawner import get_active_enemies
+                    active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                    for enemy in active_enemies:
+                        if target_name and (target_name.lower() in enemy.name.lower() or
+                                            enemy.name.lower() in target_name.lower()):
+                            target_entity = enemy
+                            break
+
+                # Try NPCs if not found
+                if not target_entity and hasattr(shared_state, 'npc_agents'):
+                    for npc in shared_state.npc_agents:
+                        if npc.is_active and target_name and (target_name.lower() in npc.name.lower() or
+                                                               npc.name.lower() in target_name.lower()):
+                            target_entity = npc
+                            break
+
+        if not target_entity:
+            logger_instance.warning(f"⚠️ Could not resolve damage target: {target_identifier}")
+            messages.append(f"⚠️ **Target '{target_identifier}' not found for damage**")
+            continue
+
+        # === BARRIER INTERCEPTION ===
+        damage_after_barriers, barrier_messages = _intercept_damage_with_barriers(
+            damage_amount,
+            target_entity,
+            logger_instance
+        )
+
+        # Add barrier messages to output
+        if barrier_messages:
+            messages.extend([f"🛡️ {msg}" for msg in barrier_messages])
+
+        # === APPLY DAMAGE TO ENTITY ===
+        if damage_after_barriers > 0:
+            old_health = target_entity.health
+            wounds_dealt = damage_after_barriers // 5  # YAGS: every 5 damage = 1 wound
+            target_entity.wounds += wounds_dealt
+            target_entity.health -= damage_after_barriers
+
+            damage_type_label = f" ({damage_effect.damage_type})" if damage_effect.damage_type else ""
+            friendly_fire_label = " [FRIENDLY FIRE]" if is_friendly_fire else ""
+
+            messages.append(
+                f"⚔️ **{target_name} takes {damage_after_barriers} damage{damage_type_label}!** "
+                f"({old_health} HP → {target_entity.health} HP, +{wounds_dealt} wounds){friendly_fire_label}"
+            )
+
+            if is_friendly_fire:
+                logger_instance.warning(
+                    f"🔥 FRIENDLY FIRE DAMAGE: {damage_after_barriers} to {target_name} "
+                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                )
+            else:
+                logger_instance.info(
+                    f"Damage dealt: {damage_after_barriers} to {target_name} "
+                    f"({old_health} → {target_entity.health} HP, +{wounds_dealt} wounds)"
+                )
+
+            # === CHECK FOR DEFEAT ===
+            if target_entity.health <= 0:
+                if hasattr(target_entity, 'check_death_save'):
+                    # Enemy/NPC with death saves
+                    alive, status = target_entity.check_death_save()
+                    if not alive:
+                        logger_instance.info(f"{target_name} KILLED by attack!")
+                        messages.append(f"💀 **{target_name} is KILLED!**")
+                        if hasattr(target_entity, 'is_active'):
+                            target_entity.is_active = False
+                    elif status == "unconscious":
+                        logger_instance.info(f"{target_name} knocked unconscious!")
+                        messages.append(f"😵 **{target_name} is knocked unconscious!**")
+                        if hasattr(target_entity, 'is_active'):
+                            target_entity.is_active = False
+                    else:
+                        logger_instance.info(f"{target_name} critically wounded but conscious!")
+                        messages.append(f"⚠️ **{target_name} is critically wounded!**")
+                else:
+                    # PC or entity without death saves
+                    logger_instance.info(f"{target_name} defeated!")
+                    messages.append(f"💀 **{target_name} is defeated!**")
+                    if hasattr(target_entity, 'is_active'):
+                        target_entity.is_active = False
+
+            # === LOG COMBAT ACTION (ML TRAINING) ===
+            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                # Build minimal combat action log
+                # (Full implementation would extract attack roll data from resolution context)
+                defender_state = {
+                    "health": target_entity.health,
+                    "max_health": target_entity.max_health,
+                    "wounds": target_entity.wounds,
+                    "alive": target_entity.health > 0,
+                    "status": "active" if target_entity.health > 0 else "defeated"
+                }
+
+                damage_roll_data = {
+                    "base_damage": damage_effect.base_damage,
+                    "soak": damage_effect.soak if damage_effect.soak is not None else 0,
+                    "dealt": damage_after_barriers  # Post-barrier damage
+                }
+
+                # Note: attack_roll data would need to be passed from resolution context
+                # For now, log minimal combat action
+                mechanics.jsonl_logger.log_combat_action(
+                    round_num=current_round,
+                    attacker_id="unknown",  # Would need from resolution context
+                    attacker_name="Unknown Attacker",
+                    defender_id=target_entity.agent_id,
+                    defender_name=target_name,
+                    weapon="Unknown Weapon",
+                    attack_roll={},  # Would need from resolution context
+                    damage_roll=damage_roll_data,
+                    wounds_dealt=wounds_dealt,
+                    defender_state_after=defender_state
+                )
+        elif damage_amount > 0:
+            # All damage was absorbed by barriers (damage_after_barriers == 0)
+            messages.append(f"🛡️ **{target_name}'s barriers completely absorbed the attack!**")
+            logger_instance.info(f"🛡️ {target_name}'s barriers completely absorbed {damage_amount} damage")
+
+    return messages
+
+
+def _process_structured_healing_effects(
+    healing_effects: List['HealingEffect'],
+    shared_state: 'SharedState',
+    current_round: int,
+    mechanics: Any = None,
+    logger_instance: logging.Logger = None
+) -> List[str]:
+    """
+    Process List[HealingEffect] from ActionResolution, applying HP/stun/wound recovery.
+
+    This is the NEW healing processing pipeline for structured output. Replaces legacy
+    keyword-based healing parsing.
+
+    Args:
+        healing_effects: List of HealingEffect objects from ActionResolution.effects.healing
+        shared_state: SharedState for entity resolution
+        current_round: Current round number for logging
+        mechanics: Mechanics engine for JSONL logging (optional)
+        logger_instance: Logger instance (optional)
+
+    Returns:
+        List of narrative messages describing healing outcomes (for appending to DM narration)
+
+    Example:
+        >>> healing_effects = [HealingEffect(target="tgt_7a3f", hp=10, stun=5, wounds=1)]
+        >>> messages = _process_structured_healing_effects(healing_effects, shared_state, 1)
+        >>> messages  # ["💚 Ally healed: +10 HP, -5 stun, -1 wounds (15 HP → 25 HP)"]
+    """
+    if logger_instance is None:
+        logger_instance = logger
+
+    if not healing_effects:
+        return []
+
+    messages = []
+    target_id_mapper = shared_state.get_target_id_mapper() if shared_state else None
+
+    for healing_effect in healing_effects:
+        target_identifier = healing_effect.target
+        heal_type = healing_effect.heal_type  # "hp", "stun", or "wound"
+        amount = healing_effect.amount
+
+        # Resolve target entity
+        target_entity = None
+        target_name = None
+
+        if target_identifier.startswith('tgt_'):
+            # Target ID resolution (free targeting mode)
+            if target_id_mapper and target_id_mapper.enabled:
+                target_entity = target_id_mapper.resolve_target(target_identifier)
+
+                if target_entity:
+                    # Check if PC or enemy/NPC
+                    if hasattr(target_entity, 'character_state'):
+                        target_name = target_entity.character_state.name
+                    else:
+                        target_name = target_entity.name
+        else:
+            # Character name resolution (legacy fallback)
+            target_name = target_identifier
+
+            # Try to find entity by name
+            if shared_state:
+                # Try players first
+                if hasattr(shared_state, 'player_agents'):
+                    for player in shared_state.player_agents:
+                        if hasattr(player, 'character_state'):
+                            char_name = player.character_state.name
+                            if target_name and (target_name.lower() in char_name.lower() or
+                                                char_name.lower() in target_name.lower()):
+                                target_entity = player
+                                target_name = char_name
+                                break
+
+                # Try enemies
+                if not target_entity:
+                    enemy_combat = shared_state.enemy_combat
+                    if enemy_combat:
+                        from .enemy_spawner import get_active_enemies
+                        active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                        for enemy in active_enemies:
+                            if target_name and (target_name.lower() in enemy.name.lower() or
+                                                enemy.name.lower() in target_name.lower()):
+                                target_entity = enemy
+                                break
+
+                # Try NPCs
+                if not target_entity and hasattr(shared_state, 'npc_agents'):
+                    for npc in shared_state.npc_agents:
+                        if npc.is_active and target_name and (target_name.lower() in npc.name.lower() or
+                                                               npc.name.lower() in target_name.lower()):
+                            target_entity = npc
+                            break
+
+        if not target_entity:
+            logger_instance.warning(f"⚠️ Could not resolve healing target: {target_identifier}")
+            messages.append(f"⚠️ **Target '{target_identifier}' not found for healing**")
+            continue
+
+        # === APPLY HEALING TO ENTITY ===
+        healing_summary = []
+        old_health = target_entity.health
+        old_wounds = target_entity.wounds
+
+        # Apply healing based on type
+        if heal_type == "hp":
+            # Restore HP (capped at max_health)
+            target_entity.health = min(target_entity.health + amount, target_entity.max_health)
+            actual_heal = target_entity.health - old_health
+            healing_summary.append(f"+{actual_heal} HP")
+        elif heal_type == "stun":
+            # Remove stun (handled by mechanics.apply_medicine if using Medicine skill)
+            # For now, just track what was requested
+            healing_summary.append(f"-{amount} stun")
+            # Note: Actual stun removal would be handled by mechanics.apply_medicine()
+            # This is just for logging/narrative
+        elif heal_type == "wound":
+            # Reduce wounds
+            target_entity.wounds = max(0, target_entity.wounds - amount)
+            actual_wounds_healed = old_wounds - target_entity.wounds
+            healing_summary.append(f"-{actual_wounds_healed} wounds")
+
+        if healing_summary:
+            summary_text = ", ".join(healing_summary)
+            messages.append(
+                f"💚 **{target_name} healed: {summary_text}** "
+                f"({old_health} HP → {target_entity.health} HP)"
+            )
+
+            logger_instance.info(
+                f"Healing applied: {summary_text} to {target_name} "
+                f"({old_health} → {target_entity.health} HP, wounds: {target_entity.wounds})"
+            )
+
+            # === LOG HEALING ACTION (ML TRAINING) ===
+            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                # Build healing log entry
+                # (Full implementation would extract healer details from resolution context)
+                target_state_after = {
+                    "health": target_entity.health,
+                    "max_health": target_entity.max_health,
+                    "wounds": target_entity.wounds,
+                    "alive": target_entity.health > 0,
+                    "status": "active" if target_entity.health > 0 else "defeated"
+                }
+
+                # Note: Would ideally log as 'healing_action' event type
+                # For now, log minimal info to existing event types
+                mechanics.jsonl_logger.log_event(
+                    'healing_applied',
+                    {
+                        'target_id': target_entity.agent_id,
+                        'target_name': target_name,
+                        'heal_type': heal_type,
+                        'amount': amount,
+                        'hp_restored': target_entity.health - old_health if heal_type == "hp" else 0,
+                        'stun_removed': amount if heal_type == "stun" else 0,
+                        'wounds_reduced': (old_wounds - target_entity.wounds) if heal_type == "wound" else 0,
+                        'target_state_after': target_state_after
+                    },
+                    current_round
+                )
+
+    return messages
+
+
 @dataclass
 class Scenario:
     """Current game scenario state."""
@@ -27,9 +489,14 @@ class Scenario:
     active_npcs: List[str]
     environmental_factors: List[str]
     void_level: int
-    active_vendor: Optional[Vendor] = None  # Vendor present in this scenario
+    active_vendors: List[Vendor] = None  # Vendors present in this scenario (can be multiple)
     required_purchase: Optional[str] = None  # Item that MUST be purchased to proceed
     vendor_gate_description: Optional[str] = None  # Description of why purchase is needed
+
+    def __post_init__(self):
+        """Ensure active_vendors is always a list."""
+        if self.active_vendors is None:
+            self.active_vendors = []
 
 
 class AIDMAgent(Agent):
@@ -52,12 +519,11 @@ class AIDMAgent(Agent):
         llm_logger: Optional[Any] = None,
         llm_client: Optional[Any] = None,
         agent_prompt_logger: Optional[Any] = None,
+        session_config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(agent_id, socket_path)
         self.llm_config = llm_config
         self.current_scenario: Optional[Scenario] = None
-        self.human_controlled = False
-        self.human_input_queue = asyncio.Queue()
         self.voice_profile = voice_profile
         self.shared_state = shared_state
         self._prompt_enricher = prompt_enricher
@@ -66,6 +532,7 @@ class AIDMAgent(Agent):
         self.llm_logger = llm_logger  # LLMCallLogger for replay functionality
         self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
+        self.session_config = session_config or {}  # Session config for persistent vendors, etc.
 
         # LLM client - can be injected for replay (MockLLMClient) or created normally
         if llm_client:
@@ -79,22 +546,31 @@ class AIDMAgent(Agent):
         # Vendor pool for random encounters
         self.vendor_pool = create_standard_vendors()
 
+        # Load persistent vendors from config and add to SharedState
+        if self.session_config and self.shared_state:
+            persistent_vendors = self._load_persistent_vendors(self.session_config)
+            for vendor in persistent_vendors:
+                self.shared_state.add_vendor(vendor)
+                logger.info(f"🏪 Persistent vendor loaded at session start: {vendor.name}")
+
         # Story progression flags
         self.needs_story_advancement = False  # Set by session when all clocks complete
 
-        # LLM Provider for structured output (Phase 2: Pydantic AI migration)
+        # LLM Provider for structured output (supports all providers: Anthropic, OpenAI, local)
         # Only create if not in replay mode (llm_client injected)
         if not llm_client:
-            from .llm_provider import create_claude_provider
+            from .llm_provider import LLMConfig, create_provider
             try:
-                self.llm_provider = create_claude_provider(
+                provider_config = LLMConfig(
+                    provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                    max_tokens=self.llm_config.get('max_tokens', 2000),
+                    max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000
                     temperature=self.llm_config.get('temperature', 0.8)
                 )
-                logger.debug("DM: Structured output provider initialized")
+                self.llm_provider = create_provider(provider_config)
+                logger.debug(f"DM: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
-                logger.warning(f"DM: Failed to create structured output provider: {e}")
+                logger.warning(f"DM: Failed to create LLM provider: {e}")
                 self.llm_provider = None
         else:
             # Replay mode - no structured output
@@ -107,9 +583,6 @@ class AIDMAgent(Agent):
         self.message_handlers[MessageType.AGENT_REGISTER] = self._handle_agent_register
         self.message_handlers[MessageType.DM_NARRATION] = self._handle_dm_narration
 
-        # Human override handlers
-        self.message_handlers[MessageType.PING] = self._handle_human_override_request
-        
     async def on_start(self):
         """Initialize DM agent."""
         logger.debug(f"AI DM {self.agent_id} started")
@@ -120,27 +593,53 @@ class AIDMAgent(Agent):
             None,  # broadcast
             {'agent_type': 'dm', 'capabilities': ['scenario_generation', 'npc_control', 'narrative']}
         )
-        
-        if not self.human_controlled:
-            print(f"\n[DM {self.agent_id}] AI Dungeon Master ready")
-            print("Type 'take_control' to switch to human control")
+
+        print(f"\n[DM {self.agent_id}] AI Dungeon Master ready")
         
     async def on_shutdown(self):
         """Cleanup on shutdown."""
         logger.debug(f"AI DM {self.agent_id} shutting down")
 
-    def _get_required_dm_modules(self) -> List[str]:
+    def _get_required_dm_modules(self, action_type: str = None) -> List[str]:
         """
-        Determine which DM prompt modules to load based on current game state.
+        Determine which DM prompt modules to load based on current game state and action type.
+
+        Args:
+            action_type: The action type being resolved (combat, investigate, social, etc.)
+                        If None, loads generic modules only (for non-resolution contexts).
 
         Returns:
-            List of module names to load (e.g., ['dm_core', 'dm_combat'])
+            List of module names to load (e.g., ['dm_core', 'dm_resolution_combat'])
         """
         modules = []
 
         # Always load core modules
         modules.append('dm_core')
-        modules.append('dm_structured_output')
+        modules.append('dm_structured_output_base')  # Slim base schema (replaces monolithic dm_structured_output)
+
+        # Action-type-specific resolution guidance (reduces prompt size, improves LLM focus)
+        if action_type:
+            action_type_lower = action_type.lower()
+            resolution_map = {
+                'combat': 'dm_resolution_combat',
+                'investigate': 'dm_resolution_investigate',  # Item discovery, looting, searching
+                'social': 'dm_resolution_social',
+                'ritual': 'dm_resolution_ritual',
+                'attune': 'dm_attunement',          # Already specialized
+                'support': 'dm_resolution_support',
+                'explore': 'dm_resolution_movement',
+                'perception': 'dm_resolution_perception',   # Awareness, threat detection (NO items)
+                'technical': 'dm_resolution_investigate',   # Hacking can find data/items
+                'purchase': 'dm_purchase',          # Already specialized
+                'transfer': 'dm_transfer',          # Already specialized
+                'consume': 'dm_consumption',        # Already specialized
+            }
+            if action_type_lower in resolution_map:
+                modules.append(resolution_map[action_type_lower])
+                logger.debug(f"DM: Loading action-specific module for {action_type}: {resolution_map[action_type_lower]}")
+            else:
+                # Unknown action type - load generic discovery for fallback
+                logger.debug(f"DM: Unknown action type '{action_type}', no action-specific module")
 
         # Always load dm_commands (contains NPC/enemy spawning, escalation triggers)
         # DM needs to know it CAN spawn NPCs and WHEN to escalate even if none present yet
@@ -184,10 +683,7 @@ class AIDMAgent(Agent):
         config = message.payload.get('config', {})
         self.config = config  # Store for later use
 
-        if self.human_controlled:
-            await self._request_human_scenario(config)
-        else:
-            await self._generate_ai_scenario(config)
+        await self._generate_ai_scenario(config)
             
     async def _generate_ai_scenario(self, config: Dict[str, Any]):
         """Generate scenario using AI with lore grounding."""
@@ -274,12 +770,44 @@ class AIDMAgent(Agent):
 
             scenario_constraints = ""
             if scenario_hint:
+                # ENHANCED: Put constraints at ABSOLUTE TOP with stronger language
                 scenario_constraints = f"""
-⚠️⚠️⚠️ **CRITICAL SCENARIO CONSTRAINTS** ⚠️⚠️⚠️
+═══════════════════════════════════════════════════════════════
+🛑 BINDING SCENARIO CONSTRAINTS - VALIDATION ENFORCED 🛑
+═══════════════════════════════════════════════════════════════
+
 {scenario_hint}
 
-YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions below.
-⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+CRITICAL REQUIREMENTS:
+- Your generated scenario will be VALIDATED against these constraints
+- If validation fails, generation will RETRY (up to 3 attempts)
+- Pay special attention to:
+  * void_level (must match exactly if specified)
+  * Prohibited elements (NO SPAWN_ENEMY means ZERO enemies)
+  * Required locations (use exact names/keywords from constraints)
+  * Required NPCs (include all mentioned NPCs)
+
+These constraints OVERRIDE ALL other instructions below. Violation = regeneration.
+
+═══════════════════════════════════════════════════════════════
+
+"""
+
+            # Add narrative style guidance if specified
+            narrative_style = dm_config.get('narrative_style', '')
+            tone_guidance = dm_config.get('tone_guidance', '')
+
+            if narrative_style or tone_guidance:
+                style_header = f"\n📖 NARRATIVE STYLE: {narrative_style}\n" if narrative_style else "\n📖 NARRATIVE GUIDANCE:\n"
+                scenario_constraints += f"""
+{style_header}
+{tone_guidance if tone_guidance else ''}
+
+Apply this narrative style to:
+- Scene descriptions and environmental details
+- NPC dialogue and characterization
+- Action resolution narration (success/failure framing)
+- Round synthesis and storytelling beats
 
 """
 
@@ -330,6 +858,50 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
 7. **Failure Consequences**: What happens if they fail?
 
+8. **Initial Enemies** (optional, 0-6 enemies): Spawn enemies present at scenario start
+   - Use when scenario requires immediate combat threats
+   - Examples: ambushes, patrols, guards, creatures, hostiles
+   - Leave empty ([]) for investigation/social scenarios where threats emerge later
+
+   **When to spawn initial enemies:**
+   - ✅ Hostile locations (corporate facilities, gang territory, void breaches)
+   - ✅ Combat-focused themes (raid, escape, defense, assault)
+   - ✅ Players infiltrating/trespassing (guards, patrols)
+   - ✅ Story starts mid-action (chase, ambush, firefight)
+   - ❌ Social/investigation scenarios (spawn later via story progression)
+   - ❌ Safe/neutral territory (spawn when story demands it)
+
+   **For each enemy spawn:**
+   - **template**: Enemy type from YAGS system (grunt, enforcer, specialist, etc.)
+   - **faction**: Which faction they belong to (ACG Security, Void Cultists, etc.)
+   - **count**: How many of this type (1-4 per spawn)
+   - **disposition**: combat_stance (always use this for immediate threats)
+   - **description**: Brief visual description
+
+9. **Initial NPCs** (optional, 0-4 NPCs): Spawn NPCs present at scenario start
+   - Use when scenario requires non-combatant characters for roleplay
+   - Examples: quest-givers, witnesses, prisoners, allies, civilians
+   - Leave empty ([]) if no immediate NPCs needed
+
+   **When to spawn initial NPCs:**
+   - ✅ Social/investigation scenarios (witnesses, contacts, informants)
+   - ✅ Prisoners/hostages in combat zones (rescue targets)
+   - ✅ Quest-givers or guides (fixer, navigator, broker)
+   - ✅ Neutral characters in hostile zones (civilians, refugees)
+   - ❌ Pure combat scenarios (unless hostages/prisoners)
+   - ❌ Wilderness/isolated locations (unless story requires)
+
+   **For each NPC spawn:**
+   - **name**: Character name (can be role-based like "Wounded Freeborn Scout")
+   - **faction**: Which faction (can be "None" for neutrals)
+   - **entity_type**: neutral, ally, or prisoner
+   - **threat_level**: non_combatant (for NPCs)
+   - **disposition**: friendly, neutral, hostile, prisoner
+   - **description**: Brief visual description
+   - **health** (10-30): Current health
+   - **soak** (0-3): Damage resistance
+   - **details**: Background, motivations, or relevant info
+
 **Scenario Variety Guidelines:**
 - Mix combat (50%), social, intrigue, and crisis scenarios
 - Pick DIFFERENT location from recently used ones (if listed above)
@@ -347,8 +919,11 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 - Good: ACG hires party to recover debt contracts, Pantheon investigates void corruption
 - Bad: ACG hires Sovereign Nexus to steal from their own faction"""
 
-                # Try structured output first
-                scenario_setup = await self._generate_scenario_structured(scenario_prompt)
+                # Try structured output first (pass scenario_hint for validation)
+                scenario_setup = await self._generate_scenario_structured(
+                    scenario_prompt,
+                    scenario_hint=scenario_hint
+                )
 
                 if scenario_setup:
                     # Successfully generated structured output
@@ -497,22 +1072,52 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 raise
 
         # Scenario-aware vendor encounter
-        # If vendor-gated scenario, force specific vendor type
-        if scenario_data.get('required_vendor_type'):
-            required_type = scenario_data['required_vendor_type']
-            eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == required_type]
-            if eligible_vendors:
-                active_vendor = random.choice(eligible_vendors)
-                logger.debug(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
-                print(f"[DM {self.agent_id}] 🔒 VENDOR REQUIRED: {active_vendor.name}")
+        # Only spawn random vendors if vendor_spawn_frequency is enabled (>= 0)
+        vendor_spawn_freq = self.session_config.get('vendor_spawn_frequency', 3)
+        if vendor_spawn_freq >= 0:
+            # If vendor-gated scenario, force specific vendor type
+            if scenario_data.get('required_vendor_type'):
+                required_type = scenario_data['required_vendor_type']
+                eligible_vendors = [v for v in self.vendor_pool if v.vendor_type == required_type]
+                if eligible_vendors:
+                    active_vendor = random.choice(eligible_vendors)
+                    logger.debug(f"Vendor-gated scenario: forcing {active_vendor.name} ({active_vendor.vendor_type.value})")
+                    print(f"[DM {self.agent_id}] 🔒 VENDOR REQUIRED: {active_vendor.name}")
+                else:
+                    logger.error(f"No vendor of type {required_type} available!")
+                    active_vendor = None
             else:
-                logger.error(f"No vendor of type {required_type} available!")
-                active_vendor = None
+                active_vendor = self._select_contextual_vendor(scenario_data['theme'])
+            # Wrap single vendor in list for backwards compatibility
+            active_vendors = [active_vendor] if active_vendor else []
         else:
-            active_vendor = self._select_contextual_vendor(scenario_data['theme'])
-        if active_vendor:
-            logger.info(f"Vendor encounter: {active_vendor.name} ({active_vendor.vendor_type.value})")
-            print(f"[DM {self.agent_id}] 💰 {active_vendor.name} present")
+            # vendor_spawn_frequency: -1 means only use persistent vendors from config
+            active_vendors = []
+            logger.debug("Random vendor spawning disabled (vendor_spawn_frequency: -1), using only persistent vendors")
+
+        # Add newly spawned vendors to SharedState for persistence
+        if active_vendors and self.shared_state:
+            for vendor in active_vendors:
+                # Only add if not already present
+                if not self.shared_state.get_vendor(vendor.name):
+                    self.shared_state.add_vendor(vendor)
+                    logger.info(f"Vendor added to SharedState: {vendor.name} ({vendor.vendor_type.value})")
+                    print(f"[DM {self.agent_id}] 💰 {vendor.name} present")
+        elif active_vendors:
+            # Fallback logging if SharedState not available
+            for vendor in active_vendors:
+                logger.info(f"Vendor encounter: {vendor.name} ({vendor.vendor_type.value})")
+                print(f"[DM {self.agent_id}] 💰 {vendor.name} present")
+
+        # Get all current vendors from SharedState (includes newly spawned + persisting vendors)
+        if self.shared_state:
+            all_vendors = self.shared_state.get_all_vendors()
+            logger.debug(f"Retrieved {len(all_vendors)} vendors from SharedState: {[v.name for v in all_vendors]}")
+        else:
+            all_vendors = active_vendors
+            logger.warning("No SharedState available - using active_vendors directly")
+
+        logger.debug(f"Creating scenario with {len(all_vendors)} vendors")
 
         scenario = Scenario(
             theme=scenario_data['theme'],
@@ -521,12 +1126,16 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=scenario_data['void_level'],
-            active_vendor=active_vendor,
+            active_vendors=all_vendors,  # Use all vendors (new + persisting)
             required_purchase=scenario_data.get('required_purchase'),
             vendor_gate_description=scenario_data.get('vendor_gate_description')
         )
 
         self.current_scenario = scenario
+
+        # Vendors are already synced via add_vendor() calls above (lines 528-534)
+        # and get_all_vendors() returns current_vendors list (line 543).
+        # No additional sync needed here - SharedState.current_vendors is authoritative.
 
         # Initialize mechanics and create scenario-specific clocks
         if self.shared_state:
@@ -566,38 +1175,137 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         print(f"   This may result in soulcredit loss if pursued.")
 
         # Log scenario to JSONL
+        logger.debug(f"Serializing scenario with {len(scenario.active_vendors) if scenario.active_vendors else 0} vendors")
+
         scenario_data = {
             'theme': scenario.theme,
             'location': scenario.location,
             'situation': scenario.situation,
             'void_level': scenario.void_level,
-            'active_vendor': {
-                'name': scenario.active_vendor.name,
-                'type': scenario.active_vendor.vendor_type.value,
-                'faction': scenario.active_vendor.faction,
-                'greeting': scenario.active_vendor.greeting,
-                'inventory_preview': [item.name for item in scenario.active_vendor.inventory[:3]]  # First 3 items
-            } if scenario.active_vendor else None
+            'active_vendors': [
+                {
+                    'vendor_id': vendor.vendor_id,  # NEW: ID for mechanical purchase
+                    'name': vendor.name,
+                    'type': vendor.vendor_type.value,
+                    'faction': vendor.faction,
+                    'greeting': vendor.greeting,
+                    'inventory_preview': [item.name for item in vendor.inventory[:3]],  # For JSONL logging
+                    'inventory': [  # Full inventory for player prompts
+                        {
+                            'item_id': item.item_id,  # NEW: ID for mechanical purchase
+                            'name': item.name,
+                            'description': item.description,
+                            'price_spark': item.price_spark,
+                            'price_drip': item.price_drip,
+                            'price_breath': item.price_breath,
+                            'seed_barter': item.seed_barter,
+                            'item_type': item.item_type
+                        } for item in vendor.inventory
+                    ]
+                } for vendor in scenario.active_vendors
+            ] if scenario.active_vendors else []
         }
+
+        logger.debug(f"Scenario data active_vendors field: {scenario_data.get('active_vendors', 'MISSING')}")
         if self.shared_state:
             mechanics = self.shared_state.get_mechanics_engine()
             if mechanics and mechanics.jsonl_logger:
                 mechanics.jsonl_logger.log_scenario(scenario_data)
 
+        # Process initial_enemies from config (if specified)
+        initial_enemies_config = config.get('initial_enemies', [])
+        initial_npcs_config = config.get('initial_npcs', [])
+
+        scenario_setup_dict = None
+        if initial_enemies_config or initial_npcs_config:
+            from .schemas.story_events import EnemySpawn, NPCSpawn
+            from .schemas.shared_types import Position
+
+            # Convert initial_enemies config dicts to EnemySpawn objects
+            enemy_spawns = []
+            for enemy_config in initial_enemies_config:
+                template_raw = enemy_config.get('template', 'grunt').lower()
+                template_map = {
+                    'grunt': 'Grunt',
+                    'elite': 'Elite',
+                    'boss': 'Boss'
+                }
+                template = template_map.get(template_raw, 'Grunt')
+
+                position_str = enemy_config.get('position', 'Far-Enemy')
+                position_map = {
+                    'Engaged': Position.ENGAGED,
+                    'Near-PC': Position.NEAR_PC,
+                    'Near-Enemy': Position.NEAR_ENEMY,
+                    'Far-PC': Position.FAR_PC,
+                    'Far-Enemy': Position.FAR_ENEMY,
+                    'Extreme-PC': Position.EXTREME_PC,
+                    'Extreme-Enemy': Position.EXTREME_ENEMY
+                }
+                initial_position = position_map.get(position_str, Position.FAR_ENEMY)
+
+                enemy_spawn = EnemySpawn(
+                    template=template,
+                    faction=enemy_config.get('faction', 'Hostile'),
+                    archetype=enemy_config.get('archetype', enemy_config.get('name', 'Unknown Enemy')),
+                    count=enemy_config.get('count', 1),
+                    spawn_reason=enemy_config.get('spawn_reason', f"{enemy_config.get('name', 'Enemy')} present at scenario start"),
+                    initial_position=initial_position,
+                    custom_traits=enemy_config.get('tactics')
+                )
+                enemy_spawns.append(enemy_spawn)
+
+            # Convert initial_npcs config dicts to NPCSpawn objects
+            npc_spawns = []
+            for npc_config in initial_npcs_config:
+                npc_spawn = NPCSpawn(
+                    name=npc_config.get('name', 'Unknown NPC'),
+                    faction=npc_config.get('faction', 'Unknown'),
+                    entity_type=npc_config.get('entity_type', 'neutral'),
+                    threat_level=npc_config.get('threat_level', 'non_combatant'),
+                    disposition=npc_config.get('disposition', 'neutral'),
+                    description=npc_config.get('description', f"{npc_config.get('name', 'NPC')} present at scenario start"),
+                    health=npc_config.get('health', 20),
+                    soak=npc_config.get('soak', 0),
+                    skills=npc_config.get('skills', {})
+                )
+                npc_spawns.append(npc_spawn)
+
+            # Serialize to dicts for JSON
+            scenario_setup_dict = {
+                'initial_enemies': [spawn.model_dump() for spawn in enemy_spawns],
+                'npc_spawns': [spawn.model_dump() for spawn in npc_spawns]
+            }
+
+            if enemy_spawns:
+                logger.info(f"Config specifies {len(enemy_spawns)} initial enemy spawn(s)")
+            if npc_spawns:
+                logger.info(f"Config specifies {len(npc_spawns)} initial NPC spawn(s)")
+
+        # Build payload
+        payload = {
+            'scenario': scenario_data,
+            'opening_narration': self._generate_opening_narration(scenario, faction_conflicts),
+            'faction_conflicts': faction_conflicts  # Warn players of potential issues
+        }
+        if scenario_setup_dict:
+            payload['scenario_setup'] = scenario_setup_dict
+
         # Broadcast scenario setup
         self.send_message_sync(
             MessageType.SCENARIO_SETUP,
             None,  # broadcast
-            {
-                'scenario': scenario_data,
-                'opening_narration': self._generate_opening_narration(scenario, faction_conflicts),
-                'faction_conflicts': faction_conflicts  # Warn players of potential issues
-            }
+            payload
         )
 
         print(f"\n[DM {self.agent_id}] Generated scenario: {scenario.theme}")
         print(f"Location: {scenario.location}")
         print(f"Situation: {scenario.situation}")
+        if initial_enemies_config:
+            total_enemies = sum(e.get('count', 1) for e in initial_enemies_config)
+            print(f"Will spawn {total_enemies} initial enemies from config")
+        if initial_npcs_config:
+            print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
 
         # Track scenario for variety in future sessions
         if self.shared_state:
@@ -617,7 +1325,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=0,
-            active_vendor=None
+            active_vendors=[]
         )
         self.current_scenario = scenario
 
@@ -656,13 +1364,21 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         theme = scenario_config.get('theme', 'Unknown')
         location = scenario_config.get('location', 'Unknown Location')
         situation = scenario_config.get('situation', 'Something mysterious is happening')
-        void_level = scenario_config.get('void_level', 3)
+        void_level = scenario_config.get('void_level', 0)
         initial_clocks = scenario_config.get('initial_clocks', [])
 
         # Extract initial_enemies from top-level config (not scenario dict)
         initial_enemies_config = config.get('initial_enemies', [])
 
-        # Create scenario object
+        # Get all current vendors from SharedState (includes persistent vendors)
+        if self.shared_state:
+            all_vendors = self.shared_state.get_all_vendors()
+            logger.debug(f"Retrieved {len(all_vendors)} vendors from SharedState for config scenario: {[v.name for v in all_vendors]}")
+        else:
+            all_vendors = []
+            logger.warning("No SharedState available - config scenario will have no vendors")
+
+        # Create scenario object WITH persistent vendors from SharedState
         scenario = Scenario(
             theme=theme,
             location=location,
@@ -670,17 +1386,38 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             active_npcs=[],
             environmental_factors=[],
             void_level=void_level,
-            active_vendor=None
+            active_vendors=all_vendors  # FIX: Use SharedState vendors, not empty list!
         )
         self.current_scenario = scenario
 
-        # Prepare scenario data
+        # Prepare scenario data WITH vendor inventory for player prompts
         scenario_data = {
             'theme': theme,
             'location': location,
             'situation': situation,
             'void_level': void_level,
-            'vendor': None
+            'active_vendors': [  # FIX: Include vendor data for players!
+                {
+                    'vendor_id': vendor.vendor_id,
+                    'name': vendor.name,
+                    'type': vendor.vendor_type.value,
+                    'faction': vendor.faction,
+                    'greeting': vendor.greeting,
+                    'inventory_preview': [item.name for item in vendor.inventory[:3]],
+                    'inventory': [
+                        {
+                            'item_id': item.item_id,
+                            'name': item.name,
+                            'description': item.description,
+                            'price_spark': item.price_spark,
+                            'price_drip': item.price_drip,
+                            'price_breath': item.price_breath,
+                            'seed_barter': item.seed_barter,
+                            'item_type': item.item_type
+                        } for item in vendor.inventory
+                    ]
+                } for vendor in all_vendors
+            ] if all_vendors else []
         }
 
         # Log scenario
@@ -816,68 +1553,72 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         if initial_npcs_config:
             print(f"Will spawn {len(initial_npcs_config)} initial NPCs from config")
 
-    async def _request_human_scenario(self, config: Dict[str, Any]):
-        """Request scenario from human DM."""
-        print(f"\n[HUMAN DM {self.agent_id}] Please describe the opening scenario:")
-        print("Theme: ", end='')
-        theme = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
-        
-        print("Location: ", end='')
-        location = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
-        
-        print("Situation: ", end='')
-        situation = (await asyncio.get_event_loop().run_in_executor(None, input)).strip()
-        
-        try:
-            void_input = await asyncio.get_event_loop().run_in_executor(
-                None, input, "Void influence level (0-10): "
-            )
-            void_level = int(void_input.strip() or "3")
-        except ValueError:
-            void_level = 3
-            print("Invalid input, using default void level 3")
-        
-        scenario = Scenario(
-            theme=theme,
-            location=location,
-            situation=situation,
-            active_npcs=[],
-            environmental_factors=[],
-            void_level=void_level
-        )
+    def _validate_scenario_against_hint(self, scenario: 'ScenarioSetup', hint: str) -> tuple[bool, list[str]]:
+        """
+        Validate generated scenario against scenario_hint constraints.
 
-        self.current_scenario = scenario
+        Returns:
+            (is_valid, violations) where violations is list of error messages
+        """
+        import re
 
-        # Log scenario to JSONL
-        scenario_data = {
-            'theme': theme,
-            'location': location,
-            'situation': situation,
-            'void_level': void_level
-        }
-        if self.shared_state:
-            mechanics = self.shared_state.get_mechanics_engine()
-            if mechanics and mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_scenario(scenario_data)
+        violations = []
+        hint_lower = hint.lower()
 
-        # Broadcast scenario
-        self.send_message_sync(
-            MessageType.SCENARIO_SETUP,
-            None,
-            {
-                'scenario': scenario_data,
-                'opening_narration': input("Opening narration: ").strip()
-            }
-        )
+        # Extract and validate void_level requirement
+        if 'void_level' in hint_lower or 'void level' in hint_lower:
+            match = re.search(r'void[_ ]level\s*(\d+)', hint_lower)
+            if match:
+                required_void_level = int(match.group(1))
+                if scenario.void_level != required_void_level:
+                    violations.append(
+                        f"void_level mismatch: hint requires {required_void_level}, "
+                        f"got {scenario.void_level}"
+                    )
+
+        # Validate prohibited elements - NO enemies
+        if 'no spawn_enemy' in hint_lower or 'no enemies' in hint_lower:
+            if scenario.initial_enemies:
+                violations.append(
+                    f"Prohibited element 'enemies': scenario has {len(scenario.initial_enemies)} enemies "
+                    f"but hint says NO enemies"
+                )
+
+        # Validate location keywords
+        location_lower = scenario.location.lower()
+
+        # Check for specific location requirements
+        location_keywords = []
+        if 'mining station' in hint_lower:
+            location_keywords.append('mining')
+        if 'terminus outpost' in hint_lower:
+            location_keywords.extend(['terminus', 'outpost'])
+        if 'resonance spire' in hint_lower:
+            location_keywords.extend(['resonance', 'spire'])
+        if 'tempest' in hint_lower and 'facility' in hint_lower:
+            location_keywords.extend(['tempest'])
+        if 'arcane genetics' in hint_lower or 'arcgen' in hint_lower:
+            location_keywords.append('arcgen')
+
+        for keyword in location_keywords:
+            if keyword not in location_lower:
+                violations.append(
+                    f"Required location keyword '{keyword}' not found in location: {scenario.location}"
+                )
+
+        return (len(violations) == 0, violations)
 
     async def _generate_scenario_structured(
         self,
         scenario_prompt: str,
-        system_prompt: str = "You are the DM for Aeonisk YAGS, creating an engaging scenario."
+        system_prompt: str = "You are the DM for Aeonisk YAGS, creating an engaging scenario.",
+        scenario_hint: str = ""
     ) -> Optional['ScenarioSetup']:
         """
         Generate scenario using Pydantic AI structured output (ScenarioSetup schema).
         Returns ScenarioSetup if successful, or None to fall back to legacy text parsing.
+
+        If scenario_hint is provided, validates generated scenario and retries up to 3 times on violation.
         """
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
             logger.debug("DM: No llm_provider available for scenario generation, will use legacy method")
@@ -889,40 +1630,59 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             logger.debug("DM: Attempting structured output for scenario generation")
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 1000
-            temperature = 0.9
+            max_tokens = 5000  # Large buffer for complex scenarios with multiple clocks
+            temperature = 1.0  # OpenAI structured output requires 1.0, Claude allows other values
 
-            # Generate structured scenario using Pydantic AI
-            scenario: ScenarioSetup = await self.llm_provider.generate_structured(
-                prompt=scenario_prompt,
-                result_type=ScenarioSetup,
-                system_prompt=system_prompt,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
+            # Enhance system prompt if scenario_hint provided
+            if scenario_hint:
+                system_prompt += (
+                    " Your scenario MUST match the BINDING SCENARIO CONSTRAINTS in the prompt. "
+                    "Violations will cause regeneration. Pay special attention to void_level (must match exactly), "
+                    "prohibited elements (NO SPAWN_ENEMY means zero enemies), and required locations/NPCs."
+                )
+
+            # Retry loop for validation
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                # Generate structured scenario using Pydantic AI
+                # Token tracking now handled internally
+                scenario: ScenarioSetup = await self.llm_provider.generate_structured(
+                    prompt=scenario_prompt,
+                    result_type=ScenarioSetup,
+                    system_prompt=system_prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    llm_logger=self.llm_logger,  # Enable automatic token tracking
+                    current_round=None  # Scenario generation happens before round 1
+                )
+
+                # Validate scenario against hint if provided
+                if scenario_hint:
+                    is_valid, violations = self._validate_scenario_against_hint(scenario, scenario_hint)
+                    if not is_valid:
+                        logger.warning(
+                            f"DM: Scenario validation failed (attempt {attempt + 1}/{max_attempts}): "
+                            f"{', '.join(violations)}"
+                        )
+                        if attempt < max_attempts - 1:
+                            logger.info("DM: Retrying scenario generation...")
+                            continue
+                        else:
+                            raise RuntimeError(
+                                f"Scenario generation failed validation after {max_attempts} attempts. "
+                                f"Violations: {', '.join(violations)}"
+                            )
+                    else:
+                        logger.info("DM: Scenario passed validation checks")
+
+                # Scenario is valid or no hint provided - break retry loop
+                break
 
             logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
 
-            # Log LLM call for replay
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = len(scenario_prompt) // 4
-                estimated_output_tokens = (
-                    len(scenario.theme) + len(scenario.location) +
-                    len(scenario.situation) + len(scenario.success_conditions)
-                ) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": scenario_prompt}
-                    ],
-                    response=scenario.situation,  # Store situation as representative response
-                    model=model,
-                    temperature=temperature,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=None,  # Scenario generation happens before round 1
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
             # Also log to agent prompt logger if enabled
@@ -1350,6 +2110,84 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
         return conflicts
 
+    def _load_persistent_vendors(self, config: Dict[str, Any]) -> List[Vendor]:
+        """
+        Load persistent vendors from session config.
+
+        Config format:
+        ```json
+        {
+          "persistent_vendors": [
+            {
+              "name": "Black Market Dealer \"Vex\"",
+              "type": "human_trader",
+              "faction": "Freeborn",
+              "greeting": "Need offerings? ...",
+              "inventory": [
+                {"name": "Blood Offering", "description": "...", "price": {"drip": 8}},
+                {"name": "Incense", "description": "...", "price": {"spark": 1, "drip": 2}}
+              ],
+              "buys_from_players": true,
+              "buy_prices": {
+                "blood_offering": {"drip": 5},
+                "crystals": {"drip": 7}
+              }
+            }
+          ]
+        }
+        ```
+        """
+        from .energy_economy import VendorItem, VendorType
+
+        persistent_vendor_configs = config.get('persistent_vendors', [])
+        vendors = []
+
+        for vendor_config in persistent_vendor_configs:
+            try:
+                # Parse vendor type
+                vendor_type_str = vendor_config.get('type', 'human_trader')
+                vendor_type = VendorType(vendor_type_str)
+
+                # Parse inventory items
+                inventory = []
+                for item_config in vendor_config.get('inventory', []):
+                    # Support both flat format (price_drip: 5) and nested format (price: {drip: 5})
+                    price_dict = item_config.get('price', {})
+                    item = VendorItem(
+                        name=item_config['name'],
+                        description=item_config.get('description', ''),
+                        item_id=item_config.get('item_id'),  # FIX: Pass item_id from config
+                        price_spark=item_config.get('price_spark', price_dict.get('spark', 0)),
+                        price_drip=item_config.get('price_drip', price_dict.get('drip', 0)),
+                        price_breath=item_config.get('price_breath', price_dict.get('breath', 0)),
+                        seed_barter=item_config.get('seed_barter', False),
+                        item_type=item_config.get('item_type', 'consumable')
+                    )
+                    inventory.append(item)
+
+                # Create vendor
+                vendor = Vendor(
+                    name=vendor_config['name'],
+                    faction=vendor_config.get('faction', 'Neutral'),
+                    inventory=inventory,
+                    greeting=vendor_config.get('greeting', 'Looking to trade?'),
+                    vendor_type=vendor_type,
+                    vendor_id=vendor_config.get('vendor_id')  # FIX: Pass vendor_id from config
+                )
+
+                # Store buy prices for future feature (vendor buy-back system)
+                vendor.buys_from_players = vendor_config.get('buys_from_players', False)
+                vendor.buy_prices = vendor_config.get('buy_prices', {})
+
+                vendors.append(vendor)
+                logger.info(f"Loaded persistent vendor: {vendor.name} ({len(inventory)} items)")
+
+            except Exception as e:
+                logger.error(f"Failed to load persistent vendor '{vendor_config.get('name', 'unknown')}': {e}")
+                continue
+
+        return vendors
+
     def _select_contextual_vendor(self, scenario_theme: str) -> Optional[Vendor]:
         """
         Select vendor based on scenario context.
@@ -1419,11 +2257,17 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             narration += f"\n   Required item: **{scenario.required_purchase}**"
 
         # Add vendor description if present
-        if scenario.active_vendor:
-            if scenario.required_purchase:
-                narration += f"\n\nFortunately, {scenario.active_vendor.name} is nearby - a {scenario.active_vendor.faction} {scenario.active_vendor.vendor_type.value}. They may have what you need."
+        if scenario.active_vendors:
+            if len(scenario.active_vendors) == 1:
+                vendor = scenario.active_vendors[0]
+                if scenario.required_purchase:
+                    narration += f"\n\nFortunately, {vendor.name} is nearby - a {vendor.faction} {vendor.vendor_type.value}. They may have what you need."
+                else:
+                    narration += f"\n\nNearby, you notice {vendor.name}, a {vendor.faction} trader. They seem to have goods for sale or barter."
             else:
-                narration += f"\n\nNearby, you notice {scenario.active_vendor.name}, a {scenario.active_vendor.faction} trader. They seem to have goods for sale or barter."
+                narration += f"\n\nSeveral vendors are present:"
+                for vendor in scenario.active_vendors:
+                    narration += f"\n- {vendor.name} ({vendor.faction} {vendor.vendor_type.value})"
 
         narration += "\n\nWhat do you do?"
         return narration.strip()
@@ -1454,10 +2298,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         elif phase == 'resolution':
             # Old resolution phase (kept for compatibility)
             action = payload.get('action', payload)
-            if self.human_controlled:
-                await self._handle_human_dm_response(player_id, action)
-            else:
-                await self._handle_ai_dm_response(player_id, action)
+            await self._handle_ai_dm_response(player_id, action)
             return
 
         else:
@@ -1476,12 +2317,20 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
         resolutions = payload.get('resolutions', [])
         round_num = payload.get('round', 0)
         resolution_state = payload.get('resolution_state')  # Extract resolution state for fled NPCs tracking
+        expired_clocks = payload.get('expired_clocks', [])  # Extract expired clocks from clock update phase
+        entity_lifecycle_result = payload.get('entity_lifecycle_result')  # Extract entity lifecycle (morale, spawns, conversions)
 
         if not resolutions:
             return
 
         # Generate synthesis (can be RoundSynthesis object or str)
-        synthesis = await self._synthesize_round_outcome(resolutions, round_num, resolution_state=resolution_state)
+        synthesis = await self._synthesize_round_outcome(
+            resolutions,
+            round_num,
+            resolution_state=resolution_state,
+            expired_clocks=expired_clocks,
+            entity_lifecycle_result=entity_lifecycle_result
+        )
 
         # Import RoundSynthesis for type checking
         from .schemas.story_events import RoundSynthesis
@@ -1516,97 +2365,16 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             payload_data
         )
 
-    def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Extract complete character sheet data for ML training logging.
-
-        Matches dataset guidelines format:
-        - attributes (all 9 attributes as dict)
-        - skills (all non-zero skills as dict)
-        - void (current corruption level)
-        - wounds (list of wound descriptions)
-        - status_effects (list of active conditions)
-        - soulcredit (current balance)
-
-        Returns None if character not found.
-        """
-        if not self.shared_state or not hasattr(self.shared_state, 'player_agents'):
-            return None
-
-        # Find the player agent
-        player_agent = None
-        for agent in self.shared_state.player_agents:
-            if hasattr(agent, 'agent_id') and agent.agent_id == player_id:
-                player_agent = agent
-                break
-
-        if not player_agent or not hasattr(player_agent, 'character_state'):
-            return None
-
-        char = player_agent.character_state
-
-        # Extract attributes (handle both object and dict formats, and both casings)
-        attributes = {}
-        if hasattr(char, 'attributes'):
-            if isinstance(char.attributes, dict):
-                # attributes is already a dict - try both lowercase and Title case
-                attrs_dict = char.attributes
-                attributes = {
-                    'strength': attrs_dict.get('strength') or attrs_dict.get('Strength', 0),
-                    'agility': attrs_dict.get('agility') or attrs_dict.get('Agility', 0),
-                    'endurance': attrs_dict.get('endurance') or attrs_dict.get('Endurance', 0),
-                    'perception': attrs_dict.get('perception') or attrs_dict.get('Perception', 0),
-                    'intelligence': attrs_dict.get('intelligence') or attrs_dict.get('Intelligence', 0),
-                    'empathy': attrs_dict.get('empathy') or attrs_dict.get('Empathy', 0),
-                    'willpower': attrs_dict.get('willpower') or attrs_dict.get('Willpower', 0),
-                    'charisma': attrs_dict.get('charisma') or attrs_dict.get('Charisma', 0),
-                    'size': attrs_dict.get('size') or attrs_dict.get('Size', 10)  # YAGS default size is 10
-                }
-            else:
-                # attributes is an object
-                attributes = {
-                    'strength': getattr(char.attributes, 'strength', getattr(char.attributes, 'Strength', 0)),
-                    'agility': getattr(char.attributes, 'agility', getattr(char.attributes, 'Agility', 0)),
-                    'endurance': getattr(char.attributes, 'endurance', getattr(char.attributes, 'Endurance', 0)),
-                    'perception': getattr(char.attributes, 'perception', getattr(char.attributes, 'Perception', 0)),
-                    'intelligence': getattr(char.attributes, 'intelligence', getattr(char.attributes, 'Intelligence', 0)),
-                    'empathy': getattr(char.attributes, 'empathy', getattr(char.attributes, 'Empathy', 0)),
-                    'willpower': getattr(char.attributes, 'willpower', getattr(char.attributes, 'Willpower', 0)),
-                    'charisma': getattr(char.attributes, 'charisma', getattr(char.attributes, 'Charisma', 0)),
-                    'size': getattr(char.attributes, 'size', getattr(char.attributes, 'Size', 10))
-                }
-
-        # Extract skills (only non-zero)
-        skills = {}
-        if hasattr(char, 'skills'):
-            for skill_name, skill_value in char.skills.items():
-                if skill_value > 0:
-                    # Convert to lowercase with underscores for dataset format
-                    skill_key = skill_name.lower().replace(' ', '_')
-                    skills[skill_key] = skill_value
-
-        # Extract void, wounds, status effects
-        void_score = char.void if hasattr(char, 'void') else 0
-        wounds = []
-        if hasattr(char, 'wounds'):
-            for wound in char.wounds:
-                wounds.append(f"{wound.description} (-{wound.penalty})" if hasattr(wound, 'penalty') else wound.description)
-
-        status_effects = []
-        if hasattr(char, 'status_effects'):
-            status_effects = list(char.status_effects)
-
-        soulcredit = char.soulcredit if hasattr(char, 'soulcredit') else 0
-
-        return {
-            'name': char.name if hasattr(char, 'name') else 'Unknown',
-            'attributes': attributes,
-            'skills': skills,
-            'void': void_score,
-            'wounds': wounds,
-            'status_effects': status_effects,
-            'soulcredit': soulcredit
-        }
+    # REMOVED: _extract_character_data() - no longer used
+    # Character data now reconstructed from character_state events in ML pipeline
+    # Saves ~7,200 tokens/session by avoiding duplication in action_resolution events
+    #
+    # def _extract_character_data(self, player_id: str) -> Optional[Dict[str, Any]]:
+    #     """
+    #     Extract complete character sheet data for ML training logging.
+    #     ...
+    #     """
+    #     pass
 
     def _generate_environment_description(self, player_id: str) -> str:
         """
@@ -1874,7 +2642,10 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         "initiative": initiative,
                         "clock_deltas": clock_deltas,  # Include clock before/after/reason
                         "clock_sources": clock_sources,  # Include source for each clock change
-                        "target": action.get('target')  # Target ID for combat/social actions
+                        "target": action.get('target'),  # Target ID for combat/social actions
+                        # FIX: Add damage_effects from state_changes (for JSONL logging)
+                        # NOTE: void changes already tracked via economy.void_delta + void_triggers
+                        "damage_effects": state_changes.get('damage_effects', [])
                     }
 
                     # Add ritual context if this was a ritual
@@ -1894,8 +2665,9 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                         context['prompt_metadata'] = self._last_prompt_metadata.to_dict()
 
-                    # Extract character data for ML training (dataset guidelines)
-                    character_data = self._extract_character_data(player_id)
+                    # REMOVED: character_data extraction (redundant with character_state events)
+                    # Saves ~7,200 tokens/session by avoiding duplication
+                    # ML pipeline can reconstruct from character_state snapshots instead
 
                     # Extract goal from action intent/description
                     goal = action.get('intent') or action.get('description', 'Unknown goal')
@@ -1910,6 +2682,11 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     # NOTE: action_resolution is from mechanics, not structured output
                     # We need to check self._last_structured_resolution instead
                     outcome_tiers_with_narratives = None
+                    purchase_data = None
+                    crafting_data = None
+                    attunement_data = None
+                    currency_transfer_data = None
+                    item_transfer_data = None
                     if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                         if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                             # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -1919,6 +2696,25 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                                     'narrative': explanation.narrative,
                                     'mechanical_effect': explanation.mechanical_effect
                                 }
+
+                        # Extract purchase, crafting, transfer data from effects
+                        if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
+                            effects_data = self._last_structured_resolution.effects
+                            if hasattr(effects_data, 'purchase') and effects_data.purchase:
+                                # Convert Pydantic model to dict for JSON serialization
+                                purchase_data = effects_data.purchase.model_dump()
+                            if hasattr(effects_data, 'crafting') and effects_data.crafting:
+                                # Convert Pydantic model to dict for JSON serialization
+                                crafting_data = effects_data.crafting.model_dump()
+                            if hasattr(effects_data, 'attunement') and effects_data.attunement:
+                                # Convert Pydantic model to dict for JSON serialization
+                                attunement_data = effects_data.attunement.model_dump()
+                            if hasattr(effects_data, 'currency_transfer') and effects_data.currency_transfer:
+                                # Convert Pydantic model to dict for JSON serialization
+                                currency_transfer_data = effects_data.currency_transfer.model_dump()
+                            if hasattr(effects_data, 'item_transfer') and effects_data.item_transfer:
+                                # Convert Pydantic model to dict for JSON serialization
+                                item_transfer_data = effects_data.item_transfer.model_dump()
 
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
@@ -1931,8 +2727,13 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                         effects=effects,
                         context=context,
                         inventory_changes=inventory_changes,  # Pass offering consumption tracking
+                        purchase_data=purchase_data,  # Pass purchase transaction data
+                        crafting_data=crafting_data,  # Pass crafting attempt data
+                        attunement_data=attunement_data,  # Pass attunement ritual data
+                        currency_transfer_data=currency_transfer_data,  # Pass currency transfer data
+                        item_transfer_data=item_transfer_data,  # Pass item transfer data
                         # ML training fields (dataset guidelines compliance)
-                        character_data=character_data,
+                        # character_data removed - redundant with character_state events
                         environment=environment,
                         stakes=stakes,
                         goal=goal,
@@ -1944,7 +2745,7 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                     # Track action for round summary statistics
                     if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
                         self.shared_state.session.track_action_resolution(
-                            success=action_resolution.success,
+                            success=_resolution_success(action_resolution),
                             margin=action_resolution.margin
                         )
 
@@ -1983,7 +2784,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
                 'initiative': res['initiative'],
                 'action': res['action'],
                 'resolution': res['resolution']['outcome'],  # Use serialized outcome instead of raw resolution
-                'narration': res['resolution']['narration']  # CRITICAL: Include narration so DM sees it during synthesis
+                'narration': res['resolution']['narration'],  # CRITICAL: Include narration so DM sees it during synthesis
+                'effects': res['resolution'].get('effects')  # CRITICAL: Include purchase/crafting effects for session.py processing
             }
 
             self.send_message_sync(
@@ -2071,44 +2873,36 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
             logger.debug("DM: Attempting structured output for round synthesis")
 
-            system_prompt = "You are the DM for Aeonisk YAGS, synthesizing a round of actions."
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = self.llm_config.get('max_tokens', 2000)
+            max_tokens = self.llm_config.get('max_tokens', 6000)  # RoundSynthesis needs more tokens (OpenAI especially verbose)
             temperature = self.llm_config.get('temperature', 0.8)
 
-            # Get current round for logging
+            # Get current round for logging and display
             current_round = None
             if self.shared_state and self.shared_state.mechanics_engine:
                 current_round = self.shared_state.mechanics_engine.current_round
 
+            # Include round number in system prompt to help DM track pacing
+            round_display = f" **Session Round {current_round}**" if current_round is not None else ""
+            system_prompt = f"You are the DM for Aeonisk YAGS, synthesizing a round of actions.{round_display}"
+
             # Generate structured synthesis using Pydantic AI
+            # Token tracking now handled internally
             synthesis: RoundSynthesis = await self.llm_provider.generate_structured(
                 prompt=prompt,
                 result_type=RoundSynthesis,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=current_round
             )
 
-            logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, {len(synthesis.enemy_spawns)} spawns, story_advance={synthesis.story_advancement is not None}")
+            logger.debug(f"✓ DM structured synthesis: {len(synthesis.narration)} chars, story_advance={synthesis.story_advancement is not None}")
 
-            # Log LLM call for replay (synthesis path)
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
             if self.llm_logger:
-                estimated_input_tokens = len(prompt) // 4
-                estimated_output_tokens = len(synthesis.narration) // 4
-
-                self.llm_logger._log_llm_call(
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": prompt}
-                    ],
-                    response=synthesis.narration,
-                    model=model,
-                    temperature=temperature,
-                    tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                    current_round=current_round,
-                    call_sequence=self.llm_logger.call_count
-                )
                 self.llm_logger.call_count += 1
 
             # Also log to human-readable agent prompt log if enabled
@@ -2134,7 +2928,212 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             logger.error(f"DM: Structured synthesis failed: {type(e).__name__}: {e}")
             return None
 
-    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None):
+    async def check_conversions(self, round_number: int, resolution_summary: str, pre_round: bool = False, existing_entities: dict = None):
+        """
+        Separate conversion check phase - determine which enemies/NPCs should convert.
+
+        Called AFTER all action resolutions, BEFORE synthesis.
+        This allows the DM to focus solely on conversion decisions without
+        mixing narrative synthesis responsibilities.
+
+        Can also be called in PRE-ROUND mode (before round 1) to populate the scene
+        with additional entities based on the scenario.
+
+        Args:
+            round_number: Current round number (0 for pre-round)
+            resolution_summary: Summary of all action resolutions this round
+            pre_round: If True, this is pre-round setup (no combat yet)
+            existing_entities: Dict with 'npcs' and 'enemies' lists of already-spawned IDs
+
+        Returns:
+            ConversionDecisions with enemy_conversions, escalations, npc_spawns
+
+        Raises:
+            RuntimeError: If llm_provider not initialized (replay mode)
+        """
+        from .schemas.story_events import ConversionDecisions
+        import yaml
+        import os
+
+        mode_str = "pre-round setup" if pre_round else f"round {round_number}"
+        logger.debug(f"DM: Running conversion check for {mode_str}")
+
+        # For pre-round mode, modify resolution_summary to indicate setup phase
+        if pre_round:
+            # Build context about what's already been spawned from config
+            existing_context = ""
+            if existing_entities:
+                if existing_entities.get('npcs'):
+                    existing_context += f"\nAlready spawned NPCs: {', '.join(existing_entities['npcs'])}"
+                if existing_entities.get('enemies'):
+                    existing_context += f"\nAlready spawned enemies: {', '.join(existing_entities['enemies'])}"
+
+            resolution_summary = f"""PRE-ROUND SETUP PHASE
+No combat has occurred yet. The scenario has just been established.
+
+Your task is to populate the scene with appropriate entities that would naturally be present:
+- Vendors, merchants, or service providers appropriate to the location
+- Bystanders, civilians, or background NPCs that add atmosphere
+- Environmental objects that players can interact with (terminals, containers, etc.)
+- Patrols or guards that would logically be present (as enemies if hostile)
+
+IMPORTANT: Do NOT spawn entities that duplicate what's already present.
+{existing_context}
+
+Focus on what makes sense for the location and scenario theme.
+Do NOT spawn enemy conversions or escalations (no combat has happened yet)."""
+
+        # 1. Build available enemies list
+        available_enemies = []
+        if self.shared_state:
+            enemy_combat = self.shared_state.enemy_combat
+            if enemy_combat and hasattr(enemy_combat, 'enemy_agents'):
+                for enemy in enemy_combat.enemy_agents:
+                    if enemy.is_active:  # Only active enemies (not defeated/retreated)
+                        health_pct = int((enemy.health / enemy.max_health) * 100) if enemy.max_health > 0 else 0
+
+                        # Flag low HP enemies as conversion candidates
+                        is_candidate = health_pct < 30
+                        marker = "🎯 CANDIDATE" if is_candidate else ""
+
+                        available_enemies.append(
+                            f"{enemy.agent_id} ({enemy.name}, {health_pct}% HP) {marker}".strip()
+                        )
+
+        # 2. Build available NPCs list
+        available_npcs = []
+        if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                health_pct = int((npc.health / npc.max_health) * 100) if hasattr(npc, 'max_health') and npc.max_health > 0 else 100
+
+                # Flag NPCs who took damage (escalation candidates)
+                took_damage = health_pct < 100
+                marker = "⚠️ TOOK DAMAGE" if took_damage else ""
+
+                available_npcs.append(
+                    f"{npc.agent_id} ({npc.name}, {npc.disposition}, {health_pct}% HP) {marker}".strip()
+                )
+
+        # 3. Build player character names list
+        player_characters = []
+        if self.shared_state and hasattr(self.shared_state, 'session'):
+            session = self.shared_state.session
+            if hasattr(session, 'agents'):
+                from .player import AIPlayerAgent
+                for agent in session.agents:
+                    if isinstance(agent, AIPlayerAgent):
+                        if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'name'):
+                            player_characters.append(agent.character_state.name)
+
+        # 4. Build scenario context (location, theme, void level, situation, clocks)
+        scenario_context = "Unknown scenario"
+        if self.current_scenario:
+            scenario_context = f"""**Current Scenario:**
+Theme: {self.current_scenario.theme}
+Location: {self.current_scenario.location}
+Situation: {self.current_scenario.situation}
+Void Level: {self.current_scenario.void_level}/10"""
+
+            # Add clock states (show approaching danger and filled clocks)
+            if self.shared_state and self.shared_state.mechanics_engine:
+                clocks = self.shared_state.mechanics_engine.get_all_clocks()
+                if clocks:
+                    clock_lines = []
+                    for clock in clocks:
+                        ticks = clock['current_ticks']
+                        max_ticks = clock['max_ticks']
+                        percent = int((ticks / max_ticks) * 100) if max_ticks > 0 else 0
+
+                        # Flag filled clocks (just completed this round) and near-completion clocks
+                        marker = ""
+                        if clock.get('filled'):
+                            marker = " 🎯 FILLED"
+                        elif percent >= 80:
+                            marker = " ⚠️ CRITICAL"
+                        elif percent >= 60:
+                            marker = " ⚡ HIGH"
+
+                        clock_lines.append(f"  - {clock['name']}: {ticks}/{max_ticks} ({percent}%){marker}")
+
+                    scenario_context += "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
+
+        # 4. Load conversion check prompt from YAML
+        prompt_path = os.path.join(
+            os.path.dirname(__file__),
+            "prompts/claude/en/dm/dm_conversion_check.yaml"
+        )
+
+        with open(prompt_path, 'r') as f:
+            prompt_data = yaml.safe_load(f)
+
+        # 5. Format prompt with context
+        prompt = prompt_data['conversion_check_prompt'].format(
+            scenario_context=scenario_context,
+            player_characters=", ".join(player_characters) if player_characters else "Unknown players",
+            available_enemies="\n".join(available_enemies) if available_enemies else "No active enemies",
+            available_npcs="\n".join(available_npcs) if available_npcs else "No active NPCs",
+            resolution_summary=resolution_summary
+        )
+
+        # 5. Check if llm_provider available (not replay mode)
+        if not self.llm_provider:
+            raise RuntimeError("DM llm_provider not initialized - cannot run conversion check (replay mode?)")
+
+        logger.debug(f"DM: Calling LLM for conversion decisions (round {round_number})")
+
+        # 6. Call LLM with structured output (Pydantic AI)
+        # Token tracking now handled internally
+        try:
+            decisions: ConversionDecisions = await self.llm_provider.generate_structured(
+                prompt=prompt,
+                result_type=ConversionDecisions,
+                system_prompt="You are the DM determining which conversions should occur based on action resolutions.",
+                max_tokens=3000,  # Increased for complex ConversionDecisions schemas
+                temperature=0.7,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=round_number
+            )
+
+            logger.debug(f"✓ DM conversion decisions: {len(decisions.enemy_conversions)} enemy conversions, "
+                        f"{len(decisions.escalations)} NPC escalations, {len(decisions.npc_spawns)} NPC spawns, "
+                        f"{len(decisions.enemy_spawns)} enemy spawns")
+
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
+            if self.llm_logger:
+                self.llm_logger.call_count += 1
+
+            # 8. Also log to human-readable agent prompt log if enabled
+            if self.agent_prompt_logger:
+                try:
+                    system_prompt = "You are the DM determining conversions."
+                    full_prompt = f"System: {system_prompt}\n\nUser: {prompt}"
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=round_number,
+                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=decisions.model_dump_json(indent=2),
+                        model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                        temperature=0.7,
+                        metadata={'purpose': 'entity_lifecycle_conversion_check', 'note': 'Pydantic AI structured output (ConversionDecisions schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+            return decisions
+
+        except Exception as e:
+            logger.error(f"DM: Conversion check failed: {type(e).__name__}: {e}")
+            # Return empty decisions on failure (no conversions)
+            return ConversionDecisions(
+                enemy_conversions=[],
+                escalations=[],
+                npc_spawns=[],
+                reasoning=f"Conversion check failed: {str(e)}"
+            )
+
+    async def _synthesize_round_outcome(self, resolutions: List[Dict[str, Any]], round_num: int, resolution_state=None, expired_clocks=None, entity_lifecycle_result=None):
         """
         Synthesize all resolutions into a cohesive narrative about what happened.
         This is where conflicts are detected and described.
@@ -2143,6 +3142,8 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             resolutions: List of resolved actions this round
             round_num: Current round number
             resolution_state: ResolutionState with fled NPCs tracking (optional)
+            expired_clocks: List of expired clocks from clock update phase (optional)
+            entity_lifecycle_result: EntityLifecycleResult with morale/spawns/conversions (optional)
 
         Returns:
             Either a RoundSynthesis object (structured) or str (legacy fallback)
@@ -2152,6 +3153,22 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
         # Build context about what happened
         outcomes_summary = []
+
+        # Helper to resolve target ID to name (defined once, used for all resolutions)
+        def resolve_target_name(target_id_or_name: str) -> str:
+            """Resolve tgt_xxxx to character name, or return as-is if already a name."""
+            if not target_id_or_name:
+                return 'unknown'
+            if target_id_or_name.startswith('tgt_') and self.shared_state:
+                target_mapper = self.shared_state.get_target_id_mapper()
+                if target_mapper and target_mapper.enabled:
+                    entity = target_mapper.resolve_target(target_id_or_name)
+                    if entity and hasattr(entity, 'name'):
+                        return entity.name
+                    elif entity and hasattr(entity, 'character_state'):
+                        return entity.character_state.name
+            return target_id_or_name
+
         for res in resolutions:
             char_name = res.get('character_name', 'Unknown')
 
@@ -2170,16 +3187,23 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
 
             # Handle action field - can be dict (PC actions) or string (enemy actions)
             action = res.get('action', {})
+            target_info = ""
             if isinstance(action, dict):
                 # PC action format: action is a dict with 'intent' or 'description'
                 intent = action.get('intent', action.get('description', 'unknown action'))
+                # Extract target from PC action and resolve to name
+                action_target = action.get('target', '')
+                if action_target:
+                    resolved_target = resolve_target_name(action_target)
+                    target_info = f" → targeting {resolved_target}"
             else:
                 # Enemy action format: action is a string like 'attack', 'move', etc.
                 intent = str(action)
                 # Make it more readable
                 if intent == 'attack':
                     target = res.get('target', 'unknown target')
-                    intent = f"attacked {target}"
+                    resolved_target = resolve_target_name(target)
+                    intent = f"attacked {resolved_target}"
                 elif intent == 'hold':
                     intent = "held position"
 
@@ -2195,31 +3219,64 @@ YOU MUST FOLLOW THESE CONSTRAINTS EXACTLY. They override all other instructions 
             else:
                 status = "succeeded" if success else "failed"
 
-            # CRITICAL: Include narration from individual resolution so DM can maintain consistency
+            # NEW: Extract damage and healing effects from resolution
+            effects_info = ""
+
+            # Check PC action effects (structured output format)
+            resolution_dict = res.get('resolution', {})
+            effects = resolution_dict.get('effects', {})
+            if effects:
+                # Extract damage dealt
+                damage_list = effects.get('damage', [])
+                for dmg in damage_list:
+                    if isinstance(dmg, dict):
+                        dmg_target = resolve_target_name(dmg.get('target', 'unknown'))
+                        dmg_dealt = dmg.get('dealt', 0)
+                        effects_info += f"\n  💥 {dmg_dealt} damage dealt to {dmg_target}"
+
+                # Extract healing applied
+                healing_list = effects.get('healing', [])
+                for heal in healing_list:
+                    if isinstance(heal, dict):
+                        heal_target = resolve_target_name(heal.get('target', 'unknown'))
+                        heal_hp = heal.get('hp', 0)
+                        if heal_hp:
+                            effects_info += f"\n  💚 {heal_hp} HP healed on {heal_target}"
+
+            # Also check enemy action damage (top-level fields, not in resolution.effects)
+            if not effects_info and res.get('damage_dealt'):
+                dmg_target = resolve_target_name(res.get('target', 'unknown'))
+                dmg_dealt = res.get('damage_dealt', 0)
+                effects_info += f"\n  💥 {dmg_dealt} damage dealt to {dmg_target}"
+
+            # CRITICAL: Include full narration from individual resolution so DM can maintain consistency
             narration = res.get('narration', '')
             if narration:
-                # Truncate very long narrations to keep synthesis prompt focused
-                narration_preview = narration[:500] + "..." if len(narration) > 500 else narration
-                outcomes_summary.append(f"- {char_name} {status} at: {intent}\n  Resolution: {narration_preview}")
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}{target_info}{effects_info}\n  Resolution: {narration}")
             else:
-                outcomes_summary.append(f"- {char_name} {status} at: {intent}")
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}{target_info}{effects_info}")
 
         outcomes_text = "\n".join(outcomes_summary)
 
-        # Apply all queued clock updates (batch application prevents cascade fills)
-        clock_updates_applied = {}
-        expired_clocks = []
-        if self.shared_state:
-            mechanics = self.shared_state.get_mechanics_engine()
-            if mechanics:
-                clock_updates_applied = mechanics.apply_queued_clock_updates()
-                if clock_updates_applied:
-                    logger.debug(f"Applied {len(clock_updates_applied)} queued clock updates during synthesis")
+        # NEW: Track casualties - check for dead/defeated characters
+        casualties_this_round = []
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            for player in self.shared_state.get_all_players():
+                if hasattr(player, 'health') and player.health is not None and player.health <= 0:
+                    casualties_this_round.append(player.character_state.name)
 
-                # Check for expired clocks after applying updates
-                expired_clocks = mechanics.check_and_expire_clocks()
-                if expired_clocks:
-                    logger.warning(f"Found {len(expired_clocks)} expired clocks: {[c['clock_name'] for c in expired_clocks]}")
+        # Add casualty alert to outcomes text if anyone died
+        if casualties_this_round:
+            casualties_alert = f"\n\n💀 **CASUALTIES THIS ROUND:** {', '.join(casualties_this_round)}"
+            casualties_alert += "\n⚠️ CRITICAL: Explicitly NAME the dead character(s) in your synthesis!"
+            casualties_alert += "\nDO NOT use vague phrases like 'a figure fell' - use their actual name!"
+            outcomes_text += casualties_alert
+
+        # NOTE: Clock updates are now applied BEFORE conversion check (in session.py)
+        # This allows conversion check to see filled clocks and make informed spawn decisions
+        # expired_clocks are passed from session.py after clock update phase
+        if expired_clocks is None:
+            expired_clocks = []
 
         # Build expired clocks text for DM prompt
         expired_clocks_text = ""
@@ -2542,7 +3599,9 @@ enemy_spawns=[
 
                     # Update de-escalation instruction based on mode
                     if target_id_mapper and target_id_mapper.enabled:
-                        enemy_status_context += "\n\n⚠️  For structured output: Use target IDs (e.g., tgt_7a3f) in damage/conditions. For deescalations, use agent_id (e.g., enemy_grunt_adbb6db0)"
+                        enemy_status_context += "\n\n⚠️  MECHANICAL FIELDS: Use target IDs (e.g., tgt_7a3f) in damage/conditions fields."
+                        enemy_status_context += "\n⚠️  NARRATIVE TEXT: Use character NAMES (e.g., 'Security Guard') in narration, NOT target IDs."
+                        enemy_status_context += "\n⚠️  For deescalations, use agent_id (e.g., enemy_grunt_adbb6db0), NOT target IDs."
                     else:
                         enemy_status_context += "\n\n⚠️  If enemies surrender/calm down, use `deescalations` field with their exact agent_id (e.g., enemy_grunt_adbb6db0)"
 
@@ -2564,6 +3623,35 @@ enemy_spawns=[
                 npc_status_context = "\n\n**Active NPCs:**\n" + "\n".join(npc_lines)
                 npc_status_context += "\n\n⚠️  If NPCs become hostile, use `escalations` field with their exact agent_id\n⚠️  Check NPC personalities for escalation triggers (paranoia, low thresholds, etc.)"
 
+        # Build player health status context (for injury/casualty awareness)
+        player_status_context = ""
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            player_agents = self.shared_state.get_all_players()
+            if player_agents:
+                player_lines = []
+                for player in player_agents:
+                    health_pct = (player.health / player.max_health * 100) if player.max_health > 0 else 0
+
+                    # Status indicator
+                    if health_pct <= 20:
+                        status_flag = " ⚠️ CRITICAL"
+                    elif health_pct <= 50:
+                        status_flag = " (Bloodied)"
+                    elif health_pct <= 75:
+                        status_flag = " (Wounded)"
+                    else:
+                        status_flag = ""
+
+                    # Wound information
+                    wounds = getattr(player, 'wounds', 0)
+                    wounds_text = f"{wounds} wounds" if wounds > 0 else "no wounds"
+
+                    player_lines.append(f"  - {player.character_state.name}: {player.health}/{player.max_health} HP ({health_pct:.0f}%), {wounds_text}{status_flag}")
+
+                player_status_context = "\n\n**Party Health Status:**\n" + "\n".join(player_lines)
+                player_status_context += "\n\n⚠️  IMPORTANT: If players took significant damage this round, MENTION their injuries in your narration!"
+                player_status_context += "\n⚠️  Players near death (≤20% HP) or critically wounded (≥4 wounds) should be described struggling/desperate."
+
         # Build fled NPCs context (for narrative consistency)
         fled_npcs_context = ""
         if resolution_state and hasattr(resolution_state, 'fled_npcs') and resolution_state.fled_npcs:
@@ -2578,6 +3666,36 @@ enemy_spawns=[
                 fled_npcs_context += "The following NPCs fled/left the scene earlier this round:\n"
                 fled_npcs_context += "\n".join([f"  - {name}" for name in fled_npc_names])
                 fled_npcs_context += "\n\n**CRITICAL:** Do NOT narrate fled NPCs as present in the scene. They have left and cannot interact with players."
+
+        # Build entity lifecycle context (morale, spawns, conversions)
+        entity_lifecycle_context = ""
+        if entity_lifecycle_result:
+            # Reconstruct EntityLifecycleResult if it's a dict (from message serialization)
+            from .schemas.story_events import EntityLifecycleResult
+            if isinstance(entity_lifecycle_result, dict):
+                # Manually reconstruct from dict
+                lifecycle_obj = EntityLifecycleResult(
+                    morale_events=entity_lifecycle_result.get('morale_events', []),
+                    conversion_decisions=entity_lifecycle_result.get('conversion_decisions'),
+                    enemies_spawned=entity_lifecycle_result.get('enemies_spawned', []),
+                    npcs_spawned=entity_lifecycle_result.get('npcs_spawned', []),
+                    enemies_converted=entity_lifecycle_result.get('enemies_converted', []),
+                    npcs_escalated=entity_lifecycle_result.get('npcs_escalated', []),
+                    npcs_departed=entity_lifecycle_result.get('npcs_departed', [])
+                )
+            else:
+                lifecycle_obj = entity_lifecycle_result
+
+            lifecycle_summary = lifecycle_obj.to_synthesis_context()
+            if lifecycle_summary != "Entity Lifecycle: No changes":
+                entity_lifecycle_context = f"\n\n**{lifecycle_summary}**\n"
+                entity_lifecycle_context += "⚠️  These entity state changes have ALREADY occurred. Your narration should be consistent with them.\n"
+
+                # Add detailed morale events if present
+                if lifecycle_obj.morale_events:
+                    entity_lifecycle_context += "\n**Morale Events:**\n"
+                    for event in lifecycle_obj.morale_events:
+                        entity_lifecycle_context += f"  - {event['character_name']}: {event['type']} ({event.get('narration', '')})\n"
 
         # Check if story advancement is needed (all clocks complete)
         story_advancement_prompt = ""
@@ -2636,15 +3754,95 @@ story_advancement=StoryAdvancement(
 
 **What they tried to do:**
 {outcomes_text}
+{player_status_context}
 {clock_state_text}
 {filled_clocks_text}
 {expired_clocks_text}
 {enemy_status_context}
 {npc_status_context}
 {fled_npcs_context}
+{entity_lifecycle_context}
 {story_advancement_prompt}
 
-**Your task:** Write a cohesive narrative (1-2 paragraphs) synthesizing these individual resolutions into a unified round outcome.
+**⚠️ CRITICAL - ENTITY LIFECYCLE:**
+All entity spawns, conversions, and lifecycle changes were ALREADY HANDLED in the Entity Lifecycle Phase (before synthesis).
+The RoundSynthesis schema NO LONGER has enemy_spawns, enemy_conversions, npc_spawns, or escalations fields.
+Your narration should describe these changes narratively (they're shown in the context above), but you don't trigger them mechanically.
+
+**⚠️ CLOCKS ARE DIFFERENT - YOU CAN STILL SPAWN THEM:**
+
+Unlike entities (handled in Entity Lifecycle Phase), **spawning NEW clocks is YOUR responsibility** in synthesis!
+
+**Use ScenePivot.new_clocks for minor complications (same location):**
+- Failed actions trigger countermeasures → "Security Alert" clock spawns (max_ticks=6)
+- Successful loud actions attract attention → "ACG Investigation" clock spawns (max_ticks=8)
+- Filled clocks create new pressures → "Alarm" fills → "Reinforcements En Route" spawns (max_ticks=4)
+- Scene feels static (2-3 rounds, no new clocks) → Add complication clock
+
+**Use StoryAdvancement.new_clocks for major transitions (new location/chapter):**
+- Story beats complete → New situation with 2-4 fresh clocks
+- Location changes via StoryAdvancement → Clocks for new threats/objectives at new location
+- Critical filled clock triggers chapter shift → New clocks for escalated stakes
+
+**When to spawn clocks:**
+✅ Every 2-3 rounds if no new clocks recently spawned (prevents static scenarios)
+✅ Filled clocks create cascading consequences ("Breach" fills → "Evacuation" + "Containment Failure" spawn)
+✅ Player successes/failures open new complications (steal data → "Corporate Trackers" spawns)
+✅ Environmental changes (ritual backfires → "Void Manifestation" spawns)
+❌ Don't spawn if you just spawned 2+ clocks last round (pacing, avoid overwhelming players)
+
+**Example - Failed Stealth (same location):**
+```python
+scene_pivot=ScenePivot(
+    should_pivot=False,  # Still in same room
+    new_clocks=[
+        NewClock(
+            name="Facility Lockdown",
+            max_ticks=6,
+            description="Security protocols activate after intruder detected",
+            advance_meaning="lockdown systems engage",
+            regress_meaning="lockdown systems bypassed",
+            filled_consequence="All exits sealed, armed response team deployed"
+        )
+    ]
+)
+```
+
+**Example - Filled Clock Cascade:**
+```python
+# If "Security Alarm" clock just filled:
+scene_pivot=ScenePivot(
+    should_pivot=False,
+    new_clocks=[
+        NewClock(
+            name="ACG Tactical Response",
+            max_ticks=5,
+            description="Elite security forces converge on your position",
+            filled_consequence="Heavy combat squad arrives, lethal force authorized"
+        )
+    ]
+)
+```
+
+**Example - Story Advancement (new location):**
+```python
+story_advancement=StoryAdvancement(
+    should_advance=True,
+    location="Reactor Core Access",
+    situation="Your sabotage has brought you deep into the facility's heart...",
+    new_clocks=[
+        NewClock(name="Meltdown Sequence", max_ticks=10, description="Reactor critical, 10 minutes until catastrophic failure"),
+        NewClock(name="Escape Route", max_ticks=6, description="Find working transit tunnel before blast doors seal"),
+        NewClock(name="Corporate Pursuit", max_ticks=8, description="ACG forces tracking your movements")
+    ]
+)
+```
+
+**Remember:** Clocks drive dynamic tension! Spawn them liberally when justified by narrative consequences.
+
+**Your task:** Write a cohesive, DETAILED narrative (800-1800 characters, aim for 1200+) synthesizing these individual resolutions into a unified round outcome.
+
+**⚠️ LENGTH REQUIREMENT: 800+ characters minimum! Be generous with detail, dialogue, and atmosphere.**
 
 **⚠️ CRITICAL - NARRATIVE CONSISTENCY:**
 - Each "Resolution:" above shows what you ALREADY narrated for that action
@@ -2653,15 +3851,29 @@ story_advancement=StoryAdvancement(
 - Your job is to WEAVE these resolutions together, not re-narrate them from scratch
 - If resolution says "Kress Vane in Sector 7", don't change it to "The Collector in Sublevel 9"
 
-**Consider:**
-- Timing: Actions resolved fastest → slowest based on initiative
-- Interactions: How did each person's success/failure affect the others?
-- Conflicts: If multiple people tried similar things, who got there first? What did the slower person encounter?
-- Cause and effect: How did earlier successes/failures change the situation for later actors?
-- Overall outcome: What's the new situation now that the dust has settled?
-- **IMPORTANT**: If objectives (clocks) are not advancing despite actions, acknowledge this! Characters should feel the pressure of marginal success or outright failure.
+**Storytelling Elements - Make it NARRATIVE, not just reportage:**
 
-Be vivid and cinematic. Show how these actions interacted and created a dynamic scene. Describe the final state of the situation after all actions resolved.
+**SHOW, Don't Tell:**
+- ✅ "Her hands shake as the calibrator stutters, void-light flickering"
+- ❌ "She attempts to calibrate the device"
+- ✅ "'Back off or bleed,' he growls, hand on the grip"
+- ❌ "He threatens them"
+- ✅ "The broker's smile fractures, ink signatures suddenly worthless"
+- ❌ "The negotiation succeeds"
+
+**Include for richness (1200+ chars):**
+- **Quoted dialogue** - Actual words spoken during confrontations, pleas, negotiations
+- **Character body language** - Trembling hands, locked jaws, exhaled relief, predatory smiles
+- **Sensory atmosphere** - Ozone smell, humming machinery, crackling energy, whispered deals
+- **Consequences unfolding** - Show immediate results (signatures blink, crowds part, alarms trip)
+- **Timing & rhythm** - Fastest actor moves first, creates conditions for next, cascading effects
+- **Emotional arcs** - Desperation → relief, confidence → shock, tension → resolution
+- **Stakes manifest** - If clocks don't advance, show frustration/fear; if they fill, show consequences happening
+- **Scene-ending snapshot** - Final tableau showing new status quo after dust settles
+
+**Narrative voice:** Write like a novel, not a combat log. Use metaphor, imagery, active verbs. Make readers *feel* the scene.
+
+Be vivid, cinematic, and VERBOSE. Shorter narrations feel rushed - aim for rich, detailed storytelling that immerses readers.
 
 If the team is failing their objectives (clocks not advancing or bad clocks filling), your narration should reflect the growing desperation, consequences, and danger.
 
@@ -2689,28 +3901,23 @@ Generate appropriate consequences based on what makes sense for that specific cl
             if structured_synthesis:
                 # Return structured object directly (no marker conversion)
                 logger.debug(f"✓ Using structured synthesis: {len(structured_synthesis.narration)} chars, "
-                           f"{len(structured_synthesis.enemy_spawns)} spawns, "
                            f"story_advance={structured_synthesis.story_advancement and structured_synthesis.story_advancement.should_advance}")
                 return structured_synthesis
 
             # Legacy text generation fallback
-            logger.debug("DM: Using legacy text generation for synthesis")
+            logger.warning("DM: Structured synthesis failed, falling back to legacy text generation")
+            logger.warning("⚠️  LEGACY FALLBACK is deprecated and will be removed - fix structured output issues instead!")
             try:
-                # Use rate-limited wrapper to prevent API overload
-                from .llm_provider import call_anthropic_with_retry
+                # Use configured provider (not hardcoded Anthropic)
+                if not self.llm_provider:
+                    logger.error("DM: No LLM provider available for legacy fallback")
+                    return None
 
-                response = await call_anthropic_with_retry(
-                    client=self.llm_client,
-                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=500,
-                    temperature=0.8,
-                    max_retries=3,
-                    base_delay=2.0,
-                    max_delay=120.0,
-                    use_rate_limiter=True
+                synthesis_text = await self.llm_provider.generate_text(
+                    prompt=prompt,
+                    max_tokens=4000,  # Increased for synthesis
+                    temperature=0.8
                 )
-                synthesis_text = response.content[0].text.strip()
 
                 # Legacy SPAWN_ENEMY marker validation removed - using structured output now
 
@@ -2762,6 +3969,375 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 self.needs_story_advancement = False
             return f"Round {round_num} completes:\n{outcomes_text}"
 
+    async def _resolve_purchase_transaction(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve a pre-validated purchase transaction using specialized narration.
+
+        Purchases are mechanical (currency deducted, item added) and just need atmospheric narration.
+        Uses dedicated dm_purchase.yaml prompt focused on transaction narration.
+
+        Args:
+            action: Action dict with purchase_validation data
+
+        Returns:
+            Resolution dict matching standard format
+        """
+        from .schemas.action_resolution import ActionResolution
+        from .mechanics import OutcomeTier
+
+        character_name = action.get('character_name', 'Character')
+        intent = action.get('intent', 'Purchase item')
+        purchase_validation = action.get('purchase_validation', {})
+
+        executed = purchase_validation.get('executed', False)
+        item_name = purchase_validation.get('item_name', 'item')
+        cost = purchase_validation.get('cost', {})
+        failure_reason = purchase_validation.get('failure_reason', 'Unknown')
+
+        logger.debug(f"Purchase transaction for {character_name}: executed={executed}, item={item_name}")
+
+        # Load purchase-specific prompt
+        try:
+            system_prompt_obj = load_modular_prompt(
+                agent_type="dm",
+                module_names=["dm_purchase"],
+                provider="claude",
+                language="en"
+            )
+            system_prompt = system_prompt_obj.content if hasattr(system_prompt_obj, 'content') else str(system_prompt_obj)
+        except Exception as e:
+            logger.warning(f"Failed to load dm_purchase prompt: {e}, using inline")
+            system_prompt = "Narrate a purchase transaction. No dice rolls - just atmospheric narration based on validation result."
+
+        # Build user prompt with purchase context
+        user_prompt = f"""
+Character: {character_name}
+Action: {intent}
+
+Purchase Validation Result:
+- Transaction Executed: {executed}
+- Item: {item_name}
+- Cost: {cost}
+- Failure Reason: {failure_reason if not executed else 'N/A'}
+
+Generate an ActionResolution for this {'successful' if executed else 'failed'} purchase transaction.
+"""
+
+        # Call LLM for structured narration
+        try:
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = 4000  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+            temperature = 0.7
+
+            # Token tracking now handled internally
+            purchase_resolution: ActionResolution = await self.llm_provider.generate_structured(
+                prompt=user_prompt,
+                result_type=ActionResolution,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
+            )
+
+            narration = purchase_resolution.narration  # Use .narration (new Pydantic schema)
+            logger.debug(f"✓ Purchase LLM narration: {len(narration)} chars")
+
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
+            if self.llm_logger:
+                self.llm_logger.call_count += 1
+
+        except Exception as e:
+            logger.warning(f"Purchase LLM call failed: {e}, using fallback narration")
+            # Fallback to simple template
+            if executed:
+                cost_str = ", ".join([f"{v} {k.title()}" for k, v in cost.items()])
+                narration = f"{character_name} inserts {cost_str} into the payment slot. The machine processes the transaction and dispenses {item_name}."
+            else:
+                narration = f"{character_name} attempts to purchase {item_name}, but the transaction fails: {failure_reason}."
+
+            # Create fallback ActionResolution using new Pydantic schema
+            from .schemas.action_resolution import SuccessTier, MechanicalEffects
+            purchase_resolution = ActionResolution(
+                narration=narration,
+                success_tier=SuccessTier.MODERATE if executed else SuccessTier.FAILURE,
+                margin=0,
+                effects=MechanicalEffects()  # Purchase already executed mechanically
+            )
+
+        # Return resolution matching standard format (includes effects key for session.py)
+        return {
+            'resolution': purchase_resolution,
+            'narration': purchase_resolution.narration,
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': {},  # Empty effects dict (purchase already executed mechanically)
+            'outcome': {
+                'dm_response': getattr(purchase_resolution, 'narrative', getattr(purchase_resolution, 'narration', '')),
+                'success': getattr(purchase_resolution, 'success', True),
+                'consequences': [],
+                'narration': getattr(purchase_resolution, 'narrative', getattr(purchase_resolution, 'narration', '')),
+                'resolution': {
+                    'intent': getattr(purchase_resolution, 'intent', None),
+                    'attribute': getattr(purchase_resolution, 'attribute', None),
+                    'skill': getattr(purchase_resolution, 'skill', None),
+                    'total': getattr(purchase_resolution, 'total', None),
+                    'difficulty': getattr(purchase_resolution, 'difficulty', None),
+                    'margin': purchase_resolution.margin if hasattr(purchase_resolution, 'margin') else 0,
+                    'outcome_tier': purchase_resolution.outcome_tier.value if hasattr(purchase_resolution, 'outcome_tier') and hasattr(purchase_resolution.outcome_tier, 'value') else str(getattr(purchase_resolution, 'outcome_tier', 'unknown')),
+                    'success': getattr(purchase_resolution, 'success', True)
+                }
+            }
+        }
+
+    async def _resolve_transfer_transaction(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve a pre-validated energy currency transfer using specialized narration.
+
+        Transfers are mechanical (currency moved between purses) and just need atmospheric narration
+        with Soulcredit interpretation based on context.
+        Uses dedicated dm_transfer.yaml prompt focused on physical exchange and moral implications.
+
+        Args:
+            action: Action dict with transfer_validation data
+
+        Returns:
+            Resolution dict matching standard format
+        """
+        from .schemas.action_resolution import ActionResolution
+        from .mechanics import OutcomeTier
+
+        character_name = action.get('character_name', 'Character')
+        intent = action.get('intent', 'Transfer currency')
+        transfer_validation = action.get('transfer_validation', {})
+
+        executed = transfer_validation.get('executed', False)
+        sender_name = transfer_validation.get('sender_name', character_name)
+        receiver_name = transfer_validation.get('receiver_name', 'Unknown')
+        currency = transfer_validation.get('currency', {})
+        failure_reason = transfer_validation.get('failure_reason', 'Unknown')
+
+        logger.debug(f"Transfer transaction: {sender_name} → {receiver_name}, executed={executed}, currency={currency}")
+
+        # Load transfer-specific prompt
+        try:
+            system_prompt_obj = load_modular_prompt(
+                agent_type="dm",
+                module_names=["dm_transfer"],
+                provider="claude",
+                language="en"
+            )
+            system_prompt = system_prompt_obj.content if hasattr(system_prompt_obj, 'content') else str(system_prompt_obj)
+        except Exception as e:
+            logger.warning(f"Failed to load dm_transfer prompt: {e}, using inline")
+            system_prompt = "Narrate an energy currency transfer. No dice rolls - just atmospheric narration of the physical exchange and Soulcredit interpretation based on context (charity, bribery, fair exchange, etc.)."
+
+        # Build user prompt with transfer context
+        user_prompt = f"""
+Character: {character_name}
+Action: {intent}
+
+Transfer Validation Result:
+- Transaction Executed: {executed}
+- Sender: {sender_name}
+- Receiver: {receiver_name}
+- Currency: {currency}
+- Failure Reason: {failure_reason if not executed else 'N/A'}
+
+Generate an ActionResolution for this {'successful' if executed else 'failed'} energy transfer.
+
+Context for Soulcredit interpretation:
+Read the action intent to understand WHY this transfer is happening:
+- Charity/aid → +1 to +3 Soulcredit for giver
+- Fair exchange → 0 Soulcredit (neutral)
+- Bribery → -1 to -3 Soulcredit for giver
+- Coercion/extortion → Negative Soulcredit for both parties
+"""
+
+        # Call LLM for structured narration
+        try:
+            model = self.llm_config.get('model', 'claude-sonnet-4-5')
+            max_tokens = 4000  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+            temperature = 0.7
+
+            # Token tracking now handled internally
+            transfer_resolution: ActionResolution = await self.llm_provider.generate_structured(
+                prompt=user_prompt,
+                result_type=ActionResolution,
+                system_prompt=system_prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                llm_logger=self.llm_logger,  # Enable automatic token tracking
+                current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
+            )
+
+            narration = transfer_resolution.narration  # Use .narration (new Pydantic schema)
+            logger.debug(f"✓ Transfer LLM narration: {len(narration)} chars")
+
+            # Increment call count for manual logging below
+            # (generate_structured already logged with actual tokens)
+            if self.llm_logger:
+                self.llm_logger.call_count += 1
+
+        except Exception as e:
+            logger.warning(f"Transfer LLM call failed: {e}, using fallback narration")
+            # Fallback to simple template
+            if executed:
+                currency_str = ", ".join([f"{v} {k.title()}" for k, v in currency.items()])
+                narration = f"{sender_name} presses {currency_str} into {receiver_name}'s palm—talismans changing hands in a brief exchange."
+            else:
+                narration = f"{sender_name} attempts to transfer currency to {receiver_name}, but the transaction fails: {failure_reason}."
+
+            # Create fallback ActionResolution using new Pydantic schema
+            from .schemas.action_resolution import SuccessTier, MechanicalEffects
+            transfer_resolution = ActionResolution(
+                narration=narration,
+                success_tier=SuccessTier.MODERATE if executed else SuccessTier.FAILURE,
+                margin=0,
+                effects=MechanicalEffects()  # Transfer already executed mechanically
+            )
+
+        # Return resolution matching standard format
+        return {
+            'resolution': transfer_resolution,
+            'narration': transfer_resolution.narration,
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': {},  # Empty effects dict (transfer already executed mechanically)
+            'outcome': {
+                'dm_response': getattr(transfer_resolution, 'narrative', getattr(transfer_resolution, 'narration', '')),
+                'success': getattr(transfer_resolution, 'success', True),
+                'consequences': [],
+                'narration': getattr(transfer_resolution, 'narrative', getattr(transfer_resolution, 'narration', '')),
+                'resolution': {
+                    'intent': getattr(transfer_resolution, 'intent', None),
+                    'attribute': getattr(transfer_resolution, 'attribute', None),
+                    'skill': getattr(transfer_resolution, 'skill', None),
+                    'total': getattr(transfer_resolution, 'total', None),
+                    'difficulty': getattr(transfer_resolution, 'difficulty', None),
+                    'margin': transfer_resolution.margin if hasattr(transfer_resolution, 'margin') else 0,
+                    'outcome_tier': transfer_resolution.outcome_tier.value if hasattr(transfer_resolution, 'outcome_tier') and hasattr(transfer_resolution.outcome_tier, 'value') else str(getattr(transfer_resolution, 'outcome_tier', 'unknown')),
+                    'success': getattr(transfer_resolution, 'success', True)
+                }
+            }
+        }
+
+    def _resolve_target_name(self, target_id: str) -> Optional[str]:
+        """
+        Resolve a target ID (tgt_xxxx or agent_id) to a character name.
+
+        Args:
+            target_id: Target ID or agent ID
+
+        Returns:
+            Character name if found, None otherwise
+        """
+        if not target_id:
+            return None
+
+        # Try target ID mapper first (resolves tgt_xxxx to actual agent)
+        if target_id.startswith('tgt_') and self.shared_state.target_id_mapper:
+            agent = self.shared_state.target_id_mapper.resolve_target(target_id)
+            if agent:
+                # Player agent
+                if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'name'):
+                    return agent.character_state.name
+                # NPC or enemy agent
+                elif hasattr(agent, 'name'):
+                    return agent.name
+                # Fallback to agent_id
+                return agent.agent_id
+
+        # Try direct agent_id lookup in players
+        for player in self.shared_state.player_agents:
+            if player.agent_id == target_id:
+                return player.character_state.name
+
+        # Try NPCs
+        if hasattr(self.shared_state, 'npc_agents'):
+            for npc in self.shared_state.npc_agents:
+                if npc.agent_id == target_id:
+                    return npc.name
+
+        # Try enemies
+        if hasattr(self.shared_state, 'enemy_combat') and self.shared_state.enemy_combat:
+            for enemy in self.shared_state.enemy_combat.enemy_agents:
+                if enemy.agent_id == target_id:
+                    return enemy.name
+
+        return None
+
+    async def _resolve_failed_attunement(self, action: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve an attunement action that failed pre-validation (no dice roll needed).
+
+        Args:
+            action: Action dict with attunement_validation showing failure
+
+        Returns:
+            Resolution dict with auto-failure narration
+        """
+        from .schemas.action_resolution import ActionResolution, SuccessTier, MechanicalEffects
+
+        validation = action.get('attunement_validation', {})
+        failure_reason = validation.get('failure_reason', 'Prerequisites not met')
+        character_name = action.get('character_name', 'Character')
+        intent = action.get('intent', 'attune a seed')
+
+        # Generate simple auto-failure narration
+        narration = (
+            f"{character_name} attempts to {intent}, but {failure_reason.lower()}. "
+            f"The ritual cannot proceed without the necessary components. "
+            f"No energy is expended and no seed is consumed."
+        )
+
+        # Pad to minimum 200 chars
+        if len(narration) < 200:
+            narration = narration + " " * (200 - len(narration))
+
+        failed_resolution = ActionResolution(
+            narration=narration,
+            success_tier=SuccessTier.FAILURE,
+            margin=-999,  # Automatic failure
+            effects=MechanicalEffects()  # No effects
+        )
+
+        # Store structured resolution for later extraction
+        self._last_structured_resolution = failed_resolution
+
+        logger.info(f"✗ Attunement auto-failed for {character_name}: {failure_reason}")
+
+        # Return resolution matching standard format (with 'outcome' key expected by adjudication)
+        return {
+            'resolution': failed_resolution,  # ActionResolution Pydantic model
+            'narration': narration,
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': {},  # No effects for auto-failure
+            'outcome': {
+                'dm_response': narration,
+                'success': False,
+                'consequences': [],
+                'narration': narration,
+                'resolution': {
+                    'intent': intent,
+                    'attribute': None,
+                    'skill': None,
+                    'total': None,
+                    'difficulty': None,
+                    'margin': -999,
+                    'success': False,
+                    'success_tier': 'failure'
+                }
+            },
+            'validation_failure': True,
+            'failure_reason': failure_reason
+        }
+
     async def _resolve_action_mechanically(self, player_id: str, action: Dict[str, Any], previous_resolutions=None) -> Dict[str, Any]:
         """
         Resolve a single action mechanically (rolls, difficulty, narration).
@@ -2778,37 +4354,205 @@ Generate appropriate consequences based on what makes sense for that specific cl
         description = action.get('description', '')
         intent = action.get('intent', description)
 
+        # Check if this is a pre-validated purchase (specialized narration)
+        purchase_validation = action.get('purchase_validation', {})
+        if action_type == 'purchase' and purchase_validation:
+            return await self._resolve_purchase_transaction(action)
+
+        # Check if this is a pre-validated transfer (specialized narration)
+        transfer_validation = action.get('transfer_validation', {})
+        if action_type == 'transfer' and transfer_validation:
+            return await self._resolve_transfer_transaction(action)
+
+        # Check if this is a pre-validated attunement that FAILED validation
+        # (no need for dice rolls - auto-fail)
+        attunement_validation = action.get('attunement_validation', {})
+        if action_type == 'attune' and attunement_validation and not attunement_validation.get('is_valid'):
+            return await self._resolve_failed_attunement(action)
+
         # Check if this is an NPC action (lightweight adjudication)
         if action.get('is_npc'):
-            from .mechanics import ActionResolution, OutcomeTier
+            from .schemas.action_resolution import ActionResolution
+            from .mechanics import OutcomeTier
 
             character_name = action.get('character_name', 'NPC')
-            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent}")
+            npc_action_type = action.get('action_type', 'unknown')  # action_type is in the action dict
+            target = action.get('target')
 
-            # NPCs get simple narrative resolution without complex mechanics
-            # Generate brief narration (1-2 sentences) from their declared action
-            narration = f"{character_name} {description}"
+            # Resolve target ID to character name for dialogue/plead actions
+            target_display = 'None'
+            if target:
+                target_name = self._resolve_target_name(target)
+                if target_name:
+                    target_display = f"{target_name} ({target})"
+                else:
+                    target_display = target
 
-            # Create a minimal ActionResolution for NPC (no dice rolls/mechanics)
-            npc_resolution = ActionResolution(
-                intent=intent,
-                attribute='None',  # NPCs don't use attributes
-                skill=None,        # NPCs don't use skills
-                attribute_value=0,
-                skill_value=0,
-                roll=0,            # No dice roll
-                total=0,
-                difficulty=0,
-                margin=0,
-                outcome_tier=OutcomeTier.MARGINAL,  # NPCs get basic success (no mechanics)
-                success=True,
-                narrative=narration,
-                state_effects={}
-            )
+            logger.debug(f"Lightweight NPC adjudication for {character_name}: {intent} (type: {npc_action_type}, target: {target_display})")
+
+            # Import required schema types
+            from .schemas.action_resolution import SuccessTier, MechanicalEffects
+            from .schemas.shared_types import Condition
+
+            # Special case: "pass" actions use template narration (no LLM call)
+            if npc_action_type == 'pass':
+                narration = f"{character_name} passes because the situation doesn't involve them and they don't want to do anything."
+                # Pad to minimum 200 chars if needed
+                if len(narration) < 200:
+                    narration = narration + " " * (200 - len(narration))
+
+                npc_resolution = ActionResolution(
+                    narration=narration,
+                    success_tier=SuccessTier.MODERATE,
+                    margin=0,
+                    effects=MechanicalEffects()
+                )
+            else:
+                # All other NPC actions: Generate LLM narration
+                dialogue_info = ""
+                if action.get('dialogue_content'):
+                    dialogue_info = f"\n\n**NPC's Actual Words:** \"{action['dialogue_content']}\"\n\n⚠️ IMPORTANT: Include this dialogue in your narration. You may quote it verbatim, paraphrase it naturally, or weave it into the description."
+
+                npc_prompt = f"""Generate vivid, dialogue-rich narration for this NPC action (400-800 characters):
+
+**NPC:** {character_name}
+**Action Type:** {npc_action_type}
+**NPC's Intent/Reasoning:** {description if description else intent}
+**Target:** {target_display}{dialogue_info}
+
+**IMPORTANT - Make it NARRATIVE with dialogue and movement:**
+
+For **dialogue/plead/negotiate actions**, include:
+- WHO the NPC is addressing (use target name from above - be specific!)
+- The NPC's actual spoken words (quoted dialogue) - expand on what they say
+- Their tone of voice, delivery, emphasis
+- Body language while speaking (gestures, posture, facial expressions)
+- How the TARGET reacts to their words (visual cues, responses)
+
+For **other actions** (flee, hide, assist, attack):
+- Physical movements in detail (how they move, where they go, what they touch)
+- Emotional state visible in their actions (panic, determination, calculation)
+- Immediate consequences of their action
+
+**Examples:**
+
+❌ TOO BRIEF: "He threatens them."
+
+✅ GOOD (dialogue with target): "He turns toward Ash, cuff links catching the light as he folds his hands deliberately. 'Ash, my client will bid fifty thousand—no higher,' he announces, voice smooth as silk but edged with finality. Ash's eyes narrow, but he gives a curt nod. A ripple of held breath and hurried pen scratches marks the room's small surrender."
+
+❌ TOO BRIEF (plead): "She pleads with them."
+
+✅ GOOD (plead with target): "Her breath comes in ragged gasps as she stumbles backward toward Sera, hands raised in supplication. 'Sera—please, I didn't sign up for this!' The words tear out half-sob, half-scream, her eyes locked on Sera's face, searching for mercy. Sera's grip on her weapon tightens, but her expression flickers with uncertainty."
+
+❌ TOO BRIEF: "She flees in panic."
+
+✅ GOOD (flee): "Her breath comes in ragged gasps as she stumbles backward, hands fumbling for the door panel. 'No—no, I didn't sign up for this!' The words tear out half-sob, half-scream. She spins, robes tangling around her ankles, and bolts for the nearest exit arch."
+
+**Write 400-800 characters.** Be cinematic, include dialogue for social actions, show body language and reactions."""
+
+                try:
+                    # Call LLM for simple text narration (not structured output - faster and smaller)
+                    from pydantic import BaseModel, Field
+
+                    class SimpleNarration(BaseModel):
+                        """Narrative text for NPC actions with dialogue and movement."""
+                        text: str = Field(..., min_length=400, max_length=1000, description="Cinematic narration of NPC action with quoted dialogue, body language, and consequences (400-1000 chars)")
+
+                    # Token tracking now handled internally
+                    npc_narration_response = await self.llm_provider.generate_structured(
+                        prompt=npc_prompt,
+                        result_type=SimpleNarration,
+                        system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
+                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+                        temperature=0.8,
+                        llm_logger=self.llm_logger,  # Enable automatic token tracking
+                        current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
+                    )
+                    narration = npc_narration_response.text
+
+                    # Handle assist actions: apply +1 bonus to target
+                    effects = MechanicalEffects()
+                    if npc_action_type == 'assist' and target:
+                        effects.conditions = [
+                            Condition(
+                                name="Assisted",
+                                penalty=1,  # +1 bonus (positive penalty = buff)
+                                duration=1,
+                                description=f"Aided by {character_name}",
+                                target=target
+                            )
+                        ]
+
+                    npc_resolution = ActionResolution(
+                        narration=narration,
+                        success_tier=SuccessTier.MODERATE,
+                        margin=5,
+                        effects=effects
+                    )
+
+                    # Log successful NPC action resolution
+                    if self.shared_state and self.shared_state.mechanics_engine:
+                        mechanics = self.shared_state.mechanics_engine
+                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            current_round = mechanics.current_round
+                            mechanics.jsonl_logger.log_action_resolution(
+                                round_num=current_round,
+                                phase="adjudicate_npc",
+                                agent_name=character_name,
+                                action=intent,
+                                resolution=npc_resolution.model_dump(),
+                                economy_changes={},
+                                clock_states={},
+                                effects={},
+                                context={
+                                    "action_type": npc_action_type,
+                                    "is_npc": True,
+                                    "dialogue_content": action.get('dialogue_content')
+                                }
+                            )
+
+                except Exception as e:
+                    logger.warning(f"NPC LLM narration failed: {e}, using fallback")
+                    # Create more substantial fallback narration
+                    base_narration = f"{character_name} {description}. The NPC's action completes, their presence shifting the dynamics of the scene."
+                    if action.get('dialogue_content'):
+                        base_narration = f"{character_name} speaks: \"{action['dialogue_content']}\" Their words hang in the air as the scene unfolds around them."
+                    # Pad to minimum 400 chars
+                    if len(base_narration) < 400:
+                        base_narration = base_narration + " The moment passes, leaving ripples in its wake." + " " * (400 - len(base_narration) - 45)
+                    narration = base_narration
+                    npc_resolution = ActionResolution(
+                        narration=narration,
+                        success_tier=SuccessTier.MODERATE,
+                        margin=5,
+                        effects=MechanicalEffects()
+                    )
+
+                    # Log fallback NPC action resolution
+                    if self.shared_state and self.shared_state.mechanics_engine:
+                        mechanics = self.shared_state.mechanics_engine
+                        if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                            current_round = mechanics.current_round
+                            mechanics.jsonl_logger.log_action_resolution(
+                                round_num=current_round,
+                                phase="adjudicate_npc",
+                                agent_name=character_name,
+                                action=intent,
+                                resolution=npc_resolution.model_dump(),
+                                economy_changes={},
+                                clock_states={},
+                                effects={},
+                                context={
+                                    "action_type": npc_action_type,
+                                    "is_npc": True,
+                                    "dialogue_content": action.get('dialogue_content'),
+                                    "fallback": True
+                                }
+                            )
 
             # Return lightweight resolution matching player format (with outcome dict)
             return {
-                'resolution': npc_resolution,  # ActionResolution dataclass
+                'resolution': npc_resolution,  # ActionResolution Pydantic model
                 'narration': narration,
                 'state_changes': {},  # Empty state changes for NPCs (no mechanics)
                 'combat_data': {},  # No combat data for NPCs
@@ -2817,15 +4561,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
                     'dm_response': narration,
                     'success': True,  # NPCs always succeed (simple narration)
                     'consequences': [],
-                    'narration': narration,  # Needed by line 1882
+                    'narration': narration,  # Needed by session.py
                     'resolution': {
-                        'intent': intent,
-                        'attribute': 'None',
-                        'skill': None,
-                        'total': 0,
-                        'difficulty': 0,
-                        'margin': 0,
-                        'outcome_tier': 'marginal',  # String value
+                        'success_tier': 'moderate',  # String value for backwards compat
+                        'margin': 5,
                         'success': True
                     }
                 }
@@ -2870,8 +4609,11 @@ Generate appropriate consequences based on what makes sense for that specific cl
             consumed_item = None
             inventory_changes = []
 
+            # Get character name for logging
+            character_name = action.get('character_name', action.get('character', player_id))
+
             if action.get('has_offering', False) and is_ritual_action:
-                character_state = self.shared_state.get_agent_state(player_id)
+                character_state = self.shared_state.get_agent_by_id(player_id)
                 if character_state:
                     offering_type = action.get('offering_type')  # Optional specific item
                     consumed_item = mechanics.consume_offering(character_state, offering_type)
@@ -2896,6 +4638,10 @@ Generate appropriate consequences based on what makes sense for that specific cl
             if coordination_bonus > 0:
                 modifiers['coordination'] = coordination_bonus
 
+            # Include player's situational modifiers if present
+            if action.get('situational_modifiers'):
+                modifiers.update(action['situational_modifiers'])
+
             resolution = mechanics.resolve_action(
                 intent=intent,
                 attribute=attribute,
@@ -2907,8 +4653,8 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 modifiers=modifiers if modifiers else None
             )
 
-            # Format mechanical resolution
-            mechanical_text = mechanics.format_resolution_for_narration(resolution)
+            # Format mechanical resolution (pass modifiers for display)
+            mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers if modifiers else None)
 
             # Build context from previous resolutions this round (for narrative consistency)
             if previous_resolutions:
@@ -2981,10 +4727,30 @@ The following actions ALREADY resolved (faster initiative):
                                 logger.debug(f"Resolved target ID {action['target']} → NPC '{action['target_npc']}'")
 
             # Phase 2 Migration: Check if we have a structured resolution
+            effects_dict = None  # Will hold purchase/crafting effects if present
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
                 state_changes = extract_from_structured_resolution(self._last_structured_resolution)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
+
+                # Extract effects (purchase/crafting) from structured output
+                if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
+                    effects_data = self._last_structured_resolution.effects
+                    # Damage is now List[DamageEffect] - convert to list of dicts for legacy format
+                    damage_list = None
+                    if effects_data.damage:
+                        damage_list = [dmg.model_dump() for dmg in effects_data.damage]
+
+                    effects_dict = {
+                        'damage': damage_list,  # Now a list of damage effect dicts (or None)
+                        'status_effects': effects_data.status_effects if hasattr(effects_data, 'status_effects') else [],
+                        'inventory_changes': [],
+                        'purchase': effects_data.purchase.model_dump() if effects_data.purchase else None,
+                        'crafting': effects_data.crafting.model_dump() if effects_data.crafting else None,
+                        'attunement': effects_data.attunement.model_dump() if effects_data.attunement else None,
+                        'item_discovery': effects_data.item_discovery.model_dump() if effects_data.item_discovery else None
+                    }
+                    logger.debug(f"Extracted effects from structured output: damage_count={len(damage_list) if damage_list else 0}, purchase={effects_dict['purchase'] is not None}, crafting={effects_dict['crafting'] is not None}, attunement={effects_dict['attunement'] is not None}, item_discovery={effects_dict['item_discovery'] is not None}")
 
                 # Skill mismatch detection
                 declared_skill = action.get('skill')
@@ -3145,16 +4911,16 @@ The following actions ALREADY resolved (faster initiative):
                             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
                                 # Build attack roll data from resolution
                                 attack_roll_data = {
-                                    "attr": resolution.attribute if resolution else "Unknown",
-                                    "attr_val": resolution.attribute_value if resolution else 0,
-                                    "skill": resolution.skill if resolution else None,
-                                    "skill_val": resolution.skill_value if resolution else 0,
+                                    "attr": getattr(resolution, 'attribute', "Unknown") if resolution else "Unknown",
+                                    "attr_val": getattr(resolution, 'attribute_value', 0) if resolution else 0,
+                                    "skill": getattr(resolution, 'skill', None) if resolution else None,
+                                    "skill_val": getattr(resolution, 'skill_value', 0) if resolution else 0,
                                     "weapon_bonus": 0,  # Not tracked for player attacks currently
-                                    "d20": resolution.roll if resolution else 0,
-                                    "total": resolution.total if resolution else 0,
-                                    "dc": resolution.difficulty if resolution else 0,
-                                    "hit": resolution.success if resolution else True,
-                                    "margin": resolution.margin if resolution else 0
+                                    "d20": getattr(resolution, 'roll', 0) if resolution else 0,
+                                    "total": getattr(resolution, 'total', 0) if resolution else 0,
+                                    "dc": getattr(resolution, 'difficulty', 0) if resolution else 0,
+                                    "hit": getattr(resolution, 'success', True) if resolution else True,
+                                    "margin": resolution.margin if resolution and hasattr(resolution, 'margin') else 0
                                 }
 
                                 # Build damage roll data from combat_data or effect
@@ -3296,7 +5062,7 @@ The following actions ALREADY resolved (faster initiative):
                 # For now, we'll use fallback generation since DM doesn't explicitly write buff blocks yet
 
                 # Generate fallback buff if successful action
-                if resolution and resolution.success:
+                if resolution and _resolution_success(resolution):
                     buff = generate_fallback_buff(action, resolution.__dict__ if hasattr(resolution, '__dict__') else resolution)
                     if buff:
                         logger.debug(f"Generated fallback buff: {buff.get('type')} for {buff.get('target')}")
@@ -3415,7 +5181,7 @@ The following actions ALREADY resolved (faster initiative):
                                         skill=skill,
                                         roll_total=resolution.total if resolution else 0,
                                         dc=resolution.difficulty if resolution else 20,
-                                        success=resolution.success if resolution else True,
+                                        success=_resolution_success(resolution) if resolution else True,
                                         margin=resolution.margin if resolution else 10,
                                         outcome="surrender",
                                         narration=narration[:500]  # Truncate to 500 chars
@@ -3467,7 +5233,7 @@ The following actions ALREADY resolved (faster initiative):
                                         skill=skill,
                                         roll_total=resolution.total if resolution else 0,
                                         dc=resolution.difficulty if resolution else 20,
-                                        success=resolution.success if resolution else True,
+                                        success=_resolution_success(resolution) if resolution else True,
                                         margin=resolution.margin if resolution else 10,
                                         outcome="flee",
                                         narration=narration[:500]  # Truncate to 500 chars
@@ -3488,14 +5254,16 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Log to JSONL for training analysis
                 if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    mechanics.jsonl_logger.log_event({
-                        'event_type': 'llm_compliance_issue',
-                        'round': self.current_round,
-                        'player_id': player_id,
-                        'action_intent': intent,
-                        'issue': compliance_issue,
-                        'narration': llm_narration if self.llm_config else resolution.narrative
-                    })
+                    mechanics.jsonl_logger.log_event(
+                        'llm_compliance_issue',
+                        {
+                            'player_id': player_id,
+                            'action_intent': intent,
+                            'issue': compliance_issue,
+                            'narration': llm_narration if self.llm_config else resolution.narrative
+                        },
+                        self.current_round
+                    )
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -3598,13 +5366,8 @@ The following actions ALREADY resolved (faster initiative):
             if sc_change != 0:
                 sc_state.adjust(sc_change, reasons_text)
 
-            # Show SC change to the affected player only (private knowledge)
-            # Other players do NOT see each other's soulcredit (asymmetric information)
-            # Only skip adding line if DM explicitly included one in narration text
-            if sc_source != 'dm_explicit':
-                # Add soulcredit line for clarity (from structured output or default)
-                # Always show, even +0, unless DM already wrote it in narration
-                narration += f"\n\n⚖️ Soulcredit: {sc_change:+d} ({reasons_text})"
+            # SC is applied mechanically above - no need to inject into narration
+            # Players see their soulcredit via game UI, not narrative text
 
             # Apply conditions (with targeting support - apply to target, not actor)
             from .mechanics import Condition
@@ -3618,9 +5381,12 @@ The following actions ALREADY resolved (faster initiative):
                     affects=[]  # Affects all by default
                 )
 
-                # Determine who receives the condition (default: actor, but can be target)
-                # Check if action has a target (for damage-dealing/debuff actions)
-                target_id = action.get('target')  # Could be tgt_xxxx or character name
+                # Determine who receives the condition
+                # Priority: condition.target > action.target > actor (self)
+                target_id = condition_data.get('target')  # Per-condition target (NEW - supports multi-target)
+                if not target_id:
+                    target_id = action.get('target')  # Fallback to action-level target
+
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
                 should_apply_condition = True  # Flag to control whether to apply
@@ -3628,12 +5394,12 @@ The following actions ALREADY resolved (faster initiative):
                 # Handle different targeting scenarios
                 if target_id == 'None' or target_id is None or not target_id:
                     # Special case: target="None" (string), None (null), or missing/empty
-                    # These all mean: no specific target (area attack or narrative-only combat)
-                    # Only apply self-buffs (positive penalty) to actor
-                    # Skip debuffs (negative penalty) - they would need a real target
+                    # These all mean: no specific target
+                    # Apply condition to actor (self-buff OR self-debuff from failure/backlash)
                     if condition.penalty < 0:
-                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
-                        should_apply_condition = False
+                        logger.debug(f"Applying self-debuff '{condition.name}' (penalty={condition.penalty}) to actor (backlash/failure consequence)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
                     else:
                         # Positive penalty = buff, apply to actor (self-buff)
                         logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
@@ -3658,7 +5424,9 @@ The following actions ALREADY resolved (faster initiative):
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            # Environmental objects (terminals, doors, etc.) have tgt_ IDs but aren't tracked entities
+                            # This is expected behavior - conditions don't apply to non-entities
+                            logger.debug(f"Target ID '{target_id}' not a tracked entity (likely env object), skipping condition")
                             should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
@@ -3675,9 +5443,17 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Apply condition only if flag is True
                 if should_apply_condition:
-                    mechanics.add_condition(condition_target_id, condition)
-                    # Show condition application (with target name)
-                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                    # Check if condition already exists before applying
+                    already_exists = False
+                    if condition_target_id in mechanics.conditions:
+                        for existing in mechanics.conditions[condition_target_id]:
+                            if existing.name == condition.name:
+                                already_exists = True
+                                break
+
+                    # Only add condition if new (no narration injection - visible via structured output)
+                    if not already_exists:
+                        mechanics.add_condition(condition_target_id, condition)
 
             # Apply position changes (for tactical movement)
             if state_changes.get('position_change'):
@@ -3704,57 +5480,24 @@ The following actions ALREADY resolved (faster initiative):
             'state_changes': state_changes,  # Include state_changes for logging
             'combat_data': combat_data,  # Include combat triplet if present
             'inventory_changes': inventory_changes,  # Include offering consumption tracking
+            'effects': effects_dict,  # Include purchase/crafting effects from structured output
             'outcome': {
                 'dm_response': narration,
-                'success': resolution.success if resolution else True,
+                'success': getattr(resolution, 'success', True) if resolution else True,
                 'consequences': [],
                 'resolution': {
-                    'intent': resolution.intent,
-                    'attribute': resolution.attribute,
-                    'skill': resolution.skill,
-                    'total': resolution.total,
-                    'difficulty': resolution.difficulty,
-                    'margin': resolution.margin,
-                    'outcome_tier': resolution.outcome_tier.value if hasattr(resolution.outcome_tier, 'value') else str(resolution.outcome_tier),
-                    'success': resolution.success
+                    'intent': getattr(resolution, 'intent', None),
+                    'attribute': getattr(resolution, 'attribute', None),
+                    'skill': getattr(resolution, 'skill', None),
+                    'total': getattr(resolution, 'total', None),
+                    'difficulty': getattr(resolution, 'difficulty', None),
+                    'margin': resolution.margin if hasattr(resolution, 'margin') else 0,
+                    'outcome_tier': resolution.outcome_tier.value if hasattr(resolution, 'outcome_tier') and hasattr(resolution.outcome_tier, 'value') else str(getattr(resolution, 'outcome_tier', 'unknown')),
+                    'success': getattr(resolution, 'success', True)
                 } if resolution else {}
             }
         }
 
-    async def _handle_human_dm_response(self, player_id: str, action: Dict[str, Any]):
-        """Handle action with human DM input."""
-        print(f"\n[HUMAN DM] {player_id} declared action:")
-        print(f"Action: {action.get('action_type', 'unknown')}")
-        print(f"Description: {action.get('description', 'No description')}")
-        
-        print("\nYour response as DM:")
-        dm_response = input().strip()
-        
-        # Ask for mechanical resolution if needed
-        needs_roll = input("Does this require a dice roll? (y/n): ").lower().startswith('y')
-        
-        outcome = {
-            'dm_response': dm_response,
-            'success': True,  # Human determines
-            'consequences': []
-        }
-        
-        if needs_roll:
-            print("Enter roll requirements (attribute+skill, difficulty):")
-            roll_req = input().strip()
-            outcome['roll_required'] = roll_req
-
-        self.send_message_sync(
-            MessageType.ACTION_RESOLVED,
-            None,  # Broadcast so all players see each other's results
-            {
-                'agent_id': player_id,  # Include player_id so session knows who completed
-                'original_action': action,
-                'outcome': outcome,
-                'narration': dm_response
-            }
-        )
-        
     async def _handle_ai_dm_response(self, player_id: str, action: Dict[str, Any]):
         """Handle action with AI DM logic using mechanical resolution."""
         action_type = action.get('action_type', 'unknown')
@@ -3789,8 +5532,11 @@ The following actions ALREADY resolved (faster initiative):
             consumed_item = None
             inventory_changes = []
 
+            # Get character name for logging
+            character_name = action.get('character_name', action.get('character', player_id))
+
             if action.get('has_offering', False) and is_ritual_action:
-                character_state = self.shared_state.get_agent_state(action.get('agent_id'))
+                character_state = self.shared_state.get_agent_by_id(action.get('agent_id'))
                 if character_state:
                     offering_type = action.get('offering_type')  # Optional specific item
                     consumed_item = mechanics.consume_offering(character_state, offering_type)
@@ -3863,8 +5609,11 @@ The following actions ALREADY resolved (faster initiative):
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
 
+            # Get modifiers for display (if any)
+            display_modifiers = action.get('situational_modifiers', {}) if action.get('situational_modifiers') else None
+
             # Format mechanical resolution
-            mechanical_text = mechanics.format_resolution_for_narration(resolution)
+            mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=display_modifiers)
 
             # Generate narrative description using LLM
             llm_narration = await self._generate_llm_response(
@@ -3941,7 +5690,7 @@ The following actions ALREADY resolved (faster initiative):
                     logger.debug(f"Queued: {clock_name} {ticks:+d} ({reason}) [source: {source}]")
 
             # Extract and record party discoveries from successful actions
-            if resolution.success and resolution.margin >= 5:
+            if _resolution_success(resolution) and resolution.margin >= 5:
                 # Extract key discovery from the narration (simple heuristic)
                 # Look for sentences that suggest new information
                 discovery_text = self._extract_discovery_from_narration(llm_narration, intent)
@@ -3956,14 +5705,16 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Log to JSONL for training analysis
                 if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
-                    mechanics.jsonl_logger.log_event({
-                        'event_type': 'llm_compliance_issue',
-                        'round': self.current_round,
-                        'player_id': player_id,
-                        'action_intent': intent,
-                        'issue': compliance_issue,
-                        'narration': llm_narration if self.llm_config else resolution.narrative
-                    })
+                    mechanics.jsonl_logger.log_event(
+                        'llm_compliance_issue',
+                        {
+                            'player_id': player_id,
+                            'action_intent': intent,
+                            'issue': compliance_issue,
+                            'narration': llm_narration if self.llm_config else resolution.narrative
+                        },
+                        self.current_round
+                    )
 
             # Apply void changes (both gains and reductions)
             if state_changes['void_change'] != 0:
@@ -4066,13 +5817,8 @@ The following actions ALREADY resolved (faster initiative):
             if sc_change != 0:
                 sc_state.adjust(sc_change, reasons_text)
 
-            # Show SC change to the affected player only (private knowledge)
-            # Other players do NOT see each other's soulcredit (asymmetric information)
-            # Only skip adding line if DM explicitly included one in narration text
-            if sc_source != 'dm_explicit':
-                # Add soulcredit line for clarity (from structured output or default)
-                # Always show, even +0, unless DM already wrote it in narration
-                narration += f"\n\n⚖️ Soulcredit: {sc_change:+d} ({reasons_text})"
+            # SC is applied mechanically above - no need to inject into narration
+            # Players see their soulcredit via game UI, not narrative text
 
             # Apply conditions (with targeting support - apply to target, not actor)
             from .mechanics import Condition
@@ -4086,9 +5832,12 @@ The following actions ALREADY resolved (faster initiative):
                     affects=[]  # Affects all by default
                 )
 
-                # Determine who receives the condition (default: actor, but can be target)
-                # Check if action has a target (for damage-dealing/debuff actions)
-                target_id = action.get('target')  # Could be tgt_xxxx or character name
+                # Determine who receives the condition
+                # Priority: condition.target > action.target > actor (self)
+                target_id = condition_data.get('target')  # Per-condition target (NEW - supports multi-target)
+                if not target_id:
+                    target_id = action.get('target')  # Fallback to action-level target
+
                 condition_target_id = player_id  # Default: apply to actor
                 condition_target_name = action.get('character', player_id)
                 should_apply_condition = True  # Flag to control whether to apply
@@ -4096,12 +5845,12 @@ The following actions ALREADY resolved (faster initiative):
                 # Handle different targeting scenarios
                 if target_id == 'None' or target_id is None or not target_id:
                     # Special case: target="None" (string), None (null), or missing/empty
-                    # These all mean: no specific target (area attack or narrative-only combat)
-                    # Only apply self-buffs (positive penalty) to actor
-                    # Skip debuffs (negative penalty) - they would need a real target
+                    # These all mean: no specific target
+                    # Apply condition to actor (self-buff OR self-debuff from failure/backlash)
                     if condition.penalty < 0:
-                        logger.debug(f"Skipping debuff '{condition.name}' (penalty={condition.penalty}) - no valid target and debuffs need explicit targets")
-                        should_apply_condition = False
+                        logger.debug(f"Applying self-debuff '{condition.name}' (penalty={condition.penalty}) to actor (backlash/failure consequence)")
+                        condition_target_id = player_id
+                        condition_target_name = action.get('character', player_id)
                     else:
                         # Positive penalty = buff, apply to actor (self-buff)
                         logger.debug(f"Applying self-buff '{condition.name}' (penalty={condition.penalty}) to actor (no target specified)")
@@ -4126,7 +5875,9 @@ The following actions ALREADY resolved (faster initiative):
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            # Environmental objects (terminals, doors, etc.) have tgt_ IDs but aren't tracked entities
+                            # This is expected behavior - conditions don't apply to non-entities
+                            logger.debug(f"Target ID '{target_id}' not a tracked entity (likely env object), skipping condition")
                             should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
@@ -4143,9 +5894,17 @@ The following actions ALREADY resolved (faster initiative):
 
                 # Apply condition only if flag is True
                 if should_apply_condition:
-                    mechanics.add_condition(condition_target_id, condition)
-                    # Show condition application (with target name)
-                    narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
+                    # Check if condition already exists before applying
+                    already_exists = False
+                    if condition_target_id in mechanics.conditions:
+                        for existing in mechanics.conditions[condition_target_id]:
+                            if existing.name == condition.name:
+                                already_exists = True
+                                break
+
+                    # Only add condition if new (no narration injection - visible via structured output)
+                    if not already_exists:
+                        mechanics.add_condition(condition_target_id, condition)
 
             # Apply position changes (for tactical movement during rituals)
             if state_changes.get('position_change'):
@@ -4212,8 +5971,9 @@ The following actions ALREADY resolved (faster initiative):
                 if hasattr(self, '_last_prompt_metadata') and self._last_prompt_metadata:
                     log_context["prompt_metadata"] = self._last_prompt_metadata.to_dict()
 
-                # Extract character data for ML training (dataset guidelines)
-                character_data = self._extract_character_data(player_id)
+                # REMOVED: character_data extraction (redundant with character_state events)
+                # Saves ~7,200 tokens/session by avoiding duplication
+                # ML pipeline can reconstruct from character_state snapshots instead
 
                 # Extract goal from action intent/description
                 goal = action.get('intent') or action.get('description', 'Unknown goal')
@@ -4228,6 +5988,9 @@ The following actions ALREADY resolved (faster initiative):
                 # NOTE: resolution is from mechanics, not structured output
                 # We need to check self._last_structured_resolution instead
                 outcome_tiers_with_narratives = None
+                purchase_data = None
+                crafting_data = None
+                item_discovery_data = None
                 if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                     if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                         # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -4237,6 +6000,19 @@ The following actions ALREADY resolved (faster initiative):
                                 'narrative': explanation.narrative,
                                 'mechanical_effect': explanation.mechanical_effect
                             }
+
+                    # Extract purchase, crafting, and item_discovery data from effects
+                    if hasattr(self._last_structured_resolution, 'effects') and self._last_structured_resolution.effects:
+                        effects_data = self._last_structured_resolution.effects
+                        if hasattr(effects_data, 'purchase') and effects_data.purchase:
+                            # Convert Pydantic model to dict for JSON serialization
+                            purchase_data = effects_data.purchase.model_dump()
+                        if hasattr(effects_data, 'crafting') and effects_data.crafting:
+                            # Convert Pydantic model to dict for JSON serialization
+                            crafting_data = effects_data.crafting.model_dump()
+                        if hasattr(effects_data, 'item_discovery') and effects_data.item_discovery:
+                            # Convert Pydantic model to dict for JSON serialization
+                            item_discovery_data = effects_data.item_discovery.model_dump()
 
                 mechanics.jsonl_logger.log_action_resolution(
                     round_num=mechanics.current_round,
@@ -4249,8 +6025,11 @@ The following actions ALREADY resolved (faster initiative):
                     effects=effects,
                     context=log_context,
                     inventory_changes=inventory_changes,  # Pass offering consumption tracking
+                    purchase_data=purchase_data,  # Pass purchase transaction data
+                    crafting_data=crafting_data,  # Pass crafting attempt data
+                    item_discovery_data=item_discovery_data,  # Pass item discovery data (seeds, currency, items)
                     # ML training fields (dataset guidelines compliance)
-                    character_data=character_data,
+                    # character_data removed - redundant with character_state events
                     environment=environment,
                     stakes=stakes,
                     goal=goal,
@@ -4270,19 +6049,19 @@ The following actions ALREADY resolved (faster initiative):
         if resolution:
             # Convert resolution to JSON-serializable dict
             resolution_data = {
-                'intent': resolution.intent,
-                'attribute': resolution.attribute,
-                'skill': resolution.skill,
-                'total': resolution.total,
-                'difficulty': resolution.difficulty,
-                'margin': resolution.margin,
-                'outcome_tier': resolution.outcome_tier.value,  # Convert enum to string
-                'success': resolution.success
+                'intent': getattr(resolution, 'intent', None),
+                'attribute': getattr(resolution, 'attribute', None),
+                'skill': getattr(resolution, 'skill', None),
+                'total': getattr(resolution, 'total', None),
+                'difficulty': getattr(resolution, 'difficulty', None),
+                'margin': resolution.margin if hasattr(resolution, 'margin') else 0,
+                'outcome_tier': resolution.outcome_tier.value if hasattr(resolution, 'outcome_tier') and hasattr(resolution.outcome_tier, 'value') else str(getattr(resolution, 'outcome_tier', 'unknown')),
+                'success': getattr(resolution, 'success', True)
             }
 
         outcome = {
             'dm_response': narration,
-            'success': resolution.success if resolution else True,
+            'success': getattr(resolution, 'success', True) if resolution else True,
             'consequences': [],
             'resolution': resolution_data
         }
@@ -4304,27 +6083,8 @@ The following actions ALREADY resolved (faster initiative):
         
     async def _handle_turn_request(self, message: Message):
         """Handle request for DM turn (narrative, NPC actions, etc.)."""
-        if self.human_controlled:
-            await self._human_dm_turn()
-        else:
-            await self._ai_dm_turn()
-            
-    async def _human_dm_turn(self):
-        """Handle human DM turn."""
-        print(f"\n[HUMAN DM {self.agent_id}] Your turn - describe what happens next:")
-        narration = input().strip()
-        
-        if narration:
-            self.send_message_sync(
-                MessageType.DM_NARRATION,
-                None,  # broadcast
-                {
-                    'narration': narration,
-                    'environmental_changes': [],
-                    'npc_actions': []
-                }
-            )
-        
+        await self._ai_dm_turn()
+
     async def _ai_dm_turn(self):
         """Handle AI DM turn - provide synthesis of the round."""
         # For now, just provide status
@@ -4340,10 +6100,11 @@ The following actions ALREADY resolved (faster initiative):
                 status_parts.append(f"{clock_name}: {clock.current}/{clock.maximum}")
 
             if status_parts:
-                status_line = "📊 " + " | ".join(status_parts)
+                # Format clock status without emoji markers
+                status_line = " | ".join(status_parts)
 
                 # Simple narrative wrapper
-                narration = f"The situation evolves...\n\n{status_line}"
+                narration = f"The situation evolves... ({status_line})"
             else:
                 # Skip DM turn if nothing to report
                 return
@@ -4362,22 +6123,6 @@ The following actions ALREADY resolved (faster initiative):
         else:
             # Skip DM turn if no mechanics
             return
-        
-    async def _handle_human_override_request(self, message: Message):
-        """Handle requests to switch between AI/human control."""
-        if message.payload.get('command') == 'take_control' and message.sender == 'human':
-            self.human_controlled = True
-            print(f"[HUMAN DM {self.agent_id}] You now control the DM")
-            
-        elif message.payload.get('command') == 'release_control' and message.sender == 'human':
-            self.human_controlled = False
-            print(f"[DM {self.agent_id}] Switched back to AI control")
-            
-    def toggle_human_control(self):
-        """Toggle between human and AI control."""
-        self.human_controlled = not self.human_controlled
-        status = "HUMAN" if self.human_controlled else "AI"
-        print(f"[{status} DM {self.agent_id}] Control switched to {status} mode")
 
     async def _handle_agent_register(self, message: Message):
         """Handle agent registration messages (no-op for DM)."""
@@ -4654,8 +6399,8 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
             # Load DM system prompt with conditional modules
             try:
-                # Determine which modules to load based on game state
-                required_modules = self._get_required_dm_modules()
+                # Determine which modules to load based on game state AND action type
+                required_modules = self._get_required_dm_modules(action_type=action_type)
 
                 # Load modular prompt with variables
                 system_prompt_obj = load_modular_prompt(
@@ -4676,7 +6421,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 system_prompt = "You are an expert Aeonisk YAGS Dungeon Master. Generate vivid, detailed action resolutions."
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = self.llm_config.get('max_tokens', 2000)
+            max_tokens = self.llm_config.get('max_tokens', 6000)  # Increased for complex ActionResolution schemas
             temperature = self.llm_config.get('temperature', 0.8)
 
             # Get current round for logging
@@ -4690,7 +6435,10 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 prompt=prompt,
                 system_prompt=system_prompt,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
+                # Pass llm_logger and current_round for token tracking
+                llm_logger=self.llm_logger,
+                current_round=current_round
                 # fallback_to_text defaults to False - strict mode
             )
 
@@ -4703,11 +6451,137 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 from .structured_output_helpers import validate_resolution_completeness
                 validation_warnings = validate_resolution_completeness(resolution_obj, action)
                 if validation_warnings:
-                    logger.warning(f"🔍 Structured output validation found {len(validation_warnings)} issue(s):")
+                    logger.info(f"🔍 Structured output validation found {len(validation_warnings)} issue(s):")
                     for warning in validation_warnings:
-                        logger.warning(f"   - {warning}")
+                        logger.info(f"   - {warning}")
                 else:
                     logger.debug("✓ Structured output validation passed (all expected fields populated)")
+
+                # TARGETING VALIDATION: Check and correct targeting errors in damage effects
+                # NOTE: Currently validates only first damage effect for AoE (List[DamageEffect])
+                if resolution_obj.effects and resolution_obj.effects.damage:
+                    from .targeting_validation import validate_and_correct_targeting, llm_infer_correct_target
+                    import time
+
+                    start_time = time.time()
+
+                    # For AoE (list of damage effects), validate first target
+                    # TODO: Extend to validate all targets in AoE
+                    first_damage = resolution_obj.effects.damage[0] if resolution_obj.effects.damage else None
+
+                    if first_damage:
+                        is_valid, corrected_effect, error = validate_and_correct_targeting(
+                            effect=first_damage,
+                            declared_action=action,
+                            target_id_mapper=self.shared_state.get_target_id_mapper() if self.shared_state else None,
+                            allow_llm_fallback=True
+                        )
+                    else:
+                        # Empty damage list - skip validation
+                        is_valid = True
+                        corrected_effect = None
+                        error = None
+
+                    validation_time_ms = (time.time() - start_time) * 1000
+
+                    if not is_valid:
+                        # Mechanical correction failed - try LLM fallback
+                        logger.warning(f"⚠️  TARGETING VALIDATION: {error}")
+
+                        try:
+                            # Build available targets map
+                            available_targets = {}
+                            target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
+                            if target_id_mapper and target_id_mapper.enabled:
+                                for target_id in target_id_mapper.get_all_target_ids():
+                                    info = target_id_mapper.get_combatant_info(target_id)
+                                    if info:
+                                        entity_type = info.get('type', 'unknown')
+                                        entity_name = info.get('name', 'Unknown')
+                                        available_targets[target_id] = f"{entity_name} ({entity_type})"
+
+                            # Call Haiku LLM for inference
+                            correction = await llm_infer_correct_target(
+                                effect=first_damage,
+                                declared_action=action,
+                                available_targets=available_targets,
+                                error_description=error,
+                                dm_narration=resolution_obj.narration
+                            )
+
+                            # Apply LLM-corrected target
+                            corrected_effect = first_damage.model_copy(
+                                update={'target': correction.corrected_target}
+                            )
+
+                            logger.info(f"🤖 LLM TARGETING CORRECTION: {first_damage.target} -> {correction.corrected_target} (confidence: {correction.confidence})")
+
+                            # Log to JSONL
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_targeting_validation(
+                                    round_num=current_round if current_round else 0,
+                                    agent_id=action.get('agent_id', 'unknown'),
+                                    original_target=first_damage.target,
+                                    corrected_target=correction.corrected_target,
+                                    correction_method='llm_inference',
+                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    success=True,
+                                    confidence=correction.confidence,
+                                    reasoning=correction.reasoning,
+                                    declared_target=action.get('target'),
+                                    effect_type='damage',
+                                    model_used='claude-haiku-4',
+                                    validation_time_ms=validation_time_ms
+                                )
+
+                            is_valid = True
+
+                        except Exception as llm_error:
+                            logger.error(f"❌ LLM targeting correction failed: {llm_error}")
+                            corrected_effect = None
+
+                            # Log failed correction
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_targeting_validation(
+                                    round_num=current_round if current_round else 0,
+                                    agent_id=action.get('agent_id', 'unknown'),
+                                    original_target=first_damage.target,
+                                    corrected_target=None,
+                                    correction_method='failed',
+                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    success=False,
+                                    error=str(llm_error),
+                                    declared_target=action.get('target'),
+                                    effect_type='damage',
+                                    validation_time_ms=validation_time_ms
+                                )
+
+                    # Apply corrected effect or clear if validation failed
+                    if is_valid and corrected_effect:
+                        # Update first damage effect in list
+                        resolution_obj.effects.damage[0] = corrected_effect
+                        if first_damage and corrected_effect.target != first_damage.target:
+                            logger.info(f"✓ MECHANICAL CORRECTION: {first_damage.target} -> {corrected_effect.target}")
+
+                            # Log mechanical correction
+                            if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_targeting_validation(
+                                    round_num=current_round if current_round else 0,
+                                    agent_id=action.get('agent_id', 'unknown'),
+                                    original_target=first_damage.target,
+                                    corrected_target=corrected_effect.target,
+                                    correction_method='mechanical',
+                                    triggered_by=error.split(':')[0] if ':' in error else 'unknown',
+                                    success=True,
+                                    declared_target=action.get('target'),
+                                    effect_type='damage',
+                                    validation_time_ms=validation_time_ms
+                                )
+                    elif not is_valid:
+                        # Clear invalid effect to prevent misapplication
+                        logger.error(f"❌ Targeting validation failed - clearing damage effect")
+                        resolution_obj.effects.damage = []  # Clear list instead of setting to None
+                        validation_warnings.append(f"Damage effect removed due to unrecoverable targeting error: {error}")
 
                 # Log structured output metrics (for ML analysis)
                 if self.shared_state and self.shared_state.mechanics_engine:
@@ -4778,6 +6652,44 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     except Exception as e:
                         logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
+                # === PROCESS STRUCTURED DAMAGE EFFECTS (NEW PIPELINE) ===
+                # Apply damage from List[DamageEffect], including barrier interception
+                if resolution_obj.effects and resolution_obj.effects.damage:
+                    logger.debug(f"Processing {len(resolution_obj.effects.damage)} damage effects from structured output")
+
+                    damage_messages = _process_structured_damage_effects(
+                        damage_effects=resolution_obj.effects.damage,
+                        shared_state=self.shared_state,
+                        current_round=current_round if current_round else 0,
+                        mechanics=mechanics if 'mechanics' in locals() else None,
+                        logger_instance=logger
+                    )
+
+                    # Append damage outcome messages to narration
+                    if damage_messages:
+                        additional_narration = "\n\n" + "\n\n".join(damage_messages)
+                        resolution_obj.narration += additional_narration
+                        logger.debug(f"Appended {len(damage_messages)} damage messages to narration")
+
+                # === PROCESS STRUCTURED HEALING EFFECTS (NEW PIPELINE) ===
+                # Apply healing from List[HealingEffect]
+                if resolution_obj.effects and resolution_obj.effects.healing:
+                    logger.debug(f"Processing {len(resolution_obj.effects.healing)} healing effects from structured output")
+
+                    healing_messages = _process_structured_healing_effects(
+                        healing_effects=resolution_obj.effects.healing,
+                        shared_state=self.shared_state,
+                        current_round=current_round if current_round else 0,
+                        mechanics=mechanics if 'mechanics' in locals() else None,
+                        logger_instance=logger
+                    )
+
+                    # Append healing outcome messages to narration
+                    if healing_messages:
+                        additional_narration = "\n\n" + "\n\n".join(healing_messages)
+                        resolution_obj.narration += additional_narration
+                        logger.debug(f"Appended {len(healing_messages)} healing messages to narration")
+
                 return resolution_obj
             else:
                 error_msg = "DM: Structured output returned text instead of ActionResolution object"
@@ -4785,7 +6697,75 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 raise TypeError(error_msg)
 
         except Exception as e:
-            logger.error(f"DM: Structured output failed: {e}")
+            # Enhanced error logging with detailed diagnostics
+            error_type = type(e).__name__
+            error_message = str(e)
+
+            # Try to extract raw model response from UnexpectedModelBehavior
+            raw_response = None
+            if hasattr(e, 'body') and e.body:
+                raw_response = e.body
+
+            # Try to extract underlying error
+            underlying_error = None
+            if hasattr(e, '__cause__') and e.__cause__:
+                underlying_error = f"{type(e.__cause__).__name__}: {str(e.__cause__)}"
+
+            logger.error(
+                f"❌ DM: Structured output failed:\n"
+                f"  Exception: {error_type}\n"
+                f"  Message: {error_message}\n"
+                f"  Action type: {action_type}\n"
+                f"  Player: {player_id}\n"
+                + (f"  Raw response: {len(raw_response)} chars\n" if raw_response else "")
+                + (f"  Underlying: {underlying_error}\n" if underlying_error else "")
+            )
+
+            # Log failure to JSONL for ML analysis
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                if hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    current_round = mechanics.current_round if hasattr(mechanics, 'current_round') else 0
+
+                    # Extract validation error details
+                    validation_errors = []
+                    if "validation" in error_message.lower():
+                        validation_errors.append(f"{error_type}: {error_message[:200]}")
+
+                    # Extract underlying cause if available
+                    if underlying_error:
+                        validation_errors.append(f"Cause: {underlying_error[:200]}")
+
+                    # Log to structured_output_metrics (general overview)
+                    mechanics.jsonl_logger.log_structured_output_metrics(
+                        round_num=current_round,
+                        agent_type='dm',
+                        agent_id=self.agent_id,
+                        success=False,  # Failed to generate structured output
+                        fallback_triggered=False,  # No fallback attempted (strict mode)
+                        validation_warnings=validation_errors if validation_errors else [f"{error_type}: {error_message[:200]}"],
+                        completeness_score=0.0  # Failed completely
+                    )
+
+                    # ALSO log to pydantic_validation_failure (detailed debugging)
+                    mechanics.jsonl_logger.log_pydantic_validation_failure(
+                        round_num=current_round,
+                        agent_type='dm',
+                        agent_id=self.agent_id,
+                        schema_name='ActionResolution',
+                        exception_type=error_type,
+                        error_message=error_message,
+                        attempt_number=4,  # We don't know the exact attempt here, using max
+                        max_attempts=4,  # ClaudeProvider default
+                        raw_model_response=raw_response,
+                        underlying_error=underlying_error,
+                        action_context={
+                            'action_type': action_type,
+                            'player_id': player_id,
+                            'description': description[:200] if description else None
+                        }
+                    )
+
             raise RuntimeError(f"Structured output generation failed: {e}") from e
 
     async def _build_resolution_prompt(
@@ -4824,7 +6804,7 @@ Note: NPCs and other characters are aware of this affiliation.
 
         resolution_context = ""
         if resolution:
-            outcome_text = "succeeded" if resolution.success else "failed"
+            outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
 """
@@ -4861,12 +6841,29 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                     for tid in sorted(all_target_ids):  # Sort for consistent ordering
                         info = target_id_mapper.get_combatant_info(tid)
                         if info:
-                            # Format: [tgt_xxxx] Name (type)
-                            combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
+                            # Show health info for players (for injury-aware narration)
+                            if info['type'] == 'player' and 'agent_id' in info:
+                                player_agent = self.shared_state.get_agent_by_id(info['agent_id'])
+                                if player_agent and hasattr(player_agent, 'health'):
+                                    health_text = f"{player_agent.health}/{player_agent.max_health} HP"
+                                    wounds_text = f", {player_agent.wounds}w" if getattr(player_agent, 'wounds', 0) > 0 else ""
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} ({health_text}{wounds_text})")
+                                else:
+                                    combatant_lines.append(f"  - [{tid}] {info['name']} (player)")
+                            else:
+                                # Format for enemies/NPCs: [tgt_xxxx] Name (type)
+                                combatant_lines.append(f"  - [{tid}] {info['name']} ({info['type']})")
 
                     if combatant_lines:
-                        combatant_list = "\n\n**VALID TARGET IDS (use EXACT IDs in damage/conditions):**\n" + "\n".join(combatant_lines)
-                        combatant_list += "\n⚠️  IMPORTANT: When applying damage or conditions, use target IDs exactly as shown above (e.g., tgt_7a3f). Do NOT invent new target IDs!"
+                        combatant_list = "\n\n**🎯 VALID TARGET IDS (CRITICAL - Read before filling damage/condition fields!):**\n"
+                        combatant_list += "⚠️  **MECHANICAL RULE:** DamageEffect(target=...) and StatusEffect(target=...) MUST use target IDs below.\n"
+                        combatant_list += "⚠️  **DO NOT use character names** in target fields (e.g., target=\"Vex Solais\" will FAIL validation).\n"
+                        combatant_list += "⚠️  **DO NOT invent IDs** (e.g., target=\"tgt_guard1\" will FAIL - only IDs listed below exist).\n\n"
+                        combatant_list += "\n".join(combatant_lines)
+                        combatant_list += "\n\n✅ **CORRECT:** DamageEffect(target=\"tgt_7a3f\", ...) ← Uses exact ID from list\n"
+                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"Tempest Enforcer\", ...) ← Character name - FAILS!\n"
+                        combatant_list += "❌ **WRONG:** DamageEffect(target=\"tgt_enforcer1\", ...) ← Invented ID - FAILS!\n"
+                        combatant_list += "\n💡 **TIP:** Character names go in NARRATION only, NOT in target= fields."
 
         # Use existing prompt builder (simplified for now)
         prompt = self._build_dm_narration_prompt(
@@ -4908,6 +6905,20 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             # The caller will handle extracting effects from the structured object
             # For now, we store it as a temp attribute so the caller can access it
             self._last_structured_resolution = structured_resolution
+
+            # CRITICAL VALIDATION: Attune actions MUST populate attunement field
+            if action:
+                logger.debug(f"Validating structured output for action_type={action.get('action_type')}")
+            if action and action.get('action_type') == 'attune':
+                logger.debug(f"Checking attunement field: effects={structured_resolution.effects is not None}, attunement={structured_resolution.effects.attunement if structured_resolution.effects else None}")
+                if not structured_resolution.effects or not structured_resolution.effects.attunement:
+                    raise ValueError(
+                        f"DM failed to populate effects.attunement for attune action! "
+                        f"LLM must follow instructions to populate AttunementEffect for action_type='attune'. "
+                        f"Action: {action.get('intent', 'unknown')}, target_energy: {action.get('target_energy', 'unknown')}"
+                    )
+                logger.debug(f"✓ Attunement field validated: {structured_resolution.effects.attunement.energy_type}, success={structured_resolution.effects.attunement.success}")
+
             return structured_resolution.narration
 
         # Fall back to legacy text generation
@@ -4943,13 +6954,13 @@ Note: NPCs and other characters are aware of this affiliation. Consider how fact
 
         resolution_context = ""
         if resolution:
-            outcome_text = "succeeded" if resolution.success else "failed"
+            outcome_text = "succeeded" if _resolution_success(resolution) else "failed"
             resolution_context = f"""
 Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} (outcome: {resolution.outcome_tier.value})
 """
 
         # Build success-specific guidance
-        if resolution and resolution.success:
+        if resolution and _resolution_success(resolution):
             outcome_guidance = """5. Provide a new clue, discovery, or piece of information that rewards their success"""
         else:
             outcome_guidance = """5. NO hints or clues - the failure means they MISS information. Instead provide:
@@ -5167,41 +7178,6 @@ When adjudicating:
                     clock_lines.append(f"  - {name}: {status}")
                 if clock_lines:
                     clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
-                    clock_context += "\n\n**EXPLICIT STATE MARKERS** - Mark state changes at the end of your narration:\n"
-                    clock_context += "\n📊 [Clock Name]: +X or -X (reason) - Advance/regress a scene clock"
-                    clock_context += "\n⚫ Void: +X (reason) - Character gains void corruption"
-                    clock_context += "\n⚖️ Soulcredit: +X or -X (reason) - Character's spiritual trust/morality changes"
-                    clock_context += "\n\nExamples:"
-                    clock_context += "\n  📊 Evidence Collection: +2 (found hidden documents)"
-                    clock_context += "\n  ⚫ Void: +1 (ritual backfire)"
-                    clock_context += "\n  ⚖️ Soulcredit: +0 (neutral combat action)"
-                    clock_context += "\n  ⚖️ Soulcredit: -2 (deceived officials)"
-                    clock_context += "\n\n**CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success."
-                    clock_context += "\n**ALWAYS mark soulcredit for every action, even when +0 (neutral).**"
-                    clock_context += "\n\nSC Scoring Rules (consider CONTEXT and INTENT):"
-                    clock_context += "\n  • Combat CONTEXT matters:"
-                    clock_context += "\n    - Fighting justified enemies: ⚖️ Soulcredit: +0 (neutral combat)"
-                    clock_context += "\n    - Fighting own faction/allies: ⚖️ Soulcredit: -2 (betrayal)"
-                    clock_context += "\n    - Attacking innocents/excessive force: ⚖️ Soulcredit: -1 to -3 (unjust violence)"
-                    clock_context += "\n    - Protecting innocents in combat: ⚖️ Soulcredit: +1 (protective action)"
-                    clock_context += "\n  • Deception INTENT matters:"
-                    clock_context += "\n    - Lying for personal gain: ⚖️ Soulcredit: -1 to -2 (selfish deception)"
-                    clock_context += "\n    - Lying to protect innocents: ⚖️ Soulcredit: +0 or +1 (complex morality)"
-                    clock_context += "\n    - Fraud/identity theft: ⚖️ Soulcredit: -2 (serious deception)"
-                    clock_context += "\n  • Neutral actions: ⚖️ Soulcredit: +0"
-                    clock_context += "\n    - Exploration, investigation, normal purchases, following protocols"
-                    clock_context += "\n  • Success/failure doesn't determine SC - only moral choice matters"
-                    clock_context += "\n\nExamples (showing moral complexity):"
-                    clock_context += "\n  • Shooting hostile Tempest operatives: ⚖️ Soulcredit: +0 (justified combat)"
-                    clock_context += "\n  • Attacking own Pantheon allies: ⚖️ Soulcredit: -2 (betrayal of faction)"
-                    clock_context += "\n  • Lying to save innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)"
-                    clock_context += "\n  • Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)"
-                    clock_context += "\n  • Creating Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)"
-                    clock_context += "\n  • Fulfilling contracts honorably: ⚖️ Soulcredit: +1 (upheld agreement)"
-                    clock_context += "\n  • Protecting civilians in crossfire: ⚖️ Soulcredit: +1 (selfless protection)"
-                    clock_context += "\n  • Breaking sworn oaths: ⚖️ Soulcredit: -2 (broke sworn word)"
-                    clock_context += "\n  • Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust violence)"
-                    clock_context += "\n  • Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)"
 
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False
@@ -5320,7 +7296,7 @@ When adjudicating:
             logger.error(f"LLM API error: {e}")
             # Fallback to template
             if resolution:
-                if resolution.success:
+                if _resolution_success(resolution):
                     return f"You {description} successfully. You notice something unusual about the situation that provides a new lead."
                 else:
                     return f"Your attempt to {description} doesn't go as planned. The failure reveals an unexpected complication."
@@ -5477,30 +7453,51 @@ Generate a brief (2-3 sentences) narrative describing the Eye of Breach's sudden
 Be vivid and maintain the dark sci-fi atmosphere."""
 
             try:
-                # Use rate-limited wrapper to prevent API overload
-                from .llm_provider import call_anthropic_with_retry
+                # Use provider-agnostic LLM call (respects configured provider)
+                if not self.llm_provider:
+                    raise RuntimeError("No LLM provider available")
 
-                response = await call_anthropic_with_retry(
-                    client=self.llm_client,
-                    model=model,
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=200,
-                    temperature=0.85,
-                    max_retries=3,
-                    base_delay=2.0,
-                    max_delay=120.0,
-                    use_rate_limiter=True
-                )
-                event_text = response.content[0].text.strip()
+                # Retry up to 3 times if response is empty
+                event_text = ""
+                max_retries = 3
+                for attempt in range(max_retries):
+                    response = await self.llm_provider.generate(
+                        prompt=prompt,
+                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+                        temperature=0.85
+                    )
+                    event_text = response.text.strip()  # Extract text from LLMResponse object
+
+                    if event_text:
+                        # Success - got non-empty response
+                        break
+                    else:
+                        # Empty response - log and retry
+                        logger.warning(f"Eye of Breach generation attempt {attempt + 1}/{max_retries} returned empty")
+                        if attempt < max_retries - 1:
+                            logger.info(f"Retrying Eye of Breach generation...")
+
+                # If still empty after retries, raise exception to trigger fallback
+                if not event_text:
+                    raise RuntimeError(f"Eye of Breach generation returned empty after {max_retries} attempts")
 
                 # Log LLM call for replay
                 if self.llm_logger:
+                    # Use actual token count if available, otherwise estimate
+                    if response.tokens_used:
+                        # tokens_used is total, estimate split
+                        estimated_input_tokens = len(prompt) // 4
+                        estimated_output_tokens = response.tokens_used - estimated_input_tokens
+                    else:
+                        estimated_input_tokens = len(prompt) // 4
+                        estimated_output_tokens = len(event_text) // 4
+
                     self.llm_logger._log_llm_call(
                         messages=[{"role": "user", "content": prompt}],
                         response=event_text,
                         model=model,
                         temperature=0.85,
-                        tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
+                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
                     )
@@ -5517,7 +7514,6 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                             response=event_text,
                             model=model,
                             temperature=0.85,
-                            tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                             metadata={'purpose': 'eye_of_breach_event', 'character_void': character_void, 'env_void': env_void}
                         )
                     except Exception as e:
@@ -5634,6 +7630,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             disposition=npc_spawn.disposition,
             threat_level=npc_spawn.threat_level,
             description=npc_spawn.description,
+            pronouns=getattr(npc_spawn, 'pronouns', 'they/them'),  # Pass pronouns for narrative use
             health=npc_spawn.health,
             max_health=npc_spawn.health,  # Max health = starting health
             soak=npc_spawn.soak,
@@ -5642,7 +7639,8 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             position=position,  # Required - always has a position
             weapons=weapons,  # Weapons based on threat level and skills
             converted_from_enemy=npc_spawn.converted_from_enemy_id is not None,  # Track if this was a conversion
-            agent_prompt_logger=self.agent_prompt_logger  # Pass through logger
+            agent_prompt_logger=self.agent_prompt_logger,  # Pass through logger
+            llm_provider=self.llm_provider  # Pass LLM provider for NPC action generation
         )
 
         # Register with SharedState
@@ -5657,6 +7655,47 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             logger.info(f"Spawned NPC: {npc.name} ({npc.agent_id}) - {npc.entity_type}/{npc.disposition}")
 
         return npc
+
+    def _process_altar_spawn(self, altar_spawn: 'AltarSpawn'):
+        """
+        Process altar spawn from structured output.
+
+        Creates Altar instance and registers it with SharedState.
+
+        Args:
+            altar_spawn: AltarSpawn schema from RoundSynthesis
+
+        Returns:
+            Created Altar instance
+        """
+        from .shared_state import Altar, AltarType
+        from .schemas.story_events import AltarSpawn
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Parse altar type
+        try:
+            altar_type = AltarType[altar_spawn.altar_type.upper()]
+        except KeyError:
+            logger.warning(f"Invalid altar_type '{altar_spawn.altar_type}', defaulting to RITUAL_ALTAR")
+            altar_type = AltarType.RITUAL_ALTAR
+
+        # Create altar instance
+        altar = Altar(
+            altar_type=altar_type,
+            quality=altar_spawn.quality,
+            location=altar_spawn.location
+        )
+
+        # Add to shared state
+        self.shared_state.add_altar(altar)
+
+        bonus = altar.get_ritual_bonus()
+        logger.info(f"Spawned altar: {altar.location} ({altar_spawn.altar_type}, quality={altar_spawn.quality}, +{bonus} bonus), altar_id={altar.altar_id}")
+        logger.info(f"Reason: {altar_spawn.narrative_reason}")
+
+        return altar
 
     def _process_deescalation(self, deescalation: 'Deescalation', current_round: int) -> 'NPCAgent':
         """
@@ -5688,11 +7727,13 @@ Be vivid and maintain the dark sci-fi atmosphere."""
             return None
 
         # Convert enemy to NPC (preserves all state)
+        # NPCs use same LLM provider as DM
         npc = deescalate_enemy_to_npc(
             enemy=enemy,
             disposition=deescalation.resulting_disposition,
             current_round=current_round,
-            agent_prompt_logger=self.agent_prompt_logger
+            agent_prompt_logger=self.agent_prompt_logger,
+            llm_provider=self.llm_provider
         )
 
         # Remove from enemy pool, add to NPC pool

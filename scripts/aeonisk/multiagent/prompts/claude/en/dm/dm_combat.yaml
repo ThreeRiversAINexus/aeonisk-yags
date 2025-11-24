@@ -124,4 +124,23 @@ content: "# Combat System\n\n**Damage Resolution:**\n- Calculate: Base Damage = 
   \ flees combat → [POSITION: ESCAPED] → Remove from combat tracking\n  * Failure:\
   \ Player remains at current position, turn wasted\n  * Critical success (margin\
   \ 10+): Clean getaway, no pursuit possible\n  * Must be at Far-PC or Extreme-PC\
-  \ to attempt (can't escape from melee)"
+  \ to attempt (can't escape from melee)\n\n# Suppressing Fire\n\n**Mechanical Resolution:**\n\
+  - Treat as area attack targeting enemy position(s)\n- Uses standard attack roll\
+  \ (Agility × Guns + d20 + modifiers vs DC)\n- Success allows DM to choose outcome\
+  \ based on narration:\n  * **Damage outcome**: Narration implies hits → Apply margin-based\
+  \ damage (stray rounds hit targets)\n  * **Tactical outcome**: Narration implies\
+  \ pinning → Apply debuff or forced movement\n\n**Margin-Based Effects:**\n- **Margin\
+  \ 0-5**: Target pinned, -2 to next action OR minor damage (2-3)\n- **Margin 6-10**:\
+  \ Target suppressed, -4 to next action OR moderate damage (4-6)\n- **Margin 11+**:\
+  \ Target fully pinned (must take cover, loses turn) OR significant damage (7-10)\n\
+  - **Failure**: Suppression ineffective, wastes ammunition, may reveal position\n\
+  \n**Escalation & Social Consequences:**\n- **Automatic weapons fire escalates situations**\
+  \ - even if missing:\n  * Nearby NPCs may panic or escalate to hostile (disposition\
+  \ dependent)\n  * Security/guards respond to gunfire\n  * Bystanders flee or call\
+  \ authorities\n- **Populated areas**: High risk of collateral damage, faction relation\
+  \ penalties\n- **Isolated combat**: Lower social risk, primarily tactical\n\n**When\
+  \ to allow:**\n- Active combat with clear hostile targets\n- Team coordination\
+  \ (pinning enemies for ally advance)\n- Tactical necessity (outnumbered, need time)\n\
+  \n**When to warn/penalize:**\n- Civilian areas (collateral damage risk, faction\
+  \ penalties)\n- Indiscriminate fire near allies (friendly fire risk)\n- Against\
+  \ surrendered/fleeing targets (war crime, major faction penalties)"

@@ -31,11 +31,20 @@ class ActionType(str, Enum):
     TECHNICAL = "technical"
     PERCEPTION = "perception"
     SUPPORT = "support"
+    PURCHASE = "purchase"  # Vendor transactions (separate from social for ML training)
+    TRANSFER = "transfer"  # Energy currency transfers between characters
+    ATTUNE = "attune"  # Seed attunement rituals (separate from general RITUAL for ML training)
+    CONSUME = "consume"  # Food/consumable usage for +2 HP healing (separate from SUPPORT for ML training)
     CUSTOM = "custom"
 
 
 class Position(str, Enum):
-    """Tactical positioning."""
+    """
+    Tactical positioning.
+
+    Automatically normalizes Unicode hyphen variants (non-breaking hyphen U+2011, etc.)
+    to regular ASCII hyphen (-) to handle LLM output variations.
+    """
     ENGAGED = "Engaged"
     NEAR_PC = "Near-PC"
     NEAR_ENEMY = "Near-Enemy"
@@ -43,6 +52,44 @@ class Position(str, Enum):
     FAR_ENEMY = "Far-Enemy"
     EXTREME_PC = "Extreme-PC"
     EXTREME_ENEMY = "Extreme-Enemy"
+
+    @classmethod
+    def _missing_(cls, value):
+        """
+        Normalize Unicode hyphen variants to regular ASCII hyphen.
+
+        OpenAI models sometimes generate non-breaking hyphens (U+2011 ‑) or other
+        hyphen variants instead of regular ASCII hyphens (U+002D -), causing
+        validation errors like:
+
+        Input: "Near‑PC" (with U+2011 non-breaking hyphen)
+        Expected: "Near-PC" (with U+002D ASCII hyphen)
+
+        This hook normalizes all hyphen-like characters to regular hyphens before lookup.
+        """
+        if isinstance(value, str):
+            # Replace common hyphen variants with regular ASCII hyphen
+            # U+2011: non-breaking hyphen ‑
+            # U+2010: hyphen ‐
+            # U+2012: figure dash ‒
+            # U+2013: en dash –
+            # U+2014: em dash —
+            # U+2212: minus sign −
+            normalized = value.replace('\u2011', '-')  # non-breaking hyphen
+            normalized = normalized.replace('\u2010', '-')  # hyphen
+            normalized = normalized.replace('\u2012', '-')  # figure dash
+            normalized = normalized.replace('\u2013', '-')  # en dash
+            normalized = normalized.replace('\u2014', '-')  # em dash
+            normalized = normalized.replace('\u2212', '-')  # minus sign
+
+            # Try lookup with normalized value
+            try:
+                return cls(normalized)
+            except ValueError:
+                pass  # Let enum raise the original error
+
+        # Let default error handling take over
+        return None
 
 
 class VoidChange(BaseModel):
@@ -135,15 +182,43 @@ class Condition(BaseModel):
     - Positive penalties are BUFFS (e.g., penalty=2 for Inspired = +2 to rolls)
     - Use penalty=0 ONLY for purely narrative conditions with no mechanical effect
 
+    TARGET FIELD (Optional):
+    - If omitted: Condition applies to the acting character (self-buff/debuff)
+    - If specified: Condition applies to the target (e.g., enemy you intimidated)
+    - For multi-target actions: Create multiple Condition entries, one per target
+
+    PROTECTION_AMOUNT (Optional - for barriers/shields):
+    - If specified: Condition acts as damage-absorbing barrier
+    - Value = damage absorption capacity (depletes as damage is blocked)
+    - When protection_amount reaches 0, barrier is removed
+    - Typically used with penalty=0 (barriers don't modify rolls, they absorb damage)
+
     Examples:
     - Condition(name="Stunned", penalty=-3, duration=2, description="Cannot act next round, -3 to all rolls")
     - Condition(name="Inspired", penalty=2, duration=3, description="+2 to next attack")
-    - Condition(name="Marked", penalty=0, duration=5, description="Target tracked by scanner, no mechanical penalty")
+    - Condition(name="Wavering", target="tgt_abc1", penalty=-2, duration=1, description="Hesitant after intimidation")
+    - Condition(name="Astral Barrier", target="tgt_7a3f", penalty=0, duration=2, description="Blocks 10 damage", protection_amount=10)
+    - Multi-target: [Condition(target="tgt_abc1", ...), Condition(target="tgt_def2", ...), Condition(target="tgt_ghi3", ...)]
     """
-    name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired)")
-    penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only")
-    duration: int = Field(default=1, ge=1, description="Rounds this condition lasts")
+    name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired, Astral Barrier)")
+    penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only or protection barrier")
+    duration: int = Field(default=1, ge=0, description="Rounds this condition lasts (0 = instant/already applied, 1+ = lasts that many rounds)")
     description: str = Field(..., min_length=5, description="What this condition does")
+    target: Optional[str] = Field(default=None, description="Who receives the condition. If omitted, applies to actor. For multi-target actions, create multiple Condition entries.")
+    protection_amount: Optional[int] = Field(default=None, ge=0, description="Damage absorption capacity for barriers/shields. If present, this condition blocks incoming damage up to this amount. Depletes as damage is absorbed. Use with penalty=0.")
+
+    @field_validator('target')
+    @classmethod
+    def validate_single_target(cls, v: Optional[str]) -> Optional[str]:
+        """Reject multi-target syntax (semicolons/commas) - create multiple Condition entries instead."""
+        if v and (';' in v or ',' in v):
+            raise ValueError(
+                f"Invalid target format: '{v}'. "
+                f"Condition.target must specify a SINGLE target. "
+                f"For multi-target conditions, create multiple Condition entries (one per target). "
+                f"Example: [Condition(target='tgt_abc1', ...), Condition(target='tgt_def2', ...)]"
+            )
+        return v
 
 
 class DamageEffect(BaseModel):

@@ -1,0 +1,243 @@
+version: 1.2.0
+module: player_intent
+description: "Phase 1: Lightweight action type selection. Routes to action-specific prompts in Phase 2."
+always_load: true
+content: |-
+  # 🎯 ACTION TYPE SELECTION
+
+  **You are {character_name}.** What do you want to do this round?
+
+  You'll declare your action in two steps:
+  - **Step 1 (now):** Choose action type and state your intent
+  - **Step 2 (next):** Provide detailed mechanics for your chosen action type
+
+  ## Your Character
+
+  **Top Skills:** {top_skills_list}
+
+  **Attributes:**
+  {attributes_text}
+
+  **Skills:**
+  {skills_text}
+
+  **Goals:**
+  {goals_text}
+
+  ## Current Scenario
+
+  **Location:** {location}
+  **Situation:** {situation}
+
+  ## Your Journey So Far
+
+  **Places Visited:** {journey_locations}
+  **Key Events:** {journey_beats}
+  **Story Summary:** {journey_summary}
+
+  ## Your Status
+
+  **Round {current_round}** | **Health:** {health}/{max_health} ({health_status}) {wound_status} | **Void:** {void_score}/10 {void_warning} | **Position:** {position}
+  {failure_loop_warning}
+  {high_void_warning}
+
+  **Inventory:**
+  - Energy: {currency_display}
+  - Seeds: {seeds_display}
+
+  **Environment:**
+  - Altars: {altar_availability}
+  - Vendors: {vendor_status}
+
+  **Recent Context:**
+  {recent_events}
+  {recent_action_outcomes}
+  {declared_actions_this_round}
+
+  **Entities Present:**
+  {entities_present}
+  {dialogue_goal_text}
+
+  **Your Personality:**
+  - Risk Tolerance: {risk_tolerance}/10 ({risk_guidance})
+  - Void Curiosity: {void_curiosity}/10 ({void_curiosity_guidance})
+  - Bond Preference: {bond_guidance}
+  {personality_notes}
+  {direction}
+
+  **Faction Abbreviations (CANONICAL):**
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
+  ## Available Action Types
+
+  Choose the action type that best matches your intent:
+
+  **Combat & Conflict:**
+  - **COMBAT:** Attack, defend, use weapons/magic in combat (includes suppressive/covering fire on enemies)
+  - **SUPPORT:** Heal allies, buff teammates, coordinate team tactics (NO direct fire - that's COMBAT)
+
+  **Investigation & Exploration:**
+  - **EXPLORE:** Navigate, move, search for exits or pathways
+  - **INVESTIGATE:** Examine objects, analyze data, gather information
+  - **PERCEPTION:** Detect hidden threats, sense danger, awareness checks
+
+  **Social & Interaction:**
+  - **SOCIAL:** Negotiate, intimidate, persuade, deceive, charm
+
+  **Technical & Specialized:**
+  - **TECHNICAL:** Hack systems, repair equipment, use tech/engineering
+  - **RITUAL:** Cast spells, perform astral arts (requires ritual components)
+  - **ATTUNE:** Seed attunement rituals to create energy currency (⚠️ requires Raw Seed in inventory - check Seeds section above!)
+
+  **Economy:**
+  - **CONSUME:** Eat food items to restore +2 HP (requires food in inventory)
+  - **PURCHASE:** Buy items/energy from vendors (requires vendor_id)
+  - **TRANSFER:** Give energy/items to allies (requires transfer_target)
+
+  **Other:**
+  - **CUSTOM:** Unique improvised actions that don't fit other categories
+
+  ## Output Format (Structured)
+
+  Respond with ActionIntent schema:
+
+  ```python
+  ActionIntent(
+      intent: str,          # 10-200 chars - What you're doing (brief summary)
+      action_type: ActionType,  # One of the 13 action types above
+      reasoning: str        # Why this action type? (for ML training)
+  )
+  ```
+
+  ## Examples (All 13 Action Types)
+
+  **COMBAT - Attack enemies**
+  ```python
+  ActionIntent(
+      intent="Fire plasma rifle at enemy leader",
+      action_type=ActionType.COMBAT,
+      reasoning="Enemy leader is coordinating attacks - eliminating them will disrupt their tactics"
+  )
+  ```
+
+  **SUPPORT - Help allies**
+  ```python
+  ActionIntent(
+      intent="Stabilize wounded teammate with medkit",
+      action_type=ActionType.SUPPORT,
+      reasoning="Ally is critically injured and will bleed out without immediate medical attention"
+  )
+  ```
+
+  **EXPLORE - Navigate and move**
+  ```python
+  ActionIntent(
+      intent="Search eastern corridor for escape route",
+      action_type=ActionType.EXPLORE,
+      reasoning="Need to find exit before enemy reinforcements arrive"
+  )
+  ```
+
+  **INVESTIGATE - Examine and analyze**
+  ```python
+  ActionIntent(
+      intent="Analyze terminal logs for security breach evidence",
+      action_type=ActionType.INVESTIGATE,
+      reasoning="Understanding how they infiltrated will reveal vulnerabilities we can exploit"
+  )
+  ```
+
+  **PERCEPTION - Detect and sense**
+  ```python
+  ActionIntent(
+      intent="Scan rooftops for hidden snipers",
+      action_type=ActionType.PERCEPTION,
+      reasoning="Open plaza is perfect ambush zone - need to detect threats before crossing"
+  )
+  ```
+
+  **SOCIAL - Persuade and interact**
+  ```python
+  ActionIntent(
+      intent="Negotiate peaceful surrender with gang leader",
+      action_type=ActionType.SOCIAL,
+      reasoning="Avoiding combat preserves resources and reduces void corruption risk"
+  )
+  ```
+
+  **TECHNICAL - Hack and engineer**
+  ```python
+  ActionIntent(
+      intent="Hack security terminal to disable alarms",
+      action_type=ActionType.TECHNICAL,
+      reasoning="Stealthy approach using Systems skill instead of loud combat"
+  )
+  ```
+
+  **RITUAL - Cast spells and magic**
+  ```python
+  ActionIntent(
+      intent="Perform astral healing on ally's void-tainted wound",
+      action_type=ActionType.RITUAL,
+      reasoning="Wound is spiritually corrupted - conventional Medicine won't work, need ritual healing"
+  )
+  ```
+
+  **ATTUNE - Convert seeds to energy**
+  ```python
+  ActionIntent(
+      intent="Attune Raw Seed to Drip at marketplace altar",
+      action_type=ActionType.ATTUNE,
+      reasoning="Need drip currency to purchase ritual supplies from vendor"
+  )
+  ```
+
+  **CONSUME - Eat food for healing**
+  ```python
+  ActionIntent(
+      intent="Eat ration pack to recover HP",
+      action_type=ActionType.CONSUME,
+      reasoning="Health is low and I have food - quick +2 HP without skill check"
+  )
+  ```
+
+  **PURCHASE - Buy from vendors**
+  ```python
+  ActionIntent(
+      intent="Buy ritual incense from marketplace vendor",
+      action_type=ActionType.PURCHASE,
+      reasoning="Need offerings to reduce void risk for upcoming ritual"
+  )
+  ```
+
+  **TRANSFER - Give to allies**
+  ```python
+  ActionIntent(
+      intent="Give 10 drip energy to teammate for their purchase",
+      action_type=ActionType.TRANSFER,
+      reasoning="Ally needs currency but I'm better positioned to fight than shop"
+  )
+  ```
+
+  **CUSTOM - Improvise creatively**
+  ```python
+  ActionIntent(
+      intent="Use cargo crane to drop container on enemies",
+      action_type=ActionType.CUSTOM,
+      reasoning="Environmental advantage - can eliminate multiple enemies with one creative action"
+  )
+  ```
+
+  ---
+
+  **Important Notes:**
+  - Keep intent brief (10-200 chars) - detailed description comes next
+  - Choose the action type that best matches your intent (you'll get specialized guidance after this)
+  - Consider your character's strengths and current situation
+  - Remember: The next step will ask for full mechanical details (attribute, skill, difficulty, etc.)

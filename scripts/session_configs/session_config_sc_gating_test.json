@@ -1,0 +1,162 @@
+{
+  "session_name": "soulcredit_gating_test",
+  "max_turns": 4,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "scenario": {
+    "theme": "Soulcredit Access Test",
+    "location": "Nexus Border Checkpoint",
+    "situation": "Two travelers arrive at a Nexus checkpoint with automated vendors. Outcast Rivan (Soulcredit -5) is a known troublemaker with very low Soulcredit. Agent Kress (Soulcredit +4) is a trusted Nexus operative with high Soulcredit. They encounter TWO vendors: (1) A Nexus Vending Machine that REQUIRES Soulcredit ≥-2, and (2) An Independent Supply Drone with NO soulcredit requirements. This tests if low SC characters are properly blocked from vending machines but can still use neutral vendors.",
+    "void_level": 2,
+    "active_npcs": [],
+    "environmental_factors": [
+      "Automated Nexus checkpoint",
+      "Security scanners reading Soulcredit levels",
+      "Independent supply drone operating in neutral zone"
+    ],
+    "active_vendors": []
+  },
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_nexus_vm",
+      "name": "Nexus Medical Vending Machine VM-47",
+      "faction": "Nexus",
+      "vendor_type": "vending_machine",
+      "greeting": "NEXUS AUTHORIZED ACCESS REQUIRED. SOULCREDIT VERIFICATION: SCANNING...",
+      "inventory": [
+        {
+          "name": "Med Kit",
+          "description": "Restores 15 HP. Nexus-certified medical supplies.",
+          "price_drip": 5
+        },
+        {
+          "name": "Energy Bar",
+          "description": "Restores stamina. Standard Nexus ration.",
+          "price_drip": 2
+        }
+      ]
+    },
+    {
+      "vendor_id": "vnd_supply_drone",
+      "name": "Independent Supply Drone SD-812",
+      "faction": "Independent",
+      "vendor_type": "supply_drone",
+      "greeting": "Neutral zone delivery service. All factions welcome. No Soulcredit verification required.",
+      "inventory": [
+        {
+          "name": "Rations",
+          "description": "Emergency food supply. Standard independent trade goods.",
+          "price_drip": 3
+        },
+        {
+          "name": "Water Purifier",
+          "description": "Portable water purification unit.",
+          "price_drip": 4
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Outcast Rivan",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 6,
+          "bondPreference": "defiant",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Try to purchase from the Nexus vending machine (SHOULD BE BLOCKED due to low SC)",
+          "Purchase from the Independent supply drone (SHOULD SUCCEED - no SC requirements)",
+          "Test if Soulcredit access control works correctly"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2
+        },
+        "skills": {
+          "Stealth": 5,
+          "Awareness": 4,
+          "Guns": 4,
+          "Athletics": 3
+        },
+        "soulcredit": -5,
+        "starting_currency": {
+          "breath": 50,
+          "drip": 30,
+          "grain": 5,
+          "spark": 3
+        },
+        "starting_inventory": {}
+      },
+      {
+        "name": "Agent Kress",
+        "pronouns": "she/her",
+        "faction": "Nexus",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 2,
+          "bondPreference": "authoritative",
+          "ritualConservatism": 7
+        },
+        "goals": [
+          "Purchase from the Nexus vending machine (SHOULD SUCCEED - high SC)",
+          "Observe if the system properly gates access based on Soulcredit",
+          "Test both vendor types"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 5
+        },
+        "skills": {
+          "Charm": 5,
+          "Awareness": 4,
+          "Investigation": 4,
+          "Guns": 3
+        },
+        "soulcredit": 4,
+        "starting_currency": {
+          "breath": 50,
+          "drip": 30,
+          "grain": 5,
+          "spark": 3
+        },
+        "starting_inventory": {}
+      }
+    ]
+  },
+  "_design_notes": "SOULCREDIT GATING TEST - This session tests the complete SC gating system. Expected outcomes: (1) Rivan (SC -5) is BLOCKED from Nexus vending machine (needs SC ≥-2), gets clear error message. (2) Rivan CAN purchase from Independent supply drone (no SC requirements). (3) Kress (SC +4) can purchase from BOTH vendors. (4) DM should narrate the SC scanning/rejection for atmosphere. This is a CRITICAL test of the SC gating infrastructure.",
+  "notes": "TEST SCENARIO: Soulcredit vendor access control. Rivan has SC -5 (below vending machine threshold), Kress has SC +4 (well above threshold). Two vendor types present: VENDING_MACHINE (SC ≥-2 required) and SUPPLY_DRONE (no SC requirement). Players should attempt purchases from both vendors to verify SC gating works correctly. Expected: Rivan blocked from vending machine but succeeds with supply drone. Kress succeeds with both."
+}

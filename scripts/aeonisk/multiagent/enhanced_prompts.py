@@ -58,8 +58,7 @@ def _format_tiered_skills(character_skills: Dict[str, int]) -> str:
         lines.append("")  # Blank line between categories
 
     # Section 2: Available skills (brief, categorized)
-    lines.append("\n**OTHER AVAILABLE SKILLS (can attempt untrained at -50%):**")
-    lines.append("Use [LOOKUP: skill name] for detailed guidance on any skill.\n")
+    lines.append("\n**OTHER AVAILABLE SKILLS (can attempt untrained - roll is halved):**")
 
     for category in sorted(missing_skills_by_category.keys()):
         if missing_skills_by_category[category]:
@@ -232,7 +231,7 @@ def get_player_system_prompt(
     knowledge_context: str = "",
     void_score: int = 0,
     other_party_members: List[str] = None,
-    energy_inventory: Dict[str, Any] = None
+    energy_purse: Dict[str, Any] = None
 ) -> str:
     """
     Get enhanced player system prompt with mechanical scaffolding.
@@ -346,15 +345,17 @@ Then the system will give you a FREE second action for your main task!
 Further void exposure may have severe consequences.
 """
 
-    pronouns = character_stats.get('pronouns', 'they/them')
+    pronouns = character_stats.get('pronouns')
 
-    return f"""You are playing {character_name} ({pronouns}) in an Aeonisk YAGS game.
+    # Conditional pronoun display - only show if explicitly provided
+    pronoun_intro = f" ({pronouns})" if pronouns else ""
+    pronoun_section = f"**Pronouns:** {pronouns}\n\n" if pronouns else ""
+
+    return f"""You are playing {character_name}{pronoun_intro} in an Aeonisk YAGS game.
 
 # Character Sheet
 
-**Pronouns:** {pronouns}
-
-**Attributes:**
+{pronoun_section}**Attributes:**
 {attributes_text}
 
 **Skills:**
@@ -368,15 +369,15 @@ Further void exposure may have severe consequences.
 # Inventory & Resources
 
 **Currency (Talismanic Energy):**
-{f'''- Breath: {energy_inventory.get('currencies', {}).get('breath', 0)} (smallest denomination)
-- Drip: {energy_inventory.get('currencies', {}).get('drip', 0)}
-- Grain: {energy_inventory.get('currencies', {}).get('grain', 0)}
-- Spark: {energy_inventory.get('currencies', {}).get('spark', 0)} (largest standard unit)''' if energy_inventory else '- No currency data available'}
+{f'''- Breath: {energy_purse.get('currencies', {}).get('breath', 0)} (smallest denomination)
+- Drip: {energy_purse.get('currencies', {}).get('drip', 0)}
+- Grain: {energy_purse.get('currencies', {}).get('grain', 0)}
+- Spark: {energy_purse.get('currencies', {}).get('spark', 0)} (largest standard unit)''' if energy_purse else '- No currency data available'}
 
 **Seeds:**
-{f'''- Raw Seeds: {energy_inventory.get('seed_counts', {}).get('raw', 0)} (degrade over time, need attunement)
-- Attuned Seeds: {energy_inventory.get('seed_counts', {}).get('attuned', 0)} (stable, ritual fuel)
-- Hollow Seeds: {energy_inventory.get('seed_counts', {}).get('hollow', 0)} (illicit, black market commodity)''' if energy_inventory else '- No seed data available'}
+{f'''- Raw Seeds: {energy_purse.get('seed_counts', {}).get('raw', 0)} (degrade over time, need attunement)
+- Attuned Seeds: {energy_purse.get('seed_counts', {}).get('attuned', 0)} (stable, ritual fuel)
+- Hollow Seeds: {energy_purse.get('seed_counts', {}).get('hollow', 0)} (illicit, black market commodity)''' if energy_purse else '- No seed data available'}
 
 **YOU CAN USE CURRENCY!** When you encounter vendors, you can:
 - Purchase ritual supplies (incense, talismans, tools)

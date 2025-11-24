@@ -188,7 +188,11 @@ class MessageBus:
         # Invoke local handlers
         for handler in self.message_handlers.values():
             try:
-                handler(message)
+                # Check if handler is async and await if necessary
+                if asyncio.iscoroutinefunction(handler):
+                    await handler(message)
+                else:
+                    handler(message)
             except Exception as e:
                 logger.error(f"Message handler error: {e}")
                 

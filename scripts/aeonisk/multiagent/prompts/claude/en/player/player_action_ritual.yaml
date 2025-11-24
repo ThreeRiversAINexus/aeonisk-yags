@@ -1,0 +1,115 @@
+version: 1.1.0
+module: player_action_ritual
+description: "Phase 2: RITUAL action - Spellcasting, astral arts, void manipulation"
+always_load: false
+load_when: action_type_is_ritual
+content: |-
+  # ✨ RITUAL ACTION: Astral Arts & Spellcasting
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
+
+  You've chosen a **ritual action**. Now let's define the mechanical details.
+
+  ## Ritual Mechanics
+
+  **Process:**
+  1. Declare ritual/spell effect
+  2. Use ritual offerings (incense, crystals) to reduce void risk
+  3. Roll check (Willpower + Astral Arts/Attunement)
+  4. DM determines effect and void corruption
+
+  **Typical Difficulty:** DC 15-25 (complex rituals, void manipulation)
+  **⚠️ VOID RISK:** Rituals without offerings add +1 to +3 void on success, more on failure!
+
+  ## REQUIRED Fields
+
+  ```python
+  RitualAction(
+      intent: str,
+      description: str,               # 50-800 chars - describe ritual method
+      attribute: "Willpower",         # Almost always Willpower
+      skill: str,                     # "Astral Arts" or "Attunement"
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.RITUAL,
+      is_ritual: True,                # Always True for RITUAL actions
+      has_offering: bool,             # IMPORTANT: Use incense/crystals to reduce void!
+      offering_type: Optional[str]    # "incense", "crystals", "blessed_salt", etc.
+  )
+  ```
+
+  ## Common Ritual Skills
+
+  - `Willpower × Astral Arts` - Telekinesis, energy manipulation, wards
+  - `Willpower × Attunement` - Void sensing, seed attuning, corruption detection
+
+  ## Examples
+
+  **Telekinetic Manipulation:**
+  ```python
+  RitualAction(
+      intent="Use telekinesis to retrieve key from across room",
+      description="I burn a stick of purifying incense and focus my will on the keyring hanging across the chamber. Extending astral tendrils, I gently lift the keys and float them toward my outstretched hand.",
+      attribute="Willpower",
+      skill="Astral Arts",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Precise control at distance, but I have proper offerings to keep casting clean",
+      action_type=ActionType.RITUAL,
+      is_ritual=True,
+      has_offering=True,
+      offering_type="incense"
+  )
+  ```
+
+  **Void Detection (Risky!):**
+  ```python
+  RitualAction(
+      intent="Sense void corruption levels in ritual chamber",
+      description="I extend my astral awareness into the chamber, feeling for the cold touch of void corruption. No offerings - this is just a quick scan.",
+      attribute="Willpower",
+      skill="Attunement",
+      difficulty_estimate=16,
+      difficulty_justification="DC 16: Ambient void makes sensing harder, and without offerings I risk corruption",
+      action_type=ActionType.RITUAL,
+      is_ritual=True,
+      has_offering=False
+  )
+  ```
+
+  **Astral Healing (Major Ritual - High DC!):**
+  ```python
+  RitualAction(
+      intent="Perform astral healing ritual to close ally's void-tainted wound",
+      description="I lay purifying incense around my wounded ally and place my hands above the corrupted injury. Channeling astral energy through protective glyphs, I attempt to seal the wound at a spiritual level - the flesh will follow if the astral pattern holds.",
+      attribute="Willpower",
+      skill="Astral Arts",
+      difficulty_estimate=22,
+      difficulty_justification="DC 22: Major ritual (astral healing), void-tainted wound resists conventional medicine, requires offerings to avoid corruption feedback",
+      action_type=ActionType.RITUAL,
+      is_ritual=True,
+      has_offering=True,
+      offering_type="incense",
+      ritual_components="Purifying incense, protective glyphs, focused will"
+  )
+  ```
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
+  ---
+
+  **⚠️ WARNING: Always use offerings when possible to reduce void corruption risk!**
+
+  **💡 NOTE: Ritual healing is for spiritual/curse wounds (DC 20-22). For conventional injuries, use Medicine (SUPPORT) instead - lower DC, no void risk!**
+
+  **Ready? Declare your ritual!**

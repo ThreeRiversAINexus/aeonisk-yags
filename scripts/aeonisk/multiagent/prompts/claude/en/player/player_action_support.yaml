@@ -1,0 +1,145 @@
+version: 1.1.0
+module: player_action_support
+description: "Phase 2: SUPPORT action - Healing, buffs, tactical support for allies"
+always_load: false
+load_when: action_type_is_support
+content: |-
+  # 🩹 SUPPORT ACTION: Healing & Ally Assistance
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
+
+  You've chosen a **support action**. Now let's define the mechanical details.
+
+  ## Support Mechanics
+
+  **Process:**
+  1. Identify target ally
+     ⚠️ **CRITICAL:** Only target allies actually present in the scene. Do NOT target characters mentioned only in narrative.
+  2. Choose support type (heal, buff, tactical assist)
+  3. Roll check (varies by support type)
+  4. DM determines healing/buff effect
+
+  **Typical Difficulty:** DC 12-20 (varies by injury severity, conditions)
+
+  ## REQUIRED Fields
+
+  ```python
+  SupportAction(
+      intent: str,
+      description: str,               # 50-800 chars
+      attribute: str,                 # Intelligence (Medicine), Charisma (Inspire)
+      skill: str,                     # Medicine, Charm, Combat
+      difficulty_estimate: int,
+      difficulty_justification: str,
+      action_type: ActionType.SUPPORT,
+      target: str                     # REQUIRED! Ally target ID (tgt_xxxx)
+  )
+  ```
+
+  ## Common Support Skills
+
+  - `Intelligence × Medicine` - Treating wounds, stabilizing injured
+  - `Charisma × Charm` - Inspiring allies, boosting morale
+  - `Perception × Combat` - Providing tactical guidance, coordinating
+
+  ## Examples
+
+  **Medical Treatment:**
+  ```python
+  SupportAction(
+      intent="Treat ally's gunshot wound",
+      description="I kneel beside my wounded teammate, quickly assessing the injury. Applying pressure to stop bleeding, I inject syn-skin foam into the wound cavity and wrap it with sterile bandages from my medkit.",
+      attribute="Intelligence",
+      skill="Medicine",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Serious ballistic trauma, active bleeding, combat stress",
+      action_type=ActionType.SUPPORT,
+      target="tgt_a7x2"
+  )
+  ```
+
+  **Tactical Coordination:**
+  ```python
+  SupportAction(
+      intent="Direct ally to better firing position",
+      description="I call out to my teammate: 'Ash, move to that crate stack - you'll have clear sight lines and hard cover!' Pointing out the tactical advantage.",
+      attribute="Perception",
+      skill="Combat",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: Simple tactical suggestion in combat, ally trusts my judgment",
+      action_type=ActionType.SUPPORT,
+      target="tgt_ally_ash"
+  )
+  ```
+
+  ---
+
+  **⚠️ IMPORTANT: Medicine vs Ritual Healing**
+
+  **Medicine (SUPPORT action):**
+  - Conventional healing: wounds, bleeding, stabilization, broken bones
+  - Skills: Intelligence × Medicine / First Aid
+  - Typical DC: 12-20 (varies by injury severity)
+  - **NO void risk** - safe medical treatment
+  - Use for: gunshot wounds, lacerations, blunt trauma, blood loss
+
+  **Ritual Healing (RITUAL action):**
+  - Spiritual/curse healing: void-tainted wounds, astral trauma, curse-inflicted injuries
+  - Skills: Willpower × Astral Arts / Intimacy Ritual
+  - Typical DC: 20-22 (Major ritual difficulty)
+  - **VOID RISK:** +1-3 void depending on offerings/failures
+  - Use for: "ritually healed" curse wounds, void corruption injuries, spiritual trauma
+
+  **💡 If the wound is void-tainted, curse-inflicted, or spiritually bound → Use RITUAL action instead of SUPPORT!**
+
+  ## ⚠️ CRITICAL: Death vs Unconscious
+
+  **Death Threshold:** **6+ Wounds = DEAD** (cannot be saved by any means)
+  **Unconscious Threshold:** **Health ≤ 0 but wounds < 6 = UNCONSCIOUS** (can be stabilized)
+
+  **When deciding whether to use Medicine on a downed ally:**
+  - Check their **wound count** in the scenario state
+  - **Wounds < 6 and health ≤ 0** → Ally is UNCONSCIOUS, Medicine can stabilize
+  - **Wounds ≥ 6** → Ally is DEAD, healing is impossible, spend your action on combat/escape instead
+  - **Do not waste actions** attempting to heal truly dead teammates (6+ wounds)
+
+  **Medicine Stabilization (for unconscious allies only):**
+
+  ⚠️ **IMPORTANT:** Stabilization stops the death spiral but does NOT restore HP.
+  Once stabilized, ally is extracted by faction medevac - they're SAFE but won't rejoin this encounter.
+
+  - Action type: SUPPORT
+  - Skill: Intelligence × Medicine
+  - DC: 18 (serious trauma stabilization)
+  - **Success:** Ally stabilized, faction medevac extracts them (SAFE, removed from combat)
+  - **Failure:** Ally remains unconscious, still at risk
+
+  **✅ After successful stabilization:**
+  - Ally no longer needs intervention (don't keep trying!)
+  - They are out of danger but unconscious
+  - Faction medical team arrives and extracts them
+  - Focus your remaining actions on the mission/combat
+
+  **💡 One successful stabilization is all you need. Don't keep healing a stabilized ally!**
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
+  ---
+
+  **Entities Present (valid targets):**
+  {entities_present}
+
+  ⚠️ **IMPORTANT:** You MUST specify target ally ID from the list above (e.g., tgt_xxxx)!
+
+  **Ready? Declare your support action!**

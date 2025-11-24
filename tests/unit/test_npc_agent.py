@@ -156,11 +156,13 @@ def test_npc_action_with_target():
     action = NPCAction(
         action_type="dialogue",
         reason="I tell the player about the vault code",
-        target="player_01"
+        target="player_01",
+        dialogue_content="The vault code is 4-7-2-9. Use it wisely."
     )
 
     assert action.action_type == "dialogue"
     assert action.target == "player_01"
+    assert action.dialogue_content == "The vault code is 4-7-2-9. Use it wisely."
 
 
 def test_npc_action_types_valid():
@@ -168,10 +170,18 @@ def test_npc_action_types_valid():
     valid_types = ["flee", "hide", "plead", "comply", "dialogue", "assist", "pass"]
 
     for action_type in valid_types:
-        action = NPCAction(
-            action_type=action_type,
-            reason="Test action with sufficient length for validation"
-        )
+        # Dialogue requires dialogue_content, others don't
+        if action_type == "dialogue":
+            action = NPCAction(
+                action_type=action_type,
+                reason="Test action with sufficient length for validation",
+                dialogue_content="Test dialogue content for validation purposes."
+            )
+        else:
+            action = NPCAction(
+                action_type=action_type,
+                reason="Test action with sufficient length for validation"
+            )
         assert action.action_type == action_type
 
 
@@ -191,10 +201,11 @@ def test_npc_llm_client_exists():
         void_score=2,
         skills={}
     )
-    client = NPCLLMClient(npc, model="claude-sonnet-4-5-20250929")
+    # NPCLLMClient uses llm_provider, not model parameter
+    client = NPCLLMClient(npc, llm_provider=None, temperature=0.8)
     assert client is not None
-    assert client.model == "claude-sonnet-4-5-20250929"
     assert client.npc == npc
+    assert client.temperature == 0.8
 
 
 def test_npc_threat_levels():
@@ -287,3 +298,43 @@ def test_npc_with_conditions():
     assert len(npc.conditions) == 2
     assert npc.conditions[0].name == "Bleeding"
     assert npc.conditions[1].name == "Shaken"
+
+
+def test_npc_action_dialogue_has_content():
+    """NPCAction with action_type='dialogue' should have actual dialogue content."""
+    # Create dialogue action with content
+    action = NPCAction(
+        action_type="dialogue",
+        reason="Responding to player's question about the location of the vault",
+        dialogue_content="The vault is in the basement, past the security checkpoint. But you'll need a keycard to get in."
+    )
+
+    assert action.action_type == "dialogue"
+    assert action.dialogue_content is not None
+    assert len(action.dialogue_content) > 0
+    assert "vault" in action.dialogue_content.lower()
+
+
+def test_npc_action_dialogue_content_optional_for_non_dialogue():
+    """dialogue_content should be optional for non-dialogue actions."""
+    # Non-dialogue actions don't need dialogue_content
+    flee_action = NPCAction(
+        action_type="flee",
+        reason="Running from the armed guards approaching from the north corridor"
+    )
+
+    assert flee_action.action_type == "flee"
+    assert flee_action.dialogue_content is None
+
+
+def test_npc_action_dialogue_content_required_for_dialogue():
+    """dialogue_content should be required when action_type is 'dialogue'."""
+    from pydantic import ValidationError
+
+    # This should fail validation if we try to create dialogue without content
+    with pytest.raises(ValidationError, match="dialogue_content.*REQUIRED"):
+        NPCAction(
+            action_type="dialogue",
+            reason="Responding to player",
+            dialogue_content=None  # Should fail - dialogue needs content!
+        )

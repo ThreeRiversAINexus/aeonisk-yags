@@ -1,0 +1,167 @@
+@startuml JSONL Logging System
+title JSONL Logging System - ML Training Data Pipeline
+
+package "Logging Sources" {
+    component [SessionCoordinator] as Coord
+    component [MechanicsEngine] as Mech
+    component [DMAgent] as DM
+    component [PlayerAgent] as Player
+    component [EnemyAgent] as Enemy
+}
+
+package "JSONLLogger" {
+    component [EventBuffer] as Buffer
+    component [SchemaValidator] as Validator
+    component [FileWriter] as Writer
+
+    note right of Buffer
+        10 Event Types:
+        1. session_start
+        2. scenario
+        3. action_declaration
+        4. action_resolution
+        5. round_synthesis
+        6. round_summary
+        7. character_state
+        8. combat_action
+        9. enemy_spawn
+        10. enemy_defeat
+        11. mission_debrief
+        12. llm_call
+    end note
+}
+
+package "JSONL Output" {
+    file "session_<timestamp>.jsonl" as JSONL
+    file "game.log" as GameLog
+
+    note right of JSONL
+        Each line = 1 JSON event
+        Example:
+        {"event_type":"action_resolution",...}
+        {"event_type":"character_state",...}
+
+        Size: ~50KB - 5MB per session
+        Duration: 1-20 rounds
+    end note
+}
+
+package "Analysis Tools" {
+    component [analyze_session.py] as Analyze
+    component [extract_fixture.py] as Extract
+    component [replay_fixture.py] as Replay
+    component [diff_fixtures.py] as Diff
+    component [validate_logging.py] as Validate
+    component [reconstruct_narrative.py] as Reconstruct
+
+    note bottom of Analyze
+        Quick analysis tool:
+        - Session summary
+        - Event search/filter
+        - Field extraction
+        - Count/index modes
+        (Use instead of reading huge JSONL!)
+    end note
+}
+
+' Logging flow
+Coord --> Buffer : log_session_start()
+Coord --> Buffer : log_scenario()
+Coord --> Buffer : log_round_synthesis()
+Coord --> Buffer : log_round_summary()
+Coord --> Buffer : log_mission_debrief()
+
+Mech --> Buffer : log_action_declaration()
+Mech --> Buffer : log_action_resolution()
+Mech --> Buffer : log_character_state()
+Mech --> Buffer : log_combat_action()
+Mech --> Buffer : log_enemy_spawn()
+Mech --> Buffer : log_enemy_defeat()
+
+DM --> Buffer : (via Mech/Coord)
+Player --> Buffer : (via Mech/Coord)
+Enemy --> Buffer : (via Mech/Coord)
+
+' Internal logger flow
+Buffer --> Validator : validate_schema()
+Validator --> Writer : write_event()
+Writer --> JSONL : append line
+Writer --> GameLog : log summary
+
+' Analysis flow
+JSONL --> Analyze : read
+JSONL --> Extract : extract rounds
+JSONL --> Validate : validate all
+JSONL --> Reconstruct : rebuild story
+
+Extract --> Replay : fixture input
+Replay --> JSONL : new session output
+Diff --> JSONL : compare before/after
+
+== Event Flow Examples ==
+
+participant Coord as Coord2
+participant Mech as Mech2
+participant Logger as Logger2
+participant JSONL as JSONL2
+
+note over Coord2, JSONL2: Session Start
+
+Coord2 -> Logger2: log_session_start(config)
+Logger2 -> JSONL2: {"event_type":"session_start","session_id":"...","config":{...}}
+
+note over Coord2, JSONL2: DM Generates Scenario
+
+Coord2 -> Logger2: log_scenario(scenario)
+Logger2 -> JSONL2: {"event_type":"scenario","theme":"...","void_level":8,...}
+
+note over Coord2, JSONL2: Player Action
+
+Mech2 -> Logger2: log_action_declaration(action)
+Logger2 -> JSONL2: {"event_type":"action_declaration","agent":"Ash","action":"..."}
+
+Mech2 -> Logger2: log_action_resolution(resolution)
+Logger2 -> JSONL2: {"event_type":"action_resolution","roll":{...},"effects":{...}}
+
+note over Coord2, JSONL2: Character State Change
+
+Mech2 -> Logger2: log_character_state(character)
+Logger2 -> JSONL2: {"event_type":"character_state","hp":8,"void":3,"wounds":1}
+
+note over Coord2, JSONL2: Round End
+
+Coord2 -> Logger2: log_round_summary(summary)
+Logger2 -> JSONL2: {"event_type":"round_summary","round":3,"summary":"..."}
+
+== ML Training Use Cases ==
+
+note right of JSONL
+    Training scenarios:
+
+    1. Action→Resolution mapping
+       - Input: action_declaration
+       - Output: action_resolution
+       - Learn: DM adjudication patterns
+
+    2. Tactical decision making
+       - Input: combat_state + character_state
+       - Output: enemy action
+       - Learn: Enemy AI tactics
+
+    3. Damage extraction
+       - Input: narration text
+       - Output: damage.dealt values
+       - Learn: Parse effects from text
+
+    4. Void progression
+       - Input: scenario.void_level + actions
+       - Output: void_changes over time
+       - Learn: Corruption mechanics
+
+    5. Story generation
+       - Input: scenario.theme
+       - Output: round_synthesis events
+       - Learn: Narrative coherence
+end note
+
+@enduml

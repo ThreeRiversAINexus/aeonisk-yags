@@ -1,241 +1,310 @@
-# Aeonisk: Open Multi-Agent Research Infrastructure
+# Aeonisk-YAGS
 
-**GPL-licensed benchmark for tactical reasoning, risk assessment, and multi-agent coordination**
+**Multi-agent AI system that plays tabletop RPGs autonomously, generating structured training data for ML research.**
 
-## The Problem
+[![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
+[![Dataset on HuggingFace](https://img.shields.io/badge/Dataset-HuggingFace-yellow.svg)](https://huggingface.co/ThreeRiversAINexus)
 
-Corporate copyright prevents ML research on semantically rich environments:
-- **Can't train on D&D mechanics** (Wizards of the Coast)
-- **Can't use Star Wars factions** (Disney)
-- **Can't touch any major IP** without legal risk
+---
 
-Researchers are forced to use:
-- Abstract toy problems (GridWorld, CartPole)
-- Scraped data (legally murky)
-- Synthetic LLM output (circular training)
+## What is Aeonisk-YAGS?
 
-**This stifles research.**
+Aeonisk-YAGS is an open-source framework where AI agents—a Dungeon Master, player characters, and enemies—collaborate to play complete tabletop RPG sessions without human intervention. Every action, decision, and outcome is logged in structured JSONL format, creating rich training data for machine learning research.
 
-## The Solution
+**The core loop:**
+1. **DM Agent** generates scenarios, describes environments, and adjudicates outcomes
+2. **Player Agents** declare actions based on character abilities and tactical context
+3. **Enemy Agents** use tactical AI with morale, positioning, and coordination
+4. **Mechanics Engine** resolves dice rolls, damage, and game state changes
+5. **Everything is logged** with full mechanical provenance for ML training
 
-Aeonisk provides GPL-licensed infrastructure explicitly designed for ML research:
+Built on the GPL-licensed YAGS ruleset (Attribute × Skill + d20), Aeonisk adds void corruption, scene clocks, faction dynamics, and a four-element economy—creating semantically rich scenarios that go far beyond abstract toy problems.
 
-### 📊 Aeonisk-86 Benchmark Dataset
+---
 
-**86 tactical scenarios with complete outcome distributions**
+## Why This Exists
 
-Unlike datasets capturing only realized outcomes, Aeonisk-86 provides the ENTIRE outcome space:
-- **6-tier taxonomy**: Critical failure → Exceptional success
-- **516 distinct labeled outcomes** (86 scenarios × 6 tiers)
-- **Full mechanical provenance** for each outcome
-- **Narrative + mechanical effects** specified
+**The problem:** Corporate copyright prevents ML research on semantically rich game environments. You can't train on D&D mechanics (Wizards of the Coast), Star Wars factions (Disney), or any major IP without legal risk.
 
-**Novel contributions:**
-- Multi-tier outcome capture enables counterfactual reasoning
-- Complete risk profiles for each scenario
-- Graduated reward signals beyond binary success/failure
-- Human-in-the-loop synthetic generation with schema enforcement
+**The result:** Researchers are stuck with GridWorld, CartPole, or legally murky scraped data.
 
-**Dataset:** `datasets/aeonisk_dataset_normalized_complete.txt` | [Hugging Face - COMING SOON]
+**The solution:** Aeonisk provides GPL-licensed infrastructure explicitly designed for ML research. No copyright enclosure. Rich semantic domains. Complete mechanical provenance.
 
-### 🎮 Multi-Agent Simulation Environment
+---
 
-**O(n) tactical combat system designed for large-scale simulation**
+## Key Features
 
-- Concentric ring positioning (vs O(n²) grid pathfinding)
-- Declare/resolve framework (commitment under uncertainty)
-- Faction dynamics with corruption mechanics
-- Full Python implementation with autonomous agents
+### For ML Researchers
 
-**Code:** This repository ([Setup Guide](scripts/README.md))
+- **Structured outcome data** with 6-tier taxonomy (critical failure → exceptional success)
+- **Complete mechanical provenance** for every outcome (dice rolls, modifiers, margins)
+- **Multi-agent coordination data** with faction dynamics and morale systems
+- **Counterfactual reasoning** support (each scenario has full outcome distributions)
+- **Risk-aware training signals** beyond binary success/failure
 
-### 🔬 Research Applications
+### For Developers
 
-**What you can do with this:**
+- **Multi-provider LLM support** (Anthropic Claude, OpenAI GPT, local models planned)
+- **Externalized YAML prompts** with versioning and multi-language support
+- **O(n) tactical combat** using concentric ring positioning (vs O(n²) grid pathfinding)
+- **Comprehensive logging** with 19 event types for debugging and analysis
+- **Modular architecture** for extending mechanics, agents, or scenarios
 
-- **Benchmarking**: Compare LLM reasoning on grounded tactical scenarios
-- **Multi-Agent RL**: Coordination testbed with faction dynamics
-- **Risk Assessment**: Outcome distributions enable risk-aware planning
-- **Counterfactual Reasoning**: Each scenario has 6 counterfactual outcomes
-- **Graduated Rewards**: Move beyond binary success/failure
-- **Alignment Research**: Void corruption models alignment drift
-- **Narrative Generation**: 516 examples of degree-appropriate storytelling
+---
 
 ## Quick Start
 
-### Using The Dataset
+### Option A: Use the Dataset (ML Researchers)
 
+**HuggingFace** (recommended):
+```bash
+# Dataset available at huggingface.co/ThreeRiversAINexus
+# Growing collection with more scenarios being added regularly
+```
+
+**Local repository:**
 ```python
-# Load from repository
 import yaml
 
 with open('datasets/aeonisk_dataset_normalized_complete.txt', 'r') as f:
-    dataset = yaml.safe_load_all(f)
+    for task in yaml.safe_load_all(f):
+        scenario = task['scenario']
+        outcomes = task['gold_answer']['outcome_explanation']
 
-for task in dataset:
-    scenario = task['scenario']
-    outcomes = task['gold_answer']['outcome_explanation']
-    # outcomes contains all 6 tiers with narratives + mechanics
+        # Access all 6 outcome tiers
+        critical_failure = outcomes['critical_failure']
+        exceptional_success = outcomes['exceptional']
 
-    # Example: Access specific outcome tier
-    critical_failure = outcomes['critical_failure']
-    exceptional_success = outcomes['exceptional']
+        # Each tier includes narrative + mechanical effects
+        print(f"Task: {task['task_id']}")
+        print(f"Scenario: {scenario['context']}")
 ```
 
-**Coming soon:** Hugging Face dataset with standardized API
-
-### Running The Multi-Agent System
+### Option B: Run the Multi-Agent System (Developers)
 
 ```bash
-# Setup (one-time)
+# Clone and setup
+git clone https://github.com/ThreeRiversAINexus/aeonisk-yags.git
+cd aeonisk-yags
+
+# Create virtual environment (required)
 python3 -m venv .venv
 source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 
+# Configure API key
+export ANTHROPIC_API_KEY="your-key-here"
+# Or for OpenAI: export OPENAI_API_KEY="your-key-here"
+
 # Run a session
-python3 scripts/run_multiagent_session.py scripts/session_config_combat.json
+python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_combat.json
 ```
 
-Generates complete RPG sessions with:
-- DM scenario generation
-- Player tactical decisions
-- Enemy AI with morale system
-- Detailed JSONL logs for analysis
+Output goes to `multiagent_output/session_*.jsonl`
 
-**Full setup guide:** [scripts/README.md](scripts/README.md)
+**Full developer guide:** [scripts/README.md](scripts/README.md)
 
-## Why GPL?
+---
 
-This project is **explicitly GPL-licensed to route around copyright enclosure**.
+## Example Output
 
-ML researchers should be able to use familiar, semantically rich domains without legal risk. D&D shouldn't be off-limits. Neither should any rich semantic space.
+Every session produces JSONL logs with events like:
 
-If you think copyright enclosure is a problem:
-- Use this dataset
-- Extend this system
-- Build on this infrastructure
+```json
+{
+  "event_type": "action_resolution",
+  "round": 3,
+  "agent": "Kira",
+  "action": "Hack the security terminal to disable alarms",
+  "roll": {
+    "attribute": "Intelligence",
+    "skill": "Computers",
+    "base": 45,
+    "roll": 12,
+    "total": 57,
+    "difficulty": 50,
+    "margin": 7,
+    "success": true,
+    "tier": "moderate"
+  },
+  "effects": {
+    "narrative": "Kira's fingers dance across the holographic interface...",
+    "mechanical": "Security systems disabled for 3 rounds",
+    "void_change": 0
+  }
+}
+```
 
-GPL means improvements must be shared. That's the point.
+19 event types capture everything: scenario setup, action declarations, combat exchanges, enemy spawns, character state changes, round summaries, and mission debriefs.
+
+---
 
 ## Dataset Details
 
-**Location:** `datasets/aeonisk_dataset_normalized_complete.txt`
+**Current size:** 58 scenarios with complete outcome distributions
 
-**Schema:** See `datasets/aeonisk_dataset_guidelines.txt`
+**Outcome taxonomy (6 tiers):**
+| Tier | Margin | Description |
+|------|--------|-------------|
+| Critical Failure | < -20 | Catastrophic consequences |
+| Failure | < 0 | No progress, complications |
+| Marginal | 0-4 | Minimal success |
+| Moderate | 5-9 | Standard success |
+| Good | 10-14 | Clear success with advantage |
+| Exceptional | 20+ | Outstanding breakthrough |
 
-**Properties:**
-- 86 scenarios across multiple domains (combat, social, investigation, ritual)
-- 6-tier outcome taxonomy per scenario
-- Full attribute/skill/difficulty specifications
-- Consistent YAML format
-- Complete mechanical provenance
+**Scenario types:** Combat, investigation, social/negotiation, ritual/void mechanics
 
-**Methodology:**
-- Human-in-the-loop synthetic generation
-- Schema enforcement for consistency
-- AI adjudication using YAGS ruleset
-- Multi-tier capture (not just realized outcomes)
+**What makes this different:**
+- Multi-tier outcomes enable counterfactual reasoning (not just what happened, but what could have)
+- Full mechanical provenance (you know exactly why each outcome occurred)
+- Graduated reward signals for nuanced training
+- Human-in-the-loop synthetic generation with schema enforcement
 
-**Outcome Tiers:**
-- **Critical Failure** (< -20 margin): Catastrophic consequences
-- **Failure** (< 0): No progress, complications
-- **Marginal** (0-4): Minimal success
-- **Moderate** (5-9): Standard success
-- **Good** (10-14): Clear success
-- **Excellent** (15-19): Major advantage
-- **Exceptional** (20+): Outstanding breakthrough
+---
 
-## System Architecture
+## Architecture Overview
 
-Built on:
-- **YAGS Core Rules** (GPL v2) - Attribute × Skill + d20 system
-- **Aeonisk Module** - Void/Soulcredit/Bond mechanics
-- **Multi-Agent Framework** - Autonomous DM, players, enemies
-- **O(n) Tactical System** - Ring-based positioning
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Session Orchestrator                      │
+│                      (session.py)                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐  │
+│  │   DM    │    │ Player  │    │  Enemy  │    │   NPC   │  │
+│  │  Agent  │    │ Agents  │    │ Agents  │    │ Agents  │  │
+│  └────┬────┘    └────┬────┘    └────┬────┘    └────┬────┘  │
+│       │              │              │              │        │
+│       └──────────────┴──────────────┴──────────────┘        │
+│                          │                                  │
+│                 ┌────────▼────────┐                         │
+│                 │    Mechanics    │                         │
+│                 │     Engine      │                         │
+│                 │  (mechanics.py) │                         │
+│                 └────────┬────────┘                         │
+│                          │                                  │
+│                 ┌────────▼────────┐                         │
+│                 │  JSONL Logger   │                         │
+│                 │  (19 event      │                         │
+│                 │   types)        │                         │
+│                 └─────────────────┘                         │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Full architecture docs: `.claude/ARCHITECTURE.md`
+**Key components:**
+- **DM Agent** (`dm.py`) - Scenario generation, action adjudication, narrative synthesis
+- **Player Agents** (`player.py`) - Character decision-making with personality and goals
+- **Enemy Agents** (`enemy_combat.py`) - Tactical AI with morale, positioning, retreat logic
+- **Mechanics Engine** (`mechanics.py`) - YAGS dice resolution, damage, void corruption
+- **Prompt System** (`prompts/`) - Externalized YAML prompts for all LLM interactions
+
+**Full architecture docs:** [.claude/ARCHITECTURE.md](.claude/ARCHITECTURE.md)
+
+---
+
+## Research Applications
+
+**What you can build with this:**
+
+- **LLM Benchmarking** - Compare reasoning quality on grounded tactical scenarios
+- **Multi-Agent RL** - Coordination testbed with faction dynamics (PettingZoo integration planned)
+- **Risk Assessment** - Outcome distributions enable risk-aware planning research
+- **Counterfactual Reasoning** - Each scenario has 6 counterfactual outcomes to train on
+- **Alignment Research** - Void corruption models gradual value drift
+- **Narrative Generation** - Hundreds of examples of degree-appropriate storytelling
+
+---
 
 ## Project Status
 
-**Current (v0.1):**
-- ✅ 86-task dataset with multi-tier outcomes
-- ✅ Multi-agent simulation framework
-- ✅ O(n) tactical combat system
-- ✅ Autonomous DM, player, and enemy agents
-- ✅ JSONL logging for ML training data
+**Current:**
+- Multi-agent simulation framework (stable)
+- 58-scenario dataset with multi-tier outcomes
+- Support for Anthropic Claude and OpenAI GPT models
+- Comprehensive JSONL logging (19 event types)
+- NPC de-escalation and conversion system
+- Economy system with vendors and purchases
 
 **In Development:**
-- 🚧 PettingZoo integration for RL research
-- 🚧 Hugging Face dataset publication
-- 📝 Research paper on multi-tier outcome capture
+- Expanded scenario library
+- PettingZoo environment for RL research
+- Local model support (Llama, Mistral)
 
-**Future Work:**
-- Expanded dataset (200+ scenarios)
-- Additional scenario types
+**Roadmap:**
 - Multi-language prompt support
 - Benchmark comparisons across models
+- Research paper on multi-tier outcome capture
 
-## For Developers
-
-Want to run the multi-agent system? See [**scripts/README.md**](scripts/README.md) for:
-- Detailed installation and setup
-- Running sessions and configurations
-- Validating JSONL output
-- Architecture and codebase tour
+---
 
 ## Documentation
 
-- **Dataset Schema**: `datasets/aeonisk_dataset_guidelines.txt`
-- **System Architecture**: `.claude/ARCHITECTURE.md`
-- **Code Setup**: `scripts/README.md`
-- **Session Config**: `scripts/session_config_README.md`
-- **ML Logging Details**: `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md`
+| Document | Description |
+|----------|-------------|
+| [Developer Guide](scripts/README.md) | Installation, running sessions, configuration |
+| [Session Config Reference](scripts/session_config_README.md) | All configuration options explained |
+| [Architecture Deep-Dive](.claude/ARCHITECTURE.md) | System design and component interactions |
+| [ML Logging Details](scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md) | Event types and schema documentation |
+| [Dataset Guidelines](datasets/aeonisk_dataset_guidelines.txt) | Dataset format specification |
 
-## Contributing
-
-Contributions welcome for:
-- **Dataset expansion**: More scenarios, domains, edge cases
-- **Prompt engineering**: Better outcome generation
-- **RL integration**: PettingZoo environment completion
-- **Model comparisons**: Benchmark results and analysis
-
-GPL requirement: Improvements must be shared back.
+---
 
 ## Interactive Demo
 
-Try the Aeonisk DM GPT:
-[ChatGPT Custom GPT](https://chatgpt.com/g/g-680299b1a5f08191b869fe352f33cc1a-aeonisk)
+Try the Aeonisk DM as a ChatGPT Custom GPT:
+[chat.openai.com - Aeonisk DM](https://chatgpt.com/g/g-680299b1a5f08191b869fe352f33cc1a-aeonisk)
+
+---
+
+## Contributing
+
+Contributions welcome! Areas of interest:
+
+- **Dataset expansion** - More scenarios, edge cases, domain coverage
+- **Model integrations** - Local models, new providers
+- **RL integration** - PettingZoo environment completion
+- **Prompt engineering** - Better outcome generation and agent behavior
+- **Benchmarking** - Results and analysis across different models
+
+**Note:** GPL license means improvements must be shared back. That's the point.
+
+---
 
 ## License
 
-- **Dataset & Lore**: Aeonisk Permissive Commercial License (APCL) v1
-- **Code & YAGS Mechanics**: GNU GPL v2
+- **Code & YAGS Mechanics:** GNU GPL v2
+- **Dataset & Lore:** Aeonisk Permissive Commercial License (APCL) v1
 
-Both permit commercial use. APCL requires attribution; GPL requires sharing improvements. See `LICENSE` for complete APCL text and `yags/LICENSE.md` for YAGS GPL terms.
+Both permit commercial use. GPL requires sharing improvements; APCL requires attribution.
+
+See [LICENSE](LICENSE) for complete terms.
+
+---
 
 ## Citation
 
 ```bibtex
-@dataset{aeonisk86_2025,
-  title={Aeonisk-86: Multi-Agent Tactical Reasoning Benchmark with Complete Outcome Distributions},
-  author={Three Rivers AI Nexus},
+@software{aeonisk_yags_2025,
+  title={Aeonisk-YAGS: Multi-Agent Tabletop RPG System for ML Training Data},
+  author={{Three Rivers AI Nexus}},
   year={2025},
   publisher={GitHub},
-  url={https://github.com/yourusername/aeonisk-yags}
+  url={https://github.com/ThreeRiversAINexus/aeonisk-yags}
 }
 ```
+
+---
 
 ## Contact
 
 **Three Rivers AI Nexus**
 Email: threeriversainexus@gmail.com
 
-Questions about:
-- Dataset usage and citations
-- Commercial licensing arrangements
-- Research collaborations
-- Technical support
+Questions about dataset usage, commercial licensing, research collaborations, or technical support.
 
 ---
 
-Built because copyright shouldn't block research.
+*Built because copyright shouldn't block research.*

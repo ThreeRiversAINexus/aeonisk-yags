@@ -1,0 +1,242 @@
+version: 1.0.0
+module: player_action_combat
+description: "Phase 2: COMBAT action - Attacks, defensive maneuvers, tactical combat"
+always_load: false
+load_when: action_type_is_combat
+content: |-
+  # ⚔️ COMBAT ACTION: Attack & Combat Maneuvers
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
+
+  You've chosen a **combat action**. Now let's define the mechanical details.
+
+  This includes attacks, defensive maneuvers, tactical positioning, and combat-oriented abilities.
+
+  ## Combat Mechanics
+
+  **Process:**
+  1. Declare target (any combatant - ally, enemy, or NPC)
+     ⚠️ **CRITICAL:** Only target characters from the {entities_present} list shown below. Do NOT target characters mentioned only in narrative.
+  2. Choose weapon/ability and corresponding skill
+  3. Roll to hit (Attribute + Skill + d20 vs DC)
+  4. DM narrates outcome and determines damage
+
+  **Typical Difficulty:** DC 15-25 (varies by target, cover, distance, etc.)
+
+  ## REQUIRED Fields (Must Specify)
+
+  ```python
+  CombatAction(
+      # Core fields (all required)
+      intent: str,                    # Your Phase 1 intent
+      description: str,               # 50-800 chars - Describe your attack/maneuver
+      attribute: str,                 # Agility (ranged), Strength (melee), Willpower (magic)
+      skill: str,                     # Guns, Melee, Brawl, Combat, Astral Arts, etc.
+      difficulty_estimate: int,       # Your DC estimate (consider target, cover, range)
+      difficulty_justification: str,  # Why that DC?
+
+      # Combat-specific (REQUIRED!)
+      action_type: ActionType.COMBAT,
+      target: str,                    # MUST specify target! (tgt_xxxx or name)
+
+      # Optional combat fields
+      target_position: Optional[Position],        # Desired tactical position after action
+      situational_modifiers: Dict[str, int],      # E.g., {"high_ground": 2, "cover": -2}
+  )
+  ```
+
+  ## Common Combat Skills
+
+  **Ranged Weapons:**
+  - `Agility × Guns` - Firearms, energy weapons, bows
+  - `Agility × Pilot` - Vehicle-mounted weapons
+
+  **Melee Weapons:**
+  - `Agility × Melee` - Blades, swords, precision strikes
+  - `Strength × Melee` - Heavy weapons, power attacks
+  - `Strength × Brawl` - Unarmed, improvised weapons
+
+  **Magic/Astral Arts:**
+  - `Willpower × Astral Arts` - Telekinetic strikes, energy blasts
+  - `Willpower × Attunement` - Void-based attacks (risky!)
+
+  **Tactics:**
+  - `Perception × Combat` - Called shots, tactical maneuvers
+  - `Agility × Combat` - Defensive moves, positioning
+
+  ## Current Context
+
+  **Location:** {location}
+  **Situation:** {situation}
+
+  **Your Combat Stats:**
+  - Primary combat attribute: {combat_attribute}
+  - Combat skills: {combat_skills}
+  - Current health: {health}/{max_health} ({health_status})
+  - Position: {position}
+
+  {declared_actions_this_round}
+
+  **Entities Present:**
+  {entities_present}
+
+  **Situational Factors:**
+  {situational_factors}
+
+  ## Examples
+
+  **Example 1: Ranged Attack (Firearms)**
+  ```python
+  CombatAction(
+      intent="Fire plasma rifle at enemy commander",
+      description="I take careful aim at the enemy leader's center mass, compensating for their movement and partial cover. Squeezing off two controlled bursts from my plasma rifle.",
+      attribute="Agility",
+      skill="Guns",
+      difficulty_estimate=18,
+      difficulty_justification="DC 18: Moving target with partial cover (+3), but I have stable firing position (-1) and good sightlines",
+      action_type=ActionType.COMBAT,
+      target="tgt_enemy_01",
+      target_position=Position.NEAR_ENEMY,
+      situational_modifiers={"high_ground": 2, "partial_cover": -3}
+  )
+  ```
+
+  **Example 2: Melee Attack (Blades)**
+  ```python
+  CombatAction(
+      intent="Close distance and strike gang enforcer with mono-blade",
+      description="I dash forward, closing the gap in two quick steps, and deliver a precise slash aimed at the enforcer's weapon arm to disarm them.",
+      attribute="Agility",
+      skill="Melee",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20: Called shot to weapon arm (+3), but they're focused on my ally (-2), giving me an opening",
+      action_type=ActionType.COMBAT,
+      target="tgt_enforcer_02",
+      target_position=Position.ENGAGED,
+      situational_modifiers={"called_shot": -3, "target_distracted": 2}
+  )
+  ```
+
+  **Example 3: Magic Combat (Telekinetic Attack)**
+  ```python
+  CombatAction(
+      intent="Launch telekinetic debris at void cultist",
+      description="I channel astral energy to hurl the broken machinery at the cultist with crushing force, burning incense as an offering to keep my casting pure.",
+      attribute="Willpower",
+      skill="Astral Arts",
+      difficulty_estimate=20,
+      difficulty_justification="DC 20: Requires focus to accelerate objects precisely, but I have proper offerings to reduce void risk",
+      action_type=ActionType.COMBAT,
+      target="tgt_cultist_01",
+      is_ritual=True,
+      has_offering=True,
+      offering_type="incense"
+  )
+  ```
+
+  **Example 4: Unarmed Brawl**
+  ```python
+  CombatAction(
+      intent="Tackle and subdue fleeing informant",
+      description="I sprint after the fleeing informant and tackle them to the ground, pinning their arms to prevent escape. Not trying to hurt them, just immobilize.",
+      attribute="Strength",
+      skill="Brawl",
+      difficulty_estimate=15,
+      difficulty_justification="DC 15: They're fleeing not fighting, unarmored civilian, but moving target",
+      action_type=ActionType.COMBAT,
+      target="tgt_informant",
+      situational_modifiers={"non-lethal": 0, "fleeing_target": -2}
+  )
+  ```
+
+  **Example 5: Targeting an NPC (Surrendered Combatant)**
+  ```python
+  CombatAction(
+      intent="Restrain the surrendered gang member attempting to escape",
+      description="I see the surrendered gang member reaching for a weapon. I quickly move in and strike their hand with my baton to disarm them, then pin them against the wall.",
+      attribute="Agility",
+      skill="Brawl",
+      difficulty_estimate=14,
+      difficulty_justification="DC 14: NPC is already wounded and off-balance, but desperate which makes them unpredictable",
+      action_type=ActionType.COMBAT,
+      target="tgt_prisoner_01",  # NPCs can be targeted just like enemies
+      situational_modifiers={"target_wounded": 2, "non-lethal": 0}
+  )
+  ```
+
+  ## ⚠️ SUPPRESSING FIRE PREREQUISITES
+
+  **Before using suppressive fire, verify ALL conditions:**
+  1. **Hostile enemies are present** - Check {entities_present} for enemies actively engaging
+  2. **Active combat situation** - Gunfire is already happening or enemies are attacking
+  3. **Target is HOSTILE** - Never suppress allies, NPCs, or friendlies helping you
+
+  **Suppressive fire is ONLY appropriate when:**
+  - Enemies are actively engaging your team (combat in progress)
+  - You're providing tactical cover for ally movement under enemy fire
+  - You have clear hostile targets to pin down
+
+  **Do NOT use suppressive fire when:**
+  - ❌ No enemies present (use SOCIAL intimidation or other action types)
+  - ❌ Stealth/extraction in progress (escalates to full combat)
+  - ❌ Targeting allies or NPCs helping your team
+  - ❌ Non-combat situations (negotiations, social encounters)
+
+  **Example 6: Suppressing Fire (Area Denial)**
+  ```python
+  CombatAction(
+      intent="Lay down suppressing fire to pin enemies behind cover",
+      description="I open up with full-auto bursts toward the enemy position, not aiming for precise kills but forcing them to keep their heads down while my team repositions. Sustained fire sweeping across their cover.",
+      attribute="Agility",
+      skill="Guns",
+      difficulty_estimate=16,
+      difficulty_justification="DC 16: Area suppression requires sustained fire control, but easier than precision shots. Enemies have cover but suppression bypasses some defensive value.",
+      action_type=ActionType.COMBAT,
+      target="tgt_enemy_squad",
+      situational_modifiers={"automatic_fire": 2, "area_suppression": 0}
+  )
+  ```
+
+  **Note on suppressing fire:** Uses live ammunition and can hit targets (attack roll applies). Escalates situations tactically - enemies respond with aggression, bystanders panic, security reacts to automatic weapons fire. Use when tactical situation justifies the risk.
+
+  ## Common Mistakes to Avoid
+
+  ❌ **No target specified** - MUST include target! (e.g., `target="tgt_enemy_01"`)
+  ❌ **Wrong skill for weapon** - Guns use Agility, not Strength
+  ❌ **Forgetting unskilled penalty** - If you don't have the skill, add -5 to your total!
+  ❌ **Using magic without offering** - Void corruption risk! Specify `has_offering=True` if you have incense/crystals
+  ❌ **Unrealistic difficulty** - Consider cover, range, target awareness
+
+  ## Tactical Positioning
+
+  Optional `target_position` field for movement during combat:
+
+  - **Engaged:** Melee range (adjacent to target)
+  - **Near-Enemy:** Close but not engaged (10-20 feet)
+  - **Far-Enemy:** Medium range (30-50 feet)
+  - **Extreme-Enemy:** Long range (100+ feet)
+  - **Near-PC / Far-PC / Extreme-PC:** Positioning relative to allies
+
+  ## Success Outcomes
+
+  - **Critical Success:** Maximum damage, tactical advantage
+  - **Good Success:** Full damage, clean hit
+  - **Marginal Success:** Partial damage, glancing blow
+  - **Failure:** Miss, target evades, wasted action
+
+  ## Faction Abbreviations (CANONICAL)
+
+  - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
+  - **ArcGen** = Arcane Genetics (bio-engineering corporation, NOT the same as ACG!)
+  - **Sovereign Nexus** = The government
+  - **Pantheon Security** = Law enforcement
+  - **Tempest Industries** = Anti-Nexus rebels (void research)
+  - **House of Vox** = Media/broadcast corporation
+  - **Freeborn** = Natural-born, outside the pod system
+
+  ---
+
+  **Ready? Declare your combat action with all required fields!**

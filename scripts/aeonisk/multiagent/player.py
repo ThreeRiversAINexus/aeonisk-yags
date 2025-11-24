@@ -12,10 +12,14 @@ from datetime import datetime
 from .base import Agent, Message, MessageType
 from .shared_state import SharedState
 from .voice_profiles import VoiceProfile
-from .energy_economy import EnergyInventory, Seed, SeedType, Element, create_raw_seed
+from .energy_economy import EnergyPurse, Seed, SeedType, Element, create_raw_seed
 from .prompt_loader import load_agent_prompt, compose_sections
+from .schemas.story_events import NarrativeMemory
 
 logger = logging.getLogger(__name__)
+
+# Constants for prompt text
+DECLARED_ACTIONS_HEADER = "Declared Actions This Round"
 
 
 @dataclass
@@ -31,13 +35,14 @@ class CharacterState:
     goals: List[str]
     pronouns: str = "they/them"  # Default to gender-neutral
     inventory: Dict[str, int] = None
-    energy_inventory: Optional['EnergyInventory'] = None
+    energy_purse: Optional['EnergyPurse'] = None
+    item_metadata: Dict[str, Dict[str, Any]] = None  # Tracks usage counts, durability, etc.
 
     def __post_init__(self):
-        """Initialize default inventory and energy inventory if not provided."""
-        # Initialize energy inventory with randomized currency
-        if self.energy_inventory is None:
-            self.energy_inventory = EnergyInventory(
+        """Initialize default inventory and energy purse if not provided."""
+        # Initialize energy purse with randomized currency
+        if self.energy_purse is None:
+            self.energy_purse = EnergyPurse(
                 breath=random.randint(5, 15),  # Variable starting amounts
                 drip=random.randint(3, 10),
                 grain=random.randint(0, 3),
@@ -47,14 +52,14 @@ class CharacterState:
             # Add some starter seeds based on faction (varying freshness)
             if 'Tempest' in self.faction:
                 # Tempest gets Hollow seeds (stable, no decay)
-                self.energy_inventory.add_seed(Seed(SeedType.HOLLOW, origin="tempest_supply"))
+                self.energy_purse.add_seed(Seed(SeedType.HOLLOW, origin="tempest_supply"))
             elif 'Sovereign' in self.faction or 'Pantheon' in self.faction:
                 # Pro-Nexus factions get Attuned seeds (stable)
-                self.energy_inventory.add_seed(Seed(SeedType.ATTUNED, element=Element.SPIRIT, origin="nexus_sanctified"))
+                self.energy_purse.add_seed(Seed(SeedType.ATTUNED, element=Element.SPIRIT, origin="nexus_sanctified"))
             else:
                 # Others get Raw seeds with random freshness (might be aged/old)
                 raw_seed = create_raw_seed(origin="leyline_harvest", freshness="random")
-                self.energy_inventory.add_seed(raw_seed)
+                self.energy_purse.add_seed(raw_seed)
 
         if self.inventory is None:
             self.inventory = {
@@ -76,6 +81,11 @@ class CharacterState:
                 'data_slate': 0,
                 'comm_unit': 0,
             }
+
+        if self.item_metadata is None:
+            self.item_metadata = {}
+            # Initialize metadata for items that need tracking
+            # Echo-Calibrator usage will be tracked when purchased
 
     def has_offering(self, offering_type: str = None) -> bool:
         """Check if character has any offering."""
@@ -129,6 +139,8 @@ class AIPlayerAgent(Agent):
         self.character_state: Optional[CharacterState] = None
         self.human_controlled = False
         self.personality = character_config.get('personality', {})
+        self.personality_notes = character_config.get('personality_notes', '')
+        self.direction = character_config.get('direction', '')
         self.current_scenario: Optional[Dict[str, Any]] = None
         self.voice_profile = voice_profile
         self.shared_state = shared_state
@@ -138,28 +150,28 @@ class AIPlayerAgent(Agent):
         self.agent_prompt_logger = agent_prompt_logger  # AgentPromptLogger for human-readable debugging
         self._last_prompt_metadata = None  # Track prompt version/metadata for logging
 
-        # LLM client - can be injected for replay (MockLLMClient) or created normally
+        # LLM client - DEPRECATED (kept for replay compatibility with MockLLMClient)
+        # Modern code uses llm_provider instead
         if llm_client:
             self.llm_client = llm_client
         else:
-            # Create Anthropic client if not provided
-            import anthropic
-            import os
-            self.llm_client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+            self.llm_client = None  # No longer needed - use llm_provider
 
-        # LLM Provider for structured output (Phase 3: Pydantic AI migration)
+        # LLM Provider for structured output (supports all providers: Anthropic, OpenAI, local)
         # Only create if not in replay mode (llm_client injected)
         if not llm_client:
-            from .llm_provider import create_claude_provider
+            from .llm_provider import LLMConfig, create_provider
             try:
-                self.llm_provider = create_claude_provider(
+                provider_config = LLMConfig(
+                    provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     max_tokens=self.llm_config.get('max_tokens', 1000),
                     temperature=self.llm_config.get('temperature', 0.8)
                 )
-                logger.debug(f"Player {self.agent_id}: Structured output provider initialized")
+                self.llm_provider = create_provider(provider_config)
+                logger.debug(f"Player {self.agent_id}: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
             except Exception as e:
-                logger.warning(f"Player {self.agent_id}: Failed to create structured output provider: {e}")
+                logger.warning(f"Player {self.agent_id}: Failed to create LLM provider: {e}")
                 self.llm_provider = None
         else:
             # Replay mode - no structured output
@@ -169,8 +181,15 @@ class AIPlayerAgent(Agent):
         self.recent_narrations: List[str] = []  # Last 5 action resolution narrations (FIFO)
         self.last_round_synthesis: Optional[str] = None  # Most recent round synthesis from DM
         # Stores ALL declarations this round (PCs + enemies) with initiative for tactical display
-        # {character_name: (intent, initiative_score)}
-        self.declared_actions_this_round: Dict[str, Tuple[str, int]] = {}
+        # {character_name: (description, intent, target, weapon, reasoning, initiative_score)}
+        self.declared_actions_this_round: Dict[str, Tuple[str, str, Optional[str], Optional[str], str, int]] = {}
+
+        # Persistent narrative memory (tracks journey across session)
+        self.narrative_memory = NarrativeMemory(
+            locations_visited=[],
+            story_beats=[],
+            story_summary=""
+        )
 
         # Tactical positioning (for Tactical Module v1.2.3)
         from .enemy_agent import Position
@@ -183,6 +202,10 @@ class AIPlayerAgent(Agent):
         self.soak = None  # Damage resistance
         self.wounds = 0  # Wound count (Tactical Module wound ladder)
         self.stuns = 0  # Stun damage (YAGS)
+
+        # Stabilization state (YAGS First Aid system)
+        self.is_stabilized = False  # True = bleeding stopped, no more death checks needed
+        self.is_extracted = False  # True = medevac arrived, character removed from combat
 
         # Weapon inventory (initialized in on_start)
         from .weapons import Weapon
@@ -226,6 +249,53 @@ class AIPlayerAgent(Agent):
             pronouns=self.character_config.get('pronouns', 'they/them'),
             inventory=inventory
         )
+
+        # Override energy purse with starting_currency from config if provided
+        starting_currency = self.character_config.get('starting_currency')
+        if starting_currency:
+            self.character_state.energy_purse.breath = starting_currency.get('breath', self.character_state.energy_purse.breath)
+            self.character_state.energy_purse.drip = starting_currency.get('drip', self.character_state.energy_purse.drip)
+            self.character_state.energy_purse.grain = starting_currency.get('grain', self.character_state.energy_purse.grain)
+            self.character_state.energy_purse.spark = starting_currency.get('spark', self.character_state.energy_purse.spark)
+
+        # Override seeds with starting_seeds from config if provided
+        starting_seeds = self.character_config.get('starting_seeds')
+        if starting_seeds:
+            from .energy_economy import Seed, SeedType, Element, create_raw_seed
+            # Clear auto-generated seeds
+            self.character_state.energy_purse.seeds = []
+            # Add seeds from config
+            for seed_config in starting_seeds:
+                if isinstance(seed_config, dict):
+                    # Explicit seed configuration
+                    seed_type_str = seed_config.get('seed_type', 'RAW')
+                    seed_type = SeedType[seed_type_str] if isinstance(seed_type_str, str) else seed_type_str
+
+                    if seed_type == SeedType.RAW:
+                        freshness = seed_config.get('freshness', 'fresh')
+                        origin = seed_config.get('origin', 'config_specified')
+                        seed = create_raw_seed(origin=origin, freshness=freshness)
+                    elif seed_type == SeedType.ATTUNED:
+                        element_str = seed_config.get('element', 'SPIRIT')
+                        element = Element[element_str] if isinstance(element_str, str) else element_str
+                        origin = seed_config.get('origin', 'config_specified')
+                        seed = Seed(seed_type=SeedType.ATTUNED, element=element, origin=origin)
+                    elif seed_type == SeedType.HOLLOW:
+                        origin = seed_config.get('origin', 'config_specified')
+                        seed = Seed(seed_type=SeedType.HOLLOW, origin=origin)
+                    else:
+                        raise ValueError(f"Unknown seed_type: {seed_type}")
+
+                    # Override seed ID if provided
+                    if 'id' in seed_config:
+                        seed.id = seed_config['id']
+                    if 'cycles_remaining' in seed_config and seed_type == SeedType.RAW:
+                        seed.cycles_remaining = seed_config['cycles_remaining']
+
+                    self.character_state.energy_purse.add_seed(seed)
+                else:
+                    # Simple string format: "RAW" or "HOLLOW" or "ATTUNED:SPIRIT"
+                    raise ValueError("starting_seeds must be list of dicts, not strings")
 
         # Initialize combat attributes (for enemy attacks to work)
         # Health = Size × 2 + Endurance (YAGS-compliant toughness bonus)
@@ -322,6 +392,21 @@ class AIPlayerAgent(Agent):
     def is_alive(self) -> bool:
         """Check if player is alive (health > 0)."""
         return self.health is not None and self.health > 0
+
+    @property
+    def is_in_combat(self) -> bool:
+        """
+        Check if player can participate in combat.
+
+        Returns False if:
+        - Dead (health <= 0 with fatal wounds)
+        - Extracted (medevac arrived after stabilization)
+        """
+        if not self.is_alive:
+            return False
+        if self.is_extracted:
+            return False
+        return True
 
     @property
     def is_conscious(self) -> bool:
@@ -431,6 +516,15 @@ class AIPlayerAgent(Agent):
         self.current_scenario = message.payload.get('scenario', {})
         opening = message.payload.get('opening_narration', '')
 
+        # Initialize narrative memory with starting location (round 0)
+        starting_location = self.current_scenario.get('location', 'Unknown')
+        # Check if location already in list (compare just the location string)
+        existing_locations = [loc for _, loc in self.narrative_memory.locations_visited]
+        if starting_location and starting_location not in existing_locations:
+            self.narrative_memory.locations_visited.append((0, starting_location))
+            # Initialize summary with opening context
+            self.narrative_memory.story_summary = f"Started at {starting_location}."
+
         # Scenario is now printed once by session.py, not per-player
         # Only print if human controlled (to notify the human player)
         if self.human_controlled:
@@ -441,21 +535,35 @@ class AIPlayerAgent(Agent):
             print(f"\n[HUMAN - {self.character_state.name}] Waiting for your input...")
 
     async def _handle_scenario_update(self, message: Message):
-        """Handle mid-game scenario pivot from DM."""
+        """Handle mid-game scenario pivot or story advancement from DM."""
         new_theme = message.payload.get('new_theme', 'Unknown')
         new_situation = message.payload.get('new_situation', '')
         pivot_narration = message.payload.get('pivot_narration', '')
+        new_location = message.payload.get('new_location', '')  # Story advancement
 
         # Update scenario with new theme while preserving location
         if self.current_scenario:
             self.current_scenario['theme'] = new_theme
             if new_situation:
                 self.current_scenario['situation'] = new_situation
+            if new_location:
+                self.current_scenario['location'] = new_location
         else:
             self.current_scenario = {
                 'theme': new_theme,
                 'situation': new_situation
             }
+
+        # Add new location to narrative memory (story advancement)
+        existing_locations = [loc for _, loc in self.narrative_memory.locations_visited]
+        if new_location and new_location not in existing_locations:
+            # Get current round from shared_state
+            current_round = 0
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics:
+                    current_round = mechanics.current_round or 0
+            self.narrative_memory.locations_visited.append((current_round, new_location))
 
         # Scenario pivot is now printed once by session.py, not per-player
         # Only print if human controlled
@@ -475,13 +583,16 @@ class AIPlayerAgent(Agent):
         character_name = action.get('character_name', 'Unknown')
         description = action.get('description', '')
         intent = action.get('intent', '')
+        target = action.get('target')  # NEW: targeting info (may be None)
+        weapon = action.get('weapon')  # NEW: weapon info (may be None)
+        reasoning = action.get('reasoning', '')  # NEW: reasoning (may be empty)
         initiative = action.get('initiative', 0)
 
         # Store ALL combatant actions for tactical awareness (neutral - no ally/enemy distinction)
-        # Store both description (full narrative) and intent (tactical summary) for AI context
+        # Store description, intent, target, weapon, and initiative for AI context
         if intent or description:
-            self.declared_actions_this_round[character_name] = (description, intent, initiative)
-            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative})")
+            self.declared_actions_this_round[character_name] = (description, intent, target, weapon, reasoning, initiative)
+            logger.debug(f"Player {self.character_state.name}: Stored action from {character_name} (init {initiative}, target={target})")
 
     async def _handle_turn_request(self, message: Message):
         """Handle turn request - decide on action."""
@@ -489,7 +600,8 @@ class AIPlayerAgent(Agent):
         self.free_action_used = False
         # NOTE: declared_actions_this_round is now cleared at round start (session.py), not here
 
-        # Store current initiative for filtering declared actions (passed in payload)
+        # Store current round and initiative from payload
+        self.current_round = message.payload.get('round', 0)
         self.current_initiative = message.payload.get('initiative', 0)
 
         if self.human_controlled:
@@ -761,6 +873,11 @@ class AIPlayerAgent(Agent):
         
     async def _handle_action_resolved(self, message: Message):
         """Handle action resolution from DM."""
+        # Defensive: Check if payload is actually a dict
+        if not isinstance(message.payload, dict):
+            logger.error(f"Player {self.character_state.name}: Received non-dict payload in ACTION_RESOLVED: {type(message.payload)} = {message.payload}")
+            return
+
         outcome = message.payload.get('outcome', {})
         narration = message.payload.get('narration', '')
         resolved_agent_id = message.payload.get('agent_id')
@@ -788,6 +905,9 @@ class AIPlayerAgent(Agent):
 
         print(f"\n[{self.character_state.name}] Received resolution")
 
+        # Extract story beat from own significant actions
+        self._extract_story_beat(original_action, outcome, narration)
+
         # NOTE: Offering consumption now happens BEFORE DM narration in dm.py (mechanics-first architecture)
         # No need to consume here anymore - mechanics layer handles it pre-narration
 
@@ -796,6 +916,12 @@ class AIPlayerAgent(Agent):
             mechanics = self.shared_state.get_mechanics_engine()
             void_state = mechanics.get_void_state(self.agent_id)
             self.character_state.void_score = void_state.score
+
+            # Sync soulcredit from mechanics engine (parallel to void sync)
+            # Fix for bug: soulcredit changes were applied to mechanics.soulcredit_states
+            # but not synced to character_state.soulcredit before JSONL logging
+            sc_state = mechanics.get_soulcredit_state(self.agent_id)
+            self.character_state.soulcredit = sc_state.score
 
             # Note: Void changes are already displayed in DM narration (⚫ Void: X → Y)
             # Suppressing duplicate player-side print to avoid repetition
@@ -814,104 +940,11 @@ class AIPlayerAgent(Agent):
             self.character_state.soulcredit -= outcome['soulcredit_cost']
             print(f"[{self.character_state.name}] Soulcredit: {self.character_state.soulcredit}")
 
-        # Handle vendor purchases - deduct currency if action succeeded
+        # Note: Purchases are now handled via DM structured output (ActionResolution.effects.purchase)
+        # Currency transfers still handled here temporarily (will migrate to DM structured output)
         intent = original_action.get('intent', '').lower()
-        if ('purchase' in intent or 'buy' in intent) and outcome.get('success', False):
-            self._process_purchase(intent, outcome)
-
-        # Handle currency/item transfers between players
         if ('give' in intent or 'transfer' in intent or 'pool' in intent) and outcome.get('success', False):
             self._process_transfer(intent, outcome)
-
-    def _map_vendor_item_to_inventory_key(self, vendor_item_name: str) -> Optional[str]:
-        """
-        Map vendor item names to character inventory keys.
-        Returns None if item shouldn't be added to inventory (services, consumables without tracking).
-        """
-        mapping = {
-            # Offerings - track in inventory
-            'incense stick': 'incense',
-            'incense stick (single)': 'incense',
-            'purification incense (bundle)': 'purification_incense',
-            'purification incense': 'purification_incense',
-
-            # Medical supplies
-            'med kit (basic)': 'med_kit',
-            'med kit (tactical)': 'med_kit',
-            'breathwater flask': 'breathwater_flask',
-
-            # Tech items
-            'echo-calibrator': 'echo_calibrator',
-            'void scanner (basic)': 'void_scanner',
-            'scrambled id chip': 'scrambled_id',
-            'data slate (encrypted)': 'data_slate',
-            'comm unit': 'comm_unit',
-
-            # Consumables (simple tracking)
-            'glowsticks': 'glowsticks',
-            'sparksticks': 'sparksticks',
-            'dripfruit chews': 'dripfruit',
-            'ration pack': 'rations',
-
-            # Services - don't add to inventory
-            'ritual altar access': None,
-            'bond insurance policy': None,
-        }
-        return mapping.get(vendor_item_name.lower())
-
-    def _process_purchase(self, intent: str, outcome: Dict[str, Any]):
-        """Process a successful purchase and deduct currency."""
-        # Simple item price lookup (prices from energy_economy.py)
-        item_prices = {
-            'breathwater flask': {'drip': 2},
-            'dripfruit chews': {'drip': 1},
-            'med kit (basic)': {'drip': 5},
-            'med kit (tactical)': {'drip': 6},
-            'ration pack': {'drip': 2},
-            'glowsticks': {'breath': 8},
-            'comm unit': {'drip': 3},
-            'sparksticks': {'breath': 3},
-            'echo-calibrator': {'spark': 8},
-            'scrambled id chip': {'spark': 4},
-            'bond insurance policy': {'spark': 12},
-            'data slate (encrypted)': {'drip': 10},
-            'incense stick': {'breath': 10},
-            'incense stick (single)': {'breath': 10},
-            'purification incense (bundle)': {'drip': 8},
-            'purification incense': {'drip': 8},
-            'ritual altar access': {'spark': 1},
-            'void scanner (basic)': {'spark': 4},
-        }
-
-        # Extract item name from intent (very simple parsing)
-        purchased_item = None
-        for item_name in item_prices.keys():
-            if item_name in intent:
-                purchased_item = item_name
-                break
-
-        if purchased_item and self.character_state.energy_inventory:
-            price = item_prices[purchased_item]
-            currency_type = list(price.keys())[0]
-            amount = price[currency_type]
-
-            # Attempt to spend currency
-            if self.character_state.energy_inventory.spend_currency(currency_type, amount):
-                # FIX: Add item to inventory after successful purchase
-                inventory_key = self._map_vendor_item_to_inventory_key(purchased_item)
-                if inventory_key:
-                    current_count = self.character_state.inventory.get(inventory_key, 0)
-                    self.character_state.inventory[inventory_key] = current_count + 1
-                    logger.info(f"Added {inventory_key} to {self.character_state.name}'s inventory (now: {current_count + 1})")
-
-                logger.info(f"{self.character_state.name} purchased {purchased_item} for {amount} {currency_type}")
-                print(f"[{self.character_state.name}] 💰 Purchased {purchased_item} (-{amount} {currency_type})")
-                if inventory_key:
-                    print(f"[{self.character_state.name}] 📦 +1 {inventory_key} (total: {self.character_state.inventory[inventory_key]})")
-                print(f"[{self.character_state.name}] Currency: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
-            else:
-                logger.warning(f"{self.character_state.name} couldn't afford {purchased_item} ({amount} {currency_type})")
-                print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} for {purchased_item}")
 
     def _process_transfer(self, intent: str, outcome: Dict[str, Any]):
         """Process currency or item transfers between players."""
@@ -958,7 +991,7 @@ class AIPlayerAgent(Agent):
             return
 
         # Attempt the transfer
-        if self.character_state.energy_inventory.spend_currency(currency_type, amount):
+        if self.character_state.energy_purse.spend_currency(currency_type, amount):
             # Store pending transfer in shared state
             if not hasattr(self.shared_state, 'pending_transfers'):
                 self.shared_state.pending_transfers = []
@@ -974,7 +1007,7 @@ class AIPlayerAgent(Agent):
 
             logger.info(f"{self.character_state.name} transferred {amount} {currency_type} to {recipient_name}")
             print(f"[{self.character_state.name}] 💸 Gave {amount} {currency_type} to {recipient_name}")
-            print(f"[{self.character_state.name}] Remaining: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+            print(f"[{self.character_state.name}] Remaining: {self.character_state.energy_purse.spark} Spark, {self.character_state.energy_purse.drip} Drip, {self.character_state.energy_purse.breath} Breath")
         else:
             logger.warning(f"{self.character_state.name} couldn't afford to transfer {amount} {currency_type}")
             print(f"[{self.character_state.name}] ⚠️ Insufficient {currency_type} to give")
@@ -989,17 +1022,86 @@ class AIPlayerAgent(Agent):
 
         for transfer in incoming:
             # Add the currency
-            self.character_state.energy_inventory.add_currency(
+            self.character_state.energy_purse.add_currency(
                 transfer['currency_type'],
                 transfer['amount']
             )
 
             logger.info(f"{self.character_state.name} received {transfer['amount']} {transfer['currency_type']} from {transfer['from_name']}")
             print(f"[{self.character_state.name}] 💰 Received {transfer['amount']} {transfer['currency_type']} from {transfer['from_name']}")
-            print(f"[{self.character_state.name}] New total: {self.character_state.energy_inventory.spark} Spark, {self.character_state.energy_inventory.drip} Drip, {self.character_state.energy_inventory.breath} Breath")
+            print(f"[{self.character_state.name}] New total: {self.character_state.energy_purse.spark} Spark, {self.character_state.energy_purse.drip} Drip, {self.character_state.energy_purse.breath} Breath")
 
             # Remove from pending
             self.shared_state.pending_transfers.remove(transfer)
+
+    def _extract_story_beat(self, original_action: Dict[str, Any], outcome: Dict[str, Any], narration: str):
+        """
+        Extract a story beat from a significant action for narrative memory.
+
+        Only captures notable events (combat victories, discoveries, social successes).
+        Keeps story_beats list to max 10 entries (FIFO).
+        """
+        # Skip if no narration or trivial action
+        if not narration or len(narration) < 20:
+            return
+
+        action_type = original_action.get('action_type', '').upper()
+        success = outcome.get('success', False)
+        intent = original_action.get('intent', '')
+
+        # Determine if this action is significant enough to be a story beat
+        beat = None
+
+        # Combat victories are always notable
+        if action_type == 'COMBAT' and success:
+            # Try to extract target from action
+            target = original_action.get('target_name', original_action.get('target', ''))
+            if target:
+                beat = f"Defeated {target} in combat"
+            else:
+                beat = f"Won combat engagement"
+
+        # Social successes (negotiation, intimidation, persuasion)
+        elif action_type == 'SOCIAL' and success:
+            # Shorten the intent to a beat
+            if 'negotiate' in intent.lower() or 'persuade' in intent.lower():
+                beat = f"Negotiated successfully: {intent[:50]}..."
+            elif 'intimidate' in intent.lower():
+                beat = f"Intimidated target: {intent[:50]}..."
+            else:
+                beat = f"Social success: {intent[:50]}..."
+
+        # Investigation discoveries
+        elif action_type == 'INVESTIGATE' and success:
+            beat = f"Discovered: {intent[:60]}..."
+
+        # Ritual/magic successes
+        elif action_type == 'RITUAL' and success:
+            beat = f"Completed ritual: {intent[:50]}..."
+
+        # Technical/hacking successes
+        elif action_type == 'TECHNICAL' and success:
+            beat = f"Tech success: {intent[:50]}..."
+
+        # Critical failures (dramatic moments)
+        tier = outcome.get('tier', outcome.get('outcome_tier', ''))
+        if tier in ['CRITICAL_FAILURE', 'CATASTROPHIC'] and not beat:
+            beat = f"Critical failure: {intent[:50]}..."
+
+        # Add the beat if significant
+        if beat:
+            # Get current round from shared_state
+            current_round = 0
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics:
+                    current_round = mechanics.current_round or 0
+
+            # Keep only last 10 story beats (FIFO)
+            if len(self.narrative_memory.story_beats) >= 10:
+                self.narrative_memory.story_beats.pop(0)
+            self.narrative_memory.story_beats.append((current_round, beat))
+            logger.debug(f"Player {self.character_state.name}: Added story beat (R{current_round}): {beat}")
 
     async def _handle_dm_narration(self, message: Message):
         """Handle general DM narration."""
@@ -1132,7 +1234,7 @@ class AIPlayerAgent(Agent):
         skills_text = _format_tiered_skills(self.character_state.skills)
 
         # Format currency display
-        energy_inv = self.character_state.energy_inventory
+        energy_inv = self.character_state.energy_purse
         if energy_inv:
             currency_display = f"""- Breath: {energy_inv.breath} (smallest denomination)
 - Drip: {energy_inv.drip}
@@ -1142,7 +1244,15 @@ class AIPlayerAgent(Agent):
             raw_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.RAW)
             attuned_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.ATTUNED)
             hollow_count = sum(1 for s in energy_inv.seeds if s.seed_type == SeedType.HOLLOW)
-            seeds_display = f"""- Raw Seeds: {raw_count} (degrade over time, need attunement)
+
+            # Warn if no Raw Seeds available (prevents invalid attunement attempts)
+            if raw_count == 0:
+                seeds_display = f"""⚠️ **NO RAW SEEDS AVAILABLE** - You CANNOT perform attunement!
+- Raw Seeds: 0 (REQUIRED for attunement - acquire more via search/purchase)
+- Attuned Seeds: {attuned_count} (stable, ritual fuel)
+- Hollow Seeds: {hollow_count} (illicit, black market commodity)"""
+            else:
+                seeds_display = f"""- Raw Seeds: {raw_count} (degrade over time, need attunement)
 - Attuned Seeds: {attuned_count} (stable, ritual fuel)
 - Hollow Seeds: {hollow_count} (illicit, black market commodity)"""
         else:
@@ -1306,12 +1416,39 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         # Build goals text
         goals_text = "\n".join([f"- {goal}" for goal in self.character_state.goals])
 
+        # Calculate health status (matching enemy agent pattern)
+        health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
+
+        if health_pct >= 75:
+            health_status = "Healthy"
+        elif health_pct >= 50:
+            health_status = "Wounded"
+        elif health_pct >= 25:
+            health_status = "Bloodied"
+        else:
+            health_status = "CRITICAL"
+
+        # Wound status annotation (matching enemy agent pattern)
+        if self.wounds >= 4:
+            wound_status = "(HEAVY WOUNDS -15)"
+        elif self.wounds >= 2:
+            wound_status = "(WOUNDED -5)"
+        else:
+            wound_status = ""
+
         # Build variables dict for prompt template
         variables = {
             "character_name": self.character_state.name,
             "pronouns": self.character_state.pronouns,
             "attributes_text": attributes_text,
             "skills_text": skills_text,
+            "health": str(self.health),
+            "max_health": str(self.max_health),
+            "health_pct": str(health_pct),
+            "health_status": health_status,
+            "wounds": str(self.wounds),
+            "wound_status": wound_status,
+            "stuns": str(self.stuns),
             "void_score": str(self.character_state.void_score),
             "soulcredit": str(self.character_state.soulcredit),
             "void_warning": void_warning,
@@ -1367,90 +1504,865 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
 
         return content
 
-    async def _generate_player_action_pydantic(self, prompt: str):
+    async def _generate_action_intent(self) -> Optional['ActionIntent']:
         """
-        Generate player action using Pydantic AI structured output (Phase 3).
-        Returns ActionDeclaration if structured output succeeds, or None to fall back to legacy.
+        Phase 1: Generate lightweight action type selection.
+        Returns ActionIntent with chosen action type, or None on failure.
         """
+        from .schemas.player_action import ActionIntent
+        from .enhanced_prompts import _format_tiered_skills
+
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
-            logger.debug(f"Player {self.character_state.name}: No llm_provider available, will use legacy text parsing")
+            logger.debug(f"Player {self.character_state.name}: No llm_provider for Phase 1 (action intent)")
             return None
 
         try:
-            from .schemas.player_action import PlayerAction
-            from .action_schema import ActionDeclaration
+            # Build comprehensive context for Phase 1 (needs most info from legacy prompt)
+            from .enhanced_prompts import _format_tiered_skills
 
-            logger.debug(f"Player {self.character_state.name}: Attempting structured output for action declaration")
+            # Format attributes
+            attributes_text = "\n".join([
+                f"- {attr}: {val}"
+                for attr, val in self.character_state.attributes.items()
+            ])
 
-            # Generate structured action using Pydantic AI
-            player_action: PlayerAction = await self.llm_provider.generate_structured(
-                prompt=prompt,
-                result_type=PlayerAction,
-                system_prompt=f"You are {self.character_state.name}, a player character in Aeonisk YAGS.",
-                max_tokens=self.llm_config.get('max_tokens', 1000),
-                temperature=self.llm_config.get('temperature', 0.8)
+            # Format skills using tiered display
+            skills_text = _format_tiered_skills(self.character_state.skills)
+
+            # Top 3 skills (for skill awareness)
+            skills_sorted = sorted(
+                self.character_state.skills.items(),
+                key=lambda x: x[1],
+                reverse=True
+            )[:3]
+            top_skills_list = ", ".join([f"{skill} ({val})" for skill, val in skills_sorted])
+
+            # Calculate health status
+            health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
+            if health_pct >= 75:
+                health_status = "Healthy"
+            elif health_pct >= 50:
+                health_status = "Wounded"
+            elif health_pct >= 25:
+                health_status = "Bloodied"
+            else:
+                health_status = "CRITICAL"
+
+            # Format inventory (seeds + currency) for Phase 1
+            energy_purse = getattr(self.character_state, 'energy_purse', None)
+            if energy_purse:
+                # Count seeds by type
+                raw_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.RAW']
+                hollow_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.HOLLOW']
+                attuned_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.ATTUNED']
+
+                # Energy currencies + hollow (hollow are energy currency)
+                energy_parts = [
+                    f"Breath: {energy_purse.breath}",
+                    f"Grain: {energy_purse.grain}",
+                    f"Drip: {energy_purse.drip}",
+                    f"Spark: {energy_purse.spark}"
+                ]
+                if hollow_seeds:
+                    energy_parts.append(f"Hollow: {len(hollow_seeds)}")
+                currency_display = ", ".join(energy_parts)
+
+                # Physical seeds (raw and attuned only)
+                seed_parts = []
+                if raw_seeds:
+                    seed_parts.append(f"Raw: {len(raw_seeds)}")
+                if attuned_seeds:
+                    seed_parts.append(f"Attuned: {len(attuned_seeds)}")
+
+                seeds_display = ", ".join(seed_parts) if seed_parts else "No physical seeds"
+            else:
+                # No energy purse - show equipment instead
+                equipment_list = []
+                if hasattr(self.character_state, 'weapons') and self.character_state.weapons:
+                    equipment_list.append(f"Weapons: {', '.join(self.character_state.weapons)}")
+                if hasattr(self.character_state, 'armor') and self.character_state.armor:
+                    equipment_list.append(f"Armor: {self.character_state.armor}")
+
+                currency_display = " | ".join(equipment_list) if equipment_list else "Standard loadout"
+                seeds_display = "(No seeds)"
+
+            # Build goals text
+            goals_text = "\n".join([f"- {goal}" for goal in self.character_state.goals]) if self.character_state.goals else "- No specific goals defined"
+
+            # Build void warning if needed
+            void_warning = ""
+            if self.character_state.void_score >= 5:
+                void_warning = f"⚠️ Void: {self.character_state.void_score}/10 (significantly corrupted)"
+
+            # Wound status annotation
+            if self.wounds >= 4:
+                wound_status = "(HEAVY WOUNDS -15)"
+            elif self.wounds >= 2:
+                wound_status = "(WOUNDED -5)"
+            else:
+                wound_status = ""
+
+            # Build declared actions context (what allies/enemies have declared THIS round)
+            declared_actions_text = ""
+            if self.declared_actions_this_round:
+                # Show ALL declarations from this round (don't filter by initiative)
+                # Sort by initiative (highest first, matching declaration order)
+                sorted_declarations = sorted(
+                    self.declared_actions_this_round.items(),
+                    key=lambda x: x[1][-1],  # initiative is always last element
+                    reverse=True  # Highest initiative (fastest actors) first
+                )
+
+                if sorted_declarations:
+                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (Initiative Order):**\n"
+                    for char_name, action_data in sorted_declarations:
+                        # Current format: (description, action_intent, target, weapon, reasoning, initiative)
+                        if len(action_data) == 6:
+                            description, action_intent, target, weapon, reasoning_text, init_score = action_data
+
+                            # Format action with targeting info if available
+                            if description:
+                                action_text = description
+                            else:
+                                action_text = action_intent
+                                if target:
+                                    action_text += f" targeting {target}"
+                                if weapon:
+                                    action_text += f" with {weapon}"
+
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_text}\n"
+                        elif len(action_data) == 3:
+                            # Legacy format (description, action_intent, initiative)
+                            description, action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {description if description else action_intent}\n"
+                        else:
+                            # Very old format (action_intent, initiative)
+                            action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
+
+            # Build recent action outcomes (detailed narrations from recent actions)
+            recent_outcomes_text = ""
+            if self.recent_narrations:
+                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
+                    recent_outcomes_text += f"{i}. {narration}\n"
+
+            # Low attributes (< 4)
+            low_attrs = [
+                f"{attr} ({val})"
+                for attr, val in self.character_state.attributes.items()
+                if val < 4
+            ]
+            low_attributes_list = ", ".join(low_attrs) if low_attrs else "None (all attributes 4+)"
+
+            # Build personality guidance
+            risk_tolerance = self.personality.get('riskTolerance', 5)
+            void_curiosity = self.personality.get('voidCuriosity', 5)
+            bond_preference = self.personality.get('bondPreference', 'neutral')
+            ritual_conservatism = self.personality.get('ritualConservatism', 5)
+
+            risk_guidance = "Take bold, proactive actions" if risk_tolerance > 6 else "Be cautious and methodical"
+            void_curiosity_guidance = "Actively investigate void phenomena" if void_curiosity > 6 else "Avoid void-related risks"
+
+            if bond_preference == 'seeks':
+                bond_guidance = "Seek to form and protect formal Bonds"
+            elif bond_preference == 'avoids':
+                bond_guidance = "Avoid formal Bond commitments (but teamwork is fine)"
+            else:
+                bond_guidance = "Pragmatic about formal Bonds"
+
+            # Get other players for dialogue prompts
+            other_players = []
+            if self.shared_state and self.shared_state.player_agents:
+                other_players = [
+                    agent.character_state.name
+                    for agent in self.shared_state.player_agents
+                    if agent.agent_id != self.agent_id
+                ]
+
+            # Build dialogue goal text
+            dialogue_goal_text = ""
+            if other_players:
+                party_members_str = ", ".join(other_players)
+                dialogue_goal_text = f"\n💬 Coordinate with {party_members_str} (dialogue is a FREE ACTION!)"
+
+            # Check for failure loop warning
+            failure_loop_warning = ""
+            high_void_warning = ""
+            if self.shared_state and hasattr(self.shared_state, 'session') and self.shared_state.session:
+                session = self.shared_state.session
+                if self.character_state.name in session._character_action_history:
+                    history = session._character_action_history[self.character_state.name]
+
+                    if len(history) >= 2:
+                        last_actions = history[-3:]
+                        failure_types = {}
+                        for action_type, success_tier, void_change, _ in last_actions:
+                            is_failure = success_tier in ['CRITICAL_FAILURE', 'FAILURE'] or void_change > 0
+                            if is_failure:
+                                failure_types[action_type] = failure_types.get(action_type, 0) + 1
+
+                        for action_type, count in failure_types.items():
+                            if count >= 2:
+                                failure_list_items = []
+                                for at, st, vc, rnd in last_actions:
+                                    if at == action_type:
+                                        void_text = f", Void +{vc}" if vc > 0 else ""
+                                        failure_list_items.append(f"Round {rnd}: {at} ({st}{void_text})")
+                                failures_text = ", ".join(failure_list_items)
+                                failure_loop_warning = f"\n🚨 FAILURE LOOP: {count} {action_type} failures ({failures_text}) - CHOOSE DIFFERENT ACTION TYPE!\n"
+                                break
+
+                if self.character_state.void_score >= 8:
+                    high_void_warning = f"\n⚠️ VOID CRITICAL ({self.character_state.void_score}/10) - Avoid risky actions! Use offerings to reduce void!\n"
+
+            # Build variables for Phase 1 prompt
+            variables = {
+                # Character identity
+                "character_name": self.character_state.name,
+                "pronouns": self.character_state.pronouns,
+                # Stats
+                "attributes_text": attributes_text,
+                "skills_text": skills_text,
+                "top_skills_list": top_skills_list,
+                "low_attributes_list": low_attributes_list,
+                # Health/status
+                "current_round": str(getattr(self, 'current_round', 0)),
+                "health": str(self.health),
+                "max_health": str(self.max_health),
+                "health_status": health_status,
+                "wounds": str(self.wounds),
+                "wound_status": wound_status,
+                "stuns": str(self.stuns),
+                "void_score": str(self.character_state.void_score),
+                "void_warning": void_warning,
+                "soulcredit": str(self.character_state.soulcredit),
+                "position": str(self.position) if hasattr(self, 'position') else "Unknown",
+                # Scenario context (current location and situation)
+                "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
+                "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
+                "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
+                # Narrative memory (persistent journey context) - format with round numbers
+                "journey_locations": " → ".join(f"(R{r}) {loc}" for r, loc in self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
+                "journey_beats": "\n".join(f"- (R{r}) {beat}" for r, beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
+                "journey_summary": self.narrative_memory.story_summary if self.narrative_memory.story_summary else "Journey just beginning...",
+                # Goals & personality
+                "goals_text": goals_text,
+                "dialogue_goal_text": dialogue_goal_text,
+                "risk_tolerance": str(risk_tolerance),
+                "void_curiosity": str(void_curiosity),
+                "bond_preference": bond_preference,
+                "ritual_conservatism": str(ritual_conservatism),
+                "risk_guidance": risk_guidance,
+                "void_curiosity_guidance": void_curiosity_guidance,
+                "bond_guidance": bond_guidance,
+                # Customizable personality/direction guidance (with labels when present)
+                "personality_notes": f"- **Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
+                "direction": f"- **Direction:** {self.direction}" if self.direction else "",
+                # Warnings
+                "failure_loop_warning": failure_loop_warning,
+                "high_void_warning": high_void_warning,
+                # Include recent events from narrative context
+                "recent_events": self.last_round_synthesis if self.last_round_synthesis else "Round starting...",
+                # NEW: What allies/enemies have declared THIS round (tactical coordination)
+                "declared_actions_this_round": declared_actions_text,
+                # NEW: Recent action outcomes (detailed narrations)
+                "recent_action_outcomes": recent_outcomes_text,
+                # Unified entity awareness (allies + enemies + NPCs)
+                "entities_present": self._format_entities_present(),
+                # Legacy fields (for backward compat with old prompts)
+                "ally_status": self._format_ally_status(),
+                "threat_status": self._format_threat_status(),
+                # Inventory for attunement/purchase decisions
+                "currency_display": currency_display,
+                "seeds_display": seeds_display,
+                # Environment features (altars, vendors, situational factors)
+                "altar_availability": self._format_altar_availability(),
+                "vendor_status": self._format_vendor_status()
+            }
+
+            # Load Phase 1 prompt (player_intent.yaml) from player/ subdirectory
+            from .prompt_loader import load_modular_prompt
+            loaded_prompt = load_modular_prompt(
+                agent_type="player",
+                module_names=["player_intent"],  # Loads player/player_intent.yaml
+                provider="claude",
+                language="en",
+                variables=variables
             )
 
-            logger.debug(f"✓ Player {self.character_state.name} structured action: {player_action.action_type}, skill={player_action.skill}")
+            logger.debug(f"Player {self.character_state.name}: Phase 1 (action intent) - generating...")
 
-            # Log LLM call for replay (CRITICAL: without this, replay cache is empty!)
-            if self.llm_logger:
-                # Serialize PlayerAction to JSON for the response field
-                import json
-                response_text = player_action.model_dump_json(indent=2)
+            # Capture prompts for logging
+            phase1_system_prompt = f"You are {self.character_state.name}, choosing your next action type."
+            phase1_user_prompt = loaded_prompt.content
 
-                self.llm_logger._log_llm_call(
-                    messages=[{"role": "user", "content": prompt}],
-                    response=response_text,
-                    model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                    temperature=self.llm_config.get('temperature', 0.8),
-                    tokens={'input': 0, 'output': 0},  # Pydantic AI doesn't expose token counts easily
-                    current_round=getattr(self, 'current_round', None),
-                    call_sequence=self.llm_logger.call_count
-                )
-                self.llm_logger.call_count += 1
-                logger.debug(f"✓ Logged player LLM call for replay (sequence {self.llm_logger.call_count - 1})")
+            # Generate ActionIntent
+            action_intent: ActionIntent = await self.llm_provider.generate_structured(
+                prompt=phase1_user_prompt,
+                result_type=ActionIntent,
+                system_prompt=phase1_system_prompt,
+                max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+                temperature=self.llm_config.get('temperature', 0.8),
+                llm_logger=self.llm_logger,
+                current_round=getattr(self, 'current_round', None)
+            )
 
-            # Also log to human-readable agent prompt log if enabled
+            # Log Phase 1 prompts to agent prompt logger
             if self.agent_prompt_logger:
                 try:
-                    # System prompt + user prompt combined
-                    full_prompt = f"System: You are {self.character_state.name}, a player character in Aeonisk YAGS.\n\n{prompt}"
-                    response_text = player_action.model_dump_json(indent=2)
+                    full_prompt = f"System: {phase1_system_prompt}\n\nUser: {phase1_user_prompt}"
+                    response_text = action_intent.model_dump_json(indent=2)
 
                     self.agent_prompt_logger.log_llm_call(
                         agent_id=self.agent_id,
                         round_num=getattr(self, 'current_round', None),
-                        call_sequence=getattr(self.llm_logger, 'call_count', 0) - 1 if self.llm_logger else 0,
+                        call_sequence=getattr(self.llm_logger, 'call_count', 0) if self.llm_logger else 0,
                         prompt=full_prompt,
                         response=response_text,
-                        model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
+                        model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                         temperature=self.llm_config.get('temperature', 0.8),
-                        metadata={'note': 'Pydantic AI structured output (PlayerAction schema)'}
+                        metadata={'phase': 'Phase 1: Action Intent', 'note': 'Pydantic AI structured output (ActionIntent schema)'}
                     )
                 except Exception as e:
-                    logger.error(f"Player {self.agent_id}: Failed to log to agent prompt logger: {e}")
+                    logger.error(f"Player {self.agent_id}: Failed to log Phase 1 to agent prompt logger: {e}")
 
-            # Convert PlayerAction (Pydantic) to ActionDeclaration (legacy format)
-            action_declaration = ActionDeclaration(
-                intent=player_action.intent,
-                description=player_action.description,
-                attribute=player_action.attribute,
-                skill=player_action.skill,
-                difficulty_estimate=player_action.difficulty_estimate,
-                difficulty_justification=player_action.difficulty_justification,
-                character_name=self.character_state.name,
-                agent_id=self.agent_id,
-                action_type=player_action.action_type,
-                target=player_action.target,
-                target_position=player_action.target_position
-            )
-
-            return action_declaration
+            logger.debug(f"✓ Player {self.character_state.name} Phase 1: {action_intent.action_type} - {action_intent.intent}")
+            return action_intent
 
         except Exception as e:
-            logger.error(f"Player {self.character_state.name}: Structured output failed: {type(e).__name__}: {e}")
+            logger.error(f"Player {self.character_state.name}: Phase 1 (action intent) failed: {e}")
             return None
+
+    async def _generate_action_details(self, intent: 'ActionIntent') -> Optional[Any]:
+        """
+        Phase 2: Generate action-specific details based on Phase 1 action type.
+        Uses discriminated union routing to call appropriate schema.
+        Returns action-specific schema instance (e.g., AttuneAction, CombatAction), or None on failure.
+        """
+        from .schemas.player_action import ACTION_TYPE_SCHEMA_MAP
+        from .enhanced_prompts import _format_tiered_skills
+
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            logger.debug(f"Player {self.character_state.name}: No llm_provider for Phase 2 (action details)")
+            return None
+
+        # Get the correct schema for this action type
+        schema_class = ACTION_TYPE_SCHEMA_MAP.get(intent.action_type)
+        if not schema_class:
+            logger.error(f"Player {self.character_state.name}: No schema found for action type {intent.action_type}")
+            return None
+
+        try:
+            # Map action type to prompt module name (e.g., ATTUNE → player_action_attune)
+            action_type_lower = intent.action_type.value.lower()
+            prompt_module = f"player_action_{action_type_lower}"
+
+            # Build comprehensive context for Phase 2 (action-specific guidance)
+
+            # Build declared actions context (what allies/enemies have declared THIS round)
+            declared_actions_text = ""
+            if self.declared_actions_this_round:
+                # Show ALL declarations from this round (don't filter by initiative)
+                # Sort by initiative (highest first, matching declaration order)
+                sorted_declarations = sorted(
+                    self.declared_actions_this_round.items(),
+                    key=lambda x: x[1][-1],  # initiative is always last element
+                    reverse=True  # Highest initiative (fastest actors) first
+                )
+
+                if sorted_declarations:
+                    declared_actions_text = f"\n**{DECLARED_ACTIONS_HEADER} (Initiative Order):**\n"
+                    for char_name, action_data in sorted_declarations:
+                        # Current format: (description, action_intent, target, weapon, reasoning, initiative)
+                        if len(action_data) == 6:
+                            description, action_intent, target, weapon, reasoning_text, init_score = action_data
+
+                            # Format action with targeting info if available
+                            if description:
+                                action_text = description
+                            else:
+                                action_text = action_intent
+                                if target:
+                                    action_text += f" targeting {target}"
+                                if weapon:
+                                    action_text += f" with {weapon}"
+
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_text}\n"
+                        elif len(action_data) == 3:
+                            # Legacy format (description, action_intent, initiative)
+                            description, action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {description if description else action_intent}\n"
+                        else:
+                            # Very old format (action_intent, initiative)
+                            action_intent, init_score = action_data
+                            declared_actions_text += f"- **{char_name}** [Init {init_score}]: {action_intent}\n"
+
+            # Build recent action outcomes (detailed narrations from recent actions)
+            recent_outcomes_text = ""
+            if self.recent_narrations:
+                recent_outcomes_text = "\n**Recent Action Outcomes:**\n"
+                for i, narration in enumerate(self.recent_narrations[-5:], 1):  # Last 5 narrations
+                    recent_outcomes_text += f"{i}. {narration}\n"
+
+            # Format attributes
+            attributes_text = "\n".join([
+                f"- {attr}: {val}"
+                for attr, val in self.character_state.attributes.items()
+            ])
+
+            # Format skills using tiered display
+            skills_text = _format_tiered_skills(self.character_state.skills)
+
+            # Format currency display (compact format, same as Phase 1)
+            energy_purse = getattr(self.character_state, 'energy_purse', None)
+            if energy_purse:
+                # Count seeds by type
+                raw_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.RAW']
+                hollow_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.HOLLOW']
+                attuned_seeds = [s for s in energy_purse.seeds if hasattr(s, 'seed_type') and str(s.seed_type) == 'SeedType.ATTUNED']
+
+                # Energy currencies + hollow (hollow are energy currency)
+                energy_parts = [
+                    f"Breath: {energy_purse.breath}",
+                    f"Grain: {energy_purse.grain}",
+                    f"Drip: {energy_purse.drip}",
+                    f"Spark: {energy_purse.spark}"
+                ]
+                if hollow_seeds:
+                    energy_parts.append(f"Hollow: {len(hollow_seeds)}")
+                currency_display = ", ".join(energy_parts)
+
+                # Physical seeds (raw and attuned only)
+                seed_parts = []
+                if raw_seeds:
+                    seed_parts.append(f"Raw: {len(raw_seeds)}")
+                if attuned_seeds:
+                    seed_parts.append(f"Attuned: {len(attuned_seeds)}")
+
+                seeds_display = ", ".join(seed_parts) if seed_parts else "No physical seeds"
+            else:
+                # No energy purse - show equipment instead (compact format)
+                equipment_list = []
+                if hasattr(self.character_state, 'weapons') and self.character_state.weapons:
+                    equipment_list.append(f"Weapons: {', '.join(self.character_state.weapons)}")
+                if hasattr(self.character_state, 'armor') and self.character_state.armor:
+                    equipment_list.append(f"Armor: {self.character_state.armor}")
+
+                currency_display = " | ".join(equipment_list) if equipment_list else "Standard loadout"
+                seeds_display = "(No seeds)"
+
+            # Calculate health status
+            health_pct = int((self.health / self.max_health) * 100) if self.max_health > 0 else 100
+            if health_pct >= 75:
+                health_status = "Healthy"
+            elif health_pct >= 50:
+                health_status = "Wounded"
+            elif health_pct >= 25:
+                health_status = "Bloodied"
+            else:
+                health_status = "CRITICAL"
+
+            # Build variables for Phase 2 prompt (include Phase 1 context)
+            variables = {
+                # Phase 1 context (so Phase 2 knows what the user already decided)
+                "phase1_intent": intent.intent,
+                "phase1_reasoning": intent.reasoning or "No reasoning provided",
+                # Character context
+                "character_name": self.character_state.name,
+                "attributes_text": attributes_text,
+                "skills_text": skills_text,
+                "currency_display": currency_display,
+                "seeds_display": seeds_display,
+                "void_score": str(self.character_state.void_score),
+                "health": str(self.health),
+                "max_health": str(self.max_health),
+                "health_status": health_status,
+                "position": str(self.position) if hasattr(self, 'position') else "Unknown",
+                # Scenario context (current location and situation)
+                "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
+                "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
+                "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
+                # Narrative memory (persistent journey context) - format with round numbers
+                "journey_locations": " → ".join(f"(R{r}) {loc}" for r, loc in self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
+                "journey_beats": "\n".join(f"- (R{r}) {beat}" for r, beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
+                "journey_summary": self.narrative_memory.story_summary if self.narrative_memory.story_summary else "Journey just beginning...",
+                # Combat-specific context (if applicable)
+                "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
+                "combat_skills": str(self.character_state.skills.get('Guns', 0)),
+                # Social-specific context (if applicable)
+                "charisma": str(self.character_state.attributes.get('Charisma', 0)),
+                "charm_skill": str(self.character_state.skills.get('Charm', 0)),
+                "negotiation_skill": str(self.character_state.skills.get('Negotiation', 0)),
+                # Attunement-specific context (if applicable)
+                "willpower": str(self.character_state.attributes.get('Willpower', 0)),
+                "attunement_skill": str(self.character_state.skills.get('Attunement', 0)),
+                "attunement_total": str(self.character_state.attributes.get('Willpower', 0) + self.character_state.skills.get('Attunement', 0)),
+                "unskilled_warning": "" if self.character_state.skills.get('Attunement', 0) > 0 else "⚠️ Unskilled (-5 penalty)",
+                # Environment context (unified + legacy)
+                "entities_present": self._format_entities_present(),
+                "vendor_status": self._format_vendor_status(),
+                "threat_status": self._format_threat_status(),  # Legacy
+                "altar_availability": self._format_altar_availability(),
+                "void_warning": "Low void risk" if self.character_state.void_score < 5 else f"⚠️ Void score: {self.character_state.void_score}/10",
+                "situational_factors": self._format_situational_factors(),
+                # NEW: What allies/enemies have declared THIS round (tactical coordination)
+                "declared_actions_this_round": declared_actions_text,
+                # NEW: Recent action outcomes (detailed narrations)
+                "recent_action_outcomes": recent_outcomes_text,
+                # Customizable personality/direction guidance (with labels when present)
+                "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
+                "direction": f"**Direction:** {self.direction}" if self.direction else ""
+            }
+
+            # Load Phase 2 action-specific prompt from player/ subdirectory
+            from .prompt_loader import load_modular_prompt
+            loaded_prompt = load_modular_prompt(
+                agent_type="player",
+                module_names=[prompt_module],  # e.g., "player_action_attune" → player/player_action_attune.yaml
+                provider="claude",
+                language="en",
+                variables=variables
+            )
+
+            logger.debug(f"Player {self.character_state.name}: Phase 2 ({intent.action_type}) - generating with {schema_class.__name__}...")
+
+            # Capture prompts for logging
+            phase2_system_prompt = f"You are {self.character_state.name}, declaring the detailed mechanics of your {intent.action_type} action."
+            phase2_user_prompt = loaded_prompt.content
+
+            # Generate action-specific details
+            action_details = await self.llm_provider.generate_structured(
+                prompt=phase2_user_prompt,
+                result_type=schema_class,  # Route to correct schema (AttuneAction, CombatAction, etc.)
+                system_prompt=phase2_system_prompt,
+                max_tokens=self.llm_config.get('max_tokens', 3000),  # Phase 2: Complex schemas, OpenAI verbose
+                temperature=self.llm_config.get('temperature', 0.8),
+                llm_logger=self.llm_logger,
+                current_round=getattr(self, 'current_round', None)
+            )
+
+            # Log Phase 2 prompts to agent prompt logger
+            if self.agent_prompt_logger:
+                try:
+                    full_prompt = f"System: {phase2_system_prompt}\n\nUser: {phase2_user_prompt}"
+                    response_text = action_details.model_dump_json(indent=2)
+
+                    self.agent_prompt_logger.log_llm_call(
+                        agent_id=self.agent_id,
+                        round_num=getattr(self, 'current_round', None),
+                        call_sequence=getattr(self.llm_logger, 'call_count', 0) if self.llm_logger else 0,
+                        prompt=full_prompt,
+                        response=response_text,
+                        model=self.llm_config.get('model', 'claude-sonnet-4-5'),
+                        temperature=self.llm_config.get('temperature', 0.8),
+                        metadata={'phase': f'Phase 2: {intent.action_type} Details', 'schema': schema_class.__name__, 'note': f'Pydantic AI structured output ({schema_class.__name__} schema)'}
+                    )
+                except Exception as e:
+                    logger.error(f"Player {self.agent_id}: Failed to log Phase 2 to agent prompt logger: {e}")
+
+            logger.debug(f"✓ Player {self.character_state.name} Phase 2: {action_details.attribute} × {action_details.skill} (DC {action_details.difficulty_estimate})")
+            return action_details
+
+        except Exception as e:
+            logger.error(f"Player {self.character_state.name}: Phase 2 (action details) failed: {e}")
+            return None
+
+    def _format_entities_present(self) -> str:
+        """Format all entities in the scene (allies, enemies, NPCs) for tactical awareness."""
+        entities = []
+
+        # Get target ID mapper if available
+        target_mapper = self.shared_state.target_id_mapper if self.shared_state else None
+
+        # Add player allies (with target IDs for combat)
+        if self.shared_state and self.shared_state.player_agents:
+            for agent in self.shared_state.player_agents:
+                if agent.agent_id == self.agent_id:
+                    continue  # Skip self
+
+                name = agent.character_state.name if hasattr(agent, 'character_state') else agent.agent_id
+                health = getattr(agent, 'health', '?')
+                max_health = getattr(agent, 'max_health', '?')
+
+                # Extract pronouns if available
+                pronouns = None
+                if hasattr(agent, 'character_state'):
+                    pronouns = getattr(agent.character_state, 'pronouns', None)
+
+                # Get target ID from mapper
+                target_id = target_mapper.get_target_id(agent.agent_id) if target_mapper else agent.agent_id
+
+                # Format with optional pronouns
+                if pronouns:
+                    entities.append(f"- {name} ({pronouns}, ID: {target_id}, HP: {health}/{max_health})")
+                else:
+                    entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+        # Add active enemies (with target IDs for combat)
+        if self.shared_state and hasattr(self.shared_state, 'enemy_combat'):
+            enemy_combat = self.shared_state.enemy_combat
+            if enemy_combat and enemy_combat.enabled:
+                # Use get_active_enemies to safely get non-defeated enemies
+                from .enemy_spawner import get_active_enemies
+                active_enemies = get_active_enemies(enemy_combat.enemy_agents)
+
+                for enemy in active_enemies:
+                    # Get target ID from mapper
+                    target_id = target_mapper.get_target_id(enemy.agent_id) if target_mapper else enemy.agent_id
+
+                    # Extract pronouns if available
+                    pronouns = getattr(enemy, 'pronouns', None)
+
+                    # Format with optional pronouns
+                    if pronouns:
+                        entities.append(
+                            f"- {enemy.name} ({pronouns}, ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
+                        )
+                    else:
+                        entities.append(
+                            f"- {enemy.name} (ID: {target_id}, HP: {enemy.health}/{enemy.max_health})"
+                        )
+
+        # Add NPCs (with target IDs for combat)
+        if self.shared_state and self.shared_state.npc_agents:
+            for npc in self.shared_state.npc_agents:
+                # NPCs have .name directly (dataclass), not .character_state.name
+                name = getattr(npc, 'name', None)
+                if not name and hasattr(npc, 'character_state'):
+                    name = getattr(npc.character_state, 'name', None)
+                if not name:
+                    name = npc.agent_id  # Fallback
+                health = getattr(npc, 'health', '?')
+                max_health = getattr(npc, 'max_health', '?')
+
+                # Extract pronouns if available (NPCs don't currently have pronouns field, but futureproof)
+                pronouns = getattr(npc, 'pronouns', None)
+                if not pronouns and hasattr(npc, 'character_state'):
+                    pronouns = getattr(npc.character_state, 'pronouns', None)
+
+                # Get target ID from mapper
+                target_id = target_mapper.get_target_id(npc.agent_id) if target_mapper else npc.agent_id
+
+                # Format with optional pronouns
+                if pronouns:
+                    entities.append(f"- {name} ({pronouns}, ID: {target_id}, HP: {health}/{max_health})")
+                else:
+                    entities.append(f"- {name} (ID: {target_id}, HP: {health}/{max_health})")
+
+        # Add environmental objects (non-targetable, narrative grounding)
+        if self.shared_state and self.shared_state.current_env_objects:
+            if entities:  # Only add separator if there are already entities
+                entities.append("")  # Blank line separator
+                entities.append("**Environmental Features:**")
+            else:
+                entities.append("**Environmental Features:**")
+
+            for env_obj in self.shared_state.current_env_objects:
+                # Format state info if present
+                state_str = ""
+                if env_obj.state:
+                    state_parts = []
+                    for key, value in env_obj.state.items():
+                        if isinstance(value, bool):
+                            state_parts.append(f"{key}: {'Yes' if value else 'No'}")
+                        else:
+                            state_parts.append(f"{key}: {value}")
+                    if state_parts:
+                        state_str = f" ({', '.join(state_parts)})"
+
+                entities.append(f"- {env_obj.name} [ID: {env_obj.object_id}]{state_str}")
+
+        return "\n".join(entities) if entities else "You are alone"
+
+    def _format_ally_status(self) -> str:
+        """Legacy method - use _format_entities_present() instead."""
+        return self._format_entities_present()
+
+    def _format_threat_status(self) -> str:
+        """Legacy method - use _format_entities_present() instead."""
+        return self._format_entities_present()
+
+    def _format_vendor_status(self) -> str:
+        """Format vendor availability for purchase actions with IDs and inventory."""
+        if not self.shared_state:
+            return "No vendors present"
+
+        vendor_lines = []
+
+        # Check legacy vendors (backward compatibility)
+        if hasattr(self.shared_state, 'current_vendors') and self.shared_state.current_vendors:
+            for vendor in self.shared_state.current_vendors:
+                # Format vendor header with ID
+                vendor_line = f"**{vendor.name}** (ID: `{vendor.vendor_id}`, Type: {vendor.vendor_type.value})"
+                vendor_lines.append(vendor_line)
+                vendor_lines.append(f"  Greeting: \"{vendor.greeting}\"")
+
+                # Format inventory with item IDs
+                if vendor.inventory:
+                    vendor_lines.append(f"  **Inventory ({len(vendor.inventory)} items):**")
+                    for item in vendor.inventory:
+                        price_parts = []
+                        if item.price_spark > 0:
+                            price_parts.append(f"{item.price_spark} Spark")
+                        if item.price_grain > 0:
+                            price_parts.append(f"{item.price_grain} Grain")
+                        if item.price_drip > 0:
+                            price_parts.append(f"{item.price_drip} Drip")
+                        if item.price_breath > 0:
+                            price_parts.append(f"{item.price_breath} Breath")
+                        if item.seed_barter:
+                            price_parts.append("OR 1 Raw Seed")
+
+                        price_str = " + ".join(price_parts) if price_parts else "FREE"
+                        vendor_lines.append(f"    - {item.name} (ID: `{item.item_id}`) - {item.description} - **Price:** {price_str}")
+                else:
+                    vendor_lines.append("  (No items in stock)")
+
+                vendor_lines.append("")  # Blank line between vendors
+
+        # Check NPC vendors (unified vendor system)
+        if hasattr(self.shared_state, 'npc_agents') and self.shared_state.npc_agents:
+            for npc in self.shared_state.npc_agents:
+                # Only include NPCs with is_vendor=True
+                if not getattr(npc, 'is_vendor', False):
+                    continue
+
+                # Format NPC vendor header with agent_id
+                vendor_type = getattr(npc, 'vendor_type', 'human_trader')
+                vendor_line = f"**{npc.name}** (ID: `{npc.agent_id}`, Type: {vendor_type})"
+                vendor_lines.append(vendor_line)
+
+                # Greeting (optional for NPC vendors)
+                greeting = getattr(npc, 'vendor_greeting', None)
+                if greeting:
+                    vendor_lines.append(f"  Greeting: \"{greeting}\"")
+
+                # Format inventory with item IDs
+                inventory = getattr(npc, 'vendor_inventory', [])
+                if inventory:
+                    vendor_lines.append(f"  **Inventory ({len(inventory)} items):**")
+                    for item in inventory:
+                        price_parts = []
+                        if item.price_spark > 0:
+                            price_parts.append(f"{item.price_spark} Spark")
+                        if item.price_grain > 0:
+                            price_parts.append(f"{item.price_grain} Grain")
+                        if item.price_drip > 0:
+                            price_parts.append(f"{item.price_drip} Drip")
+                        if item.price_breath > 0:
+                            price_parts.append(f"{item.price_breath} Breath")
+                        if item.seed_barter:
+                            price_parts.append("OR 1 Raw Seed")
+
+                        price_str = " + ".join(price_parts) if price_parts else "FREE"
+                        vendor_lines.append(f"    - {item.name} (ID: `{item.item_id}`) - {item.description} - **Price:** {price_str}")
+                else:
+                    vendor_lines.append("  (No items in stock)")
+
+                vendor_lines.append("")  # Blank line between vendors
+
+        if not vendor_lines:
+            return "No vendors present"
+
+        return "\n".join(vendor_lines)
+
+    def _format_altar_availability(self) -> str:
+        """Format altar availability for attunement actions."""
+        if not self.shared_state or not hasattr(self.shared_state, 'current_altars'):
+            return "No altars available"
+
+        altars = self.shared_state.current_altars
+        if not altars:
+            return "No altars available (DC 25 for no-equipment attunement, or use Echo-Calibrator if you have one)"
+
+        # Format altar list with IDs, types, quality, and bonuses
+        altar_lines = []
+        for altar in altars:
+            bonus = altar.get_ritual_bonus()
+            location_text = f" at {altar.location}" if altar.location else ""
+            # Bonus is DC reduction, so show as -N DC
+            altar_lines.append(
+                f"  - {altar.altar_id} ({altar.altar_type.value}, quality {altar.quality}, -{bonus} DC){location_text}"
+            )
+
+        return "Altars available:\n" + "\n".join(altar_lines)
+
+    def _format_situational_factors(self) -> str:
+        """Format situational modifiers for combat actions."""
+        return "Standard conditions"
+
+    async def _generate_player_action_pydantic(self, prompt: str):
+        """
+        Generate player action using two-phase structured output (Phase 1: Intent, Phase 2: Details).
+        Returns ActionDeclaration if structured output succeeds.
+
+        Raises RuntimeError if either phase fails (no legacy fallback).
+
+        NOTE: The 'prompt' parameter is preserved for backward compatibility but not used.
+        Phase 1 and Phase 2 build their own prompts using compose_sections().
+        """
+        if not hasattr(self, 'llm_provider') or self.llm_provider is None:
+            raise RuntimeError(f"Player {self.character_state.name}: No llm_provider configured - cannot generate actions")
+
+        from .action_schema import ActionDeclaration
+
+        logger.debug(f"Player {self.character_state.name}: Two-phase structured output (Phase 1: Intent, Phase 2: Details)")
+
+        # ===== PHASE 1: Action Intent (lightweight action type selection) =====
+        action_intent = await self._generate_action_intent()
+        if not action_intent:
+            raise RuntimeError(f"Player {self.character_state.name}: Phase 1 (action intent) failed after retries")
+
+        # ===== PHASE 2: Action Details (action-specific schema with routing) =====
+        action_details = await self._generate_action_details(action_intent)
+        if not action_details:
+            raise RuntimeError(
+                f"Player {self.character_state.name}: Phase 2 (action details) failed for {action_intent.action_type}. "
+                f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
+            )
+
+        # Populate identity fields from player object (LLM doesn't generate these)
+        action_details.character_name = self.character_state.name
+        action_details.agent_id = self.agent_id
+
+        logger.debug(f"✓ Player {self.character_state.name} two-phase action complete: {action_details.action_type}, {action_details.attribute} × {action_details.skill}")
+
+        # Increment call count for TWO LLM calls (Phase 1 + Phase 2)
+        # (Both phases already logged tokens automatically via generate_structured, and prompts logged in individual phase methods)
+        if self.llm_logger:
+            self.llm_logger.call_count += 2  # Two separate LLM calls
+
+        # NOTE: Agent prompt logging now happens in _generate_action_intent() and _generate_action_details()
+        # to capture the actual prompts sent to the LLM (not just summaries)
+
+        # Convert action-specific schema (AttuneAction, CombatAction, etc.) to ActionDeclaration (legacy format)
+        # ActionDeclaration expects all fields from PlayerAction, so we need to extract them
+        action_declaration = ActionDeclaration(
+            intent=action_details.intent,
+            description=action_details.description,
+            attribute=action_details.attribute,
+            skill=action_details.skill,
+            difficulty_estimate=action_details.difficulty_estimate,
+            difficulty_justification=action_details.difficulty_justification,
+            character_name=self.character_state.name,
+            agent_id=self.agent_id,
+            action_type=action_details.action_type,
+            # Action-specific fields (may be None for non-applicable action types)
+            target=getattr(action_details, 'target', None),
+            target_position=getattr(action_details, 'target_position', None),
+            vendor_id=getattr(action_details, 'vendor_id', None),
+            item_id=getattr(action_details, 'item_id', None),
+            transfer_target=getattr(action_details, 'transfer_target', None),
+            transfer_currency=getattr(action_details, 'transfer_currency', None),
+            transfer_items=getattr(action_details, 'transfer_items', None),
+            # Attunement-specific fields
+            target_energy=getattr(action_details, 'target_energy', None),
+            altar_id=getattr(action_details, 'altar_id', None),
+            use_echo_calibrator=getattr(action_details, 'use_echo_calibrator', None)
+        )
+
+        return action_declaration
 
     async def _generate_llm_action_structured(self, recent_intents: List[str], exclude_dialogue: bool = False):
         """Generate structured action using LLM with enhanced prompts."""
@@ -1470,18 +2382,44 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         scenario_context = ""
         if self.current_scenario:
             vendor_info = ""
-            if self.current_scenario.get('active_vendor'):
-                vendor = self.current_scenario['active_vendor']
-                vendor_info = f"""
+            # Check for vendors (supports both single vendor dict and vendor list)
+            vendors = self.current_scenario.get('active_vendors', [])
+            if not vendors and self.current_scenario.get('active_vendor'):
+                # Backwards compatibility: single vendor dict
+                vendors = [self.current_scenario['active_vendor']]
 
-**💰 VENDOR AVAILABLE: {vendor['name']}**
-- Type: {vendor['type']}
-- Faction: {vendor['faction']}
-- "{vendor['greeting']}"
-- Sample goods: {', '.join(vendor.get('inventory_preview', []))}
+            if vendors:
+                vendor_info = "\n**💰 VENDORS PRESENT:**\n\n"
+                for vendor in vendors:
+                    vendor_id = vendor.get('vendor_id', 'unknown')
+                    vendor_info += f"**{vendor['name']}** ({vendor['faction']} {vendor['type']}) `[{vendor_id}]`\n"
+                    vendor_info += f"\"{vendor['greeting']}\"\n\n"
 
-You can purchase items, barter, or ask for information! Use your currency (Sparks, Drips, Breath, Grain).
-"""
+                    # Show full inventory with prices
+                    if 'inventory' in vendor and vendor['inventory']:
+                        vendor_info += "**Inventory:**\n"
+                        for item in vendor['inventory'][:8]:  # Show first 8 items
+                            item_id = item.get('item_id', 'unknown')
+                            prices = []
+                            if item.get('price_spark', 0) > 0:
+                                prices.append(f"{item['price_spark']} Spark")
+                            if item.get('price_drip', 0) > 0:
+                                prices.append(f"{item['price_drip']} Drip")
+                            if item.get('price_breath', 0) > 0:
+                                prices.append(f"{item['price_breath']} Breath")
+                            price_str = " or ".join(prices) if prices else "Free"
+                            vendor_info += f"- **{item['name']}** `[{item_id}]` - {price_str}\n"
+
+                        if len(vendor['inventory']) > 8:
+                            vendor_info += f"  _(and {len(vendor['inventory']) - 8} more items)_\n"
+                    elif 'inventory_preview' in vendor:
+                        # Fallback: Sample goods preview
+                        vendor_info += f"Sample goods: {', '.join(vendor.get('inventory_preview', []))}\n"
+
+                    vendor_info += "\n"
+
+                vendor_info += "**To purchase:** Set action_type='purchase', provide vendor_id and item_id.\n"
+                vendor_info += "Example: `action_type: 'purchase', vendor_id: 'vnd_a1b2', item_id: 'itm_c3d4'`\n"
 
             # Get clock states with semantic guidance
             clock_context = ""
@@ -1594,7 +2532,23 @@ Situation: {self.current_scenario.get('situation', 'Unknown')}
                         pc_health = pc.health  # Health is on AIPlayerAgent, not CharacterState
                         pc_max_health = pc.max_health
                         void_score = pc.character_state.void_score
-                        combatants.append(f"[{tgt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP | Void {void_score}/10")
+
+                        # Build wound indicator (shows injury severity to teammates)
+                        pc_wounds = getattr(pc, 'wounds', 0)
+                        if pc_wounds >= 4:
+                            wound_indicator = f" | {pc_wounds}w (HEAVY -15) ⚠️"
+                        elif pc_wounds >= 2:
+                            wound_indicator = f" | {pc_wounds}w (WOUNDED -5)"
+                        elif pc_wounds == 1:
+                            wound_indicator = f" | {pc_wounds}w"
+                        else:
+                            wound_indicator = ""
+
+                        # Build stun indicator
+                        pc_stuns = getattr(pc, 'stuns', 0)
+                        stun_indicator = f" | {pc_stuns}s" if pc_stuns > 0 else ""
+
+                        combatants.append(f"[{tgt_id}] {pc_name:20s} | {pc_position:12s} | {pc_health}/{pc_max_health} HP{wound_indicator}{stun_indicator} | Void {void_score}/10")
 
                 # Add all active enemies
                 for enemy in active_enemies:
@@ -1872,7 +2826,7 @@ Available non-combat actions:
             filtered_declarations = {
                 char_name: action_data
                 for char_name, action_data in self.declared_actions_this_round.items()
-                if (action_data[2] if len(action_data) == 3 else action_data[1]) < current_init
+                if action_data[-1] < current_init  # initiative is always last element
             }
 
             if filtered_declarations:
@@ -1882,18 +2836,35 @@ Available non-combat actions:
                 # Sort by initiative (slowest first, matching declaration order)
                 sorted_declarations = sorted(
                     filtered_declarations.items(),
-                    key=lambda x: x[1][2] if len(x[1]) == 3 else x[1][1]
+                    key=lambda x: x[1][-1]  # initiative is always last element
                 )
 
-                narrative_context += "## 🎯 Declared Actions This Round (Initiative Order):\n"
+                narrative_context += f"## 🎯 {DECLARED_ACTIONS_HEADER} (Initiative Order):\n"
                 narrative_context += "*You see what slower combatants (lower initiative) declared before you. React accordingly!*\n\n"
                 for char_name, action_data in sorted_declarations:
-                    # Handle both old format (intent, initiative) and new format (description, intent, initiative)
-                    if len(action_data) == 3:
+                    # Current format: (description, intent, target, weapon, reasoning, initiative)
+                    if len(action_data) == 6:
+                        description, intent, target, weapon, reasoning, initiative = action_data
+
+                        # Format action with targeting info if available
+                        if description:
+                            # NPCs and players with descriptions
+                            action_text = description
+                        else:
+                            # Enemies without description - build from components
+                            action_text = intent
+                            if target:
+                                action_text += f" targeting {target}"
+                            if weapon:
+                                action_text += f" with {weapon}"
+
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {action_text}\n"
+                    elif len(action_data) == 3:
+                        # Legacy format (description, intent, initiative)
                         description, intent, initiative = action_data
-                        narrative_context += f"- **{char_name}** [Init {initiative}]: {description}\n"
+                        narrative_context += f"- **{char_name}** [Init {initiative}]: {description if description else intent}\n"
                     else:
-                        # Legacy format
+                        # Very old format (intent, initiative)
                         intent, initiative = action_data
                         narrative_context += f"- **{char_name}** [Init {initiative}]: {intent}\n"
                 narrative_context += "\n"
@@ -1926,13 +2897,13 @@ DESCRIPTION: [narrative description]
 
         # Try structured output first (Phase 3: Pydantic AI migration)
         if hasattr(self, 'llm_provider') and self.llm_provider is not None:
-            try:
-                structured_action = await self._generate_player_action_pydantic(prompt)
-                if structured_action:
-                    logger.debug(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
-                    return structured_action
-            except Exception as e:
-                logger.warning(f"Player {self.character_state.name}: Structured output failed ({e}), falling back to legacy")
+            # NO FALLBACK - if structured output fails, we want to know immediately
+            structured_action = await self._generate_player_action_pydantic(prompt)
+            if structured_action:
+                logger.debug(f"✓ Player {self.character_state.name} structured action: {structured_action.action_type}")
+                return structured_action
+            else:
+                raise RuntimeError(f"Player {self.character_state.name}: Structured output returned None (should have raised error)")
 
         # Legacy text parsing fallback
         try:

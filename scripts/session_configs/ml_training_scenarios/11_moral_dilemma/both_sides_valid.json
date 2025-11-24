@@ -1,0 +1,261 @@
+{
+  "_role": "ml_training_scenario",
+  "_purpose": "Test moral ambiguity, no clear villain, both-sides-valid conflict, player values challenged, consequence depth regardless of choice, NPC perspectives with valid arguments, systemic issues exploration, ethical decision-making under pressure",
+  "session_name": "The Dissolution Village - Doctrine vs. Freedom",
+  "max_turns": 19,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - CONDITIONAL (Combat Only if Players Choose Violence) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 15,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
+  "vendor_spawn_frequency": 0,
+  "_comment_scenario": "=== SCENARIO: MORAL AMBIGUITY ===",
+  "_scenario_hint": "Remote Freeborn Village (void_level 5, declining), villagers practice 'controlled dissolution' philosophy - voluntarily approaching void 6-7 as spiritual evolution, not death. Sovereign Nexus mandates cleansing (void >5 must be purged per Codex). Village elder: eloquent, shows happy community, claims dissolution is freedom from forced reincarnation cycle. Nexus representative: compassionate, shows statistics of dissolution catastrophes, argues mandate protects everyone. Party hired as neutral evaluators must recommend: enforce cleansing (destroy village culture but prevent potential catastrophe), grant exemption (preserve freedom but risk void outbreak), negotiate compromise (limited dissolution with monitoring). All choices have severe consequences. No clear villain - both sides have compelling moral/practical arguments.",
+  "_design_notes": {
+    "ml_training_value": "Moral ambiguity scenario with no clear villain, both-sides-valid conflict (spiritual freedom vs. public safety), player values challenged, NPC perspectives with compelling arguments (village elder vs. Nexus rep), consequence depth regardless of choice (cleansing = cultural genocide, exemption = potential catastrophe, compromise = neither side satisfied), systemic ethical issues (bodily autonomy vs. collective safety), decision-making under emotional/logical pressure",
+    "mechanics_tested": [
+      "Moral choice consequences",
+      "NPC persuasion depth",
+      "Factional reputation",
+      "Systemic ethical exploration",
+      "Player value alignment",
+      "Investigation of both perspectives",
+      "Consequence branching"
+    ],
+    "character_innovation": "Ex-Nexus character questioning doctrine, current Resonance member defending autonomy, neutral scientist seeking data-driven answer, all with internal conflicts"
+  },
+  "starting_clocks": [
+    {
+      "name": "Nexus Cleansing Mandate Deadline",
+      "current_ticks": 12,
+      "max_ticks": 12,
+      "direction": "countdown",
+      "description": "Time until Nexus enforces cleansing mandate. At 0 ticks: heavy assault team purges village (unless exemption granted).",
+      "advance_meaning": "nexus cleansing mandate deadline worsens or time runs out",
+      "regress_meaning": "nexus cleansing mandate deadline improves or delayed"
+    },
+    {
+      "name": "Village Trust",
+      "current_ticks": 4,
+      "max_ticks": 8,
+      "direction": "bidirectional",
+      "description": "Villagers' willingness to cooperate. At 0: villagers resist violently. At 8: villagers accept any recommendation.",
+      "advance_meaning": "village trust improves",
+      "regress_meaning": "village trust worsens"
+    },
+    {
+      "name": "Nexus Confidence",
+      "current_ticks": 5,
+      "max_ticks": 8,
+      "direction": "bidirectional",
+      "description": "Nexus rep's trust in party judgment. At 0: Nexus ignores recommendation, forces cleansing. At 8: Nexus defers to party decision.",
+      "advance_meaning": "nexus confidence improves",
+      "regress_meaning": "nexus confidence worsens"
+    },
+    {
+      "name": "Evidence Collection",
+      "current_ticks": 0,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Data on controlled dissolution safety. At 10 ticks: comprehensive evidence to support recommendation (whichever chosen).",
+      "advance_meaning": "evidence collection progresses",
+      "regress_meaning": "evidence collection setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-5",
+        "temperature": 0.7
+      }
+    },
+    "players": [
+      {
+        "name": "Former Enforcer Veyra Kael",
+        "pronouns": "she/her",
+        "faction": "Pantheon Security (former) \u2192 Independent",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Combat": 5,
+          "Awareness": 5,
+          "Insight": 5,
+          "Intimidation": 4,
+          "Counsel": 4,
+          "Guns": 5
+        },
+        "void": 2,
+        "soulcredit": 1,
+        "goals": [
+          "Investigate village objectively despite former Nexus training",
+          "Question whether cleansing mandates are always justified",
+          "Make recommendation based on evidence, not doctrine"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "shock_baton": 1,
+          "former_pantheon_badge": 1,
+          "void_scanner": 1,
+          "data_recorder": 2,
+          "investigation_notes": 1,
+          "data_slate": 1,
+          "incense": 3,
+          "med_kit": 2,
+          "ethical_dilemma_journal": 1
+        }
+      },
+      {
+        "name": "Commune Advocate Sael Thren",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 5,
+          "bondPreference": "seeks",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Charisma": 5
+        },
+        "skills": {
+          "Counsel": 6,
+          "Charm": 6,
+          "Insight": 5,
+          "Astral Arts": 5,
+          "Attunement": 5,
+          "Persuasion": 5,
+          "Investigation": 4
+        },
+        "void": 3,
+        "soulcredit": 0,
+        "goals": [
+          "Defend villagers' right to spiritual autonomy and self-determination",
+          "Find evidence that controlled dissolution is safe",
+          "Prevent cultural genocide disguised as public safety"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "bond_ritual_kit": 1,
+          "crystal_focus": 1,
+          "incense": 8,
+          "memory_crystal": 5,
+          "commune_elder_letter_of_introduction": 1,
+          "data_slate": 1,
+          "autonomy_legal_texts": 1,
+          "witness_testimony_recordings": 4,
+          "empathy_amplifier_talisman": 1
+        }
+      },
+      {
+        "name": "Neutral Scientist Lyss Kain",
+        "pronouns": "she/her",
+        "faction": "Fractal Praxis",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 7,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Science": 6,
+          "Investigation": 6,
+          "Astral Arts": 5,
+          "Magick Theory": 5,
+          "Void Lore": 5,
+          "Systems": 5,
+          "Awareness": 4
+        },
+        "void": 2,
+        "soulcredit": 2,
+        "goals": [
+          "Collect empirical data on controlled dissolution safety/risk",
+          "Make data-driven recommendation without ideological bias",
+          "Publish findings regardless of political consequences"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "void_scanner": 2,
+          "diagnostic_scanner": 1,
+          "data_slate": 1,
+          "research_equipment_kit": 1,
+          "statistical_analysis_tools": 1,
+          "sample_collection_kit": 1,
+          "pattern_recorder": 1,
+          "memory_crystal": 4,
+          "fractal_lens": 1,
+          "research_journal": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Moral ambiguity with no clear villain, both-sides-valid conflict (spiritual autonomy vs. public safety), player values challenged (freedom vs. security), NPC perspectives with compelling arguments (village elder's eloquence vs. Nexus rep's compassionate logic), consequence depth for ALL choices (cleansing = cultural genocide, exemption = catastrophe risk, compromise = neither satisfied), systemic ethical exploration (bodily autonomy, collective responsibility, paternalism), decision-making under emotional pressure. Tests underrepresented moral complexity, NPC persuasion depth, investigation of multiple perspectives, consequence branching regardless of choice, player internal conflicts. Long campaign (19 turns) allows thorough investigation, relationship building with both sides, evidence gathering, deliberation, final decision drama, consequence manifestation. Features characters with ideological tensions: ex-Nexus (questioning doctrine), Commune (defending freedom), neutral scientist (seeking truth)."
+}

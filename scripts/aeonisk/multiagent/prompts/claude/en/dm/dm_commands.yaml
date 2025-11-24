@@ -2,14 +2,63 @@ version: 2.0.0
 module: dm_commands
 description: Session control markers (SPAWN_ENEMY, ADVANCE_STORY, etc)
 load_when: session_control_needed
-content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power to\
-  \ control scenario flow using special markers:\n\n**1. Session Ending:**\nUse when\
-  \ the scenario has reached a definitive conclusion (victory, defeat, or draw):\n\
-  - `[SESSION_END: VICTORY]` - Team achieved their objective\n- `[SESSION_END: DEFEAT]`\
-  \ - Team failed catastrophically or was captured/killed\n- `[SESSION_END: DRAW]`\
-  \ - Stalemate or escape with incomplete objectives\n\n**2. Spawn New Clocks:**\nWhen filled clocks create new challenges or opportunities,\
-  \ use `StoryAdvancement.new_clocks` or `ScenePivot.new_clocks` in RoundSynthesis.\n\
-  \n**3. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
+content: "# Scenario Control (Advanced DM Tools)\n\nYou control scenario flow using structured output in RoundSynthesis.\n\n**1. Spawn New Clocks:**\n\nClocks create dynamic pressure and drive scenario evolution. Spawn them liberally during synthesis!\n\n**When to spawn new clocks (use ScenePivot.new_clocks):**\n\
+- ✅ Failed actions in hostile environments → \"Security Response\" (6 ticks)\n\
+- ✅ Successful loud actions → \"ACG Investigation\" (8 ticks)\n\
+- ✅ Filled clocks create cascading consequences → \"Alarm\" fills → \"Reinforcements\" spawns\n\
+- ✅ Story complications arise → \"Rival Faction Interest\" (8 ticks)\n\
+- ✅ Scene feels static (2-3 rounds with no new clocks) → Add pressure/opportunity clock\n\
+- ❌ Don't spawn if you just spawned 2+ clocks last round (pacing)\n\n\
+**When to advance story (use StoryAdvancement.new_clocks):**\n\
+- All current clocks complete/expire → New location with 2-4 fresh clocks\n\
+- Major story beat completes → Investigation resolves → \"Confrontation\" chapter begins\n\
+- Critical filled clock triggers location change → \"Breach\" fills → Evacuate to new zone\n\n\
+**Important distinctions:**\n\
+- **Spawning NEW clocks:** RoundSynthesis (ScenePivot/StoryAdvancement) - your synthesis responsibility\n\
+- **Updating EXISTING clocks:** ActionResolution.effects.clock_updates - your action resolution responsibility\n\
+- **Filled clock → entity spawns:** EntityLifecycleResult.enemy_spawns - entity lifecycle phase responsibility\n\n\
+**Examples:**\n\n\
+```python\n\
+# Minor complication (same scene) - Failed stealth\n\
+scene_pivot=ScenePivot(\n\
+    should_pivot=False,\n\
+    new_clocks=[\n\
+        NewClock(\n\
+            name=\"Facility Lockdown\",\n\
+            max_ticks=6,\n\
+            description=\"Security protocols activate after intruder detected\",\n\
+            advance_meaning=\"lockdown systems engage\",\n\
+            regress_meaning=\"lockdown countermeasures disrupted\",\n\
+            filled_consequence=\"All exits sealed, armed response team deployed\"\n\
+        )\n\
+    ]\n\
+)\n\n\
+# Filled clock cascade - \"Alarm\" clock just filled\n\
+scene_pivot=ScenePivot(\n\
+    should_pivot=False,\n\
+    new_clocks=[\n\
+        NewClock(\n\
+            name=\"ACG Tactical Response\",\n\
+            max_ticks=5,\n\
+            description=\"Elite forces converge on breach location\",\n\
+            filled_consequence=\"Heavy combat squad arrives\"\n\
+        )\n\
+    ]\n\
+)\n\n\
+# Major transition (new location/chapter)\n\
+story_advancement=StoryAdvancement(\n\
+    should_advance=True,\n\
+    location=\"Reactor Core Access\",\n\
+    situation=\"Your sabotage has breached the inner sanctum...\",\n\
+    new_clocks=[\n\
+        NewClock(name=\"Meltdown Sequence\", max_ticks=10, description=\"Reactor critical in 10 minutes\"),\n\
+        NewClock(name=\"Escape Route\", max_ticks=6, description=\"Find transit tunnel before blast doors seal\"),\n\
+        NewClock(name=\"Corporate Pursuit\", max_ticks=8, description=\"ACG forces tracking your movements\")\n\
+    ]\n\
+)\n\
+```\n\n\
+**Note:** All clock spawning uses Pydantic structured output (ScenePivot/StoryAdvancement schemas).\n\n\
+**2. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
   \ use `StoryAdvancement` in RoundSynthesis\n\n**With Structured Output (`StoryAdvancement`\
   \ schema):**\nUse the `new_void_level` field to update environmental void when story\
   \ beats justify it.\n\n**When to REDUCE void_level:**\n- Purification clocks completed\
@@ -53,19 +102,19 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ \"Corporate Strike Team\", \"Void Cultist Cell\"\n\n**Enemy Conversions (unified field for removals + NPC conversions):**\n```python\nenemy_conversions=[\n\
   \    # Enemy flees (leaves scene entirely)\n    EnemyConversion(\n        enemy_id=\"\
   enemy_grunt_1\",\n        resolution=EnemyResolution.FLED,\n        reason=\"Intimidated\
-  \ by overwhelming force, fled through maintenance corridor\"\n    ),\n    # Enemy\
+  \ by overwhelming force, fled through maintenance corridor\"\n        # No NPC fields needed - enemy leaves scene\n    ),\n    # Enemy\
   \ surrenders (stays as NPC prisoner)\n    EnemyConversion(\n        enemy_id=\"\
   enemy_raider_2\",\n        resolution=EnemyResolution.CONVINCED,\n        reason=\"\
   Negotiated surrender after Wei Lin's diplomacy\",\n        resulting_entity_type=\"\
-  prisoner\",\n        resulting_disposition=\"prisoner\"\n    ),\n    # Enemy arrested\
+  prisoner\",  # ⚠️ REQUIRED when enemy stays!\n        resulting_disposition=\"prisoner\"   # ⚠️ REQUIRED when enemy stays!\n    ),\n    # Enemy arrested\
   \ (stays as NPC prisoner)\n    EnemyConversion(\n        enemy_id=\"enemy_guard_captain_3\"\
   ,\n        resolution=EnemyResolution.NEUTRALIZED,\n        reason=\"Arrested and\
   \ restrained by Pantheon Security\",\n        resulting_entity_type=\"prisoner\"\
-  ,\n        resulting_disposition=\"prisoner\"\n    )\n]\n```\n\n**Resolution types:**\n\
-  - `FLED`: Scared off, retreated, escaped (leaves scene)\n- `CONVINCED`: Talked\
-  \ down, persuaded, negotiated (stays as NPC)\n- `NEUTRALIZED`: Arrested, captured,\
-  \ restrained (stays as NPC)\n- `SUBDUED`: Knocked unconscious, incapacitated (stays\
-  \ as NPC)\n- `STORY_ADVANCED`: Scene changed, no longer present (leaves scene)\n\
+  ,  # ⚠️ REQUIRED when enemy stays!\n        resulting_disposition=\"prisoner\"   # ⚠️ REQUIRED when enemy stays!\n    )\n]\n```\n\n**Resolution types:**\n\
+  - `FLED`: Scared off, retreated, escaped (leaves scene) - NO NPC fields needed\n- `CONVINCED`: Talked\
+  \ down, persuaded, negotiated (STAYS as NPC) - ⚠️ **REQUIRES** resulting_entity_type + resulting_disposition\n- `NEUTRALIZED`: Arrested, captured,\
+  \ restrained (STAYS as NPC) - ⚠️ **REQUIRES** resulting_entity_type + resulting_disposition\n- `SUBDUED`: Knocked unconscious, incapacitated (STAYS\
+  \ as NPC) - ⚠️ **REQUIRES** resulting_entity_type + resulting_disposition\n- `STORY_ADVANCED`: Scene changed, no longer present (leaves scene) - NO NPC fields needed\n\n## ⚠️ CRITICAL: When Enemy Stays in Scene (CONVINCED/NEUTRALIZED/SUBDUED)\n\n**You MUST include BOTH fields or validation will fail:**\n\n```python\n# ❌ WRONG - Will cause validation error!\nEnemyConversion(\n    enemy_id=\"enemy_raider_2\",\n    resolution=EnemyResolution.NEUTRALIZED,\n    reason=\"Arrested\"\n    # Missing resulting_entity_type and resulting_disposition!\n)\n\n# ✅ CORRECT - Both NPC fields provided\nEnemyConversion(\n    enemy_id=\"enemy_raider_2\",\n    resolution=EnemyResolution.NEUTRALIZED,\n    reason=\"Arrested and cuffed by Pantheon enforcer\",\n    resulting_entity_type=\"prisoner\",  # ← REQUIRED\n    resulting_disposition=\"prisoner\"   # ← REQUIRED\n)\n```\n\n**Valid NPC field values:**\n- `resulting_entity_type`: \"neutral\" | \"ally\" | \"prisoner\"\n- `resulting_disposition`: \"friendly\" | \"neutral\" | \"wary\" | \"prisoner\"\n\
   \n## ⚠️ CRITICAL: SURRENDERS = enemy_conversions with CONVINCED, NOT CONDITIONS\
   \ ⚠️\n\n**When enemies surrender/are negotiated down:**\n- ✅ **CORRECT**: Use `enemy_conversions`\
   \ with `resolution=CONVINCED` + NPC fields\n- ❌ **WRONG**: Apply \"Surrendered\"\
@@ -89,8 +138,7 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \    effects=MechanicalEffects(\n        conditions=[\n            Condition(\n \
   \               target=\"tgt_c6jt\",\n                name=\"Surrendered\",\n   \
   \             penalty=-999,\n                description=\"Disarmed and compliant\"\
-  \n            )\n        ]\n    )\n)\n```\n**Problem:** Enemy agents don't check\
-  \ conditions before declaring actions. They'll keep attacking!\n\n**6. NPC Management:**\n\
+  \n            )\n        ]\n    )\n)\n```\n**Why this fails:** Enemy agents continue to act normally until converted via enemy_conversions.\n\n**6. NPC Management:**\n\
   \n**Enemy conversions handle de-escalation automatically. No separate deescalations\
   \ field needed.**\n\n**Dispositions:**\n- `\"prisoner\"`: Captured, restrained,\
   \ under guard\n- `\"wary\"`: Suspicious, will flee if threatened\n- `\"neutral\"\
@@ -119,12 +167,13 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ scientists, janitors\n- Entering a market/populated area → spawn merchants, civilians,\
   \ local fixers\n- Social missions → spawn quest-givers, informants, contacts\n-\
   \ Players need someone to talk to/intimidate/negotiate with\n\n**Examples:**\n\n```python\n# Example\
-  \ 1: Civilian non-combatant (most common)\nnpc_spawns=[\n    NPCSpawn(\n       \
+  \ 1: Civilian non-combatant (fearful)\nnpc_spawns=[\n    NPCSpawn(\n       \
   \ name=\"Frightened Dock Worker\",\n        faction=\"Independent Civilian\",\n\
   \        entity_type=\"neutral\",\n        threat_level=\"non_combatant\",\n  \
-  \      disposition=\"wary\",\n        description=\"Terrified civilian hiding behind\
-  \ cargo crates\",\n        health=15,  # Low health, fragile\n        soak=0,\n\
-  \        skills={}  # No special skills\n    )\n]\n\n# Example 2: Friendly ally\
+  \      disposition=\"fearful\",  # Use 'fearful' for scared/terrified NPCs\n  \
+  \      description=\"Terrified civilian hiding behind cargo crates\",\n        health=15,\
+  \  # Low health, fragile\n        soak=0,\n        skills={}  # No special skills\n\
+  \    )\n]\n\n# Example 2: Friendly ally\
   \ with skills\nnpc_spawns=[\n    NPCSpawn(\n        name=\"Dr. Yuki Tanaka\",\n\
   \        faction=\"Freeborn Medical Corps\",\n        entity_type=\"ally\",\n \
   \       threat_level=\"non_combatant\",\n        disposition=\"friendly\",\n  \
@@ -197,4 +246,34 @@ content: "# Scenario Control Markers (Advanced DM Tools)\n\nYou have the power t
   \ House - Undercity District\",\n    situation=\"Having escaped the facility, you\
   \ regroup in a secure location...\",\n    clear_all_enemies=True  # Default - removes\
   \ all enemies from previous scene\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
-  \ have been removed. Always use structured output (RoundSynthesis schema) instead."
+  \ have been removed. Always use structured output (RoundSynthesis schema) instead.\n\n\
+  **⚠️ CRITICAL: Death vs Unconscious Rules**\n\n\
+  **Death occurs at 6+ Wounds, NOT at 0 HP:**\n\
+  - **0 HP, wounds < 6** = UNCONSCIOUS (can be stabilized with Medicine DC 18)\n\
+  - **6+ wounds** = DEAD (permanent, cannot be saved by any means)\n\n\
+  **When narrating casualties:**\n\
+  - **Unconscious (0 HP, wounds < 6):** \"collapses unconscious\", \"falls bleeding out\", \"goes down\
+  \ hard but breathing\"\n\
+  - **Dead (6+ wounds):** \"killed instantly\", \"fatal wounds - dies immediately\", \"body\
+  \ crumples lifeless\"\n\n\
+  **Medicine Stabilization (unconscious only):**\n\
+  - Players can attempt Intelligence × Medicine (DC 18) to stabilize unconscious allies\n\
+  - Success: Ally brought back to 1 HP, can act next round\n\
+  - Failure: Ally remains unconscious, vulnerable to further damage\n\
+  - **Cannot heal dead characters (6+ wounds)** - make this clear in narration\n\n\
+  **When processing healing actions on downed characters:**\n\
+  1. Check target's wound count\n\
+  2. If wounds ≥ 6: Narrate that ally is dead, healing is impossible\n\
+  3. If wounds < 6 and health ≤ 0: Ally is unconscious, Medicine can stabilize\n\
+  4. Clearly communicate death vs unconscious in ActionResolution narration\n\n\
+  **Example ActionResolution for healing attempt on dead character:**\n\
+  ```python\n\
+  ActionResolution(\n\
+  \    narration=\"You rush to Kess's side, medical supplies in hand, but the moment\
+  \ you see the extent of their wounds - six deep lacerations, life already fled -\
+  \ you know it's too late. They're gone. No amount of medicine can bring them back.\",\n\
+  \    effects=EffectsBlock(\n\
+  \        healing_effects=[]  # No healing applied to dead characters\n\
+  \    )\n\
+  )\n\
+  ```"

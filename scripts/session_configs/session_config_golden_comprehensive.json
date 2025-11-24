@@ -3,7 +3,6 @@
   "max_turns": 10,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": false,
   "force_combat": false,
 
   "_comment_vendors": "=== VENDOR SYSTEM ===",

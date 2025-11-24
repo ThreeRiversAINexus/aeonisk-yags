@@ -3,7 +3,6 @@
   "max_turns": 4,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": false,
   "force_combat": true,
   "vendor_spawn_frequency": 0,
 
@@ -80,16 +79,15 @@
         "Persuasion": 3
       },
       "equipped_weapons": {
-        "primary": "assault_rifle",
+        "primary": "rifle",
         "sidearm": "shock_baton"
       },
-      "carried_weapons": ["pistol", "stun_gun"],
+      "carried_weapons": ["pistol"],
       "inventory": {
-        "assault_rifle": 1,
+        "rifle": 1,
         "pistol": 1,
         "shock_baton": 1,
-        "stun_gun": 1,
-        "riot_carapace": 1,
+        "urban_riot_carapace": 1,
         "restraint_cuffs": 4,
         "med_kit": 1
       }

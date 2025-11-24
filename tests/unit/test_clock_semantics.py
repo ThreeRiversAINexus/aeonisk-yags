@@ -123,3 +123,86 @@ class TestClockSemantics:
         assert retrieved.advance_meaning == "civilians evacuated"
         assert retrieved.regress_meaning == "evacuation blocked"
         assert retrieved.filled_consequence == "All civilians safe, transport arrives"
+
+
+class TestClockHistoryTracking:
+    """Test clock_history tracks current value for timeline display."""
+
+    def test_clock_history_tracks_current_value(self):
+        """clock_history should store current value for pre-filled clocks."""
+        mechanics = MechanicsEngine()
+
+        # Create clock with initial value (simulating pre-filled clock)
+        clock = mechanics.create_scene_clock(
+            name="Pre-filled Clock",
+            maximum=6,
+            description="A clock that starts partially filled"
+        )
+        # Simulate pre-filled clock (like from session config)
+        clock.current = 4  # Started at 4/6
+
+        # Create clock_history entry like session.py does for initial clocks
+        mechanics.clock_history.append({
+            'round': 1,
+            'event_type': 'created',
+            'clock_name': clock.name,
+            'description': clock.description,
+            'current': clock.current,  # This is the key fix!
+            'max': clock.maximum,
+            'consequence': clock.filled_consequence
+        })
+
+        # Verify history entry has current value
+        entry = mechanics.clock_history[-1]
+        assert entry['current'] == 4
+        assert entry['max'] == 6
+
+    def test_clock_history_filled_event_uses_current_round(self):
+        """Filled events should use mechanics.current_round."""
+        mechanics = MechanicsEngine()
+        mechanics.current_round = 3  # Simulate round 3
+
+        # Create and fill a clock
+        clock = mechanics.create_scene_clock(
+            name="Filled Clock",
+            maximum=4,
+            description="Clock about to fill"
+        )
+        # Fill the clock
+        clock.advance(4)
+
+        # Run check_and_expire_clocks (adds filled event to history)
+        mechanics.check_and_expire_clocks()
+
+        # Find the filled event
+        filled_events = [e for e in mechanics.clock_history if e['event_type'] == 'filled']
+        assert len(filled_events) == 1
+        assert filled_events[0]['round'] == 3  # Should use current_round
+        assert filled_events[0]['clock_name'] == "Filled Clock"
+
+    def test_clock_history_zero_current_for_new_clocks(self):
+        """New clocks should have current=0 in history."""
+        mechanics = MechanicsEngine()
+        mechanics.current_round = 2
+
+        # Create a fresh clock
+        clock = mechanics.create_scene_clock(
+            name="Fresh Clock",
+            maximum=8,
+            description="Brand new clock"
+        )
+
+        # Add history entry like session.py does for DM-spawned clocks
+        mechanics.clock_history.append({
+            'round': mechanics.current_round,
+            'event_type': 'created',
+            'clock_name': clock.name,
+            'description': clock.description,
+            'current': 0,  # New clocks start at 0
+            'max': clock.maximum,
+            'consequence': clock.filled_consequence
+        })
+
+        entry = mechanics.clock_history[-1]
+        assert entry['current'] == 0
+        assert entry['round'] == 2

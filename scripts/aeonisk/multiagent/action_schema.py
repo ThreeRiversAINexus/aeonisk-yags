@@ -32,7 +32,7 @@ class ActionDeclaration:
     agent_id: str
 
     # Action type categorization
-    action_type: str  # explore, investigate, ritual, social, combat, technical
+    action_type: str  # explore, investigate, ritual, social, combat, technical, attune
 
     # Tactical positioning (for combat)
     target_position: Optional[str] = None  # Engaged/Near-PC/Far-PC/etc. - applied during execution
@@ -44,6 +44,20 @@ class ActionDeclaration:
     has_primary_tool: bool = False
     has_offering: bool = False
     ritual_components: Optional[str] = None
+
+    # Optional purchase-specific fields (for vendor transactions)
+    vendor_id: Optional[str] = None  # Vendor ID (vnd_xxxx) for purchase actions
+    item_id: Optional[str] = None  # Item ID (itm_xxxx) for purchase actions
+
+    # Optional transfer-specific fields (for energy currency transfers and item transfers)
+    transfer_target: Optional[str] = None  # Character name or agent_id to transfer to
+    transfer_currency: Optional[Dict[str, int]] = None  # Currency amounts {"drip": 5, "spark": 2}
+    transfer_items: Optional[Dict[str, int]] = None  # Item amounts {"Incense": 2, "Crystals": 1}
+
+    # Optional attunement-specific fields (for seed attunement rituals)
+    target_energy: Optional[str] = None  # Energy type (breath, grain, drip, spark)
+    altar_id: Optional[str] = None  # Altar ID (alt_xxxx) for bonus
+    use_echo_calibrator: Optional[bool] = None  # Using portable Echo-Calibrator
 
     # Optional modifiers
     situational_modifiers: Dict[str, int] = None
@@ -91,7 +105,7 @@ class ActionDeclaration:
 
         valid_action_types = [
             "explore", "investigate", "ritual", "social",
-            "combat", "technical", "perception", "custom"
+            "combat", "technical", "perception", "purchase", "transfer", "support", "attune", "custom"
         ]
         if self.action_type not in valid_action_types:
             errors.append(f"Action type must be one of: {', '.join(valid_action_types)}")
@@ -340,7 +354,7 @@ When declaring an action, you MUST provide:
 3. **Skill**: Which skill applies (or "None" for raw attribute check)
 4. **Difficulty Estimate**: Your guess at the target number (10=Easy, 20=Moderate, 25=Challenging, 30=Difficult, 35+=Very Difficult)
 5. **Justification**: Brief explanation of why you chose that difficulty
-6. **Action Type**: explore | investigate | ritual | social | combat | technical | perception
+6. **Action Type**: explore | investigate | ritual | social | combat | technical | perception | attune
 
 For **Rituals** specifically, also specify:
 - **Primary Tool**: Do you have the required ritual focus/tool? (yes/no)

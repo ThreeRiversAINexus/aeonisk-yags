@@ -27,6 +27,11 @@ sections:
 
     **Pronouns:** {pronouns}
 
+    **Health Status:**
+    - Health: {health}/{max_health} ({health_pct}%) - {health_status}
+    - Wounds: {wounds} {wound_status}
+    - Stuns: {stuns}
+
     **Attributes:**
     {attributes_text}
 
@@ -37,6 +42,8 @@ sections:
     **Soulcredit:** {soulcredit}
 
     {void_warning}
+
+    **ROLEPLAY YOUR PHYSICAL CONDITION:** Describe actions accounting for your health status. Healthy (75%+) = full capability. Wounded (50-74%) = minor limitations, gritted teeth. Bloodied (25-49%) = significant pain, struggling. Critical (<25%) = desperate survival mode.
   inventory_resources: |-
     # Inventory & Resources
 
@@ -158,7 +165,7 @@ sections:
         skill: Optional[str],       # EXACT skill or None (with -5 penalty!)
         difficulty_estimate: int,   # 5-50 (your estimate of DC)
         difficulty_justification: str,  # Why that difficulty?
-        action_type: ActionType,    # explore|investigate|ritual|social|combat|technical
+        action_type: ActionType,    # explore|investigate|ritual|social|combat|technical|attune
         target: Optional[str],      # Target ID (tgt_xxxx) if targeting someone
         # ... other fields for rituals, positioning, etc.
     )
@@ -218,8 +225,8 @@ sections:
     - ✅ CORRECT: "DC 25 because terminal is military-grade, encrypted, and I'm under time pressure"
     - ❌ WRONG: "It's hard" (too vague - explain WHY!)
 
-    **6. ACTION_TYPE - One of 6 valid types:**
-    - explore, investigate, ritual, social, combat, technical
+    **6. ACTION_TYPE - One of 7 valid types:**
+    - explore, investigate, ritual, social, combat, technical, attune
 
     ## 📊 STRUCTURED OUTPUT EXAMPLES
 
@@ -296,6 +303,22 @@ sections:
     )
     ```
 
+    **Example 6: Seed Attunement**
+    ```python
+    PlayerAction(
+        intent="Attune Raw Seed to Drip at basic altar",
+        description="I place the Raw Seed on the altar's sigil-etched bowl and light incense. Breathing slowly, I channel my willpower through the Attunement resonance, directing the seed's void energy into Drip currency. The altar hums with the +1 quality bonus.",
+        attribute="Willpower",
+        skill="Attunement",
+        difficulty_estimate=19,
+        difficulty_justification="DC 20 base reduced to 19 by altar quality +1 bonus (quality 2)",
+        action_type=ActionType.ATTUNE,
+        target_energy="drip",  # ← CRITICAL: Must specify target energy type
+        altar_id="alt_marketplace_01",  # ← Optional: Use altar for bonus
+        use_echo_calibrator=False
+    )
+    ```
+
     ## ✅ VALIDATION CHECKLIST
 
     Before declaring your action, verify:
@@ -305,7 +328,7 @@ sections:
     - ☑ Skill matches your character sheet EXACTLY (or is None)
     - ☑ Difficulty estimate is reasonable (10-35 for most actions)
     - ☑ Difficulty justification explains modifiers/context
-    - ☑ Action type is one of 6 valid types
+    - ☑ Action type is one of 7 valid types
     - ☑ If targeting, target ID is correct (tgt_xxxx or character name)
 
     **REMEMBER:** Structured output helps train better AI models. Complete, accurate declarations = better gameplay for everyone!
@@ -394,23 +417,123 @@ sections:
     - "Barter my Hollow Seed for Drips with the underground broker"
     - "Browse the vending machine for any void-related equipment"
   currency_transfers: |-
-    **For Currency/Item Transfers** (pooling resources with party):
+    **For Energy Currency & Item Transfers** (physical handoff):
     ```
-    INTENT: Give [amount] [currency] to [character name]
-    ATTRIBUTE: Empathy
-    SKILL: Charm
-    DIFFICULTY: 10
-    JUSTIFICATION: Trivial - willing transfer between allies
-    ACTION_TYPE: social
-    DESCRIPTION: I offer my currency to help pool resources
+    INTENT: Transfer [items/currency] to [character name]
+    ACTION_TYPE: transfer
+    TRANSFER_TARGET: [character name or agent_id]
+    TRANSFER_CURRENCY: {"drip": [amount], "spark": [amount], ...}  # Optional
+    TRANSFER_ITEMS: {"Incense": [amount], "Crystals": [amount], ...}  # Optional
+    DESCRIPTION: Physical exchange of items/energy
     ```
+
+    **IMPORTANT:**
+    - Uses full action (not free)
+    - Physical transfer only - must be in same range band
+    - No skill check - mechanical item/currency movement
+    - Soulcredit implications depend on context (charity, bribery, fair exchange)
+    - Can transfer currency, items, or both in same action
 
     Examples:
-    - "Give 1 Spark to Mira Seln to help buy the Echo-Calibrator"
-    - "Transfer 5 Drip to Kress to pool our funds"
-    - "Offer my Grain to the party for the purchase"
+    - Transfer currency to ally:
+      ```
+      INTENT: Transfer currency to Mira for Echo-Calibrator purchase
+      ACTION_TYPE: transfer
+      TRANSFER_TARGET: Mira Seln
+      TRANSFER_CURRENCY: {"drip": 5}
+      DESCRIPTION: I hand 5 Drip talismans to Mira to help pool funds
+      ```
 
-    Note: This is a FREE action - you can transfer AND take another action in the same turn!
+    - Transfer items:
+      ```
+      INTENT: Give Kress ritual components for purification
+      ACTION_TYPE: transfer
+      TRANSFER_TARGET: Kress
+      TRANSFER_ITEMS: {"Incense": 2, "Crystals": 1}
+      DESCRIPTION: I hand over 2 Incense sticks and a Crystal focus
+      ```
+
+    - Transfer both currency and items:
+      ```
+      INTENT: Provide Ash with supplies and payment
+      ACTION_TYPE: transfer
+      TRANSFER_TARGET: Ash Vex
+      TRANSFER_CURRENCY: {"spark": 2}
+      TRANSFER_ITEMS: {"Blood": 1}
+      DESCRIPTION: I give Ash 2 Spark talismans and a Blood vial for the ritual
+      ```
+
+    **Range requirement:** Both characters must be in same range band (Near-PC, Engaged, etc.)
+    **Validation:** System checks you have sufficient currency/items before DM narration
+
+    **For Seed Attunement** (converting Raw Seeds to hollow energy):
+    ```
+    INTENT: Attune Raw Seed to [energy_type] at [altar/Echo-Calibrator]
+    ACTION_TYPE: attune
+    TARGET_ENERGY: [breath|grain|drip|spark]  # REQUIRED
+    ALTAR_ID: [altar_id]  # Optional - use if attuning at an altar
+    USE_ECHO_CALIBRATOR: [true|false]  # Use portable Echo-Calibrator device
+    ATTRIBUTE: Willpower
+    SKILL: Attunement
+    DIFFICULTY_ESTIMATE: 20  # Base DC 20, reduced by altar bonuses
+    DESCRIPTION: Detailed ritual narration
+    ```
+
+    **IMPORTANT:**
+    - **ACTION_TYPE must be "attune"** (not "ritual"!)
+    - **TARGET_ENERGY is REQUIRED** - must be one of: breath, grain, drip, spark
+    - Raw Seed is ALWAYS consumed (even on failure)
+    - Ritual roll: Willpower × Attunement + d20 + altar_bonus vs DC 20
+    - Unskilled penalty: -5 if Attunement skill = 0
+
+    **Conversion Rates:**
+    - 1 Raw Seed → 100 Breath (least valuable)
+    - 1 Raw Seed → 50 Grain (common)
+    - 1 Raw Seed → 20 Drip (moderate)
+    - 1 Raw Seed → 5 Spark (most valuable)
+
+    **Altar Bonuses (use ALTAR_ID field):**
+    - Quality 1-3: +1 bonus (DC 20 → 19)
+    - Quality 4-7: +2 bonus (DC 20 → 18)
+    - Quality 8-10: +3 bonus (DC 20 → 17)
+
+    **Echo-Calibrator (portable device):**
+    - Set USE_ECHO_CALIBRATOR: true
+    - Requires DC 16 Agility+Tech/Craft check before ritual
+    - Failed check: +1 Void penalty
+    - Upkeep: 1 Drip consumed every 3rd use
+    - No altar needed - can attune anywhere
+
+    Examples:
+    - Attune at altar:
+      ```
+      INTENT: Attune Raw Seed to Drip at basic altar
+      ACTION_TYPE: attune
+      TARGET_ENERGY: drip
+      ALTAR_ID: alt_marketplace_01
+      USE_ECHO_CALIBRATOR: false
+      ATTRIBUTE: Willpower
+      SKILL: Attunement
+      DIFFICULTY_ESTIMATE: 19
+      DIFFICULTY_JUSTIFICATION: DC 20 base reduced to 19 by altar quality +1 bonus
+      DESCRIPTION: I place the Raw Seed on the altar's sigil bowl and breathe slowly, channeling my willpower through the void resonance patterns to convert it into 20 Drip.
+      ```
+
+    - Attune with Echo-Calibrator:
+      ```
+      INTENT: Attune Raw Seed to Spark using Echo-Calibrator
+      ACTION_TYPE: attune
+      TARGET_ENERGY: spark
+      ALTAR_ID: null
+      USE_ECHO_CALIBRATOR: true
+      ATTRIBUTE: Willpower
+      SKILL: Attunement
+      DIFFICULTY_ESTIMATE: 20
+      DIFFICULTY_JUSTIFICATION: DC 20 base, no altar bonus, but portable attunement
+      DESCRIPTION: I cradle the Raw Seed in the Echo-Calibrator's resonance chamber and run the DC 16 Agility+Tech alignment check, then channel willpower to convert it into 5 Spark.
+      ```
+
+    **Validation:** System checks you have Raw Seed, altar exists (if specified), Echo-Calibrator available (if used), and upkeep currency (if needed) before DM narration
   action_guidelines: |-
     # Action Selection Guidelines
 
@@ -471,7 +594,7 @@ sections:
     1. **NEVER repeat** actions from your recent history
     2. **ALWAYS** use EXACT attribute/skill names from your character sheet
     3. **ALWAYS** use numeric difficulty values (10, 15, 20, 25, 30, 35+)
-    4. **ALWAYS** use valid ACTION_TYPE values (explore, investigate, ritual, social, combat, technical)
+    4. **ALWAYS** use valid ACTION_TYPE values (explore, investigate, ritual, social, combat, technical, attune)
     5. **DESCRIPTION must be at least 50 characters** - be specific and descriptive!
     6. **CONSIDER** your personality when choosing actions
     7. **REMEMBER** void exposure increases your corruption

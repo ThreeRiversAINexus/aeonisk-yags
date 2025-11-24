@@ -7,6 +7,7 @@ import argparse
 import json
 import logging
 import sys
+import signal
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -14,6 +15,10 @@ from .session import SelfPlayingSession, EXAMPLE_CONFIG
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Initialize custom log levels (TRACE=5, LLM=15)
+# This must happen before any logging configuration
+from . import custom_log_levels  # noqa: F401
 
 
 def setup_logging(level: str = "INFO"):
@@ -64,17 +69,32 @@ def setup_logging(level: str = "INFO"):
     log_file = open('multiagent.log', 'a')
     sys.stdout = PrintLogger(sys.stdout, log_file)
 
-    # Suppress spammy third-party loggers for cleaner output
-    # Even at DEBUG level, we don't need HTTP connection internals
-    logging.getLogger("httpcore.connection").setLevel(logging.WARNING)
-    logging.getLogger("httpcore.http11").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    # Set HTTP client loggers to LLM level (15)
+    # This way they appear with --log-level LLM but not with --log-level DEBUG
+    # Makes DEBUG useful for mechanics without HTTP spam
+    http_loggers = [
+        "httpcore",
+        "httpcore.connection",
+        "httpcore.http11",
+        "httpcore.http2",
+        "httpx",
+        "urllib3",
+        "urllib3.connectionpool",
+        "requests",
+        "openai",
+        "openai._base_client",
+        "anthropic",
+        "anthropic._base_client",
+    ]
+
+    for logger_name in http_loggers:
+        logging.getLogger(logger_name).setLevel(logging.LLM)
 
     # Suppress internal message bus noise (agent connect/disconnect spam)
     logging.getLogger("aeonisk.multiagent.base").setLevel(logging.WARNING)
 
-    # Keep anthropic client logs - shows actual prompts/responses at DEBUG
-    # (No need to set explicitly, respects root level)
+    # Anthropic/OpenAI client logs now respect LLM level
+    # Use --log-level LLM to see API details, --log-level DEBUG for mechanics only
 
 
 def create_example_config(output_path: str):
@@ -93,20 +113,15 @@ async def run_session(config_path: str, random_seed: int = None, log_agents_sepa
     if not Path(config_path).exists():
         print(f"Configuration file not found: {config_path}")
         print("Use --create-config to generate an example configuration.")
-        return
+        return None
 
-    try:
-        session = SelfPlayingSession(
-            config_path,
-            random_seed=random_seed,
-            log_agents_separately=log_agents_separately
-        )
-        await session.start_session()
-    except KeyboardInterrupt:
-        print("\nSession interrupted by user")
-    except Exception as e:
-        logging.error(f"Session error: {e}", exc_info=True)
-        print(f"Session failed: {e}")
+    session = SelfPlayingSession(
+        config_path,
+        random_seed=random_seed,
+        log_agents_separately=log_agents_separately
+    )
+    await session.start_session()
+    return session
 
 
 def main():
@@ -131,8 +146,8 @@ def main():
     parser.add_argument(
         '--log-level',
         default='INFO',
-        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'],
-        help='Set logging level (use DEBUG for detailed ChromaDB visibility)'
+        choices=['TRACE', 'DEBUG', 'LLM', 'INFO', 'WARNING', 'ERROR'],
+        help='Set logging level (TRACE=ultra-verbose, DEBUG=detailed, LLM=API calls only, INFO=standard)'
     )
 
     parser.add_argument(
@@ -206,11 +221,55 @@ def main():
     print("Starting session...")
     print("Press Ctrl+C to stop\n")
 
-    asyncio.run(run_session(
-        args.config,
-        random_seed=args.random_seed,
-        log_agents_separately=args.log_agents_separately
-    ))
+    # Track session for signal handler
+    session_holder = {'session': None, 'log_agents_separately': args.log_agents_separately}
+
+    def handle_interrupt(signum, frame):
+        """Handle Ctrl-C by printing session info before shutdown."""
+        print("\n\n=== Session interrupted by user ===", file=sys.stderr, flush=True)
+        session = session_holder.get('session')
+        if session and hasattr(session, 'session_id') and session.session_id:
+            try:
+                output_dir = session.config.get('output_dir', './output')
+                jsonl_path = f"{output_dir}/session_{session.session_id}.jsonl"
+                print(f"\nSession ID: {session.session_id}", file=sys.stderr, flush=True)
+                print(f"JSONL log: {jsonl_path}", file=sys.stderr, flush=True)
+                if session_holder['log_agents_separately']:
+                    print(f"Agent logs: agent_logs/{session.session_id}/", file=sys.stderr, flush=True)
+                print("", file=sys.stderr, flush=True)
+            except Exception as e:
+                print(f"Error getting session info: {e}", file=sys.stderr, flush=True)
+        else:
+            print("(Session not yet initialized)", file=sys.stderr, flush=True)
+        # Restore default handler and re-raise to trigger normal shutdown
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        raise KeyboardInterrupt()
+
+    # Install signal handler
+    signal.signal(signal.SIGINT, handle_interrupt)
+
+    async def run_with_tracking():
+        """Wrapper to track session object for signal handler."""
+        if not Path(args.config).exists():
+            print(f"Configuration file not found: {args.config}")
+            print("Use --create-config to generate an example configuration.")
+            return None
+
+        session = SelfPlayingSession(
+            args.config,
+            random_seed=args.random_seed,
+            log_agents_separately=args.log_agents_separately
+        )
+        # Track session immediately so signal handler can access it
+        session_holder['session'] = session
+        await session.start_session()
+        return session
+
+    try:
+        asyncio.run(run_with_tracking())
+    except KeyboardInterrupt:
+        # Session info already printed by signal handler
+        pass
 
 
 if __name__ == "__main__":

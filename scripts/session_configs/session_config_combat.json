@@ -3,7 +3,6 @@
   "max_turns": 5,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": true,
   "force_combat": true,
 
   "_comment_vendors": "=== VENDOR SYSTEM ===",
@@ -23,10 +22,20 @@
     "void_tracking_enabled": true
   },
 
-  "_comment_spawn_examples": "DM spawns ONE enemy per marker (no counts). Use multiple markers for multiple enemies.",
-  "_example_basic": "[SPAWN_ENEMY: Thugs | grunt | Near-Enemy | aggressive_melee]",
-  "_example_sniper": "[SPAWN_ENEMY: Rooftop Sniper | sniper | Extreme-Enemy | extreme_range]",
-  "_example_boss": "[SPAWN_ENEMY: Gang Leader | boss | Near-Enemy | adaptive]",
+  "_comment_initial_enemies": "Structured output for initial enemy spawning",
+  "_comment_positions": "Valid rings: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy",
+  "initial_enemies": [
+    {
+      "name": "Street Gang",
+      "template": "Grunt",
+      "faction": "Local Criminal Syndicate",
+      "archetype": "Thug",
+      "count": 3,
+      "position": "Near-Enemy",
+      "spawn_reason": "Territorial ambush against intruders",
+      "tactics": "aggressive_melee"
+    }
+  ],
 
   "agents": {
     "dm": {

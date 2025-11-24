@@ -1,0 +1,256 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test slow-burn pacing, subtle environmental storytelling, investigation/tension building without immediate action, dramatic tonal shift (calm \u2192 crisis), consequences of early-round choices manifesting late, atmosphere/dread building, NPC foreshadowing ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "The Quiet Days at Nexus Station-14 (OpenAI)",
+  "max_turns": 18,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (But Combat Delayed Until Round 13+) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 25,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - ENABLED (Normalcy During Calm Phase) ===",
+  "vendor_spawn_frequency": 3,
+  "_comment_scenario": "=== SCENARIO: CALM BEFORE STORM ===",
+  "_scenario_hint": "Nexus Station-14 (void_level 1, routine assignment), team assigned 'boring' duties: security audit (rounds 1-4), inventory reconciliation (rounds 5-7), witness interviews for minor theft (rounds 8-10). Subtle wrongness escalates: inventory discrepancies (ritual components missing), witnesses have memory gaps, security logs corrupted, void scanner shows background void rising (1 \u2192 2 \u2192 3), NPCs exhibiting strange behavior (repeating phrases, synchronized movements), environmental atmosphere shifts (lights flickering, temperature drops). Round 11-12: revelation that station's gestator pods have been infiltrated by void cultist sabotage, mass dissolution ritual in progress. Round 13+: explosive crisis - cultists activate ritual, void breach, reality fracture, must prevent mass casualty disaster. Early choices matter: characters who investigated anomalies have clues, those who dismissed them are unprepared.",
+  "_design_notes": {
+    "ml_training_value": "Slow-burn pacing (8-10 rounds of investigation/tension building before action), subtle environmental storytelling (clues hidden in 'routine' tasks), dramatic tonal shift (bureaucratic tedium \u2192 existential crisis), consequences of early-round choices (ignored clues = harder crisis, investigated anomalies = advantages), atmosphere building (creeping dread vs. sudden violence), NPC foreshadowing (strange behavior predicts revelation), investigation depth before combat payoff",
+    "mechanics_tested": [
+      "Slow-burn pacing",
+      "Subtle clue placement",
+      "Tonal shift mechanics",
+      "Investigation before action",
+      "Environmental storytelling",
+      "NPC foreshadowing",
+      "Early choice consequences",
+      "Crisis escalation"
+    ],
+    "character_innovation": "Characters with complementary investigation skills (Awareness, Investigation, Insight), routine assignment setup for contrast with crisis, comprehensive detection gear",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Cultist Ritual Progress",
+      "current_ticks": 0,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Hidden sabotage advancing. At 6 ticks: ritual preparation 60% complete. At 10 ticks: mass dissolution activated (round 13+).",
+      "advance_meaning": "cultist ritual progress progresses",
+      "regress_meaning": "cultist ritual progress setback or reversal"
+    },
+    {
+      "name": "Anomaly Investigation",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Players connecting clues. At 5 ticks: pattern recognized. At 8 ticks: full conspiracy uncovered before crisis (rare, optimal outcome).",
+      "advance_meaning": "anomaly investigation progresses",
+      "regress_meaning": "anomaly investigation setback or reversal"
+    },
+    {
+      "name": "Environmental Void Level",
+      "current_ticks": 1,
+      "max_ticks": 10,
+      "direction": "progress",
+      "description": "Station background void rising. At 5 ticks: noticeable reality distortions. At 10 ticks: void breach imminent.",
+      "advance_meaning": "environmental void level progresses",
+      "regress_meaning": "environmental void level setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Security Auditor Veyra Kross",
+        "pronouns": "she/her",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 6,
+          "Insight": 5,
+          "Combat": 5,
+          "Systems": 5,
+          "Intimidation": 4,
+          "Guns": 5
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Complete routine security audit professionally",
+          "Notice subtle anomalies during 'boring' assignment",
+          "Investigate discrepancies despite bureaucratic pressure to dismiss them"
+        ],
+        "equipped_weapons": {
+          "primary": "union_heavy_pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "union_heavy_pistol": 1,
+          "shock_baton": 1,
+          "enforcer_badge": 1,
+          "void_scanner": 1,
+          "data_recorder": 2,
+          "security_log_access_chip": 1,
+          "data_slate": 1,
+          "audit_checklist": 1,
+          "investigation_notes": 1,
+          "comm_unit": 1,
+          "purification_incense": 3
+        }
+      },
+      {
+        "name": "Inventory Specialist Thane Mereth",
+        "pronouns": "he/him",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 9
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Systems": 6,
+          "Awareness": 5,
+          "Debt Law": 5,
+          "Corporate Influence": 4,
+          "Magick Theory": 4,
+          "Science": 4
+        },
+        "void": 0,
+        "soulcredit": 6,
+        "goals": [
+          "Reconcile station inventory and identify discrepancies",
+          "Track missing ritual components (if noticed)",
+          "Maintain meticulous documentation per Nexus protocol"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "codex_dataslate": 1,
+          "nexus_seal": 1,
+          "inventory_manifest": 1,
+          "data_slate": 1,
+          "diagnostic_scanner": 1,
+          "comm_unit": 1,
+          "ritual_component_catalog": 1,
+          "discrepancy_report_forms": 5,
+          "purification_incense": 2,
+          "memory_crystal": 3
+        }
+      },
+      {
+        "name": "Interview Specialist Mira Thane",
+        "pronouns": "she/her",
+        "faction": "House of Vox",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 3,
+          "Charisma": 5
+        },
+        "skills": {
+          "Charm": 6,
+          "Insight": 6,
+          "Counsel": 5,
+          "Investigation": 5,
+          "Awareness": 5,
+          "Persuasion": 5,
+          "Guile": 4
+        },
+        "void": 0,
+        "soulcredit": 5,
+        "goals": [
+          "Interview witnesses for minor theft case",
+          "Notice memory gaps and behavioral anomalies in NPCs",
+          "Piece together pattern from witness testimonies"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "recording_drone": 2,
+          "data_slate": 1,
+          "vox_credentials": 1,
+          "witness_testimony_templates": 8,
+          "empathy_amplifier_talisman": 1,
+          "interview_protocol_guide": 1,
+          "incense": 4,
+          "spark_talisman": 3,
+          "comm_unit": 1,
+          "memory_crystal": 4
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Slow-burn pacing with 8-10 rounds of 'routine' investigation before explosive crisis, subtle environmental storytelling (clues hidden in audit discrepancies, inventory gaps, witness memory inconsistencies), dramatic tonal shift (bureaucratic tedium rounds 1-12 \u2192 existential crisis rounds 13-18), consequences of early choices (investigated anomalies = clues for crisis, dismissed warnings = unprepared), atmosphere/dread building (void level rising 1\u21923\u21925, NPC behavioral anomalies), NPC foreshadowing (cultist infiltrators exhibiting tells), investigation skill depth before combat payoff. Tests underrepresented slow-burn pacing, subtle clue placement, tonal shift mechanics, patience/attention rewards, environmental storytelling. Long campaign (18 turns) allows extensive calm phase (rounds 1-12) with creeping wrongness, then dramatic crisis escalation (rounds 13-18). Features investigation-focused characters (Investigation 6, Awareness 6, Insight 6, Systems 6) suited to noticing subtle anomalies. First config testing 'boring assignment \u2192 horror reveal' structure for narrative pacing variety. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

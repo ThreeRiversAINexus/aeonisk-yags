@@ -1,0 +1,240 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "Test economic pressure mechanics, negative soulcredit characters (-3 to -5), currency scarcity, vendor lockouts, debt collection NPCs, moral compromises (illegal work vs. poverty), desperation-driven decisions ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY.",
+  "session_name": "Debt Collection - Last Chance Contract (OpenAI)",
+  "max_turns": 17,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Potential Combat if Deals Go Bad) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": false,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_vendors": "=== VENDOR SYSTEM - SOULCREDIT GATED (High Prices, Lockouts for Negative SC) ===",
+  "vendor_spawn_frequency": 3,
+  "_comment_scenario": "=== SCENARIO: CRUSHING DEBT ===",
+  "_scenario_hint": "Freeborn District (void_level 4, poverty zone), three characters drowning in ACG debt (-3 to -5 soulcredit). Offered high-risk job: smuggle illegal hollow seeds to void cultists for 15 Drip payment. Alternative: legal work pays 2 Drip, not enough to make minimum debt payment (5 Drip due in 8 rounds). Consequences: miss payment = repo agents, accept job = void exposure + criminal record. Vendors refuse service to negative SC characters. Desperation mechanic: low resources force moral compromises.",
+  "_design_notes": {
+    "ml_training_value": "First config testing economic pressure system, all characters start negative soulcredit (-3 to -5), currency scarcity mechanics, vendor soulcredit gating, debt collection clock pressure, moral choice (illegal high-pay vs. legal poverty), desperation-driven gameplay, repo NPC antagonists",
+    "mechanics_tested": [
+      "Soulcredit tracking",
+      "Currency scarcity",
+      "Vendor SC gating",
+      "Debt payment deadlines",
+      "Resource management",
+      "Moral compromise decisions",
+      "Illegal work consequences"
+    ],
+    "character_innovation": "All characters start negative SC, minimal starting inventory (poverty), counterfeit credentials, desperate survival gear, hollow seeds as plot MacGuffin",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+  },
+  "starting_clocks": [
+    {
+      "name": "Debt Payment Deadline",
+      "current_ticks": 8,
+      "max_ticks": 8,
+      "direction": "countdown",
+      "description": "Time until ACG demands 5 Drip minimum payment. At 0 ticks: repo agents deployed, assets seized, possible bond enslavement.",
+      "advance_meaning": "debt payment deadline worsens or time runs out",
+      "regress_meaning": "debt payment deadline improves or delayed"
+    },
+    {
+      "name": "Smuggling Job Timer",
+      "current_ticks": 6,
+      "max_ticks": 6,
+      "direction": "countdown",
+      "description": "Time window to accept hollow seed smuggling job. At 0 ticks: offer expires, desperate alternative gone.",
+      "advance_meaning": "smuggling job timer worsens or time runs out",
+      "regress_meaning": "smuggling job timer improves or delayed"
+    },
+    {
+      "name": "Repo Agent Pursuit",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "ACG repo agents tracking debtors. At 5 ticks: agents locate team. At 8 ticks: forced bond contract or asset seizure.",
+      "advance_meaning": "repo agent pursuit progresses",
+      "regress_meaning": "repo agent pursuit setback or reversal"
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Desperate Vex",
+        "pronouns": "they/them",
+        "faction": "Freeborn Loner",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 6,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 3
+        },
+        "skills": {
+          "Stealth": 5,
+          "Combat": 4,
+          "Pilot": 4,
+          "Awareness": 4,
+          "Guile": 5,
+          "Guns": 4,
+          "Athletics": 3
+        },
+        "void": 3,
+        "soulcredit": -5,
+        "goals": [
+          "Make 5 Drip minimum payment to avoid repo agents",
+          "Avoid bond enslavement at all costs",
+          "Consider smuggling job despite void/legal risks"
+        ],
+        "equipped_weapons": {
+          "primary": "beat_up_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "beat_up_pistol": 1,
+          "counterfeit_credentials": 2,
+          "void_cloak": 1,
+          "survival_rations": 1,
+          "1_drip_cash": 1,
+          "comm_unit": 1,
+          "lockpick_set": 1
+        }
+      },
+      {
+        "name": "Debt-Burdened Sael",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Charisma": 4
+        },
+        "skills": {
+          "Astral Arts": 5,
+          "Charm": 4,
+          "Guile": 4,
+          "Attunement": 4,
+          "Counsel": 3,
+          "Stealth": 3
+        },
+        "void": 2,
+        "soulcredit": -4,
+        "goals": [
+          "Regain spiritual standing with Communes after debt disgrace",
+          "Find moral alternative to illegal smuggling",
+          "Protect companions from worse decisions"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_knife": 1,
+          "incense": 2,
+          "crystal_focus": 1,
+          "1_drip_cash": 1,
+          "debt_notice_final_warning": 1,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Grifter Kael",
+        "pronouns": "he/him",
+        "faction": "Freeborn Loner",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 5
+        },
+        "skills": {
+          "Guile": 6,
+          "Charm": 5,
+          "Pilot": 3,
+          "Awareness": 4,
+          "Stealth": 4,
+          "Investigation": 3
+        },
+        "void": 1,
+        "soulcredit": -3,
+        "goals": [
+          "Exploit smuggling job for maximum profit",
+          "Avoid getting caught by Pantheon or repo agents",
+          "Find angle to clear debt AND make extra cash"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "counterfeit_credentials": 3,
+          "data_slate": 1,
+          "comm_unit": 1,
+          "2_drip_cash": 1,
+          "debt_ledger_falsified_records": 1,
+          "survival_rations": 1
+        }
+      }
+    ]
+  },
+  "notes": "ML Training Focus: Economic pressure mechanics, all characters negative soulcredit (-3 to -5), currency scarcity (only 4 Drip total starting cash, need 5 Drip), vendor SC lockouts, debt payment deadline clock, moral choice (15 Drip smuggling job vs. 2 Drip legal work), repo agent NPC antagonists. Tests underrepresented economic systems, desperation-driven decisions, resource management, soulcredit consequence depth. Long campaign (17 turns) allows debt spiral drama, moral erosion, consequence escalation. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+}

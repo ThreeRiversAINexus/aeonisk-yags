@@ -8,8 +8,9 @@ validated structured output.
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any, Tuple
 from enum import Enum
+from dataclasses import dataclass, field
 from .shared_types import Position
 
 
@@ -68,22 +69,22 @@ class NewClock(BaseModel):
     advance_meaning: str = Field(
         ...,
         min_length=5,
-        max_length=100,
+        max_length=150,
         description="What it means when clock advances (e.g., 'threat escalates', 'progress made')"
     )
 
     regress_meaning: str = Field(
         ...,
         min_length=5,
-        max_length=100,
+        max_length=150,
         description="What it means when clock regresses (opposite of advance)"
     )
 
     filled_consequence: str = Field(
         default="",
         min_length=0,
-        max_length=300,
-        description="What happens when clock fills (e.g., 'Enemy reinforcements arrive', 'Evidence complete, advance to confrontation')"
+        max_length=400,
+        description="What happens when clock fills (e.g., 'Enemy reinforcements arrive')"
     )
 
     current_ticks: int = Field(
@@ -144,7 +145,7 @@ class ScenePivot(BaseModel):
     situation_change: Optional[str] = Field(
         default=None,
         min_length=20,
-        max_length=500,
+        max_length=1500,  # Increased from 500 - allow detailed scene descriptions
         description="How the situation has changed (tactical shift, environment change)"
     )
 
@@ -156,6 +157,16 @@ class ScenePivot(BaseModel):
     new_clocks: List[NewClock] = Field(
         default_factory=list,
         description="New clocks for this scene"
+    )
+
+    npc_departures: List[str] = Field(
+        default_factory=list,
+        description="NPC agent_ids or names to remove from scenario (e.g., ['npc_civilian_1']). NPCs can leave during minor scene changes (flee from alarm, dismissed, walk away)."
+    )
+
+    enemy_departures: List[str] = Field(
+        default_factory=list,
+        description="Enemy agent_ids to remove from scenario (e.g., ['enemy_grunt_abc123']). Enemies can leave during scene pivots (patrol moves on, guards finish inspection, pursuers lost during escape)."
     )
 
     @field_validator('new_room', 'situation_change')
@@ -208,9 +219,20 @@ class StoryAdvancement(BaseModel):
 
     situation: Optional[str] = Field(
         default=None,
-        min_length=20,
-        max_length=500,
-        description="New situation description (if advancing)"
+        min_length=50,  # Reduced from 100 - avoid retry waste
+        max_length=3000,  # Increased from 1500 - allow detail
+        description="""New situation description (if advancing).
+
+⚠️ IMPORTANT: Be GENEROUS with detail! Aim for 400-800 characters.
+
+Story advancements are major narrative transitions - paint a vivid picture:
+- Describe the new location atmosphere (sights, sounds, smells, lighting)
+- Establish immediate situation and stakes
+- Introduce new NPCs/threats/complications present in the scene
+- Show how players arrived here (transition from previous scene)
+- Set tone and tension for the new chapter
+
+Shorter descriptions feel rushed and unsatisfying. Longer descriptions create immersion."""
     )
 
     new_void_level: Optional[int] = Field(
@@ -230,6 +252,19 @@ class StoryAdvancement(BaseModel):
         description="New clocks to spawn with this story beat"
     )
 
+    vendor_departures: List[str] = Field(
+        default_factory=list,
+        description="Vendor names to remove from scenario (e.g., ['S4CU Vending Node', 'Scribe Orven Tylesh']). Vendors leave when story advances or they complete their business."
+    )
+
+    altar_removals: List[str] = Field(
+        default_factory=list,
+        description="Altar IDs to remove from scenario (e.g., ['alt_nexus_001', 'alt_ritual_002']). Altars are destroyed, desecrated, or left behind when story advances."
+    )
+
+    # NOTE: npc_departures removed - NPC lifecycle is handled in Entity Lifecycle Phase #2 (after story advancement)
+    # The DM determines which NPCs follow to the new scene vs. stay behind in ConversionDecisions.npc_departures
+
     @field_validator('location', 'situation')
     @classmethod
     def validate_advancement_fields(cls, v: Optional[str], info) -> Optional[str]:
@@ -248,7 +283,7 @@ class EnemySpawn(BaseModel):
     Example:
     ```python
     spawn = EnemySpawn(
-        template="Grunt",
+        template="enforcer",
         faction="ACG Security",
         archetype="Enforcer",
         count=2,
@@ -258,9 +293,31 @@ class EnemySpawn(BaseModel):
     ```
     """
 
-    template: Literal["Grunt", "Elite", "Boss"] = Field(
+    template: str = Field(
         ...,
-        description="Enemy power level template"
+        description="""Enemy template - MUST use EXACTLY ONE of these valid templates:
+
+⚠️ VALID TEMPLATES (use these exact strings):
+- "grunt": Basic enemy, minimal training
+- "elite": Veteran combatant, advanced training
+- "boss": Powerful leader/commander
+- "enforcer": Security/law enforcement type
+- "sniper": Long-range specialist
+- "support": Healer/buffer/controller
+- "ambusher": Stealth/surprise attacker
+- "void_cultist": Void-corrupted enemy
+- "security_drone": Automated security
+- "seedwalker_heavy": Augmented heavy combatant
+- "voidcradle_antibot": Anti-bot specialist
+
+⚠️ INVALID EXAMPLES (do NOT use):
+- "elite_operative" → use "elite" or "enforcer"
+- "guard" → use "grunt" or "enforcer"
+- "soldier" → use "grunt" or "elite"
+- "cultist" → use "void_cultist"
+- "heavy" → use "seedwalker_heavy"
+
+If unsure, choose the CLOSEST match from the valid templates above."""
     )
 
     faction: str = Field(
@@ -303,13 +360,168 @@ class EnemySpawn(BaseModel):
     )
 
 
+class AltarSpawn(BaseModel):
+    """
+    New ritual altar to spawn during story advancement or round synthesis.
+
+    Altars are infrastructure that provide bonuses to attunement rituals.
+
+    Example:
+    ```python
+    spawn = AltarSpawn(
+        altar_type="ritual_altar",
+        quality=6,
+        location="Hidden Temple",
+        narrative_reason="The party discovers an abandoned shrine"
+    )
+    ```
+    """
+
+    altar_type: str = Field(
+        ...,
+        description="""Altar type - MUST use EXACTLY ONE of these valid types:
+
+⚠️ VALID TYPES (use these exact strings):
+- "ritual_altar": Generic ritual space (quality 3-7)
+- "nexus_altar": Sovereign Nexus sanctum (quality 8-10, SC gated)
+- "freeborn_altar": Neutral Zone market altar (quality 5-7, open access)
+- "black_market_altar": Hidden altar (quality 3-5, risky, accepts Hollows)
+- "abandoned_altar": Discovered altar (quality 1-9, contested)
+
+❌ DO NOT create new types or misspell these"""
+    )
+
+    quality: int = Field(
+        ...,
+        ge=1,
+        le=10,
+        description="""Altar quality (1-10, determines ritual bonus):
+- Quality 1-3: +1 bonus
+- Quality 4-7: +2 bonus
+- Quality 8-10: +3 bonus"""
+    )
+
+    location: str = Field(
+        ...,
+        min_length=5,
+        max_length=100,
+        description="Physical location of the altar (e.g., 'Hidden Temple', 'Market Plaza')"
+    )
+
+    narrative_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Why this altar appears now (e.g., 'Discovery during exploration', 'Ritual site revealed')"
+    )
+
+
+class EnvObjectSpawn(BaseModel):
+    """
+    Environmental object to spawn during story advancement or round synthesis.
+
+    Environmental objects provide narrative grounding by making clear what features
+    are "real" vs pure narrative flavor. They are NOT targetable in Stage 1.
+
+    Examples:
+    - Doors/hatches that can be opened/destroyed
+    - Terminals that can be hacked
+    - Cargo containers that can be searched
+    - Vehicles that can be used for transport
+    - Barriers that can be breached
+
+    Example:
+    ```python
+    spawn = EnvObjectSpawn(
+        object_type="terminal",
+        name="Security Terminal",
+        description="A flickering terminal panel embedded in the wall",
+        initial_state={"locked": True, "health": 30},
+        narrative_reason="Players mentioned wanting to hack the station systems"
+    )
+    ```
+    """
+
+    object_type: str = Field(
+        ...,
+        description="""Environmental object type - MUST use EXACTLY ONE of these valid types:
+
+⚠️ VALID TYPES (use these exact strings):
+- "door": Doors, hatches, airlocks (can be locked, damaged)
+- "terminal": Computer terminals, control panels (can be hacked, powered)
+- "cargo": Cargo containers, crates, storage (can be opened, searched)
+- "vehicle": Shuttles, drones, transports (can be damaged, operated)
+- "barrier": Barricades, walls, obstacles (can be breached)
+- "structure": Buildings, pillars, platforms (can be damaged)
+- "equipment": Machinery, tools, devices (can be activated, disabled)
+
+❌ DO NOT create new types or misspell these"""
+    )
+
+    name: str = Field(
+        ...,
+        min_length=5,
+        max_length=50,
+        description="Object name (e.g., 'Security Terminal', 'Cargo Bay Door', 'Supply Crate')"
+    )
+
+    description: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Brief description of the object's appearance and notable features"
+    )
+
+    initial_state: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="""Optional state dict with object properties:
+- locked: bool (for doors/terminals)
+- health: int (for damageable objects)
+- powered: bool (for terminals/equipment)
+- opened: bool (for cargo/doors)
+- functional: bool (for equipment)
+
+Example: {"locked": True, "health": 50}"""
+    )
+
+    narrative_reason: str = Field(
+        ...,
+        min_length=10,
+        max_length=200,
+        description="Why this object appears now (e.g., 'Players mentioned hacking', 'Terminal referenced in narrative')"
+    )
+
+
 class RoundSynthesis(BaseModel):
     """
-    DM's round summary with potential scene pivots, story advancement, and enemy spawns.
+    DM's round summary with potential scene pivots and story advancement.
 
     Use scene_pivot for minor transitions (adjacent rooms, tactical repositioning).
     Use story_advancement for major chapter changes (complete location changes).
     Cannot use both in the same round.
+
+    **Phase Responsibilities:**
+
+    - **Entity Lifecycle Phase** (before synthesis):
+      - Enemy/NPC spawns, conversions, escalations via EntityLifecycleResult
+      - Triggered by filled clocks, morale checks, tactical decisions
+      - Processes departures (flee, depart)
+
+    - **Synthesis Phase** (this schema):
+      - ✅ Spawn NEW clocks via ScenePivot.new_clocks or StoryAdvancement.new_clocks
+      - ✅ Narrate entity changes (describe spawns/conversions from Entity Lifecycle)
+      - ✅ Track filled/expired clocks in clocks_filled/clocks_expired (JSONL logging)
+      - ❌ Does NOT spawn/convert entities (that's Entity Lifecycle's job)
+
+    - **Action Resolution Phase** (earlier, per-action):
+      - Update EXISTING clocks via ActionResolution.effects.clock_updates
+      - Damage, void changes, other immediate mechanical effects
+
+    **Clock Spawning Guidance:**
+    Spawn 1-2 NEW clocks every 2-3 rounds via ScenePivot.new_clocks (same location) or
+    StoryAdvancement.new_clocks (new location). Clocks drive dynamic tension and prevent
+    static scenarios. Use liberally when justified by narrative consequences (failed actions,
+    filled clocks creating new pressures, environmental changes).
 
     Example (Scene Pivot):
     ```python
@@ -322,33 +534,16 @@ class RoundSynthesis(BaseModel):
             clear_specific_clocks=["Breach Containment"],
             new_clocks=[NewClock(name="Override Lockdown", max_ticks=6, description="Hack security terminal")]
         ),
-        enemy_spawns=[],
-        enemy_conversions=[],
         clocks_filled=[],
         clocks_expired=[]
     )
     ```
 
-    Example (Story Advancement with Enemy Surrender):
+    Example (Story Advancement):
     ```python
     synthesis = RoundSynthesis(
         narration="The round concludes in controlled chaos. Ash's ritual barely holds...",
         story_advancement=StoryAdvancement(should_advance=False),
-        enemy_spawns=[],
-        enemy_conversions=[
-            EnemyConversion(
-                enemy_id="enemy_guard_1",
-                resolution=EnemyResolution.FLED,
-                reason="Intimidated by overwhelming force, fled through maintenance corridor"
-            ),
-            EnemyConversion(
-                enemy_id="enemy_raider_2",
-                resolution=EnemyResolution.CONVINCED,
-                reason="Negotiated surrender after diplomacy",
-                resulting_entity_type="prisoner",
-                resulting_disposition="prisoner"
-            )
-        ],
         clocks_filled=["Void Surge"],
         clocks_expired=[]
     )
@@ -358,9 +553,26 @@ class RoundSynthesis(BaseModel):
     # Narrative summary
     narration: str = Field(
         ...,
-        min_length=100,
-        max_length=2000,
-        description="DM's cohesive narrative summarizing the round (100-2000 chars)"
+        min_length=100,  # Reduced from 800 - avoid retry waste
+        max_length=4000,  # Increased from 3000 - allow detail
+        description="""DM's cohesive narrative summarizing the round (800-3000 chars).
+
+        IMPORTANT: Be generous with detail! Aim for 1200-1800 characters.
+        - Describe action flow chronologically
+        - Include sensory details (sounds, sights, atmosphere)
+        - Show consequences of each action
+        - Build tension and momentum
+        - Paint vivid scene transitions
+        - **Include key dialogue exchanges** - Show what characters said during negotiations, arguments, pleas
+        - **Quote important NPC/PC interactions** - Capture the actual words spoken, not just "they talked"
+
+        Shorter narrations feel rushed. Longer narrations feel cinematic.
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.
+        - ✅ CORRECT: "Ash dives behind cover as the guard opens fire..."
+        - ❌ WRONG: "tgt_3c5d dives behind cover as tgt_7a3f opens fire..."
+
+        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions, etc.)."""
     )
 
     # Story progression
@@ -374,41 +586,9 @@ class RoundSynthesis(BaseModel):
         description="Story advancement (major chapter transition with new location). Use for major story beats, complete location changes. Heavier than scene_pivot."
     )
 
-    # Enemy management
-    enemy_spawns: List[EnemySpawn] = Field(
-        default_factory=list,
-        description="New enemies to spawn this round (use empty list [] if none, NOT null)"
-    )
-
-    enemy_conversions: List['EnemyConversion'] = Field(
-        default_factory=list,
-        description="""Enemies removed/converted this round - use empty list [] if none, NOT null.
-
-**Unified field replacing enemy_removals + deescalations.**
-
-⚠️ CRITICAL: SURRENDERS = enemy_conversions with resolution=CONVINCED, NOT CONDITIONS! ⚠️
-
-When enemies surrender/flee/are arrested:
-✅ CORRECT: enemy_conversions=[EnemyConversion(enemy_id="enemy_raider_1", resolution=CONVINCED, reason="Negotiated surrender", resulting_entity_type="prisoner", resulting_disposition="prisoner")]
-❌ WRONG: Apply "Surrendered" condition to enemy (conditions are for debuffs like Stunned/Prone, NOT removal from combat!)
-
-WHY: Conditions don't stop enemy agents from acting. Enemy agents check their state and continue attacking despite "Surrendered" conditions. Using enemy_conversions with CONVINCED automatically triggers de-escalation → converts to NPC → removes from combat.
-
-Examples:
-- Enemy flees: EnemyConversion(enemy_id="enemy_grunt_1", resolution=FLED, reason="Intimidated, fled through corridor")
-- Enemy surrenders: EnemyConversion(enemy_id="enemy_raider_2", resolution=CONVINCED, reason="Negotiated surrender", resulting_entity_type="prisoner", resulting_disposition="prisoner")"""
-    )
-
-    # NPC management
-    npc_spawns: List['NPCSpawn'] = Field(
-        default_factory=list,
-        description="New NPCs spawned this round (guides, civilians, allies) - use empty list [] if none, NOT null"
-    )
-
-    escalations: List['Escalation'] = Field(
-        default_factory=list,
-        description="NPCs converted to enemies this round (attacked, provoked, hostile factions) - use empty list [] if none, NOT null"
-    )
+    # NOTE: Enemy/NPC lifecycle fields REMOVED - now handled in Entity Lifecycle Phase (before synthesis)
+    # All spawns, conversions, and escalations happen in ConversionDecisions and are tracked in EntityLifecycleResult
+    # Synthesis narrates these changes but doesn't trigger them mechanically
 
     # Clock lifecycle
     clocks_filled: List[str] = Field(
@@ -450,7 +630,7 @@ Examples:
             raise ValueError("Cannot use both scene_pivot and story_advancement in the same round. Choose one: scene_pivot for minor transitions, story_advancement for major chapter changes.")
         return v
 
-    @field_validator('enemy_spawns', 'enemy_conversions', 'npc_spawns', 'escalations', 'clocks_filled', 'clocks_expired', mode='before')
+    @field_validator('clocks_filled', 'clocks_expired', mode='before')
     @classmethod
     def convert_none_to_empty_list(cls, v):
         """Convert None to empty list for all list fields. LLMs sometimes return null instead of []."""
@@ -484,22 +664,22 @@ class ScenarioSetup(BaseModel):
     theme: str = Field(
         ...,
         min_length=10,
-        max_length=200,
-        description="Scenario theme/hook"
+        max_length=500,
+        description="Scenario theme/hook - describe the core tension or conflict"
     )
 
     location: str = Field(
         ...,
         min_length=5,
-        max_length=200,
-        description="Starting location"
+        max_length=500,
+        description="Starting location - be specific about the environment"
     )
 
     situation: str = Field(
         ...,
         min_length=50,
-        max_length=1200,
-        description="Opening situation (3-5 sentences)"
+        max_length=2500,
+        description="Opening situation - set the scene with as much detail as needed to establish atmosphere, stakes, and immediate context"
     )
 
     void_level: int = Field(
@@ -519,20 +699,25 @@ class ScenarioSetup(BaseModel):
     success_conditions: str = Field(
         ...,
         min_length=20,
-        max_length=300,
+        max_length=800,  # Increased from 300 for liberal limits
         description="What constitutes victory?"
     )
 
     failure_consequences: str = Field(
         ...,
         min_length=20,
-        max_length=300,
+        max_length=800,  # Increased from 300 for liberal limits
         description="What happens if they fail?"
     )
 
     initial_enemies: List[EnemySpawn] = Field(
         default_factory=list,
         description="Enemies present at scenario start (optional)"
+    )
+
+    initial_npcs: List['NPCSpawn'] = Field(
+        default_factory=list,
+        description="NPCs present at scenario start (optional)"
     )
 
 
@@ -547,8 +732,9 @@ class NPCSpawn(BaseModel):
     - Enemy surrenders/negotiates (DM marks conversion)
     - Scene requires dialogue NPCs
     - Quest-givers, guides, civilians appear
+    - Spawning vendors (human traders, vending machines, etc.)
 
-    Example:
+    Example (regular NPC):
     ```python
     spawn = NPCSpawn(
         name="Freeborn Navigator",
@@ -562,28 +748,84 @@ class NPCSpawn(BaseModel):
         skills={"perception": 5, "astral_arts": 3}
     )
     ```
+
+    Example (vendor NPC):
+    ```python
+    vendor_spawn = NPCSpawn(
+        name="Black Market Dealer",
+        faction="Freeborn",
+        entity_type="neutral",
+        threat_level="armed_neutral",
+        disposition="wary",
+        description="Hooded figure with cybernetic eyes, counting currency chips",
+        health=30,
+        soak=3,
+        skills={"guile": 8, "awareness": 6},
+        is_vendor=True,
+        vendor_type="human_trader",
+        vendor_greeting="Keep your voice down. What do you need?",
+        vendor_inventory=[...],  # VendorItem list
+        accepts_purchases=True
+    )
+    ```
     """
     name: str = Field(..., min_length=3, max_length=50)
     faction: str = Field(..., description="NPC's faction/allegiance (Freeborn, ACG, Civilian, etc.)")
     entity_type: Literal["neutral", "ally", "prisoner"] = Field(
         ...,
-        description="NPC's relation to players: neutral (non-aligned), ally (friendly), prisoner (captured)"
+        description="NPC's RELATIONSHIP to players (how they interact with party, NOT their combat threat). Options: 'neutral' (non-aligned third party), 'ally' (friendly/helpful), 'prisoner' (captured/restrained). ⚠️ DO NOT confuse with threat_level!"
     )
-    threat_level: Literal["non_combatant", "potential_threat", "armed_neutral"] = Field(
+    threat_level: Literal["non_combatant", "potential_threat", "armed_neutral", "elite"] = Field(
         "non_combatant",
-        description="Determines enemy targeting: non_combatant (ignored by most), potential_threat (professionals engage), armed_neutral (treated as threat)"
+        description="NPC's COMBAT CAPABILITY (how enemies target them, NOT relationship to players). Options: 'non_combatant' (ignored by most enemies), 'potential_threat' (armed/dangerous, professionals may engage), 'armed_neutral' (visibly armed, treated as threat by ruthless enemies), 'elite' (highly dangerous, top priority target). ⚠️ DO NOT confuse with entity_type!"
     )
-    disposition: Literal["friendly", "neutral", "wary", "prisoner"] = Field(
+    disposition: Literal["friendly", "neutral", "wary", "fearful", "hostile", "prisoner"] = Field(
         ...,
-        description="NPC's attitude: friendly (helpful), neutral (indifferent), wary (suspicious), prisoner (captured/restrained)"
+        description="""NPC's EMOTIONAL STATE/ATTITUDE toward players.
+
+⚠️ MUST use EXACTLY ONE of these values (no variations, synonyms, or creative alternatives):
+- "friendly": Helpful, cooperative, welcoming
+- "neutral": Indifferent, businesslike, professional
+- "wary": Suspicious, cautious, distrustful
+- "fearful": Scared, intimidated, terrified, panicked, frantic (use this for ANY fear-based state)
+- "hostile": Aggressive, antagonistic (but not in combat - use escalations for combat)
+- "prisoner": Captured, restrained, compliant, subdued
+
+⚠️ EXAMPLES OF INVALID VALUES (do NOT use):
+- "frantic" → use "fearful"
+- "panicked" → use "fearful"
+- "determined" → use "neutral" or "wary" depending on attitude
+- "cooperative" → use "friendly"
+- "aggressive" → use "hostile"
+
+If unsure, choose the CLOSEST match from the 6 valid options above."""
     )
     description: str = Field(..., min_length=20, max_length=300)
+    pronouns: str = Field(
+        default="they/them",
+        description="NPC's pronouns for narrative use (e.g., 'he/him', 'she/her', 'they/them', 'it/its'). Defaults to 'they/them' if unspecified."
+    )
     health: int = Field(..., ge=1, le=100)
     soak: int = Field(..., ge=0, le=20)
     skills: dict[str, int] = Field(
         default_factory=dict,
-        description="Key skills (for cooperative checks, e.g., {'perception': 5, 'combat': 3})"
+        description="Key YAGS skills (NOT attributes). Examples: {'Guns': 10, 'Medicine': 12, 'Stealth': 8}. Do NOT use 'Perception', 'Strength', etc. (those are attributes, not skills)."
     )
+
+    @field_validator('skills')
+    @classmethod
+    def validate_skills(cls, v: dict) -> dict:
+        """Ensure skills dict has integer values, not strings."""
+        if not isinstance(v, dict):
+            raise ValueError(f"skills must be a dict, got {type(v).__name__}")
+
+        for skill_name, skill_value in v.items():
+            if not isinstance(skill_value, int):
+                raise ValueError(
+                    f"Skill '{skill_name}' has invalid value type: {type(skill_value).__name__}. "
+                    f"Expected int (e.g., {{'Notice': 10}}), got {{{skill_name!r}: {skill_value!r}}}"
+                )
+        return v
 
     # Optional: tactical state (defaults to Near-Enemy if omitted)
     position: Optional[str] = Field(
@@ -596,6 +838,58 @@ class NPCSpawn(BaseModel):
         None,
         description="If NPC was converted from enemy, track original agent_id"
     )
+
+    # Optional: vendor functionality (enables NPC to sell items/services)
+    is_vendor: bool = Field(
+        False,
+        description="Whether this NPC functions as a vendor (can sell items to players)"
+    )
+    vendor_inventory: List['VendorItem'] = Field(
+        default_factory=list,
+        description="Items for sale (List[VendorItem]). Only populated if is_vendor=True. Example: [VendorItem(name='Medkit', description='Medical supplies', price_drip=5, item_type='consumable')]"
+    )
+    vendor_greeting: Optional[str] = Field(
+        None,
+        max_length=300,
+        description="Vendor-specific greeting shown to players (overrides general NPC dialogue). Example: 'Welcome to my shop, traveler. What can I get you?'"
+    )
+    vendor_type: Optional[str] = Field(
+        None,
+        description="Type of vendor: 'human_trader', 'vending_machine', 'supply_drone', 'emergency_cache', etc. Affects behavior and presentation."
+    )
+    accepts_purchases: bool = Field(
+        False,
+        description="Whether this vendor actively processes purchase actions. Set False for vendors who only provide context/atmosphere."
+    )
+
+    @field_validator('vendor_inventory')
+    @classmethod
+    def validate_vendor_inventory(cls, v: List) -> List:
+        """
+        Validate that vendor_inventory only contains VendorItem instances.
+
+        Prevents:
+        - String lists (["Medkit", "Ammo"])
+        - Dict lists ([{"name": "Medkit"}])
+        - Mixed types ([VendorItem(...), "Food"])
+
+        Raises ValueError with clear message if invalid types found.
+        """
+        if not v:  # Empty list is OK
+            return v
+
+        # Import here to avoid circular dependency
+        from ..energy_economy import VendorItem
+
+        for i, item in enumerate(v):
+            if not isinstance(item, VendorItem):
+                raise ValueError(
+                    f"vendor_inventory item {i} has invalid type: {type(item).__name__}. "
+                    f"Expected VendorItem instance, got {type(item).__name__}. "
+                    f"Example: VendorItem(name='Medkit', description='Medical supplies', price_drip=5)"
+                )
+
+        return v
 
 
 class EnemyConversion(BaseModel):
@@ -651,9 +945,19 @@ class EnemyConversion(BaseModel):
         description="NPC entity type after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED, where enemy stays in scene)"
     )
 
-    resulting_disposition: Optional[Literal["friendly", "neutral", "wary", "prisoner"]] = Field(
+    resulting_disposition: Optional[Literal["friendly", "neutral", "wary", "fearful", "hostile", "prisoner"]] = Field(
         default=None,
-        description="NPC disposition after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED, where enemy stays in scene)"
+        description="""NPC disposition after conversion (required if resolution=CONVINCED/NEUTRALIZED/SUBDUED).
+
+⚠️ MUST use EXACTLY ONE of: "friendly", "neutral", "wary", "fearful", "hostile", "prisoner"
+
+Common conversions:
+- Intimidated surrender → "fearful"
+- Captured/subdued → "prisoner"
+- Negotiated truce → "neutral"
+- Convinced to help → "friendly"
+
+Do NOT use variations like "frantic", "panicked", "determined" - map to closest valid option."""
     )
 
     @field_validator('resulting_entity_type', 'resulting_disposition')
@@ -720,3 +1024,386 @@ class Escalation(BaseModel):
         "desperate_fighter",
         description="Enemy template for tactics (default: desperate_fighter for untrained NPCs)"
     )
+
+
+class ConversionDecisions(BaseModel):
+    """
+    Conversion check phase output - determines which enemies/NPCs should convert.
+
+    This is generated in a SEPARATE phase between resolution and synthesis,
+    allowing the DM to focus solely on conversion decisions without
+    mixing narrative synthesis responsibilities.
+
+    The conversion check phase runs after all action resolutions are complete,
+    giving the DM full context about enemy health, player actions, and tactical situation.
+
+    Example:
+    ```python
+    decisions = ConversionDecisions(
+        enemy_conversions=[
+            EnemyConversion(
+                enemy_id="enemy_thug_01",
+                resolution=EnemyResolution.CONVINCED,
+                reason="Surrounded and low HP, surrenders to avoid death",
+                resulting_entity_type="prisoner",
+                resulting_disposition="prisoner"
+            )
+        ],
+        escalations=[],
+        npc_spawns=[
+            NPCSpawn(
+                name="Station Guard",
+                faction="Station Security",
+                entity_type="neutral",
+                threat_level="armed_neutral",
+                disposition="wary",
+                description="Armed guard responding to alarm",
+                health=60,
+                soak=5,
+                skills={"combat": 3, "awareness": 4}
+            )
+        ]
+    )
+    ```
+    """
+    enemy_conversions: List[EnemyConversion] = Field(
+        default_factory=list,
+        description="""Enemies to remove/convert this round.
+
+⚠️ CRITICAL: Validate enemy_id exists before conversion! ⚠️
+
+Valid conversions:
+- Enemy flees: resolution=FLED (leaves scene entirely)
+- Enemy surrenders: resolution=CONVINCED with resulting_entity_type/disposition (stays as NPC prisoner)
+- Enemy subdued: resolution=SUBDUED/NEUTRALIZED with resulting_entity_type/disposition (incapacitated NPC)
+
+See available enemies in conversion check prompt (includes enemy_id, name, health %).
+Use empty list [] if no conversions."""
+    )
+
+    escalations: List[Escalation] = Field(
+        default_factory=list,
+        description="""NPCs to convert to enemies this round.
+
+⚠️ CRITICAL: Validate npc_id exists before escalation! ⚠️
+
+Common triggers:
+- NPC was attacked by players (took damage)
+- NPC's faction was attacked (defending allies)
+- NPC was threatened/intimidated (self-defense)
+
+See available NPCs in conversion check prompt (includes npc_id, name, disposition, health %).
+Use empty list [] if no escalations."""
+    )
+
+    npc_spawns: List[NPCSpawn] = Field(
+        default_factory=list,
+        description="""New NPCs to spawn this round.
+
+⚠️ CRITICAL: If you mention spawning NPCs in 'reasoning', you MUST populate this list!
+
+Use when:
+- Introducing quest-givers, guides, civilians
+- Scene requires dialogue characters
+- Environmental NPCs (merchants, bystanders, etc.)
+- Failed player actions in hostile zones (guards respond to alarms)
+- Story requires new characters (medics arrive, enforcers respond, witnesses appear)
+
+❌ DO NOT say "Spawning X" in reasoning without adding NPCSpawn objects to this list!
+✅ DO populate this list whenever you mention spawning in your reasoning!
+
+NOTE: For enemy→NPC conversions (surrenders), use enemy_conversions with resolution=CONVINCED.
+Only use npc_spawns for BRAND NEW characters entering the scene.
+Use empty list [] if no new NPCs."""
+    )
+
+    enemy_spawns: List['EnemySpawn'] = Field(
+        default_factory=list,
+        description="""New enemies to spawn this round.
+
+⚠️ CRITICAL: If you mention spawning enemies in 'reasoning', you MUST populate this list!
+
+Use when:
+- Reinforcements arrive after failed stealth/alarms
+- New faction enters conflict
+- Environmental threats appear (guards, patrols, creatures)
+- Clocks trigger enemy arrival (Security Response filled, etc.)
+
+❌ DO NOT say "Spawning X enemies" in reasoning without adding EnemySpawn objects to this list!
+✅ DO populate this list whenever you mention spawning in your reasoning!
+⚠️ DO NOT duplicate existing enemies! Check active enemies list first.
+
+Use empty list [] if no new enemies needed."""
+    )
+
+    altar_spawns: List[AltarSpawn] = Field(
+        default_factory=list,
+        description="""New ritual altars discovered/revealed this round.
+
+Use when:
+- Party discovers hidden shrine during exploration
+- NPC reveals secret altar location
+- Ritual site becomes accessible (door unsealed, barrier lifted)
+- Abandoned temple found through investigation
+
+Examples:
+- Freeborn merchant mentions market altar
+- Breaking into temple reveals Nexus sanctum
+- Void cultist lair contains dark altar
+
+Use empty list [] if no new altars discovered."""
+    )
+
+    env_object_spawns: List[EnvObjectSpawn] = Field(
+        default_factory=list,
+        description="""Environmental objects to spawn this round.
+
+⚠️ USE THIS to prevent target hallucination! ⚠️
+
+Spawn environmental objects when:
+- Players mention wanting to interact with something specific (terminal, door, cargo)
+- Narrative describes environmental features players might target
+- Scene requires interactive elements (locked door, control panel, storage)
+- Players ask "is there a X?" and the answer should be yes
+
+Examples of when to spawn:
+- Player says "I hack the terminal" → Spawn terminal object
+- Narrative mentions "sealed cargo bay" → Spawn door object
+- DM describes "crates of supplies" → Spawn cargo objects
+- Scene needs tactical cover → Spawn barrier objects
+
+❌ DO NOT spawn every narrative detail (lights, atmosphere, etc.)
+✅ DO spawn things players are LIKELY TO INTERACT WITH or TARGET
+
+This helps players see what's actually present vs pure narrative flavor.
+Use empty list [] if no environmental objects needed."""
+    )
+
+    npc_departures: List[str] = Field(
+        default_factory=list,
+        description="""NPC agent_ids to remove from scene (fled, hidden, left).
+
+⚠️ BE AGGRESSIVE about removing NPCs who flee/hide! ⚠️
+
+Auto-remove NPCs when:
+- NPC declared "Flee" action → IMMEDIATELY remove (add agent_id here)
+- NPC declared "Hide" action → Remove after 1 round unless strong story reason to stay
+- NPC has "Pass" action for 2+ consecutive rounds → Likely left scene
+- NPC is non-combatant in dangerous area → Fled when combat started
+- NPC's purpose is complete → Dismiss them to keep scene dynamic
+
+Examples: ["npc_civilian_a3f2", "npc_guide_5b21"]
+Use empty list [] if no NPCs should depart."""
+    )
+
+    enemy_departures: List[str] = Field(
+        default_factory=list,
+        description="""Enemy agent_ids to remove from scene (fled, stood down, left).
+
+⚠️ BE AGGRESSIVE about removing enemies who are no longer relevant! ⚠️
+
+Auto-remove enemies when:
+- Enemy declared "Flee" or "Retreat" action → IMMEDIATELY remove (add agent_id here)
+- Enemies "stood down" after diplomacy → Security leaves after confirming authorization
+- Scene changed and enemies don't follow → Patrol stays in previous area
+- Temporary threat resolved → Guards finish inspection and move on
+- Combat ended, enemies withdraw → Rival gang retreats after objective complete
+
+Examples: ["enemy_grunt_4bc22537", "enemy_raider_a8f3"]
+Use empty list [] if no enemies should depart.
+
+⚠️ CRITICAL: This is for enemies who LEAVE THE SCENE entirely.
+- Use enemy_departures for: Fled, stood down, moved on, stopped pursuing
+- Use enemy_conversions for: Surrender (→ prisoner NPC), subdued (→ unconscious NPC)"""
+    )
+
+    reasoning: str = Field(
+        ...,
+        min_length=20,
+        max_length=500,
+        description="""Brief explanation of conversion decisions (20-500 chars).
+
+⚠️ CRITICAL: If you say "Spawning X" here, you MUST populate npc_spawns or enemy_spawns lists!
+❌ DO NOT use this field to "narrate" spawns without actually creating them in the lists above!
+
+Explain WHY you made these conversion choices based on:
+- Enemy health/morale (low HP = surrender likely)
+- Player actions (intimidation, diplomacy = de-escalation)
+- NPC provocations (attacked = escalation likely)
+- Tactical situation (surrounded, outnumbered = flee/surrender)
+- Spawn decisions (what triggered spawns, why now)
+
+Example: "Thug #1 surrendered due to low HP (15%) and intimidation. Guard #2 fled when surrounded. No NPC escalations - prisoner remains compliant. Spawned 2 ACG enforcers due to alarm." """
+    )
+
+
+@dataclass
+class EntityLifecycleResult:
+    """
+    Complete result of Entity Lifecycle phase - consolidates all entity state changes.
+
+    This phase runs BEFORE synthesis, allowing DM to see final entity state when narrating.
+    Combines morale checks, conversions, spawns, and removals into single result.
+
+    Logged to JSONL as 'entity_lifecycle' event for ML training.
+    """
+    # Morale events (from enemy_combat.check_morale_all())
+    morale_events: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Conversion decisions (from dm.check_conversions())
+    conversion_decisions: Optional['ConversionDecisions'] = None
+
+    # Enemy spawns processed (agent_ids of newly spawned enemies)
+    enemies_spawned: List[str] = field(default_factory=list)
+
+    # NPC spawns processed (agent_ids of newly spawned NPCs)
+    npcs_spawned: List[str] = field(default_factory=list)
+
+    # Enemy conversions processed (agent_ids converted enemy→NPC)
+    enemies_converted: List[str] = field(default_factory=list)
+
+    # NPC escalations processed (agent_ids converted NPC→enemy)
+    npcs_escalated: List[str] = field(default_factory=list)
+
+    # NPC departures processed (agent_ids removed from scene)
+    npcs_departed: List[str] = field(default_factory=list)
+
+    # Enemy departures processed (agent_ids removed from scene)
+    enemies_departed: List[str] = field(default_factory=list)
+
+    # Environmental objects spawned (object_ids of newly spawned env objects)
+    env_objects_spawned: List[str] = field(default_factory=list)
+
+    # Summary for synthesis context
+    def to_synthesis_context(self) -> str:
+        """Generate human-readable summary for DM synthesis prompt."""
+        parts = []
+
+        if self.morale_events:
+            panicked = [e for e in self.morale_events if e['type'] == 'panicked']
+            surrendered = [e for e in self.morale_events if e['type'] == 'surrender']
+            if panicked:
+                parts.append(f"{len(panicked)} enemy(ies) panicked: {', '.join(e['character_name'] for e in panicked)}")
+            if surrendered:
+                parts.append(f"{len(surrendered)} enemy(ies) surrendered: {', '.join(e['character_name'] for e in surrendered)}")
+
+        if self.enemies_spawned:
+            parts.append(f"{len(self.enemies_spawned)} new enemy(ies) spawned")
+
+        if self.npcs_spawned:
+            parts.append(f"{len(self.npcs_spawned)} new NPC(s) spawned")
+
+        if self.enemies_converted:
+            parts.append(f"{len(self.enemies_converted)} enemy(ies) converted to NPCs")
+
+        if self.npcs_escalated:
+            parts.append(f"{len(self.npcs_escalated)} NPC(s) escalated to enemies")
+
+        if self.npcs_departed:
+            parts.append(f"{len(self.npcs_departed)} NPC(s) departed")
+
+        if self.enemies_departed:
+            parts.append(f"{len(self.enemies_departed)} enemy(ies) departed")
+
+        if self.env_objects_spawned:
+            parts.append(f"{len(self.env_objects_spawned)} environmental object(s) spawned")
+
+        return "Entity Lifecycle: " + ("; ".join(parts) if parts else "No changes")
+
+    def to_jsonl_dict(self, round_num: int) -> Dict[str, Any]:
+        """Convert to JSONL-loggable dict for ML training."""
+        return {
+            'event_type': 'entity_lifecycle',
+            'round': round_num,
+            'morale_events': self.morale_events,
+            'enemies_spawned': self.enemies_spawned,
+            'npcs_spawned': self.npcs_spawned,
+            'enemies_converted': self.enemies_converted,
+            'npcs_escalated': self.npcs_escalated,
+            'npcs_departed': self.npcs_departed,
+            'enemies_departed': self.enemies_departed,
+            'env_objects_spawned': self.env_objects_spawned,
+            'conversion_reasoning': self.conversion_decisions.reasoning if self.conversion_decisions else None
+        }
+
+
+# Player Narrative Memory Schemas (for persistent story context)
+
+class NarrativeMemory(BaseModel):
+    """
+    Per-player narrative memory tracking locations visited and key story events.
+
+    Accumulated throughout the session to give players persistent context about
+    their journey, not just the current room/situation.
+
+    Each entry is a tuple of (round_number, content) for temporal ordering.
+
+    Example:
+    ```python
+    memory = NarrativeMemory(
+        locations_visited=[(0, "Docks"), (3, "Transit Hub"), (5, "Research Lab")],
+        story_beats=[(1, "Fought gang ambush"), (2, "Rescued prisoner Vex"), (4, "Found data chip")],
+        story_summary="Started at the docks investigating smugglers. After combat, rescued an informant who revealed the lab location."
+    )
+    ```
+    """
+
+    locations_visited: List[Tuple[int, str]] = Field(
+        default_factory=list,
+        description="Chronological list of (round, location) tuples (e.g., [(0, 'Docks'), (3, 'Transit Hub')])"
+    )
+
+    story_beats: List[Tuple[int, str]] = Field(
+        default_factory=list,
+        description="Key story events as (round, event) tuples (e.g., [(1, 'Fought gang'), (3, 'Rescued Vex')]). Limited to 10 most recent."
+    )
+
+    story_summary: str = Field(
+        default="",
+        max_length=500,
+        description="Rolling summary of the story so far from this player's perspective (50-300 chars, updated each round)"
+    )
+
+
+class NarrativeMemorySummary(BaseModel):
+    """
+    LLM-generated summary output for player self-summarization (Option B).
+
+    Used when player generates their own story summary at end of round.
+
+    Example:
+    ```python
+    summary = NarrativeMemorySummary(
+        summary="We started at the docks tracking smugglers. After a firefight, we rescued an informant with critical intel.",
+        key_event="Rescued informant with lab location"
+    )
+    ```
+    """
+
+    summary: str = Field(
+        ...,
+        min_length=20,
+        max_length=500,
+        description="Updated story summary incorporating this round's events (50-300 chars recommended)"
+    )
+
+    key_event: str = Field(
+        ...,
+        min_length=5,
+        max_length=100,
+        description="The single most important event this round to add to story_beats"
+    )
+
+
+# Rebuild models to resolve forward references (List['VendorItem'])
+# This must be called after VendorItem is imported and available
+def _rebuild_models():
+    """Rebuild Pydantic models to resolve forward references."""
+    try:
+        from ..energy_economy import VendorItem  # noqa: F401
+        NPCSpawn.model_rebuild()
+    except ImportError:
+        # VendorItem not available yet (during early imports)
+        pass
+
+_rebuild_models()

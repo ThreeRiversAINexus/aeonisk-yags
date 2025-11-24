@@ -308,6 +308,7 @@ class EnemyAgent:
 
     # Fields with defaults (must come after required fields)
     faction: str = "Unknown"  # Faction allegiance (e.g., "Nexus", "Tempest", "Freeborn")
+    pronouns: str = "they/them"  # Default to gender-neutral
     stuns: int = 0  # Stun damage (YAGS)
     fatigue: int = 0  # Fatigue levels (YAGS)
     defence_token: Optional[str] = None  # Which PC agent_id are they watching?
@@ -700,7 +701,7 @@ class SharedIntel:
             List of formatted intel strings
         """
         recent = [
-            f"From {item.source_agent}: {item.intel}"
+            f"[ALLY {item.source_agent}] {item.intel}"
             for item in self.intel_pool
             if current_round - item.round <= lookback
         ]

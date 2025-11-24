@@ -3,7 +3,6 @@
   "max_turns": 4,
   "party_size": 1,
   "output_dir": "./multiagent_output",
-  "enable_human_interface": false,
   "force_combat": false,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,

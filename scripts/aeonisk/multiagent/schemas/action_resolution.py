@@ -23,6 +23,18 @@ from .shared_types import (
     DamageEffect,
     PositionChange,
 )
+from .vendor_interaction import (
+    PurchaseEffect,
+    CraftingAttempt,
+    CurrencyTransfer,
+    ItemTransfer,
+)
+from .action_effects import (
+    HealingEffect,
+    AttunementEffect,
+    ItemEffect,
+    StabilizationEffect,
+)
 
 
 class InventoryChange(BaseModel):
@@ -69,15 +81,20 @@ class MechanicalEffects(BaseModel):
     - Failed ritual → void_changes=[VoidChange(amount=1, ...)] AND soulcredit_changes=[...]
     """
     # Combat
-    damage: Optional[DamageEffect] = Field(
-        default=None,
-        description="Damage dealt (if any)"
+    damage: List[DamageEffect] = Field(
+        default_factory=list,
+        description="Damage dealt to targets. Empty list = no damage. Single target = list with 1 entry. AoE = list with multiple entries. Each entry can have different damage based on margin, positioning, or soak."
+    )
+
+    healing: List[HealingEffect] = Field(
+        default_factory=list,
+        description="Healing applied to targets. Supports hp (health restore), stun (stun removal), wound (wound reduction). Empty list = no healing. Single target healing = list with 1 entry. Mass healing = multiple entries."
     )
 
     # State changes
     void_changes: List[VoidChange] = Field(
         default_factory=list,
-        description="Void corruption/cleansing changes. CRITICAL: Populate when void-triggering events occur (ritual failures, missing offerings/tools, void exposure, corrupted tech). Empty list = no void events (explicit choice). Examples: [VoidChange(character_name='Kade', amount=2, reason='Failed ritual without offering')] for corruption, [VoidChange(character_name='Ash', amount=-2, reason='Cleansing ritual success')] for cleansing."
+        description="Void corruption/cleansing changes. CRITICAL: Populate when void-triggering events occur. Empty list = no void events (explicit choice). CORRUPTION TRIGGERS (+1 to +5): Ritual failures, missing offerings/tools, direct void exposure, void entity contact, corrupted tech interaction, void-forged weapon use (+1-2 per combat scene), breaking oaths/bonds (+1-3 by severity), environmental exposure (void_level 7-8: +1 per scene; void_level 9-10: +1 per round). CLEANSING (-1 to -5): Successful purification rituals scaled by success margin. Examples: [VoidChange(character_name='Kade', amount=2, reason='Failed ritual without offering')], [VoidChange(character_name='Ash', amount=1, reason='Used void-forged rifle in combat')], [VoidChange(character_name='Riven', amount=1, reason='Environmental exposure (void_level 9)')], [VoidChange(character_name='Echo', amount=-3, reason='Excellent cleansing ritual')]."
     )
 
     soulcredit_changes: List[SoulcreditChange] = Field(
@@ -106,6 +123,42 @@ class MechanicalEffects(BaseModel):
     inventory_changes: List[InventoryChange] = Field(
         default_factory=list,
         description="Inventory changes (offerings consumed, items gained/lost). Populated by mechanics layer when offerings are consumed before DM narration."
+    )
+
+    # Economy interactions
+    purchase: Optional[PurchaseEffect] = Field(
+        default=None,
+        description="Purchase transaction details (if action was a purchase attempt). Replaces keyword parsing in player.py."
+    )
+
+    crafting: Optional[CraftingAttempt] = Field(
+        default=None,
+        description="Offering crafting attempt (if action was crafting). Uses Attunement skill check (DC 15 base)."
+    )
+
+    currency_transfer: Optional['CurrencyTransfer'] = Field(
+        default=None,
+        description="Player-to-player energy currency transfer (if action was a transfer). Replaces keyword parsing."
+    )
+
+    item_transfer: Optional['ItemTransfer'] = Field(
+        default=None,
+        description="Player-to-player item transfer (if action was a transfer). Tracks who gave what items to whom and why."
+    )
+
+    attunement: Optional['AttunementEffect'] = Field(
+        default=None,
+        description="Seed attunement result (if action was an attunement ritual). Tracks success/failure, energy gained, altar bonuses, Echo-Calibrator usage."
+    )
+
+    item_discovery: Optional['ItemEffect'] = Field(
+        default=None,
+        description="Items/seeds/currency discovered or gifted (if action resulted in item acquisition). Used for environmental loot, NPC gifts, quest rewards. NOT for purchases (use purchase field)."
+    )
+
+    stabilization: Optional['StabilizationEffect'] = Field(
+        default=None,
+        description="Ally stabilization result (if SUPPORT action targeted unconscious ally). Per YAGS: success stops death spiral but doesn't heal - ally is extracted by faction medevac."
     )
 
     # Additional metadata
@@ -224,8 +277,14 @@ class ActionResolution(BaseModel):
     narration: str = Field(
         ...,
         min_length=200,
-        max_length=2000,
-        description="DM's vivid narrative description of what happened (200-2000 chars)"
+        max_length=3000,  # Increased from 2000 to allow verbose social/ritual scenes
+        description="""DM's vivid narrative description of what happened (200-3000 chars).
+
+        ⚠️ NARRATIVE STYLE: Use CHARACTER NAMES in narrative text, NOT target IDs.
+        - ✅ CORRECT: "Your shot hits the security guard, spinning them sideways..."
+        - ❌ WRONG: "Your shot hits tgt_7a3f, spinning them sideways..."
+
+        Target IDs (tgt_xxxx) are ONLY for mechanical fields (damage.target, conditions.target, etc.)."""
     )
 
     # Success determination
@@ -264,16 +323,18 @@ class ActionResolution(BaseModel):
     # ========== ML Training Fields (Dataset Guidelines Compliance) ==========
 
     # Character data (full sheet snapshot at time of action)
-    character_data: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Complete character state: attributes, skills, void, wounds, status_effects"
-    )
+    # REMOVED: Redundant with character_state events (saves ~7,200 tokens/session)
+    # Reconstruct from character_state snapshots in ML pipeline instead
+    # character_data: Optional[Dict[str, Any]] = Field(
+    #     default=None,
+    #     description="Complete character state: attributes, skills, void, wounds, status_effects"
+    # )
 
     # Contextual fields (dynamic per action)
     environment: Optional[str] = Field(
         default=None,
         min_length=10,
-        max_length=200,
+        max_length=800,
         description="One-line setting description with relevant conditions"
     )
 
@@ -428,12 +489,14 @@ def create_combat_resolution(
         dealt = base_damage - (soak or 0)
 
     effects = MechanicalEffects(
-        damage=DamageEffect(
-            target=target,
-            base_damage=base_damage,
-            soak=soak,
-            dealt=dealt
-        )
+        damage=[
+            DamageEffect(
+                target=target,
+                base_damage=base_damage,
+                soak=soak,
+                dealt=dealt
+            )
+        ]
     )
 
     # Determine success tier

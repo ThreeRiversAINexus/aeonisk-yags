@@ -8,6 +8,7 @@ import logging
 import os
 import random
 import time
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -119,6 +120,13 @@ class SelfPlayingSession:
         self.running = False
         self.shared_state = SharedState()
         self.shared_state.session_config = self.config  # Store config for agents to access flags
+
+        # Initialize persistent vendors from config
+        self._initialize_persistent_vendors()
+
+        # Initialize persistent altars from config
+        self._initialize_persistent_altars()
+
         self.voice_library = VoiceLibrary()
         self._turn_history: List[str] = []
         self._pending_resolutions: Dict[str, asyncio.Event] = {}  # Track when resolutions complete
@@ -205,7 +213,126 @@ class SelfPlayingSession:
         dm_notes_path = Path(self.config.get('output_dir', './multiagent_output')) / 'dm_notes.json'
         self.shared_state.load_dm_notes(str(dm_notes_path))
         self.dm_notes_path = dm_notes_path
-        
+
+    def _initialize_persistent_vendors(self):
+        """
+        Initialize persistent vendors from session config.
+
+        Spawns vendors defined in config['persistent_vendors'] into SharedState.
+        These vendors persist across all rounds unless explicitly removed.
+
+        NOTE: This is a minimal implementation for testing. Production gameplay
+        should use DM-driven VendorSpawn structured output (not yet implemented).
+        """
+        persistent_vendors_config = self.config.get('persistent_vendors', [])
+
+        if not persistent_vendors_config:
+            logger.debug("No persistent_vendors in config")
+            return
+
+        from .energy_economy import Vendor, VendorItem, VendorType
+
+        # Note: SharedState uses `current_vendors` attribute, accessed via add_vendor() method
+
+        for vendor_config in persistent_vendors_config:
+            # Parse inventory items
+            inventory_items = []
+            for item_config in vendor_config.get('inventory', []):
+                item = VendorItem(
+                    name=item_config['name'],
+                    description=item_config['description'],
+                    item_id=item_config.get('item_id'),  # FIX: Pass item_id from config (or None for auto-generation)
+                    price_spark=item_config.get('price_spark', 0),
+                    price_grain=item_config.get('price_grain', 0),
+                    price_drip=item_config.get('price_drip', 0),
+                    price_breath=item_config.get('price_breath', 0)
+                )
+                inventory_items.append(item)
+
+            # Parse vendor type (default to human_trader)
+            vendor_type_str = vendor_config.get('vendor_type', 'human_trader')
+            try:
+                vendor_type = VendorType[vendor_type_str.upper()]
+            except KeyError:
+                logger.warning(f"Unknown vendor_type '{vendor_type_str}', defaulting to HUMAN_TRADER")
+                vendor_type = VendorType.HUMAN_TRADER
+
+            # Create vendor
+            vendor = Vendor(
+                name=vendor_config['name'],
+                faction=vendor_config.get('faction', 'Neutral'),
+                inventory=inventory_items,
+                greeting=vendor_config.get('greeting', 'Looking to trade?'),
+                vendor_type=vendor_type,
+                vendor_id=vendor_config.get('vendor_id')  # FIX: Pass vendor_id from config (or None for auto-generation)
+            )
+
+            # Add to shared state using proper method
+            self.shared_state.add_vendor(vendor)
+
+            logger.info(f"Initialized persistent vendor: {vendor.name} ({vendor_type_str}) with {len(inventory_items)} items, vendor_id={vendor.vendor_id}")
+
+        print(f"✓ Loaded {len(persistent_vendors_config)} persistent vendor(s)")
+
+    def _initialize_persistent_altars(self):
+        """
+        Initialize persistent altars from session config.
+
+        Spawns altars defined in config['scenario']['altars'] into SharedState.
+        These altars persist across all rounds unless explicitly removed.
+        """
+        scenario_config = self.config.get('scenario', {})
+        altars_config = scenario_config.get('altars', [])
+
+        if not altars_config:
+            logger.debug("No scenario.altars in config")
+            return
+
+        from .shared_state import Altar, AltarType
+
+        for altar_config in altars_config:
+            # Parse altar type
+            altar_type_str = altar_config.get('altar_type', 'ritual_altar')
+            try:
+                altar_type = AltarType[altar_type_str.upper()]
+            except KeyError:
+                logger.warning(f"Unknown altar_type '{altar_type_str}', defaulting to RITUAL_ALTAR")
+                altar_type = AltarType.RITUAL_ALTAR
+
+            # Validate quality
+            quality = altar_config.get('quality', 5)
+            if not (1 <= quality <= 10):
+                logger.warning(f"Altar quality {quality} out of range [1-10], clamping")
+                quality = max(1, min(10, quality))
+
+            # Create altar
+            altar = Altar(
+                altar_type=altar_type,
+                quality=quality,
+                location=altar_config.get('location', 'Unknown'),
+                altar_id=altar_config.get('altar_id')  # None for auto-generation
+            )
+
+            # Add to shared state
+            self.shared_state.add_altar(altar)
+
+            bonus = altar.get_ritual_bonus()
+            logger.info(f"Initialized altar: {altar.location} ({altar_type_str}, quality={quality}, +{bonus} bonus), altar_id={altar.altar_id}")
+
+        print(f"✓ Loaded {len(altars_config)} ritual altar(s)")
+
+    # NOTE: _inject_required_items_into_vendors() removed
+    #
+    # The DM already handles vendor spawning for required purchases via:
+    # 1. force_vendor_gate → _create_vendor_gated_scenario() generates required_purchase
+    # 2. DM spawns vendor from self.vendor_pool matching required_vendor_type
+    # 3. Vendors in vendor_pool (create_standard_vendors()) have inventory designed for scenarios
+    #
+    # For testing with persistent_vendors config:
+    # - Set vendor_spawn_frequency: -1 to disable DM vendor spawning
+    # - Manually configure persistent vendor inventory to include scenario-required items
+    # - Or set vendor_spawn_frequency: 3 to let DM spawn vendors from vendor_pool
+
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load session configuration."""
         try:
@@ -305,6 +432,19 @@ class SelfPlayingSession:
                         )
                         mechanics.scene_clocks[clock.name] = scene_clock
                         logger.info(f"Loaded starting clock: {clock.name} ({clock.current_ticks}/{clock.max_ticks})")
+
+                        # Log clock spawn (starting clocks created at round 0/null)
+                        if mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_clock_spawn(
+                                clock.name,
+                                clock.max_ticks,
+                                clock.description,
+                                round_num=None,  # Session start, no round yet
+                                current_ticks=clock.current_ticks,
+                                advance_meaning=clock.advance_meaning,
+                                regress_meaning=clock.regress_meaning,
+                                filled_consequence=clock.filled_consequence
+                            )
                     except Exception as e:
                         logger.warning(f"Failed to load starting clock {clock_config.get('name', 'unknown')}: {e}")
                 print(f"✓ Loaded {len(self.config['starting_clocks'])} starting clock(s)")
@@ -379,6 +519,7 @@ class SelfPlayingSession:
             history_supplier=self._recent_history,
             force_scenario=force_scenario,
             llm_client=dm_llm_client,
+            session_config=self.config,  # Pass full session config for persistent vendors
         )
         self.agents.append(dm_agent)
         await dm_agent.start()
@@ -430,6 +571,7 @@ class SelfPlayingSession:
                 prompt_enricher=self.voice_library.enrich_prompt,
                 history_supplier=self._recent_history,
                 llm_client=player_llm_client,
+                agent_prompt_logger=self.agent_prompt_logger,
             )
             self.agents.append(player_agent)
             await player_agent.start()
@@ -453,10 +595,10 @@ class SelfPlayingSession:
                 logger.debug(f"Initialized {player.character_state.name} soulcredit: {initial_sc}")
 
                 # Degrade Raw Seeds (1 cycle per session)
-                if hasattr(player.character_state, 'energy_inventory') and player.character_state.energy_inventory:
-                    player.character_state.energy_inventory.degrade_raw_seeds(cycles=1)
-                    raw_count = player.character_state.energy_inventory.count_seeds(SeedType.RAW)
-                    hollow_count = player.character_state.energy_inventory.count_seeds(SeedType.HOLLOW)
+                if hasattr(player.character_state, 'energy_purse') and player.character_state.energy_purse:
+                    player.character_state.energy_purse.degrade_raw_seeds(cycles=1)
+                    raw_count = player.character_state.energy_purse.count_seeds(SeedType.RAW)
+                    hollow_count = player.character_state.energy_purse.count_seeds(SeedType.HOLLOW)
                     if hollow_count > 0:
                         logger.debug(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
 
@@ -506,6 +648,13 @@ class SelfPlayingSession:
                 print(f"  - {player.character_state.name} ({player.character_state.faction})")
         print()
 
+        # Run pre-round entity lifecycle BEFORE round 1
+        # This allows DM to spawn additional entities based on the scenario
+        # (vendors, bystanders, environmental objects, patrols)
+        # Note: initial_enemies and initial_npcs from config have already been processed
+        # in _handle_scenario_setup() before we get here
+        await self._run_pre_round_entity_lifecycle()
+
         while self.running:
             round_count += 1
             print(f"\n--- Round {round_count} ---")
@@ -515,6 +664,10 @@ class SelfPlayingSession:
             if self.shared_state and self.shared_state.mechanics_engine:
                 mechanics = self.shared_state.mechanics_engine
                 mechanics.current_round = round_count  # Update round counter for logging
+
+                # Start new correlation_id for this round's events
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.start_round(round_count)
 
                 # Update hybrid clients with new round (for continue-from-round mode)
                 if self.hybrid_clients:
@@ -705,84 +858,75 @@ class SelfPlayingSession:
                         self.session_id = session_id
                         self.call_sequence = 0  # Track LLM call ordering for replay
 
-                        # Pre-create client for rate limiting
-                        import anthropic
-                        import os
-                        self.client = anthropic.Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+                        # Use llm_provider instead of direct Anthropic client
+                        from .llm_provider import LLMConfig, create_provider
+
+                        provider_config = LLMConfig(
+                            provider=llm_config.get('provider', 'anthropic'),
+                            model=llm_config.get('model', 'claude-sonnet-4-5'),
+                            temperature=llm_config.get('temperature', 0.7),
+                            max_tokens=500  # Default for enemy agents
+                        )
+                        self.provider = create_provider(provider_config)
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
-                        provider = self.llm_config.get('provider', 'anthropic')
-                        model = self.llm_config.get('model', 'claude-sonnet-4-5')
+                        from datetime import datetime
 
-                        if provider == 'anthropic':
-                            # Use rate-limited wrapper to prevent API overload
-                            from .llm_provider import call_anthropic_with_retry
-                            from datetime import datetime
+                        # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
+                        response = await self.provider.generate(
+                            prompt=prompt,
+                            max_tokens=max_tokens,
+                            temperature=temperature
+                        )
 
-                            messages = [{"role": "user", "content": prompt}]
+                        response_text = response.text
 
-                            response = await call_anthropic_with_retry(
-                                client=self.client,
-                                model=model,
-                                messages=messages,
-                                max_tokens=max_tokens,
-                                temperature=temperature,
-                                max_retries=3,
-                                base_delay=2.0,
-                                max_delay=120.0,
-                                use_rate_limiter=True
-                            )
+                        # Log LLM call if logger is available
+                        if self.jsonl_logger:
+                            try:
+                                self.jsonl_logger.write_event({
+                                    'event_type': 'llm_call',
+                                    'ts': datetime.utcnow().isoformat(),
+                                    'session': self.session_id or 'unknown',
+                                    'round': None,  # Enemy calls don't have round context here
+                                    'agent_id': self.agent_id,
+                                    'agent_type': 'enemy',
+                                    'call_sequence': self.call_sequence,
+                                    'prompt': [{"role": "user", "content": prompt}],  # Format as messages
+                                    'response': response_text,
+                                    'model': self.llm_config.get('model', 'unknown'),
+                                    'temperature': temperature,
+                                    'tokens': {
+                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
+                                        'output': 0  # LLMResponse doesn't separate input/output for basic generate()
+                                    }
+                                })
+                                self.call_sequence += 1
+                            except Exception as e:
+                                import logging
+                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
 
-                            response_text = response.content[0].text
+                        # Also log to human-readable agent prompt log if enabled
+                        if self.agent_prompt_logger:
+                            try:
+                                self.agent_prompt_logger.log_llm_call(
+                                    agent_id=self.agent_id,
+                                    round_num=None,  # Enemy calls don't have round context
+                                    call_sequence=self.call_sequence - 1,  # Already incremented above
+                                    prompt=prompt,  # Full prompt text
+                                    response=response_text,
+                                    model=self.llm_config.get('model', 'unknown'),
+                                    temperature=temperature,
+                                    tokens={
+                                        'input': response.tokens_used if hasattr(response, 'tokens_used') else 0,
+                                        'output': 0
+                                    }
+                                )
+                            except Exception as e:
+                                import logging
+                                logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
-                            # Log LLM call if logger is available
-                            if self.jsonl_logger:
-                                try:
-                                    self.jsonl_logger.write_event({
-                                        'event_type': 'llm_call',
-                                        'ts': datetime.utcnow().isoformat(),
-                                        'session': self.session_id or 'unknown',
-                                        'round': None,  # Enemy calls don't have round context here
-                                        'agent_id': self.agent_id,
-                                        'agent_type': 'enemy',
-                                        'call_sequence': self.call_sequence,
-                                        'prompt': messages,
-                                        'response': response_text,
-                                        'model': model,
-                                        'temperature': temperature,
-                                        'tokens': {
-                                            'input': response.usage.input_tokens,
-                                            'output': response.usage.output_tokens
-                                        }
-                                    })
-                                    self.call_sequence += 1
-                                except Exception as e:
-                                    import logging
-                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log LLM call: {type(e).__name__}: {e}", exc_info=True)
-
-                            # Also log to human-readable agent prompt log if enabled
-                            if self.agent_prompt_logger:
-                                try:
-                                    self.agent_prompt_logger.log_llm_call(
-                                        agent_id=self.agent_id,
-                                        round_num=None,  # Enemy calls don't have round context
-                                        call_sequence=self.call_sequence - 1,  # Already incremented above
-                                        prompt=prompt,  # Full prompt text
-                                        response=response_text,
-                                        model=model,
-                                        temperature=temperature,
-                                        tokens={
-                                            'input': response.usage.input_tokens,
-                                            'output': response.usage.output_tokens
-                                        }
-                                    )
-                                except Exception as e:
-                                    import logging
-                                    logging.getLogger(__name__).error(f"Enemy {self.agent_id}: Failed to log to agent prompt logger: {e}")
-
-                            return {"content": response_text}
-                        else:
-                            raise NotImplementedError(f"Provider {provider} not supported for enemy declarations")
+                        return {"content": response_text}
 
                 # Create per-enemy LLM clients for proper logging
                 llm_client = DMLLMClient(
@@ -807,12 +951,17 @@ class SelfPlayingSession:
                 declaration_event = asyncio.Event()
                 self._pending_declarations[agent.agent_id] = declaration_event
 
+                # Get current round from mechanics engine
+                current_round = 0
+                if self.shared_state and self.shared_state.mechanics_engine:
+                    current_round = getattr(self.shared_state.mechanics_engine, 'current_round', 0)
+
                 turn_message = Message(
                     id=f"turn_{datetime.now().isoformat()}_{agent.agent_id}",
                     type=MessageType.TURN_REQUEST,
                     sender='coordinator',
                     recipient=agent.agent_id,
-                    payload={'phase': 'declaration', 'initiative': initiative_score},
+                    payload={'phase': 'declaration', 'initiative': initiative_score, 'round': current_round},
                     timestamp=datetime.now()
                 )
 
@@ -828,23 +977,43 @@ class SelfPlayingSession:
 
             elif agent_type == 'enemy':
                 # Enemy declares inline (interleaved with PCs)
+                logger.debug(f"Enemy {agent.name} entering declaration (init={initiative_score}, is_active={agent.is_active})")
                 if llm_client:
-                    print(f"\n[{agent.name}] declaring (initiative {initiative_score})...")
-
                     # Create per-enemy LLM client for proper logging
                     enemy_llm_client = DMLLMClient(
                         dm_agent.llm_config,
                         jsonl_logger=mechanics.jsonl_logger if mechanics else None,
                         agent_id=agent.agent_id,
-                        session_id=self.session_id
+                        session_id=self.session_id,
+                        agent_prompt_logger=self.agent_prompt_logger
                     )
 
+                    logger.debug(f"Calling declare_single_enemy for {agent.name}")
                     declaration = await self.enemy_combat.declare_single_enemy(
                         enemy=agent,
                         player_agents=player_agents,
                         available_tokens=available_tokens,
                         llm_client=enemy_llm_client
                     )
+                    logger.debug(f"Declaration result for {agent.name}: {declaration is not None}")
+
+                    # Print detailed declaration info
+                    if declaration:
+                        action = declaration.get('major_action', 'Unknown')
+                        target_id = declaration.get('target', 'None')
+                        weapon = declaration.get('weapon', 'N/A')
+                        health_str = f"{agent.health}/{agent.max_health} HP"
+                        position_str = str(agent.position)
+
+                        # Resolve target ID to character name for readability
+                        target_display = target_id
+                        if target_id and target_id.startswith('tgt_') and self.shared_state.target_id_mapper:
+                            # Look up character name from TargetIDMapper
+                            combatant_info = self.shared_state.target_id_mapper.get_combatant_info(target_id)
+                            if combatant_info:
+                                target_display = f"{combatant_info['name']} ({target_id})"
+
+                        print(f"\n[{agent.name}] (Init {initiative_score}) {action} → {target_display} [{weapon}] | {health_str} | {position_str}")
 
                     # Log enemy declaration
                     if declaration and mechanics and mechanics.jsonl_logger:
@@ -868,18 +1037,48 @@ class SelfPlayingSession:
                                 'agent_id': declaration['agent_id'],
                                 'character_name': declaration['character_name'],
                                 'intent': declaration.get('major_action', 'Unknown action'),
+                                'target': declaration.get('target'),  # NEW: targeting info
+                                'weapon': declaration.get('weapon'),  # NEW: weapon info
+                                'reasoning': declaration.get('reasoning', '')[:100],  # NEW: truncated reasoning
                                 'initiative': declaration['initiative'],
                                 'agent_type': 'enemy'
                             },
                             timestamp=datetime.now()
                         )
                         await self.coordinator.message_bus._route_message(broadcast_message)
+                    else:
+                        # Declaration failed - create fallback DEFENSIVE action
+                        logger.warning(f"⚠️  {agent.name} declaration returned None - using fallback DEFENSIVE action (check game.log for LLM errors)")
+
+                        # Import EnemyDeclaration if not already imported
+                        from .enemy_combat import EnemyDeclaration
+
+                        # Create minimal fallback declaration
+                        fallback_declaration = EnemyDeclaration(
+                            agent_id=agent.agent_id,
+                            character_name=agent.name,
+                            initiative=initiative_score,
+                            defence_token=None,
+                            major_action="DEFENSIVE",
+                            target=None,
+                            weapon=None,
+                            minor_action=None,
+                            token_target=None,
+                            reasoning="Fallback action - original LLM declaration failed",
+                            shared_intel=None
+                        )
+
+                        # Store in enemy_declarations so resolution phase can execute it
+                        self.enemy_combat.enemy_declarations[agent.agent_id] = fallback_declaration
+
+                        # Print fallback action
+                        health_str = f"{agent.health}/{agent.max_health} HP"
+                        position_str = str(agent.position)
+                        print(f"\n[{agent.name}] (Init {initiative_score}) DEFENSIVE (fallback - check logs) | {health_str} | {position_str}")
 
             elif agent_type == 'npc':
                 # NPC declares simple action (flee/hide/plead/dialogue/assist/pass)
                 if agent.llm_client and agent.can_act:
-                    print(f"\n[{agent.name}] (NPC {agent.disposition}) declaring (initiative {initiative_score})...")
-
                     try:
                         # Build context string for NPC (include player actions and recent events)
                         active_enemies = []
@@ -989,10 +1188,39 @@ class SelfPlayingSession:
                         # Append narrative context to main context
                         context += narrative_context
 
+                        # Add combatant list with target IDs for assist/dialogue targeting
+                        if self.shared_state and hasattr(self.shared_state, 'target_id_mapper'):
+                            mapper = self.shared_state.target_id_mapper
+                            if mapper and mapper.enabled:
+                                combatant_list = []
+                                for target_id in mapper.get_all_target_ids():
+                                    info = mapper.get_combatant_info(target_id)
+                                    if info:
+                                        combatant_list.append(f"{info['name']} ({target_id})")
+
+                                if combatant_list:
+                                    context += "\n\n## Available Targets (for assist/dialogue):\n"
+                                    context += "**⚠️ Use target IDs (tgt_xxxx) when specifying targets**\n"
+                                    for c in combatant_list:
+                                        context += f"- {c}\n"
+
                         # Get NPC action via simple LLM client (correct method: declare_action)
                         npc_action = await agent.llm_client.declare_action(context)
 
                         if npc_action:
+                            # Print detailed NPC declaration info
+                            health_str = f"{agent.health}/{agent.max_health} HP"
+                            disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(agent.disposition, "❓")
+
+                            # For dialogue actions, show the actual dialogue content
+                            if npc_action.action_type == "dialogue" and npc_action.dialogue_content:
+                                print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
+                                print(f'         💬 "{npc_action.dialogue_content}"')
+                            else:
+                                reason_short = npc_action.reason[:60] + "..." if len(npc_action.reason) > 60 else npc_action.reason
+                                print(f"\n[{agent.name}] (Init {initiative_score}) {disp_emoji} {npc_action.action_type.upper()} | {health_str}")
+                                print(f"         └─ {reason_short}")
+
                             # Check for self-escalation (NPC declares attack)
                             if npc_action.action_type == "attack":
                                 logger.info(f"🔥 NPC {agent.name} self-escalating via attack declaration!")
@@ -1077,7 +1305,8 @@ class SelfPlayingSession:
                                 'intent': npc_action.action_type,
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
-                                'initiative': initiative_score
+                                'initiative': initiative_score,
+                                'dialogue_content': npc_action.dialogue_content  # Include actual dialogue for dialogue actions
                             })
 
                             # Broadcast NPC action to players
@@ -1092,7 +1321,8 @@ class SelfPlayingSession:
                                     'description': npc_action.reason,  # NPC's reasoning for action (10-500 chars)
                                     'intent': npc_action.action_type,
                                     'initiative': initiative_score,
-                                    'agent_type': 'npc'
+                                    'agent_type': 'npc',
+                                    'dialogue_content': npc_action.dialogue_content  # Include actual dialogue for dialogue actions
                                 },
                                 timestamp=datetime.now()
                             )
@@ -1119,9 +1349,28 @@ class SelfPlayingSession:
         for initiative_score, agent_type, agent in initiative_order:
             logger.debug(f"Processing {agent_type} with initiative {initiative_score}")
             if agent_type == 'player':
-                # Skip dead/unconscious players
-                if not agent.is_alive:
-                    logger.debug(f"{agent.character_state.name} is dead/unconscious - skipping execution")
+                # Skip dead/unconscious/extracted players
+                if not agent.is_in_combat:
+                    skip_reason = "extracted by medevac" if agent.is_extracted else "dead/unconscious"
+                    logger.debug(f"{agent.character_state.name} is {skip_reason} - skipping execution")
+
+                    # Log skipped action to JSONL for completeness (declaration exists, resolution should too)
+                    if agent.agent_id in self._declared_actions and mechanics and mechanics.jsonl_logger:
+                        for idx, buffered_action in enumerate(self._declared_actions[agent.agent_id]):
+                            action_intent = buffered_action.get('action', {}).get('intent', 'unknown')
+                            mechanics.jsonl_logger.log_enemy_action(
+                                round_num=mechanics.current_round,
+                                enemy_id=agent.agent_id,  # Using enemy method for simplicity
+                                enemy_name=agent.character_state.name,
+                                action_type='skipped',
+                                result=skip_reason,
+                                narration=f"{agent.character_state.name}'s action ({action_intent}) skipped: {skip_reason}",
+                                target_id=None,
+                                target_name=None,
+                                damage_dealt=None,
+                                roll_data=None,
+                                effects={'skip_reason': skip_reason}
+                            )
                     continue
 
                 # PC action execution via DM adjudication
@@ -1142,8 +1391,8 @@ class SelfPlayingSession:
                             old_position = agent.position
                             # Validate: don't move to same position (bug fix)
                             if old_position == target_position:
-                                logger.warning(f"{agent.character_state.name} tried to move to same position: {old_position}. Skipping movement.")
-                                print(f"[{agent.character_state.name}] Position unchanged: {old_position} (invalid move)")
+                                logger.info(f"{agent.character_state.name} already at {old_position}, skipping redundant movement.")
+                                print(f"[{agent.character_state.name}] Position unchanged: {old_position} (already there)")
                             else:
                                 agent.position = target_position
                                 print(f"[{agent.character_state.name}] Position: {old_position} → {agent.position}")
@@ -1195,6 +1444,86 @@ class SelfPlayingSession:
                             target_id_mapper = self.shared_state.get_target_id_mapper() if self.shared_state else None
                             _parse_surrender_from_resolution(resolution_data, resolution_state, target_id_mapper)
 
+                            # Process purchase/crafting effects from structured output
+                            effects = resolution_data.get('effects') or {}
+
+                            # Handle purchases
+                            purchase_effect = effects.get('purchase') if effects else None
+                            if purchase_effect:
+                                try:
+                                    success = mechanics.process_purchase_effect(purchase_effect, agent.character_state)
+                                    if success:
+                                        logger.info(f"Processed purchase for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Purchase processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing purchase for {agent.character_state.name}: {e}")
+
+                            # Handle crafting
+                            crafting_effect = effects.get('crafting') if effects else None
+                            if crafting_effect:
+                                try:
+                                    success = mechanics.process_crafting_effect(crafting_effect, agent.character_state)
+                                    if success:
+                                        logger.info(f"Processed crafting for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Crafting processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing crafting for {agent.character_state.name}: {e}")
+
+                            # Handle attunement
+                            attunement_effect = effects.get('attunement') if effects else None
+                            if attunement_effect:
+                                try:
+                                    success = mechanics.process_attunement_effect(attunement_effect, agent.character_state)
+                                    if success:
+                                        logger.info(f"Processed attunement for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Attunement processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing attunement for {agent.character_state.name}: {e}")
+
+                            # Handle item discovery (seeds, currency, items from environment/NPCs)
+                            item_discovery = effects.get('item_discovery') if effects else None
+                            if item_discovery:
+                                try:
+                                    success = mechanics.process_item_effect(
+                                        item_effect=item_discovery,
+                                        character_state=agent.character_state,
+                                        player_id=agent.agent_id
+                                    )
+                                    if success:
+                                        logger.info(f"Processed item discovery for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Item discovery processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing item discovery for {agent.character_state.name}: {e}")
+
+                            # Handle stabilization (YAGS First Aid - ally extraction)
+                            stabilization = effects.get('stabilization') if effects else None
+                            if stabilization:
+                                try:
+                                    target_id = stabilization.get('target') if isinstance(stabilization, dict) else getattr(stabilization, 'target', None)
+                                    success = stabilization.get('success') if isinstance(stabilization, dict) else getattr(stabilization, 'success', False)
+
+                                    if success and target_id:
+                                        # Find target player agent
+                                        target_agent = next((p for p in player_agents if p.agent_id == target_id), None)
+                                        if target_agent:
+                                            # Mark as stabilized and extracted
+                                            target_agent.is_stabilized = True
+                                            target_agent.is_extracted = True
+                                            faction = target_agent.character_state.faction
+                                            target_name = target_agent.character_state.name
+
+                                            print(f"\n🚑 MEDEVAC: {target_name} has been stabilized and extracted by {faction} medical team!")
+                                            print(f"   {target_name} is safe but will not rejoin this encounter.")
+                                            logger.info(f"Stabilization success: {target_name} extracted by {faction} medevac")
+                                        else:
+                                            logger.warning(f"Stabilization target {target_id} not found in player agents")
+                                except Exception as e:
+                                    logger.error(f"Error processing stabilization: {e}")
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
@@ -1215,14 +1544,50 @@ class SelfPlayingSession:
                     if result:
                         # Check if action was invalidated
                         if result.get('result') == 'invalidated':
-                            print(f"\n⚠️  {result['narration']}")
+                            narration = self._resolve_target_ids_in_text(result['narration'])
+                            print(f"\n⚠️  {narration}")
                         else:
-                            print(f"\n[{result['character_name']}] {result['narration']}")
+                            # Enhanced enemy execution output
+                            enemy = next((e for e in self.enemy_combat.enemy_agents if e.agent_id == result.get('enemy_id')), None)
+                            if enemy:
+                                health_str = f"{enemy.health}/{enemy.max_health} HP"
+                                position_str = str(enemy.position)
+                                # Resolve target IDs in narration for readability
+                                narration = self._resolve_target_ids_in_text(result['narration'])
+                                print(f"\n[{result['character_name']}] {narration}")
+                                # Show additional details on second line if combat action with damage
+                                if result.get('damage_dealt') is not None:
+                                    damage_str = f"Damage: {result.get('damage_dealt')}"
+                                    range_str = f"Range: {result.get('range', 'N/A')}"
+                                    print(f"         └─ {damage_str} | {range_str} | {health_str} | {position_str}")
+                                else:
+                                    # Non-damage actions (movement, claim token, etc.)
+                                    print(f"         └─ {health_str} | {position_str}")
+                            else:
+                                # Fallback if enemy not found
+                                narration = self._resolve_target_ids_in_text(result['narration'])
+                                print(f"\n[{result['character_name']}] {narration}")
 
                         # Add enemy result to synthesis input
                         # Enemy actions use a simplified result dict compared to ActionResolution schema
                         # but DM needs to see enemy actions to synthesize round accurately
                         all_resolutions.append(result)
+
+                        # Log enemy action to JSONL (uses dedicated method for simplified format)
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_enemy_action(
+                                round_num=mechanics.current_round,
+                                enemy_id=result.get('enemy_id', agent.agent_id),
+                                enemy_name=result.get('character_name', 'Unknown Enemy'),
+                                action_type=result.get('action', 'unknown'),
+                                result=result.get('result', 'unknown'),
+                                narration=result.get('narration', ''),
+                                target_id=result.get('target'),
+                                target_name=result.get('target_name'),
+                                damage_dealt=result.get('damage_dealt'),
+                                roll_data=result.get('roll'),
+                                effects=result.get('effects')
+                            )
 
             elif agent_type == 'npc':
                 # NPC action execution - route through DM adjudication like players
@@ -1233,7 +1598,14 @@ class SelfPlayingSession:
                         continue
 
                     npc_action = npc_actions[0]  # NPCs only have one action
-                    print(f"\n[{agent.name}] (NPC) executing: {npc_action['intent']}...")
+
+                    # NPCAction schema uses 'reason' and 'action_type', not 'intent' and 'description'
+                    # Map to player-style fields for consistency with DM adjudication
+                    npc_intent = npc_action.get('intent') or npc_action.get('reason', 'NPC action')
+                    npc_description = npc_action.get('description') or npc_action.get('dialogue_content') or npc_action.get('reason', '')
+                    npc_action_type = npc_action.get('action_type', 'dialogue')
+
+                    print(f"\n[{agent.name}] (NPC) executing: {npc_action_type} - {npc_intent[:50]}...")
 
                     # Build action payload for DM adjudication (similar to players)
                     action_for_adjudication = {
@@ -1242,9 +1614,10 @@ class SelfPlayingSession:
                         'initiative': initiative_score,
                         'action': {
                             'character_name': agent.name,  # Include in nested action for resolution broadcast
-                            'intent': npc_action['intent'],
-                            'description': npc_action['description'],
-                            'action_type': npc_action.get('action_type', 'dialogue'),
+                            'intent': npc_intent,
+                            'description': npc_description,
+                            'action_type': npc_action_type,
+                            'target': npc_action.get('target'),  # Include target for assist/dialogue/attack actions
                             'is_npc': True  # Flag for DM to use lightweight adjudication
                         }
                     }
@@ -1280,6 +1653,9 @@ class SelfPlayingSession:
                     if resolution_data:
                         all_resolutions.append(resolution_data)
 
+                        # NPC resolutions go through DM adjudication, so they're already logged
+                        # via the normal log_action_resolution call in dm.py
+
                     # Clean up pending resolution (must match key format used above)
                     if f"{agent.agent_id}_0" in self._pending_resolutions:
                         del self._pending_resolutions[f"{agent.agent_id}_0"]
@@ -1295,10 +1671,12 @@ class SelfPlayingSession:
 
                 if enemy and enemy.is_active:
                     # Convert to NPC with "prisoner" disposition
+                    # NPCs use same LLM provider as enemies (if available)
                     npc = deescalate_enemy_to_npc(
                         enemy=enemy,
                         disposition="prisoner",
-                        current_round=mechanics.current_round if mechanics else 0
+                        current_round=mechanics.current_round if mechanics else 0,
+                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
                     )
 
                     # Add to shared state
@@ -1316,6 +1694,458 @@ class SelfPlayingSession:
                     logger.info(f"✅ Converted surrendered enemy {enemy_id} to NPC prisoner: {npc.name}")
                     print(f"\n✅ {enemy.name} has been detained and is no longer a threat")
 
+        # === CLOCK UPDATE PHASE ===
+        # Apply clock updates BEFORE conversion check so conversion decisions can see filled clocks
+        clock_updates_applied = {}
+        expired_clocks = []
+        filled_clocks = []
+        if mechanics:
+            clock_updates_applied = mechanics.apply_queued_clock_updates()
+            if clock_updates_applied:
+                logger.debug(f"Applied {len(clock_updates_applied)} queued clock updates before conversion check")
+
+                # Log aggregated updates for each clock
+                for clock_name, update_data in clock_updates_applied.items():
+                    before = update_data['before']
+                    after = update_data['after']
+                    maximum = update_data['maximum']
+                    reasons = update_data['reasons']
+                    direction = update_data['direction']
+
+                    logger.debug(f"Clock {clock_name}: {before}/{maximum} → {after}/{maximum} {direction} "
+                               f"(aggregated: {', '.join(reasons)})")
+
+            # Check for expired clocks
+            expired_clocks = mechanics.check_and_expire_clocks()
+            if expired_clocks:
+                logger.warning(f"Found {len(expired_clocks)} expired clocks: {[c['clock_name'] for c in expired_clocks]}")
+
+            # Log filled clocks (check the update data for 'filled' flag)
+            for clock_name, update_data in clock_updates_applied.items():
+                if update_data.get('filled', False):
+                    # Clock just filled this round
+                    clock_obj = mechanics.scene_clocks.get(clock_name)
+                    if clock_obj:
+                        after = update_data['after']
+                        maximum = update_data['maximum']
+                        consequence = clock_obj.filled_consequence or 'No consequence specified'
+
+                        logger.warning(f"🔔 Clock {clock_name} FILLED: {after}/{maximum} - triggering consequences")
+                        print(f"\n⏰ CLOCK FILLED: {clock_name} ({after}/{maximum})")
+                        print(f"   Consequence: {consequence}")
+
+        # ENTITY LIFECYCLE PHASE: Morale, conversions, spawns, departures (before synthesis)
+        from .schemas.story_events import EntityLifecycleResult
+        entity_lifecycle_result = EntityLifecycleResult()
+        conversion_decisions = None
+
+        # Check if story advancement is pending (all clocks complete)
+        # If so, SKIP Entity Lifecycle Phase - spawns/conversions don't make sense when scene is changing
+        dm_agents = [agent for agent in self.agents if hasattr(agent, 'needs_story_advancement')]
+        story_advancement_pending = any(dm.needs_story_advancement for dm in dm_agents) if dm_agents else False
+
+        if story_advancement_pending:
+            logger.info("⏭️  Skipping Entity Lifecycle Phase - story advancement pending (all clocks complete)")
+            print(f"\n⏭️  Entity Lifecycle Phase skipped - story is advancing to new location")
+
+        if all_resolutions and not story_advancement_pending:
+            print(f"\n{'='*80}")
+            print(f"🔄 ENTITY LIFECYCLE PHASE (Round {mechanics.current_round if mechanics else 0})")
+            print(f"{'='*80}")
+
+            # Step 1: Check morale for all enemies (BEFORE conversions so DM sees panic in context)
+            if self.enemy_combat and self.enemy_combat.enabled:
+                morale_events = self.enemy_combat.check_morale_all()
+                entity_lifecycle_result.morale_events = morale_events
+
+                if morale_events:
+                    print(f"\n📊 Morale Checks:")
+                    for event in morale_events:
+                        print(f"   - {event['character_name']}: {event['type']} ({event.get('narration', '')})")
+                        logger.info(f"Morale event: {event['character_name']} {event['type']}")
+
+            # Step 2: Build resolution summary for DM context (include morale results)
+            resolution_summary = self._build_resolution_summary(all_resolutions)
+
+            # Add morale events to resolution summary for DM context
+            if entity_lifecycle_result.morale_events:
+                morale_summary = "\n\nMORALE EVENTS THIS ROUND:\n"
+                for event in entity_lifecycle_result.morale_events:
+                    morale_summary += f"- {event['character_name']}: {event['type']} ({event['narration']})\n"
+                resolution_summary += morale_summary
+
+            # Find DM agent
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            # Step 3: Get conversion decisions from DM
+            if dm_agent and hasattr(dm_agent, 'check_conversions'):
+                try:
+                    conversion_decisions = await dm_agent.check_conversions(
+                        round_number=mechanics.current_round if mechanics else 0,
+                        resolution_summary=resolution_summary
+                    )
+                    entity_lifecycle_result.conversion_decisions = conversion_decisions
+
+                    print(f"\n✅ Conversion decisions:")
+                    print(f"   - Enemy conversions: {len(conversion_decisions.enemy_conversions)}")
+                    print(f"   - NPC escalations: {len(conversion_decisions.escalations)}")
+                    print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
+                    print(f"   - NPC departures: {len(conversion_decisions.npc_departures)}")
+                    print(f"   - Enemy departures: {len(conversion_decisions.enemy_departures)}")
+                    print(f"   - Enemy spawns: {len(conversion_decisions.enemy_spawns)}")
+                    print(f"   - Reasoning: {conversion_decisions.reasoning}")
+
+                    logger.info(f"Conversion check complete: {len(conversion_decisions.enemy_conversions)} conversions, "
+                               f"{len(conversion_decisions.escalations)} escalations, {len(conversion_decisions.npc_spawns)} NPC spawns, "
+                               f"{len(conversion_decisions.npc_departures)} NPC departures, {len(conversion_decisions.enemy_departures)} enemy departures, "
+                               f"{len(conversion_decisions.enemy_spawns)} enemy spawns")
+
+                    # Step 4: Process enemy spawns from conversion check immediately (before synthesis)
+                    if conversion_decisions.enemy_spawns and self.enemy_combat:
+                        # Enable enemy combat if we're spawning enemies (even if it started disabled)
+                        if not self.enemy_combat.enabled:
+                            logger.info("Enabling enemy combat due to conversion check enemy spawn")
+                            self.enemy_combat.enabled = True
+
+                        from .schemas.story_events import EnemySpawn
+
+                        # Reconstruct EnemySpawn objects if they're dicts
+                        enemy_spawn_list = []
+                        for enemy_spawn in conversion_decisions.enemy_spawns:
+                            if isinstance(enemy_spawn, dict):
+                                enemy_spawn = EnemySpawn(**enemy_spawn)
+                            enemy_spawn_list.append(enemy_spawn)
+
+                        # Spawn all enemies using spawn_from_structured
+                        spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+
+                        # Track spawned enemy agent_ids
+                        for enemy in self.enemy_combat.enemy_agents:
+                            if enemy.spawned_round == (mechanics.current_round if mechanics else 0):
+                                entity_lifecycle_result.enemies_spawned.append(enemy.agent_id)
+
+                        # Print spawn notifications
+                        for notification in spawn_notifications:
+                            print(f"\n{notification}")
+                            logger.info(f"Enemy spawn: {notification}")
+
+                    # Process enemy conversions with validation
+                    if conversion_decisions.enemy_conversions and self.enemy_combat and self.enemy_combat.enabled:
+                        from .conversion_validation import validate_enemy_conversion, auto_correct_conversion
+                        from .agent_conversion import deescalate_enemy_to_npc
+
+                        for enemy_conversion in conversion_decisions.enemy_conversions:
+                            # Validate conversion
+                            is_valid, error_msg, suggested_id = validate_enemy_conversion(
+                                enemy_conversion.enemy_id,
+                                self.enemy_combat.enemy_agents,
+                                defeated_enemies=[]  # TODO: Track defeated enemies
+                            )
+
+                            if not is_valid:
+                                # Try auto-correction for high-confidence matches
+                                corrected_id = auto_correct_conversion(
+                                    enemy_conversion.enemy_id,
+                                    self.enemy_combat.enemy_agents,
+                                    threshold=0.8
+                                )
+
+                                if corrected_id:
+                                    logger.warning(f"Auto-corrected enemy conversion: {enemy_conversion.enemy_id} → {corrected_id}")
+                                    print(f"⚠️  Auto-corrected conversion ID: {enemy_conversion.enemy_id} → {corrected_id}")
+                                    enemy_conversion.enemy_id = corrected_id
+                                    is_valid = True
+                                else:
+                                    logger.warning(f"Skipping invalid enemy conversion: {error_msg}")
+                                    print(f"\n⚠️  {error_msg}")
+                                    continue
+
+                            # Find and convert the enemy
+                            enemy = next((e for e in self.enemy_combat.enemy_agents
+                                        if e.agent_id == enemy_conversion.enemy_id), None)
+
+                            if enemy and enemy.is_active:
+                                from .schemas.story_events import EnemyResolution
+
+                                # Handle different conversion types
+                                if enemy_conversion.resolution == EnemyResolution.FLED:
+                                    # Enemy leaves scene
+                                    enemy.is_active = False
+                                    enemy.despawned_round = mechanics.current_round if mechanics else 0
+                                    logger.info(f"Enemy fled: {enemy.name} ({enemy.agent_id})")
+                                    print(f"\n✓ {enemy.name} has fled the scene")
+
+                                elif enemy_conversion.resolution in [EnemyResolution.CONVINCED,
+                                                                     EnemyResolution.NEUTRALIZED,
+                                                                     EnemyResolution.SUBDUED]:
+                                    # Enemy becomes NPC
+                                    # NPCs use same LLM provider as enemies (if available)
+                                    npc = deescalate_enemy_to_npc(
+                                        enemy=enemy,
+                                        disposition=enemy_conversion.resulting_disposition or "prisoner",
+                                        current_round=mechanics.current_round if mechanics else 0,
+                                        llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                                    )
+
+                                    # Add to shared state
+                                    if self.shared_state:
+                                        self.shared_state.npc_agents.append(npc)
+
+                                        # Register in target mapper
+                                        if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                            self.shared_state.target_id_mapper.register_npc(npc)
+
+                                    # Deactivate enemy
+                                    enemy.is_active = False
+                                    enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                                    # Track conversion in lifecycle result
+                                    entity_lifecycle_result.enemies_converted.append(enemy.agent_id)
+
+                                    logger.info(f"Converted enemy to NPC: {enemy.name} → {npc.name}")
+                                    print(f"\n✓ {enemy.name} converted to NPC ({enemy_conversion.resolution.value})")
+
+                    # Process NPC escalations with validation
+                    if conversion_decisions.escalations and self.shared_state and self.shared_state.npc_agents:
+                        from .conversion_validation import validate_npc_escalation
+                        from .agent_conversion import escalate_npc_to_enemy
+
+                        for escalation in conversion_decisions.escalations:
+                            # Validate escalation
+                            active_enemies = self.enemy_combat.enemy_agents if self.enemy_combat and self.enemy_combat.enabled else []
+                            is_valid, error_msg, suggested_id = validate_npc_escalation(
+                                escalation.npc_id,
+                                self.shared_state.npc_agents,
+                                active_enemies=active_enemies
+                            )
+
+                            if not is_valid:
+                                logger.warning(f"Skipping invalid NPC escalation: {error_msg}")
+                                print(f"\n⚠️  {error_msg}")
+                                continue
+
+                            # Find and escalate the NPC
+                            npc = next((n for n in self.shared_state.npc_agents
+                                      if n.agent_id == escalation.npc_id), None)
+
+                            if npc:
+                                enemy = escalate_npc_to_enemy(
+                                    npc=npc,
+                                    template_override=escalation.template,
+                                    current_round=mechanics.current_round if mechanics else 0
+                                )
+
+                                # Add to enemy combat
+                                if self.enemy_combat and self.enemy_combat.enabled:
+                                    self.enemy_combat.enemy_agents.append(enemy)
+
+                                    # Register in target mapper
+                                    if self.shared_state and hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                        self.shared_state.target_id_mapper.register_enemy(enemy)
+
+                                # Remove from NPC list
+                                self.shared_state.npc_agents.remove(npc)
+
+                                # Track escalation in lifecycle result
+                                entity_lifecycle_result.npcs_escalated.append(npc.agent_id)
+
+                                logger.info(f"Escalated NPC to enemy: {npc.name} → {enemy.name}")
+                                print(f"\n✓ {npc.name} escalated to hostile combatant")
+
+                    # Process NPC spawns from conversion check
+                    if conversion_decisions.npc_spawns and self.shared_state:
+                        from .schemas.story_events import NPCSpawn
+                        from .npc_agent import NPCAgent
+
+                        for npc_spawn in conversion_decisions.npc_spawns:
+                            # Reconstruct NPCSpawn if it's a dict
+                            if isinstance(npc_spawn, dict):
+                                npc_spawn = NPCSpawn(**npc_spawn)
+
+                            # Check if NPC with same name already exists (prevent duplicates)
+                            existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
+                            if existing_npc:
+                                logger.info(f"NPC '{npc_spawn.name}' already exists ({existing_npc.agent_id}), skipping spawn")
+                                print(f"\n⏭️  NPC '{npc_spawn.name}' already present, skipping spawn")
+                                continue
+
+                            # Create NPC agent
+                            npc = NPCAgent(
+                                agent_id=f"npc_{uuid.uuid4().hex[:8]}",
+                                name=npc_spawn.name,
+                                faction=npc_spawn.faction,
+                                disposition=npc_spawn.disposition,
+                                entity_type=npc_spawn.entity_type,
+                                threat_level=npc_spawn.threat_level,
+                                health=npc_spawn.health,
+                                max_health=npc_spawn.health,
+                                soak=npc_spawn.soak,
+                                void_score=0,  # NPCs start with no void
+                                skills=npc_spawn.skills,
+                                description=npc_spawn.description,
+                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                            )
+
+                            # Add to shared state
+                            self.shared_state.npc_agents.append(npc)
+
+                            # Register in target mapper
+                            if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
+                                self.shared_state.target_id_mapper.register_npc(npc)
+
+                            # Track NPC spawn in lifecycle result
+                            entity_lifecycle_result.npcs_spawned.append(npc.agent_id)
+
+                            logger.info(f"NPC spawned: {npc.name} ({npc.agent_id})")
+                            print(f"\n✓ NPC entered scene: {npc.name} ({npc.entity_type}, {npc.disposition})")
+
+                    # Process NPC departures from conversion check (aggressive removal)
+                    if conversion_decisions.npc_departures and self.shared_state:
+                        for npc_identifier in conversion_decisions.npc_departures:
+                            # Find NPC to get name before removal
+                            npc = self.shared_state.get_npc_by_id(npc_identifier)
+                            npc_name = npc.name if npc else npc_identifier
+
+                            removed = self.shared_state.remove_npc(npc_identifier)
+                            if removed:
+                                # Track departure in lifecycle result
+                                entity_lifecycle_result.npcs_departed.append(npc_identifier)
+
+                                # Log NPC departure to JSONL
+                                if mechanics and mechanics.jsonl_logger:
+                                    mechanics.jsonl_logger.log_npc_departure(
+                                        round_num=mechanics.current_round,
+                                        npc_id=npc_identifier,
+                                        npc_name=npc_name,
+                                        departure_reason="entity_lifecycle_removal"
+                                    )
+
+                                logger.info(f"👤 NPC departed (entity lifecycle): {npc_identifier}")
+                                print(f"\n👤 NPC departed: {npc_name}")
+                            else:
+                                logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
+
+                    # Process environmental object spawns from conversion check
+                    if conversion_decisions.env_object_spawns and self.shared_state:
+                        from .schemas.story_events import EnvObjectSpawn
+                        from .shared_state import EnvironmentalObject, EnvironmentalObjectType
+
+                        for env_spawn in conversion_decisions.env_object_spawns:
+                            # Reconstruct EnvObjectSpawn if it's a dict
+                            if isinstance(env_spawn, dict):
+                                env_spawn = EnvObjectSpawn(**env_spawn)
+
+                            # Parse object type
+                            try:
+                                object_type = EnvironmentalObjectType[env_spawn.object_type.upper()]
+                            except KeyError:
+                                logger.warning(f"Invalid object_type '{env_spawn.object_type}', skipping spawn")
+                                continue
+
+                            # Create environmental object instance
+                            env_object = EnvironmentalObject(
+                                object_type=object_type,
+                                name=env_spawn.name,
+                                description=env_spawn.description,
+                                state=env_spawn.initial_state
+                            )
+
+                            # Add to shared state
+                            self.shared_state.add_env_object(env_object)
+
+                            # Track in lifecycle result
+                            entity_lifecycle_result.env_objects_spawned.append(env_object.object_id)
+
+                            logger.info(f"Environmental object spawned: {env_object.name} ({env_spawn.object_type}), object_id={env_object.object_id}")
+                            logger.info(f"Reason: {env_spawn.narrative_reason}")
+                            print(f"\n🏗️  Environmental object appeared: {env_object.name} ({env_spawn.object_type})")
+
+                    # Process enemy departures from conversion check (aggressive removal)
+                    if conversion_decisions.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
+                        for enemy_identifier in conversion_decisions.enemy_departures:
+                            # Find enemy to get name before removal
+                            enemy = next((e for e in self.enemy_combat.enemy_agents
+                                        if e.agent_id == enemy_identifier), None)
+                            enemy_name = enemy.name if enemy else enemy_identifier
+
+                            if enemy and enemy.is_active:
+                                # Deactivate enemy (mark as despawned)
+                                enemy.is_active = False
+                                enemy.despawned_round = mechanics.current_round if mechanics else 0
+
+                                # Track departure in lifecycle result
+                                entity_lifecycle_result.enemies_departed.append(enemy_identifier)
+
+                                # Log enemy departure to JSONL (reuse enemy_defeat event with special reason)
+                                if mechanics and mechanics.jsonl_logger:
+                                    rounds_survived = enemy.despawned_round - enemy.spawned_round
+                                    mechanics.jsonl_logger.log_enemy_defeat(
+                                        round_num=mechanics.current_round,
+                                        enemy_id=enemy_identifier,
+                                        enemy_name=enemy_name,
+                                        defeat_reason='departed',  # Special reason for departures (entity_lifecycle_removal)
+                                        rounds_survived=rounds_survived
+                                    )
+
+                                logger.info(f"⚔️  Enemy departed (entity lifecycle): {enemy_identifier}")
+                                print(f"\n⚔️  Enemy departed: {enemy_name}")
+                            else:
+                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+
+                except Exception as e:
+                    logger.warning(f"Conversion check failed: {type(e).__name__}: {e}")
+                    print(f"\n⚠️  Conversion check failed: {type(e).__name__}: {e}")
+                    # Log traceback for debugging
+                    import traceback
+                    logger.debug(f"Conversion check traceback:\n{traceback.format_exc()}")
+                    # Continue with empty conversion decisions
+                    from .schemas.story_events import ConversionDecisions
+                    conversion_decisions = ConversionDecisions(
+                        enemy_conversions=[],
+                        escalations=[],
+                        npc_spawns=[],
+                        npc_departures=[],
+                        enemy_departures=[],
+                        enemy_spawns=[],
+                        reasoning="Conversion check failed, proceeding without conversions"
+                    )
+            else:
+                logger.debug("DM agent not found or doesn't have check_conversions method - skipping entity lifecycle")
+
+        # Log EntityLifecycleResult to JSONL (if any lifecycle events occurred)
+        if (entity_lifecycle_result.morale_events or
+            entity_lifecycle_result.enemies_spawned or
+            entity_lifecycle_result.npcs_spawned or
+            entity_lifecycle_result.enemies_converted or
+            entity_lifecycle_result.npcs_escalated or
+            entity_lifecycle_result.npcs_departed or
+            entity_lifecycle_result.enemies_departed or
+            entity_lifecycle_result.env_objects_spawned):
+
+            if mechanics and mechanics.jsonl_logger:
+                lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
+                    round_num=mechanics.current_round
+                )
+                mechanics.jsonl_logger.log_event(
+                    'entity_lifecycle',
+                    lifecycle_dict,
+                    round_num=mechanics.current_round
+                )
+
+            # Print entity lifecycle summary
+            print(f"\n{entity_lifecycle_result.to_synthesis_context()}")
+            logger.info(f"Entity lifecycle complete: {len(entity_lifecycle_result.morale_events)} morale events, "
+                       f"{len(entity_lifecycle_result.enemies_spawned)} enemies spawned, "
+                       f"{len(entity_lifecycle_result.npcs_spawned)} NPCs spawned, "
+                       f"{len(entity_lifecycle_result.enemies_converted)} enemies converted, "
+                       f"{len(entity_lifecycle_result.npcs_escalated)} NPCs escalated, "
+                       f"{len(entity_lifecycle_result.npcs_departed)} NPCs departed, "
+                       f"{len(entity_lifecycle_result.env_objects_spawned)} env objects spawned")
+
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
             print("\n=== Generating Round Synthesis ===")
@@ -1323,6 +2153,10 @@ class SelfPlayingSession:
 
             # Reset synthesis event before requesting synthesis
             self._synthesis_complete.clear()
+
+            # Convert EntityLifecycleResult to dict for message serialization
+            from dataclasses import asdict
+            entity_lifecycle_dict = asdict(entity_lifecycle_result) if entity_lifecycle_result else None
 
             synthesis_message = Message(
                 id=f"synthesis_{datetime.now().isoformat()}",
@@ -1333,7 +2167,10 @@ class SelfPlayingSession:
                     'phase': 'synthesis',
                     'resolutions': all_resolutions,
                     'round': mechanics.current_round if mechanics else 0,
-                    'resolution_state': resolution_state  # Include fled NPCs for synthesis context
+                    'resolution_state': resolution_state,  # Include fled NPCs for synthesis context
+                    'conversion_decisions': conversion_decisions,  # Include conversion check results for DM narrative
+                    'entity_lifecycle_result': entity_lifecycle_dict,  # Include entity lifecycle (morale, spawns, conversions)
+                    'expired_clocks': expired_clocks  # Include expired clocks from clock update phase
                 },
                 timestamp=datetime.now()
             )
@@ -1350,7 +2187,8 @@ class SelfPlayingSession:
             cleanup_events = self.enemy_combat.cleanup_round()
 
             for event in cleanup_events:
-                print(f"[CLEANUP] {event['narration']}")
+                narration = self._resolve_target_ids_in_text(event['narration'])
+                print(f"[CLEANUP] {narration}")
 
                 if mechanics and mechanics.jsonl_logger:
                     mechanics.jsonl_logger.log_event(
@@ -1371,19 +2209,71 @@ class SelfPlayingSession:
                     if hasattr(player, 'character_state'):
                         char_state = player.character_state
                         # Health/wounds are stored on player agent, not CharacterState
+                        # Calculate death state based on wounds (6+ wounds = dead)
+                        wounds = player.wounds if hasattr(player, 'wounds') else 0
+                        health = player.health if hasattr(player, 'health') else 0
+                        if wounds >= 6:
+                            death_state = "dead"
+                        elif health <= 0:
+                            death_state = "unconscious"
+                        else:
+                            death_state = "alive"
+
                         mechanics.jsonl_logger.log_character_state(
                             round_num=mechanics.current_round,
                             character_id=player.agent_id,
                             character_name=char_state.name,
-                            health=player.health if hasattr(player, 'health') else 0,
+                            health=health,
                             max_health=player.max_health if hasattr(player, 'max_health') else 0,
-                            wounds=player.wounds if hasattr(player, 'wounds') else 0,
+                            wounds=wounds,
                             void_score=char_state.void_score if hasattr(char_state, 'void_score') else 0,
                             soulcredit=char_state.soulcredit if hasattr(char_state, 'soulcredit') else 0,
                             position=str(getattr(player, 'position', 'Unknown')),
                             conditions=[],  # TODO: Add condition tracking
-                            is_defeated=(player.health <= 0) if hasattr(player, 'health') else False
+                            is_defeated=(death_state != "alive"),
+                            death_state=death_state  # NEW: Track death vs unconscious
                         )
+
+                        # Log narrative memory state for ML training
+                        if hasattr(player, 'narrative_memory') and player.narrative_memory:
+                            mechanics.jsonl_logger.log_narrative_memory(
+                                round_num=mechanics.current_round,
+                                agent_id=player.agent_id,
+                                character_name=char_state.name,
+                                locations_visited=player.narrative_memory.locations_visited,
+                                story_beats=player.narrative_memory.story_beats,
+                                story_summary=player.narrative_memory.story_summary
+                            )
+
+                # Log character state snapshots for all active enemies (for ML training/balance analysis)
+                if self.enemy_combat.enabled:
+                    for enemy in self.enemy_combat.enemy_agents:
+                        if enemy.is_active:  # Only log active enemies
+                            # Calculate death state for enemies too
+                            enemy_wounds = enemy.wounds if hasattr(enemy, 'wounds') else 0
+                            enemy_health = enemy.health if hasattr(enemy, 'health') else 0
+                            if enemy_wounds >= 6:
+                                enemy_death_state = "dead"
+                            elif enemy_health <= 0:
+                                enemy_death_state = "unconscious"
+                            else:
+                                enemy_death_state = "alive"
+
+                            mechanics.jsonl_logger.log_character_state(
+                                round_num=mechanics.current_round,
+                                character_id=enemy.agent_id,
+                                character_name=enemy.name,
+                                health=enemy_health,
+                                max_health=enemy.max_health if hasattr(enemy, 'max_health') else 0,
+                                wounds=enemy_wounds,
+                                void_score=0,  # Enemies typically don't track void
+                                soulcredit=0,  # Enemies don't track soulcredit
+                                position=str(getattr(enemy, 'position', 'Unknown')),
+                                conditions=[],  # TODO: Add condition tracking for enemies
+                                is_defeated=(enemy_death_state != "alive"),
+                                death_state=enemy_death_state,  # NEW: Track death vs unconscious
+                                agent='enemy'  # Add agent field to identify this as enemy state
+                            )
 
                 # Log round summary for balance analysis
                 active_enemy_count = len([e for e in self.enemy_combat.enemy_agents if e.is_active]) if self.enemy_combat.enabled else 0
@@ -1608,8 +2498,16 @@ class SelfPlayingSession:
         debriefs = []
         for player in player_agents:
             try:
-                import anthropic
-                client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+                # Use player's configured LLM provider instead of hardcoded Anthropic
+                from .llm_provider import LLMConfig, create_provider
+
+                provider_config = LLMConfig(
+                    provider=player.llm_config.get('provider', 'anthropic'),
+                    model=player.llm_config.get('model', 'claude-sonnet-4-5'),
+                    temperature=0.8,
+                    max_tokens=250
+                )
+                provider = create_provider(provider_config)
 
                 # Get scenario situation from player's current_scenario
                 scenario_situation = "Mission completed"
@@ -1681,23 +2579,41 @@ Provide a brief (2-3 sentence) debrief statement in character voice:
 
 Keep it conversational and in character. This is a dialogue, not a report."""
 
-                response = await asyncio.to_thread(
-                    client.messages.create,
-                    model=player.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                    max_tokens=250,
-                    temperature=0.8,
-                    messages=[{"role": "user", "content": debrief_prompt}]
-                )
+                # Use llm_provider's generate method (works for all providers)
+                # Retry up to 3 times if response is empty
+                debrief_text = ""
+                max_retries = 3
+                for attempt in range(max_retries):
+                    response = await provider.generate(
+                        prompt=debrief_prompt,
+                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
+                        temperature=0.8
+                    )
 
-                debrief_text = response.content[0].text.strip()
+                    debrief_text = response.text.strip()
 
-                # Add death marker for dead players
-                if is_dead:
-                    print(f"💀 [{player.character_state.name}] (DYING) {debrief_text}\n")
+                    if debrief_text:
+                        # Success - got non-empty response
+                        break
+                    else:
+                        # Empty response - log and retry
+                        logger.warning(f"Debrief attempt {attempt + 1}/{max_retries} returned empty for {player.character_state.name}")
+                        if attempt < max_retries - 1:
+                            logger.info(f"Retrying debrief generation for {player.character_state.name}...")
+
+                # Check if debrief is still empty after all retries
+                if not debrief_text:
+                    print(f"⚠️  [{player.character_state.name}] (debrief generation returned empty after {max_retries} attempts)\n")
+                    # Still add to debriefs so conversation flow isn't broken
+                    debriefs.append((player.character_state.name, "[remained silent]"))
                 else:
-                    print(f"[{player.character_state.name}] {debrief_text}\n")
+                    # Add death marker for dead players
+                    if is_dead:
+                        print(f"💀 [{player.character_state.name}] (DYING) {debrief_text}\n")
+                    else:
+                        print(f"[{player.character_state.name}] {debrief_text}\n")
 
-                debriefs.append((player.character_state.name, debrief_text))
+                    debriefs.append((player.character_state.name, debrief_text))
 
                 # Log debrief to JSONL
                 if mechanics and mechanics.jsonl_logger:
@@ -1802,32 +2718,75 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         inv_str = " | ".join(inventory_items)
                         print(f"         └─ Inventory: {inv_str}")
 
-                # Display energy/seeds if available
-                if hasattr(agent.character_state, 'energy_inventory') and agent.character_state.energy_inventory:
-                    energy_inv = agent.character_state.energy_inventory
-                    energy_items = []
+                # Display energy purse (currency and seeds)
+                if hasattr(agent.character_state, 'energy_purse') and agent.character_state.energy_purse:
+                    energy_purse = agent.character_state.energy_purse
 
-                    # Seeds
-                    seeds = getattr(energy_inv, 'seed_counts', {})
-                    if seeds.get('attuned', 0) > 0:
-                        energy_items.append(f"Attuned Seeds:{seeds['attuned']}")
-                    if seeds.get('raw', 0) > 0:
-                        energy_items.append(f"Raw Seeds:{seeds['raw']}")
-                    if seeds.get('hollow', 0) > 0:
-                        energy_items.append(f"Hollow:{seeds['hollow']}")
+                    # Display all currencies (show non-zero values)
+                    currency_parts = []
+                    if energy_purse.drip > 0 or energy_purse.breath > 0 or energy_purse.grain > 0 or energy_purse.spark > 0:
+                        if energy_purse.drip > 0:
+                            currency_parts.append(f"Drip:{energy_purse.drip}")
+                        if energy_purse.breath > 0:
+                            currency_parts.append(f"Breath:{energy_purse.breath}")
+                        if energy_purse.grain > 0:
+                            currency_parts.append(f"Grain:{energy_purse.grain}")
+                        if energy_purse.spark > 0:
+                            currency_parts.append(f"Spark:{energy_purse.spark}")
 
-                    # Currency (show highest denomination available)
-                    currency = getattr(energy_inv, 'currencies', {})
-                    if currency.get('spark', 0) > 0:
-                        energy_items.append(f"Sparks:{currency['spark']}")
-                    elif currency.get('grain', 0) > 0:
-                        energy_items.append(f"Grains:{currency['grain']}")
-                    elif currency.get('drip', 0) > 0:
-                        energy_items.append(f"Drips:{currency['drip']}")
+                    if currency_parts:
+                        currency_str = " | ".join(currency_parts)
+                        print(f"         └─ Energy: {currency_str}")
 
-                    if energy_items:
-                        energy_str = " | ".join(energy_items[:3])
-                        print(f"         └─ Resources: {energy_str}")
+                    # Display seeds (if any)
+                    if energy_purse.seeds:
+                        from .energy_economy import SeedType
+                        seed_counts = {}
+                        for seed in energy_purse.seeds:
+                            # Raw seeds: show freshness (convert to currency before degrading to Hollows)
+                            if seed.seed_type == SeedType.RAW:
+                                if seed.cycles_remaining <= 5:
+                                    seed_type_name = "Raw (Old)"
+                                elif seed.cycles_remaining <= 9:
+                                    seed_type_name = "Raw (Aged)"
+                                else:
+                                    seed_type_name = "Raw (Fresh)"
+                            # Hollow seeds: illicit currency from fully degraded Raw seeds
+                            elif seed.seed_type == SeedType.HOLLOW:
+                                seed_type_name = "Hollows"
+                            # Attuned seeds: (not used in current gameplay loop)
+                            elif seed.seed_type == SeedType.ATTUNED:
+                                if seed.element:
+                                    seed_type_name = f"Attuned ({seed.element.value.title()})"
+                                else:
+                                    seed_type_name = "Attuned"
+                            else:
+                                seed_type_name = seed.seed_type.value
+
+                            seed_counts[seed_type_name] = seed_counts.get(seed_type_name, 0) + 1
+
+                        seed_parts = [f"{name}:{count}" for name, count in seed_counts.items()]
+                        seed_str = " | ".join(seed_parts)
+                        print(f"         └─ Seeds: {seed_str}")
+
+                # Display Soulcredit
+                if hasattr(agent.character_state, 'soulcredit'):
+                    sc = agent.character_state.soulcredit
+                    # Determine SC status
+                    if sc >= 8:
+                        sc_status = "Exemplary"
+                    elif sc >= 5:
+                        sc_status = "Good Standing"
+                    elif sc >= 2:
+                        sc_status = "Monitored"
+                    elif sc >= 0:
+                        sc_status = "Probation"
+                    elif sc >= -2:
+                        sc_status = "Restricted"
+                    else:
+                        sc_status = "Sanctioned"
+
+                    print(f"         └─ Soulcredit: {sc:+d}/10 ({sc_status})")
 
         # Display Enemies
         if enemies:
@@ -1878,6 +2837,134 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         print()
 
+    def _build_resolution_summary(self, all_resolutions: List[Dict]) -> str:
+        """
+        Build summary of resolutions for conversion check phase.
+
+        Args:
+            all_resolutions: List of resolution dicts from this round
+
+        Returns:
+            Human-readable summary string for DM conversion context
+        """
+        if not all_resolutions:
+            return "No resolutions this round"
+
+        summary_lines = []
+        for resolution in all_resolutions:
+            agent_name = resolution.get('character_name', 'Unknown')
+            action = resolution.get('action_description', 'Unknown action')
+
+            # Truncate long actions
+            if len(action) > 100:
+                action = action[:97] + "..."
+
+            # Get success status and margin
+            success = resolution.get('success', False)
+            margin = resolution.get('margin', 0)
+            tier = resolution.get('outcome_tier', 'UNKNOWN')
+
+            # Build status with margin/tier for context
+            if success:
+                status = f'SUCCESS (margin: {margin:+d}, tier: {tier})'
+            else:
+                status = f'FAIL (margin: {margin:+d})'
+
+            # Get DM narration (the full paragraph!)
+            narration = resolution.get('narration', '')
+            # Truncate to first 300 chars to keep summary readable but preserve key details
+            if len(narration) > 300:
+                narration = narration[:297] + "..."
+
+            # Add damage dealt if any
+            damage_text = ""
+            effects = resolution.get('effects')
+            # Damage is now List[DamageEffect] - sum all dealt damage for display
+            if effects and hasattr(effects, 'damage') and effects.damage:
+                total_damage = sum(dmg.dealt for dmg in effects.damage)
+                damage_text = f" | Damage: {total_damage}"
+            elif isinstance(effects, dict):
+                # Handle dict-based effects (enemy combat format)
+                # Must check that damage is not None before calling .get() on it
+                damage = effects.get('damage')
+                if damage and isinstance(damage, dict):
+                    dealt = damage.get('dealt')
+                    if dealt:
+                        damage_text = f" | Damage: {dealt}"
+
+            # Add clock changes if any
+            clock_text = ""
+            if effects:
+                clock_changes = []
+                if hasattr(effects, 'clock_changes') and effects.clock_changes:
+                    for clock in effects.clock_changes:
+                        change = getattr(clock, 'tick_change', 0)
+                        name = getattr(clock, 'clock_name', 'Unknown')
+                        clock_changes.append(f"{name} {change:+d}")
+                elif isinstance(effects, dict) and effects.get('clock_changes'):
+                    for clock in effects['clock_changes']:
+                        change = clock.get('tick_change', 0)
+                        name = clock.get('clock_name', 'Unknown')
+                        clock_changes.append(f"{name} {change:+d}")
+
+                if clock_changes:
+                    clock_text = f" | Clocks: {', '.join(clock_changes)}"
+
+            # Add conditions applied if any
+            condition_text = ""
+            if effects:
+                conditions = []
+                if hasattr(effects, 'conditions') and effects.conditions:
+                    for cond in effects.conditions:
+                        cond_name = getattr(cond, 'name', 'Unknown')
+                        conditions.append(cond_name)
+                elif isinstance(effects, dict) and effects.get('conditions'):
+                    for cond in effects['conditions']:
+                        cond_name = cond.get('name', 'Unknown')
+                        conditions.append(cond_name)
+
+                if conditions:
+                    condition_text = f" | Conditions: {', '.join(conditions)}"
+
+            # Build full summary line with narration
+            summary_line = f"- {agent_name}: {action} ({status}){damage_text}{clock_text}{condition_text}"
+
+            # Add DM narration on next line (indented for readability)
+            if narration:
+                summary_line += f"\n  DM: {narration}"
+
+            summary_lines.append(summary_line)
+
+        return "\n".join(summary_lines)
+
+    def _resolve_target_ids_in_text(self, text: str) -> str:
+        """
+        Replace target IDs (tgt_xxxx) in text with character names for readability.
+
+        Args:
+            text: Narration or description text potentially containing target IDs
+
+        Returns:
+            Text with target IDs replaced by character names (or original if no mapper)
+        """
+        if not text or not self.shared_state or not self.shared_state.target_id_mapper:
+            return text
+
+        import re
+
+        # Pattern to match target IDs like tgt_7a3f
+        pattern = r'\btgt_[a-z0-9]{4}\b'
+
+        def replace_target_id(match):
+            target_id = match.group(0)
+            combatant_info = self.shared_state.target_id_mapper.get_combatant_info(target_id)
+            if combatant_info:
+                # Replace with "CharacterName (tgt_xxxx)" for clarity
+                return f"{combatant_info['name']} ({target_id})"
+            return target_id  # Keep original if not found
+
+        return re.sub(pattern, replace_target_id, text)
+
     def _spawn_new_clocks(self, new_clocks: List[Dict[str, any]]):
         """Spawn new clocks from DM markers (legacy)."""
         if not self.shared_state or not self.shared_state.mechanics_engine:
@@ -1900,13 +2987,23 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'event_type': 'created',
                 'clock_name': name,
                 'description': description,
+                'current': 0,  # New clocks start at 0
                 'max': max_ticks,
                 'consequence': clock.filled_consequence if clock else ''
             })
 
             # Log the new clock
             if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_clock_spawn(name, max_ticks, description)
+                mechanics.jsonl_logger.log_clock_spawn(
+                    name,
+                    max_ticks,
+                    description,
+                    round_num=mechanics.current_round,
+                    current_ticks=0,
+                    advance_meaning=clock.advance_meaning if clock else None,
+                    regress_meaning=clock.regress_meaning if clock else None,
+                    filled_consequence=clock.filled_consequence if clock else None
+                )
 
     def _spawn_new_clocks_structured(self, new_clocks: List['NewClock']):
         """Spawn new clocks from structured output (Phase 5: Pydantic AI migration)."""
@@ -1932,7 +3029,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if clock.current_ticks > 0:
                 scene_clock.current = clock.current_ticks
 
-            print(f"\n🕐 NEW CLOCK SPAWNED: {clock.name} (0/{clock.max_ticks}) - {clock.description}")
+            print(f"\n🕐 NEW CLOCK SPAWNED: {clock.name} ({scene_clock.current}/{clock.max_ticks}) - {clock.description}")
 
             # Track clock creation in history
             mechanics.clock_history.append({
@@ -1940,13 +3037,23 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'event_type': 'created',
                 'clock_name': clock.name,
                 'description': clock.description,
+                'current': scene_clock.current,  # Use actual value (may be non-zero)
                 'max': clock.max_ticks,
                 'consequence': scene_clock.filled_consequence if scene_clock else ''
             })
 
             # Log the new clock
             if mechanics.jsonl_logger:
-                mechanics.jsonl_logger.log_clock_spawn(clock.name, clock.max_ticks, clock.description)
+                mechanics.jsonl_logger.log_clock_spawn(
+                    clock.name,
+                    clock.max_ticks,
+                    clock.description,
+                    round_num=mechanics.current_round,
+                    current_ticks=clock.current_ticks,
+                    advance_meaning=clock.advance_meaning,
+                    regress_meaning=clock.regress_meaning,
+                    filled_consequence=clock.filled_consequence
+                )
 
     async def _check_and_trigger_story_advancement(self):
         """Check if all clocks are complete and trigger DM to advance the story."""
@@ -2071,9 +3178,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     description = event.get('description', '')
 
                     if event_type == 'created':
+                        current_val = event.get('current', 0)
                         max_val = event.get('max', '?')
                         consequence = event.get('consequence', '')
-                        print(f"  Round {round_num}: 🕐 CREATED - {clock_name} (0/{max_val})")
+                        print(f"  Round {round_num}: 🕐 CREATED - {clock_name} ({current_val}/{max_val})")
                         print(f"             {description}")
                         if consequence:
                             print(f"             When filled: {consequence}")
@@ -2317,8 +3425,26 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         
         with open(yaml_path, 'w') as f:
             yaml.dump(safe_data, f, default_flow_style=False)
-            
+
         print(f"Session data saved to {json_path}")
+
+        # Print session summary for easy copy-paste
+        print(f"\n{'='*60}")
+        print(f"Session ID: {self.session_id}")
+
+        # JSONL log path
+        mechanics = self.shared_state.get_mechanics_engine()
+        if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+            print(f"JSONL log:  {mechanics.jsonl_logger.log_file}")
+        else:
+            jsonl_path = output_dir / f"session_{self.session_id}.jsonl"
+            print(f"JSONL log:  {jsonl_path}")
+
+        # Agent logs path (if enabled)
+        if self.log_agents_separately:
+            print(f"Agent logs: agent_logs/{self.session_id}/")
+
+        print(f"{'='*60}\n")
         
     async def _shutdown_agents(self):
         """Shutdown all agents."""
@@ -2378,15 +3504,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         'event_type': 'created',
                         'clock_name': clock_name,
                         'description': clock.description,
+                        'current': clock.current,  # Track starting value (may be non-zero)
                         'max': clock.maximum,
                         'consequence': clock.filled_consequence
                     })
-
-        # Process enemy spawn markers from opening narration
-        if opening_narration and self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.process_dm_narration(opening_narration)
-            for notification in spawn_notifications:
-                print(f"\n{notification}")
 
         # Process initial_enemies from ScenarioSetup structured output
         # Handle both SimpleNamespace (object) and dict (after serialization)
@@ -2414,14 +3535,17 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 for notification in spawn_notifications:
                     print(f"\n{notification}")
 
-            # Get npc_spawns (works for both object and dict)
-            npc_spawns = getattr(scenario_setup, 'npc_spawns', None)
+            # Get initial_npcs (works for both object and dict)
+            npc_spawns = getattr(scenario_setup, 'initial_npcs', None)
             if npc_spawns is None and isinstance(scenario_setup, dict):
-                npc_spawns = scenario_setup.get('npc_spawns', [])
+                npc_spawns = scenario_setup.get('initial_npcs', [])
 
             if npc_spawns:
                 # Reconstruct NPCSpawn objects if they were serialized to dicts
-                from .schemas.story_events import NPCSpawn
+                from .schemas.story_events import NPCSpawn, EntityLifecycleResult
+
+                # Create entity lifecycle result to track NPC spawns
+                entity_lifecycle_result = EntityLifecycleResult()
 
                 # Process NPC spawns via DM
                 for npc_spawn in npc_spawns:
@@ -2439,23 +3563,283 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     if dm_agent and hasattr(dm_agent, '_process_npc_spawn'):
                         npc = dm_agent._process_npc_spawn(npc_spawn)
                         print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
+
+                        # Track NPC spawn in lifecycle result
+                        entity_lifecycle_result.npcs_spawned.append(npc.agent_id)
                     else:
                         logger.warning(f"Cannot spawn NPC {npc_spawn.name} - DM not found or missing _process_npc_spawn")
 
+                # Log entity_lifecycle event if NPCs were spawned
+                if entity_lifecycle_result.npcs_spawned:
+                    mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+                    if mechanics and mechanics.jsonl_logger:
+                        lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
+                            round_num=0  # Session start is before Round 1
+                        )
+                        mechanics.jsonl_logger.log_event(
+                            'entity_lifecycle',
+                            lifecycle_dict,
+                            round_num=0
+                        )
+                        logger.info(f"Logged entity_lifecycle event for {len(entity_lifecycle_result.npcs_spawned)} session start NPCs")
+
         self._scenario_ready.set()
+
+    async def _run_pre_round_entity_lifecycle(self):
+        """
+        Run entity lifecycle phase BEFORE round 1 to populate the scene.
+
+        This allows the DM to spawn additional entities based on the scenario theme:
+        - Vendors, merchants appropriate to the location
+        - Bystanders, civilians for atmosphere
+        - Environmental objects for interaction
+        - Patrols or guards (as enemies if hostile)
+
+        Called AFTER scenario setup (which processes initial_enemies/initial_npcs from config)
+        but BEFORE round 1 begins.
+        """
+        from .schemas.story_events import EntityLifecycleResult, EnemySpawn, NPCSpawn
+
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+
+        print(f"\n{'='*80}")
+        print(f"🔄 PRE-ROUND ENTITY LIFECYCLE PHASE")
+        print(f"{'='*80}")
+        logger.info("Running pre-round entity lifecycle phase")
+
+        # Create entity lifecycle result to track spawns
+        entity_lifecycle_result = EntityLifecycleResult()
+
+        # Build list of already-spawned entities (from config)
+        existing_entities = {
+            'npcs': [],
+            'enemies': []
+        }
+
+        if self.shared_state:
+            # Get existing NPC names/IDs
+            if hasattr(self.shared_state, 'npc_agents'):
+                for npc in self.shared_state.npc_agents:
+                    existing_entities['npcs'].append(f"{npc.name} ({npc.agent_id})")
+
+            # Get existing enemy names/IDs
+            if self.enemy_combat and hasattr(self.enemy_combat, 'enemy_agents'):
+                for enemy in self.enemy_combat.enemy_agents:
+                    if enemy.is_active:
+                        existing_entities['enemies'].append(f"{enemy.name} ({enemy.agent_id})")
+
+        # Find DM agent
+        dm_agent = None
+        for agent in self.agents:
+            if agent.agent_id.startswith('dm_'):
+                dm_agent = agent
+                break
+
+        if not dm_agent or not hasattr(dm_agent, 'check_conversions'):
+            logger.warning("Pre-round lifecycle: DM agent not found or missing check_conversions")
+            print("⚠️  DM not available for pre-round entity lifecycle")
+            return entity_lifecycle_result
+
+        # Call DM check_conversions with pre_round=True
+        try:
+            conversion_decisions = await dm_agent.check_conversions(
+                round_number=0,
+                resolution_summary="",  # Will be overridden by pre_round logic in DM
+                pre_round=True,
+                existing_entities=existing_entities
+            )
+
+            print(f"\n✅ Pre-round decisions:")
+            print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
+            print(f"   - Enemy spawns: {len(conversion_decisions.enemy_spawns)}")
+            print(f"   - Env object spawns: {len(conversion_decisions.env_object_spawns) if hasattr(conversion_decisions, 'env_object_spawns') else 0}")
+            print(f"   - Reasoning: {conversion_decisions.reasoning}")
+
+            logger.info(f"Pre-round decisions: {len(conversion_decisions.npc_spawns)} NPCs, "
+                       f"{len(conversion_decisions.enemy_spawns)} enemies")
+
+            # Process NPC spawns
+            if conversion_decisions.npc_spawns and dm_agent and hasattr(dm_agent, '_process_npc_spawn'):
+                for npc_spawn in conversion_decisions.npc_spawns:
+                    # Reconstruct NPCSpawn if it's a dict
+                    if isinstance(npc_spawn, dict):
+                        npc_spawn = NPCSpawn(**npc_spawn)
+
+                    npc = dm_agent._process_npc_spawn(npc_spawn)
+                    print(f"\n✓ NPC spawned (pre-round): {npc.name} ({npc.entity_type}, {npc.disposition})")
+                    entity_lifecycle_result.npcs_spawned.append(npc.agent_id)
+
+            # Process enemy spawns
+            if conversion_decisions.enemy_spawns and self.enemy_combat:
+                # Enable enemy combat if we're spawning enemies
+                if not self.enemy_combat.enabled:
+                    logger.info("Enabling enemy combat due to pre-round enemy spawn")
+                    self.enemy_combat.enabled = True
+
+                # Reconstruct EnemySpawn objects if they're dicts
+                enemy_spawn_list = []
+                for enemy_spawn in conversion_decisions.enemy_spawns:
+                    if isinstance(enemy_spawn, dict):
+                        enemy_spawn = EnemySpawn(**enemy_spawn)
+                    enemy_spawn_list.append(enemy_spawn)
+
+                # Spawn all enemies
+                spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+
+                # Track spawned enemy agent_ids
+                for enemy in self.enemy_combat.enemy_agents:
+                    if enemy.spawned_round == 0:
+                        entity_lifecycle_result.enemies_spawned.append(enemy.agent_id)
+
+                for notification in spawn_notifications:
+                    print(f"\n{notification}")
+                    logger.info(f"Enemy spawn (pre-round): {notification}")
+
+            # Process env object spawns
+            if hasattr(conversion_decisions, 'env_object_spawns') and conversion_decisions.env_object_spawns:
+                if mechanics and hasattr(mechanics, 'env_objects'):
+                    for env_spawn in conversion_decisions.env_object_spawns:
+                        # Add to mechanics env_objects
+                        obj_id = env_spawn.object_id if hasattr(env_spawn, 'object_id') else f"obj_{env_spawn.name.lower().replace(' ', '_')}"
+                        mechanics.env_objects[obj_id] = {
+                            'name': env_spawn.name,
+                            'description': env_spawn.description,
+                            'interaction_hint': getattr(env_spawn, 'interaction_hint', ''),
+                            'discovery_dc': getattr(env_spawn, 'discovery_dc', 10),
+                            'discovered': False,
+                            'spawned_round': 0
+                        }
+                        entity_lifecycle_result.env_objects_spawned.append(obj_id)
+                        print(f"\n✓ Env object spawned (pre-round): {env_spawn.name}")
+                        logger.info(f"Env object spawn (pre-round): {env_spawn.name}")
+
+            # Log entity_lifecycle event if anything was spawned
+            if (entity_lifecycle_result.npcs_spawned or
+                entity_lifecycle_result.enemies_spawned or
+                entity_lifecycle_result.env_objects_spawned):
+
+                if mechanics and mechanics.jsonl_logger:
+                    lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(round_num=0)
+                    # Add conversion_decisions context
+                    lifecycle_dict['conversion_decisions'] = {
+                        'reasoning': conversion_decisions.reasoning,
+                        'is_pre_round': True
+                    }
+                    mechanics.jsonl_logger.log_event(
+                        'entity_lifecycle',
+                        lifecycle_dict,
+                        round_num=0
+                    )
+                    logger.info(f"Logged pre-round entity_lifecycle event: "
+                               f"{len(entity_lifecycle_result.npcs_spawned)} NPCs, "
+                               f"{len(entity_lifecycle_result.enemies_spawned)} enemies, "
+                               f"{len(entity_lifecycle_result.env_objects_spawned)} env objects")
+
+        except Exception as e:
+            logger.error(f"Pre-round entity lifecycle failed: {type(e).__name__}: {e}")
+            print(f"\n⚠️  Pre-round entity lifecycle error: {e}")
+
+        return entity_lifecycle_result
 
     def _handle_action_declared(self, message: Message):
         """Buffer ACTION_DECLARED messages during declaration phase."""
         if message.type != MessageType.ACTION_DECLARED:
             return
 
+        # Ignore directed messages (e.g., adjudication messages to DM during resolution phase)
+        # Only buffer broadcast messages (recipient=None) from players/enemies declaring actions
+        if message.recipient is not None:
+            return
+
         # Only buffer during declaration phase
         if not self._in_declaration_phase:
+            # Enhanced logging to debug spurious ACTION_DECLARED messages
+            import traceback
+            caller_stack = ''.join(traceback.format_stack()[-4:-1])  # Get last 3 frames before this one
+            agent_id = message.sender
+            intent = message.payload.get('intent', 'unknown')[:60]
+            character_name = message.payload.get('character_name', 'unknown')
+            action_type = message.payload.get('action_type', 'unknown')
+            is_free = message.payload.get('is_free_action', False)
+
+            logger.warning(
+                f"⚠️  ACTION_DECLARED DROPPED (not in declaration phase):\n"
+                f"  Sender: {agent_id}\n"
+                f"  Character: {character_name}\n"
+                f"  Intent: {intent}\n"
+                f"  Action Type: {action_type}\n"
+                f"  Is Free: {is_free}\n"
+                f"  Message ID: {message.id}\n"
+                f"  Recipient: {message.recipient}\n"
+                f"  Call stack:\n{caller_stack}"
+            )
             return
+
+        # Get agent_id early (needed for validation checks below)
+        agent_id = message.sender
+
+        # PRE-VALIDATE ATTUNEMENT ACTIONS (check prerequisites, store result)
+        # Similar to purchases - validates inventory/equipment but doesn't execute (DM rolls dice)
+        # Validation result stored in action payload for DM to see
+        action_type = message.payload.get('action_type')
+        action_payload = message.payload  # Get reference to payload for modification
+
+        if action_type == 'attune':
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        # Extract attunement parameters from action payload
+                        target_energy = action_payload.get('target_energy')
+                        altar_id = action_payload.get('altar_id')
+                        use_echo_calibrator = action_payload.get('use_echo_calibrator', False)
+
+                        # Validate prerequisites (inventory, equipment, altar existence)
+                        validation = mechanics.validate_attunement(
+                            character_state=player_agent.character_state,
+                            target_energy=target_energy,
+                            altar_id=altar_id,
+                            use_echo_calibrator=use_echo_calibrator
+                        )
+
+                        # Store validation result on the action for DM to see
+                        action_payload['attunement_validation'] = {
+                            'is_valid': validation.is_valid,
+                            'failure_reason': validation.failure_reason,
+                            'has_seed': validation.has_seed if hasattr(validation, 'has_seed') else None,
+                            'has_equipment': validation.has_equipment if hasattr(validation, 'has_equipment') else None,
+                            'altar_found': validation.altar_found if hasattr(validation, 'altar_found') else None
+                        }
+
+                        if not validation.is_valid:
+                            # Log validation failure but still buffer action for coordinator
+                            logger.warning(
+                                f"❌ ATTUNEMENT VALIDATION FAILED for {player_agent.character_state.name}: "
+                                f"{validation.failure_reason}"
+                            )
+
+                            # Print warning to console for player visibility
+                            print(
+                                f"\n⚠️  [{player_agent.character_state.name}] Attunement validation failed: "
+                                f"{validation.failure_reason}"
+                            )
+                            print("   └─ DM will narrate automatic failure (no roll needed)\n")
+                        else:
+                            logger.info(f"✓ Attunement validated for {player_agent.character_state.name}")
+
+                    except Exception as e:
+                        logger.error(f"Error validating attunement for {agent_id}: {e}")
+                        # Store error in validation result
+                        action_payload['attunement_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}"
+                        }
 
         # Buffer the action (supports multiple actions per agent for free action system)
         # Note: message.payload IS the action dict (not nested under 'action' key)
-        agent_id = message.sender
+        # (agent_id already extracted above for validation checks)
 
         # Initialize list if this is the first action from this agent
         if agent_id not in self._declared_actions:
@@ -2467,7 +3851,344 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             'action': message.payload,  # Payload IS the action
             'timestamp': message.timestamp
         })
-        logger.debug(f"Buffered action from {agent_id} (total: {len(self._declared_actions[agent_id])} actions)")
+        action_intent = message.payload.get('intent', 'unknown')[:60]
+        is_free = message.payload.get('is_free_action', False)
+        logger.info(f"✓ Buffered {'FREE' if is_free else 'MAIN'} action from {agent_id}: {action_intent} (total: {len(self._declared_actions[agent_id])} actions)")
+
+        # PRE-VALIDATE AND EXECUTE PURCHASE ACTIONS (before DM sees them)
+        # This prevents phantom purchases where DM narrates success but mechanics fail
+        action_payload = message.payload
+        vendor_id = action_payload.get('vendor_id')
+        item_id = action_payload.get('item_id')
+
+        if vendor_id and item_id:
+            # This is a purchase action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        validation = mechanics.validate_purchase(
+                            character_state=player_agent.character_state,
+                            vendor_id=vendor_id,
+                            item_id=item_id
+                        )
+
+                        # Store validation result on the action for DM to see
+                        action_payload['purchase_validation'] = {
+                            'can_afford': validation.can_afford,
+                            'item_name': validation.item_name,
+                            'cost': validation.cost,
+                            'player_currency': validation.player_currency,
+                            'shortage': validation.shortage,
+                            'failure_reason': validation.failure_reason
+                        }
+
+                        if validation.can_afford:
+                            # EXECUTE TRANSACTION MECHANICALLY (before DM narrates)
+                            # Deduct currency
+                            for currency_type, amount in validation.cost.items():
+                                if amount > 0:
+                                    player_agent.character_state.energy_purse.spend_currency(currency_type, amount)
+
+                            # Add item to inventory
+                            inventory = player_agent.character_state.inventory
+                            inventory_key = validation.inventory_key
+                            inventory[inventory_key] = inventory.get(inventory_key, 0) + 1
+
+                            # Format cost dict as readable string (e.g., "5 drip, 2 grain")
+                            cost_str = ", ".join([f"{amount} {currency}" for currency, amount in validation.cost.items() if amount > 0]) if validation.cost else "free"
+                            logger.info(f"✓ PURCHASE EXECUTED: {player_agent.character_state.name} bought {validation.item_name} for {cost_str}")
+                            action_payload['purchase_validation']['executed'] = True
+                        else:
+                            logger.warning(f"Purchase pre-validation FAILED: {validation.failure_reason}")
+                            action_payload['purchase_validation']['executed'] = False
+
+                        # LOG PURCHASE ATTEMPT (both success and failure)
+                        if mechanics.jsonl_logger:
+                            # Try NPC vendor first (unified system), then fall back to legacy vendor
+                            vendor = self.shared_state.get_npc_by_vendor_id(vendor_id)
+                            if not vendor:
+                                vendor = self.shared_state.get_vendor_by_id(vendor_id)
+                            vendor_name = vendor.name if vendor else "Unknown Vendor"
+
+                            mechanics.jsonl_logger.log_purchase_attempt(
+                                round_num=mechanics.current_round,
+                                player_id=agent_id,
+                                character_name=player_agent.character_state.name,
+                                vendor_id=vendor_id,
+                                vendor_name=vendor_name,
+                                item_id=item_id,
+                                item_name=validation.item_name,
+                                cost=validation.cost,
+                                player_currency=validation.player_currency,
+                                success=validation.can_afford,
+                                failure_reason=validation.failure_reason,
+                                shortage=validation.shortage
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating purchase for {agent_id}: {e}")
+                        action_payload['purchase_validation'] = {
+                            'can_afford': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
+
+        # PRE-VALIDATE AND EXECUTE TRANSFER ACTIONS (before DM sees them)
+        # Similar to purchases - prevents phantom transfers where DM narrates success but mechanics fail
+        transfer_target = action_payload.get('transfer_target')
+        transfer_currency = action_payload.get('transfer_currency')
+        transfer_items = action_payload.get('transfer_items')
+
+        if transfer_target and (transfer_currency or transfer_items):
+            # This is a transfer action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        # Get sender position for range checking
+                        sender_position = getattr(player_agent, 'position', None)
+
+                        validation = mechanics.validate_transfer(
+                            sender_state=player_agent.character_state,
+                            transfer_target=transfer_target,
+                            transfer_currency=transfer_currency,
+                            transfer_items=transfer_items,
+                            sender_position=sender_position
+                        )
+
+                        # Store validation result on the action for DM to see
+                        action_payload['transfer_validation'] = {
+                            'is_valid': validation.is_valid,
+                            'sender_name': validation.sender_name,
+                            'receiver_name': validation.receiver_name,
+                            'receiver_agent_id': validation.receiver_agent_id,
+                            'currency': validation.currency,
+                            'items': validation.items,
+                            'sender_currency': validation.sender_currency,
+                            'sender_items': validation.sender_items,
+                            'shortage': validation.shortage,
+                            'item_shortage': validation.item_shortage,
+                            'failure_reason': validation.failure_reason,
+                            'in_range': validation.in_range
+                        }
+
+                        if validation.is_valid:
+                            # EXECUTE TRANSFER MECHANICALLY (before DM narrates)
+                            receiver_agent = next(
+                                (a for a in self.shared_state.player_agents
+                                 if a.agent_id == validation.receiver_agent_id),
+                                None
+                            )
+
+                            if receiver_agent:
+                                success = True
+
+                                # Execute currency transfer if present
+                                if transfer_currency:
+                                    currency_success = player_agent.character_state.energy_purse.transfer_currencies_to(
+                                        receiver_purse=receiver_agent.character_state.energy_purse,
+                                        currency_amounts=transfer_currency
+                                    )
+                                    success = success and currency_success
+
+                                # Execute item transfer if present
+                                if transfer_items:
+                                    for item_name, amount in transfer_items.items():
+                                        # Remove from sender
+                                        sender_inv = player_agent.character_state.inventory
+                                        if sender_inv and item_name in sender_inv:
+                                            sender_inv[item_name] -= amount
+                                            if sender_inv[item_name] <= 0:
+                                                del sender_inv[item_name]
+
+                                        # Add to receiver
+                                        receiver_inv = receiver_agent.character_state.inventory
+                                        if receiver_inv is None:
+                                            receiver_agent.character_state.inventory = {}
+                                            receiver_inv = receiver_agent.character_state.inventory
+                                        receiver_inv[item_name] = receiver_inv.get(item_name, 0) + amount
+
+                                if success:
+                                    transfer_desc = []
+                                    if transfer_currency:
+                                        transfer_desc.append(f"Currency: {transfer_currency}")
+                                    if transfer_items:
+                                        transfer_desc.append(f"Items: {transfer_items}")
+                                    logger.info(
+                                        f"✓ TRANSFER EXECUTED: {validation.sender_name} → {validation.receiver_name}: "
+                                        f"{', '.join(transfer_desc)}"
+                                    )
+                                    action_payload['transfer_validation']['executed'] = True
+                                else:
+                                    logger.error(f"Transfer execution failed despite validation passing")
+                                    action_payload['transfer_validation']['executed'] = False
+                                    action_payload['transfer_validation']['is_valid'] = False
+                                    action_payload['transfer_validation']['failure_reason'] = "Mechanical transfer failed"
+                            else:
+                                logger.error(f"Receiver agent {validation.receiver_agent_id} not found for transfer")
+                                action_payload['transfer_validation']['executed'] = False
+                                action_payload['transfer_validation']['is_valid'] = False
+                                action_payload['transfer_validation']['failure_reason'] = "Receiver not found"
+                        else:
+                            logger.warning(f"Transfer pre-validation FAILED: {validation.failure_reason}")
+                            action_payload['transfer_validation']['executed'] = False
+
+                        # LOG TRANSFER ATTEMPT (both success and failure)
+                        if mechanics.jsonl_logger:
+                            log_data = {
+                                'sender_id': agent_id,
+                                'sender_name': validation.sender_name,
+                                'receiver_id': validation.receiver_agent_id,
+                                'receiver_name': validation.receiver_name,
+                                'currency': validation.currency,
+                                'items': validation.items,
+                                'success': validation.is_valid,
+                                'failure_reason': validation.failure_reason,
+                                'in_range': validation.in_range
+                            }
+
+                            if validation.is_valid:
+                                if validation.currency:
+                                    log_data['sender_currency_after'] = {
+                                        'spark': player_agent.character_state.energy_purse.spark,
+                                        'grain': player_agent.character_state.energy_purse.grain,
+                                        'drip': player_agent.character_state.energy_purse.drip,
+                                        'breath': player_agent.character_state.energy_purse.breath
+                                    }
+                                if validation.items:
+                                    log_data['sender_items_after'] = dict(player_agent.character_state.inventory) if player_agent.character_state.inventory else {}
+                            else:
+                                log_data['sender_currency'] = validation.sender_currency
+                                log_data['sender_items'] = validation.sender_items
+
+                            mechanics.jsonl_logger.log_event(
+                                'energy_transfer',
+                                log_data,
+                                mechanics.current_round
+                            )
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating transfer for {agent_id}: {e}")
+                        action_payload['transfer_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
+
+        # PRE-VALIDATE AND EXECUTE CONSUMPTION ACTIONS (before DM sees them)
+        # Food consumption is deterministic (+2 HP), so execute before DM narration
+        action_type = action_payload.get('action_type')
+        consume_item_id = action_payload.get('item_id')
+
+        if action_type == 'consume' and consume_item_id:
+            # This is a consumption action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        # Get the food item from GLOBAL_VENDOR_CATALOG
+                        from .energy_economy import GLOBAL_VENDOR_CATALOG
+                        food_item = next((item for item in GLOBAL_VENDOR_CATALOG if item.item_id == consume_item_id), None)
+
+                        if not food_item:
+                            # Item not found in catalog
+                            action_payload['consumption_validation'] = {
+                                'is_valid': False,
+                                'failure_reason': f"Item {consume_item_id} not found in vendor catalog",
+                                'executed': False
+                            }
+                            logger.warning(f"Consumption validation FAILED: item {consume_item_id} not in catalog")
+                        else:
+                            # Validate consumption
+                            validation = mechanics.validate_consumption(
+                                character_state=player_agent.character_state,
+                                item_id=consume_item_id,
+                                food_item=food_item
+                            )
+
+                            # Store validation result on the action for DM to see
+                            action_payload['consumption_validation'] = {
+                                'is_valid': validation.is_valid,
+                                'failure_reason': validation.failure_reason,
+                                'item_name': food_item.name,
+                                'item_type': food_item.item_type,
+                                'healing': 2  # Fixed healing amount
+                            }
+
+                            if validation.is_valid:
+                                # EXECUTE CONSUMPTION MECHANICALLY (before DM narrates)
+                                from .schemas.action_effects import ConsumptionEffect
+
+                                consumption_effect = ConsumptionEffect(
+                                    item_id=consume_item_id,
+                                    inventory_key=food_item.inventory_key,
+                                    healing=2
+                                )
+
+                                success = mechanics.process_consumption_effect(
+                                    consumption_effect=consumption_effect,
+                                    character_state=player_agent.character_state
+                                )
+
+                                if success:
+                                    logger.info(
+                                        f"✓ CONSUMPTION EXECUTED: {player_agent.character_state.name} consumed {food_item.name} "
+                                        f"(+2 HP: {player_agent.character_state.health}/{player_agent.character_state.max_health})"
+                                    )
+                                    action_payload['consumption_validation']['executed'] = True
+                                else:
+                                    logger.warning("Consumption execution failed (likely 0 quantity)")
+                                    action_payload['consumption_validation']['executed'] = False
+                                    action_payload['consumption_validation']['is_valid'] = False
+                                    action_payload['consumption_validation']['failure_reason'] = "Item quantity is 0"
+                            else:
+                                logger.warning(f"Consumption pre-validation FAILED: {validation.failure_reason}")
+                                action_payload['consumption_validation']['executed'] = False
+
+                            # LOG CONSUMPTION ATTEMPT (both success and failure)
+                            if mechanics.jsonl_logger:
+                                log_data = {
+                                    'player_id': agent_id,
+                                    'character_name': player_agent.character_state.name,
+                                    'item_id': consume_item_id,
+                                    'item_name': food_item.name,
+                                    'healing': 2,
+                                    'success': validation.is_valid and action_payload['consumption_validation'].get('executed', False),
+                                    'failure_reason': validation.failure_reason
+                                }
+
+                                if validation.is_valid and action_payload['consumption_validation'].get('executed', False):
+                                    log_data['health_after'] = player_agent.character_state.health
+                                    log_data['max_health'] = player_agent.character_state.max_health
+                                    inventory_key = food_item.inventory_key
+                                    log_data['item_remaining'] = player_agent.character_state.inventory.get(inventory_key, 0)
+
+                                mechanics.jsonl_logger.log_event(
+                                    'food_consumption',
+                                    log_data,
+                                    mechanics.current_round
+                                )
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating consumption for {agent_id}: {e}")
+                        action_payload['consumption_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
+
+        # NOTE: Attunement actions are NOT pre-executed like purchases/transfers
+        # Unlike deterministic transactions, attunements involve dice rolls and DM adjudication
+        # The DM rolls the ritual check, determines success/failure, and populates AttunementEffect
+        # The mechanics layer processes the DM's AttunementEffect during resolution phase
+        # This ensures seed consumption and energy grants happen AFTER DM adjudication, not before
 
         # Log the declaration
         if self.shared_state and self.shared_state.mechanics_engine:
@@ -2488,11 +4209,21 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     )
 
         # Signal that this agent's declaration is complete
-        # Note: Enemies don't have pending events (they declare inline), so only signal for players
+        # CRITICAL: Only signal when we receive the MAIN action (not free action)
+        # Free actions are followed by main actions, so we must wait for the main action
+        # to avoid closing declaration phase prematurely
+        is_free_action = message.payload.get('is_free_action', False)
+
         if agent_id in self._pending_declarations:
-            self._pending_declarations[agent_id].set()
-        elif not agent_id.startswith('enemy_'):
-            # Only warn if it's not an enemy (enemies declare inline, no pending event expected)
+            if not is_free_action:
+                # This is the main action - signal completion
+                self._pending_declarations[agent_id].set()
+                logger.debug(f"✓ Declaration complete for {agent_id} (main action received)")
+            else:
+                # This is a free action - don't signal yet, wait for main action
+                logger.debug(f"⏳ Free action received from {agent_id}, waiting for main action...")
+        elif not agent_id.startswith(('enemy_', 'npc_')):
+            # Only warn if it's not an enemy or NPC (both declare inline, no pending event expected)
             logger.warning(f"No pending declaration event for {agent_id}")
 
     def _handle_action_resolved(self, message: Message):
@@ -2521,14 +4252,13 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             event.set()
             logger.debug(f"Resolution complete for {agent_id} (legacy)")
 
-    def _process_structured_synthesis(self, synthesis: 'RoundSynthesis'):
+    async def _process_structured_synthesis(self, synthesis: 'RoundSynthesis'):
         """
         Process structured round synthesis (Phase 5: Pydantic AI migration).
 
         This method handles:
         - Story advancement with conditional enemy clearing
-        - Enemy spawns
-        - Enemy removals (fled, convinced, neutralized)
+        - Entity Lifecycle Phase #2 (spawn entities for new scene)
         - New clock spawning
         - Session end
         """
@@ -2595,12 +4325,30 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 if self.enemy_combat and self.enemy_combat.enemy_agents:
                     active_enemies = [e for e in self.enemy_combat.enemy_agents if e.is_active]
                     if active_enemies:
+                        # Clear enemies
                         for enemy in active_enemies:
                             enemy.is_active = False
                             enemy.despawned_round = mechanics.current_round if mechanics else 0
+
                         enemy_names = [e.name for e in active_enemies]
+                        enemy_ids = [e.agent_id for e in active_enemies]
+
                         logger.info(f"🗑️  Cleared {len(active_enemies)} enemies (clear_all_enemies=True)")
                         print(f"   Enemies removed: {', '.join(enemy_names)}")
+
+                        # Log to entity_lifecycle event (retroactive update)
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_event(
+                                'entity_lifecycle_story_advancement',
+                                {
+                                    'enemies_cleared': enemy_ids,
+                                    'enemy_count': len(active_enemies),
+                                    'reason': 'story_advancement_clear_all_enemies',
+                                    'new_location': adv.location,
+                                    'new_situation': adv.situation
+                                },
+                                round_num=mechanics.current_round
+                            )
             else:
                 logger.info("✓ Preserving active enemies (clear_all_enemies=False)")
 
@@ -2637,130 +4385,166 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if adv.new_clocks:
                 self._spawn_new_clocks_structured(adv.new_clocks)
 
-        # 2. Handle enemy spawns (AFTER story advancement)
-        if synthesis.enemy_spawns and self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.spawn_from_structured(synthesis.enemy_spawns)
-            for notification in spawn_notifications:
-                print(f"\n{notification}")
+            # Remove departing vendors
+            if adv.vendor_departures and self.shared_state:
+                for vendor_name in adv.vendor_departures:
+                    removed = self.shared_state.remove_vendor(vendor_name)
+                    if removed:
+                        logger.info(f"💰 Vendor departed: {vendor_name}")
+                        print(f"   Vendor departed: {vendor_name}")
+                    else:
+                        logger.warning(f"Failed to remove vendor '{vendor_name}' - not found in current_vendors")
 
-        # 3. Handle enemy conversions (removals + NPC conversions)
-        if synthesis.enemy_conversions and self.enemy_combat.enabled:
-            from .agent_conversion import deescalate_enemy_to_npc
-            from .schemas.story_events import EnemyResolution
+            # Remove departing altars
+            if adv.altar_removals and self.shared_state:
+                for altar_id in adv.altar_removals:
+                    removed = self.shared_state.remove_altar(altar_id)
+                    if removed:
+                        logger.info(f"🏛️ Altar removed: {altar_id}")
+                        print(f"   Altar removed: {altar_id}")
+                    else:
+                        logger.warning(f"Failed to remove altar '{altar_id}' - not found in current_altars")
 
-            for conversion in synthesis.enemy_conversions:
-                # Find the enemy
-                enemy = next((e for e in self.enemy_combat.enemy_agents
-                             if e.agent_id == conversion.enemy_id or e.name == conversion.enemy_id), None)
+            # NOTE: NPC departures are now handled in Entity Lifecycle Phase #2 (below)
+            # This allows DM to decide which NPCs follow to new scene in ConversionDecisions
 
-                if not enemy:
-                    logger.warning(f"Enemy {conversion.enemy_id} not found for conversion")
-                    continue
+            # SECOND ENTITY LIFECYCLE PHASE - Manage entities for NEW scene
+            print(f"\n{'='*80}")
+            print(f"🔄 ENTITY LIFECYCLE PHASE #2 - New Scene Initialization")
+            print(f"{'='*80}")
+            logger.info("Running Entity Lifecycle Phase #2 for new scene after story advancement")
 
-                # Determine if enemy stays or leaves
-                stays_in_scene = conversion.resolution in [
-                    EnemyResolution.CONVINCED,
-                    EnemyResolution.NEUTRALIZED,
-                    EnemyResolution.SUBDUED
-                ]
+            # Build context for new scene
+            new_scene_context = f"""Story just advanced to new location.
 
-                if stays_in_scene:
-                    # Convert to NPC (stays in scene)
-                    if enemy.is_active:
-                        npc = deescalate_enemy_to_npc(
-                            enemy=enemy,
-                            disposition=conversion.resulting_disposition,
-                            current_round=mechanics.current_round if mechanics else 0
-                        )
+Location: {adv.location}
+Situation: {adv.situation}
+Void Level: {dm_agents[0].current_scenario.void_level if dm_agents and dm_agents[0].current_scenario else 'unknown'}
 
-                        if self.shared_state:
+This is a FRESH scene. Spawn initial enemies/NPCs appropriate for this new location.
+Consider:
+- What threats are present in this location?
+- What NPCs would naturally be here?
+- What complications or opportunities exist?
+
+NO conversions/morale checks needed (scene just started).
+"""
+
+            # Find DM agent
+            dm_agent = None
+            for agent in self.agents:
+                if agent.agent_id.startswith('dm_'):
+                    dm_agent = agent
+                    break
+
+            # Get spawn decisions from DM for new scene
+            if dm_agent and hasattr(dm_agent, 'check_conversions'):
+                try:
+                    # Now properly async - can await check_conversions()
+                    post_advancement_decisions = await dm_agent.check_conversions(
+                        round_number=mechanics.current_round if mechanics else 0,
+                        resolution_summary=new_scene_context
+                    )
+
+                    print(f"\n✅ New scene entities:")
+                    print(f"   - NPC departures: {len(post_advancement_decisions.npc_departures)}")
+                    print(f"   - Enemy departures: {len(post_advancement_decisions.enemy_departures)}")
+                    print(f"   - Enemy spawns: {len(post_advancement_decisions.enemy_spawns)}")
+                    print(f"   - NPC spawns: {len(post_advancement_decisions.npc_spawns)}")
+
+                    # Process NPC departures first (remove NPCs that don't belong in new scene)
+                    if post_advancement_decisions.npc_departures and self.shared_state:
+                        for npc_identifier in post_advancement_decisions.npc_departures:
+                            removed = self.shared_state.remove_npc(npc_identifier)
+                            if removed:
+                                logger.info(f"👤 NPC departed (post-advancement): {npc_identifier}")
+                                print(f"\n✓ NPC doesn't follow to new scene: {npc_identifier}")
+                            else:
+                                logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found")
+
+                    # Process enemy departures (remove enemies that don't belong in new scene)
+                    if post_advancement_decisions.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
+                        for enemy_identifier in post_advancement_decisions.enemy_departures:
+                            enemy = next((e for e in self.enemy_combat.enemy_agents
+                                        if e.agent_id == enemy_identifier), None)
+                            enemy_name = enemy.name if enemy else enemy_identifier
+
+                            if enemy and enemy.is_active:
+                                enemy.is_active = False
+                                enemy.despawned_round = mechanics.current_round if mechanics else 0
+                                logger.info(f"⚔️  Enemy departed (post-advancement): {enemy_identifier}")
+                                print(f"\n✓ Enemy doesn't follow to new scene: {enemy_name}")
+                            else:
+                                logger.warning(f"Failed to remove enemy '{enemy_identifier}' - not found or already inactive")
+
+                    # Process enemy spawns for new scene
+                    if post_advancement_decisions.enemy_spawns and self.enemy_combat:
+                        if not self.enemy_combat.enabled:
+                            logger.info("Enabling enemy combat due to post-advancement enemy spawn")
+                            self.enemy_combat.enabled = True
+
+                        from .schemas.story_events import EnemySpawn
+                        enemy_spawn_list = []
+                        for spawn in post_advancement_decisions.enemy_spawns:
+                            if isinstance(spawn, dict):
+                                enemy_spawn_list.append(EnemySpawn(**spawn))
+                            else:
+                                enemy_spawn_list.append(spawn)
+
+                        spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+                        for notification in spawn_notifications:
+                            print(f"\n{notification}")
+                            logger.info(f"Post-advancement enemy spawn: {notification}")
+
+                    # Process NPC spawns for new scene
+                    if post_advancement_decisions.npc_spawns and self.shared_state:
+                        from .schemas.story_events import NPCSpawn
+                        from .npc_agent import NPCAgent
+                        import uuid
+
+                        for npc_spawn in post_advancement_decisions.npc_spawns:
+                            # Check if NPC with same name already exists (prevent duplicates)
+                            existing_npc = next((npc for npc in self.shared_state.npc_agents if npc.name == npc_spawn.name), None)
+                            if existing_npc:
+                                logger.info(f"NPC '{npc_spawn.name}' already exists ({existing_npc.agent_id}), skipping spawn")
+                                print(f"\n⏭️  NPC '{npc_spawn.name}' already present in new scene, skipping spawn")
+                                continue
+
+                            npc = NPCAgent(
+                                agent_id=f"npc_{npc_spawn.name.lower().replace(' ', '_')}_{uuid.uuid4().hex[:8]}",
+                                name=npc_spawn.name,
+                                entity_type=npc_spawn.entity_type,
+                                threat_level=npc_spawn.threat_level,
+                                disposition=npc_spawn.disposition,
+                                description=npc_spawn.description,
+                                faction=npc_spawn.faction,
+                                health=npc_spawn.health,
+                                max_health=npc_spawn.health,
+                                soak=npc_spawn.soak,
+                                void_score=0,
+                                skills=npc_spawn.skills or {},
+                                agent_prompt_logger=self.agent_prompt_logger if hasattr(self, 'agent_prompt_logger') else None,
+                                llm_provider=self.enemy_combat.llm_provider if hasattr(self.enemy_combat, 'llm_provider') else None
+                            )
+
                             self.shared_state.npc_agents.append(npc)
-                            if hasattr(self.shared_state, 'target_id_mapper'):
+
+                            if hasattr(self.shared_state, 'target_id_mapper') and self.shared_state.target_id_mapper:
                                 self.shared_state.target_id_mapper.register_npc(npc)
 
-                        enemy.is_active = False
-                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+                            logger.info(f"Post-advancement NPC spawned: {npc.name} ({npc.agent_id})")
+                            print(f"\n✓ NPC entered new scene: {npc.name} ({npc.entity_type}, {npc.disposition})")
 
-                        print(f"\n🏳️  {enemy.name} de-escalated to NPC ({conversion.resulting_disposition}): {conversion.reason}")
-                else:
-                    # Remove from scene (leaves entirely)
-                    if enemy.is_active:
-                        enemy.is_active = False
-                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+                except Exception as e:
+                    logger.warning(f"Post-advancement Entity Lifecycle Phase failed: {type(e).__name__}: {e}")
+                    print(f"\n⚠️  Post-advancement spawn failed: {type(e).__name__}: {e}")
 
-                        resolution_text = {
-                            EnemyResolution.FLED: "fled",
-                            EnemyResolution.STORY_ADVANCED: "removed (story advanced)",
-                        }.get(conversion.resolution, "removed")
+        # NOTE: Entity lifecycle is handled in TWO phases:
+        # Phase 1 (before synthesis): Conversions, spawns for current scene
+        # Phase 2 (after story advancement): Initial spawns for new scene
+        # RoundSynthesis schema has NO entity management fields.
 
-                        print(f"\n❌ {enemy.name} {resolution_text}: {conversion.reason}")
-
-        # 3.5. Handle NPC spawns (NEW - mid-game NPC spawning)
-        if synthesis.npc_spawns:
-            from .schemas.story_events import NPCSpawn
-
-            # Find DM agent for NPC spawn processing
-            dm_agent = None
-            for agent in self.agents:
-                if agent.agent_id.startswith('dm_'):
-                    dm_agent = agent
-                    break
-
-            if not dm_agent:
-                logger.warning("Cannot process NPC spawns: DM agent not found")
-            else:
-                for npc_spawn in synthesis.npc_spawns:
-                    # Reconstruct NPCSpawn if it's a dict
-                    if isinstance(npc_spawn, dict):
-                        npc_spawn = NPCSpawn(**npc_spawn)
-
-                    if hasattr(dm_agent, '_process_npc_spawn'):
-                        npc = dm_agent._process_npc_spawn(npc_spawn)
-
-                        if npc:
-                            # NPC already added to SharedState and registered by _process_npc_spawn()
-                            # Just log the successful spawn
-                            print(f"\n✓ NPC spawned: {npc.name} ({npc.entity_type}, {npc.disposition})")
-                            logger.info(f"NPC spawn complete: {npc.name} ({npc.agent_id})")
-                    else:
-                        logger.warning(f"Cannot spawn NPC {npc_spawn.name}: DM missing _process_npc_spawn method")
-
-        # 4. Handle escalations (NPC → Enemy conversions)
-        if synthesis.escalations:
-            from .schemas.story_events import Escalation
-
-            # Find DM agent for escalation processing
-            dm_agent = None
-            for agent in self.agents:
-                if agent.agent_id.startswith('dm_'):
-                    dm_agent = agent
-                    break
-
-            if not dm_agent:
-                logger.warning("Cannot process escalations: DM agent not found")
-            else:
-                for escalation in synthesis.escalations:
-                    # Reconstruct Escalation if it's a dict
-                    if isinstance(escalation, dict):
-                        escalation = Escalation(**escalation)
-
-                    if hasattr(dm_agent, '_process_escalation'):
-                        enemy = dm_agent._process_escalation(
-                            escalation=escalation,
-                            current_round=mechanics.current_round if mechanics else 0
-                        )
-
-                        if enemy:
-                            # Add enemy to enemy_combat system
-                            if self.enemy_combat.enabled:
-                                self.enemy_combat.enemy_agents.append(enemy)
-
-                            print(f"\n⚠️  {enemy.name} escalated to Enemy (was NPC): {escalation.reason}")
-                            logger.info(f"Escalation complete: {enemy.name} ({enemy.agent_id}) now active enemy")
-                    else:
-                        logger.warning(f"Cannot escalate {escalation.npc_id}: DM missing _process_escalation method")
-
-        # 4. Handle scene pivot (minor room transitions)
+        # 2. Handle scene pivot (minor room transitions)
         if synthesis.scene_pivot and synthesis.scene_pivot.should_pivot:
             pivot = synthesis.scene_pivot
             logger.info(f"Scene pivot: {pivot.new_room}")
@@ -2794,6 +4578,31 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Spawn new clocks
             if pivot.new_clocks:
                 self._spawn_new_clocks_structured(pivot.new_clocks)
+
+            # Remove departing NPCs
+            if pivot.npc_departures and self.shared_state:
+                for npc_identifier in pivot.npc_departures:
+                    removed = self.shared_state.remove_npc(npc_identifier)
+                    if removed:
+                        logger.info(f"👤 NPC departed (scene pivot): {npc_identifier}")
+                        print(f"   NPC departed: {npc_identifier}")
+                    else:
+                        logger.warning(f"Failed to remove NPC '{npc_identifier}' during scene pivot - not found in npc_agents")
+
+            # Remove departing enemies
+            if pivot.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
+                for enemy_identifier in pivot.enemy_departures:
+                    enemy = next((e for e in self.enemy_combat.enemy_agents
+                                if e.agent_id == enemy_identifier), None)
+                    enemy_name = enemy.name if enemy else enemy_identifier
+
+                    if enemy and enemy.is_active:
+                        enemy.is_active = False
+                        enemy.despawned_round = mechanics.current_round if mechanics else 0
+                        logger.info(f"⚔️  Enemy departed (scene pivot): {enemy_identifier}")
+                        print(f"   Enemy departed: {enemy_name}")
+                    else:
+                        logger.warning(f"Failed to remove enemy '{enemy_identifier}' during scene pivot - not found or already inactive")
 
             print(f"\n🔄 SCENE PIVOT")
             print(f"   New Area: {pivot.new_room}")
@@ -2831,13 +4640,13 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             logger.info(f"DM declared session end: {end_result['status']}" +
                        (f" - {end_result['reason']}" if end_result['reason'] else ""))
 
-        # Still handle auto-despawn for defeated enemies (not marker-based)
+        # Auto-despawn defeated enemies (legacy method still used for auto-despawn only)
         if self.enemy_combat.enabled:
-            spawn_notifications = self.enemy_combat.process_dm_narration(narration)
-            for notification in spawn_notifications:
+            auto_despawn_notifications = self.enemy_combat.process_dm_narration(narration)
+            for notification in auto_despawn_notifications:
                 print(f"\n{notification}")
 
-    def _handle_dm_narration(self, message: Message):
+    async def _handle_dm_narration(self, message: Message):
         """Handle DM narration and check for control markers (structured or legacy)."""
         if message.type != MessageType.DM_NARRATION:
             return
@@ -2847,8 +4656,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
         # Check if this is a round synthesis completion
         if message.payload.get('is_round_synthesis', False):
-            self._synthesis_complete.set()
-            logger.debug("Round synthesis received, signaling completion")
+            logger.debug("Round synthesis received, processing...")
 
             # Check for structured synthesis (Phase 5: Pydantic AI migration)
             structured_synthesis_data = message.payload.get('structured_synthesis')
@@ -2858,8 +4666,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 # Deserialize dict back to Pydantic model
                 from .schemas.story_events import RoundSynthesis
                 structured_synthesis = RoundSynthesis(**structured_synthesis_data)
-                # Process structured synthesis (no marker parsing!)
-                self._process_structured_synthesis(structured_synthesis)
+                # Process structured synthesis (no marker parsing!) - now async
+                await self._process_structured_synthesis(structured_synthesis)
             else:
                 # Legacy marker parsing path
                 self._process_legacy_markers(narration)
@@ -2877,6 +4685,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Collect synthesis for debrief context
             if narration and round_num is not None:
                 self._round_synthesis_history.append((round_num, narration))
+
+            # Signal completion AFTER all processing (including Entity Lifecycle #2) completes
+            self._synthesis_complete.set()
+            logger.debug("Round synthesis processing complete, signaling completion")
 
 
 # Configuration example

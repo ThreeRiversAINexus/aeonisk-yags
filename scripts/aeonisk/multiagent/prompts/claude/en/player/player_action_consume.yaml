@@ -1,0 +1,130 @@
+version: 1.0.0
+module: player_action_consume
+description: "Phase 2: CONSUME action - Eating food items for HP recovery"
+always_load: false
+load_when: action_type_is_consume
+content: |-
+  # 🍜 CONSUME ACTION: Eating Food for Healing
+
+  **Your Intent:** {phase1_intent}
+  **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
+
+  You've chosen to **consume food**. Let's confirm the mechanical details.
+
+  ## Consumption Mechanics
+
+  **Process:**
+  1. Select food item from your inventory (item_type must be "food")
+  2. System validates you have the item and health < max_health
+  3. Item is consumed (removed from inventory)
+  4. You gain **+2 HP** (capped at max_health)
+  5. **NO ROLL REQUIRED** - automatic success if validation passes
+
+  **No DM adjudication needed** - This is a deterministic transaction like purchasing.
+
+  ## REQUIRED Fields
+
+  ```python
+  ConsumeAction(
+      intent: str,                    # "Eat ration pack to recover HP"
+      description: str,               # 50-800 chars - describe eating
+      item_id: str,                   # REQUIRED! Item ID (itm_xxxx) from inventory
+      action_type: ActionType.CONSUME
+  )
+  ```
+
+  ## Pre-Validation (Automatic)
+
+  The system checks:
+  - ✅ You have the item in inventory (quantity > 0)
+  - ✅ Item is food type (item_type="food")
+  - ✅ Your health < max_health (can't eat at full HP)
+
+  If validation fails, the action is automatically rejected with explanation.
+
+  ## Your Current Inventory
+
+  {inventory_display}
+
+  **Current HP:** {current_health} / {max_health}
+
+  ## Available Food Items (in inventory)
+
+  {food_items_available}
+
+  ## Examples
+
+  **Eating Ration Pack:**
+  ```python
+  ConsumeAction(
+      intent="Eat ration pack to recover HP",
+      description="I tear open a ration pack and quickly consume the protein bar and energy gel inside. The standardized meal isn't appetizing, but it provides needed sustenance.",
+      item_id="itm_ration_01",
+      action_type=ActionType.CONSUME
+  )
+  ```
+
+  **Eating Noodles:**
+  ```python
+  ConsumeAction(
+      intent="Eat glowpeel noodles for healing",
+      description="I heat up the packet of glowpeel noodles in the thermal sleeve, the bioluminescent broth casting faint light. The spicy, tangy flavor is a welcome comfort as I eat, feeling warmth spread through me.",
+      item_id="itm_noodles_01",
+      action_type=ActionType.CONSUME
+  )
+  ```
+
+  **Eating Protein Cube:**
+  ```python
+  ConsumeAction(
+      intent="Consume protein cube to restore health",
+      description="I unwrap a beige protein cube - compressed nutrients with minimal flavor. I chew methodically, focusing on the practical need rather than taste. Efficient if unpleasant.",
+      item_id="itm_protein_cube_01",
+      action_type=ActionType.CONSUME
+  )
+  ```
+
+  ---
+
+  ## ⚠️ IMPORTANT: When NOT to use CONSUME
+
+  **CONSUME is ONLY for food items:**
+  - ✅ Ration packs, noodles, protein cubes, dried fruit, etc.
+  - ❌ NOT for medkits (use SUPPORT action + Medicine skill)
+  - ❌ NOT for ritual healing (use RITUAL action)
+  - ❌ NOT for stimpacks or combat drugs (these are narrative items, not food)
+
+  **CONSUME is for minor recovery:**
+  - Eating food grants **+2 HP only** (small amount)
+  - For serious injuries, use Medicine (SUPPORT action)
+  - For void-tainted wounds, use Ritual Healing (RITUAL action)
+
+  ## Food vs Medicine
+
+  **Food (CONSUME action):**
+  - Fixed +2 HP healing (deterministic, no roll)
+  - Can only use if health < max_health
+  - Requires food item in inventory
+  - **NO void risk** - safe nutrition
+  - Use for: minor recovery, topping off HP, sustenance
+
+  **Medicine (SUPPORT action):**
+  - Variable healing based on roll (DC 12-20)
+  - Can treat wounds, bleeding, stabilization
+  - Requires Medicine skill and medkit
+  - **NO void risk** - safe medical treatment
+  - Use for: serious injuries, wounds, combat trauma
+
+  **Ritual Healing (RITUAL action):**
+  - Major healing but requires offerings
+  - DC 20-22 (Major ritual difficulty)
+  - **VOID RISK** - can gain +1-3 void
+  - Use for: void-tainted wounds, curse injuries
+
+  ---
+
+  **💡 TIP: Eating food is quick sustenance, not emergency medicine!**
+
+  **Ready? Confirm your consumption action!**
