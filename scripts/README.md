@@ -56,7 +56,7 @@ Every session produces detailed JSONL logs capturing:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/aeonisk-yags.git
+git clone https://github.com/ThreeRiversAINexus/aeonisk-yags.git
 cd aeonisk-yags
 
 # Set up virtual environment (REQUIRED for ChromaDB)
@@ -127,17 +127,19 @@ Sessions are configured via JSON files (see `session_config_README.md` in this d
 
 ## Dataset & Benchmarking
 
-### Aeonisk-86 Dataset
+### Aeonisk Dataset
 
-The repository includes a normalized dataset of 86 RPG tasks:
+The repository includes a normalized dataset of 58 RPG tasks with complete outcome distributions:
 - **Location**: `datasets/aeonisk_dataset_normalized_complete.txt`
+- **HuggingFace**: [huggingface.co/ThreeRiversAINexus](https://huggingface.co/ThreeRiversAINexus)
 - **Structure**: See `datasets/aeonisk_dataset_guidelines.txt` for format specification
-- **Content**: Multi-tier outcomes, complete stat blocks, faction context
+- **Content**: Multi-tier outcomes (6 tiers per scenario), complete stat blocks, faction context
 
 **Use cases:**
 - Training language models on RPG mechanics
 - Benchmarking DM adjudication quality
 - Fine-tuning for narrative generation
+- Counterfactual reasoning research
 
 ### Aeonisk DM GPT
 
@@ -160,7 +162,7 @@ aeonisk-yags/
 │   │   │   └── prompts/         # Externalized prompts
 │   └── run_multiagent_session.py  # Main entry point
 ├── content/                     # Game rules and lore
-├── datasets/                    # Aeonisk-86 dataset
+├── datasets/                    # Aeonisk dataset (58 scenarios)
 ├── multiagent_output/          # Session JSONL logs
 ├── .venv/                      # Virtual environment (activate first!)
 ├── .claude/                    # Detailed architecture docs
