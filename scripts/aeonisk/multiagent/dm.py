@@ -2874,7 +2874,7 @@ Apply this narrative style to:
             logger.debug("DM: Attempting structured output for round synthesis")
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = self.llm_config.get('max_tokens', 4000)  # Increased for RoundSynthesis with verbose LLMs
+            max_tokens = self.llm_config.get('max_tokens', 6000)  # RoundSynthesis needs more tokens (OpenAI especially verbose)
             temperature = self.llm_config.get('temperature', 0.8)
 
             # Get current round for logging and display
@@ -3153,6 +3153,22 @@ Void Level: {self.current_scenario.void_level}/10"""
 
         # Build context about what happened
         outcomes_summary = []
+
+        # Helper to resolve target ID to name (defined once, used for all resolutions)
+        def resolve_target_name(target_id_or_name: str) -> str:
+            """Resolve tgt_xxxx to character name, or return as-is if already a name."""
+            if not target_id_or_name:
+                return 'unknown'
+            if target_id_or_name.startswith('tgt_') and self.shared_state:
+                target_mapper = self.shared_state.get_target_id_mapper()
+                if target_mapper and target_mapper.enabled:
+                    entity = target_mapper.resolve_target(target_id_or_name)
+                    if entity and hasattr(entity, 'name'):
+                        return entity.name
+                    elif entity and hasattr(entity, 'character_state'):
+                        return entity.character_state.name
+            return target_id_or_name
+
         for res in resolutions:
             char_name = res.get('character_name', 'Unknown')
 
@@ -3171,16 +3187,23 @@ Void Level: {self.current_scenario.void_level}/10"""
 
             # Handle action field - can be dict (PC actions) or string (enemy actions)
             action = res.get('action', {})
+            target_info = ""
             if isinstance(action, dict):
                 # PC action format: action is a dict with 'intent' or 'description'
                 intent = action.get('intent', action.get('description', 'unknown action'))
+                # Extract target from PC action and resolve to name
+                action_target = action.get('target', '')
+                if action_target:
+                    resolved_target = resolve_target_name(action_target)
+                    target_info = f" → targeting {resolved_target}"
             else:
                 # Enemy action format: action is a string like 'attack', 'move', etc.
                 intent = str(action)
                 # Make it more readable
                 if intent == 'attack':
                     target = res.get('target', 'unknown target')
-                    intent = f"attacked {target}"
+                    resolved_target = resolve_target_name(target)
+                    intent = f"attacked {resolved_target}"
                 elif intent == 'hold':
                     intent = "held position"
 
@@ -3196,16 +3219,58 @@ Void Level: {self.current_scenario.void_level}/10"""
             else:
                 status = "succeeded" if success else "failed"
 
-            # CRITICAL: Include narration from individual resolution so DM can maintain consistency
+            # NEW: Extract damage and healing effects from resolution
+            effects_info = ""
+
+            # Check PC action effects (structured output format)
+            resolution_dict = res.get('resolution', {})
+            effects = resolution_dict.get('effects', {})
+            if effects:
+                # Extract damage dealt
+                damage_list = effects.get('damage', [])
+                for dmg in damage_list:
+                    if isinstance(dmg, dict):
+                        dmg_target = resolve_target_name(dmg.get('target', 'unknown'))
+                        dmg_dealt = dmg.get('dealt', 0)
+                        effects_info += f"\n  💥 {dmg_dealt} damage dealt to {dmg_target}"
+
+                # Extract healing applied
+                healing_list = effects.get('healing', [])
+                for heal in healing_list:
+                    if isinstance(heal, dict):
+                        heal_target = resolve_target_name(heal.get('target', 'unknown'))
+                        heal_hp = heal.get('hp', 0)
+                        if heal_hp:
+                            effects_info += f"\n  💚 {heal_hp} HP healed on {heal_target}"
+
+            # Also check enemy action damage (top-level fields, not in resolution.effects)
+            if not effects_info and res.get('damage_dealt'):
+                dmg_target = resolve_target_name(res.get('target', 'unknown'))
+                dmg_dealt = res.get('damage_dealt', 0)
+                effects_info += f"\n  💥 {dmg_dealt} damage dealt to {dmg_target}"
+
+            # CRITICAL: Include full narration from individual resolution so DM can maintain consistency
             narration = res.get('narration', '')
             if narration:
-                # Truncate very long narrations to keep synthesis prompt focused
-                narration_preview = narration[:500] + "..." if len(narration) > 500 else narration
-                outcomes_summary.append(f"- {char_name} {status} at: {intent}\n  Resolution: {narration_preview}")
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}{target_info}{effects_info}\n  Resolution: {narration}")
             else:
-                outcomes_summary.append(f"- {char_name} {status} at: {intent}")
+                outcomes_summary.append(f"- {char_name} {status} at: {intent}{target_info}{effects_info}")
 
         outcomes_text = "\n".join(outcomes_summary)
+
+        # NEW: Track casualties - check for dead/defeated characters
+        casualties_this_round = []
+        if self.shared_state and hasattr(self.shared_state, 'player_agents'):
+            for player in self.shared_state.get_all_players():
+                if hasattr(player, 'health') and player.health is not None and player.health <= 0:
+                    casualties_this_round.append(player.character_state.name)
+
+        # Add casualty alert to outcomes text if anyone died
+        if casualties_this_round:
+            casualties_alert = f"\n\n💀 **CASUALTIES THIS ROUND:** {', '.join(casualties_this_round)}"
+            casualties_alert += "\n⚠️ CRITICAL: Explicitly NAME the dead character(s) in your synthesis!"
+            casualties_alert += "\nDO NOT use vague phrases like 'a figure fell' - use their actual name!"
+            outcomes_text += casualties_alert
 
         # NOTE: Clock updates are now applied BEFORE conversion check (in session.py)
         # This allows conversion check to see filled clocks and make informed spawn decisions
@@ -4245,11 +4310,30 @@ Read the action intent to understand WHY this transfer is happening:
 
         logger.info(f"✗ Attunement auto-failed for {character_name}: {failure_reason}")
 
+        # Return resolution matching standard format (with 'outcome' key expected by adjudication)
         return {
+            'resolution': failed_resolution,  # ActionResolution Pydantic model
             'narration': narration,
-            'success': False,
-            'outcome_tier': 'FAILURE',
-            'margin': -999,
+            'state_changes': {},
+            'combat_data': {},
+            'inventory_changes': [],
+            'effects': {},  # No effects for auto-failure
+            'outcome': {
+                'dm_response': narration,
+                'success': False,
+                'consequences': [],
+                'narration': narration,
+                'resolution': {
+                    'intent': intent,
+                    'attribute': None,
+                    'skill': None,
+                    'total': None,
+                    'difficulty': None,
+                    'margin': -999,
+                    'success': False,
+                    'success_tier': 'failure'
+                }
+            },
             'validation_failure': True,
             'failure_reason': failure_reason
         }
@@ -5282,13 +5366,8 @@ The following actions ALREADY resolved (faster initiative):
             if sc_change != 0:
                 sc_state.adjust(sc_change, reasons_text)
 
-            # Show SC change to the affected player only (private knowledge)
-            # Other players do NOT see each other's soulcredit (asymmetric information)
-            # Only skip adding line if DM explicitly included one in narration text
-            if sc_source != 'dm_explicit':
-                # Add soulcredit line for clarity (from structured output or default)
-                # Always show, even +0, unless DM already wrote it in narration
-                narration += f"\n\n⚖️ Soulcredit: {sc_change:+d} ({reasons_text})"
+            # SC is applied mechanically above - no need to inject into narration
+            # Players see their soulcredit via game UI, not narrative text
 
             # Apply conditions (with targeting support - apply to target, not actor)
             from .mechanics import Condition
@@ -5345,7 +5424,9 @@ The following actions ALREADY resolved (faster initiative):
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            # Environmental objects (terminals, doors, etc.) have tgt_ IDs but aren't tracked entities
+                            # This is expected behavior - conditions don't apply to non-entities
+                            logger.debug(f"Target ID '{target_id}' not a tracked entity (likely env object), skipping condition")
                             should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
@@ -5370,11 +5451,9 @@ The following actions ALREADY resolved (faster initiative):
                                 already_exists = True
                                 break
 
-                    # Only add and show narration if condition is new
+                    # Only add condition if new (no narration injection - visible via structured output)
                     if not already_exists:
                         mechanics.add_condition(condition_target_id, condition)
-                        # Show condition application (with target name)
-                        narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement)
             if state_changes.get('position_change'):
@@ -5738,13 +5817,8 @@ The following actions ALREADY resolved (faster initiative):
             if sc_change != 0:
                 sc_state.adjust(sc_change, reasons_text)
 
-            # Show SC change to the affected player only (private knowledge)
-            # Other players do NOT see each other's soulcredit (asymmetric information)
-            # Only skip adding line if DM explicitly included one in narration text
-            if sc_source != 'dm_explicit':
-                # Add soulcredit line for clarity (from structured output or default)
-                # Always show, even +0, unless DM already wrote it in narration
-                narration += f"\n\n⚖️ Soulcredit: {sc_change:+d} ({reasons_text})"
+            # SC is applied mechanically above - no need to inject into narration
+            # Players see their soulcredit via game UI, not narrative text
 
             # Apply conditions (with targeting support - apply to target, not actor)
             from .mechanics import Condition
@@ -5801,7 +5875,9 @@ The following actions ALREADY resolved (faster initiative):
                                 condition_target_name = target_entity.name
                             logger.debug(f"Resolved condition target {target_id} → '{condition_target_name}' (agent_id: {condition_target_id})")
                         else:
-                            logger.warning(f"Could not resolve target ID '{target_id}' for condition, skipping application")
+                            # Environmental objects (terminals, doors, etc.) have tgt_ IDs but aren't tracked entities
+                            # This is expected behavior - conditions don't apply to non-entities
+                            logger.debug(f"Target ID '{target_id}' not a tracked entity (likely env object), skipping condition")
                             should_apply_condition = False
                     else:
                         # It's a character name - try to find by name
@@ -5826,11 +5902,9 @@ The following actions ALREADY resolved (faster initiative):
                                 already_exists = True
                                 break
 
-                    # Only add and show narration if condition is new
+                    # Only add condition if new (no narration injection - visible via structured output)
                     if not already_exists:
                         mechanics.add_condition(condition_target_id, condition)
-                        # Show condition application (with target name)
-                        narration += f"\n\n🩹 Condition ({condition_target_name}): {condition.name} ({condition.penalty:+d})"
 
             # Apply position changes (for tactical movement during rituals)
             if state_changes.get('position_change'):
@@ -6026,10 +6100,11 @@ The following actions ALREADY resolved (faster initiative):
                 status_parts.append(f"{clock_name}: {clock.current}/{clock.maximum}")
 
             if status_parts:
-                status_line = "📊 " + " | ".join(status_parts)
+                # Format clock status without emoji markers
+                status_line = " | ".join(status_parts)
 
                 # Simple narrative wrapper
-                narration = f"The situation evolves...\n\n{status_line}"
+                narration = f"The situation evolves... ({status_line})"
             else:
                 # Skip DM turn if nothing to report
                 return

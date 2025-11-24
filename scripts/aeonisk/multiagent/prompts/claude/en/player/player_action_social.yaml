@@ -8,6 +8,8 @@ content: |-
 
   **Your Intent:** {phase1_intent}
   **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
 
   You've chosen a **social action**. Now let's define the mechanical details.
 
@@ -74,6 +76,22 @@ content: |-
       target="tgt_gang_member"
   )
   ```
+
+  **Requesting Items from NPCs:**
+  ```python
+  SocialAction(
+      intent="Ask grateful civilian for supplies",
+      description="I approach the civilian we just rescued and explain our situation: 'We're trying to help more people, but we're running low on supplies. Do you have any spare rations, medkits, or anything that could help?'",
+      attribute="Charisma",
+      skill="Charm",
+      difficulty_estimate=12,
+      difficulty_justification="DC 12: They're grateful for rescue, but supplies are scarce for everyone",
+      action_type=ActionType.SOCIAL,
+      target="tgt_civilian"
+  )
+  ```
+
+  💡 **NPC Gifts:** Friendly or grateful NPCs may gift items, Raw Seeds, or currency in response to successful social interactions. The DM determines what they're willing to share based on their disposition, your relationship, and what they have available. Quest rewards or special favors may yield more valuable gifts.
 
   ## Faction Abbreviations (CANONICAL)
 

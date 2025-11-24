@@ -8,6 +8,8 @@ content: |-
 
   **Your Intent:** {phase1_intent}
   **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
 
   You've chosen a **combat action**. Now let's define the mechanical details.
 
@@ -164,6 +166,41 @@ content: |-
       situational_modifiers={"target_wounded": 2, "non-lethal": 0}
   )
   ```
+
+  ## ⚠️ SUPPRESSING FIRE PREREQUISITES
+
+  **Before using suppressive fire, verify ALL conditions:**
+  1. **Hostile enemies are present** - Check {entities_present} for enemies actively engaging
+  2. **Active combat situation** - Gunfire is already happening or enemies are attacking
+  3. **Target is HOSTILE** - Never suppress allies, NPCs, or friendlies helping you
+
+  **Suppressive fire is ONLY appropriate when:**
+  - Enemies are actively engaging your team (combat in progress)
+  - You're providing tactical cover for ally movement under enemy fire
+  - You have clear hostile targets to pin down
+
+  **Do NOT use suppressive fire when:**
+  - ❌ No enemies present (use SOCIAL intimidation or other action types)
+  - ❌ Stealth/extraction in progress (escalates to full combat)
+  - ❌ Targeting allies or NPCs helping your team
+  - ❌ Non-combat situations (negotiations, social encounters)
+
+  **Example 6: Suppressing Fire (Area Denial)**
+  ```python
+  CombatAction(
+      intent="Lay down suppressing fire to pin enemies behind cover",
+      description="I open up with full-auto bursts toward the enemy position, not aiming for precise kills but forcing them to keep their heads down while my team repositions. Sustained fire sweeping across their cover.",
+      attribute="Agility",
+      skill="Guns",
+      difficulty_estimate=16,
+      difficulty_justification="DC 16: Area suppression requires sustained fire control, but easier than precision shots. Enemies have cover but suppression bypasses some defensive value.",
+      action_type=ActionType.COMBAT,
+      target="tgt_enemy_squad",
+      situational_modifiers={"automatic_fire": 2, "area_suppression": 0}
+  )
+  ```
+
+  **Note on suppressing fire:** Uses live ammunition and can hit targets (attack roll applies). Escalates situations tactically - enemies respond with aggression, bystanders panic, security reacts to automatic weapons fire. Use when tactical situation justifies the risk.
 
   ## Common Mistakes to Avoid
 

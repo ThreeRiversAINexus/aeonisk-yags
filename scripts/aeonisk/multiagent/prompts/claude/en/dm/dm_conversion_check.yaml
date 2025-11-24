@@ -286,6 +286,7 @@ conversion_check_prompt: |
 
   **When NPCs should escalate:**
   - **Attacked by players**: NPC took damage → self-defense or panic
+  - **Suppressing fire near NPCs**: Automatic weapons fire (even if missing) → panic or hostile response depending on NPC disposition and threat level
   - **Low-margin intimidation**: Weak intimidation (margin 0-5) on wary NPC → resistance
   - **Faction attacked**: NPC's allies harmed in front of them → defend allies
   - **Armed neutrals provoked**: Professional guards/security respond to threats
@@ -621,6 +622,85 @@ conversion_check_prompt: |
   - `ambusher`: Stealth/surprise attackers - 18-23 HP, 2-3 soak
   - `support`: Healers/buffers/controllers - 18-22 HP, 1-2 soak
 
+  ### Environmental Object Spawns (Narrative Grounding)
+
+  **⚠️ PURPOSE: Prevent target hallucination by making environmental features explicit**
+
+  Use `env_object_spawns` to spawn environmental objects when:
+  - Players mention wanting to interact with something specific ("I hack the terminal", "I open the door")
+  - Your narrative describes environmental features players might target
+  - Scene requires interactive elements (locked door, control panel, cargo containers)
+  - Players ask "is there a X?" and the answer should be yes
+
+  **Object Types (use EXACTLY these strings):**
+  - `"door"`: Doors, hatches, airlocks (can be locked, damaged)
+  - `"terminal"`: Computer terminals, control panels (can be hacked, powered)
+  - `"cargo"`: Cargo containers, crates, storage (can be opened, searched)
+  - `"vehicle"`: Shuttles, drones, transports (can be damaged, operated)
+  - `"barrier"`: Barricades, walls, obstacles (can be breached)
+  - `"structure"`: Buildings, pillars, platforms (can be damaged)
+  - `"equipment"`: Machinery, tools, devices (can be activated, disabled)
+
+  **When to spawn environmental objects:**
+  - Player action mentions specific object ("hack security terminal" → spawn terminal object)
+  - DM narration introduces targetable feature ("sealed cargo bay door" → spawn door object)
+  - Scene setup needs interactive elements ("control room with multiple terminals" → spawn terminal objects)
+  - Players explore location ("search for supplies" → spawn cargo containers when found)
+
+  **When NOT to spawn:**
+  - Pure narrative atmosphere (lighting, sounds, smells, ambient details)
+  - Background decorations (wall art, furniture, minor clutter)
+  - Elements players won't interact with (distant scenery, immovable structures)
+  - Already-spawned objects (check existing environmental objects list)
+
+  **Examples:**
+  ```python
+  # Player wants to hack terminal
+  env_object_spawns=[
+      EnvObjectSpawn(
+          object_type="terminal",
+          name="Security Terminal",
+          description="Flickering terminal panel embedded in wall, displaying security logs",
+          initial_state={{"locked": True, "powered": True}},
+          narrative_reason="Player mentioned hacking terminal - make it explicit so they know it exists"
+      )
+  ]
+  ```
+
+  ```python
+  # DM described sealed door
+  env_object_spawns=[
+      EnvObjectSpawn(
+          object_type="door",
+          name="Cargo Bay Airlock",
+          description="Heavy reinforced airlock with manual override panel",
+          initial_state={{"locked": True, "health": 50}},
+          narrative_reason="Narrative mentioned sealed cargo bay - spawn door so players can target it"
+      )
+  ]
+  ```
+
+  ```python
+  # Players searching for supplies
+  env_object_spawns=[
+      EnvObjectSpawn(
+          object_type="cargo",
+          name="Supply Crates",
+          description="Stack of sealed cargo crates marked with faction insignia",
+          initial_state={{"opened": False}},
+          narrative_reason="Players searching area - spawn cargo containers for interaction"
+      )
+  ]
+  ```
+
+  **State Guidelines:**
+  - doors/terminals: `{{"locked": True/False, "health": 20-50, "powered": True/False}}`
+  - cargo: `{{"opened": True/False, "searched": True/False}}`
+  - vehicles: `{{"functional": True/False, "health": 30-60}}`
+  - equipment: `{{"powered": True/False, "activated": True/False}}`
+
+  **Key principle:** Environmental objects make "what exists" visible to players, reducing hallucination of non-existent targets.
+
   ## ⚠️ CRITICAL: Validate IDs Before Conversion
 
   **Common error:** "Enemy tgt_xxx not found for conversion"
@@ -634,7 +714,8 @@ conversion_check_prompt: |
   - ❌ **DON'T:** Use character names like "Raider #1" (use agent_id instead)
 
   **Example of CORRECT ID usage:**
-  - Resolution shows: "🩹 Condition (Freeborn Smugglers Raider #1): Surrendered"
+  - Resolution narration mentions: "Freeborn Smugglers Raider #1 surrenders"
+  - Resolution conditions field shows: `conditions=[Condition(target="enemy_grunt_4bc22537", name="Surrendered")]`
   - ACTIVE ENEMIES list shows: "enemy_grunt_4bc22537 (Freeborn Smugglers Raider #1, 100% HP)"
   - **Correct:** `enemy_id="enemy_grunt_4bc22537"`
   - **Wrong:** `enemy_id="tgt_wfia"` or `enemy_id="Freeborn Smugglers Raider #1"`
@@ -647,6 +728,9 @@ conversion_check_prompt: |
   - `escalations`: List of NPCs to convert to enemies (empty list if none)
   - `npc_spawns`: List of new NPCs to spawn (empty list if none)
   - `enemy_spawns`: List of new enemies to spawn (empty list if none)
+  - `env_object_spawns`: List of environmental objects to spawn (empty list if none)
+  - `npc_departures`: List of NPC agent_ids to remove (empty list if none)
+  - `altar_spawns`: List of ritual altars to spawn (empty list if none)
   - `reasoning`: Brief explanation (20-500 chars) of your conversion decisions
 
   **Example reasoning:**

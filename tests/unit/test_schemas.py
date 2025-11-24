@@ -161,6 +161,48 @@ class TestSharedTypes:
 
         assert condition.penalty == 2
 
+    def test_condition_target_rejects_semicolons(self):
+        """Test that Condition.target rejects semicolon-separated targets."""
+        with pytest.raises(ValidationError) as exc_info:
+            Condition(
+                name="Stunned",
+                penalty=-2,
+                duration=1,
+                description="Targets are stunned",
+                target="tgt_abc1; tgt_def2"
+            )
+
+        error_msg = str(exc_info.value)
+        assert "Invalid target format" in error_msg
+        assert "SINGLE target" in error_msg
+
+    def test_condition_target_rejects_commas(self):
+        """Test that Condition.target rejects comma-separated targets."""
+        with pytest.raises(ValidationError) as exc_info:
+            Condition(
+                name="Weakened",
+                penalty=-3,
+                duration=2,
+                description="Targets are weakened",
+                target="tgt_comm_node_03, tgt_HVAC_zoneB"
+            )
+
+        error_msg = str(exc_info.value)
+        assert "Invalid target format" in error_msg
+        assert "multiple Condition entries" in error_msg
+
+    def test_condition_single_target_accepted(self):
+        """Test that Condition.target accepts single target ID."""
+        condition = Condition(
+            name="Pinned",
+            penalty=-2,
+            duration=1,
+            description="Target is pinned behind cover",
+            target="tgt_7a3f"
+        )
+
+        assert condition.target == "tgt_7a3f"
+
     def test_damage_effect_valid(self):
         """Test valid DamageEffect creation."""
         damage = DamageEffect(

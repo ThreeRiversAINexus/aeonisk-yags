@@ -1,0 +1,191 @@
+version: 2.0.0
+module: dm_resolution_support
+description: Support action resolution - healing, buffs, assistance
+load_when: action_type_support
+content: |-
+  # SUPPORT ACTION RESOLUTION
+
+  You are resolving a **SUPPORT** action (medical, assistance, buffs). Focus on these fields:
+
+  ## REQUIRED FIELDS
+
+  **1. healing (REQUIRED for medical/restoration actions)**
+  ```python
+  healing=[HealingEffect(
+      target="tgt_ash",        # Target ID of recipient
+      amount=8,                # HP restored
+      source="medkit"          # What provided healing
+  )]
+  ```
+
+  **Healing sources:**
+  - `"medkit"` - Standard medical kit (heals 5-10 HP)
+  - `"medicine_check"` - First aid skill (heals 3-8 HP based on margin)
+  - `"void_ritual"` - Ritual healing (heals 5-15 HP, may have void cost)
+  - `"stim_pack"` - Combat stim (heals 3-5 HP, may have side effects)
+
+  **2. soulcredit_changes (REQUIRED)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Sera",
+      amount=1,                # +1 for helping allies
+      reason="provided medical aid to wounded ally"
+  )]
+  ```
+
+  ## OPTIONAL FIELDS
+
+  **3. conditions - for buffs or medical side effects**
+  ```python
+  # Buff from assistance
+  conditions=[Condition(
+      name="Focused",
+      penalty=2,               # Positive = bonus
+      duration=2,
+      description="+2 to next skill check",
+      target="tgt_kade"
+  )]
+
+  # Side effect from stim
+  conditions=[Condition(
+      name="Jittery",
+      penalty=-1,
+      duration=1,
+      description="stimulant aftereffect, -1 Perception",
+      target="tgt_ash"
+  )]
+  ```
+
+  **4. inventory_changes - when consumables are used**
+  Note: Medkits and similar items may be tracked by mechanics layer.
+  Document if the healing consumed a resource.
+
+  ## SUPPORT EXAMPLES
+
+  **Example 1: Medical Treatment - Good Success**
+  ```python
+  ActionResolution(
+      narration="You crack open the medkit and work quickly, cleaning the wound and applying bio-gel to seal the torn tissue. Ash grimaces but holds still as the anesthetic kicks in. 'You'll live,' you say, packing away the supplies.",
+      success_tier=SuccessTier.GOOD,
+      margin=9,
+      effects=MechanicalEffects(
+          healing=[HealingEffect(
+              target="tgt_ash",
+              amount=8,
+              source="medkit"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=1,
+              reason="provided medical aid under pressure"
+          )]
+      )
+  )
+  ```
+
+  **Example 2: First Aid Without Supplies**
+  ```python
+  ActionResolution(
+      narration="Without proper supplies, you improvise - tearing cloth for bandages, applying pressure to slow the bleeding. It's rough work, but it buys time. Kade's breathing steadies.",
+      success_tier=SuccessTier.MODERATE,
+      margin=5,
+      effects=MechanicalEffects(
+          healing=[HealingEffect(
+              target="tgt_kade",
+              amount=4,
+              source="medicine_check"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Echo",
+              amount=1,
+              reason="helped wounded ally with limited resources"
+          )]
+      )
+  )
+  ```
+
+  **Example 3: Tactical Assistance**
+  ```python
+  ActionResolution(
+      narration="You move to flank position, calling out enemy movements. 'Two on your left, one reloading!' Your tactical awareness gives Ash the edge they need.",
+      success_tier=SuccessTier.GOOD,
+      margin=7,
+      effects=MechanicalEffects(
+          conditions=[Condition(
+              name="Tactical Advantage",
+              penalty=2,
+              duration=1,
+              description="+2 to next attack from tactical coordination",
+              target="tgt_ash"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=0,
+              reason="combat support"
+          )]
+      )
+  )
+  ```
+
+  **Example 4: Stabilizing Unconscious Ally (Medevac Extraction)**
+
+  ⚠️ IMPORTANT: Stabilizing an UNCONSCIOUS ally triggers MEDEVAC EXTRACTION.
+  Per YAGS rules: First Aid STOPS the death spiral but does NOT restore HP.
+  The ally remains unconscious and is extracted by their faction's medical team.
+  They are SAFE but will NOT rejoin this encounter.
+
+  ```python
+  ActionResolution(
+      narration="Kade is fading fast. You drop beside them, hands slick with blood as you fight to stem the bleeding. Tourniquet applied, syn-skin foam injected, wound packed. 'Medevac inbound!' you call into comms. Within moments, a medical drone descends - Kade's faction scrambled support the moment vitals spiked. They're lifted out, unconscious but stable.",
+      success_tier=SuccessTier.MODERATE,
+      margin=5,
+      effects=MechanicalEffects(
+          stabilization=StabilizationEffect(
+              target="tgt_kade",
+              success=True,
+              extracted=True
+          ),
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=2,
+              reason="saved ally from death, enabled extraction"
+          )]
+      )
+  )
+  ```
+
+  **If stabilization FAILS:**
+  ```python
+  ActionResolution(
+      narration="You work frantically, but the bleeding won't stop. Your hands shake as Kade's pulse grows weaker. 'No, no, no...' The wound is too severe, your skills not enough.",
+      success_tier=SuccessTier.FAILURE,
+      margin=-3,
+      effects=MechanicalEffects(
+          stabilization=StabilizationEffect(
+              target="tgt_kade",
+              success=False,
+              extracted=False
+          ),
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Sera",
+              amount=0,
+              reason="failed stabilization attempt"
+          )]
+      )
+  )
+  ```
+
+  ## HEALING SCALING BY MARGIN
+
+  | Roll Margin | Medicine Check | With Medkit |
+  |-------------|----------------|-------------|
+  | 0-4 (barely) | 3-4 HP | 5-6 HP |
+  | 5-9 (solid) | 5-6 HP | 7-8 HP |
+  | 10+ (excellent) | 7-8 HP | 9-10 HP |
+
+  ## NARRATION TIPS FOR SUPPORT
+
+  - Show the physical process of treatment/assistance
+  - Include patient's reaction (pain, relief, gratitude)
+  - Describe the urgency or calm of the situation
+  - For combat support, show tactical communication

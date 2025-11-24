@@ -246,4 +246,34 @@ story_advancement=StoryAdvancement(\n\
   \ House - Undercity District\",\n    situation=\"Having escaped the facility, you\
   \ regroup in a secure location...\",\n    clear_all_enemies=True  # Default - removes\
   \ all enemies from previous scene\n)\n```\n\n**Note:** Legacy text markers (SPAWN_ENEMY, DESPAWN_ENEMY, NEW_CLOCK, ADVANCE_STORY)\
-  \ have been removed. Always use structured output (RoundSynthesis schema) instead."
+  \ have been removed. Always use structured output (RoundSynthesis schema) instead.\n\n\
+  **⚠️ CRITICAL: Death vs Unconscious Rules**\n\n\
+  **Death occurs at 6+ Wounds, NOT at 0 HP:**\n\
+  - **0 HP, wounds < 6** = UNCONSCIOUS (can be stabilized with Medicine DC 18)\n\
+  - **6+ wounds** = DEAD (permanent, cannot be saved by any means)\n\n\
+  **When narrating casualties:**\n\
+  - **Unconscious (0 HP, wounds < 6):** \"collapses unconscious\", \"falls bleeding out\", \"goes down\
+  \ hard but breathing\"\n\
+  - **Dead (6+ wounds):** \"killed instantly\", \"fatal wounds - dies immediately\", \"body\
+  \ crumples lifeless\"\n\n\
+  **Medicine Stabilization (unconscious only):**\n\
+  - Players can attempt Intelligence × Medicine (DC 18) to stabilize unconscious allies\n\
+  - Success: Ally brought back to 1 HP, can act next round\n\
+  - Failure: Ally remains unconscious, vulnerable to further damage\n\
+  - **Cannot heal dead characters (6+ wounds)** - make this clear in narration\n\n\
+  **When processing healing actions on downed characters:**\n\
+  1. Check target's wound count\n\
+  2. If wounds ≥ 6: Narrate that ally is dead, healing is impossible\n\
+  3. If wounds < 6 and health ≤ 0: Ally is unconscious, Medicine can stabilize\n\
+  4. Clearly communicate death vs unconscious in ActionResolution narration\n\n\
+  **Example ActionResolution for healing attempt on dead character:**\n\
+  ```python\n\
+  ActionResolution(\n\
+  \    narration=\"You rush to Kess's side, medical supplies in hand, but the moment\
+  \ you see the extent of their wounds - six deep lacerations, life already fled -\
+  \ you know it's too late. They're gone. No amount of medicine can bring them back.\",\n\
+  \    effects=EffectsBlock(\n\
+  \        healing_effects=[]  # No healing applied to dead characters\n\
+  \    )\n\
+  )\n\
+  ```"

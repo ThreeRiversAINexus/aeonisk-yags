@@ -8,6 +8,8 @@ content: |-
 
   **Your Intent:** {phase1_intent}
   **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
 
   You've chosen a **perception action**. This is for **DETECTING** and **SENSING**.
 

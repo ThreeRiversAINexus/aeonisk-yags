@@ -1,0 +1,187 @@
+{
+  "_role": "test_environmental_objects_openai",
+  "_purpose": "TEST ENVIRONMENTAL OBJECT SPAWNING - Verify env objects reduce target hallucination by making terminals, doors, cargo explicitly spawnable. ALL AGENTS USE OPENAI GPT-5-MINI TEMP 1.0.",
+  "session_name": "Server Room Infiltration - Environmental Objects Test (OpenAI)",
+  "max_turns": 10,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+
+  "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Focus on Environment Interaction) ===",
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_scenario": "=== SCENARIO: CORPORATE SERVER ROOM - RICH ENVIRONMENT ===",
+  "_scenario_hint": "Tempest Corp Server Room (void_level 1, abandoned maintenance shift). Location has MANY interactive environmental features: security terminals (need hacking), sealed maintenance doors (need unlock/force), server racks (can be disabled), cargo containers of backup drives (need opening), control panels, airlock systems, emergency override stations. Team goals: extract corporate secrets, disable security, find hidden data. Players will naturally mention wanting to 'hack the terminal', 'open the door', 'search the cargo' - DM should spawn these as environmental objects to test the system. Security is offline but systems are locked, requiring environmental interaction.",
+
+  "_design_notes": {
+    "test_hypothesis": "Environmental object spawning reduces target hallucination. When players say 'I hack the terminal', DM spawns EnvObjectSpawn(object_type='terminal',...) making it explicit rather than pure narrative.",
+    "expected_env_objects": [
+      "Security Terminal (terminal, locked, powered)",
+      "Maintenance Airlock (door, locked, health 50)",
+      "Backup Drive Containers (cargo, unopened)",
+      "Server Control Panel (terminal, powered)",
+      "Emergency Override Station (equipment, disabled)",
+      "Data Storage Racks (structure, intact)"
+    ],
+    "success_criteria": [
+      "DM spawns env objects when players mention environmental features",
+      "Players see env objects in entities_present display",
+      "No 'target not found' errors for spawned objects",
+      "Environmental features are explicitly tracked vs narrative flavor"
+    ],
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI TEMP 1.0 - Maximum creativity for DM spawning, consistent player actions."
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Security System Reboot",
+      "current_ticks": 0,
+      "max_ticks": 8,
+      "direction": "progress",
+      "description": "Automated security coming back online after maintenance shutdown. At 8 ticks: full lockdown, alarms, automated defenses activate.",
+      "advance_meaning": "security systems powering up, time running out",
+      "regress_meaning": "security reboot delayed or interrupted"
+    },
+    {
+      "name": "Data Extraction Progress",
+      "current_ticks": 0,
+      "max_ticks": 6,
+      "direction": "progress",
+      "description": "Hacking and copying corporate secrets from servers. At 6 ticks: mission complete.",
+      "advance_meaning": "more data copied from servers",
+      "regress_meaning": "data corruption or extraction interrupted"
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Cipher",
+        "pronouns": "they/them",
+        "faction": "Freeborn Hacker Collective",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Charisma": 2
+        },
+        "skills": {
+          "Hacking": 6,
+          "Systems": 5,
+          "Engineering": 4,
+          "Awareness": 3,
+          "Stealth": 3,
+          "Investigation": 3
+        },
+        "void": 2,
+        "soulcredit": -2,
+        "goals": [
+          "Hack into every terminal and control panel",
+          "Extract corporate blackmail material",
+          "Disable security before reboot completes"
+        ],
+        "equipped_weapons": {
+          "primary": "emp_pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "emp_pistol": 1,
+          "hacking_toolkit": 1,
+          "data_slate": 2,
+          "security_bypass_chip": 3,
+          "signal_jammer": 1,
+          "lockpick_set": 1,
+          "crowbar": 1,
+          "flashlight": 1,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Scrap",
+        "pronouns": "he/him",
+        "faction": "Independent Scavenger",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 4,
+          "Agility": 3,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 2
+        },
+        "skills": {
+          "Engineering": 5,
+          "Athletics": 4,
+          "Awareness": 3,
+          "Melee": 4,
+          "Salvage": 5,
+          "Pilot": 2
+        },
+        "void": 1,
+        "soulcredit": -4,
+        "goals": [
+          "Force open sealed doors and containers",
+          "Salvage valuable server components",
+          "Find hidden cargo caches"
+        ],
+        "equipped_weapons": {
+          "primary": "plasma_cutter"
+        },
+        "carried_weapons": [
+          "crowbar"
+        ],
+        "inventory": {
+          "plasma_cutter": 1,
+          "crowbar": 2,
+          "cutting_torch": 1,
+          "cargo_scanner": 1,
+          "heavy_gloves": 1,
+          "pry_bar": 1,
+          "magnetic_lift": 1,
+          "salvage_kit": 1,
+          "comm_unit": 1,
+          "flashlight": 1
+        }
+      }
+    ]
+  },
+
+  "notes": "TEST SCENARIO for environmental object spawning system (Stage 1). Designed to maximize environmental interaction: hacker character naturally hacks terminals, scavenger naturally opens doors/cargo. Server room setting rich with interactive elements. DM should proactively spawn env objects when players mention 'hack terminal', 'open door', 'search cargo', etc. Success = reduced target hallucination, explicit environmental features. ALL AGENTS USE OPENAI GPT-5-MINI TEMP 1.0."
+}

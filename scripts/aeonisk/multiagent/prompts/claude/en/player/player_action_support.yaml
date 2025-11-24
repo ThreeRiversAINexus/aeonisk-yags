@@ -8,6 +8,8 @@ content: |-
 
   **Your Intent:** {phase1_intent}
   **Your Reasoning:** {phase1_reasoning}
+  {personality_notes}
+  {direction}
 
   You've chosen a **support action**. Now let's define the mechanical details.
 
@@ -92,6 +94,36 @@ content: |-
   - Use for: "ritually healed" curse wounds, void corruption injuries, spiritual trauma
 
   **💡 If the wound is void-tainted, curse-inflicted, or spiritually bound → Use RITUAL action instead of SUPPORT!**
+
+  ## ⚠️ CRITICAL: Death vs Unconscious
+
+  **Death Threshold:** **6+ Wounds = DEAD** (cannot be saved by any means)
+  **Unconscious Threshold:** **Health ≤ 0 but wounds < 6 = UNCONSCIOUS** (can be stabilized)
+
+  **When deciding whether to use Medicine on a downed ally:**
+  - Check their **wound count** in the scenario state
+  - **Wounds < 6 and health ≤ 0** → Ally is UNCONSCIOUS, Medicine can stabilize
+  - **Wounds ≥ 6** → Ally is DEAD, healing is impossible, spend your action on combat/escape instead
+  - **Do not waste actions** attempting to heal truly dead teammates (6+ wounds)
+
+  **Medicine Stabilization (for unconscious allies only):**
+
+  ⚠️ **IMPORTANT:** Stabilization stops the death spiral but does NOT restore HP.
+  Once stabilized, ally is extracted by faction medevac - they're SAFE but won't rejoin this encounter.
+
+  - Action type: SUPPORT
+  - Skill: Intelligence × Medicine
+  - DC: 18 (serious trauma stabilization)
+  - **Success:** Ally stabilized, faction medevac extracts them (SAFE, removed from combat)
+  - **Failure:** Ally remains unconscious, still at risk
+
+  **✅ After successful stabilization:**
+  - Ally no longer needs intervention (don't keep trying!)
+  - They are out of danger but unconscious
+  - Faction medical team arrives and extracts them
+  - Focus your remaining actions on the mission/combat
+
+  **💡 One successful stabilization is all you need. Don't keep healing a stabilized ally!**
 
   ## Faction Abbreviations (CANONICAL)
 

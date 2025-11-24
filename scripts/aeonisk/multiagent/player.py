@@ -139,6 +139,8 @@ class AIPlayerAgent(Agent):
         self.character_state: Optional[CharacterState] = None
         self.human_controlled = False
         self.personality = character_config.get('personality', {})
+        self.personality_notes = character_config.get('personality_notes', '')
+        self.direction = character_config.get('direction', '')
         self.current_scenario: Optional[Dict[str, Any]] = None
         self.voice_profile = voice_profile
         self.shared_state = shared_state
@@ -200,6 +202,10 @@ class AIPlayerAgent(Agent):
         self.soak = None  # Damage resistance
         self.wounds = 0  # Wound count (Tactical Module wound ladder)
         self.stuns = 0  # Stun damage (YAGS)
+
+        # Stabilization state (YAGS First Aid system)
+        self.is_stabilized = False  # True = bleeding stopped, no more death checks needed
+        self.is_extracted = False  # True = medevac arrived, character removed from combat
 
         # Weapon inventory (initialized in on_start)
         from .weapons import Weapon
@@ -388,6 +394,21 @@ class AIPlayerAgent(Agent):
         return self.health is not None and self.health > 0
 
     @property
+    def is_in_combat(self) -> bool:
+        """
+        Check if player can participate in combat.
+
+        Returns False if:
+        - Dead (health <= 0 with fatal wounds)
+        - Extracted (medevac arrived after stabilization)
+        """
+        if not self.is_alive:
+            return False
+        if self.is_extracted:
+            return False
+        return True
+
+    @property
     def is_conscious(self) -> bool:
         """
         Check if player is conscious.
@@ -495,10 +516,12 @@ class AIPlayerAgent(Agent):
         self.current_scenario = message.payload.get('scenario', {})
         opening = message.payload.get('opening_narration', '')
 
-        # Initialize narrative memory with starting location
+        # Initialize narrative memory with starting location (round 0)
         starting_location = self.current_scenario.get('location', 'Unknown')
-        if starting_location and starting_location not in self.narrative_memory.locations_visited:
-            self.narrative_memory.locations_visited.append(starting_location)
+        # Check if location already in list (compare just the location string)
+        existing_locations = [loc for _, loc in self.narrative_memory.locations_visited]
+        if starting_location and starting_location not in existing_locations:
+            self.narrative_memory.locations_visited.append((0, starting_location))
             # Initialize summary with opening context
             self.narrative_memory.story_summary = f"Started at {starting_location}."
 
@@ -532,8 +555,15 @@ class AIPlayerAgent(Agent):
             }
 
         # Add new location to narrative memory (story advancement)
-        if new_location and new_location not in self.narrative_memory.locations_visited:
-            self.narrative_memory.locations_visited.append(new_location)
+        existing_locations = [loc for _, loc in self.narrative_memory.locations_visited]
+        if new_location and new_location not in existing_locations:
+            # Get current round from shared_state
+            current_round = 0
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics:
+                    current_round = mechanics.current_round or 0
+            self.narrative_memory.locations_visited.append((current_round, new_location))
 
         # Scenario pivot is now printed once by session.py, not per-player
         # Only print if human controlled
@@ -1060,11 +1090,18 @@ class AIPlayerAgent(Agent):
 
         # Add the beat if significant
         if beat:
+            # Get current round from shared_state
+            current_round = 0
+            if self.shared_state:
+                mechanics = self.shared_state.get_mechanics_engine()
+                if mechanics:
+                    current_round = mechanics.current_round or 0
+
             # Keep only last 10 story beats (FIFO)
             if len(self.narrative_memory.story_beats) >= 10:
                 self.narrative_memory.story_beats.pop(0)
-            self.narrative_memory.story_beats.append(beat)
-            logger.debug(f"Player {self.character_state.name}: Added story beat: {beat}")
+            self.narrative_memory.story_beats.append((current_round, beat))
+            logger.debug(f"Player {self.character_state.name}: Added story beat (R{current_round}): {beat}")
 
     async def _handle_dm_narration(self, message: Message):
         """Handle general DM narration."""
@@ -1705,9 +1742,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
                 "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
                 "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
-                # Narrative memory (persistent journey context)
-                "journey_locations": " → ".join(self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
-                "journey_beats": "\n".join(f"- {beat}" for beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
+                # Narrative memory (persistent journey context) - format with round numbers
+                "journey_locations": " → ".join(f"(R{r}) {loc}" for r, loc in self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
+                "journey_beats": "\n".join(f"- (R{r}) {beat}" for r, beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
                 "journey_summary": self.narrative_memory.story_summary if self.narrative_memory.story_summary else "Journey just beginning...",
                 # Goals & personality
                 "goals_text": goals_text,
@@ -1719,6 +1756,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "risk_guidance": risk_guidance,
                 "void_curiosity_guidance": void_curiosity_guidance,
                 "bond_guidance": bond_guidance,
+                # Customizable personality/direction guidance (with labels when present)
+                "personality_notes": f"- **Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
+                "direction": f"- **Direction:** {self.direction}" if self.direction else "",
                 # Warnings
                 "failure_loop_warning": failure_loop_warning,
                 "high_void_warning": high_void_warning,
@@ -1943,9 +1983,9 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "location": self.current_scenario.get('location', 'Unknown') if self.current_scenario else 'Unknown',
                 "situation": self.current_scenario.get('situation', 'No current situation') if self.current_scenario else 'No current situation',
                 "theme": self.current_scenario.get('theme', 'Unknown') if self.current_scenario else 'Unknown',
-                # Narrative memory (persistent journey context)
-                "journey_locations": " → ".join(self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
-                "journey_beats": "\n".join(f"- {beat}" for beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
+                # Narrative memory (persistent journey context) - format with round numbers
+                "journey_locations": " → ".join(f"(R{r}) {loc}" for r, loc in self.narrative_memory.locations_visited) if self.narrative_memory.locations_visited else "Just started",
+                "journey_beats": "\n".join(f"- (R{r}) {beat}" for r, beat in self.narrative_memory.story_beats[-5:]) if self.narrative_memory.story_beats else "No significant events yet",
                 "journey_summary": self.narrative_memory.story_summary if self.narrative_memory.story_summary else "Journey just beginning...",
                 # Combat-specific context (if applicable)
                 "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
@@ -1969,7 +2009,10 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 # NEW: What allies/enemies have declared THIS round (tactical coordination)
                 "declared_actions_this_round": declared_actions_text,
                 # NEW: Recent action outcomes (detailed narrations)
-                "recent_action_outcomes": recent_outcomes_text
+                "recent_action_outcomes": recent_outcomes_text,
+                # Customizable personality/direction guidance (with labels when present)
+                "personality_notes": f"**Personality Notes:** {self.personality_notes}" if self.personality_notes else "",
+                "direction": f"**Direction:** {self.direction}" if self.direction else ""
             }
 
             # Load Phase 2 action-specific prompt from player/ subdirectory

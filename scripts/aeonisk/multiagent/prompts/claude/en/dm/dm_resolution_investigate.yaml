@@ -1,0 +1,179 @@
+version: 2.0.0
+module: dm_resolution_investigate
+description: Investigation action resolution - item discovery, evidence, clocks
+load_when: action_type_investigate
+content: |-
+  # INVESTIGATION ACTION RESOLUTION
+
+  You are resolving an **INVESTIGATE** action. Focus on these MechanicalEffects fields:
+
+  ## REQUIRED FIELDS
+
+  **1. item_discovery (REQUIRED when items/seeds/currency are found)**
+
+  THIS IS THE MOST IMPORTANT FIELD FOR INVESTIGATION ACTIONS.
+  If the player successfully searches something that could contain items, YOU MUST populate this field.
+
+  ```python
+  item_discovery=ItemEffect(
+      items_added={
+          "raw_seed_fresh": 2,    # Seeds from leyline plants
+          "drip": 15,             # Currency chips
+          "ration_pack": 1        # Standard items
+      },
+      source="leyline_plant"      # Where items came from
+  )
+  ```
+
+  **Valid sources:**
+  - `"leyline_plant"` - Void-touched flora with seed pods
+  - `"corpse_loot"` - Bodies from previous conflicts
+  - `"supply_cache"` - Abandoned equipment stashes
+  - `"data_terminal"` - Digital currency or data chips
+  - `"quest_reward"` - Mission completion rewards
+
+  **Valid item keys:**
+  - Seeds: `raw_seed_fresh` (cycles 10-14), `raw_seed_aged` (cycles 3-6)
+  - Currency: `breath`, `grain`, `drip`, `spark`, `hollow`
+  - Items: `ration_pack`, `medkit`, `ritual_incense`, `echo_calibrator`
+
+  **2. soulcredit_changes (REQUIRED - even if amount=0)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Kade",
+      amount=0,
+      reason="neutral scavenging"
+  )]
+  ```
+
+  ## OPTIONAL FIELDS
+
+  **3. clock_updates - for advancing investigation/evidence clocks**
+  ```python
+  clock_updates=[ClockUpdate(
+      clock_name="Evidence Collection",
+      ticks=2,
+      reason="discovered corrupted data logs"
+  )]
+  ```
+
+  **4. void_changes - ONLY for high-void environments (void_level 7+)**
+  ```python
+  # Environmental void exposure during investigation
+  void_changes=[VoidChange(
+      character_name="Echo",
+      amount=1,
+      reason="environmental exposure (void_level 9)"
+  )]
+  ```
+
+  ## ITEM DISCOVERY EXAMPLES
+
+  **Example 1: Leyline Plant Search (margin +8)**
+  ```python
+  ActionResolution(
+      narration="You carefully search the leyline-corrupted plant, finding two intact seed pods with faint bioluminescence. The pods pulse with latent void energy, promising potential if properly attuned.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={"raw_seed_fresh": 2},
+              source="leyline_plant"
+          ),
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="neutral scavenging"
+          )]
+      )
+  )
+  ```
+
+  **Example 2: Corpse Looting (margin +5)**
+  ```python
+  ActionResolution(
+      narration="You rifle through the dead scavenger's pouches, finding a handful of drip chips scattered among blood-stained bandages. A half-eaten ration pack remains sealed in their vest pocket.",
+      success_tier=SuccessTier.MODERATE,
+      margin=5,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={
+                  "drip": 8,
+                  "ration_pack": 1
+              },
+              source="corpse_loot"
+          ),
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="scavenging from the dead"
+          )]
+      )
+  )
+  ```
+
+  **Example 3: Supply Cache (margin +12)**
+  ```python
+  ActionResolution(
+      narration="Behind a loose panel, you discover an abandoned supply cache. Sealed containers hold medical supplies, currency chips, and two dormant seed pods wrapped in protective cloth.",
+      success_tier=SuccessTier.GOOD,
+      margin=12,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={
+                  "raw_seed_fresh": 1,
+                  "raw_seed_aged": 1,
+                  "drip": 20,
+                  "medkit": 1
+              },
+              source="supply_cache"
+          ),
+          clock_updates=[ClockUpdate(
+              clock_name="Evidence Collection",
+              ticks=1,
+              reason="found hidden cache - someone was preparing"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="fortunate discovery"
+          )]
+      )
+  )
+  ```
+
+  **Example 4: Evidence Discovery (no items)**
+  ```python
+  ActionResolution(
+      narration="The terminal flickers to life, revealing corrupted security logs. Timestamps show unusual activity in the lower levels - someone was moving equipment three cycles ago.",
+      success_tier=SuccessTier.MODERATE,
+      margin=6,
+      effects=MechanicalEffects(
+          clock_updates=[ClockUpdate(
+              clock_name="Investigation Progress",
+              ticks=2,
+              reason="discovered security log anomalies"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Echo",
+              amount=0,
+              reason="neutral investigation"
+          )]
+      )
+  )
+  ```
+
+  ## QUANTITY SCALING BY MARGIN
+
+  | Roll Margin | Seeds | Currency | Items |
+  |-------------|-------|----------|-------|
+  | 0-4 (barely) | 1 | 5-10 drip | 0-1 |
+  | 5-9 (solid) | 1-2 | 10-15 drip | 1 |
+  | 10+ (excellent) | 2-3 | 15-25 drip | 1-2 |
+
+  ## NARRATION TIPS FOR INVESTIGATION
+
+  - Describe the physical act of searching/examining
+  - Include what they find and WHERE specifically
+  - Show condition of items (sealed, damaged, fresh)
+  - Hint at the story behind the discovery

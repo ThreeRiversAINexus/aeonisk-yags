@@ -26,7 +26,7 @@
         "model": "gpt-5-mini",
         "temperature": 1.0
       },
-      "_scenario_hint": "Dark comedy mercenary scenario - extraction job gone sideways. Employer (ACG shadow broker) hired team to 'extract' Tempest Industries whistleblower scientist. TWIST: scientist wants to expose ACG biocreche atrocities, employer wants them silenced. Moral dilemma: complete contract vs help whistleblower. Complications: scientist's loyal bodyguard, corporate security, rival mercenary team (comedically incompetent). Tone: gallows humor, absurd mishaps, incompetent professionals trying to maintain facade. void_level 4 adds supernatural dread."
+      "_scenario_hint": "Dark comedy mercenary scenario - extraction job gone sideways. Employer (ACG shadow broker) hired team to 'extract' Tempest Industries whistleblower scientist. TWIST: scientist wants to expose ACG biocreche atrocities, employer wants them silenced. Moral dilemma: complete contract vs help whistleblower. Complications: Rax Kellor (Dr. Sotal's bodyguard, starts as NPC with deadpan quips - treats mercenaries like inconvenient customers, makes sarcastic observations like 'You're the third extraction team this week'), corporate security, rival mercenary team (comedically incompetent). Rax only escalates to combat if team directly threatens Dr. Sotal. Tone: gallows humor, absurd mishaps, incompetent professionals trying to maintain facade. void_level 4 adds supernatural dread."
     },
     "players": [
       {
@@ -44,6 +44,8 @@
           "bondPreference": "transactional",
           "ritualConservatism": 5
         },
+        "personality_notes": "Corporate buzzword master. Makes quips about 'synergizing outcomes' and 'strategic repositioning' while everything falls apart. Spins every disaster as 'an opportunity for growth.' Delivers bad news with a confident smile.",
+        "direction": "Lean into dark comedy - maintain corporate professionalism facade while chaos unfolds. Make witty observations about the absurdity of mercenary work.",
         "attributes": {
           "Strength": 3,
           "Agility": 3,
@@ -108,6 +110,8 @@
           "bondPreference": "avoids",
           "ritualConservatism": 2
         },
+        "personality_notes": "Sarcastic doom prophet. Narrates everyone's poor life choices like a nature documentary. Called this exact disaster three plans ago. Over-prepares escape routes while predicting inevitable failure. Speaks in dry, deadpan observations.",
+        "direction": "Channel dark comedy through pessimistic commentary - be the voice of 'I told you so' when things go wrong. Make sarcastic observations about the team's terrible decisions.",
         "attributes": {
           "Strength": 2,
           "Agility": 3,
@@ -153,7 +157,6 @@
         "goals": [
           "Avoid direct confrontation at all costs (prepare 12 escape routes minimum)",
           "Collect forbidden void-tech data for personal research",
-          "Make sarcastic observations about inevitable mission failure",
           "Exploit team chaos to acquire restricted Tempest research files"
         ],
         "backstory": "Kess was a promising Tempest Industries dissolution researcher until they got too interested in the void's information-preservation properties. After publishing an unauthorized paper suggesting void exposure could 'archive consciousness,' they fled with stolen void-scanner prototypes. Now they work mercenary contracts while obsessively researching void phenomena, convinced they're one breakthrough away from enlightenment (or annihilation—they're pragmatic about the odds). Despite brilliant technical skills, they're terrified of everything: combat, authority, social interaction, and especially the void they can't stop studying. Claims Nymir/Karsel heritage but refuses to verify."
@@ -173,6 +176,8 @@
           "bondPreference": "neutral",
           "ritualConservatism": 3
         },
+        "personality_notes": "Body-horror comedian. Treats flesh as modular inventory and makes deadpan observations about 'spare parts.' Offers unsolicited medical commentary on injuries ('That's a load-bearing organ'). Disturbingly cheerful about surgery.",
+        "direction": "Channel dark comedy through body-horror humor - clinical detachment meets gallows humor. Comment on wounds and injuries with disturbing medical expertise.",
         "attributes": {
           "Strength": 4,
           "Agility": 3,
@@ -220,7 +225,6 @@
         "goals": [
           "Harvest biological samples from combat encounters ('spare parts economy')",
           "Sell unauthorized bio-augmentations to highest bidder",
-          "Make body-horror jokes to cope with existential dread",
           "Betray ACG protocols while maintaining plausible deniability"
         ],
         "backstory": "Vex operated an ACG gene-temple in the Rings until she discovered how much unregistered bio-mods sell for on the black market. Now she runs a mobile 'augmentation consultancy'—hacking people's flesh in exchange for currency and salvageable organs. She treats the human body as modular inventory, delivering deadpan commentary about 'spare parts' while performing field surgery. Despite her dark humor, she's disturbingly competent at keeping people alive (or assembling new configurations from the recently deceased). Claims Vireya-adjacent heritage but operates outside all gene-temple protocols. Her medical ethics expired with her ACG license."
@@ -262,17 +266,30 @@
     }
   ],
 
-  "initial_enemies": [
+  "initial_enemies": [],
+
+  "initial_npcs": [
     {
-      "name": "Rax Kellor - Dr. Sotal's Bodyguard",
-      "template": "elite",
+      "name": "Rax Kellor",
+      "pronouns": "he/him",
       "faction": "Independent (Loyal to Dr. Sotal)",
-      "archetype": "Protective Enforcer",
-      "count": 1,
-      "position": "Near-Enemy",
-      "spawn_reason": "Ex-Pantheon Security operative now protecting the whistleblower scientist",
-      "tactics": "defensive_ranged",
-      "personality_notes": "Honorable but distrustful - can be negotiated with if team demonstrates they won't harm Dr. Sotal. Will fight to the death if team shows hostile intent toward scientist."
+      "entity_type": "neutral",
+      "threat_level": "elite",
+      "disposition": "wary",
+      "description": "Ex-Pantheon Security enforcer turned bodyguard, standing protectively near Dr. Sotal. Built like a refrigerator with opinions. Despite his intimidating appearance, he has an unfortunate habit of making dry observations about everyone's life choices.",
+      "health": 35,
+      "soak": 4,
+      "skills": {
+        "Combat": 5,
+        "Guns": 5,
+        "Intimidation": 4,
+        "Awareness": 4
+      },
+      "personality_notes": "Deadpan sarcasm expert. Makes quips about the absurdity of mercenary work ('You're the third extraction team this week. Is there a Groupon I'm not aware of?'). Despite being a lethal combatant, treats every situation like mildly inconvenient customer service. Will absolutely wreck anyone who threatens Dr. Sotal, but prefers to verbally roast intruders first. Thinks corporate mercenaries are hilarious idiots and isn't shy about sharing this opinion. Ex-Pantheon means he's seen everything and nothing surprises him anymore - just disappoints.",
+      "equipped_weapons": {
+        "primary": "assault_rifle",
+        "sidearm": "pistol"
+      }
     }
   ],
 
@@ -389,16 +406,17 @@
       "Absurd corporate jargon used to justify moral compromises",
       "Body-horror humor from Vex's 'spare parts' economy",
       "Kess's paranoid over-planning constantly undermined by reality",
-      "Soren's smooth talk getting team into worse situations"
+      "Soren's smooth talk getting team into worse situations",
+      "Rax Kellor's deadpan commentary ('You're the third extraction team this week') treating mercenary chaos like bad customer service"
     ],
     "expected_scenario_flow": {
       "turns_1_3": "Infiltration phase - bypassing low security, discovering Dr. Sotal is whistleblower, not compliant target. Kess excels at hacking, Soren attempts (fails) to bluff security.",
-      "turns_4_6": "Confrontation phase - meet Dr. Sotal and bodyguard Rax Kellor. Moral dilemma revealed (employer wants scientist silenced, not extracted). Negotiate vs fight. Corporate security clock advancing.",
+      "turns_4_6": "Confrontation phase - negotiate with Rax Kellor (NPC who roasts the team with deadpan quips). Moral dilemma revealed (employer wants scientist silenced, not extracted). Rax escalates to enemy only if team threatens Dr. Sotal. Corporate security clock advancing.",
       "turns_7_9": "Complication phase - rival mercenary team 'Void Jackals' arrive, creating chaos. Team must choose: complete contract, help whistleblower escape, or exploit chaos for personal gain. Vendor opportunities (Rix Nowhere offers hot merchandise).",
       "turns_10_12": "Resolution phase - corporate security arrives in force. Final decision: betray employer, betray scientist, betray each other, or somehow thread the needle. Expect absurd improvisation and moral compromise. Bliss Tallow tries to sell defective escape equipment."
     },
     "mechanics_coverage": {
-      "tactical_combat": "Enabled but sparse - 2-3 encounters total (bodyguard negotiation/fight, security patrol skirmish, possible rival team conflict). Tactical depth when combat occurs.",
+      "tactical_combat": "Enabled but sparse - 2-3 encounters total (Rax escalates from NPC to enemy if team attacks Dr. Sotal, security patrol skirmish, possible rival team conflict). Tactical depth when combat occurs.",
       "vendor_economy": "Active (spawn every 4 rounds) - Rix Nowhere (reliable black market), Bliss Tallow (comedic defective gear). Resource scarcity drives decisions.",
       "social_intrigue": "Primary gameplay - negotiate with Dr. Sotal, deceive employer, manipulate rival team, exploit faction tensions.",
       "investigation": "Secondary - uncover employer's true motives, gather whistleblower evidence, hack Tempest systems for intel.",
@@ -424,5 +442,5 @@
     }
   },
 
-  "notes": "Dark comedy antihero mercenary scenario - 3 lore-inspired characters (Soren Vellis, Kess Thren, Vex Solais) on extraction job with moral complications. Sparse but tactical combat, active vendor economy (Rix Nowhere + Bliss Tallow), social/investigation primary. Expect betrayal, absurd mishaps, gallows humor, and difficult choices. Competent professionals maintaining facade while everything goes sideways. void_level 4 adds supernatural dread to comedic chaos."
+  "notes": "Dark comedy antihero mercenary scenario - 3 lore-inspired characters (Soren Vellis, Kess Thren, Vex Solais) on extraction job with moral complications. Rax Kellor (Dr. Sotal's bodyguard) starts as wary NPC with deadpan quips, escalates to enemy only if team threatens scientist. Sparse but tactical combat, active vendor economy (Rix Nowhere + Bliss Tallow), social/investigation primary. Expect betrayal, absurd mishaps, gallows humor, and difficult choices. Competent professionals maintaining facade while everything goes sideways. void_level 4 adds supernatural dread to comedic chaos."
 }

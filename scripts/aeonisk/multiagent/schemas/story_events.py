@@ -8,7 +8,7 @@ validated structured output.
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Literal, Dict, Any
+from typing import Optional, List, Literal, Dict, Any, Tuple
 from enum import Enum
 from dataclasses import dataclass, field
 from .shared_types import Position
@@ -775,9 +775,9 @@ class NPCSpawn(BaseModel):
         ...,
         description="NPC's RELATIONSHIP to players (how they interact with party, NOT their combat threat). Options: 'neutral' (non-aligned third party), 'ally' (friendly/helpful), 'prisoner' (captured/restrained). ⚠️ DO NOT confuse with threat_level!"
     )
-    threat_level: Literal["non_combatant", "potential_threat", "armed_neutral"] = Field(
+    threat_level: Literal["non_combatant", "potential_threat", "armed_neutral", "elite"] = Field(
         "non_combatant",
-        description="NPC's COMBAT CAPABILITY (how enemies target them, NOT relationship to players). Options: 'non_combatant' (ignored by most enemies), 'potential_threat' (armed/dangerous, professionals may engage), 'armed_neutral' (visibly armed, treated as threat by ruthless enemies). ⚠️ DO NOT confuse with entity_type!"
+        description="NPC's COMBAT CAPABILITY (how enemies target them, NOT relationship to players). Options: 'non_combatant' (ignored by most enemies), 'potential_threat' (armed/dangerous, professionals may engage), 'armed_neutral' (visibly armed, treated as threat by ruthless enemies), 'elite' (highly dangerous, top priority target). ⚠️ DO NOT confuse with entity_type!"
     )
     disposition: Literal["friendly", "neutral", "wary", "fearful", "hostile", "prisoner"] = Field(
         ...,
@@ -1336,24 +1336,26 @@ class NarrativeMemory(BaseModel):
     Accumulated throughout the session to give players persistent context about
     their journey, not just the current room/situation.
 
+    Each entry is a tuple of (round_number, content) for temporal ordering.
+
     Example:
     ```python
     memory = NarrativeMemory(
-        locations_visited=["Docks", "Transit Hub", "Research Lab"],
-        story_beats=["Fought gang ambush", "Rescued prisoner Vex", "Found data chip"],
+        locations_visited=[(0, "Docks"), (3, "Transit Hub"), (5, "Research Lab")],
+        story_beats=[(1, "Fought gang ambush"), (2, "Rescued prisoner Vex"), (4, "Found data chip")],
         story_summary="Started at the docks investigating smugglers. After combat, rescued an informant who revealed the lab location."
     )
     ```
     """
 
-    locations_visited: List[str] = Field(
+    locations_visited: List[Tuple[int, str]] = Field(
         default_factory=list,
-        description="Chronological list of locations the player has visited (e.g., ['Docks', 'Transit Hub', 'Research Lab'])"
+        description="Chronological list of (round, location) tuples (e.g., [(0, 'Docks'), (3, 'Transit Hub')])"
     )
 
-    story_beats: List[str] = Field(
+    story_beats: List[Tuple[int, str]] = Field(
         default_factory=list,
-        description="Key story events from the player's perspective (e.g., ['Fought gang', 'Rescued Vex']). Limited to 10 most recent."
+        description="Key story events as (round, event) tuples (e.g., [(1, 'Fought gang'), (3, 'Rescued Vex')]). Limited to 10 most recent."
     )
 
     story_summary: str = Field(

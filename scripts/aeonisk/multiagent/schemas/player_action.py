@@ -445,19 +445,23 @@ class SupportAction(PlayerActionBase):
     Optional fields:
     - target_position: Tactical movement to support position
 
-    Example:
+    Example (Tactical Coordination):
     ```python
     action = SupportAction(
-        intent="Provide covering fire for Thresh",
-        description="Suppressing enemy positions while Thresh advances.",
-        attribute="Agility",
-        skill="Firearms",
-        difficulty_estimate=15,
-        difficulty_justification="Suppression easier than precision shots",
+        intent="Coordinate tactical advance for Thresh",
+        description="I call out enemy positions and timing to Thresh, watching for openings in their fire patterns and directing their movement to safer cover positions.",
+        attribute="Perception",
+        skill="Combat",
+        difficulty_estimate=14,
+        difficulty_justification="DC 14: Standard tactical coordination, clear sightlines but multiple enemies to track",
         action_type=ActionType.SUPPORT,
         target="Thresh Ireveth"
     )
     ```
+
+    NOTE: Direct suppressing fire (laying down fire on enemy positions) should use
+    CombatAction with target=enemy, not SupportAction. See player_action_combat.yaml
+    for suppressing fire examples.
     """
 
     action_type: Literal[ActionType.SUPPORT] = ActionType.SUPPORT
@@ -610,6 +614,42 @@ class AttuneAction(PlayerActionBase):
     )
 
 
+class ConsumeAction(PlayerActionBase):
+    """
+    CONSUME action: Eating food or using consumables for +2 HP healing.
+
+    Required fields:
+    - item_id: Item identifier (itm_xxxx) being consumed
+
+    Food items grant fixed +2 HP healing when consumed.
+    Only items with item_type="food" can be consumed via this action.
+
+    Example:
+    ```python
+    action = ConsumeAction(
+        intent="Eat Ration Pack to recover health",
+        description="Taking a quick break to eat field rations and restore energy.",
+        attribute="Endurance",
+        skill=None,  # Eating typically doesn't require a skill check
+        difficulty_estimate=10,
+        difficulty_justification="Simple consumption, no complications expected",
+        action_type=ActionType.CONSUME,
+        item_id="itm_ration_pack_01"
+    )
+    ```
+
+    Note: Unlike SUPPORT actions (which heal variable amounts based on Medicine checks),
+    CONSUME actions provide fixed +2 HP and remove the food item from inventory.
+    """
+
+    action_type: Literal[ActionType.CONSUME] = ActionType.CONSUME
+
+    item_id: str = Field(
+        ...,
+        description="REQUIRED: Item ID (itm_xxxx) being consumed. Must be a food item (item_type='food')."
+    )
+
+
 class CustomAction(PlayerActionBase):
     """
     CUSTOM action: Unique, improvised actions that don't fit other categories.
@@ -650,6 +690,7 @@ PlayerActionDetails = Annotated[
         PurchaseAction,
         TransferAction,
         AttuneAction,
+        ConsumeAction,
         CustomAction,
     ],
     Field(discriminator='action_type')
@@ -697,6 +738,7 @@ ACTION_TYPE_SCHEMA_MAP = {
     ActionType.PURCHASE: PurchaseAction,
     ActionType.TRANSFER: TransferAction,
     ActionType.ATTUNE: AttuneAction,
+    ActionType.CONSUME: ConsumeAction,
     ActionType.CUSTOM: CustomAction,
 }
 """

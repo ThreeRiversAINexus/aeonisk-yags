@@ -34,6 +34,7 @@ class ActionType(str, Enum):
     PURCHASE = "purchase"  # Vendor transactions (separate from social for ML training)
     TRANSFER = "transfer"  # Energy currency transfers between characters
     ATTUNE = "attune"  # Seed attunement rituals (separate from general RITUAL for ML training)
+    CONSUME = "consume"  # Food/consumable usage for +2 HP healing (separate from SUPPORT for ML training)
     CUSTOM = "custom"
 
 
@@ -201,10 +202,23 @@ class Condition(BaseModel):
     """
     name: str = Field(..., description="Condition name (e.g., Stunned, Prone, Inspired, Astral Barrier)")
     penalty: int = Field(..., description="REQUIRED: Penalty/bonus to rolls. Negative = debuff (e.g., -3), positive = buff (e.g., +2), 0 = narrative only or protection barrier")
-    duration: int = Field(default=1, ge=1, description="Rounds this condition lasts")
+    duration: int = Field(default=1, ge=0, description="Rounds this condition lasts (0 = instant/already applied, 1+ = lasts that many rounds)")
     description: str = Field(..., min_length=5, description="What this condition does")
     target: Optional[str] = Field(default=None, description="Who receives the condition. If omitted, applies to actor. For multi-target actions, create multiple Condition entries.")
     protection_amount: Optional[int] = Field(default=None, ge=0, description="Damage absorption capacity for barriers/shields. If present, this condition blocks incoming damage up to this amount. Depletes as damage is absorbed. Use with penalty=0.")
+
+    @field_validator('target')
+    @classmethod
+    def validate_single_target(cls, v: Optional[str]) -> Optional[str]:
+        """Reject multi-target syntax (semicolons/commas) - create multiple Condition entries instead."""
+        if v and (';' in v or ',' in v):
+            raise ValueError(
+                f"Invalid target format: '{v}'. "
+                f"Condition.target must specify a SINGLE target. "
+                f"For multi-target conditions, create multiple Condition entries (one per target). "
+                f"Example: [Condition(target='tgt_abc1', ...), Condition(target='tgt_def2', ...)]"
+            )
+        return v
 
 
 class DamageEffect(BaseModel):

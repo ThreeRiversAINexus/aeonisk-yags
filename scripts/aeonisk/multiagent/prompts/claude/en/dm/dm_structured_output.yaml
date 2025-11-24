@@ -21,6 +21,7 @@ content: |-
           conditions: List[Condition],         # REQUIRED for status effects
           soulcredit_changes: List[SoulcreditChange],  # REQUIRED for EVERY action
           position_changes: List[PositionChange],      # REQUIRED for movement
+          item_discovery: Optional[ItemEffect],        # REQUIRED for INVESTIGATE/SOCIAL when items found
           notes: List[str]                     # Optional additional effects
       }
   )
@@ -52,9 +53,27 @@ content: |-
   conditions=[Condition(name="Stunned", penalty=-5, duration=2, description="cannot act")]
   ```
 
+  **⚠️ CONDITION CONFLICT RULES - Never assign contradictory conditions to same target:**
+  - "Tactical Advantage" ↔ "Pinned" / "Suppressed" / "Off-Balance" (cannot be advantaged AND suppressed)
+  - "Inspired" ↔ "Demoralized" / "Panicked" / "Shaken" (cannot be both)
+  - "Mobile" ↔ "Pinned" / "Restrained" / "Immobilized" (cannot move freely AND be immobilized)
+
+  **If suppressing fire targets someone, they get "Pinned" - NOT "Tactical Advantage"**
+
   **5. SOULCREDIT → REQUIRED FOR EVERY ACTION (even if amount=0)**
   ```python
   soulcredit_changes=[SoulcreditChange(character_name="Ash", amount=0, reason="justified combat")]
+  ```
+
+  **6. ITEM DISCOVERY → Populate `item_discovery` when INVESTIGATE/SOCIAL finds items**
+  - Successful searches of leyline plants → raw_seed_fresh or raw_seed_aged
+  - Looting corpses/caches → currency (drip, hollow, etc.) + items (ration_pack, medkit)
+  - NPC gifts → items, currency, or seeds from friendly NPCs
+  ```python
+  item_discovery=ItemEffect(
+      items_added={"raw_seed_fresh": 2, "drip": 15, "ration_pack": 1},
+      source="leyline_plant"  # or "corpse_loot", "npc_gift", "supply_cache", "quest_reward"
+  )
   ```
 
   ## 🎯 TARGET ID USAGE (CRITICAL FOR FREE TARGETING MODE)
@@ -213,6 +232,28 @@ content: |-
           ],
           soulcredit_changes=[
               SoulcreditChange(character_name="Riven", amount=-2, reason="betrayed sworn oath")
+          ]
+      )
+  )
+  ```
+
+  **Example 6: Environmental Item Discovery (INVESTIGATE)**
+  ```python
+  ActionResolution(
+      narration="You carefully search the leyline-corrupted plant, finding two intact seed pods with faint bioluminescence. A small cache nearby yields a few currency chips and an emergency ration pack.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          item_discovery=ItemEffect(
+              items_added={
+                  "raw_seed_fresh": 2,
+                  "drip": 12,
+                  "ration_pack": 1
+              },
+              source="leyline_plant"
+          ),
+          soulcredit_changes=[
+              SoulcreditChange(character_name="Kade", amount=0, reason="neutral scavenging")
           ]
       )
   )

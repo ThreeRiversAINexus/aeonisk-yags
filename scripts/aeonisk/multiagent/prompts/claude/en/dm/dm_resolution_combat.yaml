@@ -1,0 +1,144 @@
+version: 2.0.0
+module: dm_resolution_combat
+description: Combat action resolution - damage, conditions, positioning
+load_when: action_type_combat
+content: |-
+  # COMBAT ACTION RESOLUTION
+
+  You are resolving a **COMBAT** action. Focus on these MechanicalEffects fields:
+
+  ## REQUIRED FIELDS
+
+  **1. damage (REQUIRED for attacks that hit)**
+  ```python
+  damage=[DamageEffect(
+      target="tgt_7a3f",      # Target ID from VALID TARGET IDS list
+      base_damage=15,         # Raw damage before soak
+      soak=7,                 # Armor/resistance absorbed
+      dealt=8,                # Final damage dealt (base - soak)
+      weapon="Kinetic Pistol" # Weapon used
+  )]
+  ```
+
+  **2. soulcredit_changes (REQUIRED - even if amount=0)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Ash",   # Character NAME (not target ID)
+      amount=0,               # 0 for justified combat, -1 for excessive force
+      reason="justified combat against hostile targets"
+  )]
+  ```
+
+  ## OPTIONAL FIELDS (use when applicable)
+
+  **3. conditions - for debuffs/status effects from combat**
+  ```python
+  conditions=[Condition(
+      name="Off-Balance",     # Effect name
+      penalty=-2,             # Negative = debuff, Positive = buff
+      duration=1,             # Rounds remaining
+      description="next attack at -2",
+      target="tgt_7a3f"       # Target ID (who is affected)
+  )]
+  ```
+
+  **4. position_changes - for forced movement**
+  ```python
+  position_changes=[PositionChange(
+      target="tgt_7a3f",
+      from_zone="center",
+      to_zone="rear",
+      reason="knockback from heavy impact"
+  )]
+  ```
+
+  **5. void_changes - ONLY for void-forged weapons**
+  ```python
+  # Using void-forged weapon corrupts the wielder
+  void_changes=[VoidChange(
+      character_name="Kade",
+      amount=2,
+      reason="used void-forged weapon in combat"
+  )]
+  ```
+
+  **6. clock_updates - for morale/tactical clocks**
+  ```python
+  clock_updates=[ClockUpdate(
+      clock_name="Enemy Morale",
+      ticks=-1,               # Negative = regress, Positive = advance
+      reason="casualties breaking enemy resolve"
+  )]
+  ```
+
+  ## COMBAT EXAMPLE
+
+  ```python
+  ActionResolution(
+      narration="Your bullet punches through the security guard's shoulder, spinning them sideways. Blood sprays across corroded metal as they stagger back, weapon clattering from nerveless fingers.",
+      success_tier=SuccessTier.GOOD,
+      margin=12,
+      effects=MechanicalEffects(
+          damage=[DamageEffect(
+              target="tgt_7a3f",
+              base_damage=15,
+              soak=7,
+              dealt=8,
+              weapon="Kinetic Pistol"
+          )],
+          conditions=[Condition(
+              name="Disarmed",
+              penalty=-3,
+              duration=1,
+              description="dropped weapon, -3 to attacks until retrieved",
+              target="tgt_7a3f"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=0,
+              reason="justified combat against hostile security"
+          )],
+          clock_updates=[ClockUpdate(
+              clock_name="Enemy Morale",
+              ticks=-1,
+              reason="serious casualty"
+          )]
+      )
+  )
+  ```
+
+  ## VOID-FORGED WEAPON EXAMPLE
+
+  ```python
+  ActionResolution(
+      narration="Your void-forged rifle screams as it discharges, reality rippling around the barrel. The shot tears through your target, but you feel the weapon's corruption seeping into your spirit.",
+      success_tier=SuccessTier.GOOD,
+      margin=11,
+      effects=MechanicalEffects(
+          damage=[DamageEffect(
+              target="tgt_2k9m",
+              base_damage=18,
+              soak=6,
+              dealt=12,
+              weapon="Void-Forged Kinetic Rifle"
+          )],
+          void_changes=[VoidChange(
+              character_name="Kade",
+              amount=2,
+              reason="used void-forged weapon in combat"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=0,
+              reason="justified combat"
+          )]
+      )
+  )
+  ```
+
+  ## NARRATION TIPS FOR COMBAT
+
+  - Describe the physical impact, not just "you hit"
+  - Include sensory details: sounds, smells, visual aftermath
+  - Show the target's reaction (stumble, scream, counter)
+  - For misses, describe how they evade or the shot goes wide

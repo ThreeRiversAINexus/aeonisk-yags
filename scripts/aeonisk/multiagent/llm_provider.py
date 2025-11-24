@@ -135,9 +135,9 @@ RATE_LIMIT_PRESETS = {
         'reasoning': 'Prevents 500/529 overload errors on Anthropic API'
     },
     'openai': {
-        'max_concurrent_requests': 10,     # OpenAI handles higher concurrency
-        'min_request_interval': 0.15,      # ~400 req/min max throughput (well under 500 req/min tier)
-        'reasoning': 'OpenAI has higher rate limits (500 req/min for GPT-4, 10k for GPT-3.5)'
+        'max_concurrent_requests': 15,     # OpenAI handles higher concurrency
+        'min_request_interval': 0.08,      # ~750 req/min max throughput (GPT-4+ tier allows 500-10k)
+        'reasoning': 'OpenAI has higher rate limits (500 req/min for GPT-4, 10k for GPT-3.5/4o-mini)'
     },
     'local': {
         'max_concurrent_requests': 1,      # Local models typically single-threaded

@@ -483,6 +483,83 @@ class JSONLLogger:
 
         self._write_event(event)
 
+    def log_enemy_action(
+        self,
+        round_num: int,
+        enemy_id: str,
+        enemy_name: str,
+        action_type: str,
+        result: str,
+        narration: str,
+        target_id: str = None,
+        target_name: str = None,
+        damage_dealt: int = None,
+        roll_data: Dict[str, Any] = None,
+        effects: Dict[str, Any] = None
+    ):
+        """
+        Log an enemy action resolution event.
+
+        Enemy actions are executed locally (not via DM adjudication) so they use
+        a simplified format compared to player action_resolution events.
+
+        Args:
+            round_num: Current round number
+            enemy_id: Enemy agent ID
+            enemy_name: Enemy display name
+            action_type: Type of action (attack, suppress, flee, charge, etc.)
+            result: Result string (success, miss, hit, invalid target, etc.)
+            narration: Narrative description of the action
+            target_id: Target agent ID (if applicable)
+            target_name: Target display name (if applicable)
+            damage_dealt: Damage dealt (if combat action)
+            roll_data: Roll details if available (d20, total, dc, etc.)
+            effects: Additional effects (status changes, positioning, etc.)
+        """
+        event = {
+            "event_type": "action_resolution",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "phase": "enemy_execution",
+            "agent": enemy_name,
+            "action": narration[:200] if narration else action_type,  # Truncate for consistency
+            "context": {
+                "action_type": action_type,
+                "is_enemy": True,
+                "enemy_id": enemy_id,
+                "result": result
+            },
+            "roll": roll_data or {
+                "attr": None,
+                "attr_val": 0,
+                "skill": None,
+                "skill_val": 0,
+                "ability": 0,
+                "d20": None,
+                "total": None,
+                "dc": None,
+                "margin": 0,
+                "tier": None,
+                "success": result in ('success', 'hit')
+            },
+            "outcome_tiers": {},  # No tier calculation for enemies (fixed behaviors)
+            "economy": {},
+            "clocks": {},
+            "effects": {
+                "damage": {"target": target_id, "dealt": damage_dealt, "target_name": target_name} if damage_dealt else None,
+                "status_effects": effects.get('status_effects', []) if effects else [],
+                "inventory_changes": [],
+                "purchase": None,
+                "crafting": None,
+                "attunement": None,
+                "currency_transfer": None,
+                "item_transfer": None,
+                "item_discovery": None
+            }
+        }
+        self._write_event(event)
+
     def log_clock_event(
         self,
         round_num: int,
@@ -1368,6 +1445,60 @@ class JSONLLogger:
             "raw_model_response": raw_model_response[:2000] if raw_model_response else None,  # Truncate
             "underlying_error": underlying_error[:500] if underlying_error else None,
             "action_context": action_context
+        }
+        self._write_event(event)
+
+    def log_narrative_memory(
+        self,
+        round_num: int,
+        agent_id: str,
+        character_name: str,
+        locations_visited: List[str],
+        story_beats: List[str],
+        story_summary: str
+    ):
+        """
+        Log player narrative memory state (for ML training).
+
+        Logged at end of each round to capture accumulated story context.
+
+        Args:
+            round_num: Current round
+            agent_id: Player agent ID (e.g., 'player_ash')
+            character_name: Display name (e.g., 'Ash')
+            locations_visited: List of locations visited so far
+            story_beats: List of key story events (max 10)
+            story_summary: Rolling summary of story so far
+
+        JSONL Schema:
+        ```json
+        {
+          "event_type": "narrative_memory",
+          "ts": "2025-01-15T10:30:00",
+          "session": "session_abc123",
+          "round": 3,
+          "agent_id": "player_ash",
+          "character_name": "Ash",
+          "memory": {
+            "locations_visited": ["Docks", "Transit Hub"],
+            "story_beats": ["Fought gang", "Found data chip"],
+            "story_summary": "Started at docks, moved to hub after combat."
+          }
+        }
+        ```
+        """
+        event = {
+            "event_type": "narrative_memory",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "round": round_num,
+            "agent_id": agent_id,
+            "character_name": character_name,
+            "memory": {
+                "locations_visited": locations_visited,
+                "story_beats": story_beats,
+                "story_summary": story_summary
+            }
         }
         self._write_event(event)
 
@@ -2813,10 +2944,18 @@ class MechanicsEngine:
                     altar_bonus=validation.altar_bonus
                 )
 
-            # Check for both purchased and rental Echo-Calibrators
-            # Purchased: "Echo-Calibrator" (display name from vendor)
-            # Rental: "echo_calibrator_rental" (inventory_key from config) OR "Echo Calibrator Rental" (alternate format)
-            has_purchased = character_state.inventory.get("Echo-Calibrator", 0) > 0
+            # Check for all Echo-Calibrator inventory key variants
+            # The same item can appear under different keys depending on source:
+            # - "Echo-Calibrator" (display name with hyphen)
+            # - "Echo Calibrator" (display name with space, shown in console)
+            # - "echo_calibrator" (snake_case from session config inventory)
+            # - "echo_calibrator_rental" (rental variant, snake_case)
+            # - "Echo Calibrator Rental" (rental variant, display format)
+            has_purchased = (
+                character_state.inventory.get("Echo-Calibrator", 0) > 0 or
+                character_state.inventory.get("Echo Calibrator", 0) > 0 or
+                character_state.inventory.get("echo_calibrator", 0) > 0
+            )
             has_rental = (
                 character_state.inventory.get("echo_calibrator_rental", 0) > 0 or
                 character_state.inventory.get("Echo Calibrator Rental", 0) > 0

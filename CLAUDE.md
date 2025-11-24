@@ -94,7 +94,7 @@ export OPENAI_API_KEY="your-key-here"     # For GPT models
 
 **Rate Limits (auto-applied):**
 - **Anthropic**: 3 concurrent requests, 0.8s interval (~75 req/min)
-- **OpenAI**: 10 concurrent requests, 0.15s interval (~400 req/min)
+- **OpenAI**: 15 concurrent requests, 0.08s interval (~750 req/min)
 - **Local**: 1 concurrent request, no interval
 
 **Pricing (Standard tier, per 1M tokens):**
@@ -258,6 +258,107 @@ python3 scripts/run_multiagent_session.py scripts/session_configs/session_config
 - Design doc: `.claude/NPC_ENTITY_DEESCALATION_DESIGN.md`
 
 **IMPORTANT:** NO keyword detection for conversions - all mechanics via Pydantic structured output
+
+### 7. Economy & Vendor System
+**Purpose:** Multi-currency economy with vendor spawning, purchases, and food consumption mechanics
+
+**Core Principle:** Pre-validated deterministic transactions (purchases/consumption executed before DM narration)
+
+**Currency System:**
+- **5 Currency Types** (`EnergyPurse`): breath, grain, drip, spark, **hollow**
+- **Multi-currency pricing:** Items can cost any combination (e.g., "5 drip + 2 hollow")
+- **Hollow integration:** Full currency support (vendor prices, purchases, transfers)
+- **Cost property:** VendorItem.cost returns dict of all non-zero prices
+
+**Food Consumption System:**
+```python
+# CONSUME action - deterministic +2 HP healing
+ConsumeAction(
+    intent="Eat ration pack to recover HP",
+    description="Tear open ration pack and consume...",
+    item_id="itm_ration_01",
+    action_type=ActionType.CONSUME
+)
+
+# Pre-validation checks (automatic):
+- Item exists in inventory (quantity > 0)
+- Item type is "food" (not medkit/tool/prop)
+- Health < max_health (can't eat at full HP)
+
+# Execution (before DM sees action):
+- Item removed from inventory (-1 quantity)
+- Health increased by +2 (capped at max_health)
+- DM narrates atmospheric description (no roll)
+```
+
+**Item Type Categorization:**
+```python
+class ItemType(Enum):
+    CONSUMABLE = "consumable"  # General consumables
+    FOOD = "food"              # Grants +2 HP via CONSUME action
+    TOOL = "tool"              # Echo-Calibrator, ritual tools
+    SEED = "seed"              # Raw Seeds for attunement
+    OFFERING = "offering"      # Ritual offerings
+    EXCHANGE = "exchange"      # Trade goods
+    PROP = "prop"              # Narrative items (no mechanics)
+    EQUIPMENT = "equipment"    # Weapons, armor, gear
+
+# 9 food items auto-categorized:
+# Ration Pack, Glowpeel Noodles, Protein Cube, Dried Fruit,
+# Nutrition Paste, Syn-Meat Strips, Energy Bar, Street Food, Survival Rations
+```
+
+**Vendor Spawn Validation:**
+```python
+# NPCSpawn.vendor_inventory validates at spawn-time
+NPCSpawn(
+    name="Vending Machine",
+    vendor_inventory=[
+        VendorItem(name="Ration Pack", description="...", price_drip=2, item_type="food"),
+        VendorItem(name="Medkit", description="...", price_drip=5, price_hollow=1)
+    ]
+)
+
+# Pydantic validation enforces:
+- All items are VendorItem instances (not dicts/tuples)
+- No negative prices (ge=0 constraint)
+- Required fields present (name, description, item_id, inventory_key)
+```
+
+**Transaction Flow (Purchase/Consumption):**
+1. Player declares action (PURCHASE or CONSUME)
+2. **Pre-validation** in `session.py` (before DM sees it)
+   - Validate inventory, currency, prerequisites
+   - Store validation result on `action_payload`
+3. **Execution** if valid (before DM narration)
+   - Purchase: Deduct currency, add item to inventory
+   - Consumption: Remove item, heal +2 HP
+4. **DM narration** (atmospheric only, no roll)
+   - Sees `purchase_validation` or `consumption_validation` result
+   - Narrates success/failure based on pre-execution
+5. **JSONL logging** (both success and failure)
+
+**Files:**
+- Core: `energy_economy.py` (VendorItem, ItemType, EnergyPurse)
+- Schemas: `player_action.py` (ConsumeAction), `action_effects.py` (ConsumptionEffect)
+- Mechanics: `mechanics.py:2974+` (validate_consumption, process_consumption_effect)
+- Session integration: `session.py:3765+` (pre-validation block)
+- Prompts: `player_action_consume.yaml`, `dm_consumption.yaml`
+
+**Testing:**
+```bash
+# Run vendor and consumption test suite (48 tests)
+python -m pytest tests/unit/test_vendor_spawn_validation.py \
+                 tests/unit/test_item_type_categorization.py \
+                 tests/unit/test_consumption_mechanics.py -v
+```
+
+**Design Principles:**
+- ✅ **Pre-execution:** Deterministic transactions execute before DM narration
+- ✅ **Validation separation:** Pre-validate in session.py, mechanics in mechanics.py
+- ✅ **Structured output:** All transactions via Pydantic schemas (no keyword detection)
+- ✅ **DM narration role:** Atmospheric description only, no mechanical adjudication
+- ✅ **JSONL logging:** All transactions logged for ML training
 
 ## ML Logging System
 

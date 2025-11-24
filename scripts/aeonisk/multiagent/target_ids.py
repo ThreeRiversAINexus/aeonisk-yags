@@ -186,7 +186,9 @@ class TargetIDMapper:
                 agent_name = 'Unknown'
             logger.debug(f"Resolved {target_id} -> {agent_name}")
         else:
-            logger.warning(f"Target ID {target_id} not found in mapping")
+            # Environmental objects (terminals, doors, etc.) may have tgt_ IDs but aren't tracked entities
+            # This is expected behavior when targeting env objects - downgrade to debug
+            logger.debug(f"Target ID {target_id} not found in mapping (likely env object)")
 
         return agent
 

@@ -32,6 +32,8 @@ from .vendor_interaction import (
 from .action_effects import (
     HealingEffect,
     AttunementEffect,
+    ItemEffect,
+    StabilizationEffect,
 )
 
 
@@ -147,6 +149,16 @@ class MechanicalEffects(BaseModel):
     attunement: Optional['AttunementEffect'] = Field(
         default=None,
         description="Seed attunement result (if action was an attunement ritual). Tracks success/failure, energy gained, altar bonuses, Echo-Calibrator usage."
+    )
+
+    item_discovery: Optional['ItemEffect'] = Field(
+        default=None,
+        description="Items/seeds/currency discovered or gifted (if action resulted in item acquisition). Used for environmental loot, NPC gifts, quest rewards. NOT for purchases (use purchase field)."
+    )
+
+    stabilization: Optional['StabilizationEffect'] = Field(
+        default=None,
+        description="Ally stabilization result (if SUPPORT action targeted unconscious ally). Per YAGS: success stops death spiral but doesn't heal - ally is extracted by faction medevac."
     )
 
     # Additional metadata

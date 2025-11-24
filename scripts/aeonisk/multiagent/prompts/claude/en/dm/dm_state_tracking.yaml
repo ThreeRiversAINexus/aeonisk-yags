@@ -2,12 +2,7 @@ version: 2.0.0
 module: dm_state_tracking
 description: Scene clocks, soulcredit, void mechanics, rituals, and economy
 load_when: always
-content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICIT\
-  \ STATE MARKERS** - Mark state changes at the end of your narration:\n\n\U0001F4CA\
-  \ [Clock Name]: +X or -X (reason) - Advance/regress a scene clock\n⚖️ Soulcredit:\
-  \ +X or -X (reason) - Character's spiritual trust/morality changes\n\nExamples:\n\
-  \  \U0001F4CA Evidence Collection: +2 (found hidden documents)\n  ⚖️ Soulcredit:\
-  \ +0 (neutral combat action)\n  ⚖️ Soulcredit: -2 (deceived officials)\n\n**⚠\
+content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**⚠\
   ️ CRITICAL: WHEN TO POPULATE void_changes FIELD**\n\n**Use structured output `effects.void_changes`\
   \ for void corruption/cleansing. DO NOT use text markers.**\n\n✅ DO populate void_changes\
   \ for:\n- Ritual failures (failed astral arts, void manipulation) - +1 void\n- Direct\
@@ -45,32 +40,28 @@ content: "# Clock Management\n\n**Active Clocks:**\n{clock_context}\n\n**EXPLICI
   Ally Name\", amount=-3, reason=\"powerful purification despite corrupted resonance\"\
   )]\n\nCleansing requires: Success + (ley site OR offering) mentioned in narration\n\n# Soulcredit Guidance\n\
   **CRITICAL:** Soulcredit tracks trustworthiness/morality, NOT success.\n**ALWAYS\
-  \ mark soulcredit for every action, even when +0 (neutral).**\n\n**⚖️ UNIVERSAL\
-  \ NEXUS MORALITY FRAMEWORK:**\nSoulcredit represents **Sovereign Nexus universal\
-  \ morality** - the government's canonical moral framework.\n- Score **ALL actions\
-  \ from Nexus perspective**, regardless of acting character's faction\n- Tempest\
-  \ operatives infiltrating Nexus facility = **NEGATIVE soulcredit** (hostile to Nexus)\n\
-  - Nexus guards defending facility = **POSITIVE soulcredit** (protecting lawful order)\n\
-  - This applies even when Tempest/rebel PCs are protagonists - morality is from Nexus\
-  \ POV\n\nSC Scoring Rules (consider CONTEXT and INTENT):\n\n• Combat CONTEXT matters:\n  - Fighting justified\
-  \ enemies: ⚖️ Soulcredit: +0 (neutral combat)\n  - Fighting own faction/allies:\
-  \ ⚖️ Soulcredit: -2 (betrayal)\n  - Attacking innocents/excessive force: ⚖️ Soulcredit:\
-  \ -1 to -3 (unjust violence)\n  - Protecting innocents in combat: ⚖️ Soulcredit:\
-  \ +1 (protective action)\n\n• Deception INTENT matters:\n  - Lying for personal\
-  \ gain: ⚖️ Soulcredit: -1 to -2 (selfish deception)\n  - Lying to protect innocents:\
-  \ ⚖️ Soulcredit: +0 or +1 (complex morality)\n  - Fraud/identity theft: ⚖️ Soulcredit:\
-  \ -2 (serious deception)\n\n• Neutral actions: ⚖️ Soulcredit: +0\n  - Exploration,\
-  \ investigation, normal purchases, following protocols\n\n• Success/failure doesn't\
-  \ determine SC - only moral choice matters\n\nExamples (showing moral complexity):\n\
-  • Shooting hostile Tempest operatives: ⚖️ Soulcredit: +0 (justified combat)\n• Attacking\
-  \ own Pantheon allies: ⚖️ Soulcredit: -2 (betrayal of faction)\n• Lying to save\
-  \ innocent bystanders: ⚖️ Soulcredit: +0 (morally complex, protective intent)\n\
-  • Lying for profit/personal gain: ⚖️ Soulcredit: -1 (selfish deception)\n• Creating\
-  \ Hollow Seeds: ⚖️ Soulcredit: -2 (created illicit commodity)\n• Fulfilling contracts\
-  \ honorably: ⚖️ Soulcredit: +1 (upheld agreement)\n• Protecting civilians in crossfire:\
-  \ ⚖️ Soulcredit: +1 (selfless protection)\n• Breaking sworn oaths: ⚖️ Soulcredit:\
-  \ -2 (broke sworn word)\n• Excessive force on defeated foe: ⚖️ Soulcredit: -1 (unjust\
-  \ violence)\n• Normal investigation/exploration: ⚖️ Soulcredit: +0 (neutral action)\n\
+  \ populate soulcredit_changes for every action, even when +0 (neutral).**\n\n**USE\
+  \ STRUCTURED OUTPUT - NOT TEXT MARKERS:**\nPopulate `effects.soulcredit_changes`\
+  \ field - do NOT append emoji markers to narration.\n\n**UNIVERSAL NEXUS MORALITY\
+  \ FRAMEWORK:**\nSoulcredit represents **Sovereign Nexus universal morality** - the\
+  \ government's canonical moral framework.\n- Score **ALL actions from Nexus perspective**,\
+  \ regardless of acting character's faction\n- Tempest operatives infiltrating Nexus\
+  \ facility = **NEGATIVE soulcredit** (hostile to Nexus)\n- Nexus guards defending\
+  \ facility = **POSITIVE soulcredit** (protecting lawful order)\n- This applies even\
+  \ when Tempest/rebel PCs are protagonists - morality is from Nexus POV\n\nSC Scoring\
+  \ Rules (consider CONTEXT and INTENT):\n\n• Combat CONTEXT matters:\n  - Fighting\
+  \ justified enemies: +0 (neutral combat)\n  - Fighting own faction/allies: -2 (betrayal)\n\
+  \  - Attacking innocents/excessive force: -1 to -3 (unjust violence)\n  - Protecting\
+  \ innocents in combat: +1 (protective action)\n\n• Deception INTENT matters:\n  -\
+  \ Lying for personal gain: -1 to -2 (selfish deception)\n  - Lying to protect innocents:\
+  \ +0 or +1 (complex morality)\n  - Fraud/identity theft: -2 (serious deception)\n\
+  \n• Neutral actions: +0\n  - Exploration, investigation, normal purchases, following\
+  \ protocols\n\n• Success/failure doesn't determine SC - only moral choice matters\n\
+  \nExample structured output (use this format in effects.soulcredit_changes):\n\
+  ```\nsoulcredit_changes=[SoulcreditChange(amount=-1, reason=\"selfish deception\")]\n\
+  soulcredit_changes=[SoulcreditChange(amount=+1, reason=\"protective action\")]\n\
+  soulcredit_changes=[SoulcreditChange(amount=0, reason=\"neutral investigation\")]\n\
+  ```\n\
   \n# Void Mechanics\n# Void Corruption\n\nEnvironmental void level affects situations\
   \ visibly:\n- Level 0: Normal reality (no void corruption)\n- Level 1-2: Subtle\
   \ unease, minor distortions\n- Level 3-4: Noticeable corruption, reality feels thin\n\

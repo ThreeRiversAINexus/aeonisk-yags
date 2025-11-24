@@ -29,6 +29,12 @@ content: |-
   **Location:** {location}
   **Situation:** {situation}
 
+  ## Your Journey So Far
+
+  **Places Visited:** {journey_locations}
+  **Key Events:** {journey_beats}
+  **Story Summary:** {journey_summary}
+
   ## Your Status
 
   **Round {current_round}** | **Health:** {health}/{max_health} ({health_status}) {wound_status} | **Void:** {void_score}/10 {void_warning} | **Position:** {position}
@@ -56,6 +62,8 @@ content: |-
   - Risk Tolerance: {risk_tolerance}/10 ({risk_guidance})
   - Void Curiosity: {void_curiosity}/10 ({void_curiosity_guidance})
   - Bond Preference: {bond_guidance}
+  {personality_notes}
+  {direction}
 
   **Faction Abbreviations (CANONICAL):**
   - **ACG** = Astral Commerce Group (corporate megacorp, commerce and trade)
@@ -71,8 +79,8 @@ content: |-
   Choose the action type that best matches your intent:
 
   **Combat & Conflict:**
-  - **COMBAT:** Attack, defend, use weapons/magic in combat
-  - **SUPPORT:** Heal allies, provide covering fire, coordinate team tactics
+  - **COMBAT:** Attack, defend, use weapons/magic in combat (includes suppressive/covering fire on enemies)
+  - **SUPPORT:** Heal allies, buff teammates, coordinate team tactics (NO direct fire - that's COMBAT)
 
   **Investigation & Exploration:**
   - **EXPLORE:** Navigate, move, search for exits or pathways
@@ -88,6 +96,7 @@ content: |-
   - **ATTUNE:** Seed attunement rituals to create energy currency (⚠️ requires Raw Seed in inventory - check Seeds section above!)
 
   **Economy:**
+  - **CONSUME:** Eat food items to restore +2 HP (requires food in inventory)
   - **PURCHASE:** Buy items/energy from vendors (requires vendor_id)
   - **TRANSFER:** Give energy/items to allies (requires transfer_target)
 
@@ -101,12 +110,12 @@ content: |-
   ```python
   ActionIntent(
       intent: str,          # 10-200 chars - What you're doing (brief summary)
-      action_type: ActionType,  # One of the 12 action types above
+      action_type: ActionType,  # One of the 13 action types above
       reasoning: str        # Why this action type? (for ML training)
   )
   ```
 
-  ## Examples (All 12 Action Types)
+  ## Examples (All 13 Action Types)
 
   **COMBAT - Attack enemies**
   ```python
@@ -186,6 +195,15 @@ content: |-
       intent="Attune Raw Seed to Drip at marketplace altar",
       action_type=ActionType.ATTUNE,
       reasoning="Need drip currency to purchase ritual supplies from vendor"
+  )
+  ```
+
+  **CONSUME - Eat food for healing**
+  ```python
+  ActionIntent(
+      intent="Eat ration pack to recover HP",
+      action_type=ActionType.CONSUME,
+      reasoning="Health is low and I have food - quick +2 HP without skill check"
   )
   ```
 

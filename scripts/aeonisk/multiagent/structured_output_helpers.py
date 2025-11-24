@@ -37,7 +37,7 @@ async def generate_dm_resolution_structured(
     provider: Optional[LLMProvider],
     prompt: str,
     system_prompt: Optional[str] = None,
-    max_tokens: int = 2000,
+    max_tokens: int = 4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
     temperature: float = 0.8,
     fallback_to_text: bool = False,  # Changed default: NO silent fallbacks
     llm_logger: Optional[Any] = None,  # For token tracking

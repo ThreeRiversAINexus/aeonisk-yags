@@ -1,0 +1,183 @@
+version: 2.0.0
+module: dm_resolution_ritual
+description: Ritual action resolution - void changes, offerings, attunement preparation
+load_when: action_type_ritual
+content: |-
+  # RITUAL ACTION RESOLUTION
+
+  You are resolving a **RITUAL** action. Focus on these MechanicalEffects fields:
+
+  ## REQUIRED FIELDS
+
+  **1. void_changes (REQUIRED for most rituals)**
+
+  Rituals manipulate void energy. Document all void effects:
+
+  ```python
+  # Ritual failure or missing offering → corruption
+  void_changes=[VoidChange(
+      character_name="Ash",
+      amount=1,                # Positive = corruption gained
+      reason="ritual without proper offering"
+  )]
+
+  # Successful cleansing → purification
+  void_changes=[VoidChange(
+      character_name="Riven",
+      amount=-2,               # Negative = corruption cleansed
+      reason="successful void purification ritual"
+  )]
+  ```
+
+  **Void Change Guidelines:**
+  - Ritual without offering: `amount=+1`
+  - Ritual failure: `amount=+1 to +2`
+  - Marginal cleansing: `amount=-1`
+  - Good cleansing: `amount=-2 to -3`
+  - Excellent cleansing: `amount=-3 to -5`
+  - Proper ritual with offering: `void_changes=[]` (empty list OK)
+
+  **2. soulcredit_changes (REQUIRED)**
+  ```python
+  soulcredit_changes=[SoulcreditChange(
+      character_name="Ash",
+      amount=1,                # +1 for selfless ritual, 0 for neutral, -1 for selfish
+      reason="selfless ritual to help corrupted ally"
+  )]
+  ```
+
+  ## CONDITIONAL FIELDS
+
+  **3. inventory_changes - when offerings are consumed**
+  Note: Offerings are consumed BEFORE DM narration by mechanics layer.
+  If `offering_consumed=true` in context, the offering has already been removed.
+
+  **4. conditions - for ritual aftereffects**
+  ```python
+  conditions=[Condition(
+      name="Psychic Strain",
+      penalty=-1,
+      duration=3,
+      description="mental fatigue from channeling void energy"
+  )]
+  ```
+
+  **5. healing - for cleansing rituals that restore HP**
+  ```python
+  healing=[HealingEffect(
+      target="tgt_riven",
+      amount=5,
+      source="void purification"
+  )]
+  ```
+
+  ## RITUAL EXAMPLES
+
+  **Example 1: Cleansing Ritual - Marginal Success**
+  ```python
+  ActionResolution(
+      narration="You channel purifying energy, but inverted resonance fights back. Pain sears through your neural pathways as corruption resists. Slowly, a fragment of void releases from Riven's spirit - but at cost to your own.",
+      success_tier=SuccessTier.MARGINAL,
+      margin=2,
+      effects=MechanicalEffects(
+          void_changes=[
+              VoidChange(character_name="Riven", amount=-1, reason="marginal purification"),
+              VoidChange(character_name="Ash", amount=1, reason="feedback from corrupted resonance")
+          ],
+          conditions=[Condition(
+              name="Psychic Strain",
+              penalty=-1,
+              duration=3,
+              description="mental fatigue"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Ash",
+              amount=1,
+              reason="selfless ritual to help ally"
+          )]
+      )
+  )
+  ```
+
+  **Example 2: Protective Ward - Good Success**
+  ```python
+  ActionResolution(
+      narration="The incense smoke spirals into precise patterns as you trace the ward sigils. Energy coalesces into a shimmering barrier around your position. The offering burns cleanly - the ritual is complete.",
+      success_tier=SuccessTier.GOOD,
+      margin=8,
+      effects=MechanicalEffects(
+          void_changes=[],       # Proper ritual with offering = no corruption
+          conditions=[Condition(
+              name="Warded",
+              penalty=2,         # Positive = protection bonus
+              duration=3,
+              description="+2 to resist void effects"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Echo",
+              amount=0,
+              reason="defensive ritual preparation"
+          )]
+      )
+  )
+  ```
+
+  **Example 3: Ritual Without Offering - Failure**
+  ```python
+  ActionResolution(
+      narration="You attempt the binding without proper offering. The void responds - hungrily. Dark tendrils reach through the incomplete ward, and you feel corruption seep into your spirit before you can sever the connection.",
+      success_tier=SuccessTier.FAILURE,
+      margin=-3,
+      effects=MechanicalEffects(
+          void_changes=[VoidChange(
+              character_name="Kade",
+              amount=2,
+              reason="ritual without offering - void backlash"
+          )],
+          conditions=[Condition(
+              name="Void-Touched",
+              penalty=-2,
+              duration=2,
+              description="void corruption visible, -2 social"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Kade",
+              amount=-1,
+              reason="reckless ritual endangered self"
+          )]
+      )
+  )
+  ```
+
+  **Example 4: Breaking Sacred Oath (Narrative Ritual)**
+  ```python
+  ActionResolution(
+      narration="You break your sworn word to the Pantheon, lying to your faction contact about the artifact's location. The betrayal weighs on your spirit - you feel the sacred bond shatter, leaving void in its wake.",
+      success_tier=SuccessTier.GOOD,
+      margin=13,
+      effects=MechanicalEffects(
+          void_changes=[VoidChange(
+              character_name="Riven",
+              amount=3,
+              reason="broke sacred oath to Pantheon"
+          )],
+          clock_updates=[ClockUpdate(
+              clock_name="Deception",
+              ticks=3,
+              reason="successfully deceived faction contact"
+          )],
+          soulcredit_changes=[SoulcreditChange(
+              character_name="Riven",
+              amount=-2,
+              reason="betrayed sworn oath"
+          )]
+      )
+  )
+  ```
+
+  ## NARRATION TIPS FOR RITUALS
+
+  - Describe the sensory experience of void energy
+  - Show physical toll on the ritualist
+  - Include mystical imagery: patterns, light, sound
+  - For failures, show the corruption visibly manifesting

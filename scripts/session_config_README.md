@@ -603,6 +603,7 @@ For complex or reference configurations, use the `_design_notes` field to docume
 - **Drip** (Water) - Emotion, secrecy, flow, healing
 - **Grain** (Earth) - Stability, structure, grounding
 - **Spark** (Fire) - Action, force, urgency, will
+- **Hollow** - Void-aligned currency, illicit economy
 
 **Conversion Rates:**
 - 10 Breath = 1 Drip
@@ -610,6 +611,14 @@ For complex or reference configurations, use the `_design_notes` field to docume
 - 10 Grain = 1 Spark
 
 *Market rates vary by location (1 Spark ≈ 2-5 Drips in practice)*
+
+**Hollow Currency:**
+- **NOT part of standard conversion hierarchy** (no fixed exchange rate)
+- Used in black markets, void cults, illegal trade
+- Derived from Hollow Seeds (shattered/degraded seeds)
+- **Risky to possess** in Nexus jurisdictions (illegal)
+- Accepted by underground vendors, Tempest Industries contacts
+- Items can cost multiple currencies (e.g., "5 drip + 2 hollow")
 
 ### Seeds
 
@@ -652,6 +661,102 @@ The system includes 4 vendor categories:
    - Free emergency supplies in dire situations
 
 **11 Pre-Configured Vendors** available across all types.
+
+### Food Consumption & Item Types
+
+**CONSUME Action** - Players can eat food items for minor HP recovery
+
+**Mechanics:**
+- **Deterministic healing:** +2 HP per food item consumed (no roll required)
+- **Pre-validated:** System checks inventory and health before DM narration
+- **Capped at max_health:** Cannot eat when at full health
+- **Item removed:** Food is consumed (removed from inventory) on success
+
+**Item Type Categories:**
+```python
+ItemType.CONSUMABLE  # General consumables (no mechanics)
+ItemType.FOOD        # Grants +2 HP via CONSUME action ✅
+ItemType.TOOL        # Echo-Calibrator, ritual tools
+ItemType.SEED        # Raw Seeds for attunement
+ItemType.OFFERING    # Ritual offerings
+ItemType.EXCHANGE    # Trade goods
+ItemType.PROP        # Narrative items (fluff, no mechanics)
+ItemType.EQUIPMENT   # Weapons, armor, gear
+```
+
+**Available Food Items (9 items, all grant +2 HP):**
+1. **Ration Pack** (`itm_ration_01`) - 2 drip - Military survival food
+2. **Glowpeel Noodles** (`itm_noodles_01`) - 3 drip - Street food, bioluminescent
+3. **Protein Cube** (`itm_protein_cube_01`) - 1 drip - Compressed nutrients
+4. **Dried Fruit** (`itm_dried_fruit_01`) - 2 drip - Rare treat
+5. **Nutrition Paste** (`itm_nutrition_paste_01`) - 1 drip - Astronaut food
+6. **Syn-Meat Strips** (`itm_syn_meat_01`) - 3 drip - Lab-grown jerky
+7. **Energy Bar** (`itm_energy_bar_01`) - 1 drip - Civilian rations
+8. **Street Food** (`itm_street_food_01`) - 2 drip - Local cuisine
+9. **Survival Rations** (`itm_survival_rations_01`) - 2 drip - Emergency food
+
+**Usage Pattern:**
+```json
+// Player starts with food in inventory
+"inventory": {
+  "ration_pack": 2,
+  "protein_cube": 1
+}
+
+// Player declares CONSUME action
+ConsumeAction(
+  intent="Eat ration pack to recover HP",
+  description="I tear open the ration pack and consume...",
+  item_id="itm_ration_01",
+  action_type=ActionType.CONSUME
+)
+
+// System validates and executes:
+// - Check: Player has ration_pack in inventory (quantity > 0) ✅
+// - Check: item_type is "food" ✅
+// - Check: health < max_health ✅
+// - Execute: Remove 1 ration_pack from inventory
+// - Execute: Heal +2 HP (capped at max_health)
+// - DM narrates atmospheric description (no roll)
+```
+
+**Food vs Medicine:**
+- **Food (CONSUME):** Fixed +2 HP, no roll, deterministic, minor recovery
+- **Medicine (SUPPORT):** Variable healing based on roll (DC 12-20), treats serious injuries
+- **Ritual Healing (RITUAL):** Major healing but requires offerings, +1-3 void risk
+
+**Vendor Inventory Example:**
+```json
+"vendor_inventory": [
+  {
+    "name": "Ration Pack",
+    "description": "Military-grade survival food...",
+    "price_drip": 2,
+    "item_type": "food",
+    "item_id": "itm_ration_01",
+    "inventory_key": "ration_pack"
+  },
+  {
+    "name": "Med Kit",
+    "description": "First aid supplies...",
+    "price_drip": 5,
+    "price_hollow": 1,
+    "item_type": "consumable",
+    "item_id": "itm_medkit_01",
+    "inventory_key": "medkit"
+  }
+]
+```
+
+**Multi-Currency Pricing:**
+Items can now cost combinations of currencies:
+- `price_drip` - Cost in Drip
+- `price_grain` - Cost in Grain
+- `price_spark` - Cost in Spark
+- `price_breath` - Cost in Breath
+- `price_hollow` - Cost in Hollow (black market currency)
+
+Example: "5 drip + 2 hollow" for illicit goods
 
 ---
 

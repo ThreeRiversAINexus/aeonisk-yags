@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from enum import Enum
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,25 @@ class VendorType(Enum):
     VENDING_MACHINE = "vending_machine"  # Automated, limited selection
     SUPPLY_DRONE = "supply_drone"  # Mobile, works in neutral zones
     EMERGENCY_CACHE = "emergency_cache"  # One-time use, appears in crises
+
+
+class ItemType(Enum):
+    """
+    Item categories for vendor inventory.
+
+    Used to:
+    - Validate CONSUME actions (only food items can be eaten)
+    - Distinguish mechanical items (tools, offerings) from narrative props
+    - Enable item filtering in inventory systems
+    """
+    CONSUMABLE = "consumable"  # Generic consumables (medkit, stims, etc.) - NO auto-heal
+    FOOD = "food"  # Consumable food items - grants +2 HP when eaten via CONSUME action
+    TOOL = "tool"  # Equipment and tools (Echo-Calibrator, multitool, etc.)
+    SEED = "seed"  # Attuned/Hollow seeds for trading
+    OFFERING = "offering"  # Ritual consumables (incense, blood offerings, etc.)
+    EXCHANGE = "exchange"  # Currency conversion services
+    PROP = "prop"  # Narrative/story items with no mechanical effects
+    EQUIPMENT = "equipment"  # Wearable gear, weapons, armor
 
 
 @dataclass
@@ -435,26 +455,39 @@ class EnergyPurse:
         }
 
 
-@dataclass
-class VendorItem:
-    """Item available for purchase from a vendor."""
-    name: str  # Keep name first for backward compatibility
-    description: str
-    item_id: str = None  # Auto-generated if not provided
-    inventory_key: str = None  # Auto-generated from name if not provided
-    price_spark: int = 0
-    price_grain: int = 0
-    price_drip: int = 0
-    price_breath: int = 0
-    seed_barter: bool = False  # Can trade seeds for this
-    item_type: str = "consumable"  # consumable, tool, seed, etc.
+class VendorItem(BaseModel):
+    """
+    Item available for purchase from a vendor.
 
-    def __post_init__(self):
-        """Auto-generate item_id and inventory_key if not provided."""
+    Now a Pydantic model for proper validation of:
+    - Required fields (name, description)
+    - Non-negative prices (all currency fields)
+    - Hollow currency support (price_hollow)
+    - Item type categorization (food, prop, tool, etc.)
+    """
+    name: str = Field(..., min_length=1, max_length=100, description="Item name (e.g., 'Medkit', 'Ration Pack')")
+    description: str = Field(..., min_length=1, max_length=500, description="Item description for players")
+    item_id: Optional[str] = Field(None, description="Auto-generated if not provided (itm_xxxx)")
+    inventory_key: Optional[str] = Field(None, description="Auto-generated from name if not provided")
+    price_spark: int = Field(0, ge=0, description="Cost in Spark (highest tier currency)")
+    price_grain: int = Field(0, ge=0, description="Cost in Grain")
+    price_drip: int = Field(0, ge=0, description="Cost in Drip")
+    price_breath: int = Field(0, ge=0, description="Cost in Breath (lowest tier currency)")
+    price_hollow: int = Field(0, ge=0, description="Cost in Hollow currency (illicit void energy)")
+    seed_barter: bool = Field(False, description="Can trade attuned seeds for this item")
+    item_type: str = Field("consumable", description="Item category: consumable, food, tool, seed, offering, exchange, prop, equipment")
+
+    model_config = ConfigDict(
+        validate_assignment=True,  # Validate on attribute assignment
+        extra="forbid"  # Reject extra fields
+    )
+
+    def model_post_init(self, __context):
+        """Auto-generate item_id and inventory_key if not provided (Pydantic equivalent of __post_init__)."""
         if self.item_id is None:
-            self.item_id = generate_item_id()
+            object.__setattr__(self, 'item_id', generate_item_id())
         if self.inventory_key is None:
-            self.inventory_key = item_name_to_inventory_key(self.name)
+            object.__setattr__(self, 'inventory_key', item_name_to_inventory_key(self.name))
 
     @property
     def cost(self) -> Dict[str, int]:
@@ -468,6 +501,8 @@ class VendorItem:
             cost_dict['drip'] = self.price_drip
         if self.price_breath > 0:
             cost_dict['breath'] = self.price_breath
+        if self.price_hollow > 0:
+            cost_dict['hollow'] = self.price_hollow
         return cost_dict
 
     def get_price_string(self) -> str:
@@ -479,6 +514,8 @@ class VendorItem:
             prices.append(f"{self.price_drip} Drip")
         if self.price_breath > 0:
             prices.append(f"{self.price_breath} Breath")
+        if self.price_hollow > 0:
+            prices.append(f"{self.price_hollow} Hollow")
         if self.seed_barter:
             prices.append("1 Attuned Seed")
         return " or ".join(prices) if prices else "Free"
@@ -619,14 +656,14 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Neutral",
         vendor_type=VendorType.HUMAN_TRADER,
         inventory=[
-            VendorItem("Echo-Calibrator", "Portable seed stabilizer (DC 16 Dex+Tech, 1 Drip per 3 uses)", price_spark=8),
-            VendorItem("Purification Incense (Bundle)", "High-grade ritual cleansing", price_drip=8, item_type="offering"),
-            VendorItem("Talisman Blanks (x5)", "Premium ritual substrates", price_spark=1),
-            VendorItem("Attuned Seed (Fire)", "Stable flame-aspected seed", price_spark=2, item_type="seed"),
-            VendorItem("Attuned Seed (Water)", "Stable water-aspected seed", price_spark=2, item_type="seed"),
-            VendorItem("Echo Shard", "Stores one dream echo", price_spark=3),
-            VendorItem("Ley-Reader Compass", "Points to nearest ley node", price_spark=4),
-            VendorItem("Warding Cord", "Repels minor mnemonic bleed", price_drip=6),
+            VendorItem(name="Echo-Calibrator", description="Portable seed stabilizer (DC 16 Dex+Tech, 1 Drip per 3 uses)", price_spark=8, item_type="tool"),
+            VendorItem(name="Purification Incense (Bundle)", description="High-grade ritual cleansing", price_drip=8, item_type="offering"),
+            VendorItem(name="Talisman Blanks (x5)", description="Premium ritual substrates", price_spark=1),
+            VendorItem(name="Attuned Seed (Fire)", description="Stable flame-aspected seed", price_spark=2, item_type="seed"),
+            VendorItem(name="Attuned Seed (Water)", description="Stable water-aspected seed", price_spark=2, item_type="seed"),
+            VendorItem(name="Echo Shard", description="Stores one dream echo", price_spark=3),
+            VendorItem(name="Ley-Reader Compass", description="Points to nearest ley node", price_spark=4),
+            VendorItem(name="Warding Cord", description="Repels minor mnemonic bleed", price_drip=6),
         ],
         greeting="Seeking clarity? I trade in resonance and remembrance."
     )
@@ -638,12 +675,12 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Freeborn",
         vendor_type=VendorType.HUMAN_TRADER,
         inventory=[
-            VendorItem("Hollow Seed", "Raw void energy (unstable)", price_drip=5, item_type="seed"),
-            VendorItem("Void Cloak", "Harder to track spiritually", price_spark=6),
-            VendorItem("Scrambled ID Chip", "Temporary anonymity", price_spark=4),
-            VendorItem("Memory Wipe Kit", "Erase recent events (risky)", price_spark=10),
-            VendorItem("Breach Compass", "Navigates unstable void zones", price_drip=15),
-            VendorItem("Null Dampener", "Suppresses ritual signatures", price_spark=7),
+            VendorItem(name="Hollow Seed", description="Raw void energy (unstable)", price_drip=5, item_type="seed"),
+            VendorItem(name="Void Cloak", description="Harder to track spiritually", price_spark=6),
+            VendorItem(name="Scrambled ID Chip", description="Temporary anonymity", price_spark=4),
+            VendorItem(name="Memory Wipe Kit", description="Erase recent events (risky)", price_spark=10),
+            VendorItem(name="Breach Compass", description="Navigates unstable void zones", price_drip=15),
+            VendorItem(name="Null Dampener", description="Suppresses ritual signatures", price_spark=7),
         ],
         greeting="*Static whisper* Looking for what the Codex won't sell you?"
     )
@@ -655,11 +692,11 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Astral Commerce Group",
         vendor_type=VendorType.HUMAN_TRADER,
         inventory=[
-            VendorItem("Soulcredit Report (Detailed)", "Full ledger analysis", price_spark=3),
-            VendorItem("Bond Insurance Policy", "Protect against bond damage", price_spark=12),
-            VendorItem("Debt Consolidation Service", "Restructure obligations", price_spark=15),
-            VendorItem("Spark Vault (Small)", "Secure energy storage", price_spark=5),
-            VendorItem("Contract Templates (Legal)", "Pre-approved bond forms", price_drip=8),
+            VendorItem(name="Soulcredit Report (Detailed)", description="Full ledger analysis", price_spark=3),
+            VendorItem(name="Bond Insurance Policy", description="Protect against bond damage", price_spark=12),
+            VendorItem(name="Debt Consolidation Service", description="Restructure obligations", price_spark=15),
+            VendorItem(name="Spark Vault (Small)", description="Secure energy storage", price_spark=5),
+            VendorItem(name="Contract Templates (Legal)", description="Pre-approved bond forms", price_drip=8),
         ],
         greeting="Let's optimize your spiritual portfolio. Everything's negotiable."
     )
@@ -671,12 +708,12 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Neutral",
         vendor_type=VendorType.HUMAN_TRADER,
         inventory=[
-            VendorItem("Currency Exchange Service", "Convert Spark/Drip/Grain/Breath (small fee)", price_breath=5),
-            VendorItem("Hollow Seed (Buy)", "Purchase illicit energy", price_drip=6, item_type="seed"),
-            VendorItem("Hollow Seed (Sell)", "Trade Hollow for Drips (5 Drip each)", price_drip=0, item_type="exchange"),
-            VendorItem("Spark Vault", "Secure high-value storage", price_spark=4),
-            VendorItem("Drip Canister (x10)", "Portable liquid energy", price_spark=2),
-            VendorItem("Breath Compressor", "Store gaseous energy", price_drip=8),
+            VendorItem(name="Currency Exchange Service", description="Convert Spark/Drip/Grain/Breath (small fee)", price_breath=5),
+            VendorItem(name="Hollow Seed (Buy)", description="Purchase illicit energy", price_drip=6, item_type="seed"),
+            VendorItem(name="Hollow Seed (Sell)", description="Trade Hollow for Drips (5 Drip each)", price_drip=0, item_type="exchange"),
+            VendorItem(name="Spark Vault", description="Secure high-value storage", price_spark=4),
+            VendorItem(name="Drip Canister (x10)", description="Portable liquid energy", price_spark=2),
+            VendorItem(name="Breath Compressor", description="Store gaseous energy", price_drip=8),
         ],
         greeting="Fair rates, clean ledger. Spark to Drip? Drip to Breath? I handle it all."
     )
@@ -690,12 +727,12 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Neutral",
         vendor_type=VendorType.VENDING_MACHINE,
         inventory=[
-            VendorItem("Breathwater Flask", "Distilled air-essence, calming", price_drip=2),
-            VendorItem("Dripfruit Chews", "Mood-softening candy", price_drip=1),
-            VendorItem("Med Kit (Basic)", "Emergency medical supplies", price_drip=5),
-            VendorItem("Ration Pack", "Standard survival rations", price_drip=2),
-            VendorItem("Glowsticks (x3)", "Emergency lighting", price_breath=8),
-            VendorItem("Comm Unit (Disposable)", "One-use communicator", price_drip=3),
+            VendorItem(name="Breathwater Flask", description="Distilled air-essence, calming", price_drip=2),
+            VendorItem(name="Dripfruit Chews", description="Mood-softening candy", price_drip=1, item_type="food"),
+            VendorItem(name="Med Kit (Basic)", description="Emergency medical supplies", price_drip=5),
+            VendorItem(name="Ration Pack", description="Standard survival rations", price_drip=2, item_type="food"),
+            VendorItem(name="Glowsticks (x3)", description="Emergency lighting", price_breath=8),
+            VendorItem(name="Comm Unit (Disposable)", description="One-use communicator", price_drip=3),
         ],
         greeting="[S4CU-STANDARD] Currency accepted. Product dispensed. Thank you."
     )
@@ -707,13 +744,13 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Sovereign Nexus",
         vendor_type=VendorType.VENDING_MACHINE,
         inventory=[
-            VendorItem("Ritual Altar Access (1hr)", "Temple altar booking", price_spark=1),
-            VendorItem("Incense Stick (Single)", "Basic ritual cleansing", price_breath=10, item_type="offering"),
-            VendorItem("Ley-Chalk (3pk)", "Temporary glyph drawing", price_drip=2),
-            VendorItem("Whisper Wax Tablet", "Breath-activated recording", price_breath=15),
-            VendorItem("Talisman Blank", "Single ritual substrate", price_drip=3),
-            VendorItem("Blessing Sponge", "Altar preparation cloth", price_breath=6),
-            VendorItem("Mini-Bond Bowl", "Portable ritual altar", price_drip=10, seed_barter=True),
+            VendorItem(name="Ritual Altar Access (1hr)", description="Temple altar booking", price_spark=1),
+            VendorItem(name="Incense Stick (Single)", description="Basic ritual cleansing", price_breath=10, item_type="offering"),
+            VendorItem(name="Ley-Chalk (3pk)", description="Temporary glyph drawing", price_drip=2),
+            VendorItem(name="Whisper Wax Tablet", description="Breath-activated recording", price_breath=15),
+            VendorItem(name="Talisman Blank", description="Single ritual substrate", price_drip=3),
+            VendorItem(name="Blessing Sponge", description="Altar preparation cloth", price_breath=6),
+            VendorItem(name="Mini-Bond Bowl", description="Portable ritual altar", price_drip=10, seed_barter=True),
         ],
         greeting="[TEMPLE-NODE-7] Sanctified goods available. Soulcredit verified."
     )
@@ -725,12 +762,12 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Neutral",
         vendor_type=VendorType.VENDING_MACHINE,
         inventory=[
-            VendorItem("Echo-Crackers", "Joy-infused crunchy snack", price_breath=4),
-            VendorItem("Glowpeel Noodles (Instant)", "Spark-dust spiced noodles", price_drip=2),
-            VendorItem("Hollow Cone (Dessert)", "Void-cream ice cream cone", price_drip=3),
-            VendorItem("Ley Pop (Sourwave)", "Fizzes near emotions", price_breath=5),
-            VendorItem("Sparksticks", "Addictive buzz twigs", price_breath=3),
-            VendorItem("Reviv-Essence Lozenges", "Stimulant tabs", price_drip=4),
+            VendorItem(name="Echo-Crackers", description="Joy-infused crunchy snack", price_breath=4, item_type="food"),
+            VendorItem(name="Glowpeel Noodles (Instant)", description="Spark-dust spiced noodles", price_drip=2, item_type="food"),
+            VendorItem(name="Hollow Cone (Dessert)", description="Void-cream ice cream cone", price_drip=3, item_type="food"),
+            VendorItem(name="Ley Pop (Sourwave)", description="Fizzes near emotions", price_breath=5, item_type="food"),
+            VendorItem(name="Sparksticks", description="Addictive buzz twigs", price_breath=3, item_type="food"),
+            VendorItem(name="Reviv-Essence Lozenges", description="Stimulant tabs", price_drip=4, item_type="food"),
         ],
         greeting="[SNACKHUB] Fresh today! Insert Drips for instant gratification."
     )
@@ -742,12 +779,12 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Arcane Genetics",
         vendor_type=VendorType.VENDING_MACHINE,
         inventory=[
-            VendorItem("Echo-Calibrator", "Portable seed stabilizer (DC 16 Dex+Tech, 1 Drip per 3 uses)", price_spark=8),
-            VendorItem("Neural Stimulant", "Cognitive boost (4hr)", price_drip=4),
-            VendorItem("Genetic Sample Kit", "DNA collection tools", price_drip=6),
-            VendorItem("Resonance Tuner (Portable)", "Adjust personal frequencies", price_spark=3),
-            VendorItem("Bio-Sensor Patch", "Monitors vital signs", price_drip=5),
-            VendorItem("Void-Cut Tea (Synthetic)", "Forbidden ritual simulacrum", price_drip=2),
+            VendorItem(name="Echo-Calibrator", description="Portable seed stabilizer (DC 16 Dex+Tech, 1 Drip per 3 uses)", price_spark=8, item_type="tool"),
+            VendorItem(name="Neural Stimulant", description="Cognitive boost (4hr)", price_drip=4),
+            VendorItem(name="Genetic Sample Kit", description="DNA collection tools", price_drip=6),
+            VendorItem(name="Resonance Tuner (Portable)", description="Adjust personal frequencies", price_spark=3),
+            VendorItem(name="Bio-Sensor Patch", description="Monitors vital signs", price_drip=5),
+            VendorItem(name="Void-Cut Tea (Synthetic)", description="Forbidden ritual simulacrum", price_drip=2),
         ],
         greeting="[ARCGEN-BIOTECH] Premium enhancement products. Waiver required."
     )
@@ -760,13 +797,13 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Pantheon Security",
         vendor_type=VendorType.SUPPLY_DRONE,
         inventory=[
-            VendorItem("Union Heavy Pistol", "Standard issue sidearm", price_spark=6),
-            VendorItem("Riot Carapace (Armor)", "Blast-resistant body armor", price_spark=10),
-            VendorItem("Dripshock Baton", "Non-lethal crowd control", price_spark=3),
-            VendorItem("Med Kit (Tactical)", "Combat-grade medical", price_drip=6),
-            VendorItem("Restraint Cuffs", "Detain suspects", price_drip=8),
-            VendorItem("Void Scanner (Basic)", "Detect corruption", price_spark=4),
-            VendorItem("Signal Flare", "Call for backup", price_drip=4),
+            VendorItem(name="Union Heavy Pistol", description="Standard issue sidearm", price_spark=6),
+            VendorItem(name="Riot Carapace (Armor)", description="Blast-resistant body armor", price_spark=10),
+            VendorItem(name="Dripshock Baton", description="Non-lethal crowd control", price_spark=3),
+            VendorItem(name="Med Kit (Tactical)", description="Combat-grade medical", price_drip=6),
+            VendorItem(name="Restraint Cuffs", description="Detain suspects", price_drip=8),
+            VendorItem(name="Void Scanner (Basic)", description="Detect corruption", price_spark=4),
+            VendorItem(name="Signal Flare", description="Call for backup", price_drip=4),
         ],
         greeting="[P-19 FIELD UNIT] Authorized personnel: state requisition code."
     )
@@ -777,11 +814,11 @@ def create_standard_vendors() -> List[Vendor]:
         faction="House of Vox",
         vendor_type=VendorType.SUPPLY_DRONE,
         inventory=[
-            VendorItem("Data Slate (Encrypted)", "Secure information storage", price_drip=10),
-            VendorItem("Whisper Capsules", "Ambient dream audio", price_drip=5),
-            VendorItem("Broadcast Access Chip (Temp)", "1-hour media access", price_spark=2),
-            VendorItem("Echo-Quill", "Writes intent, not words", price_drip=7),
-            VendorItem("Glow-Beads (x10)", "React to emotional agitation", price_breath=12),
+            VendorItem(name="Data Slate (Encrypted)", description="Secure information storage", price_drip=10),
+            VendorItem(name="Whisper Capsules", description="Ambient dream audio", price_drip=5),
+            VendorItem(name="Broadcast Access Chip (Temp)", description="1-hour media access", price_spark=2),
+            VendorItem(name="Echo-Quill", description="Writes intent, not words", price_drip=7),
+            VendorItem(name="Glow-Beads (x10)", description="React to emotional agitation", price_breath=12),
         ],
         greeting="[VOX-COURIER] Express delivery. Subscription discount available."
     )
@@ -794,10 +831,10 @@ def create_standard_vendors() -> List[Vendor]:
         faction="Pantheon Security",
         vendor_type=VendorType.EMERGENCY_CACHE,
         inventory=[
-            VendorItem("Med Kit", "Emergency medical supplies", price_drip=0),
-            VendorItem("Ration Pack (x3)", "Survival rations", price_drip=0),
-            VendorItem("Signal Flare", "Call for help", price_drip=0),
-            VendorItem("Purification Incense", "Ritual cleansing", price_drip=0, item_type="offering"),
+            VendorItem(name="Med Kit", description="Emergency medical supplies", price_drip=0),
+            VendorItem(name="Ration Pack (x3)", description="Survival rations", price_drip=0, item_type="food"),
+            VendorItem(name="Signal Flare", description="Call for help", price_drip=0),
+            VendorItem(name="Purification Incense", description="Ritual cleansing", price_drip=0, item_type="offering"),
         ],
         greeting="[EMERGENCY CACHE] Crisis protocol active. Take what you need."
     )

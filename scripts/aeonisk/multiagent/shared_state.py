@@ -30,6 +30,18 @@ def generate_altar_id() -> str:
     return f"alt_{suffix}"
 
 
+def generate_env_object_id() -> str:
+    """
+    Generate unique environmental object ID: env_xxxx
+
+    Format: env_ + 4 random alphanumeric characters
+    Example: env_k3r8
+    """
+    import string
+    suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    return f"env_{suffix}"
+
+
 class AltarType(Enum):
     """Types of ritual altars in Aeonisk."""
     RITUAL_ALTAR = "ritual_altar"  # Generic ritual space
@@ -37,6 +49,17 @@ class AltarType(Enum):
     FREEBORN_ALTAR = "freeborn_altar"  # Neutral Zone markets (moderate quality, open access)
     BLACK_MARKET_ALTAR = "black_market_altar"  # Hidden altars (low quality, risky, accepts Hollows)
     ABANDONED_ALTAR = "abandoned_altar"  # Discovered altars (random quality, contested)
+
+
+class EnvironmentalObjectType(Enum):
+    """Types of environmental objects that can be spawned in scenarios."""
+    DOOR = "door"  # Doors, hatches, airlocks
+    TERMINAL = "terminal"  # Computer terminals, control panels
+    CARGO = "cargo"  # Cargo containers, crates, storage
+    VEHICLE = "vehicle"  # Shuttles, drones, transports
+    BARRIER = "barrier"  # Barricades, walls, obstacles
+    STRUCTURE = "structure"  # Buildings, pillars, platforms
+    EQUIPMENT = "equipment"  # Machinery, tools, devices
 
 
 @dataclass
@@ -74,6 +97,33 @@ class Altar:
             # Invalid quality, default to +1
             logger.warning(f"Altar {self.altar_id} has invalid quality {self.quality}, defaulting to +1 bonus")
             return 1
+
+
+@dataclass
+class EnvironmentalObject:
+    """
+    Represents an environmental object that exists in the scenario.
+
+    Environmental objects are non-targetable entities that provide narrative grounding.
+    They make clear what environmental features are "real" vs pure narrative flavor.
+
+    Examples:
+        - Doors/hatches (locked, health, can be destroyed)
+        - Terminals/panels (hacked, powered, functional)
+        - Cargo/crates (opened, searched, looted)
+        - Vehicles (damaged, operational, docked)
+        - Barriers (breached, intact, reinforced)
+    """
+    object_type: EnvironmentalObjectType
+    name: str
+    description: str
+    state: Dict[str, Any] = field(default_factory=dict)  # e.g., {"locked": True, "health": 50}
+    object_id: Optional[str] = None
+
+    def __post_init__(self):
+        """Auto-generate object_id if not provided."""
+        if self.object_id is None:
+            self.object_id = generate_env_object_id()
 
 
 @dataclass
@@ -119,6 +169,9 @@ class SharedState:
 
     # Current altars present in the scenario (ritual infrastructure for attunement)
     current_altars: List[Altar] = field(default_factory=list)
+
+    # Current environmental objects present in the scenario (narrative grounding)
+    current_env_objects: List[EnvironmentalObject] = field(default_factory=list)
 
     # Party-wide shared knowledge to reduce repetitive actions
     # Each discovery is a dict with 'discovery' and 'character' keys
@@ -632,6 +685,65 @@ Generate something DIFFERENT from these recent scenarios.
     def clear_altars(self) -> None:
         """Remove all altars from scenario."""
         self.current_altars.clear()
+
+    # Environmental object management methods
+
+    def add_env_object(self, env_object: EnvironmentalObject) -> None:
+        """
+        Add an environmental object to the scenario.
+
+        Args:
+            env_object: EnvironmentalObject instance
+
+        Note:
+            Prevents duplicates by object_id
+        """
+        # Check if object with same ID already exists
+        for existing_obj in self.current_env_objects:
+            if existing_obj.object_id == env_object.object_id:
+                # Skip duplicate
+                return
+
+        self.current_env_objects.append(env_object)
+
+    def remove_env_object(self, object_id: str) -> bool:
+        """
+        Remove environmental object by ID.
+
+        Args:
+            object_id: ID of object to remove (e.g., "env_k3r8")
+
+        Returns:
+            True if removed, False if not found
+        """
+        for i, obj in enumerate(self.current_env_objects):
+            if obj.object_id == object_id:
+                self.current_env_objects.pop(i)
+                return True
+        return False
+
+    def get_env_object_by_id(self, object_id: str) -> Optional[EnvironmentalObject]:
+        """
+        Get environmental object by ID.
+
+        Args:
+            object_id: ID of object to find (e.g., "env_k3r8")
+
+        Returns:
+            EnvironmentalObject if found, None otherwise
+        """
+        for obj in self.current_env_objects:
+            if obj.object_id == object_id:
+                return obj
+        return None
+
+    def get_all_env_objects(self) -> List[EnvironmentalObject]:
+        """Get all environmental objects currently present in scenario."""
+        return self.current_env_objects
+
+    def clear_env_objects(self) -> None:
+        """Remove all environmental objects from scenario."""
+        self.current_env_objects.clear()
 
     # Enemy agent management methods (delegate to enemy_combat module)
 

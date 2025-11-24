@@ -648,6 +648,13 @@ class SelfPlayingSession:
                 print(f"  - {player.character_state.name} ({player.character_state.faction})")
         print()
 
+        # Run pre-round entity lifecycle BEFORE round 1
+        # This allows DM to spawn additional entities based on the scenario
+        # (vendors, bystanders, environmental objects, patrols)
+        # Note: initial_enemies and initial_npcs from config have already been processed
+        # in _handle_scenario_setup() before we get here
+        await self._run_pre_round_entity_lifecycle()
+
         while self.running:
             round_count += 1
             print(f"\n--- Round {round_count} ---")
@@ -1342,9 +1349,28 @@ class SelfPlayingSession:
         for initiative_score, agent_type, agent in initiative_order:
             logger.debug(f"Processing {agent_type} with initiative {initiative_score}")
             if agent_type == 'player':
-                # Skip dead/unconscious players
-                if not agent.is_alive:
-                    logger.debug(f"{agent.character_state.name} is dead/unconscious - skipping execution")
+                # Skip dead/unconscious/extracted players
+                if not agent.is_in_combat:
+                    skip_reason = "extracted by medevac" if agent.is_extracted else "dead/unconscious"
+                    logger.debug(f"{agent.character_state.name} is {skip_reason} - skipping execution")
+
+                    # Log skipped action to JSONL for completeness (declaration exists, resolution should too)
+                    if agent.agent_id in self._declared_actions and mechanics and mechanics.jsonl_logger:
+                        for idx, buffered_action in enumerate(self._declared_actions[agent.agent_id]):
+                            action_intent = buffered_action.get('action', {}).get('intent', 'unknown')
+                            mechanics.jsonl_logger.log_enemy_action(
+                                round_num=mechanics.current_round,
+                                enemy_id=agent.agent_id,  # Using enemy method for simplicity
+                                enemy_name=agent.character_state.name,
+                                action_type='skipped',
+                                result=skip_reason,
+                                narration=f"{agent.character_state.name}'s action ({action_intent}) skipped: {skip_reason}",
+                                target_id=None,
+                                target_name=None,
+                                damage_dealt=None,
+                                roll_data=None,
+                                effects={'skip_reason': skip_reason}
+                            )
                     continue
 
                 # PC action execution via DM adjudication
@@ -1365,8 +1391,8 @@ class SelfPlayingSession:
                             old_position = agent.position
                             # Validate: don't move to same position (bug fix)
                             if old_position == target_position:
-                                logger.warning(f"{agent.character_state.name} tried to move to same position: {old_position}. Skipping movement.")
-                                print(f"[{agent.character_state.name}] Position unchanged: {old_position} (invalid move)")
+                                logger.info(f"{agent.character_state.name} already at {old_position}, skipping redundant movement.")
+                                print(f"[{agent.character_state.name}] Position unchanged: {old_position} (already there)")
                             else:
                                 agent.position = target_position
                                 print(f"[{agent.character_state.name}] Position: {old_position} → {agent.position}")
@@ -1457,6 +1483,47 @@ class SelfPlayingSession:
                                 except Exception as e:
                                     logger.error(f"Error processing attunement for {agent.character_state.name}: {e}")
 
+                            # Handle item discovery (seeds, currency, items from environment/NPCs)
+                            item_discovery = effects.get('item_discovery') if effects else None
+                            if item_discovery:
+                                try:
+                                    success = mechanics.process_item_effect(
+                                        item_effect=item_discovery,
+                                        character_state=agent.character_state,
+                                        player_id=agent.agent_id
+                                    )
+                                    if success:
+                                        logger.info(f"Processed item discovery for {agent.character_state.name}")
+                                    else:
+                                        logger.warning(f"Item discovery processing failed for {agent.character_state.name}")
+                                except Exception as e:
+                                    logger.error(f"Error processing item discovery for {agent.character_state.name}: {e}")
+
+                            # Handle stabilization (YAGS First Aid - ally extraction)
+                            stabilization = effects.get('stabilization') if effects else None
+                            if stabilization:
+                                try:
+                                    target_id = stabilization.get('target') if isinstance(stabilization, dict) else getattr(stabilization, 'target', None)
+                                    success = stabilization.get('success') if isinstance(stabilization, dict) else getattr(stabilization, 'success', False)
+
+                                    if success and target_id:
+                                        # Find target player agent
+                                        target_agent = next((p for p in player_agents if p.agent_id == target_id), None)
+                                        if target_agent:
+                                            # Mark as stabilized and extracted
+                                            target_agent.is_stabilized = True
+                                            target_agent.is_extracted = True
+                                            faction = target_agent.character_state.faction
+                                            target_name = target_agent.character_state.name
+
+                                            print(f"\n🚑 MEDEVAC: {target_name} has been stabilized and extracted by {faction} medical team!")
+                                            print(f"   {target_name} is safe but will not rejoin this encounter.")
+                                            logger.info(f"Stabilization success: {target_name} extracted by {faction} medevac")
+                                        else:
+                                            logger.warning(f"Stabilization target {target_id} not found in player agents")
+                                except Exception as e:
+                                    logger.error(f"Error processing stabilization: {e}")
+
                         if f"{agent.agent_id}_{idx}" in self._pending_resolutions:
                             del self._pending_resolutions[f"{agent.agent_id}_{idx}"]
 
@@ -1506,7 +1573,21 @@ class SelfPlayingSession:
                         # but DM needs to see enemy actions to synthesize round accurately
                         all_resolutions.append(result)
 
-                        # TODO: Add enemy action JSONL logging (need to create separate method with correct signature)
+                        # Log enemy action to JSONL (uses dedicated method for simplified format)
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_enemy_action(
+                                round_num=mechanics.current_round,
+                                enemy_id=result.get('enemy_id', agent.agent_id),
+                                enemy_name=result.get('character_name', 'Unknown Enemy'),
+                                action_type=result.get('action', 'unknown'),
+                                result=result.get('result', 'unknown'),
+                                narration=result.get('narration', ''),
+                                target_id=result.get('target'),
+                                target_name=result.get('target_name'),
+                                damage_dealt=result.get('damage_dealt'),
+                                roll_data=result.get('roll'),
+                                effects=result.get('effects')
+                            )
 
             elif agent_type == 'npc':
                 # NPC action execution - route through DM adjudication like players
@@ -1517,7 +1598,14 @@ class SelfPlayingSession:
                         continue
 
                     npc_action = npc_actions[0]  # NPCs only have one action
-                    print(f"\n[{agent.name}] (NPC) executing: {npc_action['intent']}...")
+
+                    # NPCAction schema uses 'reason' and 'action_type', not 'intent' and 'description'
+                    # Map to player-style fields for consistency with DM adjudication
+                    npc_intent = npc_action.get('intent') or npc_action.get('reason', 'NPC action')
+                    npc_description = npc_action.get('description') or npc_action.get('dialogue_content') or npc_action.get('reason', '')
+                    npc_action_type = npc_action.get('action_type', 'dialogue')
+
+                    print(f"\n[{agent.name}] (NPC) executing: {npc_action_type} - {npc_intent[:50]}...")
 
                     # Build action payload for DM adjudication (similar to players)
                     action_for_adjudication = {
@@ -1526,9 +1614,9 @@ class SelfPlayingSession:
                         'initiative': initiative_score,
                         'action': {
                             'character_name': agent.name,  # Include in nested action for resolution broadcast
-                            'intent': npc_action['intent'],
-                            'description': npc_action['description'],
-                            'action_type': npc_action.get('action_type', 'dialogue'),
+                            'intent': npc_intent,
+                            'description': npc_description,
+                            'action_type': npc_action_type,
                             'target': npc_action.get('target'),  # Include target for assist/dialogue/attack actions
                             'is_npc': True  # Flag for DM to use lightweight adjudication
                         }
@@ -1941,6 +2029,41 @@ class SelfPlayingSession:
                             else:
                                 logger.warning(f"Failed to remove NPC '{npc_identifier}' - not found in npc_agents")
 
+                    # Process environmental object spawns from conversion check
+                    if conversion_decisions.env_object_spawns and self.shared_state:
+                        from .schemas.story_events import EnvObjectSpawn
+                        from .shared_state import EnvironmentalObject, EnvironmentalObjectType
+
+                        for env_spawn in conversion_decisions.env_object_spawns:
+                            # Reconstruct EnvObjectSpawn if it's a dict
+                            if isinstance(env_spawn, dict):
+                                env_spawn = EnvObjectSpawn(**env_spawn)
+
+                            # Parse object type
+                            try:
+                                object_type = EnvironmentalObjectType[env_spawn.object_type.upper()]
+                            except KeyError:
+                                logger.warning(f"Invalid object_type '{env_spawn.object_type}', skipping spawn")
+                                continue
+
+                            # Create environmental object instance
+                            env_object = EnvironmentalObject(
+                                object_type=object_type,
+                                name=env_spawn.name,
+                                description=env_spawn.description,
+                                state=env_spawn.initial_state
+                            )
+
+                            # Add to shared state
+                            self.shared_state.add_env_object(env_object)
+
+                            # Track in lifecycle result
+                            entity_lifecycle_result.env_objects_spawned.append(env_object.object_id)
+
+                            logger.info(f"Environmental object spawned: {env_object.name} ({env_spawn.object_type}), object_id={env_object.object_id}")
+                            logger.info(f"Reason: {env_spawn.narrative_reason}")
+                            print(f"\n🏗️  Environmental object appeared: {env_object.name} ({env_spawn.object_type})")
+
                     # Process enemy departures from conversion check (aggressive removal)
                     if conversion_decisions.enemy_departures and self.enemy_combat and self.enemy_combat.enabled:
                         for enemy_identifier in conversion_decisions.enemy_departures:
@@ -2000,7 +2123,8 @@ class SelfPlayingSession:
             entity_lifecycle_result.enemies_converted or
             entity_lifecycle_result.npcs_escalated or
             entity_lifecycle_result.npcs_departed or
-            entity_lifecycle_result.enemies_departed):
+            entity_lifecycle_result.enemies_departed or
+            entity_lifecycle_result.env_objects_spawned):
 
             if mechanics and mechanics.jsonl_logger:
                 lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(
@@ -2019,7 +2143,8 @@ class SelfPlayingSession:
                        f"{len(entity_lifecycle_result.npcs_spawned)} NPCs spawned, "
                        f"{len(entity_lifecycle_result.enemies_converted)} enemies converted, "
                        f"{len(entity_lifecycle_result.npcs_escalated)} NPCs escalated, "
-                       f"{len(entity_lifecycle_result.npcs_departed)} NPCs departed")
+                       f"{len(entity_lifecycle_result.npcs_departed)} NPCs departed, "
+                       f"{len(entity_lifecycle_result.env_objects_spawned)} env objects spawned")
 
         # Generate single synthesis from all collected resolutions
         if all_resolutions:
@@ -2084,36 +2209,69 @@ class SelfPlayingSession:
                     if hasattr(player, 'character_state'):
                         char_state = player.character_state
                         # Health/wounds are stored on player agent, not CharacterState
+                        # Calculate death state based on wounds (6+ wounds = dead)
+                        wounds = player.wounds if hasattr(player, 'wounds') else 0
+                        health = player.health if hasattr(player, 'health') else 0
+                        if wounds >= 6:
+                            death_state = "dead"
+                        elif health <= 0:
+                            death_state = "unconscious"
+                        else:
+                            death_state = "alive"
+
                         mechanics.jsonl_logger.log_character_state(
                             round_num=mechanics.current_round,
                             character_id=player.agent_id,
                             character_name=char_state.name,
-                            health=player.health if hasattr(player, 'health') else 0,
+                            health=health,
                             max_health=player.max_health if hasattr(player, 'max_health') else 0,
-                            wounds=player.wounds if hasattr(player, 'wounds') else 0,
+                            wounds=wounds,
                             void_score=char_state.void_score if hasattr(char_state, 'void_score') else 0,
                             soulcredit=char_state.soulcredit if hasattr(char_state, 'soulcredit') else 0,
                             position=str(getattr(player, 'position', 'Unknown')),
                             conditions=[],  # TODO: Add condition tracking
-                            is_defeated=(player.health <= 0) if hasattr(player, 'health') else False
+                            is_defeated=(death_state != "alive"),
+                            death_state=death_state  # NEW: Track death vs unconscious
                         )
+
+                        # Log narrative memory state for ML training
+                        if hasattr(player, 'narrative_memory') and player.narrative_memory:
+                            mechanics.jsonl_logger.log_narrative_memory(
+                                round_num=mechanics.current_round,
+                                agent_id=player.agent_id,
+                                character_name=char_state.name,
+                                locations_visited=player.narrative_memory.locations_visited,
+                                story_beats=player.narrative_memory.story_beats,
+                                story_summary=player.narrative_memory.story_summary
+                            )
 
                 # Log character state snapshots for all active enemies (for ML training/balance analysis)
                 if self.enemy_combat.enabled:
                     for enemy in self.enemy_combat.enemy_agents:
                         if enemy.is_active:  # Only log active enemies
+                            # Calculate death state for enemies too
+                            enemy_wounds = enemy.wounds if hasattr(enemy, 'wounds') else 0
+                            enemy_health = enemy.health if hasattr(enemy, 'health') else 0
+                            if enemy_wounds >= 6:
+                                enemy_death_state = "dead"
+                            elif enemy_health <= 0:
+                                enemy_death_state = "unconscious"
+                            else:
+                                enemy_death_state = "alive"
+
                             mechanics.jsonl_logger.log_character_state(
                                 round_num=mechanics.current_round,
                                 character_id=enemy.agent_id,
                                 character_name=enemy.name,
-                                health=enemy.health if hasattr(enemy, 'health') else 0,
+                                health=enemy_health,
                                 max_health=enemy.max_health if hasattr(enemy, 'max_health') else 0,
-                                wounds=enemy.wounds if hasattr(enemy, 'wounds') else 0,
+                                wounds=enemy_wounds,
                                 void_score=0,  # Enemies typically don't track void
                                 soulcredit=0,  # Enemies don't track soulcredit
                                 position=str(getattr(enemy, 'position', 'Unknown')),
                                 conditions=[],  # TODO: Add condition tracking for enemies
-                                is_defeated=not enemy.is_active,
+                                is_defeated=(enemy_death_state != "alive"),
+                                death_state=enemy_death_state,  # NEW: Track death vs unconscious
                                 agent='enemy'  # Add agent field to identify this as enemy state
                             )
 
@@ -2428,7 +2586,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 for attempt in range(max_retries):
                     response = await provider.generate(
                         prompt=debrief_prompt,
-                        max_tokens=2000,  # Increased from 250 - give plenty of headroom for conversational responses
+                        max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
                         temperature=0.8
                     )
 
@@ -2829,6 +2987,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'event_type': 'created',
                 'clock_name': name,
                 'description': description,
+                'current': 0,  # New clocks start at 0
                 'max': max_ticks,
                 'consequence': clock.filled_consequence if clock else ''
             })
@@ -2870,7 +3029,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             if clock.current_ticks > 0:
                 scene_clock.current = clock.current_ticks
 
-            print(f"\n🕐 NEW CLOCK SPAWNED: {clock.name} (0/{clock.max_ticks}) - {clock.description}")
+            print(f"\n🕐 NEW CLOCK SPAWNED: {clock.name} ({scene_clock.current}/{clock.max_ticks}) - {clock.description}")
 
             # Track clock creation in history
             mechanics.clock_history.append({
@@ -2878,6 +3037,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'event_type': 'created',
                 'clock_name': clock.name,
                 'description': clock.description,
+                'current': scene_clock.current,  # Use actual value (may be non-zero)
                 'max': clock.max_ticks,
                 'consequence': scene_clock.filled_consequence if scene_clock else ''
             })
@@ -3018,9 +3178,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     description = event.get('description', '')
 
                     if event_type == 'created':
+                        current_val = event.get('current', 0)
                         max_val = event.get('max', '?')
                         consequence = event.get('consequence', '')
-                        print(f"  Round {round_num}: 🕐 CREATED - {clock_name} (0/{max_val})")
+                        print(f"  Round {round_num}: 🕐 CREATED - {clock_name} ({current_val}/{max_val})")
                         print(f"             {description}")
                         if consequence:
                             print(f"             When filled: {consequence}")
@@ -3343,6 +3504,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         'event_type': 'created',
                         'clock_name': clock_name,
                         'description': clock.description,
+                        'current': clock.current,  # Track starting value (may be non-zero)
                         'max': clock.maximum,
                         'consequence': clock.filled_consequence
                     })
@@ -3422,6 +3584,162 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                         logger.info(f"Logged entity_lifecycle event for {len(entity_lifecycle_result.npcs_spawned)} session start NPCs")
 
         self._scenario_ready.set()
+
+    async def _run_pre_round_entity_lifecycle(self):
+        """
+        Run entity lifecycle phase BEFORE round 1 to populate the scene.
+
+        This allows the DM to spawn additional entities based on the scenario theme:
+        - Vendors, merchants appropriate to the location
+        - Bystanders, civilians for atmosphere
+        - Environmental objects for interaction
+        - Patrols or guards (as enemies if hostile)
+
+        Called AFTER scenario setup (which processes initial_enemies/initial_npcs from config)
+        but BEFORE round 1 begins.
+        """
+        from .schemas.story_events import EntityLifecycleResult, EnemySpawn, NPCSpawn
+
+        mechanics = self.shared_state.get_mechanics_engine() if self.shared_state else None
+
+        print(f"\n{'='*80}")
+        print(f"🔄 PRE-ROUND ENTITY LIFECYCLE PHASE")
+        print(f"{'='*80}")
+        logger.info("Running pre-round entity lifecycle phase")
+
+        # Create entity lifecycle result to track spawns
+        entity_lifecycle_result = EntityLifecycleResult()
+
+        # Build list of already-spawned entities (from config)
+        existing_entities = {
+            'npcs': [],
+            'enemies': []
+        }
+
+        if self.shared_state:
+            # Get existing NPC names/IDs
+            if hasattr(self.shared_state, 'npc_agents'):
+                for npc in self.shared_state.npc_agents:
+                    existing_entities['npcs'].append(f"{npc.name} ({npc.agent_id})")
+
+            # Get existing enemy names/IDs
+            if self.enemy_combat and hasattr(self.enemy_combat, 'enemy_agents'):
+                for enemy in self.enemy_combat.enemy_agents:
+                    if enemy.is_active:
+                        existing_entities['enemies'].append(f"{enemy.name} ({enemy.agent_id})")
+
+        # Find DM agent
+        dm_agent = None
+        for agent in self.agents:
+            if agent.agent_id.startswith('dm_'):
+                dm_agent = agent
+                break
+
+        if not dm_agent or not hasattr(dm_agent, 'check_conversions'):
+            logger.warning("Pre-round lifecycle: DM agent not found or missing check_conversions")
+            print("⚠️  DM not available for pre-round entity lifecycle")
+            return entity_lifecycle_result
+
+        # Call DM check_conversions with pre_round=True
+        try:
+            conversion_decisions = await dm_agent.check_conversions(
+                round_number=0,
+                resolution_summary="",  # Will be overridden by pre_round logic in DM
+                pre_round=True,
+                existing_entities=existing_entities
+            )
+
+            print(f"\n✅ Pre-round decisions:")
+            print(f"   - NPC spawns: {len(conversion_decisions.npc_spawns)}")
+            print(f"   - Enemy spawns: {len(conversion_decisions.enemy_spawns)}")
+            print(f"   - Env object spawns: {len(conversion_decisions.env_object_spawns) if hasattr(conversion_decisions, 'env_object_spawns') else 0}")
+            print(f"   - Reasoning: {conversion_decisions.reasoning}")
+
+            logger.info(f"Pre-round decisions: {len(conversion_decisions.npc_spawns)} NPCs, "
+                       f"{len(conversion_decisions.enemy_spawns)} enemies")
+
+            # Process NPC spawns
+            if conversion_decisions.npc_spawns and dm_agent and hasattr(dm_agent, '_process_npc_spawn'):
+                for npc_spawn in conversion_decisions.npc_spawns:
+                    # Reconstruct NPCSpawn if it's a dict
+                    if isinstance(npc_spawn, dict):
+                        npc_spawn = NPCSpawn(**npc_spawn)
+
+                    npc = dm_agent._process_npc_spawn(npc_spawn)
+                    print(f"\n✓ NPC spawned (pre-round): {npc.name} ({npc.entity_type}, {npc.disposition})")
+                    entity_lifecycle_result.npcs_spawned.append(npc.agent_id)
+
+            # Process enemy spawns
+            if conversion_decisions.enemy_spawns and self.enemy_combat:
+                # Enable enemy combat if we're spawning enemies
+                if not self.enemy_combat.enabled:
+                    logger.info("Enabling enemy combat due to pre-round enemy spawn")
+                    self.enemy_combat.enabled = True
+
+                # Reconstruct EnemySpawn objects if they're dicts
+                enemy_spawn_list = []
+                for enemy_spawn in conversion_decisions.enemy_spawns:
+                    if isinstance(enemy_spawn, dict):
+                        enemy_spawn = EnemySpawn(**enemy_spawn)
+                    enemy_spawn_list.append(enemy_spawn)
+
+                # Spawn all enemies
+                spawn_notifications = self.enemy_combat.spawn_from_structured(enemy_spawn_list)
+
+                # Track spawned enemy agent_ids
+                for enemy in self.enemy_combat.enemy_agents:
+                    if enemy.spawned_round == 0:
+                        entity_lifecycle_result.enemies_spawned.append(enemy.agent_id)
+
+                for notification in spawn_notifications:
+                    print(f"\n{notification}")
+                    logger.info(f"Enemy spawn (pre-round): {notification}")
+
+            # Process env object spawns
+            if hasattr(conversion_decisions, 'env_object_spawns') and conversion_decisions.env_object_spawns:
+                if mechanics and hasattr(mechanics, 'env_objects'):
+                    for env_spawn in conversion_decisions.env_object_spawns:
+                        # Add to mechanics env_objects
+                        obj_id = env_spawn.object_id if hasattr(env_spawn, 'object_id') else f"obj_{env_spawn.name.lower().replace(' ', '_')}"
+                        mechanics.env_objects[obj_id] = {
+                            'name': env_spawn.name,
+                            'description': env_spawn.description,
+                            'interaction_hint': getattr(env_spawn, 'interaction_hint', ''),
+                            'discovery_dc': getattr(env_spawn, 'discovery_dc', 10),
+                            'discovered': False,
+                            'spawned_round': 0
+                        }
+                        entity_lifecycle_result.env_objects_spawned.append(obj_id)
+                        print(f"\n✓ Env object spawned (pre-round): {env_spawn.name}")
+                        logger.info(f"Env object spawn (pre-round): {env_spawn.name}")
+
+            # Log entity_lifecycle event if anything was spawned
+            if (entity_lifecycle_result.npcs_spawned or
+                entity_lifecycle_result.enemies_spawned or
+                entity_lifecycle_result.env_objects_spawned):
+
+                if mechanics and mechanics.jsonl_logger:
+                    lifecycle_dict = entity_lifecycle_result.to_jsonl_dict(round_num=0)
+                    # Add conversion_decisions context
+                    lifecycle_dict['conversion_decisions'] = {
+                        'reasoning': conversion_decisions.reasoning,
+                        'is_pre_round': True
+                    }
+                    mechanics.jsonl_logger.log_event(
+                        'entity_lifecycle',
+                        lifecycle_dict,
+                        round_num=0
+                    )
+                    logger.info(f"Logged pre-round entity_lifecycle event: "
+                               f"{len(entity_lifecycle_result.npcs_spawned)} NPCs, "
+                               f"{len(entity_lifecycle_result.enemies_spawned)} enemies, "
+                               f"{len(entity_lifecycle_result.env_objects_spawned)} env objects")
+
+        except Exception as e:
+            logger.error(f"Pre-round entity lifecycle failed: {type(e).__name__}: {e}")
+            print(f"\n⚠️  Pre-round entity lifecycle error: {e}")
+
+        return entity_lifecycle_result
 
     def _handle_action_declared(self, message: Message):
         """Buffer ACTION_DECLARED messages during declaration phase."""
@@ -3762,6 +4080,110 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                             'executed': False
                         }
 
+        # PRE-VALIDATE AND EXECUTE CONSUMPTION ACTIONS (before DM sees them)
+        # Food consumption is deterministic (+2 HP), so execute before DM narration
+        action_type = action_payload.get('action_type')
+        consume_item_id = action_payload.get('item_id')
+
+        if action_type == 'consume' and consume_item_id:
+            # This is a consumption action - validate AND execute BEFORE DM narration
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                player_agent = next((a for a in self.agents if a.agent_id == agent_id), None)
+
+                if player_agent:
+                    try:
+                        # Get the food item from GLOBAL_VENDOR_CATALOG
+                        from .energy_economy import GLOBAL_VENDOR_CATALOG
+                        food_item = next((item for item in GLOBAL_VENDOR_CATALOG if item.item_id == consume_item_id), None)
+
+                        if not food_item:
+                            # Item not found in catalog
+                            action_payload['consumption_validation'] = {
+                                'is_valid': False,
+                                'failure_reason': f"Item {consume_item_id} not found in vendor catalog",
+                                'executed': False
+                            }
+                            logger.warning(f"Consumption validation FAILED: item {consume_item_id} not in catalog")
+                        else:
+                            # Validate consumption
+                            validation = mechanics.validate_consumption(
+                                character_state=player_agent.character_state,
+                                item_id=consume_item_id,
+                                food_item=food_item
+                            )
+
+                            # Store validation result on the action for DM to see
+                            action_payload['consumption_validation'] = {
+                                'is_valid': validation.is_valid,
+                                'failure_reason': validation.failure_reason,
+                                'item_name': food_item.name,
+                                'item_type': food_item.item_type,
+                                'healing': 2  # Fixed healing amount
+                            }
+
+                            if validation.is_valid:
+                                # EXECUTE CONSUMPTION MECHANICALLY (before DM narrates)
+                                from .schemas.action_effects import ConsumptionEffect
+
+                                consumption_effect = ConsumptionEffect(
+                                    item_id=consume_item_id,
+                                    inventory_key=food_item.inventory_key,
+                                    healing=2
+                                )
+
+                                success = mechanics.process_consumption_effect(
+                                    consumption_effect=consumption_effect,
+                                    character_state=player_agent.character_state
+                                )
+
+                                if success:
+                                    logger.info(
+                                        f"✓ CONSUMPTION EXECUTED: {player_agent.character_state.name} consumed {food_item.name} "
+                                        f"(+2 HP: {player_agent.character_state.health}/{player_agent.character_state.max_health})"
+                                    )
+                                    action_payload['consumption_validation']['executed'] = True
+                                else:
+                                    logger.warning("Consumption execution failed (likely 0 quantity)")
+                                    action_payload['consumption_validation']['executed'] = False
+                                    action_payload['consumption_validation']['is_valid'] = False
+                                    action_payload['consumption_validation']['failure_reason'] = "Item quantity is 0"
+                            else:
+                                logger.warning(f"Consumption pre-validation FAILED: {validation.failure_reason}")
+                                action_payload['consumption_validation']['executed'] = False
+
+                            # LOG CONSUMPTION ATTEMPT (both success and failure)
+                            if mechanics.jsonl_logger:
+                                log_data = {
+                                    'player_id': agent_id,
+                                    'character_name': player_agent.character_state.name,
+                                    'item_id': consume_item_id,
+                                    'item_name': food_item.name,
+                                    'healing': 2,
+                                    'success': validation.is_valid and action_payload['consumption_validation'].get('executed', False),
+                                    'failure_reason': validation.failure_reason
+                                }
+
+                                if validation.is_valid and action_payload['consumption_validation'].get('executed', False):
+                                    log_data['health_after'] = player_agent.character_state.health
+                                    log_data['max_health'] = player_agent.character_state.max_health
+                                    inventory_key = food_item.inventory_key
+                                    log_data['item_remaining'] = player_agent.character_state.inventory.get(inventory_key, 0)
+
+                                mechanics.jsonl_logger.log_event(
+                                    'food_consumption',
+                                    log_data,
+                                    mechanics.current_round
+                                )
+
+                    except Exception as e:
+                        logger.error(f"Error pre-validating consumption for {agent_id}: {e}")
+                        action_payload['consumption_validation'] = {
+                            'is_valid': False,
+                            'failure_reason': f"Validation error: {str(e)}",
+                            'executed': False
+                        }
+
         # NOTE: Attunement actions are NOT pre-executed like purchases/transfers
         # Unlike deterministic transactions, attunements involve dice rolls and DM adjudication
         # The DM rolls the ritual check, determines success/failure, and populates AttunementEffect
@@ -3800,8 +4222,8 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             else:
                 # This is a free action - don't signal yet, wait for main action
                 logger.debug(f"⏳ Free action received from {agent_id}, waiting for main action...")
-        elif not agent_id.startswith('enemy_'):
-            # Only warn if it's not an enemy (enemies declare inline, no pending event expected)
+        elif not agent_id.startswith(('enemy_', 'npc_')):
+            # Only warn if it's not an enemy or NPC (both declare inline, no pending event expected)
             logger.warning(f"No pending declaration event for {agent_id}")
 
     def _handle_action_resolved(self, message: Message):
