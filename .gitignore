@@ -159,6 +159,7 @@ scripts/aeonisk/.venv/*
 
 # Generated artifacts
 multiagent_output/
+bulk_output/
 *.pyc
 __pycache__/
 multiagent.log
