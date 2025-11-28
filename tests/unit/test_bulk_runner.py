@@ -1,0 +1,437 @@
+"""
+Unit tests for bulk_session_runner.py
+
+Tests bulk orchestration logic without running actual sessions.
+Uses mocking for subprocess and file I/O operations.
+"""
+
+import pytest
+import json
+import tempfile
+from pathlib import Path
+from unittest.mock import Mock, patch, MagicMock, call
+from scripts.bulk_session_runner import (
+    check_proxy_health,
+    load_session_config,
+    modify_config_for_bulk_run,
+    inject_proxy_config,
+    extract_session_stats,
+    get_completed_runs,
+    calculate_bulk_stats,
+    RunResult,
+    BulkRunStats
+)
+
+
+class TestProxyHealthCheck:
+    """Test proxy health check functionality."""
+
+    @patch('scripts.bulk_session_runner.requests.get')
+    def test_healthy_proxy(self, mock_get):
+        """Test successful proxy health check."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        is_healthy, message = check_proxy_health("http://localhost:8000")
+
+        assert is_healthy is True
+        assert "healthy" in message.lower()
+        mock_get.assert_called_once_with("http://localhost:8000/health", timeout=5)
+
+    @patch('scripts.bulk_session_runner.requests.get')
+    def test_unhealthy_proxy(self, mock_get):
+        """Test proxy returning non-200 status."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_get.return_value = mock_response
+
+        is_healthy, message = check_proxy_health("http://localhost:8000")
+
+        assert is_healthy is False
+        assert "500" in message
+
+    @patch('scripts.bulk_session_runner.requests.get')
+    def test_proxy_connection_error(self, mock_get):
+        """Test proxy unreachable (connection error)."""
+        import requests
+        mock_get.side_effect = requests.exceptions.ConnectionError()
+
+        is_healthy, message = check_proxy_health("http://localhost:8000")
+
+        assert is_healthy is False
+        assert "cannot connect" in message.lower()
+
+    @patch('scripts.bulk_session_runner.requests.get')
+    def test_proxy_timeout(self, mock_get):
+        """Test proxy health check timeout."""
+        import requests
+        mock_get.side_effect = requests.exceptions.Timeout()
+
+        is_healthy, message = check_proxy_health("http://localhost:8000", timeout=2)
+
+        assert is_healthy is False
+        assert "timeout" in message.lower()
+
+
+class TestConfigManipulation:
+    """Test session config loading and modification."""
+
+    def test_load_session_config(self):
+        """Test loading JSON session config."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            test_config = {
+                "session_name": "test_session",
+                "max_turns": 5,
+                "agents": {}
+            }
+            json.dump(test_config, f)
+            temp_path = f.name
+
+        try:
+            config = load_session_config(temp_path)
+            assert config['session_name'] == 'test_session'
+            assert config['max_turns'] == 5
+        finally:
+            Path(temp_path).unlink()
+
+    def test_modify_config_for_bulk_run(self):
+        """Test config modification for bulk run."""
+        original_config = {
+            "session_name": "base_session",
+            "max_turns": 5,
+            "agents": {}
+        }
+
+        modified = modify_config_for_bulk_run(
+            original_config,
+            run_id=42,
+            output_path="/tmp/output.jsonl"
+        )
+
+        # Verify modifications
+        assert modified['session_name'] == 'base_session_run_0042'
+        assert modified['random_seed'] == 42000  # run_id * 1000
+        assert modified['max_turns'] == 5  # Unchanged
+
+    def test_modify_config_preserves_existing_seed(self):
+        """Test that existing random_seed is preserved."""
+        original_config = {
+            "session_name": "session",
+            "random_seed": 12345
+        }
+
+        modified = modify_config_for_bulk_run(
+            original_config,
+            run_id=1,
+            output_path="/tmp/out.jsonl"
+        )
+
+        assert modified['random_seed'] == 12345  # Not overwritten
+
+    def test_inject_proxy_config_dm(self):
+        """Test proxy config injection into DM agent."""
+        config = {
+            "agents": {
+                "dm": {
+                    "llm": {
+                        "provider": "openai",
+                        "model": "gpt-5-mini"
+                    }
+                }
+            }
+        }
+
+        modified = inject_proxy_config(config, "http://proxy:8000")
+
+        dm_llm = modified['agents']['dm']['llm']
+        assert dm_llm['use_proxy'] is True
+        assert dm_llm['proxy_url'] == "http://proxy:8000"
+        assert dm_llm['provider'] == "openai"  # Preserved
+
+    def test_inject_proxy_config_players(self):
+        """Test proxy config injection into player agents."""
+        config = {
+            "agents": {
+                "players": [
+                    {"name": "Player1", "llm": {"provider": "anthropic"}},
+                    {"name": "Player2", "llm": {"provider": "openai"}}
+                ]
+            }
+        }
+
+        modified = inject_proxy_config(config, "http://proxy:8000")
+
+        for player in modified['agents']['players']:
+            assert player['llm']['use_proxy'] is True
+            assert player['llm']['proxy_url'] == "http://proxy:8000"
+
+    def test_inject_proxy_config_no_agents(self):
+        """Test proxy injection handles missing agents gracefully."""
+        config = {"session_name": "test"}
+
+        # Should not raise error
+        modified = inject_proxy_config(config, "http://proxy:8000")
+
+        assert modified['session_name'] == "test"
+
+
+class TestSessionStatsExtraction:
+    """Test extraction of statistics from session JSONL files."""
+
+    def test_extract_session_stats_success(self):
+        """Test extracting tokens and rounds from valid JSONL."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            # Write test events
+            f.write(json.dumps({"event_type": "session_start", "round": 0}) + "\n")
+            f.write(json.dumps({
+                "event_type": "llm_call",
+                "round": 1,
+                "tokens": {"input": 100, "output": 50, "total": 150}
+            }) + "\n")
+            f.write(json.dumps({
+                "event_type": "llm_call",
+                "round": 2,
+                "tokens": {"input": 200, "output": 100, "total": 300}
+            }) + "\n")
+            f.write(json.dumps({"event_type": "round_summary", "round": 3}) + "\n")
+            temp_path = Path(f.name)
+
+        try:
+            total_tokens, max_round = extract_session_stats(temp_path)
+
+            assert total_tokens == 450  # 150 + 300
+            assert max_round == 3
+        finally:
+            temp_path.unlink()
+
+    def test_extract_session_stats_no_file(self):
+        """Test handling of missing JSONL file."""
+        total_tokens, max_round = extract_session_stats(Path("/nonexistent/file.jsonl"))
+
+        assert total_tokens is None
+        assert max_round is None
+
+    def test_extract_session_stats_empty_file(self):
+        """Test handling of empty JSONL file."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            total_tokens, max_round = extract_session_stats(temp_path)
+
+            assert total_tokens == 0
+            assert max_round == 0
+        finally:
+            temp_path.unlink()
+
+
+class TestResumeCapability:
+    """Test resume functionality for bulk runs."""
+
+    def test_get_completed_runs(self):
+        """Test identification of completed runs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create some session files
+            (output_dir / "session_run_0001.jsonl").touch()
+            (output_dir / "session_run_0005.jsonl").touch()
+            (output_dir / "session_run_0010.jsonl").touch()
+            (output_dir / "other_file.txt").touch()  # Should be ignored
+
+            completed = get_completed_runs(output_dir)
+
+            assert completed == {1, 5, 10}
+
+    def test_get_completed_runs_empty_dir(self):
+        """Test get_completed_runs with empty directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            completed = get_completed_runs(Path(tmpdir))
+
+            assert completed == set()
+
+    def test_get_completed_runs_nonexistent_dir(self):
+        """Test get_completed_runs with nonexistent directory."""
+        completed = get_completed_runs(Path("/nonexistent/dir"))
+
+        assert completed == set()
+
+
+class TestStatisticsCalculation:
+    """Test bulk run statistics calculation."""
+
+    def test_calculate_bulk_stats_all_successful(self):
+        """Test statistics calculation with all successful runs."""
+        results = [
+            RunResult(
+                run_id=1,
+                config_path="config.json",
+                output_path="out1.jsonl",
+                success=True,
+                duration_seconds=10.0,
+                total_tokens=1000,
+                total_rounds=5
+            ),
+            RunResult(
+                run_id=2,
+                config_path="config.json",
+                output_path="out2.jsonl",
+                success=True,
+                duration_seconds=12.0,
+                total_tokens=1200,
+                total_rounds=6
+            ),
+            RunResult(
+                run_id=3,
+                config_path="config.json",
+                output_path="out3.jsonl",
+                success=True,
+                duration_seconds=8.0,
+                total_tokens=800,
+                total_rounds=4
+            )
+        ]
+
+        stats = calculate_bulk_stats(results)
+
+        assert stats.total_runs == 3
+        assert stats.successful_runs == 3
+        assert stats.failed_runs == 0
+        assert stats.total_duration_seconds == 30.0
+        assert stats.avg_duration_seconds == 10.0
+        assert stats.total_tokens == 3000
+        assert stats.avg_tokens_per_run == 1000.0
+        assert stats.runs_per_hour == pytest.approx(360.0, rel=0.01)  # 3 runs in 30s = 360/hr
+
+    def test_calculate_bulk_stats_with_failures(self):
+        """Test statistics calculation with some failures."""
+        results = [
+            RunResult(
+                run_id=1,
+                config_path="config.json",
+                output_path="out1.jsonl",
+                success=True,
+                duration_seconds=10.0,
+                total_tokens=1000,
+                total_rounds=5
+            ),
+            RunResult(
+                run_id=2,
+                config_path="config.json",
+                output_path="out2.jsonl",
+                success=False,
+                duration_seconds=5.0,
+                error="Timeout"
+            )
+        ]
+
+        stats = calculate_bulk_stats(results)
+
+        assert stats.total_runs == 2
+        assert stats.successful_runs == 1
+        assert stats.failed_runs == 1
+        assert stats.total_tokens == 1000  # Only successful run counted
+        assert stats.avg_tokens_per_run == 1000.0
+
+    def test_calculate_bulk_stats_empty_results(self):
+        """Test statistics calculation with no results."""
+        stats = calculate_bulk_stats([])
+
+        assert stats.total_runs == 0
+        assert stats.successful_runs == 0
+        assert stats.failed_runs == 0
+        assert stats.avg_duration_seconds == 0
+        assert stats.avg_tokens_per_run == 0
+        assert stats.runs_per_hour == 0
+
+    def test_calculate_bulk_stats_missing_tokens(self):
+        """Test statistics calculation when some runs have no token data."""
+        results = [
+            RunResult(
+                run_id=1,
+                config_path="config.json",
+                output_path="out1.jsonl",
+                success=True,
+                duration_seconds=10.0,
+                total_tokens=None,  # Missing token data
+                total_rounds=5
+            ),
+            RunResult(
+                run_id=2,
+                config_path="config.json",
+                output_path="out2.jsonl",
+                success=True,
+                duration_seconds=10.0,
+                total_tokens=1000,
+                total_rounds=5
+            )
+        ]
+
+        stats = calculate_bulk_stats(results)
+
+        # Should handle None gracefully
+        assert stats.total_tokens == 1000
+        assert stats.avg_tokens_per_run == 500.0  # Averaged across all successful runs (1000/2)
+
+
+class TestRunResultDataclass:
+    """Test RunResult dataclass."""
+
+    def test_run_result_creation(self):
+        """Test creating RunResult instance."""
+        result = RunResult(
+            run_id=1,
+            config_path="test.json",
+            output_path="out.jsonl",
+            success=True,
+            duration_seconds=15.5,
+            total_tokens=2000,
+            total_rounds=8
+        )
+
+        assert result.run_id == 1
+        assert result.success is True
+        assert result.error is None  # Default
+
+    def test_run_result_with_error(self):
+        """Test RunResult with error."""
+        result = RunResult(
+            run_id=2,
+            config_path="test.json",
+            output_path="out.jsonl",
+            success=False,
+            duration_seconds=5.0,
+            error="Timeout after 1 hour"
+        )
+
+        assert result.success is False
+        assert result.error == "Timeout after 1 hour"
+        assert result.total_tokens is None  # Default
+
+
+class TestBulkRunStatsDataclass:
+    """Test BulkRunStats dataclass."""
+
+    def test_bulk_run_stats_creation(self):
+        """Test creating BulkRunStats instance."""
+        stats = BulkRunStats(
+            total_runs=100,
+            successful_runs=95,
+            failed_runs=5,
+            skipped_runs=10,
+            total_duration_seconds=3600.0,
+            avg_duration_seconds=36.0,
+            total_tokens=500000,
+            avg_tokens_per_run=5000.0,
+            runs_per_hour=100.0
+        )
+
+        assert stats.total_runs == 100
+        assert stats.successful_runs == 95
+        assert stats.failed_runs == 5
+        assert stats.skipped_runs == 10
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

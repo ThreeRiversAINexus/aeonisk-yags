@@ -3,7 +3,7 @@
 Session Analyzer - Lightweight tool for analyzing JSONL session logs.
 
 Usage:
-    python scripts/analyze_session.py <session.jsonl> [--mode=summary|clocks|void|actions|timeline]
+    python scripts/analyze_session.py <session.jsonl> [--mode=summary|clocks|void|errors|actions|timeline]
     python scripts/analyze_session.py <session.jsonl> --validate-fixture
     python scripts/analyze_session.py --discover <directory> [--complete-only] [--min-rounds N]
 
@@ -11,6 +11,7 @@ Modes:
     summary (default) - Quick overview (~30-40 lines)
     clocks           - Clock progression detail (~5-30 lines)
     void             - Void trajectory (~10-20 lines)
+    errors           - Error analysis (~10-50 lines)
     validate-fixture - Validate schema and replay-readiness (exit 0=pass, 1=fail)
 
 Discovery:
@@ -787,6 +788,128 @@ class SessionAnalyzer:
 
         print()  # Blank line at end
 
+    def print_errors(self):
+        """Print error analysis from logged events (~10-50 lines)."""
+        print(f"\n=== ERROR ANALYSIS ===\n")
+
+        # Collect errors from various event types
+        errors = {
+            'validation_warnings': [],  # From structured_output_metrics
+            'llm_fallbacks': [],        # From structured_output_metrics
+            'failed_actions': [],       # From action_resolution with failure
+            'parsing_errors': [],       # Any parsing/schema issues
+            'system_errors': [],        # Generic error events
+        }
+
+        for idx, event in enumerate(self.events, start=1):
+            event_type = event.get('event_type')
+            round_num = event.get('round', 0)
+
+            # Check structured_output_metrics for validation warnings
+            if event_type == 'structured_output_metrics':
+                warnings = event.get('validation_warnings', [])
+                if warnings:
+                    errors['validation_warnings'].append({
+                        'line': idx,
+                        'round': round_num,
+                        'agent': event.get('agent_id', 'unknown'),
+                        'warnings': warnings,
+                    })
+
+                if event.get('fallback_triggered', False):
+                    errors['llm_fallbacks'].append({
+                        'line': idx,
+                        'round': round_num,
+                        'agent': event.get('agent_id', 'unknown'),
+                        'reason': event.get('fallback_reason', 'unknown'),
+                        'attempt': event.get('attempt_number', 1),
+                    })
+
+            # Check action_resolution for failures
+            elif event_type == 'action_resolution':
+                roll = event.get('roll', {})
+                if not roll.get('success', False):
+                    # Only track significant failures (margin < -5)
+                    margin = roll.get('margin', 0)
+                    if margin < -5:
+                        errors['failed_actions'].append({
+                            'line': idx,
+                            'round': round_num,
+                            'agent': event.get('agent', 'unknown'),
+                            'action': event.get('action', '')[:50],
+                            'margin': margin,
+                            'skill': roll.get('skill', 'unknown'),
+                        })
+
+            # Check for explicit error fields
+            if 'error' in event or 'exception' in event:
+                errors['system_errors'].append({
+                    'line': idx,
+                    'round': round_num,
+                    'event_type': event_type,
+                    'error': event.get('error', event.get('exception', 'unknown')),
+                })
+
+        # Print summary
+        total_errors = sum(len(v) for v in errors.values())
+        if total_errors == 0:
+            print("✓ No errors found in session\n")
+            return
+
+        print(f"Found {total_errors} issues across {len([k for k, v in errors.items() if v])} categories:\n")
+
+        # Print validation warnings
+        if errors['validation_warnings']:
+            print(f"VALIDATION WARNINGS ({len(errors['validation_warnings'])}):")
+            for err in errors['validation_warnings'][:10]:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                warnings_str = ', '.join(err['warnings'][:3])
+                if len(err['warnings']) > 3:
+                    warnings_str += f" (+{len(err['warnings'])-3} more)"
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['agent']:20s} | {warnings_str}")
+            if len(errors['validation_warnings']) > 10:
+                print(f"  ... and {len(errors['validation_warnings']) - 10} more warnings")
+            print()
+
+        # Print LLM fallbacks
+        if errors['llm_fallbacks']:
+            print(f"LLM FALLBACKS ({len(errors['llm_fallbacks'])}):")
+            for err in errors['llm_fallbacks'][:10]:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['agent']:20s} | Attempt {err['attempt']} | {err['reason']}")
+            if len(errors['llm_fallbacks']) > 10:
+                print(f"  ... and {len(errors['llm_fallbacks']) - 10} more fallbacks")
+            print()
+
+        # Print significant action failures
+        if errors['failed_actions']:
+            print(f"SIGNIFICANT ACTION FAILURES ({len(errors['failed_actions'])} with margin < -5):")
+            # Group by character
+            by_character = defaultdict(list)
+            for err in errors['failed_actions']:
+                by_character[err['agent']].append(err)
+
+            for character, failures in sorted(by_character.items()):
+                avg_margin = sum(f['margin'] for f in failures) / len(failures)
+                print(f"\n  {character} ({len(failures)} failures, avg margin: {avg_margin:.1f}):")
+                for err in failures[:5]:
+                    action = err['action'][:40] + '...' if len(err['action']) > 40 else err['action']
+                    print(f"    R{err['round']:2d} | Line {err['line']:4d} | {err['skill']:15s} | {err['margin']:+3d} | {action}")
+                if len(failures) > 5:
+                    print(f"    ... and {len(failures) - 5} more failures")
+            print()
+
+        # Print system errors
+        if errors['system_errors']:
+            print(f"SYSTEM ERRORS ({len(errors['system_errors'])}):")
+            for err in errors['system_errors']:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                error_str = str(err['error'])[:80]
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['event_type']:25s} | {error_str}")
+            print()
+
+        print()
+
     def _get_all_field_paths(self, obj: Any, prefix: str = '') -> List[str]:
         """Recursively get all field paths in a nested dict."""
         paths = []
@@ -965,6 +1088,7 @@ Examples:
   python scripts/analyze_session.py session.jsonl
   python scripts/analyze_session.py session.jsonl --mode=clocks
   python scripts/analyze_session.py session.jsonl --mode=void
+  python scripts/analyze_session.py session.jsonl --mode=errors
 
   # Search/extract specific events
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution
@@ -1002,8 +1126,8 @@ Examples:
     )
     parser.add_argument(
         '--mode',
-        choices=['summary', 'clocks', 'void'],
-        help='Analysis mode (summary=default, clocks, void)'
+        choices=['summary', 'clocks', 'void', 'errors'],
+        help='Analysis mode (summary=default, clocks, void, errors)'
     )
     parser.add_argument(
         '--search',
@@ -1122,6 +1246,8 @@ Examples:
         analyzer.print_clocks()
     elif mode == 'void':
         analyzer.print_void()
+    elif mode == 'errors':
+        analyzer.print_errors()
 
     return 0
 

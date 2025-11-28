@@ -15,6 +15,8 @@ from .voice_profiles import VoiceProfile
 from .energy_economy import EnergyPurse, Seed, SeedType, Element, create_raw_seed
 from .prompt_loader import load_agent_prompt, compose_sections
 from .schemas.story_events import NarrativeMemory
+from .schemas.shared_types import Bond
+from .awareness import NarrationEntry
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ class CharacterState:
     skills: Dict[str, int]
     void_score: int
     soulcredit: int
-    bonds: List[str]
+    bonds: List[Bond]  # Formal metaphysical connections (max 3, Freeborn max 1)
     goals: List[str]
     pronouns: str = "they/them"  # Default to gender-neutral
     inventory: Dict[str, int] = None
@@ -889,15 +891,24 @@ class AIPlayerAgent(Agent):
             original_action = message.payload.get('original_action', {})
             acting_character = original_action.get('character_name', original_action.get('character', 'Unknown'))
 
+            # Get aware_agents from DM's resolution (empty = public, populated = private)
+            aware_agents = message.payload.get('aware_agents', [])
+
             # Prefix narration with character name for clarity
             prefixed_narration = f"[{acting_character}] {narration}"
-            self.recent_narrations.append(prefixed_narration)
+
+            # Store as NarrationEntry with awareness metadata
+            entry = NarrationEntry(
+                text=prefixed_narration,
+                aware_agents=aware_agents if isinstance(aware_agents, list) else []
+            )
+            self.recent_narrations.append(entry)
 
             # Keep only last 20 narrations (FIFO rolling window) - enough for 1-2 full rounds
             if len(self.recent_narrations) > 20:
                 self.recent_narrations.pop(0)
 
-            logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character}")
+            logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character} (aware: {aware_agents})")
 
         # Only update OWN character state for resolutions targeting this agent
         if resolved_agent_id != self.agent_id:
@@ -1135,7 +1146,8 @@ class AIPlayerAgent(Agent):
         print(f"Soulcredit: {self.character_state.soulcredit}")
         print(f"Goals: {', '.join(self.character_state.goals)}")
         if self.character_state.bonds:
-            print(f"Bonds: {', '.join(self.character_state.bonds)}")
+            bond_names = [f"{bond.character_b} ({bond.bond_type.value}, {bond.status.value})" for bond in self.character_state.bonds]
+            print(f"Bonds: {', '.join(bond_names)}")
 
         # Display inventory organized by category
         print("\nInventory:")

@@ -51,6 +51,7 @@ The system supports multiple LLM providers with provider-specific optimizations:
 |----------|--------|-------------|--------|
 | **Anthropic** | Claude Sonnet 4.5, Claude 3.5 Haiku | `claude-sonnet-4-5` | ✅ Primary |
 | **OpenAI** | GPT-5-mini, GPT-4.1, O-series | `gpt-5-mini` | ✅ Production Ready |
+| **Batch Proxy** | All OpenAI/Anthropic models via proxy | `gpt-5-mini` (50% cheaper) | ✅ Production Ready |
 | **Local** | Llama 3.1, Mistral 7B | `llama3.1` | ⚠️  Not Implemented |
 
 ### API Keys
@@ -133,6 +134,129 @@ python -m pytest tests/unit/test_openai_provider.py -v
 # Live API test (requires OPENAI_API_KEY)
 python -m pytest tests/unit/test_openai_provider.py::TestOpenAIProviderLiveAPI -v
 ```
+
+### Batch Proxy Provider (Cost Optimization)
+
+**Purpose:** Route LLM requests through a batching proxy server for 50% cost reduction on bulk operations.
+
+The batch proxy provider wraps the UnifiedAIClient from aeonisk-transmedia-pipeline, enabling cost-optimized LLM calls by queueing and batching requests together.
+
+**Supported Backends:**
+- OpenAI (gpt-5-mini, gpt-4o-mini, etc.)
+- Anthropic (claude-sonnet-4-5, etc.)
+
+**Cost Savings:**
+- **50% reduction** via provider Batch APIs
+- **Trade-off:** Higher latency (requests queued until batch threshold reached)
+- **Best for:** Bulk generation runs (100+ sessions), overnight training data generation
+
+**In session config JSON:**
+```json
+{
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5-mini",
+        "temperature": 0.7,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:8000",
+        "proxy_priority": "normal",
+        "proxy_strategy": "auto"
+      }
+    }
+  }
+}
+```
+
+**Configuration Parameters:**
+- `underlying_provider`: "openai" or "anthropic" (determines fallback API and model catalog)
+- `use_proxy`: Enable proxy routing (default: true for batch_proxy provider)
+- `proxy_url`: Proxy server URL (default: http://localhost:8000)
+- `proxy_priority`: Request priority - "high" (direct API), "normal" (auto-route), "low" (always batch)
+- `proxy_strategy`: Routing strategy - "auto" (proxy decides), "direct" (force immediate), "batch" (force batching)
+
+**Environment Variables (Alternative):**
+```bash
+export USE_LLM_PROXY=true
+export LLM_PROXY_URL=http://localhost:8000
+export LLM_PROXY_MODE=auto  # auto, direct, or batch
+```
+
+**Automatic Fallback:**
+- If proxy unreachable, automatically falls back to direct API (3 retries with exponential backoff)
+- No code changes needed, transparent routing
+
+**Bulk Session Runner:**
+
+Run multiple sessions in parallel with batch proxy support:
+
+```bash
+# Basic bulk run (100 sessions, 20 workers)
+python scripts/bulk_session_runner.py \
+  --config session_config.json \
+  --runs 100 \
+  --workers 20 \
+  --output-dir bulk_output/
+
+# With proxy (cost optimization)
+python scripts/bulk_session_runner.py \
+  --config session_config.json \
+  --runs 100 \
+  --workers 20 \
+  --proxy http://localhost:8000 \
+  --output-dir bulk_output/
+
+# Resume failed runs
+python scripts/bulk_session_runner.py \
+  --config session_config.json \
+  --runs 100 \
+  --output-dir bulk_output/ \
+  --resume
+
+# Multiple configs
+python scripts/bulk_session_runner.py \
+  --configs config1.json config2.json \
+  --runs-per-config 50 \
+  --output-dir bulk_output/
+```
+
+**Orchestrator Features:**
+- Parallel execution via ProcessPoolExecutor (subprocess-based, crash isolation)
+- Automatic proxy health check before execution
+- Resume capability (skip completed runs)
+- Aggregated statistics (success rate, tokens, throughput)
+- Per-run output isolation (prevents JSONL collisions)
+- Summary report generation (JSON format)
+
+**Test Config:** `scripts/session_configs/session_config_batch_proxy_test.json`
+
+**Testing:**
+```bash
+# Unit tests for batch provider
+python -m pytest tests/unit/test_batch_proxy_provider.py -v
+
+# Bulk runner tests
+python -m pytest tests/unit/test_bulk_runner.py -v
+```
+
+**Rate Limiting:**
+- **Batch Proxy**: No rate limiting (proxy handles queueing internally)
+- **Auto-applied preset**: max_concurrent=9999, min_interval=0.0s
+
+**Design Documentation:** See `.claude/BATCH_GENERATION.md` for architecture details
+
+**Prerequisites:**
+1. Start batch proxy server in aeonisk-transmedia-pipeline:
+   ```bash
+   cd ../aeonisk-transmedia-pipeline
+   python main.py proxy-start
+   ```
+2. Verify proxy health:
+   ```bash
+   curl http://localhost:8000/health
+   ```
 
 ## Development Philosophy
 
@@ -402,6 +526,9 @@ python scripts/analyze_session.py session.jsonl --mode=clocks
 
 # Void trajectory - ~10-20 lines
 python scripts/analyze_session.py session.jsonl --mode=void
+
+# Error analysis - ~10-50 lines
+python scripts/analyze_session.py session.jsonl --mode=errors
 ```
 
 #### Targeted Event Extraction (Machine-Readable)
@@ -450,6 +577,60 @@ python scripts/analyze_session.py session.jsonl --search event_type=action_resol
 - ✅ Count event types → `--search` + `--count`
 - ✅ Locate then inspect → `--index` then `--line N`
 - ✅ Complex queries → `--search` to find events, then pipe to `jq` for advanced processing
+- ✅ Debug session issues → `--mode=errors` for systematic error analysis
+
+#### Error Analysis Mode (NEW)
+
+**Purpose:** Systematically identify issues in session logs without reading entire JSONL file
+
+```bash
+# Analyze errors in session
+python scripts/analyze_session.py session.jsonl --mode=errors
+```
+
+**What it finds:**
+1. **Validation Warnings** - Structured output schema validation issues
+   - Void changes applied to wrong character
+   - Missing ritual offerings without void penalty
+   - Narrative-only conditions with penalty=0
+   - Clock state inconsistencies
+
+2. **LLM Fallbacks** - When structured output generation fails and fallback is triggered
+   - Shows which agent failed (dm, player, enemy)
+   - Shows attempt number and fallback reason
+   - Helps identify prompt engineering issues
+
+3. **Significant Action Failures** - Player actions that failed badly (margin < -5)
+   - Groups by character for pattern analysis
+   - Shows skill usage and average failure margin
+   - Helps identify balance issues or AI agent problems
+
+4. **System Errors** - Explicit error/exception fields in events
+   - Shows event type and error message
+   - Helps identify code bugs or runtime issues
+
+**Example output:**
+```
+=== ERROR ANALYSIS ===
+
+Found 6 issues across 2 categories:
+
+VALIDATION WARNINGS (5):
+  Line  127 | R2     | dm_01                | Void change applied to 'Kael Rift' (action by 'Dissolution Theorist Kael Rift')
+  Line  416 | R6     | dm_01                | Ritual action WITHOUT offering but void_changes is empty
+
+SIGNIFICANT ACTION FAILURES (1 with margin < -5):
+
+  Watcher Thane Vael (1 failures, avg margin: -11.0):
+    R 1 | Line   51 | Negotiation     | -11 | Negotiate a controlled observation windo...
+```
+
+**When to use error mode:**
+- ✅ After running a session to check for issues
+- ✅ Before committing code to verify no regressions
+- ✅ When debugging balance issues (too many failures?)
+- ✅ When improving prompts (check validation warnings)
+- ✅ When investigating LLM fallback rate spikes
 
 **Other tools:**
 - Full story narrative → `reconstruct_narrative.py`
@@ -793,6 +974,184 @@ All fixtures are cataloged in `tests/fixtures/sessions/MANIFEST.json` with:
 - **used_by_tests:** List of test files referencing this fixture
 
 See `tests/fixtures/sessions/MANIFEST.json` for current fixture inventory.
+
+### 8. Conservative Fuzzy Name Matching
+**Purpose:** Automatically resolve shortened character names in void_changes/soulcredit_changes
+
+**Problem it solves:** DM uses "Sera Karsel" instead of "Vessel Sera Karsel" → validation warnings
+
+**How it works:**
+```python
+# DM returns shortened name
+VoidChange(character_name="Sera Karsel", amount=-1, reason="purification")
+
+# System fuzzy matches to full name
+Matched: "Sera Karsel" → "Vessel Sera Karsel" ✓
+
+# Applied to correct character
+```
+
+**Safety rules:**
+1. Exact match first (no fuzzing if name matches exactly)
+2. Suffix match only (provided name must be end of full name)
+3. Minimum 2 words required (rejects "Sera" - too ambiguous)
+4. Single candidate only (rejects if multiple characters match)
+5. Never guess (ambiguous = FAIL with clear error)
+
+**Files:**
+- Core: `name_matching.py` (match_character_name, resolve_character_name)
+- Processing: `outcome_parser.py:59-86` (void_target_character fuzzy matching)
+- Validation: `structured_output_helpers.py:525-552` (validation warnings)
+- Tests: `tests/unit/test_name_matching.py` (16 tests, all pass)
+
+**When it triggers:** Automatically on every void_change processing (no config needed)
+
+**Logging:**
+- INFO: `"Fuzzy matched void target: 'Sera Karsel' → 'Vessel Sera Karsel'"`
+- WARNING: `"Could not match void target 'Bob Smith': No character found..."`
+
+### 9. Bond System
+**Purpose:** Formal metaphysical connections between characters with mechanical benefits and Void-driven automatic transitions
+
+**Core Principle:** Structured output schemas drive all bond mechanics (formation, benefits, status tracking) with automatic state transitions
+
+**Key Concepts:**
+- **Bonds:** Formal connections registered in the Codex (Sovereign Nexus spiritual ledger)
+- **Bond Types:** Kinship, Ascendancy, Debt, Voidward, Passion, Faction
+- **Bond Status:** Active (functional), Dormant (Void ≥7), Severed (sacrificed), Void-Locked (Void=10, permanent)
+- **Formation Limits:** Max 3 bonds per character, Freeborn max 1
+- **Formation Requirements:** Intimacy Ritual skill check, witness required, cannot form if Void ≥7
+
+**Bond Formation:**
+```python
+# Player declares bond formation via ritual
+RitualAction(
+    intent="Form a kinship bond with Bob",
+    ritual_type="intimacy",
+    participants=["Alice", "Bob", "Charlie"],  # Charlie = witness
+    bond_formation_target="Bob"
+)
+
+# Mechanics validates prerequisites
+result = mechanics.validate_bond_formation(
+    character_name="Alice",
+    target_name="Bob",
+    current_bonds=alice_bonds,
+    void_score=3,
+    witness="Charlie"
+)
+
+# If valid, bond added to character state
+bond = Bond(
+    bond_id="bond_001",
+    character_a="Alice",
+    character_b="Bob",
+    bond_type=BondType.KINSHIP,
+    status=BondStatus.ACTIVE,
+    formed_round=5,
+    witnessed_by=["Charlie"],
+    codex_registered=True
+)
+```
+
+**Mechanical Benefits (Active bonds only):**
+```python
+# +2 ritual bonus when bonded participant present
+bonus = mechanics.get_bond_ritual_bonus(
+    caster_name="Alice",
+    caster_bonds=alice_bonds,
+    participants=["Bob", "Dana"]  # Bob is bonded
+)
+assert bonus == 2  # Non-stacking
+
+# +1 Soak defending bonded partner
+bonus = mechanics.get_bond_soak_bonus(
+    defender_name="Alice",
+    defender_bonds=alice_bonds,
+    attacker_target="Bob"  # Alice defending Bob
+)
+assert bonus == 1
+
+# Bond sacrifice: +5 Willpower, costs: +1 Void, +1 Soul Debt (to partner), -1 Empathy (scene)
+result = mechanics.process_bond_sacrifice(
+    character_name="Alice",
+    character_bonds=alice_bonds,
+    bond_target="Bob",
+    current_round=7
+)
+# Bond status → SEVERED (permanent)
+```
+
+**Automatic Status Transitions:**
+```python
+# Called after every action resolution with void change
+result = mechanics.check_bond_dormancy(
+    character_name="Alice",
+    character_bonds=alice_bonds,
+    current_void=7,  # Just reached threshold
+    previous_void=6
+)
+
+# Automatic transitions:
+# - Void 6 → 7: ACTIVE → DORMANT (all bonds go dormant)
+# - Void 7 → 6: DORMANT → ACTIVE (recovery, bonds reactivate)
+# - Void 9 → 10: ACTIVE/DORMANT → VOID_LOCKED (permanent corruption)
+# - SEVERED bonds never change (permanent)
+```
+
+**DM Integration:**
+```python
+# DM includes bond status changes in RoundSynthesis
+RoundSynthesis(
+    bond_status_changes=[
+        BondStatusChange(
+            character_name="Alice",
+            bond_partner="Bob",
+            bond_type="kinship",
+            old_status="active",
+            new_status="dormant",
+            trigger="void_threshold",
+            void_score=7,
+            narrative="Alice's bond with Bob dims as void corruption spreads..."
+        )
+    ]
+)
+```
+
+**Design Insights:**
+- **Emergent tragedy:** Void 6 sacrifice → Void 7 → all bonds dormant (creates strategic tension)
+- **Sophie's Choice:** Sacrifice gives huge bonus (+5 Willpower) but has heavy costs
+- **Permanent consequences:** Void-Locked bonds never recover (even if Void drops to 0)
+- **Semantic hooks:** Bond types give AI agents relationship context for roleplay
+- **NO keyword detection:** All mechanics via Pydantic schemas (formation, benefits, status)
+
+**Files:**
+- Core schemas: `schemas/shared_types.py` (Bond, BondType, BondStatus)
+- Mechanics: `mechanics.py` (validate_bond_formation, get_bond_*_bonus, process_bond_sacrifice, check_bond_dormancy)
+- Action routing: `action_router.py` (bond formation intent detection)
+- DM integration: `schemas/story_events.py` (BondStatusChange in RoundSynthesis)
+- Character state: `player.py` (bonds field, serialization)
+
+**Testing:**
+```bash
+# Run bond system test suite (71 tests)
+python -m pytest tests/unit/test_bond_schema.py \
+                 tests/unit/test_bond_formation_validation.py \
+                 tests/unit/test_bond_benefits.py \
+                 tests/unit/test_bond_status_tracking.py -v
+```
+
+**Implementation Status:**
+- ✅ Core schemas and data models
+- ✅ Bond formation validation
+- ✅ Mechanical benefits (ritual, Soak, sacrifice)
+- ✅ Automatic status tracking
+- ✅ DM integration schemas
+- ⚠️ Session config loading (pending)
+- ⚠️ Pre-story bond matrix generation (pending)
+- ⚠️ DM prompts for bond context (pending)
+
+**Design Documentation:** See `.claude/BOND_SYSTEM_DESIGN.md` for comprehensive specification
 
 ## Design Philosophy
 

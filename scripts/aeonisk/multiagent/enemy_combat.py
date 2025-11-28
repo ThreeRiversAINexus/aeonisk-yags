@@ -24,6 +24,7 @@ from .enemy_spawner import (
     suggest_loot
 )
 from .enemy_prompts import generate_tactical_prompt
+from .awareness import filter_narrations_for_agent, NarrationEntry
 from .prompt_loader import compose_sections
 from .tactical_resolution import (
     ResolutionState,
@@ -504,12 +505,19 @@ class EnemyCombatManager:
         # Generate tactical prompt
         from .enemy_prompts import generate_tactical_prompt
 
-        # Collect recent action narrations from player agents
+        # Collect recent action narrations from player agents (filtered by awareness)
         recent_narrations = []
         for player_agent in player_agents:
             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                # Get ALL narrations from this player (not just last 3)
-                recent_narrations.extend(player_agent.recent_narrations)
+                # Filter narrations based on what this enemy can see
+                visible_narrations = filter_narrations_for_agent(
+                    enemy.agent_id,
+                    player_agent.recent_narrations
+                )
+                # Convert NarrationEntry to text for prompt
+                for narration in visible_narrations:
+                    narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
+                    recent_narrations.append(narration_text)
 
         prompt = generate_tactical_prompt(
             enemy=enemy,

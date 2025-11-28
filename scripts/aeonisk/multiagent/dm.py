@@ -1688,6 +1688,10 @@ Apply this narrative style to:
             # Also log to agent prompt logger if enabled
             if self.agent_prompt_logger:
                 try:
+                    # Estimate token counts (1 token ~= 4 chars)
+                    estimated_input_tokens = len(scenario_prompt) // 4
+                    estimated_output_tokens = len(scenario.situation) // 4
+
                     self.agent_prompt_logger.log_llm_call(
                         agent_id=self.agent_id,
                         round_num=None,
@@ -2687,6 +2691,7 @@ Apply this narrative style to:
                     attunement_data = None
                     currency_transfer_data = None
                     item_transfer_data = None
+                    aware_agents_list = None
                     if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
                         if hasattr(self._last_structured_resolution, 'outcome_tiers') and self._last_structured_resolution.outcome_tiers:
                             # Convert OutcomeTierExplanation objects to dicts for JSON serialization
@@ -2716,6 +2721,10 @@ Apply this narrative style to:
                                 # Convert Pydantic model to dict for JSON serialization
                                 item_transfer_data = effects_data.item_transfer.model_dump()
 
+                        # Extract aware_agents for stealth/secrets visibility
+                        if hasattr(self._last_structured_resolution, 'aware_agents'):
+                            aware_agents_list = self._last_structured_resolution.aware_agents
+
                     mechanics.jsonl_logger.log_action_resolution(
                         round_num=round_num,
                         phase="adjudicate",
@@ -2739,7 +2748,8 @@ Apply this narrative style to:
                         goal=goal,
                         roll_formula=roll_formula,
                         rationale=rationale,
-                        outcome_tiers_with_narratives=outcome_tiers_with_narratives
+                        outcome_tiers_with_narratives=outcome_tiers_with_narratives,
+                        aware_agents=aware_agents_list
                     )
 
                     # Track action for round summary statistics
@@ -2797,6 +2807,7 @@ Apply this narrative style to:
                     'original_action': res['action'],
                     'outcome': res['resolution']['outcome'],
                     'narration': res['resolution']['narration'],
+                    'aware_agents': res['resolution'].get('aware_agents', []),  # Visibility control for stealth/secrets
                     'resolution_data': serializable_res  # Include serializable resolution for later synthesis
                 }
             )
@@ -4730,7 +4741,13 @@ The following actions ALREADY resolved (faster initiative):
             effects_dict = None  # Will hold purchase/crafting effects if present
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
-                state_changes = extract_from_structured_resolution(self._last_structured_resolution)
+
+                # Build extraction context with available characters for fuzzy name matching
+                extraction_context = {}
+                if self.shared_state and hasattr(self.shared_state, 'registered_players'):
+                    extraction_context['available_characters'] = [p['name'] for p in self.shared_state.registered_players]
+
+                state_changes = extract_from_structured_resolution(self._last_structured_resolution, extraction_context)
                 logger.debug(f"Using structured resolution: void={state_changes['void_change']}, clocks={len(state_changes.get('clock_triggers', []))}, soulcredit={state_changes['soulcredit_change']}")
 
                 # Extract effects (purchase/crafting) from structured output
@@ -5474,6 +5491,11 @@ The following actions ALREADY resolved (faster initiative):
                     except Exception as e:
                         logger.error(f"Failed to update player position: {e}")
 
+        # Extract aware_agents from structured resolution (for stealth/secrets visibility control)
+        aware_agents = []
+        if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution:
+            aware_agents = getattr(self._last_structured_resolution, 'aware_agents', []) or []
+
         return {
             'resolution': resolution,
             'narration': narration,
@@ -5481,6 +5503,7 @@ The following actions ALREADY resolved (faster initiative):
             'combat_data': combat_data,  # Include combat triplet if present
             'inventory_changes': inventory_changes,  # Include offering consumption tracking
             'effects': effects_dict,  # Include purchase/crafting effects from structured output
+            'aware_agents': aware_agents,  # Visibility control: who knows about this action
             'outcome': {
                 'dm_response': narration,
                 'success': getattr(resolution, 'success', True) if resolution else True,
@@ -5655,7 +5678,13 @@ The following actions ALREADY resolved (faster initiative):
             # Phase 2 Migration: Check if we have a structured resolution
             if hasattr(self, '_last_structured_resolution') and self._last_structured_resolution is not None:
                 from .outcome_parser import extract_from_structured_resolution
-                state_changes = extract_from_structured_resolution(self._last_structured_resolution)
+
+                # Build extraction context with available characters for fuzzy name matching
+                extraction_context = {}
+                if self.shared_state and hasattr(self.shared_state, 'registered_players'):
+                    extraction_context['available_characters'] = [p['name'] for p in self.shared_state.registered_players]
+
+                state_changes = extract_from_structured_resolution(self._last_structured_resolution, extraction_context)
                 logger.debug("Using structured resolution for state changes extraction")
 
                 # Validate void changes were populated when narration contains void markers
@@ -6140,11 +6169,12 @@ The following actions ALREADY resolved (faster initiative):
         resolution_context: str,
         tactical_combat_context: str,
         clock_context: str,
-        void_level: int,
-        void_impact: str,
-        outcome_guidance: str,
-        description: str,
-        action_type: str,
+        bond_matrix: str = "",
+        void_level: int = 3,
+        void_impact: str = "",
+        outcome_guidance: str = "",
+        description: str = "",
+        action_type: str = "",
         enemy_spawn_instructions: str = "",
         party_context: str = "",
         character_name: str = "",
@@ -6230,6 +6260,8 @@ The following actions ALREADY resolved (faster initiative):
                 prompt_parts.append(tactical_combat_context)
             if clock_context:
                 prompt_parts.append(clock_context)
+            if bond_matrix:
+                prompt_parts.append(bond_matrix)
             if combatant_list:
                 prompt_parts.append(combatant_list)
 
@@ -6825,6 +6857,40 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
                 clock_lines.append("\nWhen adding clock_updates in MechanicalEffects, use ONLY these exact clock names.")
                 clock_context = "\n".join(clock_lines)
 
+        # Build bond matrix showing active party bonds
+        bond_matrix = ""
+        if self.shared_state:
+            from .schemas.shared_types import BondStatus
+            bond_lines = []
+            seen_bond_ids = set()
+
+            # Collect all unique bonds from all player characters
+            for agent in self.shared_state.player_agents:
+                if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'bonds'):
+                    for bond in agent.character_state.bonds:
+                        if bond.bond_id not in seen_bond_ids:
+                            seen_bond_ids.add(bond.bond_id)
+
+                            # Format status indicator
+                            status_icon = {
+                                BondStatus.ACTIVE: "✓",
+                                BondStatus.DORMANT: "○",
+                                BondStatus.SEVERED: "✗",
+                                BondStatus.VOID_LOCKED: "⚠"
+                            }.get(bond.status, "?")
+
+                            # Format bond line
+                            bond_line = f"  [{status_icon}] {bond.character_a} ↔ {bond.character_b} ({bond.bond_type.value})"
+                            if bond.narrative_description:
+                                # Truncate long narratives
+                                narrative = bond.narrative_description[:80] + "..." if len(bond.narrative_description) > 80 else bond.narrative_description
+                                bond_line += f"\n      \"{narrative}\""
+                            bond_lines.append(bond_line)
+
+            if bond_lines:
+                bond_matrix = "Active Party Bonds:\n" + "\n".join(bond_lines)
+                bond_matrix += "\n\nBond Status: ✓=ACTIVE (benefits apply), ○=DORMANT (Void≥7), ✗=SEVERED, ⚠=VOID_LOCKED"
+
         # Extract previous_context from action (for narrative consistency with earlier resolutions)
         previous_context = ""
         if action and 'previous_context' in action:
@@ -6873,6 +6939,7 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
             resolution_context=resolution_context,
             tactical_combat_context="",  # Will be filled by full implementation
             clock_context=clock_context,
+            bond_matrix=bond_matrix,
             void_level=self.current_scenario.void_level if self.current_scenario else 3,
             void_impact="",
             outcome_guidance="",
@@ -7179,6 +7246,40 @@ When adjudicating:
                 if clock_lines:
                     clock_context = "\n\n**Active Clocks:**\n" + "\n".join(clock_lines)
 
+        # Build bond matrix showing active party bonds
+        bond_matrix = ""
+        if self.shared_state:
+            from .schemas.shared_types import BondStatus
+            bond_lines = []
+            seen_bond_ids = set()
+
+            # Collect all unique bonds from all player characters
+            for agent in self.shared_state.player_agents:
+                if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'bonds'):
+                    for bond in agent.character_state.bonds:
+                        if bond.bond_id not in seen_bond_ids:
+                            seen_bond_ids.add(bond.bond_id)
+
+                            # Format status indicator
+                            status_icon = {
+                                BondStatus.ACTIVE: "✓",
+                                BondStatus.DORMANT: "○",
+                                BondStatus.SEVERED: "✗",
+                                BondStatus.VOID_LOCKED: "⚠"
+                            }.get(bond.status, "?")
+
+                            # Format bond line
+                            bond_line = f"  [{status_icon}] {bond.character_a} ↔ {bond.character_b} ({bond.bond_type.value})"
+                            if bond.narrative_description:
+                                # Truncate long narratives
+                                narrative = bond.narrative_description[:80] + "..." if len(bond.narrative_description) > 80 else bond.narrative_description
+                                bond_line += f"\n      \"{narrative}\""
+                            bond_lines.append(bond_line)
+
+            if bond_lines:
+                bond_matrix = "\n\n**Active Party Bonds:**\n" + "\n".join(bond_lines)
+                bond_matrix += "\n\nBond Status: ✓=ACTIVE (benefits apply), ○=DORMANT (Void≥7), ✗=SEVERED, ⚠=VOID_LOCKED"
+
         # Detect if this is character-to-character dialogue
         is_dialogue_with_pc = False
         target_character = None
@@ -7218,6 +7319,7 @@ When adjudicating:
             resolution_context=resolution_context,
             tactical_combat_context=tactical_combat_context,
             clock_context=clock_context,
+            bond_matrix=bond_matrix,
             void_level=void_level,
             void_impact=void_impact,
             outcome_guidance=outcome_guidance,

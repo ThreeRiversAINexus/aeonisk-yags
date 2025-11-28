@@ -522,14 +522,34 @@ def validate_resolution_completeness(
             if not dmg_effect.target:
                 warnings.append(f"Damage effect populated but target field is empty (damage won't apply!)")
 
-    # 7. Check if void changes were applied to wrong character
-    # Common mistake: applying void to the wrong person in PC-to-PC actions
+    # 7. Check if void changes use valid character names (with fuzzy matching)
+    # Common mistake: DM uses shortened names like "Sera Karsel" instead of "Vessel Sera Karsel"
     if resolution.effects.void_changes and action:
+        from .name_matching import match_character_name
+
+        # Get available characters from action context (if provided)
+        available_characters = action.get('available_characters', [])
         action_character = action.get('character_name', '')
+
         for void_change in resolution.effects.void_changes:
-            # Just log who got void changes for review - don't assume it's wrong
-            if void_change.character_name != action_character:
-                warnings.append(f"Void change applied to '{void_change.character_name}' (action by '{action_character}') - verify this is intentional")
+            # Try fuzzy matching if we have character list
+            if available_characters:
+                matched_name, is_fuzzy, error = match_character_name(
+                    void_change.character_name,
+                    available_characters,
+                    context="void_change_validation"
+                )
+
+                if error:
+                    # Name doesn't match any character
+                    warnings.append(f"Void change target '{void_change.character_name}' not found: {error}")
+                elif is_fuzzy:
+                    # Log fuzzy match for review (this is actually OK, just informational)
+                    logger.info(f"Void change fuzzy match: '{void_change.character_name}' → '{matched_name}'")
+            else:
+                # No character list, just warn if different from actor
+                if void_change.character_name != action_character:
+                    warnings.append(f"Void change applied to '{void_change.character_name}' (action by '{action_character}') - verify this is intentional")
 
     # 7b. Check for missing void_changes in ritual/void-related actions
     # Detect if action involves rituals but void_changes is empty (might be missing)

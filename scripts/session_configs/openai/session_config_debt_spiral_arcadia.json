@@ -1,0 +1,381 @@
+{
+  "_role": "acg_debt_collection_openai",
+  "_purpose": "ACG debt enforcement team descends on Arcadia to collect from a Vireya Line gene-wright who's gone rogue. But the debtor has friends, the gene-temple has secrets, and the jungle is hostile. Soulcredit as weapon, mercy as weakness, capitalism as horror.",
+
+  "session_name": "debt_spiral_arcadia",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 3,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== COLLECT OR DIE TRYING ===",
+  "_scenario_hint": "Dr. Maren Vireya owes ACG 847 Spark - a fortune in gene-research funding that was supposed to produce a breakthrough in void-resistant embryos. Instead, she disappeared into Arcadia's jungle-wrapped gene-temples, claiming the research 'belongs to everyone.' The collection team is authorized to use any means necessary. But Arcadia isn't Aeonisk Prime - the jungle is alive with bio-engineered guardians, the local Seed arboreta have their own agendas, and the Resonance Communes have given Dr. Vireya sanctuary. Plus, one of the team is having second thoughts about what ACG really does with this research. Let moral complexity emerge. The debtors aren't evil - they're desperate people protecting something they believe in. The collectors aren't evil - they're workers doing a job with consequences. Combat should emerge from failed negotiations, commune defense, or jungle hazards.",
+
+  "scenario": {
+    "theme": "corporate_horror_moral_complexity",
+    "location": "Arcadia - Verdant Reach Gene-Temple Complex",
+    "situation": "Your transport touches down at Port Gale-Spire's cargo platform, humidity hitting you like a wall. Beyond the landing zone, Arcadia's bio-luminescent jungle stretches toward the distant gene-temples, their organic spires rising from the canopy like fingers reaching for the sky. Somewhere in there, Dr. Maren Vireya is hiding with 847 Spark worth of ACG-funded research. The Ledger Council's orders are clear: recover the research, recover the debt, by any means necessary. Local Resonance Commune representatives are already watching your arrival with cold eyes. The jungle between you and the temple is three days of hostile territory. And someone on your team just got a private message from Dr. Vireya herself.",
+    "void_level": 3
+  },
+
+  "_comment_clocks": "=== PRESSURE BUILDING ===",
+  "starting_clocks": [
+    {
+      "name": "ACG Patience",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "How long before ACG sends the cleanup crew - the ones who don't negotiate",
+      "advance_meaning": "deadline pressure, escalation threats, secondary team deployed",
+      "regress_meaning": "progress reported, extension granted"
+    },
+    {
+      "name": "Commune Resistance",
+      "max_ticks": 5,
+      "current_ticks": 2,
+      "description": "How organized the local resistance to collection is becoming",
+      "advance_meaning": "blockades, sanctuary rituals, armed opposition",
+      "regress_meaning": "neutralized leaders, bribed officials, fear spreads"
+    },
+    {
+      "name": "Jungle Hostility",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "The bio-engineered ecosystem's response to intruders",
+      "advance_meaning": "guardian creatures activate, paths close, territory becomes lethal",
+      "regress_meaning": "pheromone markers work, safe passage negotiated"
+    },
+    {
+      "name": "Research Destruction",
+      "max_ticks": 4,
+      "current_ticks": 0,
+      "description": "Dr. Vireya preparing to destroy the research rather than let ACG have it",
+      "advance_meaning": "data deletion, sample destruction, scorched earth",
+      "regress_meaning": "convinced to negotiate, research secured"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== PORT GALE-SPIRE CONTACTS ===",
+  "initial_npcs": [
+    {
+      "name": "Customs Agent Lira Thaurin",
+      "faction": "Resonance Communes",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Commune-aligned official who processes arrivals with barely-concealed hostility toward ACG insignia. Knows the jungle paths. Might be bribed or convinced.",
+      "health": 14,
+      "soak": 0,
+      "skills": {"Awareness": 4, "Charm": 3, "Investigation": 3}
+    },
+    {
+      "name": "Temple Guide Eron Vireya",
+      "faction": "Arcane Genetics",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Dr. Vireya's cousin, officially neutral but family loyalty runs deep. Knows the gene-temple layout. Watching to see which way the wind blows.",
+      "health": 16,
+      "soak": 1,
+      "skills": {"Navigation": 5, "Awareness": 4, "Systems": 3}
+    },
+    {
+      "name": "Seedkeeper Moss",
+      "faction": "Aether Dynamics",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "friendly",
+      "description": "Elderly caretaker of a local Seed arboretum. Speaks to the jungle. Doesn't care about debts or politics - only the balance of growing things.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Astral Arts": 5, "Attunement": 6, "Counsel": 4}
+    }
+  ],
+
+  "_design_notes": "Four ACG collection agents with varying levels of commitment to the job. The Lead is a true believer in debt enforcement. The Muscle is just here for the paycheck. The Tracker has a conscience problem. The Fixer has a secret connection to the target. Moral complexity throughout - the debtors believe they're protecting humanity, the collectors believe they're upholding order. Let players wrestle with what they're really doing. 20 rounds for relationship development and jungle survival.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Senior Collector Vance Kythea",
+        "pronouns": "he/him",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 5
+        },
+        "skills": {
+          "Debt Law": 6,
+          "Corporate Influence": 5,
+          "Intimidation": 5,
+          "Investigation": 4,
+          "Awareness": 4,
+          "Guns": 4
+        },
+        "void": 0,
+        "soulcredit": 8,
+        "goals": [
+          "Recover the debt - 847 Spark or equivalent in research/assets",
+          "Maintain ACG reputation for always collecting what's owed",
+          "Demonstrate to Ledger Council that he's ready for senior partnership"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "soulcredit_scanner": 1,
+          "ledger_access_chip": 1,
+          "contract_enforcement_writ": 3,
+          "bond_contract_templates": 5,
+          "spark_talisman": 6,
+          "incense": 2
+        }
+      },
+      {
+        "name": "Enforcer Rhea Ireveth",
+        "pronouns": "she/her",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 1,
+          "bondPreference": "avoids",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 4,
+          "Health": 4,
+          "Agility": 4,
+          "Dexterity": 3,
+          "Perception": 3,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 6,
+          "Melee": 5,
+          "Athletics": 5,
+          "Intimidation": 4,
+          "Awareness": 3
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Get paid, get out, don't think too hard about it",
+          "Keep the team alive through whatever the jungle throws at them",
+          "Maybe retire after this job - she's getting too old for this"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": ["pistol"],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "tactical_vest": 1,
+          "grenade": 2,
+          "med_kit": 3,
+          "jungle_survival_kit": 1,
+          "purification_incense": 2
+        }
+      },
+      {
+        "name": "Asset Tracker Josen Halessan",
+        "pronouns": "he/him",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 5,
+          "Systems": 5,
+          "Tracking": 4,
+          "Charm": 4,
+          "Stealth": 3
+        },
+        "void": 1,
+        "soulcredit": 4,
+        "goals": [
+          "Locate Dr. Vireya and the research - that's the job",
+          "Wonder if maybe the research should stay free (growing doubt)",
+          "Keep his crisis of conscience hidden from the Senior Collector"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "tracking_kit": 1,
+          "void_scanner": 1,
+          "data_recorder": 1,
+          "comm_unit": 1,
+          "jungle_pheromone_kit": 1,
+          "med_kit": 1,
+          "memory_crystal": 2
+        }
+      },
+      {
+        "name": "Fixer Selene Thaurin",
+        "pronouns": "she/her",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 3
+        },
+        "skills": {
+          "Charm": 6,
+          "Guile": 5,
+          "Counsel": 4,
+          "Sleight": 4,
+          "Awareness": 4,
+          "Guns": 3
+        },
+        "void": 2,
+        "soulcredit": 1,
+        "goals": [
+          "Negotiate a resolution that doesn't require violence (preferred outcome)",
+          "Protect her cousin Lira at the port - she can't know Selene works for ACG",
+          "Maybe convince Dr. Vireya to share the research voluntarily (secret agenda)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "concealed_holdout": 1,
+          "forged_credentials": 2,
+          "bribe_funds": 1,
+          "charm_tokens": 3,
+          "comm_unit": 1,
+          "incense": 3,
+          "data_slate": 1
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE COLLECTION ===",
+  "_beats": [
+    "Arrival - port hostility, Commune suspicion, jungle looming",
+    "Intelligence Gathering - who knows where Dr. Vireya is hiding?",
+    "Into the Jungle - bio-hazards, guardian creatures, survival challenges",
+    "First Commune Contact - resistance fighters, sanctuary seekers, moral arguments",
+    "Moral Fractures - Tracker's doubts, Fixer's secret connections, what are they really doing?",
+    "Gene-Temple Approach - ancient biotech, Seed arboreta guardians, Vireya Line loyalty",
+    "Dr. Vireya's Case - she explains what the research really is and why ACG can't have it",
+    "The Choice - enforce the contract or let the research go free?",
+    "Consequences - whatever they choose, there are costs",
+    "Resolution - debt collected, debt forgiven, or something in between?"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Locate Dr. Maren Vireya in the gene-temple complex",
+      "type": "investigation",
+      "required": true
+    },
+    {
+      "description": "Recover 847 Spark worth of debt (research, assets, or payment)",
+      "type": "collection",
+      "required": true
+    },
+    {
+      "description": "Survive Arcadia's hostile jungle environment",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Maintain team cohesion despite moral disagreements",
+      "type": "social",
+      "required": false
+    }
+  ],
+
+  "notes": "ACG DEBT COLLECTION - Corporate horror with moral complexity. Four collectors, each with different levels of commitment to the job. The target isn't a villain - she's protecting research she believes belongs to everyone. The jungle is actively hostile. The Communes will resist. Let players wrestle with what debt enforcement really means in a spiritual economy. 20 rounds for jungle survival, relationship development, and hard choices. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

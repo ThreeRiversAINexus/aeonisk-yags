@@ -7,15 +7,23 @@
   "party_size": 4,
   "output_dir": "./multiagent_output",
 
-  "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Social Scenario Only) ===",
-  "tactical_module_enabled": false,
-  "enemy_agents_enabled": false,
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (For potential social conflict escalation) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
 
   "_comment_vendors": "=== VENDOR SYSTEM - ENABLED (Bar Purchases) ===",
   "vendor_spawn_frequency": 3,
 
-  "_comment_scenario": "=== SCENARIO: GYMBAR NETWORKING ===",
-  "_scenario_hint": "The Iron Chalice (void_level 2, neutral territory), premier gymbar in Station District 7 - half upscale lounge with craft cocktails and private booths, half state-of-the-art training facility with combat sims and sparring mats. It's Networking Night: professionals from all factions gather to make deals, show off skills, gather intel, and build reputations. No violence allowed (strict security), but social combat is fierce. Characters have overlapping agendas: close a business deal, recruit talent, dig up dirt on rivals, impress potential allies, or just blow off steam. Success measured in connections made, information gathered, and reputation enhanced - not bloodshed.",
+  "_comment_bonds": "=== AUTO BOND GENERATION - ENABLED ===",
+  "generate_bonds": {
+    "enabled": true,
+    "min_bonds": 2,
+    "max_bonds": 5,
+    "use_scenario_context": true
+  },
+
+  "_comment_scenario": "=== SCENARIO: GYMBAR NETWORKING WITH INTER-CHARACTER DIALOGUE ===",
+  "_scenario_hint": "The Iron Chalice (void_level 2, neutral territory), premier gymbar in Station District 7. It's Networking Night: professionals from all factions gather to network, make deals, and dialogue. PRIMARY GOAL: Characters should engage in meaningful inter-character dialogue and relationship building. Pre-existing bonds create natural conversation hooks. No initial enemies - let social dynamics evolve organically. Security prevents violence, focus on conversation, deals, intel gathering, and reputation. DM should facilitate character-to-character interactions rather than spawning external threats.",
 
   "_design_notes": {
     "social_focus": "Zero combat scenario testing social skills: Charm, Persuasion, Insight, Guile, Intimidation, Athletics (displays of skill), Corporate Influence, Debt Law",
@@ -133,9 +141,10 @@
         "void": 0,
         "soulcredit": 8,
         "goals": [
-          "Close major Seed shipment contract worth 50 drip with Tempest Industries rep",
-          "Network with influential people - collect business cards and favors",
-          "Maintain polished, professional image - represent ACG well"
+          "Engage in dialogue with party members about business opportunities and deals",
+          "Discuss bond relationships and how they affect business prospects",
+          "Network through conversation - learn about others' backgrounds and motivations",
+          "Maintain polished, professional image in social interactions"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -191,9 +200,10 @@
         "void": 0,
         "soulcredit": 2,
         "goals": [
-          "Scout talented fighters for Pantheon recruitment - impress them with gym displays",
-          "Work out hard - blow off steam from stressful week",
-          "Show Pantheon strength and discipline - make connections"
+          "Talk with party members about combat training and physical discipline",
+          "Discuss bonded relationships - understand how bonds affect performance",
+          "Share stories about Pantheon service and learn others' backgrounds",
+          "Bond through shared physical activities and conversation"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -248,9 +258,10 @@
         "void": 3,
         "soulcredit": -2,
         "goals": [
-          "Gather intel on ACG's Seed trade operations (corporate espionage)",
-          "Identify potential Tempest research subjects (high void individuals)",
-          "Stay unnoticed - blend in as casual gymbar patron"
+          "Engage party members in dialogue to learn their secrets and motivations",
+          "Explore bonded relationships through conversation - understand emotional connections",
+          "Build trust through shared conversation while gathering intel subtly",
+          "Connect with others on a personal level (despite espionage mission)"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -306,9 +317,10 @@
         "void": 0,
         "soulcredit": 5,
         "goals": [
-          "Promote Commune wellness philosophy - connect with stressed professionals",
-          "Offer spiritual guidance and stress relief techniques",
-          "Subtly recruit disillusioned corporate workers to Commune lifestyle"
+          "Have meaningful conversations with party members about wellness and purpose",
+          "Discuss the nature of bonds - explore spiritual and emotional connections",
+          "Share Commune philosophy through dialogue, not preaching",
+          "Listen deeply to others' struggles and offer compassionate perspective"
         ],
         "equipped_weapons": {
           "primary": "fists"

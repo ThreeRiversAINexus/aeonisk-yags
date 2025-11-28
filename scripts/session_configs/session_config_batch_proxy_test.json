@@ -1,0 +1,96 @@
+{
+  "session_name": "batch_proxy_test_session",
+  "max_turns": 3,
+  "party_size": 2,
+
+  "_design_notes": "Test session for batch proxy provider using OpenAI gpt-5-mini for cost optimization. Enables proxy routing for all agents (DM and players).",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5-mini",
+        "temperature": 0.7,
+        "max_tokens": 4000,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:8000",
+        "proxy_priority": "normal",
+        "proxy_strategy": "auto"
+      }
+    },
+
+    "players": [
+      {
+        "name": "Ash Mercer",
+        "faction": "The Collective",
+        "skills": {
+          "Investigation": 8,
+          "Computers": 7,
+          "Notice": 6,
+          "Combat": 4,
+          "Stealth": 5
+        },
+        "health": 6,
+        "max_health": 6,
+        "void_score": 3,
+        "soulcredit": 5,
+        "traits": ["Observant", "Tech-Savvy"],
+        "description": "Former Collective archivist turned investigator. Specializes in digital forensics and pattern recognition.",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 0.8,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        }
+      },
+      {
+        "name": "Kira Voss",
+        "faction": "The Consortium",
+        "skills": {
+          "Combat": 8,
+          "Athletics": 7,
+          "Intimidation": 6,
+          "Notice": 5,
+          "Survival": 5
+        },
+        "health": 8,
+        "max_health": 8,
+        "void_score": 2,
+        "soulcredit": 3,
+        "traits": ["Tough", "Aggressive"],
+        "description": "Consortium enforcer with military training. Direct approach to problem-solving.",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 0.8,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        }
+      }
+    ]
+  },
+
+  "scenario": {
+    "_scenario_hint": "investigation",
+    "void_level": 4,
+    "force_combat": false
+  },
+
+  "starting_clocks": [
+    {
+      "clock_id": "clk_investigation",
+      "name": "Evidence Collection",
+      "current": 0,
+      "max": 8,
+      "direction": "progress",
+      "public": true,
+      "description": "Investigate the abandoned facility"
+    }
+  ]
+}

@@ -1,0 +1,372 @@
+{
+  "_role": "hollow_vector_smugglers_openai",
+  "_purpose": "Freeborn smugglers running the illegal Hollow Vector route between Arcadia and Nimbus. Void corruption, temporal anomalies, cargo that shouldn't exist, and the question of whether the Eye of Breach is guiding them or hunting them. Pilots return older than they left. Some don't return at all.",
+
+  "session_name": "hollow_vector_run",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE UNREGULATED ROUTE ===",
+  "_scenario_hint": "The Hollow Vector is the route that doesn't exist - an uncharted ley-path between Arcadia and Nimbus that the Codex doesn't track because it can't. Resonance storms every 11 days. Pilots return older than their departure clocks. Some come back speaking languages they never learned. Some don't come back at all. But for Freeborn smugglers with illegal cargo, it's the only way to move product without House of Vox surveillance. This crew has done it before. They know the signs. They know when to hide. But this time, the cargo is different - sealed containers that hum with void-resonance, payment from a client who didn't give a name. And the Eye of Breach seems very interested in where they're going. Let the weirdness build slowly. Time should become unreliable. The ship should feel wrong. The cargo may not be what they think.",
+
+  "scenario": {
+    "theme": "cosmic_smuggling_survival_horror",
+    "location": "The Hollow Vector - Unregulated Ley-Space",
+    "situation": "Your ship, the Discordant Wake, slips through the blind spot in Arcadia's orbital beacon network and enters the Hollow Vector. Behind you, regulated space fades to nothing. Ahead, the ley-corridor stretches into darkness that isn't quite dark - it pulses, slowly, like something breathing. The cargo hold contains twelve sealed containers from a client who paid in Hollow currency and didn't ask questions. Your navigator has done this run six times. She says the trip takes 4 days. Your ship's chronometer is already 3 hours behind Arcadian standard. The first resonance storm isn't due for another 8 days. You hope.",
+    "void_level": 5
+  },
+
+  "_comment_clocks": "=== THE JOURNEY ===",
+  "starting_clocks": [
+    {
+      "name": "Resonance Storm",
+      "max_ticks": 8,
+      "current_ticks": 0,
+      "description": "Time until the next reality-shearing storm hits the Vector",
+      "advance_meaning": "static increases, shadows move wrong, storm approaches",
+      "regress_meaning": "storm passes, brief calm, damage repaired"
+    },
+    {
+      "name": "Cargo Integrity",
+      "max_ticks": 6,
+      "current_ticks": 0,
+      "description": "Whatever's in those containers is becoming unstable",
+      "advance_meaning": "humming louder, temperature drops, crew sees things",
+      "regress_meaning": "containment rituals hold, cargo stabilized"
+    },
+    {
+      "name": "Crew Coherence",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "Void exposure and temporal displacement strain the crew",
+      "advance_meaning": "paranoia, memory gaps, seeing each other wrong",
+      "regress_meaning": "bonding moments, shared rituals, trust restored"
+    },
+    {
+      "name": "Eye Attention",
+      "max_ticks": 6,
+      "current_ticks": 2,
+      "description": "The Eye of Breach is watching the cargo - or watching them",
+      "advance_meaning": "ship systems glitch with warnings, faces in static, it speaks",
+      "regress_meaning": "went unnoticed, Eye looks elsewhere"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== SHIP CREW (NON-PLAYER) ===",
+  "initial_npcs": [
+    {
+      "name": "Deckhand Tomas",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "friendly",
+      "description": "Young Freeborn kid on his first Hollow Vector run. Eager to prove himself. Doesn't know what he signed up for.",
+      "health": 16,
+      "soak": 1,
+      "skills": {"Athletics": 3, "Awareness": 2, "Systems": 2}
+    },
+    {
+      "name": "The Passenger",
+      "faction": "Unknown",
+      "entity_type": "neutral",
+      "threat_level": "unknown",
+      "disposition": "neutral",
+      "description": "Hooded figure who booked passage at the last minute, paying in Hollow. Stays in their cabin. Might be connected to the cargo. Might be the client. Might be something else.",
+      "health": 20,
+      "soak": 2,
+      "skills": {"Astral Arts": 5, "Stealth": 4, "Awareness": 5}
+    }
+  ],
+
+  "_design_notes": "Four Freeborn smugglers on an illegal run through void-corrupted space. The Captain holds them together. The Navigator knows the route but is hiding something. The Engineer keeps the ship alive. The Muscle protects them from what comes through. Slow-burn horror as time becomes unreliable and the cargo reveals its nature. The Passenger is a mystery. The Eye of Breach is watching. Let paranoia build. 20 rounds for a full journey with escalating weirdness.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Captain Mira Karsel",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 5
+        },
+        "skills": {
+          "Leadership": 5,
+          "Pilot": 5,
+          "Charm": 4,
+          "Awareness": 4,
+          "Guns": 4,
+          "Navigation": 3
+        },
+        "void": 3,
+        "soulcredit": -3,
+        "goals": [
+          "Get the crew through safe - this is her family",
+          "Deliver the cargo and get paid - they need this score",
+          "Figure out what they're really carrying before it's too late"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "captain_seal": 1,
+          "comm_unit": 1,
+          "void_scanner": 1,
+          "med_kit": 2,
+          "hollow_seed": 2,
+          "incense": 3
+        }
+      },
+      {
+        "name": "Navigator Yara Ossai",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 6,
+          "bondPreference": "neutral",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Navigation": 6,
+          "Pilot": 5,
+          "Astral Arts": 4,
+          "Awareness": 5,
+          "Systems": 4,
+          "Investigation": 3
+        },
+        "void": 4,
+        "soulcredit": -1,
+        "goals": [
+          "Navigate the Vector - she's done it before, she can do it again",
+          "Hide what happened the last time (she saw something in the void)",
+          "Maybe the Eye is trying to show her something - listen or run?"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "navigation_charts": 1,
+          "astral_compass": 1,
+          "void_scanner": 1,
+          "temporal_anchor": 1,
+          "memory_crystal": 3,
+          "neural_stimulant": 2,
+          "hollow_seed": 1
+        }
+      },
+      {
+        "name": "Engineer Dex Soltra",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 4,
+          "Agility": 3,
+          "Dexterity": 5,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 3
+        },
+        "skills": {
+          "Systems": 6,
+          "Engineering": 6,
+          "Awareness": 4,
+          "Investigation": 3,
+          "Athletics": 3,
+          "Guns": 2
+        },
+        "void": 2,
+        "soulcredit": 0,
+        "goals": [
+          "Keep the ship running - the Discordant Wake is their home",
+          "Don't look in the cargo containers (curiosity is dangerous)",
+          "Get back to Nimbus and never run the Vector again (retirement dream)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": ["tool_club"],
+        "inventory": {
+          "pistol": 1,
+          "tool_club": 1,
+          "engineering_kit": 1,
+          "void_shielding_patches": 3,
+          "ship_schematics": 1,
+          "med_kit": 2,
+          "purification_incense": 4,
+          "data_slate": 1
+        }
+      },
+      {
+        "name": "Gunner Kade Eluun",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 4,
+          "Health": 4,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Guns": 6,
+          "Combat": 5,
+          "Melee": 5,
+          "Athletics": 4,
+          "Awareness": 4,
+          "Intimidation": 4
+        },
+        "void": 2,
+        "soulcredit": -4,
+        "goals": [
+          "Shoot anything that comes through that shouldn't be there",
+          "Protect the crew - especially Tomas, kid reminds him of his brother",
+          "Find out who The Passenger really is (doesn't trust them)"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": ["pistol", "shotgun"],
+        "inventory": {
+          "rifle": 1,
+          "shotgun": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "tactical_vest": 1,
+          "grenade": 3,
+          "med_kit": 2,
+          "void_resistant_mask": 1
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE RUN ===",
+  "_beats": [
+    "Departure - leaving regulated space, clocks already wrong",
+    "First Day - settling in, The Passenger is strange, cargo hums",
+    "Temporal Drift - memories don't match, someone remembers a conversation that didn't happen",
+    "Storm Warning - first signs of approaching resonance storm, preparations",
+    "The Cargo Speaks - or does it? Crew sees things, hears things",
+    "The Passenger Revealed - who are they? What do they want?",
+    "Storm Hits - reality tears, void creatures?, survival mode",
+    "Eye Contact - the Eye of Breach communicates, warnings or threats?",
+    "Mutiny or Unity - crew fractures or comes together under pressure",
+    "Arrival - Nimbus in sight, but what's left of them? What's left of the cargo?"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Survive the Hollow Vector transit to Nimbus",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Deliver the cargo intact (or discover what it really is)",
+      "type": "delivery",
+      "required": true
+    },
+    {
+      "description": "Keep the crew alive and sane through void exposure",
+      "type": "protection",
+      "required": false
+    },
+    {
+      "description": "Determine The Passenger's true nature and purpose",
+      "type": "mystery",
+      "required": false
+    }
+  ],
+
+  "notes": "HOLLOW VECTOR RUN - Freeborn smugglers on an illegal void-route. Survival horror in space. Time becomes unreliable, the cargo is wrong, The Passenger is a mystery, the Eye is watching. Let weirdness build slowly - clocks drift, memories conflict, reality stutters. The crew is family, but void exposure strains even family. 20 rounds for a full journey with escalating horror. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

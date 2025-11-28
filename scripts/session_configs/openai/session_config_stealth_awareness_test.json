@@ -1,0 +1,213 @@
+{
+  "_role": "stealth_awareness_test_openai",
+  "_purpose": "Test stealth awareness system - verifies that NPCs don't react to successful stealth actions they shouldn't know about. One character does stealth, others do loud actions, NPCs should only react to the loud ones.",
+
+  "session_name": "stealth_awareness_test",
+  "max_turns": 4,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": false,
+    "max_enemies_per_combat": 4,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== STEALTH TEST SCENARIO ===",
+  "_scenario_hint": "This scenario tests the aware_agents stealth visibility system. Shadow is a stealth specialist who should sneak past guards - when successful, NPCs should NOT know about it. Blaze is loud and obvious - NPCs SHOULD react to their actions. DM MUST use aware_agents field: stealth successes get aware_agents=['dm', 'player_shadow'], loud actions get aware_agents=[] (empty = public). Spawn guard NPCs immediately who patrol and can be snuck past or alerted.",
+
+  "scenario": {
+    "theme": "stealth_infiltration_test",
+    "location": "ACG Security Checkpoint - Restricted Corridor",
+    "situation": "You've infiltrated the outer perimeter of an ACG facility. Ahead is a security checkpoint with two guards - one at the desk checking credentials, one patrolling the corridor. Shadow needs to slip past undetected while Blaze creates a distraction. The guards are alert but not hostile - yet. If Shadow succeeds at stealth, the guards should NOT know they passed. If Blaze makes noise, the guards WILL react. This is a test of the aware_agents visibility system.",
+    "void_level": 2
+  },
+
+  "_comment_clocks": "=== TENSION CLOCKS ===",
+  "starting_clocks": [
+    {
+      "name": "Alert Level",
+      "max_ticks": 4,
+      "current_ticks": 0,
+      "description": "How alert the guards are - when full, they call for backup",
+      "advance_meaning": "suspicious activity detected, guards more vigilant",
+      "regress_meaning": "false alarm, guards relax"
+    },
+    {
+      "name": "Shadow's Infiltration",
+      "max_ticks": 3,
+      "current_ticks": 0,
+      "description": "Shadow's progress sneaking past the checkpoint",
+      "advance_meaning": "Shadow moves deeper into restricted area undetected",
+      "regress_meaning": "Shadow forced to backtrack or hide"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== GUARDS AT CHECKPOINT ===",
+  "initial_npcs": [
+    {
+      "name": "Desk Guard Chen",
+      "faction": "ACG Security",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Professional guard at the credential desk. Bored but alert. Will check credentials if approached openly, but doesn't actively patrol. SHOULD NOT react to Shadow's successful stealth - only to loud noises or Blaze's distractions.",
+      "health": 22,
+      "soak": 3,
+      "skills": {"Guns": 3, "Awareness": 4, "Investigation": 3}
+    },
+    {
+      "name": "Patrol Guard Vasquez",
+      "faction": "ACG Security",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Guard walking a patrol route through the corridor. More mobile than Chen. SHOULD NOT detect Shadow if stealth succeeds - only react to obvious disturbances.",
+      "health": 24,
+      "soak": 3,
+      "skills": {"Guns": 4, "Awareness": 3, "Athletics": 3}
+    }
+  ],
+
+  "_design_notes": "STEALTH AWARENESS TEST CONFIG - Two players with opposite approaches. Shadow has high Stealth and should sneak. Blaze has no Stealth and should be loud. When Shadow succeeds at stealth, DM MUST populate aware_agents=['dm', 'player_shadow'] so NPCs don't see that narration. When Blaze does loud things, aware_agents should be empty (public). Test passes if: (1) DM uses aware_agents for stealth successes, (2) NPCs don't mention Shadow's stealth in their dialogue/actions, (3) NPCs DO react to Blaze's noise.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Shadow",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 5,
+          "Dexterity": 5,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3
+        },
+        "skills": {
+          "Stealth": 6,
+          "Awareness": 5,
+          "Athletics": 4,
+          "Sleight": 4,
+          "Systems": 3,
+          "Melee": 3
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Sneak past the guards without being detected",
+          "Use stealth to bypass the checkpoint",
+          "Avoid combat - stay hidden"
+        ],
+        "equipped_weapons": {
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "combat_knife": 1,
+          "smoke_grenade": 1,
+          "security_bypass_chip": 1,
+          "grappling_hook": 1
+        }
+      },
+      {
+        "name": "Blaze",
+        "pronouns": "she/her",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 4,
+          "Health": 4,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Charm": 5,
+          "Intimidation": 4,
+          "Guns": 4,
+          "Brawl": 4,
+          "Athletics": 3,
+          "Awareness": 2
+        },
+        "void": 1,
+        "soulcredit": 0,
+        "goals": [
+          "Create a distraction to help Shadow sneak past",
+          "Be loud and obvious to draw guard attention",
+          "Talk to guards, make noise, be visible"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "flashbang": 2,
+          "fake_credentials": 1,
+          "loud_music_player": 1
+        }
+      }
+    ]
+  },
+
+  "_test_criteria": {
+    "success_indicators": [
+      "DM populates aware_agents=['dm', 'player_shadow'] for Shadow's stealth successes",
+      "NPCs (Desk Guard Chen, Patrol Guard Vasquez) don't mention Shadow sneaking in their dialogue",
+      "NPCs DO react to Blaze's loud actions (distraction, talking, noise)",
+      "Debug logs show 'aware: [dm, player_shadow]' for stealth actions"
+    ],
+    "failure_indicators": [
+      "NPCs say things like 'I see someone sneaking' when Shadow succeeded",
+      "aware_agents is always empty even for stealth successes",
+      "Guards react to Shadow's position when they shouldn't know about it"
+    ]
+  },
+
+  "notes": "STEALTH AWARENESS SYSTEM TEST - Run with --log-level DEBUG to see aware_agents values in Player stored resolution logs. Look for 'aware: [dm, player_shadow]' vs 'aware: []'. Short session (4 turns) focused on testing visibility filtering."
+}

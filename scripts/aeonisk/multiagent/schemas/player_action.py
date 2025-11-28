@@ -299,6 +299,11 @@ class RitualAction(PlayerActionBase):
         description="What materials/components are you using?"
     )
 
+    bond_formation_target: Optional[str] = Field(
+        default=None,
+        description="If this ritual is for bond formation, specify the target character name or object. Used for Intimacy Ritual bond formation."
+    )
+
 
 class SocialAction(PlayerActionBase):
     """

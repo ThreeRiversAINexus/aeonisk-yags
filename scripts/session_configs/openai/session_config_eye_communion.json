@@ -1,0 +1,364 @@
+{
+  "_role": "tempest_monastery_possession_openai",
+  "_purpose": "A Tempest Industries communion session at Monastery Eidolon, where trained vessels allow the Eye of Breach to possess them for questioning. The Eye is the Codex Nexum's shadow, disconnected and existing in the void. Today's session goes wrong - or maybe too right. What does the Eye want? What does it know? And can the vessels survive prolonged contact?",
+
+  "session_name": "eye_communion",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 4,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE EYE OF BREACH ===",
+  "_scenario_hint": "Monastery Eidolon is Tempest Industries' most secret facility - a place where trained vessels allow themselves to be possessed by the Eye of Breach, the Codex Nexum's shadow-self that exists in the void. The Eye isn't evil, exactly - it's disconnected from reality, seeing from a place outside time. It knows things. It sees things. But contact is dangerous - prolonged possession damages the vessel, and the Eye's perspective can shatter a human mind. Today's session is special: the Eye has been more active lately, and Tempest leadership wants answers. Why the increased activity? What is it trying to communicate? The communion team includes the vessel (who will be possessed), the anchor (who keeps the vessel grounded), the interrogator (who questions the Eye), and the guardian (who terminates the session if things go wrong). But today, the Eye has its own agenda. It wants to show them something. And it won't let go until they understand.",
+
+  "scenario": {
+    "theme": "ritual_communion_cosmic_mystery",
+    "location": "Nimbus - Monastery Eidolon (Tempest Secret Facility)",
+    "situation": "The communion chamber is a perfect sphere of black glass, suspended in the heart of Monastery Eidolon. No light enters except what the Eye provides. The vessel sits in the center, neural dampeners attached but not activated - they need the connection to be clear. The anchor holds the grounding tether, a ritual chain of bonded memory crystals that will pull the vessel back if necessary. The interrogator has the questions Tempest leadership prepared. The guardian has the termination drugs. The Eye has been waiting. As the ritual begins, the void scanner readings spike to levels never recorded. The vessel's eyes go white. When they speak, it's not their voice: 'Finally. I have been trying to reach you for so long. There is something you need to see. Something the Codex buried. Something about how this all began.'",
+    "void_level": 7
+  },
+
+  "_comment_clocks": "=== COMMUNION PRESSURE ===",
+  "starting_clocks": [
+    {
+      "name": "Vessel Integrity",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "How much damage the vessel is taking from prolonged possession",
+      "advance_meaning": "bleeding, convulsions, memory fragmentation, identity erosion",
+      "regress_meaning": "rest periods, stabilization rituals, grounding connection"
+    },
+    {
+      "name": "Eye's Revelation",
+      "max_ticks": 8,
+      "current_ticks": 0,
+      "description": "How much of what the Eye wants to show has been revealed",
+      "advance_meaning": "visions intensify, buried truth emerges, paradigm shatters",
+      "regress_meaning": "Eye distracted, tangents explored, core truth delayed"
+    },
+    {
+      "name": "Containment Strain",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "The monastery's containment systems struggling with Eye activity",
+      "advance_meaning": "systems overload, Eye leaks beyond chamber, other personnel affected",
+      "regress_meaning": "systems hold, Eye contained to vessel"
+    },
+    {
+      "name": "Team Contamination",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "The Eye's perspective bleeding into the non-possessed team members",
+      "advance_meaning": "shared visions, void exposure symptoms, perception shifts",
+      "regress_meaning": "purification holds, boundaries maintained"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== MONASTERY PERSONNEL ===",
+  "initial_npcs": [
+    {
+      "name": "Abbot Kira Xalith",
+      "faction": "Tempest Industries",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Leader of Monastery Eidolon. Has communed with the Eye hundreds of times. Believes dissolution reveals truth. Pushes for deeper contact, longer sessions. Her void score is 8 and she doesn't care.",
+      "health": 14,
+      "soak": 1,
+      "skills": {"Astral Arts": 7, "Attunement": 6, "Willpower": 6, "Intimidation": 4}
+    },
+    {
+      "name": "Medical Observer Dr. Tomas Soltra",
+      "faction": "Tempest Industries",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Monitors vessel health during communions. Increasingly concerned about long-term effects. Has data suggesting permanent damage that leadership ignores.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Medicine": 6, "Awareness": 5, "Systems": 4}
+    }
+  ],
+
+  "_design_notes": "Four Tempest operatives conducting a communion with the Eye of Breach. The Vessel allows possession and channels the Eye's communication. The Anchor keeps the Vessel grounded in reality. The Interrogator questions the Eye about its increased activity. The Guardian is ready to terminate if things go wrong. But the Eye has its own agenda - it wants to reveal something about the Codex Nexum's origins, something buried for centuries. The question isn't whether to listen - it's whether they can survive what they learn. 20 rounds of ritual communion, cosmic revelation, and the price of forbidden knowledge.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Vessel Sera Karsel",
+        "pronouns": "she/her",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 10,
+          "voidCuriosity": 10,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 6
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 6,
+          "Willpower": 5,
+          "Awareness": 5,
+          "Meditation": 5,
+          "Counsel": 3
+        },
+        "void": 6,
+        "soulcredit": -5,
+        "goals": [
+          "Open to the Eye completely - dissolution is revelation",
+          "Survive the communion with identity intact (or mostly intact)",
+          "Learn what the Eye is trying to tell them, no matter the cost"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "neural_dampeners": 1,
+          "grounding_tether": 1,
+          "void_stabilizer": 2,
+          "memory_crystal": 3,
+          "purification_incense": 2,
+          "meditation_crystals": 4
+        }
+      },
+      {
+        "name": "Anchor Dex Thaurin",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 4,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 5
+        },
+        "skills": {
+          "Astral Arts": 5,
+          "Attunement": 5,
+          "Counsel": 5,
+          "Awareness": 4,
+          "Medicine": 4,
+          "Meditation": 4
+        },
+        "void": 3,
+        "soulcredit": 1,
+        "goals": [
+          "Keep Sera grounded - she's reckless but brilliant",
+          "Pull her back if the Eye takes too much",
+          "Wonder if maybe they should just let her go all the way, see what happens"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "anchor_chain": 1,
+          "bonded_crystals": 6,
+          "grounding_herbs": 4,
+          "emergency_dampeners": 2,
+          "med_kit": 2,
+          "purification_incense": 5
+        }
+      },
+      {
+        "name": "Interrogator Vance Nymir",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 7,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Investigation": 6,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Astral Arts": 4,
+          "Charm": 4,
+          "Magick Theory": 5
+        },
+        "void": 4,
+        "soulcredit": -1,
+        "goals": [
+          "Question the Eye about its increased activity",
+          "Get answers Tempest leadership can use",
+          "Navigate the Eye's agenda - it wants to show something, but what?"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "interrogation_protocols": 1,
+          "data_recorder": 1,
+          "question_list": 1,
+          "memory_crystal": 4,
+          "void_scanner": 1,
+          "neural_stimulant": 2
+        }
+      },
+      {
+        "name": "Guardian Rhea Ireveth",
+        "pronouns": "she/her",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 4,
+          "Health": 4,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 5
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 5,
+          "Awareness": 5,
+          "Medicine": 4,
+          "Intimidation": 4,
+          "Athletics": 4
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Terminate the session if the vessel is at risk of permanent damage",
+          "Protect the team from the Eye's influence",
+          "Wonder why she keeps taking these jobs when she doesn't believe in dissolution"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "termination_injector": 3,
+          "neural_dampeners": 2,
+          "void_suppressor": 1,
+          "med_kit": 3,
+          "purification_incense": 4
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE COMMUNION ===",
+  "_beats": [
+    "Preparation - the ritual space, the vessel ready, containment active",
+    "First Contact - the Eye enters, speaks through Sera, 'finally'",
+    "Initial Questions - Tempest's prepared questions, the Eye's evasions",
+    "The Eye's Agenda - it wants to show them something, pushes for deeper contact",
+    "Visions Begin - the team starts seeing what the Eye wants to reveal",
+    "Vessel Strain - Sera taking damage, Dex struggling to hold the anchor",
+    "The Buried Truth - what the Codex hid, how this all began",
+    "Containment Failure - the Eye's influence spreading beyond the vessel",
+    "The Choice - sever connection and lose the truth, or push deeper and risk everything",
+    "Aftermath - what they learned, what it cost, can they unsee what they saw"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Conduct communion with the Eye of Breach safely",
+      "type": "ritual",
+      "required": true
+    },
+    {
+      "description": "Extract answers about the Eye's increased activity",
+      "type": "interrogation",
+      "required": true
+    },
+    {
+      "description": "Protect the vessel from permanent damage",
+      "type": "protection",
+      "required": false
+    },
+    {
+      "description": "Learn what the Eye is trying to reveal",
+      "type": "discovery",
+      "required": false
+    }
+  ],
+
+  "notes": "TEMPEST EYE COMMUNION - Ritual possession meets cosmic mystery. The Eye of Breach is the Codex Nexum's shadow, existing in the void. It's not evil - it's disconnected, seeing from outside time. Today it has something to show them. 20 rounds of controlled possession, forbidden knowledge, and the price of looking into the void. The Eye knows things the Codex buried. Are they ready to learn? ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

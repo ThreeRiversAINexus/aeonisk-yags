@@ -1,0 +1,376 @@
+{
+  "_role": "arcgen_pod_horror_openai",
+  "_purpose": "Something is wrong at the Vireya Line's remote biocreche facility. The pod-children are dreaming before they should be able to. They're dreaming the same thing. And they're waking up ahead of schedule with knowledge they shouldn't have. Body horror meets existential dread - what are we really creating?",
+
+  "session_name": "biocreche_awakening",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THEY'RE DREAMING ===",
+  "_scenario_hint": "Biocreche Station Umbra-9 is a remote pod-gestation facility in Arcadia's deep jungle, far from oversight. It handles 'special cases' - difficult gestations, experimental protocols, the children that need extra attention. Three days ago, the regular status reports stopped. When contact was reestablished, the station's Gestators reported that all 47 pod-children in development had begun exhibiting synchronized dream activity - impossible, since their neural development shouldn't support dreaming for another six months. The dreams appear to be the same across all pods. And yesterday, Pod 23 opened ahead of schedule. The child inside spoke its first words: a name that hasn't been spoken in 400 years. The team has been sent to investigate, contain, and if necessary, terminate the compromised subjects. But what they find will challenge everything they believe about what pod-gestation really creates.",
+
+  "scenario": {
+    "theme": "body_horror_existential_dread",
+    "location": "Arcadia - Biocreche Station Umbra-9 (Remote Jungle)",
+    "situation": "Your transport descends through Arcadia's perpetual rain toward a clearing that shouldn't exist on any public map. Biocreche Station Umbra-9 rises from the jungle, its organic architecture pulsing with the pale bioluminescence of active gestation systems. The facility houses 47 pod-children in various stages of development - special cases, all of them. The Gestator who met you at the landing pad has dark circles under her eyes. 'They're dreaming,' she says. 'All of them. The same dream. And Pod 23...' She stops. 'You need to see Pod 23.' As you enter the facility, you can hear it - a low hum that isn't mechanical. It's coming from the gestation wing. It almost sounds like humming. Like lullabies. From 47 throats that shouldn't be able to form sound.",
+    "void_level": 5
+  },
+
+  "_comment_clocks": "=== THE AWAKENING ===",
+  "starting_clocks": [
+    {
+      "name": "Synchronized Awakening",
+      "max_ticks": 8,
+      "current_ticks": 2,
+      "description": "The pod-children are waking up in sequence - when full, all 47 open",
+      "advance_meaning": "more pods activate, dream-singing intensifies, reality bends",
+      "regress_meaning": "sedation works, pods stabilize, awakening slows"
+    },
+    {
+      "name": "Facility Corruption",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "The biocreche's organic systems are responding to whatever's happening",
+      "advance_meaning": "walls shift, systems malfunction, facility becomes hostile",
+      "regress_meaning": "containment rituals hold, systems stabilized"
+    },
+    {
+      "name": "Team Sanity",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "Exposure to whatever's affecting the children affects the investigators",
+      "advance_meaning": "shared dreams, false memories, identity questions",
+      "regress_meaning": "grounding rituals, mutual support, clarity restored"
+    },
+    {
+      "name": "Termination Protocol",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "Pressure from ArcGen leadership to simply terminate the compromised subjects",
+      "advance_meaning": "orders become more explicit, time runs out, hard choice",
+      "regress_meaning": "alternative solutions found, leadership convinced to wait"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== STATION PERSONNEL ===",
+  "initial_npcs": [
+    {
+      "name": "Gestator Prime Lena Vireya",
+      "faction": "Arcane Genetics",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "friendly",
+      "description": "Head of Umbra-9, exhausted and terrified. She's been with these children for months. She can't simply terminate them. She's also starting to hear the humming when she sleeps.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Astral Arts": 6, "Counsel": 5, "Awareness": 4, "Intimacy Ritual": 5}
+    },
+    {
+      "name": "Security Chief Bram Ireveth",
+      "faction": "Arcane Genetics",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Station security head. Pragmatic, scared, and ready to burn the whole place down if it means stopping whatever this is. His orders are to contain - but he's thinking about termination.",
+      "health": 22,
+      "soak": 2,
+      "skills": {"Guns": 5, "Combat": 4, "Awareness": 4, "Intimidation": 4}
+    },
+    {
+      "name": "The Child from Pod 23",
+      "faction": "Unknown",
+      "entity_type": "neutral",
+      "threat_level": "unknown",
+      "disposition": "neutral",
+      "description": "Premature by six months but physically perfect. Speaks in complete sentences. Knows things no child should know. Calls the investigators by names they haven't given. Says 'she' is coming back.",
+      "health": 8,
+      "soak": 0,
+      "skills": {"Astral Arts": 7, "Awareness": 6, "Counsel": 4}
+    }
+  ],
+
+  "_design_notes": "Four ArcGen specialists investigating a biocreche anomaly. The horror is existential - what ARE pod-children? What are they connected to? Who is 'she'? Let the wrongness build slowly. The children aren't evil - they're vessels for something trying to return. Maybe that something isn't evil either. Maybe it's the Codex Nexum's original form. Maybe it's worse. 20 rounds of investigation, containment attempts, and the dawning realization that terminating 47 children might be murder - or might be necessary.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Gene-Analyst Dr. Cira Vireya",
+        "pronouns": "she/her",
+        "faction": "Arcane Genetics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 5,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Systems": 6,
+          "Investigation": 5,
+          "Astral Arts": 5,
+          "Awareness": 5,
+          "Counsel": 4,
+          "Magick Theory": 4
+        },
+        "void": 1,
+        "soulcredit": 4,
+        "goals": [
+          "Analyze the pod-children's genetic and spiritual signatures",
+          "Understand what's causing the synchronized dreaming",
+          "Find a solution that doesn't involve killing children (even compromised ones)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "gene_sequencer": 1,
+          "diagnostic_scanner": 1,
+          "neural_interface_module": 1,
+          "memory_crystal": 4,
+          "data_recorder": 1,
+          "purification_incense": 3
+        }
+      },
+      {
+        "name": "Creche Warden Thane Halessan",
+        "pronouns": "he/him",
+        "faction": "Arcane Genetics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 4,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 5,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Investigation": 3,
+          "Astral Arts": 3
+        },
+        "void": 0,
+        "soulcredit": 5,
+        "goals": [
+          "Protect the station and its personnel from whatever's happening",
+          "Contain the anomaly - prevent it from spreading beyond Umbra-9",
+          "Execute termination protocol if ordered, even if it destroys him"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "tactical_vest": 1,
+          "containment_equipment": 1,
+          "med_kit": 2,
+          "purification_incense": 4
+        }
+      },
+      {
+        "name": "Spiritual Diagnostician Mira Thaurin",
+        "pronouns": "she/her",
+        "faction": "Arcane Genetics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 6,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 5,
+          "Counsel": 5,
+          "Awareness": 5,
+          "Investigation": 4,
+          "Meditation": 4
+        },
+        "void": 2,
+        "soulcredit": 3,
+        "goals": [
+          "Commune with the dreaming children to understand what they're experiencing",
+          "Determine if the presence is hostile or something else entirely",
+          "Connect - even knowing the risk (she's always been too curious)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "astral_diagnostic_kit": 1,
+          "soul_resonance_tuner": 1,
+          "meditation_crystals": 4,
+          "purification_incense": 6,
+          "memory_crystal": 3,
+          "dream_anchor": 1
+        }
+      },
+      {
+        "name": "Protocol Officer Jace Elaras",
+        "pronouns": "he/him",
+        "faction": "Arcane Genetics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 9
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 5
+        },
+        "skills": {
+          "Debt Law": 5,
+          "Corporate Influence": 5,
+          "Investigation": 5,
+          "Awareness": 4,
+          "Intimidation": 4,
+          "Systems": 3
+        },
+        "void": 0,
+        "soulcredit": 6,
+        "goals": [
+          "Document everything for ArcGen leadership and potential tribunal",
+          "Ensure proper protocols are followed (including termination if required)",
+          "Wonder if 'proper protocols' are just excuses to avoid hard choices"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "protocol_dataslate": 1,
+          "data_recorder": 1,
+          "comm_unit": 1,
+          "arcgen_credentials": 1,
+          "termination_authorization": 1,
+          "memory_crystal": 2
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE AWAKENING ===",
+  "_beats": [
+    "Arrival - the humming, the exhausted staff, something deeply wrong",
+    "Pod 23 - meeting the impossible child, 'she is coming back'",
+    "Initial Investigation - genetic scans, spiritual diagnostics, no clear answers",
+    "The Dreams - investigators start experiencing them, shared visions",
+    "Historical Discovery - the name the child spoke, what happened 400 years ago",
+    "More Awakenings - pods opening ahead of schedule, children speaking in unison",
+    "The Presence - something is using the children, but what? Why?",
+    "Termination Pressure - leadership demands action, time running out",
+    "The Choice - kill 47 children, let 'her' return, or find a third option",
+    "Resolution - whatever they chose, consequences echo forward"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Investigate the anomaly at Biocreche Station Umbra-9",
+      "type": "investigation",
+      "required": true
+    },
+    {
+      "description": "Determine the source and nature of the synchronized dreaming",
+      "type": "discovery",
+      "required": true
+    },
+    {
+      "description": "Contain the situation and prevent spread beyond the station",
+      "type": "containment",
+      "required": true
+    },
+    {
+      "description": "Find a solution that doesn't require terminating 47 children",
+      "type": "moral",
+      "required": false
+    }
+  ],
+
+  "notes": "ARCGEN BIOCRECHE HORROR - Body horror meets existential dread. Pod-children are dreaming together, waking early, speaking impossible truths. What are we really creating in those pods? 20 rounds of investigation, mounting horror, and the question of whether 47 children are vessels or victims. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

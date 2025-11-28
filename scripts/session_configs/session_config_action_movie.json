@@ -85,11 +85,15 @@
 
   "agents": {
     "dm": {
-      "llm": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-5",
-        "temperature": 0.8
-      }
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        }
     },
     "players": [
       {
@@ -97,9 +101,13 @@
         "pronouns": "she/her",
         "faction": "Freeborn Hacker",
         "llm": {
-          "provider": "anthropic",
-          "model": "claude-sonnet-4-5",
-          "temperature": 0.85
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
         },
         "personality": {
           "riskTolerance": 9,
@@ -152,9 +160,13 @@
         "pronouns": "he/him",
         "faction": "Ex-Pantheon Enforcer",
         "llm": {
-          "provider": "anthropic",
-          "model": "claude-sonnet-4-5",
-          "temperature": 0.85
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
         },
         "personality": {
           "riskTolerance": 7,
@@ -210,9 +222,13 @@
         "pronouns": "they/them",
         "faction": "Rogue ACG Negotiator",
         "llm": {
-          "provider": "anthropic",
-          "model": "claude-sonnet-4-5",
-          "temperature": 0.85
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
         },
         "personality": {
           "riskTolerance": 6,
@@ -267,9 +283,13 @@
         "pronouns": "he/him",
         "faction": "Void-Touched Infiltrator",
         "llm": {
-          "provider": "anthropic",
-          "model": "claude-sonnet-4-5",
-          "temperature": 0.85
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
         },
         "personality": {
           "riskTolerance": 10,

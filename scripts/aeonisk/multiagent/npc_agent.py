@@ -10,9 +10,10 @@ NPCs (Non-Player Characters) are agents with stats but limited agency:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Literal, TYPE_CHECKING
+from typing import Dict, List, Optional, Literal, TYPE_CHECKING, Set
 from pydantic import BaseModel, Field
 import logging
+import hashlib
 
 from .schemas.shared_types import Condition
 
@@ -20,6 +21,205 @@ if TYPE_CHECKING:
     from .enemy_agent import Position
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class NPCMemory:
+    """
+    Memory system for NPCs to track their own actions, interactions, and goals.
+
+    Solves the "Groundhog Day" problem where NPCs repeat the same dialogue
+    because they have no memory of what they already said or how characters
+    responded to them.
+
+    Features:
+    - Own action tracking: What the NPC said/did in previous rounds
+    - Interaction history: How other characters interacted with this NPC
+    - Goal evolution: NPC's current objective (can change based on events)
+    - Event deduplication: Prevents seeing the same story events multiple times
+    """
+
+    # Configuration
+    max_own_actions: int = 5
+    max_interactions_per_char: int = 3
+    max_goal_history: int = 3
+    max_seen_events: int = 200
+
+    # State
+    own_actions: List[Dict] = field(default_factory=list)
+    interactions: Dict[str, List[Dict]] = field(default_factory=dict)
+    current_goal: Optional[str] = None
+    goal_history: List[str] = field(default_factory=list)
+    seen_event_hashes: Set[str] = field(default_factory=set)
+
+    def record_own_action(
+        self,
+        round_num: int,
+        action_type: str,
+        dialogue: Optional[str] = None,
+        target: Optional[str] = None,
+        reason: Optional[str] = None
+    ) -> None:
+        """
+        Record an action this NPC took.
+
+        Args:
+            round_num: The round when action occurred
+            action_type: flee/hide/dialogue/etc
+            dialogue: What the NPC said (if dialogue action)
+            target: Who the action targeted
+            reason: Why the NPC took this action
+        """
+        action_record = {
+            'round': round_num,
+            'action_type': action_type,
+            'dialogue': dialogue,
+            'target': target,
+            'reason': reason
+        }
+        self.own_actions.append(action_record)
+
+        # Limit history size (keep most recent)
+        if len(self.own_actions) > self.max_own_actions:
+            self.own_actions.pop(0)
+
+    def record_interaction(
+        self,
+        character_name: str,
+        interaction_type: str,
+        details: str,
+        round_num: int
+    ) -> None:
+        """
+        Record an interaction with another character.
+
+        Args:
+            character_name: Who interacted with this NPC
+            interaction_type: charmed/threatened/questioned/attacked/etc
+            details: What happened
+            round_num: When it happened
+        """
+        if character_name not in self.interactions:
+            self.interactions[character_name] = []
+
+        self.interactions[character_name].append({
+            'type': interaction_type,
+            'details': details,
+            'round': round_num
+        })
+
+        # Limit per-character history
+        if len(self.interactions[character_name]) > self.max_interactions_per_char:
+            self.interactions[character_name].pop(0)
+
+    def set_goal(self, goal: str) -> None:
+        """
+        Set or update the NPC's current goal.
+
+        Args:
+            goal: The NPC's current objective
+        """
+        if self.current_goal:
+            self.goal_history.append(self.current_goal)
+            # Limit history
+            if len(self.goal_history) > self.max_goal_history:
+                self.goal_history.pop(0)
+
+        self.current_goal = goal
+
+    def get_relationship_summary(self) -> str:
+        """
+        Generate a summary of relationships with other characters.
+
+        Returns:
+            String describing how this NPC relates to known characters
+        """
+        if not self.interactions:
+            return ""
+
+        lines = []
+        for char_name, interactions in self.interactions.items():
+            if interactions:
+                # Get most recent interaction
+                latest = interactions[-1]
+                lines.append(f"- {char_name}: {latest['type']} (Round {latest['round']}) - {latest['details']}")
+
+        return "\n".join(lines)
+
+    def _hash_event(self, event: str) -> str:
+        """Generate a hash for an event string."""
+        return hashlib.md5(event.encode()).hexdigest()[:16]
+
+    def has_seen_event(self, event: str) -> bool:
+        """Check if NPC has already seen this event."""
+        return self._hash_event(event) in self.seen_event_hashes
+
+    def mark_event_seen(self, event: str) -> None:
+        """Mark an event as seen."""
+        event_hash = self._hash_event(event)
+        self.seen_event_hashes.add(event_hash)
+
+        # Prune if too large (remove random old ones)
+        if len(self.seen_event_hashes) > self.max_seen_events:
+            # Convert to list, remove oldest half
+            hash_list = list(self.seen_event_hashes)
+            self.seen_event_hashes = set(hash_list[len(hash_list) // 2:])
+
+    def filter_unseen_events(self, events: List[str]) -> List[str]:
+        """
+        Filter a list of events to only those not seen before.
+
+        Args:
+            events: List of event strings
+
+        Returns:
+            List of events the NPC hasn't seen yet
+        """
+        unseen = []
+        for event in events:
+            if not self.has_seen_event(event):
+                unseen.append(event)
+        return unseen
+
+    def get_memory_context(self) -> str:
+        """
+        Generate memory context string for inclusion in NPC prompt.
+
+        Returns:
+            Formatted string with NPC's memories, or empty if no memories
+        """
+        sections = []
+
+        # Own actions section
+        if self.own_actions:
+            action_lines = []
+            for action in self.own_actions[-3:]:  # Last 3 actions
+                if action.get('dialogue'):
+                    action_lines.append(
+                        f"- Round {action['round']}: Said \"{action['dialogue']}\""
+                        + (f" to {action['target']}" if action.get('target') else "")
+                    )
+                else:
+                    action_lines.append(
+                        f"- Round {action['round']}: {action['action_type'].title()}"
+                        + (f" targeting {action['target']}" if action.get('target') else "")
+                    )
+            if action_lines:
+                sections.append("**Your Recent Actions:**\n" + "\n".join(action_lines))
+
+        # Relationships section
+        relationship_summary = self.get_relationship_summary()
+        if relationship_summary:
+            sections.append("**Your Relationships:**\n" + relationship_summary)
+
+        # Current goal section
+        if self.current_goal:
+            sections.append(f"**Your Current Goal:** {self.current_goal}")
+
+        if not sections:
+            return ""
+
+        return "\n\n".join(sections)
 
 
 def _default_npc_position():
@@ -112,6 +312,9 @@ class NPCAgent:
     vendor_type: Optional[str] = None  # "human_trader", "vending_machine", "supply_drone", etc.
     accepts_purchases: bool = False  # Whether this NPC actually processes purchases
     energy_purse: Optional['EnergyPurse'] = None  # For receiving payment (if needed for two-way trading)
+
+    # Memory system (tracks own actions, interactions, goals)
+    memory: 'NPCMemory' = field(default_factory=lambda: NPCMemory())
 
     def __post_init__(self):
         """Initialize LLM client if not provided."""
@@ -375,9 +578,25 @@ Choose the most appropriate action and explain why in 10-100 words."""
         health_pct = (self.npc.health / self.npc.max_health) * 100 if self.npc.max_health > 0 else 0
         health_status = "critically wounded" if health_pct < 25 else "wounded" if health_pct < 50 else "healthy"
 
+        # Build memory context if NPC has memory
+        memory_section = ""
+        if hasattr(self.npc, 'memory') and self.npc.memory:
+            memory_context = self.npc.memory.get_memory_context()
+            if memory_context:
+                memory_section = f"""
+
+**What You Remember:**
+{memory_context}
+
+**IMPORTANT:** You have already taken actions in previous rounds. DO NOT repeat yourself!
+- If you already asked for IDs, don't ask again unless something changed
+- If someone charmed/bribed you, remember that relationship
+- Vary your dialogue and actions based on what has happened
+"""
+
         prompt = f"""**Current Situation:**
 {context}
-
+{memory_section}
 **Your Status:**
 - Health: {self.npc.health}/{self.npc.max_health} ({health_status})
 - Disposition: {self.npc.disposition}

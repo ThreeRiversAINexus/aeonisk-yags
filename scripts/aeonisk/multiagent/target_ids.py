@@ -330,6 +330,61 @@ class TargetIDMapper:
             return True
         return False
 
+    def register_enemy(self, enemy: Any) -> Optional[str]:
+        """
+        Register a new enemy (e.g., from NPC escalation) into the target ID system.
+
+        Assigns a new target ID if free targeting is enabled.
+        Also unregisters from NPC registry if present.
+
+        Args:
+            enemy: EnemyAgent instance
+
+        Returns:
+            Assigned target_id if enabled, None otherwise
+        """
+        if not self.enabled:
+            logger.debug("Free targeting disabled - skipping enemy registration")
+            return None
+
+        if not hasattr(enemy, 'agent_id'):
+            logger.warning(f"Enemy {enemy} missing agent_id attribute")
+            return None
+
+        agent_id = enemy.agent_id
+
+        # Unregister from NPC registry if present (escalation case)
+        if agent_id in self.npc_registry:
+            del self.npc_registry[agent_id]
+            logger.debug(f"Removed {agent_id} from NPC registry (escalated to enemy)")
+
+        # Check if already registered (shouldn't happen, but be safe)
+        if agent_id in self.reverse_map:
+            existing_target_id = self.reverse_map[agent_id]
+            # Update the target_id_map to point to the new enemy object
+            self.target_id_map[existing_target_id] = enemy
+            logger.debug(f"Updated existing target ID {existing_target_id} for enemy {agent_id}")
+            return existing_target_id
+
+        # Generate unique target ID
+        target_id = generate_target_id()
+        attempts = 0
+        while target_id in self.target_id_map and attempts < 10:
+            target_id = generate_target_id()
+            attempts += 1
+
+        if attempts >= 10:
+            logger.error(f"Failed to generate unique target ID for enemy {agent_id}")
+            return None
+
+        # Register enemy
+        self.target_id_map[target_id] = enemy
+        self.reverse_map[agent_id] = target_id
+
+        enemy_name = getattr(enemy, 'name', 'Unknown')
+        logger.info(f"Registered enemy {enemy_name} ({agent_id}) as {target_id}")
+        return target_id
+
     def is_npc(self, agent_id: str) -> bool:
         """
         Check if agent_id is registered as NPC.

@@ -24,6 +24,7 @@ class ActionRouter:
     INVESTIGATION_KEYWORDS = ['investigate', 'search', 'examine', 'study', 'research', 'uncover']
     GROUNDING_KEYWORDS = ['ground', 'center', 'meditate', 'calm self', 'focus inward', 'discipline mind']
     PURGE_KEYWORDS = ['purge', 'cleanse', 'dephase', 'filter', 'contain void', 'isolate corruption']
+    BOND_FORMATION_KEYWORDS = ['form a bond', 'form bond', 'create bond', 'bond with', 'bonding ritual', 'oath with', 'swear bond', 'forge bond']
 
     def route_action(
         self,
@@ -118,7 +119,18 @@ class ActionRouter:
             else:
                 return ('Empathy', None, 'Dialogue (unskilled)')
 
-        # 3. INTER-PARTY RITUALS (social rituals involving other characters)
+        # 3. BOND FORMATION (explicit bond creation rituals)
+        # Check if this is a bond formation ritual (uses Intimacy Ritual skill)
+        is_bond_formation = any(kw in intent_lower for kw in self.BOND_FORMATION_KEYWORDS)
+
+        if is_bond_formation:
+            # Bond formation explicitly uses Intimacy Ritual skill
+            if 'Intimacy Ritual' in character_skills:
+                return ('Empathy', 'Intimacy Ritual', 'Bond formation ritual (witnessed ceremony)')
+            else:
+                return ('Empathy', None, 'Bond formation attempt (unskilled, likely to fail)')
+
+        # 4. INTER-PARTY RITUALS (social rituals involving other characters)
         # Check if this is a ritual that mentions another player
         is_inter_party_ritual = False
         if (is_explicit_ritual or action_type == 'ritual') and other_players:
@@ -138,11 +150,11 @@ class ActionRouter:
             else:
                 return ('Empathy', None, 'Inter-party interaction (unskilled)')
 
-        # 4. RITUALS (spiritual/magical rituals - opt-in only)
+        # 5. RITUALS (spiritual/magical rituals - opt-in only)
         if is_explicit_ritual or action_type == 'ritual':
             return ('Willpower', 'Astral Arts', 'Ritual action')
 
-        # 3. SENSING / ATTUNEMENT
+        # 6. SENSING / ATTUNEMENT
         if any(kw in intent_lower for kw in self.SENSING_KEYWORDS):
             if 'Attunement' in character_skills:
                 return ('Perception', 'Attunement', 'Sensing resonance/void currents')

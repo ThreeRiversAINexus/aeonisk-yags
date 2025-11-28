@@ -357,7 +357,8 @@ class JSONLLogger:
         goal: str = None,
         roll_formula: str = None,
         rationale: str = None,
-        outcome_tiers_with_narratives: Dict[str, Dict[str, str]] = None
+        outcome_tiers_with_narratives: Dict[str, Dict[str, str]] = None,
+        aware_agents: List[str] = None
     ):
         """
         Log a complete action resolution event with 6-tier outcome analysis.
@@ -480,6 +481,10 @@ class JSONLLogger:
         if outcome_tiers_with_narratives:
             # Full outcome tiers with narrative + mechanical_effect (dataset format)
             event["outcome_tiers_full"] = outcome_tiers_with_narratives
+
+        if aware_agents is not None:
+            # Stealth/secrets visibility control - which agents know about this action
+            event["aware_agents"] = aware_agents
 
         self._write_event(event)
 
@@ -3355,6 +3360,334 @@ class MechanicsEngine:
 
         # All checks passed (with capping applied)
         return DiscoveryValidation(is_valid=True, capped_items=capped_items)
+
+    def validate_bond_formation(
+        self,
+        character_name: str,
+        target_name: str,
+        character_bonds: List['Bond'],
+        character_void: int,
+        target_void: int,
+        origin: str,
+        witnesses: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Validate bond formation request before creating Bond object.
+
+        Checks:
+        - Bond limits (max 3, Freeborn max 1)
+        - Void prerequisites (both participants must have Void < 7)
+        - Duplicate bond prevention
+        - Witnessed requirement (warning if no witnesses)
+
+        Args:
+            character_name: Name of character initiating bond
+            target_name: Name of bond target
+            character_bonds: Current bonds for character
+            character_void: Character's current void score
+            target_void: Target's current void score
+            origin: Character's origin ("freeborn" or other)
+            witnesses: List of witness names
+
+        Returns:
+            Dict with 'valid' (bool), 'errors' (dict), 'warnings' (dict)
+        """
+        from .schemas.shared_types import Bond, BondStatus
+
+        errors = {}
+        warnings = {}
+
+        # Check bond limits
+        # Count all bonds (including dormant/severed) toward limit
+        bond_count = len(character_bonds)
+        max_bonds = 1 if origin.lower() == "freeborn" else 3
+
+        if bond_count >= max_bonds:
+            if origin.lower() == "freeborn":
+                errors['bond_limit'] = f"{character_name} is Freeborn and can only have maximum of 1 Bond (currently has {bond_count})"
+            else:
+                errors['bond_limit'] = f"{character_name} has reached maximum of 3 Bonds (currently has {bond_count})"
+
+        # Check Void prerequisites
+        if character_void >= 7:
+            errors['void_too_high'] = f"{character_name} has Void ≥ 7 ({character_void}) and cannot form new Bonds (existing Bonds become Dormant)"
+
+        if target_void >= 7:
+            errors['void_too_high'] = f"{target_name} has Void ≥ 7 ({target_void}) and cannot form new Bonds"
+
+        # Check for duplicate bonds
+        for bond in character_bonds:
+            if bond.character_b == target_name:
+                if bond.status == BondStatus.SEVERED:
+                    errors['severed_bond'] = f"Cannot re-form severed Bond with {target_name}. Requires cleansing ritual first."
+                else:
+                    errors['duplicate_bond'] = f"Bond already exists with {target_name} (status: {bond.status.value})"
+                break
+
+        # Check witnessed requirement (warning only, not hard failure)
+        if len(witnesses) == 0:
+            warnings['no_witness_warning'] = "Bond formation without witnesses is taboo and may not be Codex-registered"
+
+        # Determine if valid
+        is_valid = len(errors) == 0
+
+        return {
+            'valid': is_valid,
+            'errors': errors,
+            'warnings': warnings
+        }
+
+    def get_bond_ritual_bonus(
+        self,
+        caster_name: str,
+        caster_bonds: List['Bond'],
+        participants: List[str]
+    ) -> int:
+        """
+        Calculate ritual bonus from bonded participants.
+
+        Bonds provide +2 bonus to Ritual Rolls when performing rituals
+        together with bonded partners. Only ACTIVE bonds count.
+
+        Args:
+            caster_name: Name of ritual caster
+            caster_bonds: Caster's current bonds
+            participants: List of ritual participants (other characters present)
+
+        Returns:
+            +2 if any bonded partner is participating, 0 otherwise
+        """
+        from .schemas.shared_types import Bond, BondStatus
+
+        # Check if any bonded partner is participating
+        for bond in caster_bonds:
+            # Only ACTIVE bonds provide benefits
+            if bond.status != BondStatus.ACTIVE:
+                continue
+
+            # Check if bonded partner is participating
+            if bond.character_b in participants:
+                return 2
+
+        return 0
+
+    def get_bond_soak_bonus(
+        self,
+        defender_name: str,
+        defender_bonds: List['Bond'],
+        attacker_target: str
+    ) -> int:
+        """
+        Calculate Soak bonus from defending bonded partner.
+
+        Bonds provide +1 Soak when defending a bonded partner from attacks.
+        Only ACTIVE bonds count. Does NOT apply when defender is the target.
+
+        Args:
+            defender_name: Name of character defending
+            defender_bonds: Defender's current bonds
+            attacker_target: Name of character being attacked
+
+        Returns:
+            +1 if defending bonded partner, 0 otherwise
+        """
+        from .schemas.shared_types import Bond, BondStatus
+
+        # No bonus if defender is being attacked directly
+        if attacker_target == defender_name:
+            return 0
+
+        # Check if target is a bonded partner
+        for bond in defender_bonds:
+            # Only ACTIVE bonds provide benefits
+            if bond.status != BondStatus.ACTIVE:
+                continue
+
+            # Check if target is bonded partner
+            if bond.character_b == attacker_target:
+                return 1
+
+        return 0
+
+    def process_bond_sacrifice(
+        self,
+        character_name: str,
+        character_bonds: List['Bond'],
+        bond_target: str,
+        current_round: int
+    ) -> Dict[str, Any]:
+        """
+        Process bond sacrifice for +5 Willpower boost.
+
+        Sacrificing a bond grants:
+        - +5 to current Willpower-based roll
+        - Bond status → SEVERED
+        - +1 Void
+        - +1 Soul Debt (owed to severed partner)
+        - -1 Empathy penalty for the scene
+
+        Can sacrifice ACTIVE or DORMANT bonds, not SEVERED or VOID_LOCKED.
+        Once per session per bond (tracking not yet implemented).
+
+        Args:
+            character_name: Name of character sacrificing bond
+            character_bonds: Character's current bonds
+            bond_target: Name of bonded partner to sever
+            current_round: Current round number
+
+        Returns:
+            Dict with success, willpower_bonus, costs, and updated bond
+        """
+        from .schemas.shared_types import Bond, BondStatus
+
+        # Find the bond
+        target_bond = None
+        for bond in character_bonds:
+            if bond.character_b == bond_target:
+                target_bond = bond
+                break
+
+        # Validation
+        if not target_bond:
+            return {
+                'success': False,
+                'error': f"No bond exists with {bond_target}"
+            }
+
+        if target_bond.status == BondStatus.SEVERED:
+            return {
+                'success': False,
+                'error': f"Bond with {bond_target} is already severed and cannot be sacrificed again"
+            }
+
+        if target_bond.status == BondStatus.VOID_LOCKED:
+            return {
+                'success': False,
+                'error': f"Bond with {bond_target} is Void-Locked and cannot be sacrificed (too corrupted)"
+            }
+
+        # Process sacrifice
+        # Update bond status
+        target_bond.status = BondStatus.SEVERED
+
+        return {
+            'success': True,
+            'willpower_bonus': 5,
+            'void_change': 1,
+            'soul_debt_target': bond_target,
+            'soul_debt_change': 1,
+            'empathy_penalty': -1,
+            'empathy_condition': {
+                'name': 'Bond Sacrifice Trauma',
+                'penalty': -1,
+                'duration': 'scene',
+                'description': f"Severed bond with {bond_target}, heart is heavy"
+            },
+            'bond_status': BondStatus.SEVERED,
+            'narrative': f"{character_name} sacrificed their bond with {bond_target} for a desperate surge of power"
+        }
+
+    def check_bond_dormancy(
+        self,
+        character_name: str,
+        character_bonds: List['Bond'],
+        current_void: int,
+        previous_void: int
+    ) -> Dict[str, Any]:
+        """
+        Check and update bond statuses based on Void score changes.
+
+        Automatic transitions:
+        - Void ≥ 7: ACTIVE → DORMANT (no mechanical benefits)
+        - Void < 7: DORMANT → ACTIVE (benefits restored)
+        - Void = 10: ACTIVE/DORMANT → VOID_LOCKED (permanent corruption)
+
+        SEVERED bonds never transition (require cleansing ritual to restore).
+        VOID_LOCKED bonds never revert (permanent corruption).
+
+        Args:
+            character_name: Name of character
+            character_bonds: Character's current bonds
+            current_void: Current void score (0-10)
+            previous_void: Previous void score (for transition detection)
+
+        Returns:
+            Dict with status_changed, transitions, reactivations, void_locked, changes (for JSONL)
+        """
+        from .schemas.shared_types import Bond, BondStatus
+
+        # Early return if no bonds
+        if not character_bonds:
+            return {
+                'status_changed': False,
+                'transitions': 0,
+                'reactivations': 0,
+                'void_locked': False,
+                'changes': []
+            }
+
+        transitions = 0
+        reactivations = 0
+        void_locked_count = 0
+        changes = []
+
+        # Check each bond for status transitions
+        for bond in character_bonds:
+            old_status = bond.status
+
+            # VOID_LOCKED and SEVERED bonds never change
+            if bond.status in [BondStatus.VOID_LOCKED, BondStatus.SEVERED]:
+                continue
+
+            # Void = 10: Lock all non-severed bonds (permanent)
+            if current_void == 10:
+                bond.status = BondStatus.VOID_LOCKED
+                void_locked_count += 1
+                changes.append({
+                    'bond_id': bond.bond_id,
+                    'character_a': bond.character_a,
+                    'character_b': bond.character_b,
+                    'old_status': old_status,
+                    'new_status': BondStatus.VOID_LOCKED,
+                    'reason': 'void_corruption',
+                    'void_score': current_void
+                })
+
+            # Void ≥ 7: ACTIVE → DORMANT
+            elif current_void >= 7 and bond.status == BondStatus.ACTIVE:
+                bond.status = BondStatus.DORMANT
+                transitions += 1
+                changes.append({
+                    'bond_id': bond.bond_id,
+                    'character_a': bond.character_a,
+                    'character_b': bond.character_b,
+                    'old_status': old_status,
+                    'new_status': BondStatus.DORMANT,
+                    'reason': 'void_threshold',
+                    'void_score': current_void
+                })
+
+            # Void < 7: DORMANT → ACTIVE (restoration)
+            elif current_void < 7 and bond.status == BondStatus.DORMANT:
+                bond.status = BondStatus.ACTIVE
+                reactivations += 1
+                changes.append({
+                    'bond_id': bond.bond_id,
+                    'character_a': bond.character_a,
+                    'character_b': bond.character_b,
+                    'old_status': old_status,
+                    'new_status': BondStatus.ACTIVE,
+                    'reason': 'void_recovery',
+                    'void_score': current_void
+                })
+
+        return {
+            'status_changed': len(changes) > 0,
+            'transitions': transitions,
+            'reactivations': reactivations,
+            'void_locked': void_locked_count > 0,
+            'changes': changes
+        }
 
     def process_item_effect(
         self,

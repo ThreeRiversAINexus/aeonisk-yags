@@ -16,7 +16,10 @@ from . import custom_log_levels  # noqa: F401
 logger = logging.getLogger(__name__)
 
 
-def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
+def extract_from_structured_resolution(
+    resolution_obj,
+    extraction_context: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Extract state changes from a structured ActionResolution object.
 
@@ -25,6 +28,7 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
 
     Args:
         resolution_obj: ActionResolution instance from structured output
+        extraction_context: Optional context with 'available_characters' list for fuzzy name matching
 
     Returns:
         Dict with state changes (same format as parse_state_changes)
@@ -51,11 +55,38 @@ def extract_from_structured_resolution(resolution_obj) -> Dict[str, Any]:
 
     logger.debug("Extracting state changes from structured ActionResolution")
 
-    # Extract void changes
+    # Extract void changes (with fuzzy name matching)
     logger.trace(f"Processing {len(resolution_obj.effects.void_changes)} void changes")
     void_change = sum(vc.amount for vc in resolution_obj.effects.void_changes)
     void_reasons = [vc.reason for vc in resolution_obj.effects.void_changes]
-    void_target_character = resolution_obj.effects.void_changes[0].character_name if resolution_obj.effects.void_changes else None
+
+    # Resolve character name using fuzzy matching if available
+    void_target_character = None
+    if resolution_obj.effects.void_changes:
+        from .name_matching import match_character_name
+
+        raw_name = resolution_obj.effects.void_changes[0].character_name
+        available_characters = extraction_context.get('available_characters', []) if extraction_context else []
+
+        if available_characters:
+            matched_name, is_fuzzy, error = match_character_name(
+                raw_name,
+                available_characters,
+                context="void_change_processing"
+            )
+
+            if matched_name:
+                void_target_character = matched_name
+                if is_fuzzy:
+                    logger.info(f"Fuzzy matched void target: '{raw_name}' → '{matched_name}'")
+            else:
+                # No match found - log error but use raw name (will fail later with clearer error)
+                logger.warning(f"Could not match void target '{raw_name}': {error}")
+                void_target_character = raw_name
+        else:
+            # No character list available, use raw name
+            void_target_character = raw_name
+
     logger.trace(f"Void: total={void_change}, target={void_target_character}, reasons={void_reasons}")
 
     # Extract soulcredit changes

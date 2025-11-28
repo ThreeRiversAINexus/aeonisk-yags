@@ -27,6 +27,7 @@ from .outcome_parser import (
 from .enemy_combat import EnemyCombatManager
 from .tactical_resolution import ResolutionState
 from .agent_prompt_logger import AgentPromptLogger
+from .awareness import filter_narrations_for_agent, NarrationEntry
 
 logger = logging.getLogger(__name__)
 
@@ -603,7 +604,477 @@ class SelfPlayingSession:
                         logger.debug(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
 
         logger.debug(f"Created {len(self.agents)} agents")
-        
+
+        # Auto-generate bonds if enabled (BEFORE loading explicit starting_bonds)
+        if 'generate_bonds' in self.config and self.config['generate_bonds'].get('enabled', False):
+            try:
+                await self._generate_bonds_automatically(player_agents)
+            except Exception as e:
+                logger.error(f"Failed to auto-generate bonds: {e}")
+
+        # Load starting_bonds from config (AFTER agents created)
+        if 'starting_bonds' in self.config and self.config['starting_bonds']:
+            try:
+                from .schemas.shared_types import Bond, BondType, BondStatus
+
+                bond_configs = self.config['starting_bonds']
+                bonds_loaded = 0
+
+                # Validate and create bonds
+                for idx, bond_config in enumerate(bond_configs):
+                    # Required fields
+                    if 'character_a' not in bond_config:
+                        logger.warning(f"Starting bond {idx} missing 'character_a', skipping")
+                        continue
+                    if 'character_b' not in bond_config:
+                        logger.warning(f"Starting bond {idx} missing 'character_b', skipping")
+                        continue
+                    if 'bond_type' not in bond_config:
+                        logger.warning(f"Starting bond {idx} missing 'bond_type', skipping")
+                        continue
+
+                    char_a = bond_config['character_a']
+                    char_b = bond_config['character_b']
+
+                    # Find characters in player_agents (now they exist!)
+                    char_a_agent = None
+                    char_b_agent = None
+                    for agent in player_agents:
+                        if hasattr(agent, 'character_state') and agent.character_state.name == char_a:
+                            char_a_agent = agent
+                        if hasattr(agent, 'character_state') and agent.character_state.name == char_b:
+                            char_b_agent = agent
+
+                    if not char_a_agent:
+                        logger.warning(f"Starting bond {idx}: character '{char_a}' not found in party, skipping")
+                        continue
+                    if not char_b_agent:
+                        logger.warning(f"Starting bond {idx}: character '{char_b}' not found in party, skipping")
+                        continue
+
+                    # Validate not self-bond
+                    if char_a == char_b:
+                        logger.warning(f"Starting bond {idx}: cannot bond '{char_a}' with themselves, skipping")
+                        continue
+
+                    # Validate bond type
+                    try:
+                        bond_type = BondType(bond_config['bond_type'])
+                    except ValueError:
+                        logger.warning(f"Starting bond {idx}: invalid bond_type '{bond_config['bond_type']}', skipping")
+                        continue
+
+                    # Create bond instance
+                    bond_id = f"bond_{bonds_loaded + 1:03d}"
+                    bond = Bond(
+                        bond_id=bond_id,
+                        character_a=char_a,
+                        character_b=char_b,
+                        bond_type=bond_type,
+                        status=BondStatus.ACTIVE,
+                        formed_round=0,  # Starting bonds formed before session
+                        witnessed_by=bond_config.get('witnessed_by', []),
+                        narrative_description=bond_config.get('narrative', '')
+                    )
+
+                    # Add bond to both characters
+                    if hasattr(char_a_agent.character_state, 'bonds'):
+                        char_a_agent.character_state.bonds.append(bond)
+                    if hasattr(char_b_agent.character_state, 'bonds'):
+                        char_b_agent.character_state.bonds.append(bond)
+
+                    bonds_loaded += 1
+                    logger.info(f"Loaded starting bond: {char_a} ↔ {char_b} ({bond_type.value})")
+
+                if bonds_loaded > 0:
+                    print(f"✓ Loaded {bonds_loaded} starting bond(s)")
+            except Exception as e:
+                logger.warning(f"Failed to load starting bonds: {e}")
+
+    async def _generate_bonds_automatically(self, player_agents):
+        """
+        Auto-generate bond network and narratives using LLM.
+
+        Called when config has generate_bonds.enabled = true.
+        Uses bond_backstory_generator to create bonds deterministically,
+        then generates narratives via LLM.
+        """
+        from .schemas.shared_types import Bond, BondType, BondStatus
+        import random
+
+        logger.info("🔗 Auto-generating bond network...")
+
+        # Extract generation parameters
+        gen_config = self.config.get('generate_bonds', {})
+        min_bonds = gen_config.get('min_bonds', 2)
+        max_bonds = gen_config.get('max_bonds', 5)
+        use_scenario_context = gen_config.get('use_scenario_context', True)
+
+        # Gather character info
+        character_names = []
+        factions = {}
+        archetypes = {}
+
+        for agent in player_agents:
+            if hasattr(agent, 'character_state'):
+                name = agent.character_state.name
+                character_names.append(name)
+                factions[name] = agent.character_state.faction
+                # Get archetype from config (not stored in character_state)
+                for player_config in self.config.get('agents', {}).get('players', []):
+                    if player_config['name'] == name:
+                        archetypes[name] = player_config.get('archetype', 'Unknown')
+                        break
+
+        if len(character_names) < 2:
+            logger.info("Party size < 2, skipping bond generation")
+            return
+
+        # Generate bond structure (deterministic)
+        bond_suggestions = self._generate_bond_matrix(
+            character_names=character_names,
+            factions=factions,
+            archetypes=archetypes,
+            min_bonds=min_bonds,
+            max_bonds=max_bonds,
+            random_seed=self.random_seed
+        )
+
+        if not bond_suggestions:
+            logger.info("No bonds generated")
+            return
+
+        # Print bond matrix structure
+        print("\n🔗 Generated Bond Network:")
+        for idx, suggestion in enumerate(bond_suggestions, 1):
+            print(f"  {idx}. {suggestion['character_a']} ↔ {suggestion['character_b']} ({suggestion['bond_type']})")
+        print()
+
+        # Generate narratives via LLM
+        scenario_context = self.config.get('_scenario_hint', '') if use_scenario_context else None
+        bond_suggestions = await self._generate_bond_narratives(
+            bond_suggestions=bond_suggestions,
+            character_names=character_names,
+            factions=factions,
+            archetypes=archetypes,
+            scenario_context=scenario_context
+        )
+
+        # Convert to Bond instances and assign to characters
+        bonds_created = 0
+        for idx, suggestion in enumerate(bond_suggestions):
+            # Find character agents
+            char_a_agent = None
+            char_b_agent = None
+            for agent in player_agents:
+                if hasattr(agent, 'character_state'):
+                    if agent.character_state.name == suggestion['character_a']:
+                        char_a_agent = agent
+                    if agent.character_state.name == suggestion['character_b']:
+                        char_b_agent = agent
+
+            if not char_a_agent or not char_b_agent:
+                logger.warning(f"Could not find agents for bond {suggestion['character_a']} ↔ {suggestion['character_b']}")
+                continue
+
+            # Create bond
+            bond_id = f"bond_gen_{idx:03d}"
+            try:
+                bond_type = BondType(suggestion['bond_type'])
+            except ValueError:
+                logger.warning(f"Invalid bond type '{suggestion['bond_type']}', using KINSHIP")
+                bond_type = BondType.KINSHIP
+
+            bond = Bond(
+                bond_id=bond_id,
+                character_a=suggestion['character_a'],
+                character_b=suggestion['character_b'],
+                bond_type=bond_type,
+                status=BondStatus.ACTIVE,
+                formed_round=0,
+                witnessed_by=suggestion.get('witnessed_by', []),
+                narrative_description=suggestion.get('narrative', '')
+            )
+
+            # Add to both characters
+            if hasattr(char_a_agent.character_state, 'bonds'):
+                char_a_agent.character_state.bonds.append(bond)
+            if hasattr(char_b_agent.character_state, 'bonds'):
+                char_b_agent.character_state.bonds.append(bond)
+
+            bonds_created += 1
+            logger.info(f"Generated bond: {suggestion['character_a']} ↔ {suggestion['character_b']} ({bond_type.value})")
+
+        # Print bond backstories
+        print(f"\n📖 Bond Backstories ({bonds_created} bonds):")
+        for idx, suggestion in enumerate(bond_suggestions, 1):
+            print(f"\n  {idx}. {suggestion['character_a']} ↔ {suggestion['character_b']} ({suggestion['bond_type']})")
+            narrative = suggestion.get('narrative', 'No narrative generated')
+            # Wrap text at 80 chars for readability
+            import textwrap
+            wrapped = textwrap.fill(narrative, width=76, initial_indent="     ", subsequent_indent="     ")
+            print(wrapped)
+        print()
+
+    def _generate_bond_matrix(self, character_names, factions, archetypes, min_bonds, max_bonds, random_seed):
+        """Generate bond network structure (no narratives yet)."""
+        if random_seed is not None:
+            random.seed(random_seed)
+
+        party_size = len(character_names)
+        bond_counts = {name: 0 for name in character_names}
+        num_bonds = min(max_bonds, max(min_bonds, party_size))
+
+        bonds = []
+        attempts = 0
+        max_attempts = 100
+
+        while len(bonds) < num_bonds and attempts < max_attempts:
+            attempts += 1
+            char_a, char_b = random.sample(character_names, 2)
+
+            # Check constraints
+            if (char_a, char_b) in bonds or (char_b, char_a) in bonds:
+                continue
+            if bond_counts[char_a] >= 3 or bond_counts[char_b] >= 3:
+                continue
+            if factions.get(char_a) == "freeborn" and bond_counts[char_a] >= 1:
+                continue
+            if factions.get(char_b) == "freeborn" and bond_counts[char_b] >= 1:
+                continue
+
+            bonds.append((char_a, char_b))
+            bond_counts[char_a] += 1
+            bond_counts[char_b] += 1
+
+        # Ensure all characters have at least 1 bond
+        unbonded = [name for name, count in bond_counts.items() if count == 0]
+        for char in unbonded:
+            candidates = [
+                other for other in character_names
+                if other != char and bond_counts[other] < 3
+                and (char, other) not in bonds and (other, char) not in bonds
+            ]
+            if factions.get(char) == "freeborn" and bond_counts[char] >= 1:
+                continue
+            if candidates:
+                partner = random.choice(candidates)
+                bonds.append((char, partner))
+                bond_counts[char] += 1
+                bond_counts[partner] += 1
+
+        # Assign bond types
+        suggestions = []
+        for char_a, char_b in bonds:
+            bond_type = self._suggest_bond_type(char_a, char_b, factions, archetypes)
+            witness_candidates = [n for n in character_names if n != char_a and n != char_b]
+            witnessed_by = [random.choice(witness_candidates)] if witness_candidates and random.random() < 0.4 else []
+
+            suggestions.append({
+                'character_a': char_a,
+                'character_b': char_b,
+                'bond_type': bond_type,
+                'narrative': '',
+                'witnessed_by': witnessed_by
+            })
+
+        return suggestions
+
+    def _suggest_bond_type(self, char_a, char_b, factions, archetypes):
+        """Suggest bond type based on factions/archetypes."""
+        import random
+
+        faction_a = factions.get(char_a, '')
+        faction_b = factions.get(char_b, '')
+        same_faction = (faction_a == faction_b)
+        is_freeborn = (faction_a == "freeborn" or faction_b == "freeborn")
+
+        if is_freeborn:
+            return random.choice(["kinship", "passion"])
+        if same_faction:
+            return random.choice(["kinship", "faction"])
+        return random.choice(["passion", "debt", "voidward"])
+
+    async def _generate_bond_narratives(self, bond_suggestions, character_names, factions, archetypes, scenario_context):
+        """Generate narratives using DM's LLM provider."""
+        if not bond_suggestions:
+            return []
+
+        # Find DM agent to use its LLM provider
+        dm_agent = None
+        for agent in self.agents:
+            if hasattr(agent, 'agent_id') and 'dm' in agent.agent_id:
+                dm_agent = agent
+                break
+
+        if not dm_agent or not hasattr(dm_agent, 'llm_provider'):
+            logger.warning("No DM LLM provider found, using generic narratives")
+            for bond in bond_suggestions:
+                bond['narrative'] = f"{bond['character_a']} and {bond['character_b']} share a {bond['bond_type']} bond formed through shared hardship."
+            return bond_suggestions
+
+        # Build prompt
+        party_info = "\n".join([
+            f"- {name} ({archetypes.get(name, 'Unknown')}, {factions.get(name, 'Unknown')} faction)"
+            for name in character_names
+        ])
+
+        bond_list = "\n".join([
+            f"{i+1}. {b['character_a']} ↔ {b['character_b']} ({b['bond_type']})"
+            for i, b in enumerate(bond_suggestions)
+        ])
+
+        # Determine if this is a social scenario
+        is_social = scenario_context and any(word in scenario_context.lower() for word in ['social', 'network', 'gymbar', 'lounge', 'bar', 'dialogue'])
+
+        if is_social:
+            prompt = f"""Generate bond backstories for an Aeonisk RPG party in a SOCIAL scenario (networking event, no combat).
+
+**Party:**
+{party_info}
+
+**Bonds:**
+{bond_list}
+
+**Scenario:** {scenario_context if scenario_context else "Social networking event"}
+
+**Requirements:**
+1. Each narrative: 1-2 sentences explaining HOW the bond formed
+2. Focus on SOCIAL connections (business deals, shared interests, mentorship, attraction, debts)
+3. Bonds should create natural conversation hooks and inter-character dynamics
+4. Reference professional relationships, past collaborations, or personal connections
+5. Tone: Professional but with personal depth (not combat/trauma focused)
+6. Make bonds RELEVANT to the social setting
+
+**Output format:** Numbered list ONLY, one line per bond, no extra text.
+
+Example:
+1. Maya closed a major Seed deal for Marcus's security firm last year, and he owes her a favor worth 10,000 drip.
+2. Sienna counseled Echo through void-corruption trauma, and Echo trusts them completely despite their espionage background.
+3. Marcus and Sienna met at the gym and bonded over shared dedication to physical and spiritual discipline.
+
+Generate narratives (numbered list only):"""
+        else:
+            prompt = f"""Generate bond backstories for an Aeonisk RPG party.
+
+**Party:**
+{party_info}
+
+**Bonds:**
+{bond_list}
+
+**Scenario:** {scenario_context if scenario_context else "Void investigation mission"}
+
+**Requirements:**
+1. Each narrative: 1-2 sentences explaining HOW the bond formed
+2. Reference void corruption, Sovereign Rupture, or specific factions/locations
+3. Noir/sci-fi tone (dark, gritty, survival-focused)
+4. Avoid generic phrases like "formed through shared hardship"
+
+**Output format:** Numbered list ONLY, one line per bond, no extra text.
+
+Example:
+1. Alice and Bob are siblings, separated during the Sovereign Rupture but reunited when Alice found Bob in a Voidguard facility.
+2. Charlie owes Dana a life-debt after Dana pulled them from a void-corrupted station seconds before reactor meltdown.
+
+Generate narratives (numbered list only):"""
+
+        try:
+            # Use DM's LLM provider client directly for text generation
+            provider_type = type(dm_agent.llm_provider).__name__
+
+            if 'Claude' in provider_type and hasattr(dm_agent.llm_provider, 'client'):
+                # Anthropic/Claude provider
+                messages_response = dm_agent.llm_provider.client.messages.create(
+                    model=dm_agent.llm_provider.config.model,
+                    max_tokens=800,
+                    temperature=0.9,
+                    system="You are a creative writer for the Aeonisk dark sci-fi setting.",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                response = messages_response.content[0].text
+
+            elif 'OpenAI' in provider_type and hasattr(dm_agent.llm_provider, 'client'):
+                # OpenAI provider (gpt-5-mini uses max_completion_tokens instead of max_tokens)
+                # Note: gpt-5-mini only supports temperature=1.0
+                chat_response = dm_agent.llm_provider.client.chat.completions.create(
+                    model=dm_agent.llm_provider.config.model,
+                    max_completion_tokens=800,  # gpt-5-mini parameter name
+                    temperature=1.0,  # gpt-5-mini only supports 1.0
+                    messages=[
+                        {"role": "system", "content": "You are a creative writer for the Aeonisk dark sci-fi setting."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                response = chat_response.choices[0].message.content
+                # Check for refusal
+                if hasattr(chat_response.choices[0].message, 'refusal') and chat_response.choices[0].message.refusal:
+                    logger.warning(f"OpenAI refused generation: {chat_response.choices[0].message.refusal}")
+                    response = ""
+                if not response or response.strip() == "":
+                    logger.warning(f"OpenAI returned empty response. Finish reason: {chat_response.choices[0].finish_reason}")
+
+            else:
+                # Fallback for unknown providers
+                logger.warning(f"Unknown LLM provider type: {provider_type}, using generic narratives")
+                response = "Generic narrative for all bonds."
+
+            # Debug: log raw LLM response
+            logger.debug(f"LLM narrative response: {response[:500]}")
+
+            # Parse numbered list
+            lines = [line.strip() for line in response.strip().split('\n') if line.strip()]
+            narratives = []
+            for line in lines:
+                if '. ' in line and line[0].isdigit():
+                    # Split on first ". " to handle numbered list format
+                    parts = line.split('. ', 1)
+                    if len(parts) == 2:
+                        narratives.append(parts[1].strip())
+                elif line and not line[0].isdigit():
+                    # Non-numbered line, might be continuation
+                    if narratives:
+                        # Append to last narrative if it looks like a continuation
+                        narratives[-1] += " " + line.strip()
+                    else:
+                        narratives.append(line.strip())
+
+            # Assign narratives (with context-aware fallbacks)
+            for i, bond in enumerate(bond_suggestions):
+                if i < len(narratives) and narratives[i]:
+                    bond['narrative'] = narratives[i]
+                else:
+                    # Context-aware fallback based on bond type and scenario
+                    if is_social:
+                        fallbacks = {
+                            'debt': f"{bond['character_a']} negotiated a crucial deal for {bond['character_b']} last year, establishing a professional debt.",
+                            'passion': f"{bond['character_a']} and {bond['character_b']} met at a networking event and formed an intense personal connection.",
+                            'kinship': f"{bond['character_a']} and {bond['character_b']} grew up in the same station district and consider each other family.",
+                            'faction': f"{bond['character_a']} and {bond['character_b']} work together regularly and share faction loyalties.",
+                            'voidward': f"{bond['character_a']} and {bond['character_b']} both survived void exposure and understand each other's struggles.",
+                            'ascendancy': f"{bond['character_a']} mentored {bond['character_b']} in professional skills, forming a lasting bond."
+                        }
+                    else:
+                        fallbacks = {
+                            'debt': f"{bond['character_a']} saved {bond['character_b']}'s life during a void incursion.",
+                            'passion': f"{bond['character_a']} and {bond['character_b']} became lovers while surviving a corrupted station.",
+                            'kinship': f"{bond['character_a']} and {bond['character_b']} are siblings separated during the Sovereign Rupture.",
+                            'faction': f"{bond['character_a']} and {bond['character_b']} bonded through shared faction service.",
+                            'voidward': f"{bond['character_a']} and {bond['character_b']} survived void corruption together.",
+                            'ascendancy': f"{bond['character_a']} trained {bond['character_b']} in combat during a dangerous mission."
+                        }
+                    bond['narrative'] = fallbacks.get(bond['bond_type'],
+                        f"{bond['character_a']} and {bond['character_b']} share a {bond['bond_type']} bond.")
+
+            logger.info(f"Generated {len(narratives)} bond narratives via LLM")
+            return bond_suggestions
+
+        except Exception as e:
+            logger.error(f"Failed to generate narratives via LLM: {e}")
+            for bond in bond_suggestions:
+                bond['narrative'] = f"{bond['character_a']} and {bond['character_b']} share a {bond['bond_type']} bond."
+            return bond_suggestions
+
     async def _wait_for_agents_ready(self):
         """Wait for all agents to signal readiness."""
         # Simple wait - you could enhance with proper synchronization
@@ -1126,7 +1597,7 @@ class SelfPlayingSession:
                                 narrative_context += f"{synthesis_narration}\n"
 
                         # PHASE 4: Add recent narrative context (filter out NPC reasoning echoes)
-                        # Include ALL action resolutions from current round
+                        # Include ONLY NEW action resolutions (use NPC memory to deduplicate)
                         recent_narrative = []
 
                         # Get list of NPC names to filter out reasoning echoes
@@ -1134,27 +1605,41 @@ class SelfPlayingSession:
                         if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
                             npc_names = [npc.name for npc in self.shared_state.npc_agents if npc.is_active]
 
-                        # Add recent player narrations (stored by player agents for context)
+                        # Collect all narrations first, filtering by awareness
+                        all_narrations = []
                         for player_agent in player_agents:
                             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                                # Get ALL narrations (not just last 2) to show full current round context
-                                for narration in player_agent.recent_narrations:
+                                # Filter narrations based on what this NPC can see
+                                visible_narrations = filter_narrations_for_agent(
+                                    agent.agent_id,
+                                    player_agent.recent_narrations
+                                )
+                                for narration in visible_narrations:
+                                    # Get text from NarrationEntry or use string directly
+                                    narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
                                     # Skip if this looks like NPC reasoning echo
-                                    # (contains NPC name followed immediately by reasoning text)
                                     is_npc_reasoning = any(
-                                        narration.startswith(f"[{npc_name}] {npc_name}")
+                                        narration_text.startswith(f"[{npc_name}] {npc_name}")
                                         for npc_name in npc_names
                                     )
-
                                     if not is_npc_reasoning:
-                                        # Keep full narration - this is juicy coordination info!
-                                        recent_narrative.append(narration)
+                                        all_narrations.append(narration_text)
+
+                        # Use NPC's memory to filter out already-seen events
+                        if hasattr(agent, 'memory') and agent.memory:
+                            recent_narrative = agent.memory.filter_unseen_events(all_narrations)
+                            # Mark these events as seen for next round
+                            for event in recent_narrative:
+                                agent.memory.mark_event_seen(event)
+                        else:
+                            # Fallback: show last 5 narrations if no memory
+                            recent_narrative = all_narrations[-5:] if len(all_narrations) > 5 else all_narrations
 
                         if recent_narrative:
                             if not narrative_context:
                                 narrative_context += "\n\n# 📖 Recent Story Events\n\n"
                             narrative_context += "## Recent Action Outcomes:\n"
-                            # Show ALL recent resolutions (not just last 3)
+                            # Show only NEW/unseen events
                             for i, narration in enumerate(recent_narrative, 1):
                                 narrative_context += f"{i}. {narration}\n"
                             narrative_context += "\n"
@@ -1208,6 +1693,17 @@ class SelfPlayingSession:
                         npc_action = await agent.llm_client.declare_action(context)
 
                         if npc_action:
+                            # Record action in NPC's memory (so they don't repeat themselves)
+                            if hasattr(agent, 'memory') and agent.memory:
+                                current_round = mechanics.current_round if mechanics else 0
+                                agent.memory.record_own_action(
+                                    round_num=current_round,
+                                    action_type=npc_action.action_type,
+                                    dialogue=npc_action.dialogue_content if npc_action.action_type in ['dialogue', 'plead'] else None,
+                                    target=npc_action.target,
+                                    reason=npc_action.reason
+                                )
+
                             # Print detailed NPC declaration info
                             health_str = f"{agent.health}/{agent.max_health} HP"
                             disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(agent.disposition, "❓")
@@ -3240,7 +3736,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'void_score': player.character_state.void_score,
                 'soulcredit': player.character_state.soulcredit,
                 'goals': player.character_state.goals,
-                'bonds': player.character_state.bonds,
+                'bonds': [bond.model_dump() for bond in player.character_state.bonds],  # Serialize Bond objects
             })
 
         # Filter config to only include active players
@@ -3412,12 +3908,27 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         # Convert any custom objects to dictionaries to avoid Python object serialization
         def safe_dict_conversion(obj):
             """Safely convert custom objects to dictionaries."""
-            if hasattr(obj, '__dict__'):
-                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items()}
+            from pydantic import BaseModel
+
+            # Handle Pydantic models (like Bond)
+            if isinstance(obj, BaseModel):
+                return safe_dict_conversion(obj.model_dump())
+            # Handle enums
+            elif hasattr(obj, 'value') and hasattr(obj, 'name'):
+                return obj.value
+            # Handle regular objects with __dict__
+            elif hasattr(obj, '__dict__') and not isinstance(obj, type):
+                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
+            # Handle dicts
             elif isinstance(obj, dict):
-                return {k: safe_dict_conversion(v) for k, v in obj.items()}
+                return {k: safe_dict_conversion(v) for k, v in list(obj.items())}
+            # Handle lists/tuples
             elif isinstance(obj, (list, tuple)):
                 return [safe_dict_conversion(item) for item in obj]
+            # Handle sets
+            elif isinstance(obj, set):
+                return [safe_dict_conversion(item) for item in obj]
+            # Return primitives as-is
             else:
                 return obj
         

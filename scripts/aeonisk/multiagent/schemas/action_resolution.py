@@ -373,6 +373,26 @@ class ActionResolution(BaseModel):
         description="STRONGLY RECOMMENDED for ML training: All 6 outcome tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success) with narrative (50-500 chars) + mechanical_effect (10-300 chars) for each tier. See ml_training_tiers section in system prompt for detailed instructions and examples."
     )
 
+    # ========== Awareness Control ==========
+
+    aware_agents: List[str] = Field(
+        default_factory=list,
+        description="""Which agents are aware of this action's outcome.
+
+        VISIBILITY CONTROL for stealth, secrets, and hidden information:
+        - Empty list [] = PUBLIC (all agents see this narration) - use for loud combat, failures noticed by others
+        - Populated list = PRIVATE (only listed agents see it) - use for stealth success, secret actions
+
+        Examples:
+        - Stealth success: ["dm", "player_echo"] - only DM and acting player know
+        - Failed stealth: [] - everyone nearby heard/saw the failure
+        - Secret conversation: ["dm", "player_ash", "npc_informant"] - only participants know
+        - Loud combat: [] - public, everyone in area aware
+
+        Agent ID formats: "dm", "player_<name>", "npc_<name>", "enemy_<template>_<id>"
+        """
+    )
+
     @field_validator('outcome_tiers', mode='before')
     @classmethod
     def parse_outcome_tiers_json(cls, v):
