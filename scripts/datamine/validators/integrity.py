@@ -279,21 +279,28 @@ class IntegrityValidator:
                 )
 
         # Check total calculation consistency
+        # YAGS uses MULTIPLICATIVE formula: attr × skill + d20 + modifier
         total = roll.get('total')
         attr_val = roll.get('attr_val', 0)
         skill_val = roll.get('skill_val', 0)
         modifier = roll.get('modifier', 0)
+        # Also check 'ability' field which stores attr × skill
+        ability = roll.get('ability')
 
         if total is not None and d20 is not None:
-            expected_base = d20 + attr_val + skill_val + modifier
-            # Allow some variance for other modifiers not tracked
+            # Use ability if present (already computed attr × skill), otherwise compute it
+            if ability is not None:
+                expected_base = ability + d20 + modifier
+            else:
+                expected_base = (attr_val * skill_val) + d20 + modifier
+            # Allow some variance for other modifiers not tracked (wounds, conditions, etc.)
             if abs(total - expected_base) > 10:
                 result.add_warning(
                     ValidatorType.INTEGRITY,
                     f"Roll total ({total}) differs significantly from expected ({expected_base})",
                     line_number=line_num,
                     event_type='action_resolution',
-                    details={'d20': d20, 'attr_val': attr_val, 'skill_val': skill_val}
+                    details={'d20': d20, 'attr_val': attr_val, 'skill_val': skill_val, 'ability': ability}
                 )
 
     def _validate_effects(

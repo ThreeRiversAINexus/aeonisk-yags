@@ -199,6 +199,42 @@ class TestIntegrityValidator:
         assert not result.passed
         assert any('Invalid d20 value' in e.message for e in result.errors)
 
+    def test_roll_total_uses_multiplicative_formula(self):
+        """Roll total validation should use YAGS multiplicative formula: attr × skill + d20."""
+        validator = IntegrityValidator(require_session_end=False)
+        result = ValidationResult(session_path=Path('test.jsonl'), passed=True)
+        # YAGS formula: 4 × 5 + 8 = 28 (NOT 4 + 5 + 8 = 17)
+        events = [
+            make_event('session_start', line_num=1),
+            make_event('action_resolution', line_num=2, roll={
+                'd20': 8,
+                'attr_val': 4,
+                'skill_val': 5,
+                'total': 28,  # Correct: 4 × 5 + 8 = 28
+            }),
+        ]
+        validator.validate(events, result)
+        # Should pass - no warnings about roll mismatch
+        assert result.passed
+        assert not any('differs significantly' in w.message for w in result.warnings)
+
+    def test_roll_total_with_ability_field(self):
+        """Roll total validation should use ability field when present."""
+        validator = IntegrityValidator(require_session_end=False)
+        result = ValidationResult(session_path=Path('test.jsonl'), passed=True)
+        # When ability is present, it's already attr × skill
+        events = [
+            make_event('session_start', line_num=1),
+            make_event('action_resolution', line_num=2, roll={
+                'd20': 10,
+                'ability': 20,  # Pre-computed 4 × 5 = 20
+                'total': 30,    # 20 + 10 = 30
+            }),
+        ]
+        validator.validate(events, result)
+        assert result.passed
+        assert not any('differs significantly' in w.message for w in result.warnings)
+
 
 class TestLLMErrorValidator:
     """Tests for LLMErrorValidator."""

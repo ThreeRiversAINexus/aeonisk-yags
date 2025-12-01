@@ -20,7 +20,9 @@ from aeonisk.multiagent.mechanics import (
     Difficulty,
     OutcomeTier,
     Condition,
-    JSONLLogger
+    JSONLLogger,
+    apply_wound_damage,
+    apply_mixed_damage,
 )
 
 
@@ -919,6 +921,79 @@ class TestJSONLLogging:
         # Correlation should indicate round 1
         assert action_event['correlation_id'] is not None, "correlation_id should be set by start_round()"
         assert 'round_1' in action_event['correlation_id'], "correlation_id should include round number"
+
+
+# ============================================================================
+# Damage Application Tests
+# ============================================================================
+
+class TestDamageApplication:
+    """Test damage application functions - health should never go negative."""
+
+    def test_apply_wound_damage_normal(self):
+        """Test normal wound damage doesn't make health negative."""
+        # Create a mock target with health
+        target = MagicMock()
+        target.wounds = 0
+        target.health = 20
+
+        result = apply_wound_damage(target, 10)
+
+        # Health should be 10, not negative
+        assert target.health == 10
+        assert target.wounds == 2  # 10 damage // 5 = 2 wounds
+
+    def test_apply_wound_damage_floors_at_zero(self):
+        """Test that health floors at 0, never goes negative."""
+        target = MagicMock()
+        target.wounds = 0
+        target.health = 10
+
+        # Apply more damage than health
+        result = apply_wound_damage(target, 25)
+
+        # Health should be 0, NOT -15
+        assert target.health == 0, f"Health should floor at 0, got {target.health}"
+        assert target.wounds == 5  # 25 damage // 5 = 5 wounds
+
+    def test_apply_wound_damage_already_at_zero(self):
+        """Test damage to already-zero health stays at 0."""
+        target = MagicMock()
+        target.wounds = 5
+        target.health = 0
+
+        result = apply_wound_damage(target, 10)
+
+        assert target.health == 0
+        assert target.wounds == 7  # +2 more wounds
+
+    def test_apply_mixed_damage_floors_at_zero(self):
+        """Test mixed damage also floors health at 0."""
+        target = MagicMock()
+        target.stuns = 0
+        target.wounds = 0
+        target.health = 5
+
+        # Apply more damage than health
+        result = apply_mixed_damage(target, 20)
+
+        # wound_damage = 20 // 2 = 10
+        # health should be 0, not -5
+        assert target.health == 0, f"Health should floor at 0, got {target.health}"
+
+    def test_apply_mixed_damage_normal(self):
+        """Test normal mixed damage calculation."""
+        target = MagicMock()
+        target.stuns = 0
+        target.wounds = 0
+        target.health = 50
+
+        result = apply_mixed_damage(target, 10)
+
+        # stun_damage = (10 + 1) // 2 = 5
+        # wound_damage = 10 // 2 = 5
+        assert target.stuns == 5
+        assert target.health == 45  # 50 - 5 wound_damage
 
 
 if __name__ == "__main__":

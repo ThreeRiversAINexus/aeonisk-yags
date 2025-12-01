@@ -5098,7 +5098,7 @@ def apply_wound_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
 
     target.wounds = new_wounds
     if hasattr(target, 'health'):
-        target.health -= damage_dealt
+        target.health = max(0, target.health - damage_dealt)
 
     effect = get_wound_effect(new_wounds)
 
@@ -5142,7 +5142,7 @@ def apply_mixed_damage(target: Any, damage_dealt: int) -> Dict[str, Any]:
     new_wounds = old_wounds + wounds_dealt
     target.wounds = new_wounds
     if hasattr(target, 'health'):
-        target.health -= wound_damage
+        target.health = max(0, target.health - wound_damage)
     wound_effect = get_wound_effect(new_wounds)
 
     return {
