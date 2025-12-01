@@ -75,50 +75,9 @@ class TestEnemyAgentNoGroupFields:
         assert not hasattr(enemy, 'apply_group_attrition'), "EnemyAgent should not have apply_group_attrition method"
 
 
-@pytest.mark.skip(reason="parse_spawn_markers function removed - spawn markers no longer used")
-class TestSpawnMarkerParsing:
-    """Test that spawn markers use 4-field syntax without count parameter."""
-
-    def test_4_field_spawn_marker_parsed(self):
-        """Parse 4-field spawn marker: name|template|position|tactics."""
-        text = "[SPAWN_ENEMY: Test Squad | grunt | Near-Enemy | aggressive]"
-        # parse_spawn_markers removed - function no longer exists
-        pytest.skip("parse_spawn_markers removed")
-
-        assert len(markers) == 1
-        name, template, position, tactics, personality = markers[0]
-        assert name.strip() == "Test Squad"
-        assert template.strip() == "grunt"
-        assert position.strip() == "Near-Enemy"
-        assert tactics.strip() == "aggressive"
-        assert personality is None
-
-    def test_5_field_spawn_marker_with_personality(self):
-        """Parse 5-field spawn marker: name|template|position|tactics|personality."""
-        text = "[SPAWN_ENEMY: Elite Squad | elite | Far-Enemy | ranged_support | personality:fight_to_death]"
-        markers = parse_spawn_markers(text)
-
-        assert len(markers) == 1
-        name, template, position, tactics, personality = markers[0]
-        assert name.strip() == "Elite Squad"
-        assert template.strip() == "elite"
-        assert position.strip() == "Far-Enemy"
-        assert tactics.strip() == "ranged_support"
-        # Parser strips "personality:" prefix
-        assert personality.strip() == "fight_to_death"
-
-    def test_multiple_spawn_markers(self):
-        """Parse multiple spawn markers in one string."""
-        text = """
-        [SPAWN_ENEMY: Squad Alpha | grunt | Near-Enemy | aggressive]
-        Some other text here
-        [SPAWN_ENEMY: Squad Bravo | veteran | Far-Enemy | ranged_support]
-        """
-        markers = parse_spawn_markers(text)
-
-        assert len(markers) == 2
-        assert markers[0][0] == "Squad Alpha"
-        assert markers[1][0] == "Squad Bravo"
+# NOTE: TestSpawnMarkerParsing class was deleted.
+# The parse_spawn_markers() function was removed from the codebase.
+# Enemy spawning now uses structured output (ScenarioSetup.initial_enemies) instead of text markers.
 
 
 class TestEnemySpawning:

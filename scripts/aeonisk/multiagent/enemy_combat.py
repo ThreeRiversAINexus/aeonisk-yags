@@ -155,6 +155,48 @@ class EnemyCombatManager:
         # LLM Provider for structured output - initialized later from session config
         self.llm_provider = None
 
+    def _get_agent_name(self, agent: Any, fallback_id: str) -> str:
+        """
+        Extract name from agent, handling both enemy and player agent structures.
+
+        - Enemy agents have .name directly
+        - Player agents have .character_state.name
+
+        Args:
+            agent: Agent object (enemy or player)
+            fallback_id: ID to return if name cannot be extracted
+
+        Returns:
+            Character name or fallback_id
+        """
+        # Try direct .name (enemy agents)
+        if hasattr(agent, 'name') and agent.name:
+            return agent.name
+
+        # Try .character_state.name (player agents)
+        if hasattr(agent, 'character_state'):
+            char_state = agent.character_state
+            if hasattr(char_state, 'name') and char_state.name:
+                return char_state.name
+
+        # Fallback to ID
+        return str(fallback_id)
+
+    def _get_agent_id(self, agent: Any, fallback_id: str) -> str:
+        """
+        Extract agent_id from agent object.
+
+        Args:
+            agent: Agent object (enemy or player)
+            fallback_id: ID to return if agent_id cannot be extracted
+
+        Returns:
+            Agent ID or fallback_id
+        """
+        if hasattr(agent, 'agent_id') and agent.agent_id:
+            return agent.agent_id
+        return str(fallback_id)
+
     def initialize(self, session_config: Dict[str, Any]):
         """
         Initialize from session configuration.
@@ -1124,11 +1166,11 @@ class EnemyCombatManager:
                 }
 
             mechanics_engine.jsonl_logger.log_combat_action(
-                round_num=self.current_round,
+                round_num=mechanics_engine.current_round if mechanics_engine else self.current_round,
                 attacker_id=enemy.agent_id,
                 attacker_name=enemy.name,
-                defender_id=target_id,
-                defender_name=target.name if hasattr(target, 'name') else str(target_id),
+                defender_id=self._get_agent_id(target, target_id),
+                defender_name=self._get_agent_name(target, target_id),
                 weapon=weapon.name,
                 attack_roll=attack_roll_data,
                 damage_roll=damage_roll_data,

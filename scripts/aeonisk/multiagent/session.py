@@ -1341,7 +1341,7 @@ Generate narratives (numbered list only):"""
                         self.provider = create_provider(provider_config)
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
-                        from datetime import datetime
+                        from datetime import datetime, timezone
 
                         # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
                         response = await self.provider.generate(
@@ -1357,7 +1357,7 @@ Generate narratives (numbered list only):"""
                             try:
                                 self.jsonl_logger.write_event({
                                     'event_type': 'llm_call',
-                                    'ts': datetime.utcnow().isoformat(),
+                                    'ts': datetime.now(timezone.utc).isoformat(),
                                     'session': self.session_id or 'unknown',
                                     'round': None,  # Enemy calls don't have round context here
                                     'agent_id': self.agent_id,

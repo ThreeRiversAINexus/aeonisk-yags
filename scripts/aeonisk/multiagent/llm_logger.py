@@ -7,7 +7,7 @@ and responses to enable deterministic replay of game sessions.
 
 import logging
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Import custom log levels
 from . import custom_log_levels  # noqa: F401
@@ -136,7 +136,7 @@ class LLMCallLogger:
 
         event = {
             'event_type': 'llm_call',
-            'ts': datetime.utcnow().isoformat(),
+            'ts': datetime.now(timezone.utc).isoformat(),
             'session': self.session_id or 'unknown',
             'round': current_round,
             'agent_id': self.agent_id,
