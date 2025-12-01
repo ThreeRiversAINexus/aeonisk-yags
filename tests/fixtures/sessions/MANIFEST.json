@@ -194,15 +194,39 @@
         "Bug #2: Environmental void applied to character void score instead of being skipped"
       ],
       "notes": "Pre-player-LLM-logging fixture (cannot be used for replay tests). Recovered from archive. Original session ID: session_9247da3c-0ccd-41b3-a3b1-739c83ac3152. 15 total actions (67% success), 5 clocks tracked. Environmental void: 3→3. Schema may be outdated - will verify via test run."
+    },
+    "golden_clock_lifecycle_complete.jsonl": {
+      "created": "2024-11-24",
+      "created_by_commit": "eeca2e0",
+      "purpose": "Complete clock lifecycle fixture with spawn, progression, completion, and removal events. Designed to unlock all xfailed clock lifecycle tests.",
+      "scenario": "Crisis Investigation @ Nimbus — Stormward Observatory (Tempest Research Platform)",
+      "rounds": 8,
+      "rounds_range": "0-8",
+      "players": 3,
+      "enemies": 5,
+      "npcs": 2,
+      "has_player_llm_calls": true,
+      "status": "active",
+      "category": "golden",
+      "used_by_tests": [
+        "tests/integration/session/test_clock_lifecycle.py"
+      ],
+      "clock_events": {
+        "clock_spawn": 7,
+        "clock_completion": 3,
+        "clock_removal": 8,
+        "clock_updates": 17
+      },
+      "notes": "Generated with OpenAI gpt-5-mini. Contains all clock lifecycle events needed for comprehensive testing: DM-spawned clocks, progression (both positive and negative), completions, and removals. 10 clocks tracked simultaneously. 171 LLM calls. Session ID: session_a95552fb-05e6-43b4-8d76-48ba6f543438."
     }
   },
   "statistics": {
-    "total_fixtures": 12,
-    "active": 12,
+    "total_fixtures": 13,
+    "active": 13,
     "deprecated": 0,
-    "with_player_llm_calls": 4,
+    "with_player_llm_calls": 5,
     "categories": {
-      "golden": 3,
+      "golden": 4,
       "regression": 2,
       "test": 7
     }

@@ -78,14 +78,12 @@ def starting_clocks_session_with_removal():
 
 @pytest.fixture
 def ad_hoc_clocks_session():
-    """Session with DM-spawned clocks (older fixture, limited clock events).
+    """Session with DM-spawned clocks and complete clock lifecycle events.
 
-    Note: This is a complex fixture but was generated before clock_spawn,
-    clock_completion, and clock_removal logging was implemented.
-    Tests using this fixture may need to be marked XFAIL until newer
-    fixtures are generated.
+    Contains clock_spawn (7), clock_completion (3), clock_removal (8) events.
+    Generated with latest code - suitable for comprehensive clock lifecycle testing.
     """
-    return load_fixture("sessions/session_debt_auction_ambush.jsonl")
+    return load_fixture("sessions/golden_clock_lifecycle_complete.jsonl")
 
 
 @pytest.fixture
@@ -223,7 +221,6 @@ class TestStartingClockLifecycle:
 class TestAdHocClockLifecycle:
     """Test clocks spawned by DM during session."""
 
-    @pytest.mark.xfail(reason="Requires fixture with clock_spawn events (not yet generated)")
     def test_dm_can_spawn_clocks_mid_session(self, ad_hoc_clocks_session):
         """Verify DM spawns clocks dynamically with clock_spawn events."""
         # Find all clock_spawn events
@@ -246,7 +243,6 @@ class TestAdHocClockLifecycle:
             assert spawn["round"] >= 1, \
                 f"Clock {spawn['clock_name']} spawned in round {spawn['round']}, should be ≥1"
 
-    @pytest.mark.xfail(reason="Requires fixture with clock_spawn events (not yet generated)")
     def test_spawned_clocks_tracked_in_resolutions(self, ad_hoc_clocks_session):
         """Verify clocks spawned by DM appear in subsequent action_resolution.clocks."""
         # Find first clock_spawn
@@ -275,7 +271,6 @@ class TestAdHocClockLifecycle:
         assert found_in_resolution, \
             f"Spawned clock '{spawned_clock_name}' should appear in action_resolution.clocks"
 
-    @pytest.mark.xfail(reason="Requires fixture with clock_completion events (not yet generated)")
     def test_clocks_fill_and_trigger_completion(self, ad_hoc_clocks_session):
         """Verify filled clocks log clock_completion events."""
         # Find all clock_completion events
@@ -299,7 +294,6 @@ class TestAdHocClockLifecycle:
             assert completion["final_value"] >= completion["max_ticks"], \
                 f"Clock {completion['clock_name']} completion has {completion['final_value']}/{completion['max_ticks']} (not filled)"
 
-    @pytest.mark.xfail(reason="Requires fixture with clock_removal events (not yet generated)")
     def test_filled_clocks_removed_after_completion(self, ad_hoc_clocks_session):
         """Verify filled clocks log clock_removal events with reason=filled."""
         # Find all clock_completion events
@@ -430,7 +424,6 @@ class TestClockRemoval:
             assert removal["reason"] == "session_end", \
                 f"Clock {removal['clock_name']} should have reason=session_end (timeout)"
 
-    @pytest.mark.xfail(reason="Requires fixture with clock_completion + clock_removal events (not yet generated)")
     def test_completed_clocks_log_removal_reason(self, ad_hoc_clocks_session):
         """Verify completed clocks have clock_removal with reason=filled."""
         # Find clock_completion events

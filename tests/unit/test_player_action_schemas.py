@@ -577,8 +577,8 @@ class TestActionTypeSchemaMap:
     """Test ACTION_TYPE_SCHEMA_MAP routing dictionary."""
 
     def test_schema_map_has_all_action_types(self):
-        """Schema map should have entries for all 12 action types."""
-        assert len(ACTION_TYPE_SCHEMA_MAP) == 12
+        """Schema map should have entries for all 13 action types."""
+        assert len(ACTION_TYPE_SCHEMA_MAP) == 13
 
         expected_types = {
             ActionType.EXPLORE,

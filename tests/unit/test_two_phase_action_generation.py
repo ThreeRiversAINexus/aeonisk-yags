@@ -473,8 +473,8 @@ class TestSchemaRoutingMap:
     """Test ACTION_TYPE_SCHEMA_MAP is used correctly."""
 
     def test_all_action_types_have_schema_mappings(self):
-        """ACTION_TYPE_SCHEMA_MAP should have entries for all 12 ActionTypes."""
-        assert len(ACTION_TYPE_SCHEMA_MAP) == 12
+        """ACTION_TYPE_SCHEMA_MAP should have entries for all 13 ActionTypes."""
+        assert len(ACTION_TYPE_SCHEMA_MAP) == 13
 
         # Verify all action types present
         for action_type in ActionType:
