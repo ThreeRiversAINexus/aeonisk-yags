@@ -1,0 +1,180 @@
+#compdef run_multiagent_session.py analyze_session.py bulk_session_runner.py
+# Zsh completion script for Aeonisk YAGS CLI tools
+#
+# Installation:
+#   1. Create completions directory (if not exists):
+#      mkdir -p ~/.zsh/completions
+#
+#   2. Copy this file:
+#      cp scripts/bash_completion/_aeonisk ~/.zsh/completions/_aeonisk
+#
+#   3. Add to your ~/.zshrc:
+#      fpath=(~/.zsh/completions $fpath)
+#      autoload -Uz compinit && compinit
+#
+#   4. Reload shell or run: source ~/.zshrc
+#
+# Usage:
+#   python scripts/run_multiagent_session.py <TAB>
+#   python scripts/analyze_session.py <TAB>
+#   python scripts/bulk_session_runner.py <TAB>
+
+# Helper: Find session config JSON files
+_aeonisk_configs() {
+    local configs
+    configs=(scripts/session_configs/**/*.json(N) *.json(N))
+    _files -g '*.json' && return 0
+    compadd -a configs
+}
+
+# Helper: Find JSONL session files
+_aeonisk_jsonl() {
+    local jsonl_files
+    jsonl_files=(multiagent_output/**/*.jsonl(N) tests/fixtures/**/*.jsonl(N) bulk_output/**/*.jsonl(N))
+    _files -g '*.jsonl' && return 0
+    compadd -a jsonl_files
+}
+
+# Helper: Find bulk run directories
+_aeonisk_run_dirs() {
+    local run_dirs
+    run_dirs=(bulk_output/run_*(N/))
+    _files -/ && return 0
+    compadd -a run_dirs
+}
+
+# =============================================================================
+# run_multiagent_session.py completion
+# =============================================================================
+_run_multiagent_session() {
+    local -a opts
+    opts=(
+        '--log-level[Set logging level]:level:(TRACE DEBUG LLM INFO WARNING ERROR)'
+        '--create-config[Create example config at path]:path:_files -g "*.json"'
+        '--random-seed[Random seed for deterministic sessions]:seed:'
+        '--replay[Replay session from JSONL log file]:logfile:_aeonisk_jsonl'
+        '--replay-to-round[Stop replay after this round]:round:'
+        '--continue-from-round[Continue LIVE from round N+1]:round:'
+        '--log-agents-separately[Log LLM prompts/responses to separate files per agent]'
+        '(-h --help)'{-h,--help}'[Show help message]'
+        '1:config:_aeonisk_configs'
+    )
+    _arguments -s $opts
+}
+
+# =============================================================================
+# analyze_session.py completion
+# =============================================================================
+_analyze_session() {
+    local -a opts
+    local -a modes search_patterns fields
+
+    modes=(summary clocks void errors)
+    search_patterns=(
+        'event_type=session_start'
+        'event_type=session_end'
+        'event_type=action_resolution'
+        'event_type=action_declaration'
+        'event_type=round_start'
+        'event_type=round_synthesis'
+        'event_type=enemy_spawn'
+        'event_type=enemy_defeat'
+        'event_type=character_state'
+        'event_type=void_change'
+        'event_type=clock_advancement'
+        'event_type=llm_call'
+        'round=0' 'round=1' 'round=2' 'round=3'
+    )
+    fields=(
+        'round,agent,roll.success,roll.margin'
+        'event_type,round,agent'
+        'action.intent,action.action_type'
+        'scenario.theme,scenario.location'
+        'effects.void_changes,effects.damage.dealt'
+    )
+
+    opts=(
+        '--mode[Analysis mode]:mode:(${modes})'
+        '--discover[Scan directory for sessions]:directory:_files -/'
+        '--complete-only[Only show complete sessions]'
+        '--min-rounds[Minimum rounds required]:rounds:'
+        '*--search[Search for events matching filters]:filter:(${search_patterns})'
+        '--limit[Max events to show]:limit:(5 10 20 50 100)'
+        '--fields[Comma-separated fields to extract]:fields:(${fields})'
+        '--count[Only show count of matching events]'
+        '--index[Show line numbers of matching events]'
+        '--schema[Show available fields for event type]'
+        '--line[Get specific event at line N]:line:'
+        '--validate-fixture[Validate fixture schema and replay-readiness]'
+        '--validate-fixtures[Validate ALL fixtures in tests/fixtures/sessions/]'
+        '(-h --help)'{-h,--help}'[Show help message]'
+        '*:jsonl_file:_aeonisk_jsonl'
+    )
+    _arguments -s $opts
+}
+
+# =============================================================================
+# bulk_session_runner.py completion
+# =============================================================================
+_bulk_session_runner() {
+    local -a opts log_levels
+
+    log_levels=(DEBUG INFO WARNING ERROR LLM TRACE)
+
+    opts=(
+        '--config[Path to session config JSON]:config:_aeonisk_configs'
+        '*--configs[Multiple config paths]:configs:_aeonisk_configs'
+        '--runs[Number of runs to execute]:runs:(1 5 10 20 50 100)'
+        '--runs-per-config[Runs per config with --configs]:runs:(1 5 10 20 50)'
+        '--workers[Number of parallel workers]:workers:(1 2 4 8 10 16 20)'
+        '--output-dir[Output directory for JSONL files]:dir:_files -/'
+        '--proxy[Proxy server URL]:url:(http://localhost:8000 http://127.0.0.1:8000)'
+        '--resume[Resume previous run, skip completed sessions]'
+        '--no-replay[Disable replay when resuming]'
+        '--run-dir[Existing run directory to resume]:dir:_aeonisk_run_dirs'
+        '--log-level[Log level for sessions]:level:(${log_levels})'
+        '--skip-health-check[Skip proxy health check]'
+        '--progress[Show progress dashboard]'
+        '--progress-interval[Poll interval in seconds]:interval:(5 10 15 30 60)'
+        '--show-errors[Print stderr from failed runs]'
+        '--session-timeout[Session timeout in seconds]:timeout:(3600 7200 36000 90000)'
+        '--regenerate-fixtures[Regenerate all test fixtures]'
+        '--extract[Auto-extract fixtures after generation]'
+        '(-h --help)'{-h,--help}'[Show help message]'
+    )
+    _arguments -s $opts
+}
+
+# =============================================================================
+# Main dispatcher
+# =============================================================================
+_aeonisk_main() {
+    local script_name
+
+    # Detect which script based on the command line
+    for word in ${words}; do
+        case "$word" in
+            *run_multiagent_session.py|*run_multiagent_session)
+                _run_multiagent_session
+                return
+                ;;
+            *analyze_session.py|*analyze_session)
+                _analyze_session
+                return
+                ;;
+            *bulk_session_runner.py|*bulk_session_runner)
+                _bulk_session_runner
+                return
+                ;;
+        esac
+    done
+
+    # Default: file completion
+    _files
+}
+
+# Register completions
+compdef _aeonisk_main python python3
+compdef _run_multiagent_session run_multiagent_session.py run_multiagent_session
+compdef _analyze_session analyze_session.py analyze_session
+compdef _bulk_session_runner bulk_session_runner.py bulk_session_runner

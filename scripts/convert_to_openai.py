@@ -11,11 +11,14 @@ from pathlib import Path
 
 
 def convert_llm_config(llm_config):
-    """Convert LLM config from Anthropic to OpenAI."""
+    """Convert LLM config from Anthropic to OpenAI.
+
+    NOTE: gpt-5-mini REQUIRES temperature=1.0. Other values will fail.
+    """
     return {
         "provider": "openai",
         "model": "gpt-5-mini",
-        "temperature": llm_config.get("temperature", 0.8)
+        "temperature": 1.0  # gpt-5-mini requires 1.0
     }
 
 
@@ -56,7 +59,7 @@ def convert_config(input_path: Path, output_path: Path):
     # Update design notes if present
     if "_design_notes" in config:
         if isinstance(config["_design_notes"], dict):
-            config["_design_notes"]["llm_provider"] = "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 for DM (creativity), 0.8 for players (consistency)."
+            config["_design_notes"]["llm_provider"] = "ALL AGENTS USE OPENAI GPT-5-MINI - 8x cheaper output tokens than Claude Sonnet 4.5, 10x higher rate limits. Temperature 1.0 required for all gpt-5-mini agents."
         elif isinstance(config["_design_notes"], str):
             if "llm_provider" not in config["_design_notes"]:
                 config["_design_notes"] += " LLM: ALL AGENTS USE OPENAI GPT-5-MINI (8x cheaper output, 10x higher rate limits)."

@@ -15,11 +15,9 @@ All session configs in this directory use **OpenAI GPT-5-mini** instead of Anthr
 
 ## Temperature Strategy
 
-All configs use a **dual-temperature approach**:
-- **DM: temperature 1.0** - Maximum creativity for narration, environmental effects, NPC behavior
-- **Players: temperature 0.8** - Consistent tactical decisions with creative problem-solving
+**IMPORTANT:** gpt-5-mini **REQUIRES** temperature=1.0. Other values will fail with an OpenAI API error.
 
-This balances narrative variety (DM) with strategic coherence (players).
+All configs use **temperature 1.0** for all agents (DM and players).
 
 ## Available Scenarios
 
@@ -93,8 +91,7 @@ python3 scripts/convert_to_openai.py \
 
 **What the script does:**
 - Updates `_role`, `_purpose`, `session_name` with OpenAI metadata
-- Converts DM LLM to `gpt-5-mini` at temperature 1.0
-- Converts all player LLMs to `gpt-5-mini` at temperature 0.8
+- Converts all LLMs to `gpt-5-mini` at temperature 1.0 (required by model)
 - Adds cost/performance notes to `_design_notes` and `notes` fields
 
 ## Provider Comparison
