@@ -225,11 +225,21 @@ def main():
     session_holder = {'session': None, 'log_agents_separately': args.log_agents_separately}
 
     def handle_interrupt(signum, frame):
-        """Handle Ctrl-C by printing session info before shutdown."""
+        """Handle Ctrl-C by logging termination and printing session info."""
         print("\n\n=== Session interrupted by user ===", file=sys.stderr, flush=True)
         session = session_holder.get('session')
         if session and hasattr(session, 'session_id') and session.session_id:
             try:
+                # Log termination to JSONL
+                if (session.shared_state and
+                    session.shared_state.mechanics_engine and
+                    hasattr(session.shared_state.mechanics_engine, 'jsonl_logger') and
+                    session.shared_state.mechanics_engine.jsonl_logger):
+                    session.shared_state.mechanics_engine.jsonl_logger.log_session_termination(
+                        reason="interrupted",
+                        details="User pressed Ctrl+C"
+                    )
+
                 output_dir = session.config.get('output_dir', './output')
                 jsonl_path = f"{output_dir}/session_{session.session_id}.jsonl"
                 print(f"\nSession ID: {session.session_id}", file=sys.stderr, flush=True)
@@ -270,6 +280,24 @@ def main():
     except KeyboardInterrupt:
         # Session info already printed by signal handler
         pass
+    except Exception as e:
+        # Log crash to JSONL before re-raising
+        print(f"\n\n=== Session crashed ===", file=sys.stderr, flush=True)
+        print(f"Error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+        session = session_holder.get('session')
+        if session and hasattr(session, 'session_id') and session.session_id:
+            try:
+                if (session.shared_state and
+                    session.shared_state.mechanics_engine and
+                    hasattr(session.shared_state.mechanics_engine, 'jsonl_logger') and
+                    session.shared_state.mechanics_engine.jsonl_logger):
+                    session.shared_state.mechanics_engine.jsonl_logger.log_session_termination(
+                        reason="crashed",
+                        details=f"{type(e).__name__}: {e}"
+                    )
+            except Exception:
+                pass  # Don't mask the original error
+        raise
 
 
 if __name__ == "__main__":

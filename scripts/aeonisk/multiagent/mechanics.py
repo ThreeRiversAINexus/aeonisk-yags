@@ -635,13 +635,42 @@ class JSONLLogger:
         }
         self._write_event(event)
 
-    def log_session_end(self, final_state: Dict[str, Any]):
-        """Log session end event with final state."""
+    def log_session_end(self, final_state: Dict[str, Any], termination_reason: str = "completed"):
+        """Log session end event with final state.
+
+        Args:
+            final_state: Final game state summary
+            termination_reason: One of "completed", "interrupted", "crashed", "timeout"
+        """
         event = {
             "event_type": "session_end",
             "ts": datetime.now().isoformat(),
             "session": self.session_id,
+            "termination_reason": termination_reason,
             "final_state": final_state
+        }
+        self._write_event(event)
+
+    def log_session_termination(self, reason: str, details: Optional[str] = None):
+        """Log session termination when session_end wasn't reached normally.
+
+        This is called from signal handlers or exception handlers to record
+        why the session ended prematurely.
+
+        Args:
+            reason: One of "interrupted", "crashed", "timeout"
+            details: Optional error message or context
+        """
+        event = {
+            "event_type": "session_end",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "termination_reason": reason,
+            "final_state": {
+                "premature_termination": True,
+                "reason": reason,
+                "details": details
+            }
         }
         self._write_event(event)
 

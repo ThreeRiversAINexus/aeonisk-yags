@@ -46,7 +46,7 @@ EVENT_SCHEMAS = {
     },
     "session_end": {
         "required": ["event_type", "ts", "session", "final_state"],
-        "optional": ["event_id", "parent_event_id", "correlation_id"]
+        "optional": ["termination_reason", "event_id", "parent_event_id", "correlation_id"]
     },
     "scenario": {
         "required": ["event_type", "ts", "session", "scenario"],
@@ -208,6 +208,12 @@ EVENT_SCHEMAS = {
     },
     "narrative_memory": {
         "required": ["event_type", "ts", "session", "round", "agent_id", "character_name", "memory"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Economy Events ===
+    "energy_transfer": {
+        "required": ["event_type", "ts", "session", "round", "data"],
         "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
 
