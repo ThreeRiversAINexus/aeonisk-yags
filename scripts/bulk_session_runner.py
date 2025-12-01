@@ -9,7 +9,9 @@ Features:
 - Parallel execution via ProcessPoolExecutor
 - Automatic proxy health check before execution
 - Resume capability for failed runs (based on session_end event in JSONL)
-- Real-time progress dashboard
+- Replay-resume: Use cached LLM calls to save ~60-70% API cost on retries
+- Progress dashboard with change detection (only updates when state changes)
+- Timing info: total runtime, per-run duration, time since last change
 - Aggregated statistics and reporting
 - Per-run output isolation (prevents JSONL collisions)
 
@@ -20,7 +22,7 @@ Usage:
         --runs 10 \\
         --workers 4
 
-    # With progress dashboard (updates every 10s)
+    # With progress dashboard (updates only on state changes)
     python scripts/bulk_session_runner.py \\
         --config session_config.json \\
         --runs 10 \\
@@ -34,9 +36,14 @@ Usage:
         --workers 20 \\
         --proxy http://localhost:8000
 
-    # Resume failed runs from existing directory (no --config needed!)
+    # Resume failed runs (replay enabled by default - saves API cost)
     python scripts/bulk_session_runner.py \\
         --resume \\
+        --run-dir bulk_output/run_2025-11-28_212301_ff68f5ff
+
+    # Resume without replay (restart from scratch, costs more)
+    python scripts/bulk_session_runner.py \\
+        --resume --no-replay \\
         --run-dir bulk_output/run_2025-11-28_212301_ff68f5ff
 
     # Multiple configs with custom output dir
@@ -63,9 +70,12 @@ Options:
     --proxy URL             Batch proxy URL (e.g., http://localhost:8000)
     --resume                Resume from --run-dir, skip completed sessions.
                             Config loaded from metadata.json in run directory.
+                            By default uses replay (cached LLM calls) to save cost.
+    --no-replay             Disable replay when resuming. Restart failed sessions
+                            from scratch instead of using cached LLM calls.
     --run-dir DIR           Existing run directory for --resume
-    --progress              Show real-time progress dashboard
-    --progress-interval N   Progress update interval in seconds (default: 10)
+    --progress              Show progress dashboard (updates only on state change)
+    --progress-interval N   Poll interval in seconds for change detection (default: 10)
     --log-level LEVEL       Session log level (DEBUG/INFO/WARNING/ERROR/LLM/TRACE)
     --show-errors           Print stderr from failed runs immediately
     --skip-health-check     Skip proxy health check
@@ -96,10 +106,8 @@ class ProgressMonitor:
     """
     Monitor and display progress of running sessions.
 
-    Periodically scans JSONL files to show:
-    - Current round for each session
-    - Number of LLM calls made
-    - Session status (running/complete/failed)
+    Only updates output when state changes (event-driven with polling for detection).
+    Shows timing info: total runtime, per-run duration, time since last change.
     """
 
     def __init__(self, output_dir: Path, total_runs: int, refresh_interval: float = 5.0):
@@ -111,8 +119,20 @@ class ProgressMonitor:
         self._completed_runs: Set[int] = set()
         self._failed_runs: Set[int] = set()
 
+        # Timing tracking
+        self._bulk_start_time: float = time.time()
+        self._run_start_times: Dict[int, float] = {}
+        self._run_final_durations: Dict[int, float] = {}  # Actual duration for completed runs
+        self._last_change_time: float = time.time()
+
+        # Change detection
+        self._last_state_hash: Optional[str] = None
+        self._previous_state: Dict[int, Dict] = {}  # For highlighting changes
+
     def start(self):
         """Start the progress monitor thread."""
+        self._bulk_start_time = time.time()
+        self._last_change_time = time.time()
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
 
@@ -122,68 +142,178 @@ class ProgressMonitor:
         if self._thread:
             self._thread.join(timeout=2.0)
 
-    def mark_completed(self, run_id: int):
-        """Mark a run as completed."""
-        self._completed_runs.add(run_id)
+    def mark_started(self, run_id: int):
+        """Mark a run as started (for timing)."""
+        self._run_start_times[run_id] = time.time()
 
-    def mark_failed(self, run_id: int):
-        """Mark a run as failed."""
+    def mark_completed(self, run_id: int, duration: Optional[float] = None):
+        """Mark a run as completed with optional actual duration."""
+        self._completed_runs.add(run_id)
+        if duration is not None:
+            self._run_final_durations[run_id] = duration
+
+    def mark_failed(self, run_id: int, duration: Optional[float] = None):
+        """Mark a run as failed with optional actual duration."""
         self._failed_runs.add(run_id)
+        if duration is not None:
+            self._run_final_durations[run_id] = duration
+
+    def _format_duration(self, seconds: float) -> str:
+        """Format duration as human-readable string."""
+        if seconds < 60:
+            return f"{seconds:.0f}s"
+        elif seconds < 3600:
+            mins = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{mins}m{secs:02d}s"
+        else:
+            hours = int(seconds // 3600)
+            mins = int((seconds % 3600) // 60)
+            return f"{hours}h{mins:02d}m"
 
     def _monitor_loop(self):
-        """Main monitoring loop."""
+        """Main monitoring loop - only prints when state changes."""
         while not self._stop_event.wait(self.refresh_interval):
             try:
-                self._display_progress()
+                self._check_and_display_progress()
             except Exception as e:
                 logger.debug(f"Progress monitor error: {e}")
 
-    def _display_progress(self):
-        """Scan JSONL files and display current progress."""
-        progress_lines = []
+    def _get_current_state(self) -> Tuple[Dict[int, Dict], str]:
+        """
+        Gather current state of all runs.
+
+        Returns:
+            Tuple of (state_dict, state_hash) where state_dict maps run_id to status info
+        """
+        state = {}
 
         for run_id in range(1, self.total_runs + 1):
             run_dir = self.output_dir / f"run_{run_id:04d}"
 
             if run_id in self._completed_runs:
-                status = "✓ DONE"
-                round_info = ""
+                state[run_id] = {'status': 'done'}
             elif run_id in self._failed_runs:
-                status = "✗ FAIL"
-                round_info = ""
+                state[run_id] = {'status': 'failed'}
             elif not run_dir.exists():
-                status = "⏳ pending"
-                round_info = ""
+                state[run_id] = {'status': 'queued'}
             else:
                 # Scan JSONL for progress
                 jsonl_files = list(run_dir.glob("session_*.jsonl"))
                 if jsonl_files:
                     stats = self._get_session_progress(jsonl_files[0])
-                    status = "▶ running"
-                    round_info = f"R{stats['round']:02d} | {stats['llm_calls']:3d} calls | {stats['actions']:3d} actions"
+                    state[run_id] = {
+                        'status': 'running',
+                        'round': stats['round'],
+                        'llm_calls': stats['llm_calls'],
+                        'actions': stats['actions']
+                    }
+                    # Track start time if not already tracked
+                    if run_id not in self._run_start_times:
+                        self._run_start_times[run_id] = time.time()
                 else:
-                    status = "▶ starting"
-                    round_info = ""
+                    state[run_id] = {'status': 'starting'}
+                    if run_id not in self._run_start_times:
+                        self._run_start_times[run_id] = time.time()
 
-            progress_lines.append(f"  [{run_id:02d}] {status:12s} {round_info}")
+        # Create hash for change detection (exclude timing, just status/progress)
+        state_hash = str(sorted([(k, tuple(sorted(v.items()))) for k, v in state.items()]))
+
+        return state, state_hash
+
+    def _check_and_display_progress(self):
+        """Check for state changes and display if changed."""
+        state, state_hash = self._get_current_state()
+
+        if state_hash != self._last_state_hash:
+            self._last_change_time = time.time()
+            self._last_state_hash = state_hash
+            self._display_progress(state, self._previous_state)
+            self._previous_state = state.copy()
+
+    def _display_progress(self, state: Dict[int, Dict], previous_state: Dict[int, Dict]):
+        """Display current progress with timing info, highlighting changes."""
+        now = time.time()
+        total_runtime = now - self._bulk_start_time
+        time_since_change = now - self._last_change_time
+
+        # Sort runs by status: running/starting first, then completed/failed, then queued
+        status_order = {'running': 0, 'starting': 1, 'done': 2, 'failed': 3, 'queued': 4}
+        sorted_run_ids = sorted(
+            range(1, self.total_runs + 1),
+            key=lambda rid: (status_order.get(state.get(rid, {}).get('status', 'queued'), 5), rid)
+        )
+
+        progress_lines = []
+
+        for run_id in sorted_run_ids:
+            run_state = state.get(run_id, {'status': 'queued'})
+            prev_state = previous_state.get(run_id, {})
+            status = run_state['status']
+            prev_status = prev_state.get('status', '')
+
+            # Check what changed
+            status_changed = status != prev_status
+
+            # Calculate run duration
+            run_duration = ""
+            if run_id in self._run_final_durations:
+                # Use actual duration for completed/failed runs
+                duration_secs = self._run_final_durations[run_id]
+                run_duration = f" [{self._format_duration(duration_secs)}]"
+            elif run_id in self._run_start_times:
+                # Estimate for running sessions
+                duration_secs = now - self._run_start_times[run_id]
+                run_duration = f" [{self._format_duration(duration_secs)}]"
+
+            if status == 'done':
+                status_str = "**✓ DONE**" if status_changed else "✓ DONE"
+                detail = run_duration
+            elif status == 'failed':
+                status_str = "**✗ FAIL**" if status_changed else "✗ FAIL"
+                detail = run_duration
+            elif status == 'queued':
+                status_str = "**⏳ queued**" if status_changed else "⏳ queued"
+                detail = ""
+            elif status == 'starting':
+                status_str = "**▶ starting**" if status_changed else "▶ starting"
+                detail = run_duration
+            else:  # running
+                status_str = "**▶ running**" if status_changed else "▶ running"
+                r = run_state.get('round', 0)
+                calls = run_state.get('llm_calls', 0)
+                actions = run_state.get('actions', 0)
+                prev_r = prev_state.get('round', 0)
+                prev_calls = prev_state.get('llm_calls', 0)
+                prev_actions = prev_state.get('actions', 0)
+
+                # Build detail with highlights for changed values
+                r_str = f"**R{r:02d}**" if r != prev_r else f"R{r:02d}"
+                calls_str = f"**{calls:3d}**" if calls != prev_calls else f"{calls:3d}"
+                actions_str = f"**{actions:3d}**" if actions != prev_actions else f"{actions:3d}"
+                detail = f"{r_str} | {calls_str} calls | {actions_str} actions{run_duration}"
+
+            progress_lines.append(f"  [{run_id:02d}] {status_str:20s} {detail}")
 
         # Build display
         completed = len(self._completed_runs)
         failed = len(self._failed_runs)
-        running = self.total_runs - completed - failed
+        queued_count = sum(1 for s in state.values() if s.get('status') == 'queued')
+        active_count = self.total_runs - completed - failed - queued_count
 
         header = (
-            f"\n{'='*70}\n"
+            f"\n{'='*78}\n"
             f"PROGRESS: {completed}/{self.total_runs} complete | "
-            f"{running} running | {failed} failed | "
-            f"{datetime.now().strftime('%H:%M:%S')}\n"
-            f"{'='*70}"
+            f"{active_count} active | {queued_count} queued | {failed} failed\n"
+            f"Runtime: {self._format_duration(total_runtime)} | "
+            f"Last change: {self._format_duration(time_since_change)} ago\n"
+            f"{'='*78}"
         )
 
         print(header)
         for line in progress_lines:
             print(line)
-        print(f"{'='*70}\n")
+        print(f"{'='*78}\n")
 
     def _get_session_progress(self, jsonl_path: Path) -> Dict:
         """Extract progress stats from JSONL file."""
@@ -353,7 +483,8 @@ def run_single_session(
     proxy_url: Optional[str] = None,
     log_level: str = "INFO",
     use_stored_config: bool = False,
-    session_timeout: int = 90000
+    session_timeout: int = 90000,
+    attempt_replay: bool = False
 ) -> RunResult:
     """
     Run a single session via subprocess.
@@ -367,11 +498,56 @@ def run_single_session(
         use_stored_config: If True, config_path points to an already-modified
             config in run_NNNN/config.json (used for resume fallback mode)
         session_timeout: Timeout in seconds for subprocess (default: 90000 = 25 hours)
+        attempt_replay: If True, try to resume via replay before falling back to restart.
+            Requires partial JSONL with cached LLM calls to exist.
 
     Returns:
         RunResult with execution details
     """
     start_time = time.time()
+
+    # Attempt replay-based resume if requested
+    run_dir = output_dir / f"run_{run_id:04d}"
+    if attempt_replay and run_dir.exists():
+        # Find partial JSONL
+        partial_jsonls = list(run_dir.glob("session_*.jsonl"))
+        if partial_jsonls:
+            partial_jsonl = partial_jsonls[0]
+            last_round = get_last_successful_round(partial_jsonl)
+
+            if last_round is not None and last_round >= 1:
+                # Try replay from round N-1 (cache 0 to N-1, live from N)
+                continue_from = last_round - 1
+                replay_output = run_dir / f"session_replay_{run_id:04d}.jsonl"
+
+                logger.info(f"Run {run_id}: Partial session found (completed round {last_round})")
+
+                replay_success, replay_error = try_replay_session(
+                    partial_jsonl=partial_jsonl,
+                    output_path=replay_output,
+                    continue_from_round=continue_from,
+                    timeout=session_timeout
+                )
+
+                if replay_success:
+                    duration = time.time() - start_time
+                    total_tokens, total_rounds = extract_session_stats(replay_output)
+                    logger.info(f"  ✓ Replay succeeded! (rounds 0-{continue_from} cached, {continue_from+1}+ live)")
+
+                    return RunResult(
+                        run_id=run_id,
+                        config_path=config_path,
+                        output_path=str(replay_output),
+                        success=True,
+                        duration_seconds=duration,
+                        total_tokens=total_tokens,
+                        total_rounds=total_rounds
+                    )
+                else:
+                    logger.warning(f"  ⚠ Replay failed: {replay_error}")
+                    logger.info(f"  ↳ Falling back to fresh restart...")
+            else:
+                logger.info(f"Run {run_id}: Partial session has no completed rounds, using fresh restart")
 
     # Load and modify config
     try:
@@ -596,6 +772,151 @@ def check_session_completed(jsonl_path: Path) -> bool:
     except Exception as e:
         logger.warning(f"Failed to check session completion for {jsonl_path}: {e}")
         return False
+
+
+def get_last_successful_round(jsonl_path: Path) -> Optional[int]:
+    """
+    Find the last round that completed successfully (has round_end event).
+
+    Used for replay-based resume: we replay up to round N-1 from cache,
+    then continue live from round N.
+
+    Args:
+        jsonl_path: Path to partial session JSONL file
+
+    Returns:
+        Highest round number with round_end event, or None if no rounds completed
+    """
+    try:
+        if not jsonl_path.exists():
+            return None
+
+        completed_rounds = set()
+
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                    if event.get('event_type') == 'round_end':
+                        round_num = event.get('round')
+                        if round_num is not None:
+                            completed_rounds.add(round_num)
+                except json.JSONDecodeError:
+                    continue
+
+        if not completed_rounds:
+            return None
+
+        return max(completed_rounds)
+
+    except Exception as e:
+        logger.warning(f"Failed to get last successful round for {jsonl_path}: {e}")
+        return None
+
+
+def count_llm_calls_in_jsonl(jsonl_path: Path) -> int:
+    """
+    Count number of LLM calls logged in JSONL (needed for replay validation).
+
+    Args:
+        jsonl_path: Path to session JSONL file
+
+    Returns:
+        Number of llm_call events found
+    """
+    try:
+        if not jsonl_path.exists():
+            return 0
+
+        count = 0
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                    if event.get('event_type') == 'llm_call':
+                        count += 1
+                except json.JSONDecodeError:
+                    continue
+
+        return count
+
+    except Exception as e:
+        logger.warning(f"Failed to count LLM calls for {jsonl_path}: {e}")
+        return 0
+
+
+def try_replay_session(
+    partial_jsonl: Path,
+    output_path: Path,
+    continue_from_round: int,
+    timeout: int = 90000
+) -> Tuple[bool, Optional[str]]:
+    """
+    Attempt to resume a failed session using replay with cached LLM calls.
+
+    Uses replay_fixture.py with --all-cached and --cache-until-round to
+    replay rounds 0 to N deterministically from cache (all agents), then
+    continue live from round N+1 (all agents make new LLM calls).
+
+    This saves API costs proportional to how far the session got before failing.
+    E.g., if session failed at round 10, replaying rounds 0-9 from cache saves
+    ~90% of the API cost for those rounds.
+
+    Args:
+        partial_jsonl: Path to the partial session JSONL (has cached LLM calls)
+        output_path: Path for the resumed session output
+        continue_from_round: Cache rounds 0 to N, go live from N+1
+        timeout: Subprocess timeout in seconds
+
+    Returns:
+        Tuple of (success, error_message)
+    """
+    try:
+        # Validate we have enough LLM calls cached for replay
+        llm_call_count = count_llm_calls_in_jsonl(partial_jsonl)
+        if llm_call_count < 3:  # Minimum: at least scenario + 1 round
+            return False, f"Insufficient LLM calls for replay ({llm_call_count} found)"
+
+        # Build replay command
+        # Use --all-cached with --cache-until-round: ALL agents cached for rounds 0-N,
+        # then ALL agents go live from round N+1. This is the correct behavior for
+        # resuming a failed session (deterministic replay of completed rounds, then
+        # continue live).
+        # Note: --cache-player-actions would filter out DM calls, causing cache misses
+        # when HybridLLMClient tries to use cache for DM in rounds 0-N.
+        cmd = [
+            sys.executable,
+            "scripts/replay_fixture.py",
+            str(partial_jsonl),
+            "--all-cached",  # All agents cached (players, enemies, AND DM)
+            "--cache-until-round", str(continue_from_round),
+            "--output", str(output_path)
+        ]
+
+        logger.info(f"  🔄 Attempting replay (all agents cached rounds 0-{continue_from_round}, all live from {continue_from_round + 1})")
+
+        # Run replay
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+
+        if result.returncode == 0:
+            # Verify output was created and has session_end
+            if output_path.exists() and check_session_completed(output_path):
+                return True, None
+            else:
+                return False, "Replay completed but output missing session_end"
+        else:
+            error_snippet = result.stderr[-300:] if result.stderr else "No error output"
+            return False, f"Replay failed (exit {result.returncode}): {error_snippet}"
+
+    except subprocess.TimeoutExpired:
+        return False, f"Replay timeout (>{timeout}s)"
+    except Exception as e:
+        return False, f"Replay exception: {e}"
 
 
 def extract_session_stats(jsonl_path: Path) -> Tuple[Optional[int], Optional[int]]:
@@ -908,7 +1229,15 @@ def main():
     parser.add_argument(
         '--resume',
         action='store_true',
-        help='Resume previous run, skip completed sessions. Requires --run-dir.'
+        help='Resume previous run, skip completed sessions. Requires --run-dir. '
+             'By default, uses replay with cached LLM calls (saves API cost). '
+             'Use --no-replay to disable and restart from scratch.'
+    )
+    parser.add_argument(
+        '--no-replay',
+        action='store_true',
+        help='When resuming, skip replay and restart failed sessions from scratch. '
+             'Without this flag, --resume tries to replay using cached LLM calls first.'
     )
     parser.add_argument(
         '--run-dir',
@@ -930,13 +1259,13 @@ def main():
     parser.add_argument(
         '--progress',
         action='store_true',
-        help='Show real-time progress dashboard (round, LLM calls, actions per session)'
+        help='Show progress dashboard (updates only when state changes)'
     )
     parser.add_argument(
         '--progress-interval',
         type=float,
         default=10.0,
-        help='Progress update interval in seconds (default: 10)'
+        help='Progress poll interval in seconds - only prints on change (default: 10)'
     )
     parser.add_argument(
         '--show-errors',
@@ -1115,8 +1444,12 @@ def main():
     logger.info(f"Output directory: {output_dir}")
     if args.proxy:
         logger.info(f"Proxy URL: {args.proxy}")
+    if args.resume and not args.no_replay:
+        logger.info(f"🔄 Replay enabled: will try cached LLM replay before fresh restart")
+    elif args.resume and args.no_replay:
+        logger.info(f"⏭️  Replay disabled: will restart failed sessions from scratch")
     if args.progress:
-        logger.info(f"Progress updates every {args.progress_interval}s (--progress enabled)")
+        logger.info(f"Progress dashboard enabled (updates on change, polls every {args.progress_interval}s)")
 
     # Execute runs in parallel
     start_time = time.time()
@@ -1135,6 +1468,9 @@ def main():
     try:
         with ProcessPoolExecutor(max_workers=args.workers) as executor:
             # Submit all tasks
+            # Note: attempt_replay is only meaningful when resuming incomplete sessions
+            # Replay is enabled by default when resuming, unless --no-replay is specified
+            attempt_replay = args.resume and not args.no_replay
             futures = {
                 executor.submit(
                     run_single_session,
@@ -1144,7 +1480,8 @@ def main():
                     args.proxy,
                     args.log_level,
                     use_stored_config,
-                    args.session_timeout
+                    args.session_timeout,
+                    attempt_replay
                 ): (config_path, run_id)
                 for config_path, run_id, use_stored_config in tasks
             }
@@ -1160,9 +1497,9 @@ def main():
                     # Update progress monitor
                     if progress_monitor:
                         if result.success:
-                            progress_monitor.mark_completed(result.run_id)
+                            progress_monitor.mark_completed(result.run_id, result.duration_seconds)
                         else:
-                            progress_monitor.mark_failed(result.run_id)
+                            progress_monitor.mark_failed(result.run_id, result.duration_seconds)
 
                     if result.success:
                         logger.info(

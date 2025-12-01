@@ -40,6 +40,21 @@ class ReplaySession:
             replay_to_round: Stop replay after this round (default: replay entire session)
             continue_from_round: Switch to live LLM calls after this round (default: None = full replay)
             start_from_round: Skip rounds 0 to N-1, start replay from round N (default: 0 = replay from beginning)
+
+                WARNING: start_from_round is currently BROKEN for LLM cache replay.
+                The issue: LLM cache is keyed by (agent_id, call_sequence) where call_sequence
+                starts at 0 and increments per-agent. If we "skip" to round N, the session
+                still starts internally at round 0, so the first LLM call looks for sequence 0
+                in cache - but round N's calls are at sequence M (where M = calls made in
+                rounds 0 to N-1). Result: cache miss and crash.
+
+                Use continue_from_round instead: it replays ALL rounds from 0, using cache
+                for rounds 0-N (sequences align correctly), then switches to live LLM for N+1+.
+                This costs computation time but no API cost for cached rounds.
+
+                To fix start_from_round properly would require either:
+                1. Offset the call_sequence counter to start where round N begins, OR
+                2. Re-key the cache by (agent_id, round, intra_round_sequence)
         """
         self.log_path = Path(log_path)
         self.replay_to_round = replay_to_round
