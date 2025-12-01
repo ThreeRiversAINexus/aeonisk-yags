@@ -628,7 +628,8 @@ What do you do? Choose action_type and explain your reason."""
         if self.npc.entity_type == "prisoner" or self.npc.disposition == "prisoner":
             return NPCAction(
                 action_type="plead",
-                reason="I surrender! Please don't hurt me!"
+                reason="Desperately begging for mercy as a prisoner.",
+                dialogue_content="Please, I surrender! Don't hurt me!"
             )
 
         # Combat situations - non-combatants flee (but not if combat has ended)
@@ -656,7 +657,8 @@ What do you do? Choose action_type and explain your reason."""
         if any(word in context_lower for word in ["asks", "questions", "speaks", "addresses"]):
             return NPCAction(
                 action_type="dialogue",
-                reason="I respond to the players' question."
+                reason="Responding to the players' question or address.",
+                dialogue_content="I hear you. What would you like to know?"
             )
 
         # Default: pass when nothing relevant

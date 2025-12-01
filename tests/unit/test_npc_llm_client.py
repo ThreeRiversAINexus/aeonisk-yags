@@ -141,21 +141,30 @@ async def test_npc_client_respects_can_act_flag():
 @pytest.mark.asyncio
 async def test_npc_action_schema_validation():
     """NPCAction validates action types and reason length."""
-    # Valid actions
-    valid_types = ["flee", "hide", "plead", "comply", "dialogue", "assist", "pass"]
+    # Valid actions - some require dialogue_content
+    actions_without_dialogue = ["flee", "hide", "comply", "assist", "pass"]
+    actions_with_dialogue = ["plead", "dialogue"]
 
-    for action_type in valid_types:
+    for action_type in actions_without_dialogue:
         action = NPCAction(
             action_type=action_type,
             reason="Valid reason for action with sufficient length"
         )
         assert action.action_type == action_type
 
-    # Invalid action type should fail
+    for action_type in actions_with_dialogue:
+        action = NPCAction(
+            action_type=action_type,
+            reason="Valid reason for action with sufficient length",
+            dialogue_content="Please, I surrender! Don't hurt me!"
+        )
+        assert action.action_type == action_type
+
+    # Invalid action type should fail (attack is now valid for NPCs)
     with pytest.raises(Exception):  # Pydantic ValidationError
         NPCAction(
-            action_type="attack",  # Not in valid set
-            reason="Invalid action type"
+            action_type="invalid_action",  # Not in valid set
+            reason="Invalid action type test"
         )
 
 

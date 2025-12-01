@@ -19,16 +19,11 @@ from scripts.aeonisk.multiagent.schemas.player_action import PlayerAction
 from scripts.aeonisk.multiagent.schemas.shared_types import ActionType
 from scripts.aeonisk.multiagent.action_schema import ActionDeclaration
 from scripts.aeonisk.multiagent.prompt_loader import compose_sections
+from scripts.aeonisk.multiagent.shared_state import SharedState
 
 
 class TestItemTransferValidation:
     """Test item transfer validation logic in GameMechanicsEngine"""
-
-    @pytest.fixture
-    def mechanics(self):
-        """Create MechanicsEngine instance"""
-        engine = MechanicsEngine(random_seed=42)
-        return engine
 
     @pytest.fixture
     def sender_state(self):
@@ -62,6 +57,25 @@ class TestItemTransferValidation:
             energy_purse=EnergyPurse(spark=8, grain=5, drip=12, breath=3)
         )
 
+    @pytest.fixture
+    def mechanics(self, sender_state, receiver_state):
+        """Create MechanicsEngine with shared_state containing player agents"""
+        shared_state = SharedState()
+
+        # Create mock player agents with character states
+        sender_agent = Mock()
+        sender_agent.agent_id = "player_ash"
+        sender_agent.character_state = sender_state
+
+        receiver_agent = Mock()
+        receiver_agent.agent_id = "player_kress"
+        receiver_agent.character_state = receiver_state
+
+        shared_state.player_agents = [sender_agent, receiver_agent]
+
+        engine = MechanicsEngine(shared_state=shared_state)
+        return engine
+
     def test_item_transfer_validation_success(self, mechanics, sender_state, receiver_state):
         """Test successful item transfer validation"""
         validation = mechanics.validate_transfer(
@@ -89,7 +103,9 @@ class TestItemTransferValidation:
         assert validation.item_shortage == {"Incense": 6, "Crystals": 2}
 
     def test_missing_inventory(self, mechanics, receiver_state):
-        """Test transfer validation fails when sender has no inventory"""
+        """Test transfer validation fails when sender has empty inventory"""
+        # Note: CharacterState now auto-initializes a default inventory with 0 of each item
+        # when inventory=None, so we test the case where sender has 0 of the requested items
         sender_no_inv = CharacterState(
             name="Empty",
             faction="Freeborn",
@@ -99,7 +115,7 @@ class TestItemTransferValidation:
             soulcredit=5,
             bonds=[],
             goals=[],
-            inventory=None,  # No inventory
+            inventory=None,  # Gets default inventory with 0 of everything
             energy_purse=EnergyPurse()
         )
 
@@ -110,7 +126,8 @@ class TestItemTransferValidation:
         )
 
         assert not validation.is_valid
-        assert "no inventory" in validation.failure_reason
+        # CharacterState now auto-initializes inventory, so error is "insufficient" not "no inventory"
+        assert "Insufficient items" in validation.failure_reason
 
     def test_combined_currency_and_items(self, mechanics, sender_state, receiver_state):
         """Test validation for combined currency + item transfer"""
@@ -210,18 +227,18 @@ class TestItemTransferExecution:
             soulcredit=5,
             bonds=[],
             goals=[],
-            inventory=None,  # No inventory initially
+            inventory=None,  # Gets default inventory via __post_init__
             energy_purse=EnergyPurse()
         )
 
-        # Initialize if needed
-        if receiver.inventory is None:
-            receiver.inventory = {}
+        # CharacterState now auto-initializes inventory in __post_init__
+        assert receiver.inventory is not None
 
         # Add items
         receiver.inventory["Incense"] = receiver.inventory.get("Incense", 0) + 2
 
-        assert receiver.inventory == {"Incense": 2}
+        # Check that Incense was added correctly (inventory has default items + our addition)
+        assert receiver.inventory["Incense"] == 2
 
 
 class TestSchemaIntegration:
@@ -251,7 +268,7 @@ class TestSchemaIntegration:
         """Test ActionDeclaration preserves transfer fields from PlayerAction"""
         player_action = PlayerAction(
             intent="Give currency to ally",
-            description="Hand over energy talismans",
+            description="I carefully hand over the energy talismans to my ally, ensuring the delicate transfer is complete",
             attribute="Empathy",
             skill=None,
             difficulty_estimate=10,
@@ -287,7 +304,7 @@ class TestSchemaIntegration:
         """Test combined currency + item transfer"""
         action = PlayerAction(
             intent="Pool resources",
-            description="Hand over both currency and items",
+            description="I pool our resources by handing over both the spark currency and blood offering items to Kress",
             attribute="Empathy",
             skill=None,
             difficulty_estimate=10,
@@ -411,10 +428,10 @@ class TestActionDeclarationSchema:
         assert action.transfer_items == {"Incense": 2}
 
     def test_transfer_in_valid_action_types(self):
-        """Test 'transfer' is in ActionDeclaration's valid_action_types"""
-        from scripts.aeonisk.multiagent.action_schema import valid_action_types
-
-        assert "transfer" in valid_action_types
+        """Test 'transfer' is a valid ActionType"""
+        # ActionType enum is the public API for valid action types
+        assert hasattr(ActionType, 'TRANSFER')
+        assert ActionType.TRANSFER.value == 'transfer'
 
 
 if __name__ == "__main__":

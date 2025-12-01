@@ -592,6 +592,7 @@ class TestActionTypeSchemaMap:
             ActionType.PURCHASE,
             ActionType.TRANSFER,
             ActionType.ATTUNE,
+            ActionType.CONSUME,
             ActionType.CUSTOM,
         }
 

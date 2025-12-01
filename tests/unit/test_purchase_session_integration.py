@@ -77,11 +77,15 @@ class TestSessionPurchaseIntegration:
         )
         shared_state.add_vendor(vendor)
         
-        # Create mock session
+        # Create mock session (using replay_mode to bypass config file loading)
         session = SelfPlayingSession(
-            session_id="test_session",
-            config={},
-            output_dir="/tmp"
+            replay_mode=True,
+            replay_config={
+                "session_name": "test_session",
+                "agents": {"dm": {}, "players": []},
+                "party_size": 2,
+                "max_turns": 1
+            }
         )
         session.shared_state = shared_state
         session._in_declaration_phase = True

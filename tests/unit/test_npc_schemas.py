@@ -129,8 +129,10 @@ def test_npc_spawn_converted_from_enemy():
 
 def test_deescalation_valid():
     """Deescalation validates with all required fields."""
+    from scripts.aeonisk.multiagent.schemas.story_events import EnemyResolution
     deesc = Deescalation(
         enemy_id="enemy_raider_1",
+        resolution=EnemyResolution.CONVINCED,
         resulting_entity_type="neutral",
         resulting_disposition="neutral",
         reason="Convinced of shared Freeborn kinship, agrees to temporary ceasefire"
@@ -144,8 +146,10 @@ def test_deescalation_valid():
 
 def test_deescalation_prisoner():
     """Deescalation can convert to prisoner."""
+    from scripts.aeonisk.multiagent.schemas.story_events import EnemyResolution
     deesc = Deescalation(
         enemy_id="enemy_guard_1",
+        resolution=EnemyResolution.SUBDUED,
         resulting_entity_type="prisoner",
         resulting_disposition="prisoner",
         reason="Subdued via stun damage, now restrained and interrogatable"
@@ -157,9 +161,11 @@ def test_deescalation_prisoner():
 
 def test_deescalation_min_reason_length():
     """Deescalation requires reason >= 20 chars."""
+    from scripts.aeonisk.multiagent.schemas.story_events import EnemyResolution
     with pytest.raises(ValidationError):
         Deescalation(
             enemy_id="enemy_test_1",
+            resolution=EnemyResolution.CONVINCED,
             resulting_entity_type="neutral",
             resulting_disposition="neutral",
             reason="Too short"  # < 20 chars

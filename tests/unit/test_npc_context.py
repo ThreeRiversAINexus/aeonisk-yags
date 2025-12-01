@@ -209,7 +209,8 @@ class TestNPCPromptFormatting:
         mock_npc.stuns = 0
         mock_npc.wounds = 1
 
-        return NPCLLMClient(npc=mock_npc, llm_provider="anthropic", model_name="test-model", api_key="test")
+        # llm_provider=None since we're only testing prompt building, not actual LLM calls
+        return NPCLLMClient(npc=mock_npc, llm_provider=None)
 
     def test_npc_prompt_includes_recent_events(self, npc_llm_client):
         """
@@ -315,7 +316,8 @@ class TestNPCContextEdgeCases:
         mock_npc.stuns = 0
         mock_npc.wounds = 0
 
-        return NPCLLMClient(npc=mock_npc, llm_provider="anthropic", model_name="test-model", api_key="test")
+        # llm_provider=None since we're only testing prompt building, not actual LLM calls
+        return NPCLLMClient(npc=mock_npc, llm_provider=None)
 
     def test_npc_prompt_with_no_context(self, minimal_npc_llm_client):
         """
@@ -356,20 +358,19 @@ class TestNPCContextEdgeCases:
         Test: NPC action with empty reason field.
 
         Edge case: What if LLM returns empty reason?
+        Schema now requires min_length=10, so empty reason should fail validation.
         """
-        npc_action = NPCAction(
-            action_type="pass",
-            reason="",  # Empty reason
-            target=None
-        )
+        from pydantic import ValidationError
 
-        # Should still be valid NPCAction
-        assert npc_action.action_type == "pass"
-        assert npc_action.reason == ""
+        with pytest.raises(ValidationError) as exc_info:
+            NPCAction(
+                action_type="pass",
+                reason="",  # Empty reason - should fail min_length=10
+                target=None
+            )
 
-        # Broadcast should handle gracefully (use empty string or fallback to intent)
-        description = npc_action.reason if npc_action.reason else f"[{npc_action.action_type}]"
-        assert description in ["", "[pass]"]
+        # Verify it's a string_too_short error
+        assert "string_too_short" in str(exc_info.value) or "at least 10" in str(exc_info.value)
 
 
 class TestNPCContextIntegration:

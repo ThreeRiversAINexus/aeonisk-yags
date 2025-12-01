@@ -33,7 +33,7 @@
         },
         "health": 6,
         "max_health": 6,
-        "void_score": 3,
+        "void": 3,
         "soulcredit": 5,
         "traits": ["Observant", "Tech-Savvy"],
         "description": "Former Collective archivist turned investigator. Specializes in digital forensics and pattern recognition.",
@@ -59,7 +59,7 @@
         },
         "health": 8,
         "max_health": 8,
-        "void_score": 2,
+        "void": 2,
         "soulcredit": 3,
         "traits": ["Tough", "Aggressive"],
         "description": "Consortium enforcer with military training. Direct approach to problem-solving.",
@@ -90,7 +90,9 @@
       "max": 8,
       "direction": "progress",
       "public": true,
-      "description": "Investigate the abandoned facility"
+      "description": "Investigate the abandoned facility",
+      "advance_meaning": "Evidence mounts toward discovery",
+      "regress_meaning": "Investigation stalls or evidence is lost"
     }
   ]
 }

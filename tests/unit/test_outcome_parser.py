@@ -219,13 +219,13 @@ class TestStructuredOutputExtraction:
             success_tier=SuccessTier.EXCELLENT,
             margin=15,
             effects=MechanicalEffects(
-                damage=DamageEffect(
+                damage=[DamageEffect(
                     target="tgt_d004",
                     base_damage=18,
                     soak=3,
                     dealt=15,
                     damage_type="kinetic"
-                )
+                )]
             )
         )
 

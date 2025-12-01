@@ -13,10 +13,12 @@ Date: 2025-11-02
 
 import pytest
 from unittest.mock import Mock, patch, call
-from aeonisk.multiagent.session import Message, MessageType
-from aeonisk.multiagent.enemy_combat import EnemyCombatManager
-from aeonisk.multiagent.schemas.story_events import ScenarioSetup, EnemySpawn, NewClock
-from aeonisk.multiagent.schemas.shared_types import Position
+from datetime import datetime
+import uuid
+from scripts.aeonisk.multiagent.base import Message, MessageType
+from scripts.aeonisk.multiagent.enemy_combat import EnemyCombatManager
+from scripts.aeonisk.multiagent.schemas.story_events import ScenarioSetup, EnemySpawn, NewClock
+from scripts.aeonisk.multiagent.schemas.shared_types import Position
 
 
 class TestScenarioInitialEnemies:
@@ -51,7 +53,13 @@ class TestScenarioInitialEnemies:
             location="ACG Security Checkpoint",
             situation="You approach the heavily fortified ACG checkpoint. Guards patrol the entrance, and automated turrets track movement. Intelligence suggests the checkpoint stores sensitive data on void-corrupted assets. Your team needs to bypass security without triggering alarms.",
             starting_clocks=[
-                NewClock(name="Security Alert", max_ticks=6, description="Guards raise alarm level")
+                NewClock(
+                    name="Security Alert",
+                    max_ticks=6,
+                    description="Guards raise alarm level",
+                    advance_meaning="Security awareness increases",
+                    regress_meaning="Guards become less vigilant"
+                )
             ],
             success_conditions="Bypass checkpoint without raising alarm",
             failure_consequences="Full lockdown, heavy reinforcements arrive",
@@ -86,9 +94,10 @@ class TestScenarioInitialEnemies:
 
         # Create SCENARIO_SETUP message
         message = Message(
+            id=str(uuid.uuid4()),
             type=MessageType.SCENARIO_SETUP,
             sender="dm_agent",
-            content="Scenario ready",
+            recipient=None,
             payload={
                 'scenario': {
                     'theme': scenario_setup.theme,
@@ -96,11 +105,12 @@ class TestScenarioInitialEnemies:
                 },
                 'scenario_setup': scenario_setup,  # Structured output object
                 'opening_narration': "You approach the heavily fortified ACG checkpoint..."
-            }
+            },
+            timestamp=datetime.now()
         )
 
         # Import the real _handle_scenario_setup method
-        from aeonisk.multiagent.session import SelfPlayingSession
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
         real_handler = SelfPlayingSession._handle_scenario_setup
 
         # Execute: Call _handle_scenario_setup with our mocked session
@@ -124,9 +134,9 @@ class TestScenarioInitialEnemies:
         Even if ScenarioSetup has initial_enemies, they should not spawn
         if enemy combat is disabled in session config.
         """
-        from aeonisk.multiagent.session import MultiAgentSession
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
 
-        session = Mock(spec=MultiAgentSession)
+        session = Mock(spec=SelfPlayingSession)
         session.enemy_combat = Mock(spec=EnemyCombatManager)
         session.enemy_combat.enabled = False  # Disabled!
         session.shared_state = Mock()
@@ -138,7 +148,8 @@ class TestScenarioInitialEnemies:
             location="Neutral Meeting Ground",
             situation="You arrive at the neutral zone for trade negotiations. Mediator Chen oversees the talks between Resonance Communes and Independent Traders. The atmosphere is tense but peaceful.",
             starting_clocks=[
-                NewClock(name="Negotiation Progress", max_ticks=8, description="Trust builds between factions")
+                NewClock(name="Negotiation Progress", max_ticks=8, description="Trust builds between factions",
+                         advance_meaning="Trust increases", regress_meaning="Trust decreases")
             ],
             success_conditions="Reach trade agreement",
             failure_consequences="Trade talks collapse",
@@ -155,18 +166,20 @@ class TestScenarioInitialEnemies:
         )
 
         message = Message(
+            id=str(uuid.uuid4()),
             type=MessageType.SCENARIO_SETUP,
             sender="dm_agent",
-            content="Scenario ready",
+            recipient=None,
             payload={
                 'scenario': {'theme': scenario_setup.theme, 'location': scenario_setup.location},
                 'scenario_setup': scenario_setup,
                 'opening_narration': "You enter the neutral zone..."
-            }
+            },
+            timestamp=datetime.now()
         )
 
-        from aeonisk.multiagent.session import MultiAgentSession
-        real_handler = MultiAgentSession._handle_scenario_setup
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
+        real_handler = SelfPlayingSession._handle_scenario_setup
         real_handler(session, message)
 
         # Verify: spawn_from_structured was NOT called (combat disabled)
@@ -178,9 +191,9 @@ class TestScenarioInitialEnemies:
 
         ScenarioSetup with initial_enemies=[] should not crash or call spawn.
         """
-        from aeonisk.multiagent.session import MultiAgentSession
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
 
-        session = Mock(spec=MultiAgentSession)
+        session = Mock(spec=SelfPlayingSession)
         session.enemy_combat = Mock(spec=EnemyCombatManager)
         session.enemy_combat.enabled = True
         session.shared_state = Mock()
@@ -192,26 +205,29 @@ class TestScenarioInitialEnemies:
             location="Resonance Community Hub",
             situation="The Resonance Communes welcome you cautiously. Elder Yara and Tech Specialist Finn observe your actions, gauging trustworthiness. The community values harmony and transparency.",
             starting_clocks=[
-                NewClock(name="Community Trust", max_ticks=10, description="Earn the commune's confidence")
+                NewClock(name="Community Trust", max_ticks=10, description="Earn the commune's confidence",
+                         advance_meaning="Commune trusts you more", regress_meaning="Commune becomes suspicious")
             ],
             success_conditions="Gain community trust",
-            failure_consequences="Expelled from hub",
+            failure_consequences="Expelled from community hub permanently",
             initial_enemies=[]  # Empty list
         )
 
         message = Message(
+            id=str(uuid.uuid4()),
             type=MessageType.SCENARIO_SETUP,
             sender="dm_agent",
-            content="Scenario ready",
+            recipient=None,
             payload={
                 'scenario': {'theme': scenario_setup.theme, 'location': scenario_setup.location},
                 'scenario_setup': scenario_setup,
                 'opening_narration': "The community welcomes you warmly..."
-            }
+            },
+            timestamp=datetime.now()
         )
 
-        from aeonisk.multiagent.session import MultiAgentSession
-        real_handler = MultiAgentSession._handle_scenario_setup
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
+        real_handler = SelfPlayingSession._handle_scenario_setup
 
         # Execute: Should not raise any errors
         real_handler(session, message)
@@ -226,9 +242,9 @@ class TestScenarioInitialEnemies:
         Older scenarios or DM responses might not include initial_enemies.
         Should handle gracefully (field defaults to empty list in schema).
         """
-        from aeonisk.multiagent.session import MultiAgentSession
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
 
-        session = Mock(spec=MultiAgentSession)
+        session = Mock(spec=SelfPlayingSession)
         session.enemy_combat = Mock(spec=EnemyCombatManager)
         session.enemy_combat.enabled = True
         session.shared_state = Mock()
@@ -241,26 +257,29 @@ class TestScenarioInitialEnemies:
             location="Abandoned Research Lab",
             situation="The lab is eerily quiet. Void energy crackles through damaged conduits. An AI fragment calling itself 'Echo' flickers on ancient terminals, offering cryptic hints about the research conducted here before the collapse.",
             starting_clocks=[
-                NewClock(name="Lab Stability", max_ticks=8, description="Structure deteriorates")
+                NewClock(name="Lab Stability", max_ticks=8, description="Structure deteriorates",
+                         advance_meaning="Lab becomes more unstable", regress_meaning="Lab stabilizes")
             ],
             success_conditions="Uncover research data",
-            failure_consequences="Lab collapses"
+            failure_consequences="Lab collapses and destroys all evidence"
             # initial_enemies omitted (defaults to [])
         )
 
         message = Message(
+            id=str(uuid.uuid4()),
             type=MessageType.SCENARIO_SETUP,
             sender="dm_agent",
-            content="Scenario ready",
+            recipient=None,
             payload={
                 'scenario': {'theme': scenario_setup.theme, 'location': scenario_setup.location},
                 'scenario_setup': scenario_setup,
                 'opening_narration': "The lab is eerily quiet..."
-            }
+            },
+            timestamp=datetime.now()
         )
 
-        from aeonisk.multiagent.session import MultiAgentSession
-        real_handler = MultiAgentSession._handle_scenario_setup
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
+        real_handler = SelfPlayingSession._handle_scenario_setup
 
         # Execute: Should not raise any errors
         real_handler(session, message)
@@ -275,9 +294,9 @@ class TestScenarioInitialEnemies:
         Older sessions may only have 'scenario' dict without ScenarioSetup object.
         Should handle gracefully and skip initial_enemies processing.
         """
-        from aeonisk.multiagent.session import MultiAgentSession
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
 
-        session = Mock(spec=MultiAgentSession)
+        session = Mock(spec=SelfPlayingSession)
         session.enemy_combat = Mock(spec=EnemyCombatManager)
         session.enemy_combat.enabled = True
         session.shared_state = Mock()
@@ -286,9 +305,10 @@ class TestScenarioInitialEnemies:
 
         # Legacy message format (no scenario_setup object)
         message = Message(
+            id=str(uuid.uuid4()),
             type=MessageType.SCENARIO_SETUP,
             sender="dm_agent",
-            content="Scenario ready",
+            recipient=None,
             payload={
                 'scenario': {
                     'theme': "Old Format Scenario",
@@ -296,11 +316,12 @@ class TestScenarioInitialEnemies:
                 },
                 # No scenario_setup key
                 'opening_narration': "This is an old format scenario..."
-            }
+            },
+            timestamp=datetime.now()
         )
 
-        from aeonisk.multiagent.session import MultiAgentSession
-        real_handler = MultiAgentSession._handle_scenario_setup
+        from scripts.aeonisk.multiagent.session import SelfPlayingSession
+        real_handler = SelfPlayingSession._handle_scenario_setup
 
         # Execute: Should not crash
         real_handler(session, message)

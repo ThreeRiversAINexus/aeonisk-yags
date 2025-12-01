@@ -151,11 +151,11 @@ class TestEnemySpawning:
 
         # Verify HP is not scaled (would have been multiplied by count in old system)
         assert enemy.health == enemy.max_health  # Not damaged
-        assert enemy.health == 12  # Grunt base HP from template
+        assert enemy.health == 30  # Grunt base HP from template (Health 3 * body_levels 10)
 
     def test_spawn_enemy_elite_hp_not_scaled(self):
         """Elite enemy HP should match template exactly."""
-        # Elite template has 20 HP (Health attribute 4 * body_levels 5 = 20)
+        # Elite template has 50 HP (Health attribute 5 * body_levels 10 = 50)
         enemy = spawn_enemy(
             name="Elite Squad",
             template_key="elite",
@@ -165,7 +165,7 @@ class TestEnemySpawning:
 
         # Verify HP is not scaled (would have been multiplied by count * 0.7 in old system)
         assert enemy.health == enemy.max_health  # Not damaged
-        assert enemy.health == 20  # Elite base HP from template
+        assert enemy.health == 50  # Elite base HP from template (Health 5 * body_levels 10)
 
 
 class TestActiveUnitCounting:

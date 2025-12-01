@@ -66,7 +66,7 @@ class TestStoryAdvancementSchema:
         advancement = StoryAdvancement(
             should_advance=True,
             location="Safe House",
-            situation="You escape to the extraction point.",
+            situation="You escape to the extraction point after a harrowing chase through corrupted corridors.",
             clear_all_enemies=True
         )
 
@@ -80,7 +80,7 @@ class TestStoryAdvancementSchema:
         advancement_min = StoryAdvancement(
             should_advance=True,
             location="Sanctified Temple",
-            situation="Completely purified zone.",
+            situation="This zone has been completely purified by ancient wards and holy symbols.",
             new_void_level=0
         )
         assert advancement_min.new_void_level == 0
@@ -88,7 +88,7 @@ class TestStoryAdvancementSchema:
         advancement_max = StoryAdvancement(
             should_advance=True,
             location="Void Epicenter",
-            situation="The breach tears reality itself.",
+            situation="The breach tears reality itself as void energy pours through the dimensional rift.",
             new_void_level=10
         )
         assert advancement_max.new_void_level == 10
@@ -98,7 +98,7 @@ class TestStoryAdvancementSchema:
             StoryAdvancement(
                 should_advance=True,
                 location="Test",
-                situation="Test situation with at least 20 characters here",
+                situation="Test situation with at least fifty characters for validation purposes here.",
                 new_void_level=-1
             )
         assert "greater than or equal to 0" in str(exc_info.value)
@@ -108,7 +108,7 @@ class TestStoryAdvancementSchema:
             StoryAdvancement(
                 should_advance=True,
                 location="Test",
-                situation="Test situation with at least 20 characters here",
+                situation="Test situation with at least fifty characters for validation purposes here.",
                 new_void_level=11
             )
         assert "less than or equal to 10" in str(exc_info.value)
@@ -161,7 +161,7 @@ class TestStoryAdvancementHandler:
         scenario = Scenario(
             theme="Test Theme",
             location="Warehouse Level 1",
-            situation="Same corruption level",
+            situation="The corruption level remains constant throughout this section of the warehouse.",
             active_npcs=[],
             environmental_factors=[],
             void_level=6  # Initial void level
@@ -171,7 +171,7 @@ class TestStoryAdvancementHandler:
         advancement = StoryAdvancement(
             should_advance=True,
             location="Warehouse Level 2",
-            situation="You ascend to the next floor.",
+            situation="You ascend to the next floor where the void corruption persists at the same intensity.",
             new_void_level=None,  # No change
             clear_all_enemies=True
         )

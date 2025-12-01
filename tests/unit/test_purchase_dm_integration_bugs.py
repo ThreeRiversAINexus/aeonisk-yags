@@ -169,8 +169,8 @@ class TestDMPurchaseIntegrationBugs:
             name="Test Vendor",
             faction="Neutral",
             inventory=[
-                VendorItem("Health Kit", "Restores HP", price_drip=5),
-                VendorItem("Echo-Calibrator", "Attunes seeds", price_spark=5)
+                VendorItem(name="Health Kit", description="Restores HP", price_drip=5),
+                VendorItem(name="Echo-Calibrator", description="Attunes seeds", price_spark=5)
             ],
             greeting="Welcome",
             vendor_type=VendorType.VENDING_MACHINE

@@ -168,10 +168,11 @@ def test_npc_action_with_target():
 def test_npc_action_types_valid():
     """NPCAction only accepts valid action types."""
     valid_types = ["flee", "hide", "plead", "comply", "dialogue", "assist", "pass"]
+    # These action types require dialogue_content
+    dialogue_required = ["dialogue", "plead"]
 
     for action_type in valid_types:
-        # Dialogue requires dialogue_content, others don't
-        if action_type == "dialogue":
+        if action_type in dialogue_required:
             action = NPCAction(
                 action_type=action_type,
                 reason="Test action with sufficient length for validation",

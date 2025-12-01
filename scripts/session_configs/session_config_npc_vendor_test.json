@@ -27,7 +27,7 @@
           "Negotiate": 3,
           "Investigate": 2
         },
-        "void_score": 1,
+        "void": 1,
         "soulcredit": 0,
         "bonds": [
           "Find valuable supplies"

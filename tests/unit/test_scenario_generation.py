@@ -55,17 +55,17 @@ class TestScenarioSetupValidation:
         assert len(scenario.location) == 200
 
     def test_location_exceeds_max_length_fails(self, minimal_valid_scenario):
-        """Test location exceeding 200 characters fails validation."""
-        # 201 characters
-        too_long = "The Gestation Terraces - Arcadia Sprawl, Sub-District 7-Alpha, Near the Void-Corrupted Transit Hub Where Reality Bleeds Into Nightmare and Corporate Security Patrols Have Ceased All Operations XXXXXXXX"
-        assert len(too_long) == 201
+        """Test location exceeding 500 characters fails validation."""
+        # 501 characters (schema max_length=500)
+        too_long = "X" * 501
+        assert len(too_long) == 501
 
         minimal_valid_scenario["location"] = too_long
         with pytest.raises(ValidationError) as exc_info:
             ScenarioSetup(**minimal_valid_scenario)
 
         assert "location" in str(exc_info.value)
-        assert "200" in str(exc_info.value)
+        assert "500" in str(exc_info.value)
 
     def test_situation_at_max_length_passes(self, minimal_valid_scenario):
         """Test situation at exactly 1200 characters passes (relaxed constraint)."""
@@ -91,30 +91,17 @@ class TestScenarioSetupValidation:
         assert len(scenario.situation) == 1200
 
     def test_situation_exceeds_max_length_fails(self, minimal_valid_scenario):
-        """Test situation exceeding 1200 characters fails validation."""
-        # 1201 characters
-        too_long = (
-            "The party finds themselves deep within the heart of the Gestation Terraces, "
-            "a biomechanical warren of pulsing tubes and corrupted flesh-machines. "
-            "The air itself seems to breathe, heavy with void corruption that makes reality shimmer at the edges. "
-            "Your contact, a rogue technician named Vex, has gone silent after transmitting coordinates to this location. "
-            "The walls are lined with observation pods, each containing a figure suspended in amber fluid - "
-            "some human, some... not quite. The lighting flickers between sickly green bioluminescence and harsh red emergency lights. "
-            "A low thrumming sound reverberates through the floor, growing stronger with each passing moment. "
-            "Your void sensors are screaming warnings - the corruption level here is off the charts, "
-            "easily level 8 or higher. Through a cracked viewport ahead, you can see what appears to be "
-            "a massive ritual chamber, where figures in tattered corporate uniforms move with jerky, puppet-like motions "
-            "around a central void-rift that tears reality itself. The sight of it makes your bonds ache with sympathetic resonance. "
-            "Time is running out. Additional padding text to reach exactly 1201 characters for testing max length validation XXXXXXXXXXXX"
-        )
-        assert len(too_long) == 1201
+        """Test situation exceeding 2500 characters fails validation."""
+        # 2501 characters (schema max_length=2500)
+        too_long = "X" * 2501
+        assert len(too_long) == 2501
 
         minimal_valid_scenario["situation"] = too_long
         with pytest.raises(ValidationError) as exc_info:
             ScenarioSetup(**minimal_valid_scenario)
 
         assert "situation" in str(exc_info.value)
-        assert "1200" in str(exc_info.value)
+        assert "2500" in str(exc_info.value)
 
     def test_missing_success_conditions_fails(self, minimal_valid_scenario):
         """Test missing success_conditions raises ValidationError."""
