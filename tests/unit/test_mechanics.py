@@ -995,6 +995,46 @@ class TestDamageApplication:
         assert target.stuns == 5
         assert target.health == 45  # 50 - 5 wound_damage
 
+    def test_kira_thane_overkill_scenario(self):
+        """
+        Regression test based on real session: session_a4cf5513-*.jsonl
+
+        Kira Thane had 9 HP in round 4, took 14+ damage in round 5,
+        ended up at -5 HP (bug). With the fix, should be 0 HP.
+
+        This simulates the exact scenario from the fixture:
+        tests/fixtures/sessions/negative_health_bug.jsonl
+        """
+        target = MagicMock()
+        target.wounds = 3  # From round 4
+        target.health = 9  # From round 4: health=9, wounds=3
+
+        # Round 5: Takes massive damage (14 points)
+        result = apply_wound_damage(target, 14)
+
+        # BUG: health would have been 9 - 14 = -5
+        # FIX: health should be max(0, 9 - 14) = 0
+        assert target.health == 0, f"Kira Thane should be at 0 HP, not {target.health}"
+        assert target.wounds == 5  # 3 + (14 // 5) = 3 + 2 = 5
+
+    def test_successive_overkill_stays_at_zero(self):
+        """Test that multiple overkill hits keep health at 0."""
+        target = MagicMock()
+        target.wounds = 0
+        target.health = 10
+
+        # First hit: overkill
+        apply_wound_damage(target, 15)
+        assert target.health == 0
+
+        # Second hit: already at 0
+        apply_wound_damage(target, 20)
+        assert target.health == 0
+
+        # Third hit: still at 0
+        apply_wound_damage(target, 100)
+        assert target.health == 0
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

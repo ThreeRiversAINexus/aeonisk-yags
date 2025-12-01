@@ -369,3 +369,33 @@ class TestIntegration:
         # Just check it runs without error
         assert result is not None
         assert isinstance(result.passed, bool)
+
+    def test_negative_health_bug_fixture(self, fixtures_dir):
+        """
+        Test fixture negative_health_bug.jsonl contains the pre-fix bug.
+
+        This fixture was extracted from session_a4cf5513-* where Kira Thane
+        ended up at -5 HP due to overkill damage not being clamped.
+
+        The fixture documents the bug for regression testing. New sessions
+        should no longer have this issue due to the max(0, health-damage) fix.
+        """
+        fixture_path = fixtures_dir / 'negative_health_bug.jsonl'
+        if not fixture_path.exists():
+            pytest.skip("Fixture negative_health_bug.jsonl not available")
+
+        from datamine import BulkValidator
+        validator = BulkValidator()
+        result = validator.validate_session(fixture_path)
+
+        # Fixture should FAIL validation due to negative health
+        assert not result.passed, "Fixture should fail validation (contains negative health bug)"
+
+        # Should have the specific negative health error
+        error_messages = [e.message for e in result.errors]
+        negative_health_errors = [m for m in error_messages if 'Negative health' in m]
+        assert len(negative_health_errors) > 0, "Should detect negative health error"
+
+        # Specifically Kira Thane at -5 HP
+        kira_errors = [m for m in negative_health_errors if 'Kira Thane' in m]
+        assert len(kira_errors) > 0, "Should detect Kira Thane's negative health"
