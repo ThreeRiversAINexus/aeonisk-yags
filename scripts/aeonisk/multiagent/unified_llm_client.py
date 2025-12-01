@@ -217,9 +217,9 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2  # Exponential backoff
                 else:
-                    logger.error(
-                        f"Cannot connect to proxy at {self.proxy_url} after {max_retries} attempts, "
-                        f"falling back to direct API"
+                    logger.info(
+                        f"Proxy unavailable at {self.proxy_url} after {max_retries} attempts, "
+                        f"falling back to direct {self.provider} API"
                     )
                     # Fallback to direct
                     if self.provider == 'openai':
@@ -234,7 +234,7 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
-                    logger.error(f"Proxy timeout after {max_retries} attempts, falling back to direct API")
+                    logger.info(f"Proxy timeout after {max_retries} attempts, falling back to direct {self.provider} API")
                     if self.provider == 'openai':
                         return self._openai_completion(messages, model, temperature, max_tokens)
                     else:
@@ -242,7 +242,7 @@ class UnifiedAIClient:
 
             except requests.exceptions.HTTPError as e:
                 # HTTP errors (4xx, 5xx) - don't retry, fall back immediately
-                logger.error(f"Proxy HTTP error: {e}, falling back to direct API")
+                logger.info(f"Proxy HTTP error ({e}), falling back to direct {self.provider} API")
                 if self.provider == 'openai':
                     return self._openai_completion(messages, model, temperature, max_tokens)
                 else:
@@ -258,7 +258,7 @@ class UnifiedAIClient:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
-                    logger.error(f"Proxy error after {max_retries} attempts: {e}, falling back to direct API")
+                    logger.info(f"Proxy error after {max_retries} attempts ({e}), falling back to direct {self.provider} API")
                     if self.provider == 'openai':
                         return self._openai_completion(messages, model, temperature, max_tokens)
                     else:

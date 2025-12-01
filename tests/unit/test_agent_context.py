@@ -217,11 +217,11 @@ class TestContextUpdates:
             assert prompt_len > 100, \
                 f"Round 2 prompt for {call.get('agent_type')} suspiciously short"
 
-    @pytest.mark.xfail(reason="Known bug: Environmental changes may not always propagate to next round context")
     def test_environmental_changes_persist(self, combat_events):
-        """Environmental changes should persist across rounds (known to have gaps)."""
+        """Environmental changes should persist across rounds."""
         rounds = parse_into_rounds(combat_events)
-        round_nums = sorted(rounds.keys())
+        # Filter out None rounds and sort
+        round_nums = sorted([r for r in rounds.keys() if r is not None and r > 0])
 
         if len(round_nums) < 2:
             pytest.skip("Need multiple rounds to test environment persistence")
@@ -243,11 +243,17 @@ class TestContextUpdates:
                            if e['event_type'] == 'llm_call'
                            and e.get('agent_type') == 'dm']
 
-            # This may fail due to known bugs
             for call in round2_calls:
                 prompt = call.get('prompt', '')
-                # Should mention environment somehow
-                assert len(prompt) > 500, "DM prompt should have environmental context"
+
+                # Handle prompt as list (message array) or string
+                if isinstance(prompt, list):
+                    prompt_len = sum(len(str(msg.get('content', ''))) if isinstance(msg, dict) else len(str(msg)) for msg in prompt)
+                else:
+                    prompt_len = len(str(prompt))
+
+                # DM prompts should have substantial content (environmental context included)
+                assert prompt_len > 500, "DM prompt should have environmental context"
 
 
 class TestSharedGameState:

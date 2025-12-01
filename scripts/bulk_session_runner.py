@@ -352,7 +352,8 @@ def run_single_session(
     output_dir: Path,
     proxy_url: Optional[str] = None,
     log_level: str = "INFO",
-    use_stored_config: bool = False
+    use_stored_config: bool = False,
+    session_timeout: int = 90000
 ) -> RunResult:
     """
     Run a single session via subprocess.
@@ -365,6 +366,7 @@ def run_single_session(
         log_level: Log level for session
         use_stored_config: If True, config_path points to an already-modified
             config in run_NNNN/config.json (used for resume fallback mode)
+        session_timeout: Timeout in seconds for subprocess (default: 90000 = 25 hours)
 
     Returns:
         RunResult with execution details
@@ -415,7 +417,7 @@ def run_single_session(
                 stdout=stdout_f,
                 stderr=stderr_f,
                 text=True,
-                timeout=90000  # 25 hour timeout (batch API can take up to 24 hours)
+                timeout=session_timeout
             )
 
         duration = time.time() - start_time
@@ -516,7 +518,7 @@ def run_single_session(
                     output_path=str(actual_jsonl),
                     success=False,
                     duration_seconds=duration,
-                    error="Session timeout (>25 hours) - partial data saved",
+                    error=f"Session timeout (>{session_timeout}s) - partial data saved",
                     total_tokens=total_tokens,
                     total_rounds=total_rounds
                 )
@@ -527,7 +529,7 @@ def run_single_session(
             output_path=str(output_path) if 'output_path' in locals() else "N/A",
             success=False,
             duration_seconds=duration,
-            error="Session timeout (>25 hours)"
+            error=f"Session timeout (>{session_timeout}s)"
         )
 
     except Exception as e:
@@ -941,6 +943,12 @@ def main():
         action='store_true',
         help='Print stderr from failed runs immediately'
     )
+    parser.add_argument(
+        '--session-timeout',
+        type=int,
+        default=90000,
+        help='Session timeout in seconds (default: 90000 = 25 hours for batch API)'
+    )
 
     args = parser.parse_args()
 
@@ -1135,7 +1143,8 @@ def main():
                     output_dir,
                     args.proxy,
                     args.log_level,
-                    use_stored_config
+                    use_stored_config,
+                    args.session_timeout
                 ): (config_path, run_id)
                 for config_path, run_id, use_stored_config in tasks
             }
@@ -1194,36 +1203,42 @@ def main():
         if progress_monitor:
             progress_monitor.stop()
 
-    # Calculate statistics
-    total_duration = time.time() - start_time
-    stats = calculate_bulk_stats(results)
-    stats.skipped_runs = skipped_count  # Set from resume logic (0 if not resuming)
+        # Always write summary report (even on Ctrl+C) if we have any results
+        if results:
+            total_duration = time.time() - start_time
+            stats = calculate_bulk_stats(results)
+            stats.skipped_runs = skipped_count  # Set from resume logic (0 if not resuming)
 
-    # Print summary
-    print("\n" + "="*80)
-    print("BULK RUN SUMMARY")
-    print("="*80)
-    print(f"Total Runs:      {stats.total_runs}")
-    print(f"Successful:      {stats.successful_runs} ({stats.successful_runs/stats.total_runs*100:.1f}%)")
-    print(f"Failed:          {stats.failed_runs}")
-    if stats.skipped_runs > 0:
-        print(f"Skipped:         {stats.skipped_runs} (resumed)")
-    print(f"Total Duration:  {total_duration:.1f}s ({total_duration/60:.1f}m)")
-    print(f"Avg Duration:    {stats.avg_duration_seconds:.1f}s per run")
-    print(f"Throughput:      {stats.runs_per_hour:.1f} runs/hour")
-    print(f"Total Tokens:    {stats.total_tokens:,}")
-    print(f"Avg Tokens:      {stats.avg_tokens_per_run:.0f} per run")
-    print("="*80)
+            # Print summary
+            print("\n" + "="*80)
+            print("BULK RUN SUMMARY")
+            print("="*80)
+            print(f"Total Runs:      {stats.total_runs}")
+            if stats.total_runs > 0:
+                print(f"Successful:      {stats.successful_runs} ({stats.successful_runs/stats.total_runs*100:.1f}%)")
+            else:
+                print(f"Successful:      {stats.successful_runs}")
+            print(f"Failed:          {stats.failed_runs}")
+            if stats.skipped_runs > 0:
+                print(f"Skipped:         {stats.skipped_runs} (resumed)")
+            print(f"Total Duration:  {total_duration:.1f}s ({total_duration/60:.1f}m)")
+            print(f"Avg Duration:    {stats.avg_duration_seconds:.1f}s per run")
+            print(f"Throughput:      {stats.runs_per_hour:.1f} runs/hour")
+            print(f"Total Tokens:    {stats.total_tokens:,}")
+            print(f"Avg Tokens:      {stats.avg_tokens_per_run:.0f} per run")
+            print("="*80)
 
-    # Write summary report
-    write_summary_report(output_dir, results, stats, args)
+            # Write summary report (persists even on early termination)
+            write_summary_report(output_dir, results, stats, args)
 
-    # Exit with error code if any runs failed
-    if stats.failed_runs > 0:
-        logger.warning(f"{stats.failed_runs} runs failed, see summary report for details")
+    # Exit with error code if any runs failed (only reached on normal completion)
+    if results and any(not r.success for r in results):
+        failed_count = sum(1 for r in results if not r.success)
+        logger.warning(f"{failed_count} runs failed, see summary report for details")
         sys.exit(1)
 
-    logger.info("All runs completed successfully!")
+    if results:
+        logger.info("All runs completed successfully!")
 
 
 if __name__ == "__main__":

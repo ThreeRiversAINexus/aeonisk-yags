@@ -18,9 +18,15 @@ from scripts.bulk_session_runner import (
     extract_session_stats,
     get_completed_runs,
     calculate_bulk_stats,
+    run_single_session,
+    check_session_completed,
+    load_bulk_run_metadata,
+    write_bulk_run_metadata,
+    discover_run_metadata_from_dirs,
     RunResult,
     BulkRunStats
 )
+import subprocess
 
 
 class TestProxyHealthCheck:
@@ -441,6 +447,260 @@ class TestBulkRunStatsDataclass:
         assert stats.successful_runs == 95
         assert stats.failed_runs == 5
         assert stats.skipped_runs == 10
+
+
+class TestSubprocessExecution:
+    """Test run_single_session subprocess execution logic.
+
+    These tests verify the "JSONL is authoritative" logic:
+    - Session completion is determined by session_end event in JSONL
+    - Exit codes can be unreliable (spurious errors)
+    - Timeouts should still check for completed JSONL
+    """
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_run_single_session_success(self, mock_subprocess):
+        """Test successful session execution with exit code 0."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 1}, f)
+
+            # Mock subprocess to return success
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_subprocess.return_value = mock_result
+
+            # Create the run directory and JSONL file that the subprocess "would create"
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            jsonl_path = run_dir / "session_test.jsonl"
+            with open(jsonl_path, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "llm_call", "tokens": {"total": 100}}) + "\n")
+                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+
+            # Also create stderr/stdout logs that subprocess writes to
+            (run_dir / "stderr.log").touch()
+            (run_dir / "stdout.log").touch()
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                proxy_url=None,
+                log_level="INFO"
+            )
+
+            assert result.success is True
+            assert result.run_id == 1
+            assert result.error is None
+            mock_subprocess.assert_called_once()
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_run_single_session_timeout(self, mock_subprocess):
+        """Test session timeout handling."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 1}, f)
+
+            # Mock subprocess to raise timeout
+            mock_subprocess.side_effect = subprocess.TimeoutExpired(
+                cmd=["python", "test.py"],
+                timeout=90000
+            )
+
+            # Create partial JSONL (no session_end - truly incomplete)
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            jsonl_path = run_dir / "session_test.jsonl"
+            with open(jsonl_path, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                proxy_url=None,
+                log_level="INFO"
+            )
+
+            assert result.success is False
+            assert "timeout" in result.error.lower()
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_run_single_session_nonzero_exit_with_completed_jsonl(self, mock_subprocess):
+        """Test that non-zero exit code is overridden if JSONL has session_end.
+
+        This tests the "JSONL is authoritative" logic - spurious shutdown errors
+        can cause non-zero exit codes even when the session completed successfully.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 1}, f)
+
+            # Mock subprocess to return non-zero exit code (spurious error)
+            mock_result = Mock()
+            mock_result.returncode = 1  # Non-zero!
+            mock_subprocess.return_value = mock_result
+
+            # But JSONL has session_end (session actually completed)
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            jsonl_path = run_dir / "session_test.jsonl"
+            with open(jsonl_path, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+
+            (run_dir / "stderr.log").write_text("Some spurious error")
+            (run_dir / "stdout.log").touch()
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                proxy_url=None,
+                log_level="INFO"
+            )
+
+            # Should be SUCCESS because JSONL has session_end
+            assert result.success is True
+            assert result.error is None
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_run_single_session_exit_zero_incomplete_jsonl(self, mock_subprocess):
+        """Test that exit code 0 but no session_end marks as incomplete.
+
+        Edge case: process exits cleanly but session didn't complete.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 1}, f)
+
+            # Mock subprocess to return exit 0
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_subprocess.return_value = mock_result
+
+            # But JSONL is incomplete (no session_end)
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            jsonl_path = run_dir / "session_test.jsonl"
+            with open(jsonl_path, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                # No session_end!
+
+            (run_dir / "stderr.log").touch()
+            (run_dir / "stdout.log").touch()
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                proxy_url=None,
+                log_level="INFO"
+            )
+
+            # Should be FAILURE because no session_end
+            assert result.success is False
+            assert "incomplete" in result.error.lower()
+
+
+class TestResumeLogic:
+    """Test resume capability - metadata loading and fallback discovery."""
+
+    def test_resume_with_metadata_json(self):
+        """Test that resume loads config paths from metadata.json."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Write metadata.json
+            metadata = {
+                'config_paths': ['/path/to/config1.json', '/path/to/config2.json'],
+                'runs_per_config': 5,
+                'total_runs': 10,
+                'workers': 4,
+                'proxy_url': None,
+                'log_level': 'INFO',
+                'created_at': '2025-01-01 12:00:00'
+            }
+            with open(output_dir / 'metadata.json', 'w') as f:
+                json.dump(metadata, f)
+
+            loaded = load_bulk_run_metadata(output_dir)
+
+            assert loaded is not None
+            assert loaded['config_paths'] == ['/path/to/config1.json', '/path/to/config2.json']
+            assert loaded['runs_per_config'] == 5
+            assert loaded['total_runs'] == 10
+
+    def test_resume_without_metadata_fallback(self):
+        """Test fallback discovery from run_* directories when metadata missing."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create run directories with configs
+            for run_id in [1, 2, 3]:
+                run_dir = output_dir / f"run_{run_id:04d}"
+                run_dir.mkdir()
+
+                # Write stored config
+                config = {"session_name": f"test_run_{run_id}"}
+                with open(run_dir / "config.json", 'w') as f:
+                    json.dump(config, f)
+
+                # Run 1 and 2 completed, run 3 incomplete
+                with open(run_dir / "session_test.jsonl", 'w') as f:
+                    f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                    if run_id != 3:  # Only 1 and 2 have session_end
+                        f.write(json.dumps({"event_type": "session_end"}) + "\n")
+
+            total_runs, incomplete_runs = discover_run_metadata_from_dirs(output_dir)
+
+            assert total_runs == 3
+            assert len(incomplete_runs) == 1  # Only run 3 is incomplete
+            assert incomplete_runs[0][1] == 3  # run_id of incomplete run
+
+    def test_resume_skips_completed_runs(self):
+        """Test that get_completed_runs correctly identifies completed sessions."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create completed run (has session_end)
+            completed_dir = output_dir / "run_0001"
+            completed_dir.mkdir()
+            with open(completed_dir / "session_test.jsonl", 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+
+            # Create incomplete run (no session_end)
+            incomplete_dir = output_dir / "run_0002"
+            incomplete_dir.mkdir()
+            with open(incomplete_dir / "session_test.jsonl", 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+
+            # Create run with no JSONL (just started)
+            empty_dir = output_dir / "run_0003"
+            empty_dir.mkdir()
+
+            completed = get_completed_runs(output_dir)
+
+            assert completed == {1}  # Only run 1 is complete
 
 
 if __name__ == "__main__":
