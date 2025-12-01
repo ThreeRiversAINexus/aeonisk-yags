@@ -501,34 +501,13 @@ class SimpleAeoniskSession:
         return session_data
         
     def save_session_data(self, session_data: Dict[str, Any], output_dir: str = "./multiagent_output"):
-        """Save session data."""
-        output_path = Path(output_dir)
-        output_path.mkdir(exist_ok=True)
-        
-        # Save as JSON
-        json_file = output_path / f"{session_data['session_id']}.json"
-        with open(json_file, 'w') as f:
-            json.dump(session_data, f, indent=2, default=str)
-            
-        # Save as YAML for readability
-        yaml_file = output_path / f"{session_data['session_id']}.yaml"
-        
-        # Convert any custom objects to dictionaries to avoid Python object serialization
-        def safe_dict_conversion(obj):
-            """Safely convert custom objects to dictionaries."""
-            if hasattr(obj, '__dict__'):
-                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items()}
-            elif isinstance(obj, dict):
-                return {k: safe_dict_conversion(v) for k, v in obj.items()}
-            elif isinstance(obj, (list, tuple)):
-                return [safe_dict_conversion(item) for item in obj]
-            else:
-                return obj
-        
-        safe_session_data = safe_dict_conversion(session_data)
-        
-        with open(yaml_file, 'w') as f:
-            yaml.dump(safe_session_data, f, default_flow_style=False)
-            
-        print(f"\nSession data saved to: {json_file}")
-        return json_file
+        """
+        Print session summary (JSONL is primary output).
+
+        Note: JSON/YAML output deprecated - use JSONL logs instead.
+        See scripts/analyze_session.py for JSONL analysis tools.
+        """
+        print(f"\nSession ID: {session_data['session_id']}")
+        print(f"Turns completed: {session_data.get('turns_completed', 0)}")
+        print(f"Output dir: {output_dir}")
+        return None

@@ -3893,57 +3893,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         return rounds
 
     async def _save_session_data(self, data: Dict[str, Any]):
-        """Save session data for training/analysis."""
+        """Print session summary (JSONL log is the primary output)."""
         output_dir = Path(self.config.get('output_dir', './output'))
-        output_dir.mkdir(exist_ok=True)
-        
-        # Save as JSON for easy processing
-        json_path = output_dir / f"session_{self.session_id}.json"
-        with open(json_path, 'w') as f:
-            json.dump(data, f, indent=2, default=str)
-            
-        # Save as YAML for human readability
-        yaml_path = output_dir / f"session_{self.session_id}.yaml"
-        
-        # Convert any custom objects to dictionaries to avoid Python object serialization
-        def safe_dict_conversion(obj):
-            """Safely convert custom objects to dictionaries."""
-            from pydantic import BaseModel
-
-            # Handle Pydantic models (like Bond)
-            if isinstance(obj, BaseModel):
-                return safe_dict_conversion(obj.model_dump())
-            # Handle enums
-            elif hasattr(obj, 'value') and hasattr(obj, 'name'):
-                return obj.value
-            # Handle regular objects with __dict__
-            elif hasattr(obj, '__dict__') and not isinstance(obj, type):
-                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
-            # Handle dicts
-            elif isinstance(obj, dict):
-                return {k: safe_dict_conversion(v) for k, v in list(obj.items())}
-            # Handle lists/tuples
-            elif isinstance(obj, (list, tuple)):
-                return [safe_dict_conversion(item) for item in obj]
-            # Handle sets
-            elif isinstance(obj, set):
-                return [safe_dict_conversion(item) for item in obj]
-            # Return primitives as-is
-            else:
-                return obj
-        
-        safe_data = safe_dict_conversion(data)
-        
-        with open(yaml_path, 'w') as f:
-            yaml.dump(safe_data, f, default_flow_style=False)
-
-        print(f"Session data saved to {json_path}")
 
         # Print session summary for easy copy-paste
         print(f"\n{'='*60}")
         print(f"Session ID: {self.session_id}")
 
-        # JSONL log path
+        # JSONL log path (primary output)
         mechanics = self.shared_state.get_mechanics_engine()
         if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
             print(f"JSONL log:  {mechanics.jsonl_logger.log_file}")

@@ -31,62 +31,207 @@ from typing import Dict, List, Any, Optional, Set, Tuple
 
 
 # Event type schemas - define required fields for each event type
+# All events have base fields: event_type, ts, session, event_id, parent_event_id, correlation_id (v1.2.0+)
+# Note: event_id, parent_event_id, correlation_id are optional for backward compatibility with v1.0.0/v1.1.0 logs
+
+# Base fields present in ALL events (v1.2.0+)
+BASE_FIELDS = ["event_type", "ts", "session"]
+CAUSAL_CHAIN_FIELDS = ["event_id", "parent_event_id", "correlation_id"]  # Optional for v1.0/v1.1 compat
+
 EVENT_SCHEMAS = {
+    # === Core Session Events ===
     "session_start": {
         "required": ["event_type", "ts", "session", "config", "version"],
-        "optional": []
+        "optional": ["random_seed", "git_commit", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "session_end": {
+        "required": ["event_type", "ts", "session", "final_state"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
     "scenario": {
         "required": ["event_type", "ts", "session", "scenario"],
-        "optional": []
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
     "round_start": {
         "required": ["event_type", "ts", "session", "round"],
-        "optional": []
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Action Events ===
+    "declaration_phase_start": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "action_declaration": {
+        "required": ["event_type", "ts", "session", "round", "player_id", "character_name", "initiative", "action"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "adjudication_start": {
+        "required": ["event_type", "ts", "session", "round", "action_count"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
     "action_resolution": {
         "required": ["event_type", "ts", "session", "round", "phase", "agent", "action", "roll", "economy", "clocks", "effects"],
-        "optional": ["context"]
+        "optional": ["context", "outcome_tiers", "outcome_tiers_full", "environment", "stakes", "goal",
+                     "roll_formula", "rationale", "aware_agents", "event_id", "parent_event_id", "correlation_id"]
     },
+
+    # === Combat Events ===
     "combat_action": {
         "required": ["event_type", "ts", "session", "round", "attacker", "defender", "weapon", "attack"],
-        "optional": ["damage", "wounds_dealt", "defender_state_after"]
-    },
-    "character_state": {
-        "required": ["event_type", "ts", "session", "round", "character_id", "character_name", "health", "max_health", "wounds", "void_score", "soulcredit", "position", "conditions", "is_defeated"],
-        "optional": []
+        "optional": ["damage", "wounds_dealt", "defender_state_after", "event_id", "parent_event_id", "correlation_id"]
     },
     "enemy_spawn": {
         "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "template", "stats", "position", "tactics"],
-        "optional": []
+        "optional": ["count", "event_id", "parent_event_id", "correlation_id"]
     },
     "enemy_defeat": {
         "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "defeat_reason", "rounds_survived"],
-        "optional": []
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
-    "round_summary": {
-        "required": ["event_type", "ts", "session", "round", "actions_attempted", "success_count", "success_rate", "average_margin"],
-        "optional": ["damage_dealt_by_players", "damage_taken_by_players", "void_gained", "void_lost", "clocks_advanced", "clocks_filled", "active_enemies", "player_wounds_total"]
-    },
-    "clock_advancement": {
-        "required": ["event_type", "ts", "session", "round", "data"],
-        "optional": []
+
+    # === Character State Events ===
+    "character_state": {
+        "required": ["event_type", "ts", "session", "round", "character_id", "character_name", "health", "max_health",
+                     "wounds", "void_score", "soulcredit", "position", "conditions", "is_defeated"],
+        "optional": ["death_state", "agent", "event_id", "parent_event_id", "correlation_id"]
     },
     "void_change": {
         "required": ["event_type", "ts", "session", "round", "agent", "old_void", "new_void", "delta", "reason"],
-        "optional": ["capped"]
+        "optional": ["capped", "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Clock Events ===
+    # Note: Clock events support two formats for backward compatibility:
+    # - New format: fields at top level (clock_name, old_value, etc.)
+    # - Old format: fields nested in 'data' wrapper
+    "clock_spawn": {
+        "required": ["event_type", "ts", "session", "clock_name", "max_ticks", "description"],
+        "optional": ["round", "current_ticks", "advance_meaning", "regress_meaning", "filled_consequence",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "clock_advancement": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "clock_name", "old_value", "new_value", "maximum", "filled", "reason",
+                     "event_id", "parent_event_id", "correlation_id"]
     },
     "clock_completion": {
-        "required": ["event_type", "ts", "session", "round", "data"],
-        "optional": []
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "clock_name", "final_ticks", "maximum_ticks", "reasons", "filled_consequence",
+                     "advance_meaning", "regress_meaning", "event_id", "parent_event_id", "correlation_id"]
     },
     "clock_removal": {
-        "required": ["event_type", "ts", "session", "round", "data"],
-        "optional": []
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "clock_name", "reason", "event_id", "parent_event_id", "correlation_id"]
     },
+
+    # === Round Summary Events ===
+    "round_summary": {
+        "required": ["event_type", "ts", "session", "round", "actions_attempted", "success_count", "success_rate", "average_margin"],
+        "optional": ["damage_dealt_by_players", "damage_taken_by_players", "void_gained", "void_lost",
+                     "clocks_advanced", "clocks_regressed", "clocks_filled", "total_ticks_advanced",
+                     "total_ticks_regressed", "active_enemies", "player_wounds_total",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "round_synthesis": {
+        "required": ["event_type", "ts", "session", "round", "synthesis"],
+        "optional": ["story_advancement", "scene_pivot", "clocks_filled", "clocks_expired",
+                     "session_end", "session_end_reason", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "mission_debrief": {
+        "required": ["event_type", "ts", "session", "character", "debrief", "final_state"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === NPC/Entity Lifecycle Events ===
+    "npc_departure": {
+        "required": ["event_type", "ts", "session", "round", "npc_id", "npc_name", "departure_reason"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "agent_conversion": {
+        "required": ["event_type", "ts", "session", "round", "agent_id", "agent_name", "from_type", "to_type", "trigger"],
+        "optional": ["state_before", "state_after", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "entity_lifecycle": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Economy Events ===
+    "purchase_attempt": {
+        "required": ["event_type", "ts", "session", "round", "player_id", "character_name", "vendor_id",
+                     "vendor_name", "item_id", "item_name", "cost", "player_currency", "success"],
+        "optional": ["failure_reason", "shortage", "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Social Events ===
+    "social_deescalation": {
+        "required": ["event_type", "ts", "session", "round", "player_id", "player_name", "enemy_id",
+                     "enemy_name", "action_type", "skill", "roll", "outcome", "narration"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Targeting Events ===
+    "targeting_validation": {
+        "required": ["event_type", "ts", "session", "round", "agent_id", "original_target", "correction_method",
+                     "triggered_by", "success"],
+        "optional": ["corrected_target", "declared_target", "original_effect_type", "model_used",
+                     "confidence", "reasoning", "error_description", "validation_time_ms",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Meta/System Events ===
     "llm_call": {
         "required": ["event_type", "ts", "session", "agent_id", "agent_type", "call_sequence", "prompt", "response", "model", "temperature", "tokens"],
-        "optional": ["round"]
+        "optional": ["round", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "marker_retry_attempt": {
+        "required": ["event_type", "ts", "session", "round", "marker_type", "invalid_markers", "retry_prompt"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "marker_retry_result": {
+        "required": ["event_type", "ts", "session", "round", "marker_type", "retry_response", "success"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "structured_output_metrics": {
+        "required": ["event_type", "ts", "session", "round", "agent_type", "agent_id",
+                     "structured_output_success", "fallback_triggered", "validation_warnings"],
+        "optional": ["validation_issues_count", "completeness_score", "is_complete",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "pydantic_validation_failure": {
+        "required": ["event_type", "ts", "session", "round", "agent_type", "agent_id", "schema_name",
+                     "exception_type", "error_message", "attempt_number", "max_attempts"],
+        "optional": ["is_final_attempt", "raw_model_response", "underlying_error", "action_context",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "narrative_memory": {
+        "required": ["event_type", "ts", "session", "round", "agent_id", "character_name", "memory"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Environment Events ===
+    "void_level_update": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "old_level", "new_level", "reason", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "entity_lifecycle_story_advancement": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Legacy/Deprecated Events (kept for backward compatibility) ===
+    "attrition": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "morale_check": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "healing_applied": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     }
 }
 
@@ -113,8 +258,18 @@ class FixtureValidator:
             'agent_ids': set(),
         }
 
-    def validate_event_schema(self, event: Dict[str, Any], line_num: int) -> bool:
-        """Validate a single event against its schema. Returns True if valid."""
+    def validate_event_schema(self, event: Dict[str, Any], line_num: int, strict: bool = True) -> bool:
+        """
+        Validate a single event against its schema.
+
+        Args:
+            event: The event dict to validate
+            line_num: Line number in JSONL file (for error reporting)
+            strict: If True, fail on unknown event types and unknown fields
+
+        Returns:
+            True if valid, False if invalid
+        """
         # Check event_type exists
         if "event_type" not in event:
             self.errors.append(f"Line {line_num}: Missing 'event_type' field")
@@ -124,12 +279,12 @@ class FixtureValidator:
 
         # Check if event type has a schema
         if event_type not in EVENT_SCHEMAS:
-            # Generic events are allowed but not validated
-            if event_type not in ["action_declaration", "adjudication_start", "declaration_phase_start",
-                                   "clock_spawn", "round_synthesis", "mission_debrief", "session_end",
-                                   "attrition", "structured_output_metrics"]:
-                self.warnings.append(f"Line {line_num}: Unknown event_type '{event_type}' (may be legacy or generic)")
-            return True
+            if strict:
+                self.errors.append(f"Line {line_num}: Unknown event_type '{event_type}' - not in EVENT_SCHEMAS")
+                return False
+            else:
+                self.warnings.append(f"Line {line_num}: Unknown event_type '{event_type}' (may be legacy)")
+                return True
 
         schema = EVENT_SCHEMAS[event_type]
 
@@ -138,6 +293,15 @@ class FixtureValidator:
         for field in schema["required"]:
             if field not in event:
                 self.errors.append(f"Line {line_num}: Event '{event_type}' missing required field '{field}'")
+                valid = False
+
+        # Check for unknown fields (strict mode)
+        if strict:
+            allowed_fields = set(schema["required"]) | set(schema.get("optional", []))
+            actual_fields = set(event.keys())
+            unknown_fields = actual_fields - allowed_fields
+            if unknown_fields:
+                self.errors.append(f"Line {line_num}: Event '{event_type}' has unknown fields: {sorted(unknown_fields)}")
                 valid = False
 
         # Validate specific field structures

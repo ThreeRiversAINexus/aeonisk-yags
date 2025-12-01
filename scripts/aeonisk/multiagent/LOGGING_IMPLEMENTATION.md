@@ -1,52 +1,123 @@
-# Combat & Balance Logging Implementation
+# JSONL Logging System - Authoritative Reference
 
 ## Summary
 
-Implemented comprehensive combat and character state logging for ML training and gameplay balance analysis. This adds structured logging for combat actions, enemy lifecycle, and character state tracking.
+Comprehensive JSONL logging system for ML training, gameplay balance analysis, and narrative reconstruction. All session events are logged to a single JSONL file per session.
 
 **Implementation Date:** 2025-10-23
-**Latest Update:** 2025-11-09 (Schema v1.2.0 - Event Causal Chains)
-**Status:** Phases 1-5 Complete ✅ (Combat, Balance, Standardization)
+**Latest Update:** 2025-12-01 (Schema v1.2.1 - Complete Event Catalog)
+**Status:** Production Ready ✅
+
+**Validation Tool:** `python scripts/analyze_session.py <session.jsonl> --validate-fixture`
+**Analysis Tool:** `python scripts/analyze_session.py <session.jsonl>`
 
 ---
 
-## Event Types Catalog (19 Total)
+## Event Types Catalog (33 Total)
 
-All events include `event_id`, `parent_event_id`, `correlation_id` (schema v1.2.0+)
+All events include base fields: `event_type`, `ts`, `session`
+Schema v1.2.0+ events also include: `event_id`, `parent_event_id`, `correlation_id` (causal chain tracking)
 
-### Core Events
-1. **session_start** - Session initialization with config and random seed
-2. **action_declaration** - Player/NPC declares intent before resolution
-3. **action_resolution** - DM adjudicates action with roll, outcome, effects
-4. **round_synthesis** - DM summary of round's narrative events
-5. **round_summary** - Aggregate statistics for balance analysis
-6. **character_state** - Character snapshot (HP, void, wounds, status)
+### Core Session Events (4)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `session_start` | Session initialization | config, version |
+| `session_end` | Session termination | final_state |
+| `scenario` | Initial scenario setup | scenario (theme, location, stakes) |
+| `round_start` | Round boundary marker | round |
 
-### Combat Events
-7. **combat_action** - Detailed combat action (attack roll, damage, defender state)
-8. **enemy_spawn** - Enemy creation with full stats
-9. **enemy_defeat** - Enemy removal (killed, defeated, escaped)
+### Action Events (4)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `declaration_phase_start` | Start of declaration phase | round |
+| `action_declaration` | Player/NPC declares intent | round, player_id, character_name, initiative, action |
+| `adjudication_start` | DM begins adjudication | round, action_count |
+| `action_resolution` | Complete action with roll/outcome | round, phase, agent, action, roll, economy, clocks, effects |
 
-### Story Events
-10. **scenario** - Initial scenario setup (theme, location, stakes)
-11. **mission_debrief** - Character reflections after mission
-12. **story_advancement** - DM narrative progression markers
-13. **npc_spawn** - Non-combat NPC creation
-14. **deescalation** - Enemy → NPC conversion (surrender, capture)
-15. **escalation** - NPC → Enemy conversion (betrayal, attacked)
+### Combat Events (3)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `combat_action` | Attack with damage calculation | round, attacker, defender, weapon, attack |
+| `enemy_spawn` | Enemy creation with stats | round, enemy_id, enemy_name, template, stats, position, tactics |
+| `enemy_defeat` | Enemy removal | round, enemy_id, enemy_name, defeat_reason, rounds_survived |
 
-### Meta Events
-16. **round_start** - Round boundary marker
-17. **llm_call** - LLM API call logging (prompts, responses, tokens)
-18. **marker_retry_attempt** - Invalid marker format requiring retry
-19. **marker_retry_result** - Retry outcome (success/failure)
+### Character State Events (2)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `character_state` | Character snapshot | round, character_id, character_name, health, max_health, wounds, void_score, soulcredit, position, conditions, is_defeated |
+| `void_change` | Void corruption change | round, agent, old_void, new_void, delta, reason |
+
+### Clock Events (4)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `clock_spawn` | New clock created | clock_name, max_ticks, description |
+| `clock_advancement` | Clock tick change | round, clock_name, old_value, new_value, maximum, filled, reason |
+| `clock_completion` | Clock filled | round |
+| `clock_removal` | Clock deleted | round |
+
+### Round Summary Events (3)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `round_summary` | Aggregate round statistics | round, actions_attempted, success_count, success_rate, average_margin |
+| `round_synthesis` | DM narrative summary | round, synthesis |
+| `mission_debrief` | Character reflections | character, debrief, final_state |
+
+### NPC/Entity Lifecycle Events (3)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `npc_departure` | NPC leaves scene | round, npc_id, npc_name, departure_reason |
+| `agent_conversion` | NPC↔Enemy conversion | round, agent_id, agent_name, from_type, to_type, trigger |
+| `entity_lifecycle` | Pre-round entity management | round, data |
+
+### Economy Events (1)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `purchase_attempt` | Vendor transaction | round, player_id, character_name, vendor_id, vendor_name, item_id, item_name, cost, player_currency, success |
+
+### Social Events (1)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `social_deescalation` | Intimidation/persuasion | round, player_id, player_name, enemy_id, enemy_name, action_type, skill, roll, outcome, narration |
+
+### Targeting Events (1)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `targeting_validation` | Targeting correction | round, agent_id, original_target, correction_method, triggered_by, success |
+
+### Meta/System Events (5)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `llm_call` | LLM API call logging | agent_id, agent_type, call_sequence, prompt, response, model, temperature, tokens |
+| `marker_retry_attempt` | Invalid marker retry | round, marker_type, invalid_markers, retry_prompt |
+| `marker_retry_result` | Retry outcome | round, marker_type, retry_response, success |
+| `structured_output_metrics` | LLM output quality | round, agent_type, agent_id, structured_output_success, fallback_triggered, validation_warnings |
+| `pydantic_validation_failure` | Schema validation error | round, agent_type, agent_id, schema_name, exception_type, error_message, attempt_number, max_attempts |
+
+### Memory Events (1)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `narrative_memory` | Player memory state | round, agent_id, character_name, memory |
+
+### Environment Events (1)
+| Event Type | Description | Required Fields |
+|------------|-------------|-----------------|
+| `void_level_update` | Environmental void change | round, old_level, new_level, reason |
+
+### Legacy/Deprecated Events (3)
+| Event Type | Description | Notes |
+|------------|-------------|-------|
+| `attrition` | Legacy damage tracking | Kept for backward compatibility |
+| `morale_check` | Enemy morale system | Part of entity_lifecycle now |
+| `healing_applied` | Healing events | Merged into action_resolution effects |
 
 **Quick Reference:**
 - Combat analysis → `combat_action`, `enemy_spawn`, `enemy_defeat`, `character_state`
 - Narrative reconstruction → `scenario`, `action_resolution`, `round_synthesis`, `mission_debrief`
 - Balance metrics → `round_summary`, `action_resolution`, `combat_action`
-- ML training → `action_resolution`, `llm_call`, `story_advancement`
-- Causal chains → All events have `event_id`, `parent_event_id`, `correlation_id`
+- ML training → `action_resolution`, `llm_call`, `narrative_memory`
+- Causal chains → All v1.2.0+ events have `event_id`, `parent_event_id`, `correlation_id`
+- Economy analysis → `purchase_attempt`, `action_resolution.effects.purchase`
+- Entity lifecycle → `entity_lifecycle`, `agent_conversion`, `npc_departure`
 
 ---
 
@@ -291,46 +362,55 @@ Logs all player character states **at the end of every round** including:
 
 ---
 
-### 6. Validation Script (`validate_logging.py`)
+### 6. Validation & Analysis Tool (`analyze_session.py`)
 
-**Complete validation tool** that:
-- ✅ Validates event schemas
-- ✅ Checks required fields
-- ✅ Supports dual combat schemas (enemy vs player attacks)
-- ✅ Generates statistics report
-- ✅ Identifies missing/malformed events
+**Note:** `validate_logging.py` was removed in 2025-12. Use `analyze_session.py` instead.
 
-**Dual Schema Support:**
-The validator handles two different combat_action schemas:
-- **Enemy attacks**: Full damage breakdown (strength, weapon_dmg, d20, total, soak, dealt)
-- **Player attacks**: Simplified damage (base_damage, soak, dealt)
+**Unified analysis tool** that provides:
+- ✅ **Strict schema validation** (33 event types)
+- ✅ Schema compliance checking (required/optional fields)
+- ✅ Replay-readiness validation
+- ✅ Session discovery and ranking
+- ✅ Multiple analysis modes (summary, clocks, void, errors)
+- ✅ Event search with smart defaults
 
 **Usage:**
 ```bash
-# Validate single file
-python validate_logging.py multiagent_output/session_abc123.jsonl
+# Validate fixture (strict mode - fails on unknown fields/events)
+python scripts/analyze_session.py session.jsonl --validate-fixture
 
-# Validate all logs in directory
-python validate_logging.py multiagent_output/
+# Quick session summary (~30 lines)
+python scripts/analyze_session.py session.jsonl
+
+# Specific analysis modes
+python scripts/analyze_session.py session.jsonl --mode=clocks   # Clock progression
+python scripts/analyze_session.py session.jsonl --mode=void     # Void trajectory
+python scripts/analyze_session.py session.jsonl --mode=errors   # Error analysis
+
+# Search events
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution
+python scripts/analyze_session.py session.jsonl --search event_type=combat_action round=2
+
+# Discover sessions in directory
+python scripts/analyze_session.py --discover multiagent_output/ --complete-only
 
 # Output example:
 # ================================================================================
-# JSONL LOG VALIDATION REPORT
+# FIXTURE VALIDATION REPORT
 # ================================================================================
 # File: session_abc123.jsonl
-# Total Events: 57
-# Valid Events: 57 (100.0%)
+# Total Events: 157
+# Valid Events: 157 (100.0%)
 # Invalid Events: 0
 #
 # --- Event Type Distribution ---
-#   action_resolution                : 42
-#   combat_action                    :  7   ← NEW! (bidirectional)
-#   character_state                  :  6   ← NEW!
-#   round_summary                    :  3   ← NEW!
-#   enemy_spawn                      :  2   ← NEW!
-#   enemy_defeat                     :  2   ← NEW!
-#   round_start                      :  3
+#   llm_call                         : 45
+#   action_resolution                : 32
+#   character_state                  : 24
+#   action_declaration               : 18
 #   ...
+#
+# ✅ Replay-ready: Yes (player LLM calls present, random_seed found)
 ```
 
 ---
@@ -560,35 +640,46 @@ for difficulty, successes in by_difficulty.items():
 
 ## Testing
 
-To test the new logging:
+To test the logging system:
 
 1. **Run a combat session:**
    ```bash
-   python3 scripts/run_multiagent_session.py scripts/session_config_combat.json
+   python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_combat.json
    ```
 
 2. **Validate the output:**
    ```bash
-   python3 scripts/aeonisk/multiagent/validate_logging.py multiagent_output/
+   python scripts/analyze_session.py multiagent_output/session_*.jsonl --validate-fixture
    ```
 
-3. **Check for new event types:**
+3. **Quick analysis:**
    ```bash
-   grep '"event_type":"combat_action"' multiagent_output/session_*.jsonl | wc -l
-   grep '"event_type":"character_state"' multiagent_output/session_*.jsonl | wc -l
-   grep '"event_type":"enemy_spawn"' multiagent_output/session_*.jsonl | wc -l
+   python scripts/analyze_session.py multiagent_output/session_*.jsonl
+   ```
+
+4. **Search for specific events:**
+   ```bash
+   python scripts/analyze_session.py session.jsonl --search event_type=combat_action
+   python scripts/analyze_session.py session.jsonl --search event_type=character_state round=2
    ```
 
 ---
 
 ## Breaking Changes
 
+### Version 1.2.1 (2025-12-01)
+**Non-breaking:** Complete event catalog (33 event types), strict validation.
+
+- `validate_logging.py` removed (use `analyze_session.py --validate-fixture`)
+- JSON/YAML session output removed (JSONL is primary output)
+- Strict validation mode fails on unknown fields/events
+
 ### Version 1.2.0 (2025-11-09)
 **Breaking:** All events now require `event_id`, `parent_event_id`, `correlation_id` fields.
 
 - Old logs (v1.0.0, v1.1.0) lack these fields
 - New analysis tools expect causal chain fields
-- Migration: Use `validate_logging.py` to check schema version
+- Migration: Use `analyze_session.py --validate-fixture` to check schema version
 
 ### Version 1.1.0 (2025-10-23)
 **Breaking:** Added `damage_effects` to action_resolution context.
@@ -601,13 +692,20 @@ To test the new logging:
 
 ---
 
-## Files Modified
+## Files
 
-1. `mechanics.py` - Added 5 new logging methods
-2. `enemy_combat.py` - Instrumented combat, spawn, and defeat
-3. `session.py` - Added character state snapshots, config logging
-4. `validate_logging.py` - **NEW** validation script
-5. `LOGGING_IMPLEMENTATION.md` - **NEW** this documentation
+**Core Implementation:**
+1. `mechanics.py` - JSONLLogger class, all log_* methods
+2. `llm_logger.py` - LLM call logging
+
+**Analysis Tools:**
+3. `scripts/analyze_session.py` - Validation, analysis, search
+4. `scripts/extract_fixture.py` - Extract round ranges from sessions
+5. `scripts/replay_fixture.py` - Replay with selective LLM caching
+6. `scripts/diff_fixtures.py` - Compare before/after fixtures
+
+**Documentation:**
+7. `LOGGING_IMPLEMENTATION.md` - This file (authoritative schema reference)
 
 ---
 
