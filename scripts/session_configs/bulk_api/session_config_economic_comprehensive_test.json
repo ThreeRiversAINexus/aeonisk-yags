@@ -1,0 +1,534 @@
+{
+  "session_name": "economic_comprehensive_test_bulk",
+  "max_turns": 10,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "scenario": {
+    "theme": "Economic System Comprehensive Test",
+    "location": "Neutral Trade Hub - Market District",
+    "situation": "The Market District sprawls across a reinforced platform suspended between the void-scarred ruins of what was once a thriving commercial sector on Aeon, humanity's adopted homeworld after the Collapse scattered them across the scattered systems. The air here tastes metallic, tinged with the subtle wrongness of void corruption—a persistent reminder that reality itself frays at the edges on worlds like this. Overhead, the pale sun of the Aeon system struggles through atmospheric haze, casting everything in perpetual twilight. This neutral trade hub exists in the liminal space between faction territories: the Sovereign Nexus controls the northern districts with their authoritarian order, the Archivists maintain their knowledge vaults to the east, and the Freeborn networks operate openly in zones like this where no single power dominates. Three vendors have established operations here, each representing different economic philosophies. Against the eastern wall stands a gleaming S4CU Nexus Vending Terminal, its holographic interface cycling through inventory displays—but its Soulcredit verification scanner glows an unforgiving red, the Nexus's way of ensuring only the morally compliant can access their resources. Nearby, an independent trader named Kael Voss has spread his wares across a makeshift stall: ritual components, preserved food, trade goods salvaged from pre-Collapse ruins on distant planetoids. He eyes every passerby with practiced neutrality, his greeting painted on a weathered sign: 'All Welcome, No Questions Asked.' Hovering silently near the southern entrance, SD-7, an automated supply drone, offers basic provisions with mechanical efficiency—no authentication, no judgment, just commerce. In the back chambers, accessible through a pressure-sealed door, two ritual altars await those seeking to stabilize their Raw Seeds before void degradation renders them hollow. The first is a modest Freeborn altar, its stone surface carved with simple resonance patterns—functional, unpretentious, open to anyone who can pay the Spark fee. The second is a masterwork: a Nexus-maintained sanctified altar of breathtaking geometric precision, its void channels humming with controlled power, offering superior success rates for those skilled enough to harness it. Your party has converged on this hub with a singular purpose: to stress-test every economic mechanism this place offers. Some of you carry Raw Seeds pulsing with unstable energy, counting down the cycles until they degrade into dangerous Hollow variants. Others have currency weighing heavy in your pockets—Breath, Drip, Grain, Spark—the energy-based economy that replaced pre-Collapse money when humanity learned to harness void energy for survival. Soulcredit scores vary wildly among you: one of your number bears the stigma of a deeply negative rating, locked out of Nexus resources; another walks the borderline; two others have earned enough moral standing to access premium services. The question before you is simple but multifaceted: Can you navigate this hub's complex economic ecosystem? Will resource pooling via transfers overcome access barriers? Can low-quality altars serve those locked out of premium facilities? How many Seeds can you successfully attune before your Spark reserves run dry? The Market District awaits your economic experimentation.",
+    "void_level": 3,
+    "active_npcs": [],
+    "environmental_factors": [
+      "Moderate void corruption (tingling sensation, no mechanical penalty)",
+      "Busy market atmosphere (safe for transactions)",
+      "Ritual chambers accessible in back area"
+    ],
+    "altars": [
+      {
+        "altar_id": "alt_freeborn_basic",
+        "altar_type": "freeborn_altar",
+        "quality": 3,
+        "location": "Market District - Freeborn Ritual Chamber",
+        "description": "A simple stone altar with modest void resonance patterns carved into its surface. Quality 3 provides +1 bonus to attunement rituals (DC 20 becomes DC 19). Open to all users, no restrictions."
+      },
+      {
+        "altar_id": "alt_nexus_master",
+        "altar_type": "nexus_altar",
+        "quality": 8,
+        "location": "Market District - Nexus Sanctified Chamber",
+        "description": "An exquisitely crafted master altar with pristine void channels and flawless geometry. Quality 8 provides +3 bonus to attunement rituals (DC 20 becomes DC 17). Maintained by the Sovereign Nexus but accessible to qualified users."
+      }
+    ]
+  },
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_nexus_terminal",
+      "name": "S4CU Nexus Vending Terminal",
+      "faction": "Sovereign Nexus",
+      "vendor_type": "vending_machine",
+      "greeting": "SOULCREDIT VERIFICATION REQUIRED. Authorized personnel only. Select your requisition.",
+      "inventory": [
+        {
+          "name": "Health Kit",
+          "description": "Standard medical supplies. Restores 10 HP.",
+          "inventory_key": "health_kit",
+          "price_drip": 5,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Med Supplies (Advanced)",
+          "description": "Professional-grade medical kit. Restores 20 HP + stabilizes wounds.",
+          "inventory_key": "med_supplies_advanced",
+          "price_drip": 15,
+          "price_grain": 2,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Energy Cell",
+          "description": "Rechargeable energy pack. Provides sustained power for devices.",
+          "inventory_key": "energy_cell",
+          "price_drip": 8,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "tool"
+        },
+        {
+          "name": "Nexus Ration Pack",
+          "description": "High-quality preserved food. Nutritious and shelf-stable.",
+          "inventory_key": "nexus_ration",
+          "price_drip": 3,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Data Slate (Blank)",
+          "description": "Empty data recording device for logs and notes.",
+          "inventory_key": "data_slate",
+          "price_drip": 10,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "tool"
+        }
+      ]
+    },
+    {
+      "vendor_id": "vnd_independent_trader",
+      "name": "Kael Voss (Independent Merchant)",
+      "faction": "Independent",
+      "vendor_type": "human_trader",
+      "greeting": "All welcome, no Soulcredit checks here. Cash or barter, I don't judge. What do you need?",
+      "inventory": [
+        {
+          "name": "Ritual Components (Basic)",
+          "description": "Common materials for attunement rituals: incense, candles, chalk.",
+          "inventory_key": "ritual_components_basic",
+          "price_drip": 4,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": true,
+          "item_type": "ritual_component"
+        },
+        {
+          "name": "Ritual Components (Premium)",
+          "description": "Rare materials that enhance ritual success: void crystals, sacred oils.",
+          "inventory_key": "ritual_components_premium",
+          "price_drip": 12,
+          "price_grain": 1,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": true,
+          "item_type": "ritual_component"
+        },
+        {
+          "name": "Preserved Food (Bulk)",
+          "description": "Large supply of dried rations. Feeds party for days.",
+          "inventory_key": "food_bulk",
+          "price_drip": 8,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Water Purification Tablets",
+          "description": "Chemical tablets to make contaminated water safe to drink.",
+          "inventory_key": "water_tablets",
+          "price_drip": 6,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Trade Goods (Luxury)",
+          "description": "Pre-Collapse artifacts and curiosities. Valuable for resale or barter.",
+          "inventory_key": "trade_goods_luxury",
+          "price_drip": 20,
+          "price_grain": 3,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": true,
+          "item_type": "trade_good"
+        },
+        {
+          "name": "Echo-Calibrator Rental",
+          "description": "Rent portable seed attunement device for 1 session. Requires DC 16 Agility+Tech.",
+          "inventory_key": "echo_calibrator_rental",
+          "price_drip": 10,
+          "price_grain": 1,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "service"
+        }
+      ]
+    },
+    {
+      "vendor_id": "vnd_supply_drone",
+      "name": "SD-7 Supply Drone",
+      "faction": "Neutral Systems",
+      "vendor_type": "supply_drone",
+      "greeting": "[AUTOMATED DELIVERY SERVICE] [NO AUTHENTICATION REQUIRED] [SELECT ITEM FOR PURCHASE]",
+      "inventory": [
+        {
+          "name": "Ammo Pack (Standard)",
+          "description": "20 rounds of standard ammunition. Compatible with most firearms.",
+          "inventory_key": "ammo_standard",
+          "price_drip": 4,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Water Bottle (Purified)",
+          "description": "1 liter of clean water in sealed container.",
+          "inventory_key": "water_bottle",
+          "price_drip": 2,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Flashlight",
+          "description": "Battery-powered light source. Illuminates dark areas.",
+          "inventory_key": "flashlight",
+          "price_drip": 5,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "tool"
+        },
+        {
+          "name": "First Aid Bandages",
+          "description": "Basic bandages and antiseptic. Restores 3 HP.",
+          "inventory_key": "bandages",
+          "price_drip": 2,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Emergency Beacon",
+          "description": "Single-use distress signal. Broadcasts location to nearby patrols.",
+          "inventory_key": "emergency_beacon",
+          "price_drip": 12,
+          "price_grain": 1,
+          "price_spark": 0,
+          "price_breath": 0,
+          "seed_barter": false,
+          "item_type": "tool"
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5-mini",
+        "temperature": 1.0,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:8000",
+        "proxy_priority": "normal"
+      }
+    },
+    "players": [
+      {
+        "name": "Sera Vex",
+        "pronouns": "she/her",
+        "faction": "Independent",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "collaborative",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 2,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Attunement": 3,
+          "Trade": 3,
+          "Charm": 3,
+          "Awareness": 2,
+          "Systems": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 2,
+        "soulcredit": -5,
+        "starting_currency": {
+          "breath": 30,
+          "drip": 8,
+          "grain": 1,
+          "spark": 0
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_sera_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_sera_02",
+            "seed_type": "RAW",
+            "cycles_remaining": 6,
+            "freshness": "fresh"
+          }
+        ],
+        "goals": [
+          "TEST: Attempt to buy from SC-gated vending machine (SHOULD BE BLOCKED - SC too low)",
+          "Buy from independent trader or supply drone (SHOULD SUCCEED)",
+          "Receive currency transfer from another character to pool resources",
+          "Attempt seed attunement at Freeborn altar"
+        ]
+      },
+      {
+        "name": "Jace Kordell",
+        "pronouns": "he/him",
+        "faction": "Archivists",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 7,
+          "bondPreference": "seeks",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 2,
+          "Endurance": 2,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Attunement": 3,
+          "Magick Theory": 3,
+          "Research": 3,
+          "Medicine": 2,
+          "Astral Arts": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 3,
+        "soulcredit": 0,
+        "starting_currency": {
+          "breath": 50,
+          "drip": 12,
+          "grain": 2,
+          "spark": 1
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_jace_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_jace_02",
+            "seed_type": "RAW",
+            "cycles_remaining": 5,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_jace_03",
+            "seed_type": "RAW",
+            "cycles_remaining": 8,
+            "freshness": "fresh"
+          }
+        ],
+        "goals": [
+          "TEST: Attempt to buy from SC-gated vending machine (BORDERLINE CASE - SC = 0)",
+          "Perform seed attunement at Nexus master altar (high quality bonus)",
+          "Transfer currency to Sera to help her buy items",
+          "Browse all three vendor inventories using INVESTIGATE (free action)"
+        ]
+      },
+      {
+        "name": "Ryn Thrace",
+        "pronouns": "they/them",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 2,
+          "Intelligence": 2,
+          "Empathy": 2,
+          "Willpower": 3,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Trade": 3,
+          "Charm": 3,
+          "Brawling": 2,
+          "Awareness": 2,
+          "Attunement": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 1,
+        "soulcredit": 4,
+        "starting_currency": {
+          "breath": 80,
+          "drip": 25,
+          "grain": 5,
+          "spark": 2
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_ryn_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 6,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_ryn_02",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          }
+        ],
+        "goals": [
+          "TEST: Buy expensive item from SC-gated vending machine (SHOULD SUCCEED - high SC)",
+          "Negotiate with independent trader using Trade skill",
+          "Transfer currency to multiple party members to enable their purchases",
+          "Attempt attunement at both altar types to compare quality bonuses"
+        ]
+      },
+      {
+        "name": "Mira Solis",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "batch_proxy",
+          "model": "gpt-5-mini",
+          "temperature": 1.0,
+          "underlying_provider": "openai",
+          "use_proxy": true,
+          "proxy_url": "http://localhost:8000",
+          "proxy_priority": "normal"
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 6,
+          "bondPreference": "collaborative",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 2,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 2,
+          "Size": 5
+        },
+        "skills": {
+          "Attunement": 3,
+          "Astral Arts": 3,
+          "Systems": 3,
+          "Engineering": 2,
+          "Medicine": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 2,
+        "soulcredit": 4,
+        "starting_currency": {
+          "breath": 60,
+          "drip": 18,
+          "grain": 3,
+          "spark": 2
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_mira_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 8,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_mira_02",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          },
+          {
+            "id": "seed_mira_03",
+            "seed_type": "RAW",
+            "cycles_remaining": 6,
+            "freshness": "fresh"
+          }
+        ],
+        "goals": [
+          "Purchase ritual components from independent trader to prepare for attunement",
+          "Perform multiple seed attunements using Nexus master altar (faction bonus)",
+          "Test Echo-Calibrator rental if available",
+          "Coordinate with party on resource pooling via transfers"
+        ]
+      }
+    ]
+  }
+}

@@ -234,7 +234,6 @@ class TestBatchProxyProviderStructuredOutput:
             )
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="Logger API changed - 'source' field no longer included in call kwargs")
     async def test_generate_structured_with_logger(self, batch_provider):
         """Test token logging when llm_logger provided."""
         json_response = json.dumps({"message": "Test", "count": 5})
@@ -251,12 +250,12 @@ class TestBatchProxyProviderStructuredOutput:
             current_round=2
         )
 
-        # Verify logger was called
+        # Verify logger was called with expected fields
         mock_logger._log_llm_call.assert_called_once()
         call_kwargs = mock_logger._log_llm_call.call_args[1]
         assert call_kwargs['current_round'] == 2
         assert call_kwargs['call_sequence'] == 3
-        assert call_kwargs['source'] == 'batch_proxy_llm_client'
+        assert call_kwargs['model'] == 'gpt-5-mini'
         assert 'tokens' in call_kwargs
         assert call_kwargs['tokens']['total'] > 0  # Estimated tokens
 

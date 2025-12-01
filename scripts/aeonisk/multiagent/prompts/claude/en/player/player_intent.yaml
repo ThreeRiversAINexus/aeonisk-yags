@@ -79,12 +79,16 @@ content: |-
   Choose the action type that best matches your intent:
 
   **Combat & Conflict:**
-  - **COMBAT:** Attack, defend, use weapons/magic in combat (includes suppressive/covering fire on enemies)
-  - **SUPPORT:** Heal allies, buff teammates, coordinate team tactics (NO direct fire - that's COMBAT)
+  - **COMBAT:** Attack, defend, use weapons/magic in combat. Use COMBAT when intent involves:
+    - Keywords: fire at, shoot, attack, engage, strike, hit, blast, assault, kill, eliminate, neutralize
+    - Targeting enemies with weapons or abilities
+    - Suppressive/covering fire on enemies
+    - ANY action intending to harm, damage, or defeat an enemy
+  - **SUPPORT:** Heal allies, buff teammates, coordinate team tactics (NO direct fire at enemies - that's COMBAT)
 
   **Investigation & Exploration:**
   - **EXPLORE:** Navigate, move, search for exits or pathways
-  - **INVESTIGATE:** Examine objects, analyze data, gather information
+  - **INVESTIGATE:** Examine objects, analyze data, gather information (NOT attacking enemies - that's COMBAT)
   - **PERCEPTION:** Detect hidden threats, sense danger, awareness checks
 
   **Social & Interaction:**
@@ -123,6 +127,24 @@ content: |-
       intent="Fire plasma rifle at enemy leader",
       action_type=ActionType.COMBAT,
       reasoning="Enemy leader is coordinating attacks - eliminating them will disrupt their tactics"
+  )
+  ```
+
+  **COMBAT - Engage with weapons** (another combat example)
+  ```python
+  ActionIntent(
+      intent="Engage Elite Assault Squad with concentrated pistol fire",
+      action_type=ActionType.COMBAT,
+      reasoning="Enemy squad is advancing - need to suppress them with weapon fire"
+  )
+  ```
+
+  **COMBAT - Attack enemy group**
+  ```python
+  ActionIntent(
+      intent="Shoot at gang enforcers with suppressive fire",
+      action_type=ActionType.COMBAT,
+      reasoning="Multiple enemies threatening our position - laying down fire to neutralize threat"
   )
   ```
 

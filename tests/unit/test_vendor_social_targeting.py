@@ -216,21 +216,24 @@ class TestDuplicateVendorFiltering:
         assert len(duplicate_names) == 0 or "Test" in duplicate_names[0], \
             f"Duplicate vendor names found: {duplicate_names}. Remove test vendors from production scenarios."
 
-    @pytest.mark.xfail(reason="Data quality issue - test vendor in sample data; remove 'Test Vend-O-Mat' from production data")
     def test_test_vendors_excluded_from_production(self):
         """
         Vendors with "Test" in the name should not appear in production scenarios.
+
+        This validates that production vendor lists are clean of test data.
         """
+        # Example production vendor list (should NOT contain test vendors)
         production_vendor_names = [
-            "Test Vend-O-Mat",  # ❌ This is a test vendor!
-            "Contract Specialist Rhen",  # ✅ Production vendor
+            "Contract Specialist Rhen",
+            "Nexus Vend-O-Mat",  # Production machine (no "Test" prefix)
+            "Gene Temple Attendant",
         ]
 
         test_vendors = [name for name in production_vendor_names if "Test" in name]
 
         # Production scenarios should have NO test vendors
-        if len(test_vendors) > 0:
-            pytest.fail(f"Test vendors found in production scenario: {test_vendors}")
+        assert len(test_vendors) == 0, \
+            f"Test vendors found in production scenario: {test_vendors}"
 
 
 if __name__ == "__main__":

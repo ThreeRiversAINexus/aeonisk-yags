@@ -229,16 +229,25 @@ class TestSessionStatsExtraction:
 class TestResumeCapability:
     """Test resume functionality for bulk runs."""
 
-    @pytest.mark.xfail(reason="get_completed_runs now requires session_end event in file, not just file existence")
     def test_get_completed_runs(self):
         """Test identification of completed runs."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = Path(tmpdir)
 
-            # Create some session files
-            (output_dir / "session_run_0001.jsonl").touch()
-            (output_dir / "session_run_0005.jsonl").touch()
-            (output_dir / "session_run_0010.jsonl").touch()
+            # Create run subdirectories with session files containing session_end
+            for run_id in [1, 5, 10]:
+                run_dir = output_dir / f"run_{run_id:04d}"
+                run_dir.mkdir()
+                with open(run_dir / "session_test.jsonl", "w") as f:
+                    f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                    f.write(json.dumps({"event_type": "session_end"}) + "\n")
+
+            # Create incomplete run (no session_end event)
+            incomplete_dir = output_dir / "run_0007"
+            incomplete_dir.mkdir()
+            with open(incomplete_dir / "session_test.jsonl", "w") as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+
             (output_dir / "other_file.txt").touch()  # Should be ignored
 
             completed = get_completed_runs(output_dir)

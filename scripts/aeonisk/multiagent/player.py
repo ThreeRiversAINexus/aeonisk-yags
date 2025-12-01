@@ -2309,30 +2309,71 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         Generate player action using two-phase structured output (Phase 1: Intent, Phase 2: Details).
         Returns ActionDeclaration if structured output succeeds.
 
-        Raises RuntimeError if either phase fails (no legacy fallback).
+        Returns None if all retries exhausted (enables graceful fallback handling by caller).
 
         NOTE: The 'prompt' parameter is preserved for backward compatibility but not used.
         Phase 1 and Phase 2 build their own prompts using compose_sections().
         """
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
-            raise RuntimeError(f"Player {self.character_state.name}: No llm_provider configured - cannot generate actions")
+            logger.error(f"Player {self.character_state.name}: No llm_provider configured - cannot generate actions")
+            return None
 
         from .action_schema import ActionDeclaration
+        import asyncio
+
+        max_retries = 3
+        base_delay = 0.5  # Exponential backoff: 0.5s, 1s, 2s
 
         logger.debug(f"Player {self.character_state.name}: Two-phase structured output (Phase 1: Intent, Phase 2: Details)")
 
-        # ===== PHASE 1: Action Intent (lightweight action type selection) =====
-        action_intent = await self._generate_action_intent()
-        if not action_intent:
-            raise RuntimeError(f"Player {self.character_state.name}: Phase 1 (action intent) failed after retries")
+        action_intent = None
+        action_details = None
 
-        # ===== PHASE 2: Action Details (action-specific schema with routing) =====
-        action_details = await self._generate_action_details(action_intent)
-        if not action_details:
-            raise RuntimeError(
-                f"Player {self.character_state.name}: Phase 2 (action details) failed for {action_intent.action_type}. "
-                f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
-            )
+        for attempt in range(max_retries):
+            try:
+                # ===== PHASE 1: Action Intent (lightweight action type selection) =====
+                action_intent = await self._generate_action_intent()
+                if not action_intent:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Player {self.character_state.name}: Phase 1 failed (attempt {attempt + 1}/{max_retries}), retrying in {delay:.1f}s")
+                        await asyncio.sleep(delay)
+                        continue
+                    logger.error(f"Player {self.character_state.name}: Phase 1 (action intent) failed after {max_retries} attempts")
+                    return None
+
+                # ===== PHASE 2: Action Details (action-specific schema with routing) =====
+                action_details = await self._generate_action_details(action_intent)
+                if not action_details:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Player {self.character_state.name}: Phase 2 failed for {action_intent.action_type} (attempt {attempt + 1}/{max_retries}), retrying in {delay:.1f}s")
+                        await asyncio.sleep(delay)
+                        continue
+                    logger.error(
+                        f"Player {self.character_state.name}: Phase 2 (action details) failed for {action_intent.action_type} after {max_retries} attempts. "
+                        f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
+                    )
+                    return None
+
+                # Success - break out of retry loop
+                break
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Player {self.character_state.name}: Two-phase generation exception (attempt {attempt + 1}/{max_retries}): {e}, retrying in {delay:.1f}s")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"Player {self.character_state.name}: Two-phase generation failed after {max_retries} attempts: {e}")
+                    return None
+        else:
+            # All retries exhausted without success (loop finished without break)
+            return None
+
+        # Verify we have both required objects after retry loop
+        if not action_intent or not action_details:
+            return None
 
         # Populate identity fields from player object (LLM doesn't generate these)
         action_details.character_name = self.character_state.name
