@@ -23,6 +23,9 @@ from scripts.bulk_session_runner import (
     load_bulk_run_metadata,
     write_bulk_run_metadata,
     discover_run_metadata_from_dirs,
+    get_last_successful_round,
+    count_llm_calls_in_jsonl,
+    try_replay_session,
     RunResult,
     BulkRunStats
 )
@@ -701,6 +704,382 @@ class TestResumeLogic:
             completed = get_completed_runs(output_dir)
 
             assert completed == {1}  # Only run 1 is complete
+
+
+class TestReplayResumeFunctions:
+    """Test replay-based resume helper functions."""
+
+    def test_get_last_successful_round_with_completed_rounds(self):
+        """Test finding last successful round from JSONL with round_end events."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            # Session with rounds 0, 1, 2 completed, round 3 started but not finished
+            f.write(json.dumps({"event_type": "session_start"}) + "\n")
+            f.write(json.dumps({"event_type": "round_start", "round": 0}) + "\n")
+            f.write(json.dumps({"event_type": "round_end", "round": 0}) + "\n")
+            f.write(json.dumps({"event_type": "round_start", "round": 1}) + "\n")
+            f.write(json.dumps({"event_type": "round_end", "round": 1}) + "\n")
+            f.write(json.dumps({"event_type": "round_start", "round": 2}) + "\n")
+            f.write(json.dumps({"event_type": "round_end", "round": 2}) + "\n")
+            f.write(json.dumps({"event_type": "round_start", "round": 3}) + "\n")
+            # No round_end for round 3 - session failed here
+            temp_path = Path(f.name)
+
+        try:
+            last_round = get_last_successful_round(temp_path)
+            assert last_round == 2
+        finally:
+            temp_path.unlink()
+
+    def test_get_last_successful_round_no_completed_rounds(self):
+        """Test when no rounds completed (failed in round 0)."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            f.write(json.dumps({"event_type": "session_start"}) + "\n")
+            f.write(json.dumps({"event_type": "round_start", "round": 0}) + "\n")
+            # No round_end at all
+            temp_path = Path(f.name)
+
+        try:
+            last_round = get_last_successful_round(temp_path)
+            assert last_round is None
+        finally:
+            temp_path.unlink()
+
+    def test_get_last_successful_round_nonexistent_file(self):
+        """Test handling of nonexistent file."""
+        last_round = get_last_successful_round(Path("/nonexistent/file.jsonl"))
+        assert last_round is None
+
+    def test_get_last_successful_round_empty_file(self):
+        """Test handling of empty file."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            temp_path = Path(f.name)
+
+        try:
+            last_round = get_last_successful_round(temp_path)
+            assert last_round is None
+        finally:
+            temp_path.unlink()
+
+    def test_count_llm_calls_in_jsonl(self):
+        """Test counting LLM calls in JSONL."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            f.write(json.dumps({"event_type": "session_start"}) + "\n")
+            f.write(json.dumps({"event_type": "llm_call", "agent_id": "dm_01"}) + "\n")
+            f.write(json.dumps({"event_type": "llm_call", "agent_id": "player_1"}) + "\n")
+            f.write(json.dumps({"event_type": "round_start", "round": 1}) + "\n")
+            f.write(json.dumps({"event_type": "llm_call", "agent_id": "dm_01"}) + "\n")
+            f.write(json.dumps({"event_type": "action_declaration"}) + "\n")
+            temp_path = Path(f.name)
+
+        try:
+            count = count_llm_calls_in_jsonl(temp_path)
+            assert count == 3
+        finally:
+            temp_path.unlink()
+
+    def test_count_llm_calls_no_calls(self):
+        """Test counting when no LLM calls present."""
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
+            f.write(json.dumps({"event_type": "session_start"}) + "\n")
+            f.write(json.dumps({"event_type": "round_start"}) + "\n")
+            temp_path = Path(f.name)
+
+        try:
+            count = count_llm_calls_in_jsonl(temp_path)
+            assert count == 0
+        finally:
+            temp_path.unlink()
+
+    def test_count_llm_calls_nonexistent_file(self):
+        """Test counting with nonexistent file."""
+        count = count_llm_calls_in_jsonl(Path("/nonexistent/file.jsonl"))
+        assert count == 0
+
+
+class TestTryReplaySession:
+    """Test try_replay_session subprocess call logic."""
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    @patch('scripts.bulk_session_runner.check_session_completed')
+    def test_try_replay_success(self, mock_check_completed, mock_subprocess):
+        """Test successful replay execution."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+
+            # Create partial JSONL with enough LLM calls
+            partial_jsonl = tmpdir / "session_partial.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "llm_call", "agent_id": "dm"}) + "\n")
+                f.write(json.dumps({"event_type": "llm_call", "agent_id": "player_1"}) + "\n")
+                f.write(json.dumps({"event_type": "llm_call", "agent_id": "player_2"}) + "\n")
+                f.write(json.dumps({"event_type": "llm_call", "agent_id": "dm"}) + "\n")
+
+            output_path = tmpdir / "session_replay.jsonl"
+
+            # Mock subprocess success
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_subprocess.return_value = mock_result
+
+            # Mock output file created and completed
+            mock_check_completed.return_value = True
+            output_path.touch()  # Create empty file for exists() check
+
+            success, error = try_replay_session(
+                partial_jsonl=partial_jsonl,
+                output_path=output_path,
+                continue_from_round=2,
+                timeout=100
+            )
+
+            assert success is True
+            assert error is None
+
+            # Verify subprocess was called with correct args
+            mock_subprocess.assert_called_once()
+            call_args = mock_subprocess.call_args[0][0]
+            assert "replay_fixture.py" in call_args[1]
+            assert "--all-cached" in call_args
+            assert "--cache-until-round" in call_args
+            assert "2" in call_args
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_try_replay_insufficient_llm_calls(self, mock_subprocess):
+        """Test replay fails early if not enough LLM calls cached."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+
+            # Create partial JSONL with too few LLM calls
+            partial_jsonl = tmpdir / "session_partial.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "llm_call", "agent_id": "dm"}) + "\n")
+                # Only 1 LLM call - below threshold of 3
+
+            output_path = tmpdir / "session_replay.jsonl"
+
+            success, error = try_replay_session(
+                partial_jsonl=partial_jsonl,
+                output_path=output_path,
+                continue_from_round=0,
+                timeout=100
+            )
+
+            assert success is False
+            assert "Insufficient LLM calls" in error
+            # Subprocess should NOT have been called
+            mock_subprocess.assert_not_called()
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_try_replay_subprocess_failure(self, mock_subprocess):
+        """Test handling of subprocess failure."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+
+            # Create partial JSONL with enough LLM calls
+            partial_jsonl = tmpdir / "session_partial.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                for i in range(5):
+                    f.write(json.dumps({"event_type": "llm_call", "agent_id": f"agent_{i}"}) + "\n")
+
+            output_path = tmpdir / "session_replay.jsonl"
+
+            # Mock subprocess failure
+            mock_result = Mock()
+            mock_result.returncode = 1
+            mock_result.stderr = "Some error occurred"
+            mock_subprocess.return_value = mock_result
+
+            success, error = try_replay_session(
+                partial_jsonl=partial_jsonl,
+                output_path=output_path,
+                continue_from_round=2,
+                timeout=100
+            )
+
+            assert success is False
+            assert "Replay failed" in error
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_try_replay_timeout(self, mock_subprocess):
+        """Test handling of subprocess timeout."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir = Path(tmpdir)
+
+            # Create partial JSONL with enough LLM calls
+            partial_jsonl = tmpdir / "session_partial.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                for i in range(5):
+                    f.write(json.dumps({"event_type": "llm_call", "agent_id": f"agent_{i}"}) + "\n")
+
+            output_path = tmpdir / "session_replay.jsonl"
+
+            # Mock subprocess timeout
+            mock_subprocess.side_effect = subprocess.TimeoutExpired(
+                cmd=["python", "replay.py"],
+                timeout=100
+            )
+
+            success, error = try_replay_session(
+                partial_jsonl=partial_jsonl,
+                output_path=output_path,
+                continue_from_round=2,
+                timeout=100
+            )
+
+            assert success is False
+            assert "timeout" in error.lower()
+
+
+class TestRunSingleSessionWithReplay:
+    """Test run_single_session with attempt_replay=True."""
+
+    @patch('scripts.bulk_session_runner.try_replay_session')
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_replay_success_skips_restart(self, mock_subprocess, mock_try_replay):
+        """Test that successful replay returns immediately without restart."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 5}, f)
+
+            # Create partial session that failed at round 3
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            partial_jsonl = run_dir / "session_test.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "round_end", "round": 0}) + "\n")
+                f.write(json.dumps({"event_type": "round_end", "round": 1}) + "\n")
+                f.write(json.dumps({"event_type": "round_end", "round": 2}) + "\n")
+                # Round 3 started but didn't complete
+                for i in range(5):
+                    f.write(json.dumps({"event_type": "llm_call", "agent_id": f"agent_{i}"}) + "\n")
+
+            # Mock successful replay
+            replay_output = run_dir / "session_replay_0001.jsonl"
+            with open(replay_output, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+            mock_try_replay.return_value = (True, None)
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                attempt_replay=True
+            )
+
+            assert result.success is True
+            # subprocess.run should NOT be called - replay succeeded
+            mock_subprocess.assert_not_called()
+            # try_replay_session should have been called
+            mock_try_replay.assert_called_once()
+
+    @patch('scripts.bulk_session_runner.try_replay_session')
+    @patch('scripts.bulk_session_runner.get_last_successful_round')
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_replay_failure_falls_back_to_restart(self, mock_subprocess, mock_get_last_round, mock_try_replay):
+        """Test that failed replay falls back to fresh restart."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 5}, f)
+
+            # Create partial session that failed at round 3
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            partial_jsonl = run_dir / "session_test.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "round_end", "round": 0}) + "\n")
+                f.write(json.dumps({"event_type": "round_end", "round": 1}) + "\n")
+                f.write(json.dumps({"event_type": "round_end", "round": 2}) + "\n")
+                # Round 3 started but didn't complete
+                for i in range(5):
+                    f.write(json.dumps({"event_type": "llm_call", "agent_id": f"agent_{i}"}) + "\n")
+
+            # Mock get_last_successful_round to return 2 (rounds 0-2 completed)
+            mock_get_last_round.return_value = 2
+
+            # Mock failed replay
+            mock_try_replay.return_value = (False, "Cache mismatch")
+
+            # Mock successful restart
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_subprocess.return_value = mock_result
+
+            # Create files that subprocess "would create"
+            with open(run_dir / "session_fresh.jsonl", 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+            (run_dir / "stderr.log").touch()
+            (run_dir / "stdout.log").touch()
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                attempt_replay=True
+            )
+
+            # Both replay and subprocess should have been called
+            mock_try_replay.assert_called_once()
+            mock_subprocess.assert_called_once()
+            # Final result should be success (from restart)
+            assert result.success is True
+
+    @patch('scripts.bulk_session_runner.subprocess.run')
+    def test_no_replay_when_no_completed_rounds(self, mock_subprocess):
+        """Test that replay is skipped when session has no completed rounds."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            # Create config file
+            config_path = output_dir / "test_config.json"
+            with open(config_path, 'w') as f:
+                json.dump({"session_name": "test", "max_turns": 5}, f)
+
+            # Create partial session with NO completed rounds
+            run_dir = output_dir / "run_0001"
+            run_dir.mkdir()
+            partial_jsonl = run_dir / "session_test.jsonl"
+            with open(partial_jsonl, 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 0}) + "\n")
+                # No round_end - failed in round 0
+
+            # Mock subprocess for restart
+            mock_result = Mock()
+            mock_result.returncode = 0
+            mock_subprocess.return_value = mock_result
+
+            with open(run_dir / "session_fresh.jsonl", 'w') as f:
+                f.write(json.dumps({"event_type": "session_start"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+            (run_dir / "stderr.log").touch()
+            (run_dir / "stdout.log").touch()
+
+            result = run_single_session(
+                config_path=str(config_path),
+                run_id=1,
+                output_dir=output_dir,
+                attempt_replay=True
+            )
+
+            # Should go straight to restart (no replay attempted)
+            mock_subprocess.assert_called_once()
+            assert result.success is True
 
 
 if __name__ == "__main__":
