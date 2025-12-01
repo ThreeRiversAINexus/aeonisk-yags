@@ -14,7 +14,7 @@ wasting LLM API calls and creating confusing error states.
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from scripts.aeonisk.multiagent.energy_economy import EnergyPurse, create_raw_seed, SeedType
-from scripts.aeonisk.multiagent.character_state import CharacterState
+from scripts.aeonisk.multiagent.player import CharacterState
 from scripts.aeonisk.multiagent.schemas.player_action import AttuneAction, ActionType
 
 

@@ -168,21 +168,47 @@
         "tests/integration/session/test_npc_lifecycle_integration.py"
       ],
       "notes": "Demonstrates: (1) 3 NPCs spawned from config with distinct threat levels, (2) All 3 NPCs escalate simultaneously in Round 1 (NPC→enemy), (3) Escalated NPCs use enemy combat AI (Razor shoots Brick for 11 damage), (4) 2 de-escalations to prisoners in Rounds 2-3 (enemy→prisoner), (5) Agent ID preservation through multiple conversions, (6) DM personality-based escalation reasoning. Stress test for simultaneous conversions. 60% action success rate, 0 errors. Config: session_config_npc_escalation_ultraviolent.json."
+    },
+    "session_debt_auction_ambush.jsonl": {
+      "created": "2024-11-14",
+      "created_by_commit": "631860b",
+      "purpose": "Integration test fixture for enemy AI, state persistence, targeting system, combat rounds, clock lifecycle, and structured output validation. Documents two known bugs that were fixed.",
+      "scenario": "Debt Auction Ambush (mixed) @ The Mercantile Basilica – Aeonisk Prime (ACG Regional Commerce Hub, Elaras District)",
+      "rounds": 5,
+      "rounds_range": "0-5",
+      "players": 2,
+      "enemies": 1,
+      "has_player_llm_calls": false,
+      "status": "active",
+      "category": "test",
+      "used_by_tests": [
+        "tests/integration/session/test_enemy_ai_integration.py",
+        "tests/integration/session/test_state_persistence_integration.py",
+        "tests/integration/session/test_targeting_integration.py",
+        "tests/integration/session/test_combat_round_integration.py",
+        "tests/integration/session/test_clock_lifecycle.py",
+        "tests/integration/session/test_structured_output_integration.py"
+      ],
+      "bugs_documented": [
+        "Bug #1: Status effects applied to actor instead of target",
+        "Bug #2: Environmental void applied to character void score instead of being skipped"
+      ],
+      "notes": "Pre-player-LLM-logging fixture (cannot be used for replay tests). Recovered from archive. Original session ID: session_9247da3c-0ccd-41b3-a3b1-739c83ac3152. 15 total actions (67% success), 5 clocks tracked. Environmental void: 3→3. Schema may be outdated - will verify via test run."
     }
   },
   "statistics": {
-    "total_fixtures": 11,
-    "active": 11,
+    "total_fixtures": 12,
+    "active": 12,
     "deprecated": 0,
     "with_player_llm_calls": 4,
     "categories": {
       "golden": 3,
       "regression": 2,
-      "test": 6
+      "test": 7
     }
   },
   "notes": [
-    "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
+    "8 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
     "replay_test_fresh.jsonl, regression_combat_cultist_spawn_bug.jsonl, golden_npc_deescalation.jsonl, and golden_npc_escalation_lifecycle.jsonl have complete player LLM call data",
     "golden_npc_deescalation.jsonl and golden_npc_escalation_lifecycle.jsonl are reference implementations for NPC system testing (de-escalation and escalation respectively)",
     "golden_npc_escalation_lifecycle.jsonl is a stress test for simultaneous multi-NPC conversions"

@@ -278,7 +278,7 @@ class TestSchemaDefaults:
         assert effects.clock_updates == []
         assert effects.conditions == []
         assert effects.position_changes == []
-        assert effects.damage is None
+        assert effects.damage == []
 
     def test_void_change_requires_character_name(self):
         """

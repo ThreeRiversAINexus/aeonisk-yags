@@ -16,7 +16,6 @@ import pytest
 from aeonisk.multiagent.enemy_agent import EnemyAgent
 from aeonisk.multiagent.enemy_spawner import (
     spawn_enemy,
-    parse_spawn_markers,
     count_active_units
 )
 from aeonisk.multiagent.schemas.shared_types import Position
@@ -76,13 +75,15 @@ class TestEnemyAgentNoGroupFields:
         assert not hasattr(enemy, 'apply_group_attrition'), "EnemyAgent should not have apply_group_attrition method"
 
 
+@pytest.mark.skip(reason="parse_spawn_markers function removed - spawn markers no longer used")
 class TestSpawnMarkerParsing:
     """Test that spawn markers use 4-field syntax without count parameter."""
 
     def test_4_field_spawn_marker_parsed(self):
         """Parse 4-field spawn marker: name|template|position|tactics."""
         text = "[SPAWN_ENEMY: Test Squad | grunt | Near-Enemy | aggressive]"
-        markers = parse_spawn_markers(text)
+        # parse_spawn_markers removed - function no longer exists
+        pytest.skip("parse_spawn_markers removed")
 
         assert len(markers) == 1
         name, template, position, tactics, personality = markers[0]
