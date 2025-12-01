@@ -767,8 +767,8 @@ class ScenarioSetup(BaseModel):
 
     starting_clocks: List[NewClock] = Field(
         ...,
-        min_items=1,
-        max_items=4,
+        min_length=1,
+        max_length=4,
         description="Initial progress clocks (1-4 recommended)"
     )
 

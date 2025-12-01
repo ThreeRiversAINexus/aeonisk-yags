@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 
 # Test Pydantic model for structured output tests
-class TestResponse(BaseModel):
+class SampleResponse(BaseModel):
     """Simple test response model."""
     message: str
     count: int
@@ -185,12 +185,12 @@ class TestBatchProxyProviderStructuredOutput:
         # Call generate_structured
         result = await batch_provider.generate_structured(
             prompt="Test prompt",
-            result_type=TestResponse,
+            result_type=SampleResponse,
             system_prompt="System instructions"
         )
 
         # Verify result is validated Pydantic instance
-        assert isinstance(result, TestResponse)
+        assert isinstance(result, SampleResponse)
         assert result.message == "Hello"
         assert result.count == 42
 
@@ -203,7 +203,7 @@ class TestBatchProxyProviderStructuredOutput:
 
         result = await batch_provider.generate_structured(
             prompt="Test",
-            result_type=TestResponse
+            result_type=SampleResponse
         )
 
         assert result.message == "Test"
@@ -217,7 +217,7 @@ class TestBatchProxyProviderStructuredOutput:
         with pytest.raises(json.JSONDecodeError):
             await batch_provider.generate_structured(
                 prompt="Test",
-                result_type=TestResponse
+                result_type=SampleResponse
             )
 
     @pytest.mark.asyncio
@@ -230,7 +230,7 @@ class TestBatchProxyProviderStructuredOutput:
         with pytest.raises(Exception):  # Pydantic validation error
             await batch_provider.generate_structured(
                 prompt="Test",
-                result_type=TestResponse
+                result_type=SampleResponse
             )
 
     @pytest.mark.asyncio
@@ -245,7 +245,7 @@ class TestBatchProxyProviderStructuredOutput:
 
         result = await batch_provider.generate_structured(
             prompt="Test prompt",
-            result_type=TestResponse,
+            result_type=SampleResponse,
             llm_logger=mock_logger,
             current_round=2
         )

@@ -8,6 +8,7 @@ These tests are written BEFORE implementation (TDD).
 """
 
 import pytest
+from unittest.mock import patch
 from scripts.aeonisk.multiagent.mechanics import MechanicsEngine
 from scripts.aeonisk.multiagent.player import CharacterState
 
@@ -39,11 +40,13 @@ class TestOfferingCrafting:
             goals=[]
         )
 
-    def test_craft_blood_offering_success(self):
+    @patch('scripts.aeonisk.multiagent.mechanics.random.randint', return_value=6)
+    def test_craft_blood_offering_success(self, mock_randint):
         """Test successfully crafting blood offering."""
         # Give character materials (represented as inventory item)
         self.character.inventory['blood_sample'] = 1
 
+        # With mock returning 6 for each die: skill_pool(10) + 6 + 6 = 22 >= DC 15
         success, message, offering = self.mechanics.craft_offering(
             self.character,
             offering_type='blood_offering',
@@ -56,10 +59,12 @@ class TestOfferingCrafting:
         assert self.character.inventory['blood_sample'] == 0  # Consumed
         assert 'successfully' in message.lower() or 'crafted' in message.lower()
 
-    def test_craft_incense_success(self):
+    @patch('scripts.aeonisk.multiagent.mechanics.random.randint', return_value=6)
+    def test_craft_incense_success(self, mock_randint):
         """Test successfully crafting incense."""
         self.character.inventory['herbs'] = 2
 
+        # With mock returning 6 for each die: skill_pool(10) + 6 + 6 = 22 >= DC 15
         success, message, offering = self.mechanics.craft_offering(
             self.character,
             offering_type='incense',
@@ -71,10 +76,12 @@ class TestOfferingCrafting:
         assert self.character.inventory['incense'] == 1
         assert self.character.inventory['herbs'] == 1  # 1 consumed, 1 remaining
 
-    def test_craft_crystals_success(self):
+    @patch('scripts.aeonisk.multiagent.mechanics.random.randint', return_value=6)
+    def test_craft_crystals_success(self, mock_randint):
         """Test successfully crafting crystals (offerings)."""
         self.character.inventory['raw_crystal'] = 1
 
+        # With mock returning 6 for each die: skill_pool(10) + 6 + 6 = 22 >= DC 15
         success, message, offering = self.mechanics.craft_offering(
             self.character,
             offering_type='crystals',
