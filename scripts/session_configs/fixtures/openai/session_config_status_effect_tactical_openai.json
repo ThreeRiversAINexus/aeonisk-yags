@@ -1,0 +1,96 @@
+{
+  "_role": "fixture_regeneration",
+  "_purpose": "OpenAI version for status effect targeting tests (tactical mode). Tests that status effects apply to correct targets.",
+  "session_name": "status_effect_tactical_test_openai",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": true,
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 5,
+    "shared_intel_enabled": false,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": false
+  },
+
+  "initial_enemies": [
+    {
+      "name": "Practice Dummies",
+      "template": "Grunt",
+      "faction": "Training Constructs",
+      "archetype": "Target",
+      "count": 3,
+      "position": "Near-Enemy",
+      "spawn_reason": "Training dummies for combat practice",
+      "tactics": "defensive"
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Test Caster",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Test telekinetic abilities against training targets",
+          "Successfully stun enemies with attacks"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 5,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Combat": 2,
+          "Awareness": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 2
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Status Effect Test Arena",
+    "location": "Training Arena with Animated Practice Targets",
+    "situation": "You stand in a training arena. Three practice dummies animated by minor void energy await. Use your telekinetic abilities to stun them. When applying status effects, they should target the ENEMY, not the caster.",
+    "void_level": 2
+  },
+
+  "_fixture_target": "tests/fixtures/sessions/session_status_effect_tactical_test.jsonl",
+  "_extraction_notes": "Extract round 0. Must show status effects applied to enemies, NOT to the player."
+}

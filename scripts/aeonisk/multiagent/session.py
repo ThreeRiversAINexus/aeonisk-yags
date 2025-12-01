@@ -2715,6 +2715,24 @@ Generate narratives (numbered list only):"""
                         else:
                             death_state = "alive"
 
+                        # Extract economic data from energy_purse
+                        energy_data = {}
+                        seeds_data = {}
+                        if hasattr(char_state, 'energy_purse') and char_state.energy_purse:
+                            purse = char_state.energy_purse
+                            energy_data = {
+                                "breath": purse.breath,
+                                "drip": purse.drip,
+                                "grain": purse.grain,
+                                "spark": purse.spark,
+                                "hollow": purse.hollow,
+                            }
+                            seeds_data = {
+                                "raw": purse.count_seeds(SeedType.RAW),
+                                "attuned": purse.count_seeds(SeedType.ATTUNED),
+                                "hollow": purse.count_seeds(SeedType.HOLLOW),
+                            }
+
                         mechanics.jsonl_logger.log_character_state(
                             round_num=mechanics.current_round,
                             character_id=player.agent_id,
@@ -2727,7 +2745,9 @@ Generate narratives (numbered list only):"""
                             position=str(getattr(player, 'position', 'Unknown')),
                             conditions=[],  # TODO: Add condition tracking
                             is_defeated=(death_state != "alive"),
-                            death_state=death_state  # NEW: Track death vs unconscious
+                            death_state=death_state,
+                            energy=energy_data,
+                            seeds=seeds_data
                         )
 
                         # Log narrative memory state for ML training

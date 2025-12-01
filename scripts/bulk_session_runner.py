@@ -60,6 +60,12 @@ Usage:
         --progress-interval 5 \\
         --show-errors
 
+    # Regenerate all test fixtures (one command!)
+    python scripts/bulk_session_runner.py --regenerate-fixtures
+
+    # Regenerate AND auto-extract fixtures (fully automated!)
+    python scripts/bulk_session_runner.py --regenerate-fixtures --extract
+
 Options:
     --config FILE           Session config JSON file (not required with --resume)
     --configs FILE [FILE]   Multiple config files (not required with --resume)
@@ -124,6 +130,7 @@ class ProgressMonitor:
         self._run_start_times: Dict[int, float] = {}
         self._run_final_durations: Dict[int, float] = {}  # Actual duration for completed runs
         self._last_change_time: float = time.time()
+        self._prev_change_time: float = time.time()  # Track previous change for meaningful "time since"
 
         # Change detection
         self._last_state_hash: Optional[str] = None
@@ -133,6 +140,7 @@ class ProgressMonitor:
         """Start the progress monitor thread."""
         self._bulk_start_time = time.time()
         self._last_change_time = time.time()
+        self._prev_change_time = time.time()
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
 
@@ -226,6 +234,8 @@ class ProgressMonitor:
         state, state_hash = self._get_current_state()
 
         if state_hash != self._last_state_hash:
+            # Update timestamps AFTER display so time_since_change is meaningful
+            self._prev_change_time = self._last_change_time
             self._last_change_time = time.time()
             self._last_state_hash = state_hash
             self._display_progress(state, self._previous_state)
@@ -235,7 +245,8 @@ class ProgressMonitor:
         """Display current progress with timing info, highlighting changes."""
         now = time.time()
         total_runtime = now - self._bulk_start_time
-        time_since_change = now - self._last_change_time
+        time_since_change = now - self._prev_change_time  # Time since PREVIOUS change
+        timestamp = datetime.now().strftime("%H:%M:%S")
 
         # Sort runs by status: running/starting first, then completed/failed, then queued
         status_order = {'running': 0, 'starting': 1, 'done': 2, 'failed': 3, 'queued': 4}
@@ -303,7 +314,7 @@ class ProgressMonitor:
 
         header = (
             f"\n{'='*78}\n"
-            f"PROGRESS: {completed}/{self.total_runs} complete | "
+            f"[{timestamp}] PROGRESS: {completed}/{self.total_runs} complete | "
             f"{active_count} active | {queued_count} queued | {failed} failed\n"
             f"Runtime: {self._format_duration(total_runtime)} | "
             f"Last change: {self._format_duration(time_since_change)} ago\n"
@@ -1278,18 +1289,82 @@ def main():
         default=90000,
         help='Session timeout in seconds (default: 90000 = 25 hours for batch API)'
     )
+    parser.add_argument(
+        '--regenerate-fixtures',
+        action='store_true',
+        help='Regenerate all test fixtures. Auto-discovers configs from '
+             'scripts/session_configs/fixtures/openai/, runs each once with 9 workers, '
+             'outputs to bulk_output/fixtures/. Shortcut for: '
+             '--configs scripts/session_configs/fixtures/openai/*.json '
+             '--runs-per-config 1 --workers 9 --output-dir bulk_output/fixtures --progress'
+    )
+    parser.add_argument(
+        '--extract',
+        action='store_true',
+        help='Auto-extract fixtures after generation (use with --regenerate-fixtures). '
+             'Reads _fixture_target from configs and extracts to tests/fixtures/sessions/.'
+    )
 
     args = parser.parse_args()
+
+    # Handle --regenerate-fixtures shortcut
+    if args.regenerate_fixtures:
+        fixture_config_dir = Path(__file__).parent / "session_configs" / "fixtures" / "openai"
+        fixture_configs = sorted(fixture_config_dir.glob("*.json"))
+
+        if not fixture_configs:
+            logger.error(f"No fixture configs found in {fixture_config_dir}")
+            sys.exit(1)
+
+        # Build fixture mapping (config -> target fixture)
+        fixture_mapping = {}
+        for config_path in fixture_configs:
+            try:
+                with open(config_path, 'r') as f:
+                    config_data = json.load(f)
+                    target = config_data.get('_fixture_target', 'unknown')
+                    rounds = config_data.get('max_turns', '?')
+                    fixture_mapping[str(config_path)] = {
+                        'target': target,
+                        'rounds': rounds,
+                        'config_name': config_path.name
+                    }
+            except Exception as e:
+                fixture_mapping[str(config_path)] = {
+                    'target': f'error: {e}',
+                    'rounds': '?',
+                    'config_name': config_path.name
+                }
+
+        # Store mapping for later use
+        args._fixture_mapping = fixture_mapping
+
+        # Override args with fixture defaults
+        args.configs = [str(c) for c in fixture_configs]
+        args.runs_per_config = 1
+        args.workers = min(len(fixture_configs), 9)  # Cap at 9 or number of configs
+        args.output_dir = "bulk_output/fixtures"
+        args.progress = True
+        args.config = None  # Clear single config if set
+
+        logger.info(f"=== FIXTURE REGENERATION MODE ===")
+        logger.info(f"Found {len(fixture_configs)} fixture configs:")
+        for i, c in enumerate(fixture_configs, 1):
+            info = fixture_mapping.get(str(c), {})
+            target = Path(info.get('target', 'unknown')).name
+            rounds = info.get('rounds', '?')
+            logger.info(f"  [{i:02d}] {c.name}")
+            logger.info(f"       -> {target} ({rounds} rounds)")
 
     # Validate arguments
     if args.resume:
         # Resume mode: --run-dir required, --config optional (will load from metadata)
         if not args.run_dir:
             parser.error("--resume requires --run-dir to specify which run to resume")
-    else:
-        # Normal mode: --config or --configs required
+    elif not args.regenerate_fixtures:
+        # Normal mode: --config or --configs required (unless using --regenerate-fixtures)
         if not args.config and not args.configs:
-            parser.error("Must provide either --config or --configs")
+            parser.error("Must provide either --config, --configs, or --regenerate-fixtures")
 
     # Setup logging
     logging.basicConfig(
@@ -1564,6 +1639,143 @@ def main():
             print(f"Total Tokens:    {stats.total_tokens:,}")
             print(f"Avg Tokens:      {stats.avg_tokens_per_run:.0f} per run")
             print("="*80)
+
+            # If fixture regeneration mode, print extraction commands
+            if hasattr(args, '_fixture_mapping') and args._fixture_mapping:
+                print("\n" + "="*80)
+                print("FIXTURE EXTRACTION COMMANDS")
+                print("="*80)
+                print(f"Run directory: {output_dir}\n")
+
+                # Build run_id -> config mapping from results
+                for result in sorted(results, key=lambda r: r.run_id):
+                    if result.success:
+                        config_path = result.config_path
+                        info = args._fixture_mapping.get(config_path, {})
+                        target = info.get('target', 'unknown')
+
+                        # Read actual session to find real round range
+                        max_round = '?'
+                        try:
+                            session_path = Path(result.output_path)
+                            if session_path.exists():
+                                with open(session_path, 'r') as f:
+                                    rounds_seen = set()
+                                    for line in f:
+                                        try:
+                                            event = json.loads(line)
+                                            r = event.get('round')
+                                            if r is not None and isinstance(r, int):
+                                                rounds_seen.add(r)
+                                        except json.JSONDecodeError:
+                                            pass
+                                    if rounds_seen:
+                                        max_round = max(rounds_seen)
+                        except Exception:
+                            # Fall back to config value
+                            config_rounds = info.get('rounds', '?')
+                            max_round = config_rounds - 1 if isinstance(config_rounds, int) else '?'
+
+                        print(f"# Run {result.run_id:02d}: {info.get('config_name', 'unknown')}")
+                        print(f"python scripts/extract_fixture.py \\")
+                        print(f"  {result.output_path} \\")
+                        print(f"  --rounds 0-{max_round} \\")
+                        print(f"  --output {target}")
+                        print()
+                    else:
+                        config_path = result.config_path
+                        info = args._fixture_mapping.get(config_path, {})
+                        print(f"# Run {result.run_id:02d}: {info.get('config_name', 'unknown')} - FAILED")
+                        print()
+
+                print("# Validate all fixtures:")
+                print("python scripts/analyze_session.py tests/fixtures/sessions/*.jsonl --validate-fixture")
+                print("="*80)
+
+                # Auto-extract if --extract flag is set
+                if args.extract:
+                    print("\n" + "="*80)
+                    print("AUTO-EXTRACTING FIXTURES")
+                    print("="*80 + "\n")
+
+                    extract_script = Path(__file__).parent / "extract_fixture.py"
+                    extracted_count = 0
+                    failed_extracts = []
+
+                    for result in sorted(results, key=lambda r: r.run_id):
+                        if not result.success:
+                            continue
+
+                        config_path = result.config_path
+                        info = args._fixture_mapping.get(config_path, {})
+                        target = info.get('target', None)
+
+                        if not target or target == 'unknown':
+                            logger.warning(f"Run {result.run_id}: No _fixture_target in config, skipping extraction")
+                            continue
+
+                        # Find actual max round in session
+                        max_round = 0
+                        try:
+                            session_path = Path(result.output_path)
+                            if session_path.exists():
+                                with open(session_path, 'r') as f:
+                                    for line in f:
+                                        try:
+                                            event = json.loads(line)
+                                            r = event.get('round')
+                                            if r is not None and isinstance(r, int):
+                                                max_round = max(max_round, r)
+                                        except json.JSONDecodeError:
+                                            pass
+                        except Exception as e:
+                            logger.warning(f"Run {result.run_id}: Could not read session for round detection: {e}")
+                            continue
+
+                        # Run extraction
+                        cmd = [
+                            sys.executable, str(extract_script),
+                            result.output_path,
+                            "--rounds", f"0-{max_round}",
+                            "--output", target,
+                            "--overwrite"
+                        ]
+
+                        logger.info(f"Extracting: {Path(target).name} (rounds 0-{max_round})")
+                        try:
+                            extract_result = subprocess.run(
+                                cmd,
+                                capture_output=True,
+                                text=True,
+                                timeout=60
+                            )
+                            if extract_result.returncode == 0:
+                                extracted_count += 1
+                                print(f"  ✓ {Path(target).name}")
+                            else:
+                                failed_extracts.append((target, extract_result.stderr[:200]))
+                                print(f"  ✗ {Path(target).name}: {extract_result.stderr[:100]}")
+                        except Exception as e:
+                            failed_extracts.append((target, str(e)))
+                            print(f"  ✗ {Path(target).name}: {e}")
+
+                    print(f"\nExtracted: {extracted_count}/{len([r for r in results if r.success])} fixtures")
+
+                    if failed_extracts:
+                        print(f"Failed: {len(failed_extracts)}")
+                        for target, err in failed_extracts:
+                            print(f"  - {Path(target).name}: {err[:80]}")
+
+                    # Run validation
+                    print("\n" + "-"*40)
+                    print("VALIDATING FIXTURES")
+                    print("-"*40)
+                    analyze_script = Path(__file__).parent / "analyze_session.py"
+                    validate_result = subprocess.run(
+                        [sys.executable, str(analyze_script), "--validate-fixtures"],
+                        capture_output=False
+                    )
+                    print("="*80)
 
             # Write summary report (persists even on early termination)
             write_summary_report(output_dir, results, stats, args)

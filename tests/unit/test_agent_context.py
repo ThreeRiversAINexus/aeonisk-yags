@@ -256,6 +256,133 @@ class TestContextUpdates:
                 assert prompt_len > 500, "DM prompt should have environmental context"
 
 
+class TestEnvironmentalObjectPropagation:
+    """Test that environmental objects in SharedState appear in agent prompts."""
+
+    def test_env_objects_appear_in_player_context(self):
+        """
+        Environmental objects added to SharedState should appear in player prompt context.
+
+        This tests the actual code path: SharedState.current_env_objects →
+        AIPlayerAgent._format_entities_present()
+        """
+        from scripts.aeonisk.multiagent.shared_state import SharedState, EnvironmentalObject, EnvironmentalObjectType
+        from scripts.aeonisk.multiagent.player import AIPlayerAgent
+
+        # Create SharedState with environmental objects
+        shared_state = SharedState()
+
+        # Add environmental objects (using actual enum values)
+        burning_wreckage = EnvironmentalObject(
+            object_type=EnvironmentalObjectType.VEHICLE,
+            name="Burning Vehicle Wreckage",
+            description="A transport vehicle engulfed in flames, blocking the north corridor",
+            state={"on_fire": True, "blocking": True}
+        )
+        shared_state.add_env_object(burning_wreckage)
+
+        smoke_barrier = EnvironmentalObject(
+            object_type=EnvironmentalObjectType.BARRIER,
+            name="Smoke Cloud",
+            description="Thick black smoke reducing visibility",
+            state={"visibility": "poor"}
+        )
+        shared_state.add_env_object(smoke_barrier)
+
+        # Create a minimal AIPlayerAgent with the shared_state
+        character_config = {
+            "name": "Test Player",
+            "faction": "Neutral",
+            "llm": {"provider": "anthropic", "model": "test", "temperature": 0.7},
+            "attributes": {"Strength": 3},
+            "skills": {}
+        }
+        player = AIPlayerAgent(
+            agent_id="test_player_01",
+            socket_path="/tmp/test_socket",  # Dummy path - won't be used
+            character_config=character_config,
+            shared_state=shared_state
+        )
+
+        # Get the entities present context (this is what goes into prompts)
+        entities_context = player._format_entities_present()
+
+        # Verify environmental objects appear in context
+        assert "Environmental Features:" in entities_context, \
+            f"Expected 'Environmental Features:' section in context. Got: {entities_context}"
+        assert "Burning Vehicle Wreckage" in entities_context, \
+            f"Expected burning wreckage in context. Got: {entities_context}"
+        assert "Smoke Cloud" in entities_context, \
+            f"Expected smoke cloud in context. Got: {entities_context}"
+        assert burning_wreckage.object_id in entities_context, \
+            f"Expected object ID {burning_wreckage.object_id} in context. Got: {entities_context}"
+
+    def test_env_objects_state_appears_in_context(self):
+        """Environmental object state (on_fire, blocking, etc.) should be visible."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState, EnvironmentalObject, EnvironmentalObjectType
+        from scripts.aeonisk.multiagent.player import AIPlayerAgent
+
+        shared_state = SharedState()
+
+        cover = EnvironmentalObject(
+            object_type=EnvironmentalObjectType.CARGO,
+            name="Overturned Cargo Crate",
+            description="Heavy metal crate providing cover",
+            state={"cover_bonus": 4, "destructible": True}
+        )
+        shared_state.add_env_object(cover)
+
+        character_config = {
+            "name": "Test Player",
+            "faction": "Neutral",
+            "llm": {"provider": "anthropic", "model": "test", "temperature": 0.7},
+            "attributes": {"Strength": 3},
+            "skills": {}
+        }
+        player = AIPlayerAgent(
+            agent_id="test_player_01",
+            socket_path="/tmp/test_socket",
+            character_config=character_config,
+            shared_state=shared_state
+        )
+
+        entities_context = player._format_entities_present()
+
+        # State values should appear in the context
+        assert "cover_bonus: 4" in entities_context, \
+            f"Expected cover_bonus state in context. Got: {entities_context}"
+        assert "destructible: Yes" in entities_context, \
+            f"Expected destructible state in context. Got: {entities_context}"
+
+    def test_no_env_objects_no_section(self):
+        """When no environmental objects exist, no Environmental Features section appears."""
+        from scripts.aeonisk.multiagent.shared_state import SharedState
+        from scripts.aeonisk.multiagent.player import AIPlayerAgent
+
+        shared_state = SharedState()
+        # Don't add any environmental objects
+
+        character_config = {
+            "name": "Test Player",
+            "faction": "Neutral",
+            "llm": {"provider": "anthropic", "model": "test", "temperature": 0.7},
+            "attributes": {"Strength": 3},
+            "skills": {}
+        }
+        player = AIPlayerAgent(
+            agent_id="test_player_01",
+            socket_path="/tmp/test_socket",
+            character_config=character_config,
+            shared_state=shared_state
+        )
+
+        entities_context = player._format_entities_present()
+
+        # Should NOT have environmental features section
+        assert "Environmental Features:" not in entities_context, \
+            f"Expected no Environmental Features section when empty. Got: {entities_context}"
+
+
 class TestSharedGameState:
     """Test that shared game state (clocks, discoveries, etc.) is visible."""
 

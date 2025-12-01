@@ -1,0 +1,102 @@
+{
+  "_role": "fixture_regeneration",
+  "_purpose": "OpenAI version of starting_clocks_test for fixture regeneration. Tests clock loading from config at session start.",
+  "session_name": "starting_clocks_test_openai",
+  "max_turns": 3,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Test Agent",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Complete the investigation before time runs out"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Investigation": 4,
+          "Awareness": 3,
+          "Systems": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Data Slate": 1,
+          "Scanner": 1
+        },
+        "void": 2
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Simple Investigation",
+    "location": "Corporate Archive",
+    "situation": "You're investigating corporate records. You have limited time before security sweeps the area. Work quickly and methodically.",
+    "void_level": 2
+  },
+
+  "starting_clocks": [
+    {
+      "name": "Investigation Progress",
+      "max_ticks": 1,
+      "current_ticks": 0,
+      "description": "Gathering evidence from corporate records",
+      "advance_meaning": "more evidence collected",
+      "regress_meaning": "evidence trail goes cold"
+    },
+    {
+      "name": "Security Response",
+      "max_ticks": 4,
+      "current_ticks": 1,
+      "description": "Corporate security closing in on your position",
+      "advance_meaning": "security gets closer",
+      "regress_meaning": "security delayed"
+    }
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Gather evidence from corporate archives",
+      "type": "investigation",
+      "required": true
+    }
+  ],
+
+  "_fixture_target": "tests/fixtures/sessions/session_starting_clocks.jsonl",
+  "_extraction_notes": "Extract rounds 0-2 after successful run"
+}

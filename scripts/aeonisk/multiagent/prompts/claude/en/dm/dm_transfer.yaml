@@ -69,20 +69,16 @@ content: |
   ## Structured Output
 
   Generate ActionResolution with:
-  - **success**: true if executed=true, false if executed=false
-  - **roll**: 0 (no dice rolled)
-  - **total**: 0 (no roll)
-  - **difficulty**: 0 (no roll)
-  - **margin**: 0 (no roll)
-  - **success_tier**: "marginal" if success, "failure" if failed
-  - **narrative**: Your transfer narration (2-4 sentences)
-  - **attribute**: "None" (transfers don't use attributes)
-  - **skill**: null (transfers don't use skills)
-  - **soulcredit_changes**: Context-dependent (see guidelines above)
-    - Charity: +1 to +3 for giver
-    - Bribery: -1 to -3 for giver
-    - Coercion: Sender gains negative Soulcredit, receiver may lose Soulcredit
-    - Fair exchange: 0 (neutral)
+  - **narration**: Your transfer narration (2-4 sentences, 200+ chars)
+  - **success_tier**: "moderate" if executed=true, "failure" if executed=false (pre-validated, no actual roll)
+  - **margin**: 0 (deterministic transfer, no roll variance)
+  - **attribute_used**: null (transfers don't use attributes)
+  - **skill_used**: null (transfers don't use skills)
+  - **effects.soulcredit_changes**: Context-dependent (see guidelines above)
+    - Charity: [{character: "Giver Name", amount: +1 to +3, reason: "..."}]
+    - Bribery: [{character: "Giver Name", amount: -1 to -3, reason: "..."}]
+    - Coercion: Both parties may have changes
+    - Fair exchange: [] (neutral - no changes)
   - **effects.currency_transfer**: CurrencyTransfer object with multi-currency support:
     - `from_character`: Sender name
     - `to_character`: Receiver name

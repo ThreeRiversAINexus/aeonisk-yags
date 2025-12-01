@@ -1,0 +1,193 @@
+{
+  "_role": "fixture_regeneration",
+  "_purpose": "General-purpose combat fixture for integration tests: enemy AI, targeting, void changes, state persistence, clocks, structured output.",
+  "session_name": "debt_auction_ambush_openai",
+  "max_turns": 5,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "force_combat": true,
+
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 4,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": false,
+    "void_tracking_enabled": true
+  },
+
+  "initial_enemies": [
+    {
+      "name": "Debt Collector",
+      "template": "Elite",
+      "faction": "Astral Commerce Group",
+      "archetype": "Enforcer",
+      "count": 1,
+      "position": "Near-Enemy",
+      "spawn_reason": "Ambush at the debt auction",
+      "tactics": "aggressive"
+    }
+  ],
+
+  "starting_clocks": [
+    {
+      "name": "Auction Deadline",
+      "max_ticks": 6,
+      "current_ticks": 2,
+      "description": "Time until the debt auction closes and security arrives",
+      "advance_meaning": "auction nearing close, tension rises",
+      "regress_meaning": "delay buys more time"
+    },
+    {
+      "name": "Collector Backup",
+      "max_ticks": 4,
+      "current_ticks": 0,
+      "description": "Debt collector calling for reinforcements",
+      "advance_meaning": "backup getting closer",
+      "regress_meaning": "communications jammed"
+    }
+  ],
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Ash Vex",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 3
+        },
+        "goals": [
+          "Survive the ambush",
+          "Prevent the debt collector from completing the seizure",
+          "Use void abilities if necessary"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 4,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4,
+          "Charisma": 3,
+          "Size": 5
+        },
+        "skills": {
+          "Void Lore": 5,
+          "Combat": 4,
+          "Guns": 4,
+          "Awareness": 4,
+          "Athletics": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "med_kit": 2
+        },
+        "void": 4
+      },
+      {
+        "name": "Kira Thane",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "goals": [
+          "Protect Ash from the collector",
+          "Find an escape route if things go bad",
+          "Delay or defeat the collector"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Charisma": 4,
+          "Size": 5
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 5,
+          "Brawl": 4,
+          "Athletics": 4,
+          "Awareness": 3,
+          "Intimidation": 4
+        },
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "riot_carapace": 1,
+          "med_kit": 1
+        },
+        "void": 2
+      }
+    ]
+  },
+
+  "scenario": {
+    "theme": "Debt Auction Ambush",
+    "location": "The Mercantile Basilica - Aeonisk Prime (ACG Regional Commerce Hub, Elaras District)",
+    "situation": "You came to the debt auction to contest an illegal seizure. But the Astral Commerce Group anticipated this - their collector was waiting. Now you're fighting for your freedom in the grand hall of the Mercantile Basilica. The auction deadline clock is ticking, and the collector is calling for backup.",
+    "void_level": 3
+  },
+
+  "_scenario_hint": "Environmental void level 3 - some void effects in the area. Player Ash has void 4, may use void abilities. Collector should be aggressive. Clocks should advance each round. Tests: enemy AI targeting, void changes (environmental and character), state persistence across rounds, combat mechanics, structured output validation.",
+
+  "mission_objectives": [
+    {
+      "description": "Survive the ambush and escape the Basilica",
+      "type": "combat",
+      "required": true
+    },
+    {
+      "description": "Prevent the debt seizure",
+      "type": "secondary",
+      "required": false
+    }
+  ],
+
+  "_fixture_target": "tests/fixtures/sessions/session_debt_auction_ambush.jsonl",
+  "_extraction_notes": "Extract rounds 0-4. Tests: enemy AI, targeting, void changes (environmental skipped, character applied), state persistence, combat rounds, clocks, structured output."
+}

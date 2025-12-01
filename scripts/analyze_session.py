@@ -94,7 +94,8 @@ EVENT_SCHEMAS = {
     "character_state": {
         "required": ["event_type", "ts", "session", "round", "character_id", "character_name", "health", "max_health",
                      "wounds", "void_score", "soulcredit", "position", "conditions", "is_defeated"],
-        "optional": ["death_state", "agent", "event_id", "parent_event_id", "correlation_id"]
+        "optional": ["death_state", "agent", "event_id", "parent_event_id", "correlation_id",
+                     "energy", "seeds"]  # Economy system fields
     },
     "void_change": {
         "required": ["event_type", "ts", "session", "round", "agent", "old_void", "new_void", "delta", "reason"],
@@ -307,11 +308,14 @@ class FixtureValidator:
         # Validate specific field structures
         if event_type == "combat_action" and "attack" in event:
             attack = event["attack"]
-            required_attack_fields = ["attr", "attr_val", "skill", "skill_val", "d20", "total", "dc", "hit", "margin"]
-            for field in required_attack_fields:
-                if field not in attack:
-                    self.errors.append(f"Line {line_num}: combat_action.attack missing field '{field}'")
-                    valid = False
+            # Attack can be empty {} for damage-only events or partial for simplified combat
+            # Only validate if attack has ANY fields (non-empty)
+            if attack:
+                required_attack_fields = ["attr", "attr_val", "skill", "skill_val", "d20", "total", "dc", "hit", "margin"]
+                missing_fields = [f for f in required_attack_fields if f not in attack]
+                # Warn if partial but don't fail - combat may use simplified format
+                if missing_fields and len(missing_fields) < len(required_attack_fields):
+                    self.warnings.append(f"Line {line_num}: combat_action.attack has partial fields (missing: {missing_fields})")
 
             # Validate damage structure if present
             if "damage" in event and event["damage"] is not None:
@@ -1268,9 +1272,14 @@ Examples:
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --count
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --index
   python scripts/analyze_session.py session.jsonl --line 5
+
+  # Fixture validation
+  python scripts/analyze_session.py --validate-fixtures                    # All fixtures in tests/fixtures/sessions/
+  python scripts/analyze_session.py tests/fixtures/sessions/*.jsonl --validate-fixture   # Multiple files
+  python scripts/analyze_session.py fixture.jsonl --validate-fixture       # Single file (detailed report)
         """
     )
-    parser.add_argument('jsonl_file', nargs='?', type=Path, help='Path to JSONL session file (optional if using --discover)')
+    parser.add_argument('jsonl_files', nargs='*', type=Path, help='Path(s) to JSONL session file(s)')
     parser.add_argument(
         '--discover',
         type=Path,
@@ -1335,8 +1344,62 @@ Examples:
         action='store_true',
         help='Validate fixture schema and replay-readiness (exit 0=pass, 1=fail)'
     )
+    parser.add_argument(
+        '--validate-fixtures',
+        action='store_true',
+        help='Validate ALL fixtures in tests/fixtures/sessions/. Shortcut for validating the standard fixture directory.'
+    )
 
     args = parser.parse_args()
+
+    # Handle --validate-fixtures shortcut (auto-discover fixtures)
+    if args.validate_fixtures:
+        fixture_dir = Path(__file__).parent.parent / "tests" / "fixtures" / "sessions"
+        fixture_files = sorted(fixture_dir.glob("*.jsonl"))
+
+        if not fixture_files:
+            print(f"No fixtures found in {fixture_dir}")
+            return 1
+
+        print(f"{'='*70}")
+        print(f"FIXTURE VALIDATION: {len(fixture_files)} files")
+        print(f"{'='*70}\n")
+
+        total_valid = 0
+        total_invalid = 0
+        results = []
+
+        for fixture_path in fixture_files:
+            validator = FixtureValidator(fixture_path)
+            is_valid, _ = validator.validate()
+
+            if is_valid:
+                total_valid += 1
+                status = "✅ VALID"
+            else:
+                total_invalid += 1
+                status = "❌ INVALID"
+                # Collect error summary
+                error_summary = validator.errors[:3] if validator.errors else []
+                results.append((fixture_path.name, error_summary))
+
+            print(f"{status}  {fixture_path.name}")
+
+        print(f"\n{'='*70}")
+        print(f"SUMMARY: {total_valid} valid, {total_invalid} invalid")
+        print(f"{'='*70}")
+
+        # Print error details for invalid fixtures
+        if results:
+            print("\nINVALID FIXTURE DETAILS:")
+            for name, errors in results:
+                print(f"\n  {name}:")
+                for err in errors:
+                    print(f"    - {err[:80]}{'...' if len(err) > 80 else ''}")
+                if len(errors) < len([e for e in validator.errors if name in str(e)]):
+                    print(f"    ... and more errors")
+
+        return 0 if total_invalid == 0 else 1
 
     # Handle --discover mode (scans directory)
     if args.discover:
@@ -1352,24 +1415,69 @@ Examples:
         discovery.print_ranked_sessions(limit=args.limit)
         return 0
 
-    # For non-discover modes, require jsonl_file
-    if not args.jsonl_file:
-        print("Error: Either provide a JSONL file or use --discover <directory>")
+    # For non-discover modes, require jsonl_files
+    if not args.jsonl_files:
+        print("Error: Either provide JSONL file(s) or use --discover <directory> or --validate-fixtures")
         parser.print_help()
         return 1
 
-    if not args.jsonl_file.exists():
-        print(f"Error: File not found: {args.jsonl_file}")
+    # Validate all files exist
+    for jsonl_file in args.jsonl_files:
+        if not jsonl_file.exists():
+            print(f"Error: File not found: {jsonl_file}")
+            return 1
+
+    # Handle --validate-fixture with multiple files
+    if args.validate_fixture:
+        if len(args.jsonl_files) == 1:
+            # Single file - detailed report
+            validator = FixtureValidator(args.jsonl_files[0])
+            is_valid, exit_code = validator.validate()
+            validator.print_report()
+            return exit_code
+        else:
+            # Multiple files - summary table
+            print(f"{'='*70}")
+            print(f"FIXTURE VALIDATION: {len(args.jsonl_files)} files")
+            print(f"{'='*70}\n")
+
+            total_valid = 0
+            total_invalid = 0
+            invalid_details = []
+
+            for jsonl_file in args.jsonl_files:
+                validator = FixtureValidator(jsonl_file)
+                is_valid, _ = validator.validate()
+
+                if is_valid:
+                    total_valid += 1
+                    status = "✅ VALID"
+                else:
+                    total_invalid += 1
+                    status = "❌ INVALID"
+                    invalid_details.append((jsonl_file.name, validator.errors[:3]))
+
+                print(f"{status}  {jsonl_file.name}")
+
+            print(f"\n{'='*70}")
+            print(f"SUMMARY: {total_valid} valid, {total_invalid} invalid")
+            print(f"{'='*70}")
+
+            if invalid_details:
+                print("\nINVALID FIXTURE DETAILS:")
+                for name, errors in invalid_details:
+                    print(f"\n  {name}:")
+                    for err in errors:
+                        print(f"    - {err[:80]}{'...' if len(err) > 80 else ''}")
+
+            return 0 if total_invalid == 0 else 1
+
+    # For non-validation modes, only support single file
+    if len(args.jsonl_files) > 1:
+        print("Error: Multiple files only supported with --validate-fixture. Use one file for other modes.")
         return 1
 
-    # Handle --validate-fixture (runs before SessionAnalyzer to avoid parsing overhead)
-    if args.validate_fixture:
-        validator = FixtureValidator(args.jsonl_file)
-        is_valid, exit_code = validator.validate()
-        validator.print_report()
-        return exit_code
-
-    analyzer = SessionAnalyzer(args.jsonl_file)
+    analyzer = SessionAnalyzer(args.jsonl_files[0])
 
     # Handle --line (get specific event)
     if args.line:

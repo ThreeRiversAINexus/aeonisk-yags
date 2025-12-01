@@ -864,7 +864,9 @@ class JSONLLogger:
         conditions: List[str] = None,
         is_defeated: bool = False,
         death_state: str = "alive",
-        agent: str = 'player'
+        agent: str = 'player',
+        energy: Dict[str, int] = None,
+        seeds: Dict[str, int] = None
     ):
         """
         Log character state snapshot (typically at round end).
@@ -883,6 +885,8 @@ class JSONLLogger:
             is_defeated: Whether character is defeated
             death_state: "alive", "unconscious" (0 HP, wounds < 6), or "dead" (wounds >= 6)
             agent: Agent type ('player', 'enemy', 'npc') for filtering in analysis
+            energy: Currency amounts {"breath": 5, "drip": 10, "grain": 3, "spark": 2, "hollow": 0}
+            seeds: Seed counts {"raw": 2, "attuned": 1, "hollow": 0}
         """
         event = {
             "event_type": "character_state",
@@ -900,7 +904,9 @@ class JSONLLogger:
             "conditions": conditions or [],
             "is_defeated": is_defeated,
             "death_state": death_state,  # NEW: Track death vs unconscious
-            "agent": agent
+            "agent": agent,
+            "energy": energy or {},
+            "seeds": seeds or {}
         }
         self._write_event(event)
 
