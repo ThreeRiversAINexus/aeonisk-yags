@@ -82,6 +82,9 @@ class ActionRouter:
                 'Astral Arts': 'Willpower',
                 'Dreamwork': 'Willpower',
                 'Discipline': 'Willpower',
+                # Dexterity skills (fine motor control)
+                'Sleight': 'Dexterity',
+                'Throw': 'Dexterity',
             }
 
             if declared_skill in skill_to_attribute:
@@ -93,6 +96,8 @@ class ActionRouter:
                     return ('Intelligence', declared_skill, f'Valid {declared_skill} skill (technical)')
                 elif any(word in declared_skill.lower() for word in ['social', 'charm', 'counsel']):
                     return ('Empathy', declared_skill, f'Valid {declared_skill} skill (social)')
+                elif any(word in declared_skill.lower() for word in ['sleight', 'throw', 'fine', 'dexterity']):
+                    return ('Dexterity', declared_skill, f'Valid {declared_skill} skill (fine motor)')
                 else:
                     # Use Intelligence as safe default for unknown skills
                     return ('Intelligence', declared_skill, f'Valid {declared_skill} skill')

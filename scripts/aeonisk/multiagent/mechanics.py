@@ -295,7 +295,7 @@ class JSONLLogger:
         skill_value = getattr(resolution, 'skill_value', 0)
         difficulty = getattr(resolution, 'difficulty', 0)
 
-        ability = attribute_value * skill_value if skill_value > 0 else (attribute_value - 5 if attribute_value > 0 else 0)
+        ability = attribute_value * skill_value if skill_value > 0 else (attribute_value * 4 if attribute_value > 0 else 0)
         dc = difficulty
 
         tiers = {
@@ -404,7 +404,7 @@ class JSONLLogger:
         if skill and skill_value > 0:
             ability = attribute_value * skill_value
         else:
-            ability = attribute_value - 5 if attribute_value > 0 else 0  # Unskilled penalty
+            ability = attribute_value * 4 if attribute_value > 0 else 0  # YAGS unskilled: Attribute × 4
 
         # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
@@ -2000,13 +2000,13 @@ class MechanicsEngine:
             assert base_total == ability + roll, \
                 f"Math error (skilled): {attribute_value}×{skill_value}+{roll} should be {ability}+{roll}={ability+roll}, got {base_total}"
         else:
-            # Unskilled: Attribute + d20 - 5 (unskilled penalty)
-            ability = attribute_value - 5
-            base_total = attribute_value + roll - 5
+            # Unskilled: YAGS standard is Attribute × 4 + d20
+            ability = attribute_value * 4
+            base_total = ability + roll
 
             # Math verification: ensure calculation is correct
             assert base_total == ability + roll, \
-                f"Math error (unskilled): {attribute_value}+{roll}-5 should be {ability}+{roll}={ability+roll}, got {base_total}"
+                f"Math error (unskilled): {attribute_value}×4+{roll} should be {ability}+{roll}={ability+roll}, got {base_total}"
 
         # Apply modifiers
         total = base_total
@@ -3147,12 +3147,15 @@ class MechanicsEngine:
         willpower = character_state.attributes.get('Willpower', 0)
         attunement_skill = character_state.skills.get('Attunement', 0)
 
-        # Check if unskilled (-5 penalty if skill is 0)
-        skill_modifier = attunement_skill if attunement_skill > 0 else -5
+        # YAGS standard: skilled = attr × skill, unskilled = attr × 4
+        if attunement_skill > 0:
+            ability = willpower * attunement_skill
+        else:
+            ability = willpower * 4  # Unskilled: Attribute × 4
 
         roll_d20 = random.randint(1, 20)
         bonuses = validation.altar_bonus  # Altar provides bonus
-        roll_total = willpower + skill_modifier + roll_d20 + bonuses
+        roll_total = ability + roll_d20 + bonuses
 
         effect.roll_total = roll_total
         effect.roll_margin = roll_total - 20  # DC 20
@@ -4647,8 +4650,8 @@ class MechanicsEngine:
             formula = f"{attribute_value} × {skill_value} + d20({roll})"
         else:
             skill_text = f"{attribute} (unskilled)"
-            ability = attribute_value - 5 if attribute_value > 0 else 0
-            formula = f"{attribute_value} + d20({roll}) - 5" if attribute_value > 0 else "Unknown"
+            ability = attribute_value * 4 if attribute_value > 0 else 0
+            formula = f"{attribute_value} × 4 + d20({roll})" if attribute_value > 0 else "Unknown"
 
         # Transparent roll display (with defensive access for new Pydantic schema)
         total = getattr(resolution, 'total', 0)

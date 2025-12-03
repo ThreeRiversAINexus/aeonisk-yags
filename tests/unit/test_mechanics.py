@@ -161,10 +161,11 @@ class TestActionResolution:
                 skill_value=0,
                 difficulty=15
             )
-            # ability = 4 - 5 (unskilled penalty) = -1
-            # total = -1 + 10 = 9
-            assert resolution.total == 9
-            assert resolution.margin == 9 - 15  # Negative margin
+            # YAGS unskilled: ability = attribute × 4 = 4 × 4 = 16
+            # total = 16 + 10 = 26
+            assert resolution.total == 26
+            assert resolution.margin == 26 - 15  # +11 margin
+            assert resolution.success == True  # Should succeed
 
 
 # ============================================================================
