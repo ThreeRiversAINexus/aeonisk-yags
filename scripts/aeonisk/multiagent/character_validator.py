@@ -32,6 +32,11 @@ YAGS_ATTRIBUTES = [
     "Perception", "Intelligence", "Empathy", "Willpower"
 ]
 
+# YAGS Secondary Stats (not attributes, but valid character fields)
+YAGS_SECONDARY_STATS = [
+    "Size"  # YAGS Size stat: measures capacity to absorb damage and target size (humans: 4-6)
+]
+
 # Attribute value ranges
 ATTRIBUTE_MIN = 1  # Minimum for any human
 ATTRIBUTE_TYPICAL_MAX = 5  # Typical human maximum
@@ -171,6 +176,17 @@ class CharacterValidator:
         # Check for YAGS conformance
         for attr_name in attributes.keys():
             if attr_name not in YAGS_ATTRIBUTES:
+                # Check if it's a valid secondary stat (like Size)
+                if attr_name in YAGS_SECONDARY_STATS:
+                    # Size is valid, just note it
+                    issues.append(ValidationIssue(
+                        severity='info',
+                        category='attribute',
+                        message=f"'{attr_name}' is a YAGS secondary stat (not a core attribute)",
+                        field=attr_name
+                    ))
+                    continue
+
                 # Check for common mistakes
                 suggestions = []
                 if attr_name == "Charisma":
