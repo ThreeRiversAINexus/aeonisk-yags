@@ -96,7 +96,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 4,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Pilot": 6,
@@ -152,7 +153,8 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 6,
@@ -211,7 +213,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 3,
-          "Willpower": 5
+          "Willpower": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,

@@ -66,7 +66,8 @@
           "Intelligence": 3,
           "Empathy": 3,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Guns": 4,
@@ -112,7 +113,8 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 4,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Brawl": 5,

@@ -31,7 +31,8 @@
           "intelligence": 4,
           "empathy": 3,
           "willpower": 3,
-          "size": 10
+          "size": 10,
+          "Dexterity": 3
         },
         "skills": {
           "Magick Theory": 4,
@@ -88,7 +89,8 @@
           "intelligence": 4,
           "empathy": 2,
           "willpower": 3,
-          "size": 10
+          "size": 10,
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 4,

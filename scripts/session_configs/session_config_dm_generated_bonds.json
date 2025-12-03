@@ -5,9 +5,7 @@
   "force_combat": false,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-
   "_design_notes": "Test config for fully automatic bond generation. System creates bond network AND narratives using LLM.",
-
   "_comment_bonds": "=== AUTO BOND GENERATION - Set generate_bonds to enable ===",
   "generate_bonds": {
     "enabled": true,
@@ -15,9 +13,7 @@
     "max_bonds": 4,
     "use_scenario_context": true
   },
-
   "_scenario_hint": "Quick void investigation scenario (1 turn). Characters are a mixed team.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -49,6 +45,9 @@
           "provider": "openai",
           "model": "gpt-5-mini",
           "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
         }
       },
       {
@@ -73,6 +72,9 @@
           "provider": "openai",
           "model": "gpt-5-mini",
           "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
         }
       },
       {
@@ -97,6 +99,9 @@
           "provider": "openai",
           "model": "gpt-5-mini",
           "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
         }
       }
     ]

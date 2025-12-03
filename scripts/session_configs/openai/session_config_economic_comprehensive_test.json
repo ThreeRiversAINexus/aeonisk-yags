@@ -260,7 +260,8 @@
           "Intelligence": 3,
           "Empathy": 3,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 3,
@@ -324,7 +325,8 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 3,
@@ -394,7 +396,8 @@
           "Intelligence": 2,
           "Empathy": 3,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Trade": 3,
@@ -458,7 +461,8 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 3,

@@ -57,7 +57,8 @@
           "Intelligence": 5,
           "Empathy": 3,
           "Willpower": 4,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Investigation": 5,
@@ -111,7 +112,8 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 4,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Persuasion": 5,
@@ -164,7 +166,8 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 4,
-          "Size": 6
+          "Size": 6,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -223,7 +226,8 @@
           "Intelligence": 5,
           "Empathy": 4,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Engineering": 5,

@@ -104,7 +104,8 @@
           "Perception": 5,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 5
+          "Willpower": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Void Lore": 6,
@@ -163,7 +164,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 4,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Medicine": 6,
@@ -220,7 +222,8 @@
           "Perception": 5,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,

@@ -48,7 +48,8 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Awareness": 5,

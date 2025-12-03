@@ -64,7 +64,8 @@
           "Perception": 3,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 3

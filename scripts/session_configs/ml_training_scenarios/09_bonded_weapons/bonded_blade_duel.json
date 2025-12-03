@@ -94,7 +94,8 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 4,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Melee": 6,
@@ -151,7 +152,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 4,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Melee": 6,
@@ -208,7 +210,8 @@
           "Perception": 5,
           "Intelligence": 4,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Guns": 6,

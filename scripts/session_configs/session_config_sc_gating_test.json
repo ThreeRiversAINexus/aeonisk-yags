@@ -92,7 +92,8 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Stealth": 5,
@@ -136,7 +137,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 5,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 5,

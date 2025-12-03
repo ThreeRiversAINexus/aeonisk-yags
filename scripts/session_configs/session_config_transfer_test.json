@@ -9,7 +9,11 @@
     "situation": "Ash has excess energy currency but no immediate need. Kress needs currency to purchase a critical ritual component from nearby vendor. Both characters are at the camp (same range band). This tests the transfer system - Ash should transfer energy to Kress using action_type=transfer.",
     "void_level": 3,
     "active_npcs": [],
-    "environmental_factors": ["Campfire", "Supply crates", "Makeshift shelter"],
+    "environmental_factors": [
+      "Campfire",
+      "Supply crates",
+      "Makeshift shelter"
+    ],
     "active_vendors": []
   },
   "agents": {
@@ -67,7 +71,10 @@
           "incense": 2,
           "crystals": 1
         },
-        "background": "Tech-mage researcher with collaborative mindset. Willing to share resources with allies."
+        "background": "Tech-mage researcher with collaborative mindset. Willing to share resources with allies.",
+        "attributes": {
+          "Dexterity": 3
+        }
       },
       {
         "name": "Kress",
@@ -115,7 +122,10 @@
           "blood_offering": 1,
           "crystals": 2
         },
-        "background": "Ritual specialist needing more energy to acquire ritual components. Grateful for ally support."
+        "background": "Ritual specialist needing more energy to acquire ritual components. Grateful for ally support.",
+        "attributes": {
+          "Dexterity": 3
+        }
       }
     ]
   },

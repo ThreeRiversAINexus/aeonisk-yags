@@ -81,7 +81,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Hacking": 6,
@@ -136,7 +137,8 @@
           "Perception": 3,
           "Intelligence": 2,
           "Empathy": 2,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Engineering": 5,

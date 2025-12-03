@@ -21,7 +21,8 @@
         "attributes": {
           "intelligence": 4,
           "perception": 3,
-          "willpower": 3
+          "willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Negotiate": 3,

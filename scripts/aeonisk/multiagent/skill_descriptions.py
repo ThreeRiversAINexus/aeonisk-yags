@@ -265,6 +265,69 @@ SKILL_DATABASE: Dict[str, SkillInfo] = {
         category="Technical",
         note="Aeonisk-specific - operating remote spark-drones"
     ),
+
+    "Attunement": SkillInfo(
+        name="Attunement",
+        attribute="Perception",
+        description="Sensing void currents, energy resonance, spiritual patterns, reading auras",
+        use_cases=["Detecting void anomalies", "Sensing energy flows", "Reading spiritual signatures", "Tracking resonance patterns"],
+        category="Investigation",
+        note="Aeonisk-specific - perceiving the spiritual/energetic layer of reality"
+    ),
+
+    "Intimidation": SkillInfo(
+        name="Intimidation",
+        attribute="Willpower",
+        description="Threatening, coercing, dominating through force of will or implied violence",
+        use_cases=["Extracting information", "Forcing compliance", "Breaking morale", "Establishing dominance"],
+        category="Social",
+        note="Uses Willpower (mental dominance) not Empathy. Can be backed by physical presence or reputation."
+    ),
+
+    "Investigation": SkillInfo(
+        name="Investigation",
+        attribute="Perception",
+        description="Analytical investigation, deduction, forensics, piecing together clues",
+        use_cases=["Crime scene analysis", "Following leads", "Deductive reasoning", "Forensic investigation"],
+        category="Investigation",
+        note="More analytical than Awareness (which is raw perception). Use for detective work and systematic investigation."
+    ),
+
+    "Discipline": SkillInfo(
+        name="Discipline",
+        attribute="Willpower",
+        description="Mental fortitude, void resistance, grounding meditation, resisting corruption",
+        use_cases=["Grounding meditation (-1 Void)", "Resisting void corruption", "Mental discipline", "Maintaining composure"],
+        category="Ritual",
+        note="Aeonisk-specific - essential for void recovery. Success on DC 20+ reduces void by 1."
+    ),
+
+    "Dreamwork": SkillInfo(
+        name="Dreamwork",
+        attribute="Willpower",
+        description="Navigating dreamscapes, memory diving, oneiric manipulation, lucid dreaming",
+        use_cases=["Memory extraction", "Dream navigation", "Oneiric rituals", "Shared dreamscapes"],
+        category="Ritual",
+        note="Aeonisk-specific - manipulating the dreamscape/memory layer"
+    ),
+
+    "Medicine": SkillInfo(
+        name="Medicine",
+        attribute="Intelligence",
+        description="Medical diagnosis, treatment, surgery, biological sciences",
+        use_cases=["Treating injuries", "Diagnosing illness", "Surgery", "Medical research"],
+        category="Technical",
+        note="More comprehensive than Healing - includes diagnosis and advanced procedures"
+    ),
+
+    "Combat": SkillInfo(
+        name="Combat",
+        attribute="Agility",
+        description="Generic combat skill covering weapons and tactics (prefer Brawl/Melee/Guns for specificity)",
+        use_cases=["Armed combat", "Tactical fighting", "Weapon handling", "Combat maneuvers"],
+        category="Combat",
+        note="Generic skill - prefer specific skills (Brawl, Melee, Guns) for better mechanical clarity"
+    ),
 }
 
 

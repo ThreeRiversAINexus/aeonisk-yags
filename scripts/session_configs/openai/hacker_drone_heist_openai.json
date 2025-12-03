@@ -95,7 +95,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Hacking": 6,
@@ -155,7 +156,8 @@
           "Perception": 5,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Stealth": 6,
@@ -217,7 +219,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 5,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,

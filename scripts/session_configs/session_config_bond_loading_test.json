@@ -6,7 +6,6 @@
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
   "_design_notes": "Minimal test config to verify starting_bonds loading",
-
   "starting_bonds": [
     {
       "character_a": "Alice",
@@ -19,17 +18,20 @@
       "character_b": "Charlie",
       "bond_type": "faction",
       "narrative": "Alice and Charlie both serve in the Voidguard, bonded through shared trauma.",
-      "witnessed_by": ["Bob"]
+      "witnessed_by": [
+        "Bob"
+      ]
     },
     {
       "character_a": "Bob",
       "character_b": "Charlie",
       "bond_type": "passion",
       "narrative": "Bob and Charlie are lovers, their bond formed in the depths of a Void-corrupted station.",
-      "witnessed_by": ["Alice"]
+      "witnessed_by": [
+        "Alice"
+      ]
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -61,6 +63,9 @@
           "provider": "openai",
           "model": "gpt-5-mini",
           "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
         }
       },
       {
@@ -85,6 +90,9 @@
           "provider": "openai",
           "model": "gpt-5-mini",
           "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
         }
       },
       {
@@ -109,10 +117,12 @@
           "provider": "openai",
           "model": "gpt-5-mini",
           "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
         }
       }
     ]
   },
-
   "_scenario_hint": "The party investigates strange void readings in an abandoned research station. This is a test scenario - keep it short (1 turn only)."
 }

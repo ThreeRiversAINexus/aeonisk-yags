@@ -55,7 +55,8 @@
           "Perception": 3,
           "Intelligence": 4,
           "Empathy": 2,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -98,7 +99,8 @@
           "Perception": 3,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -146,7 +148,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 4,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Social": 5,
@@ -198,7 +201,8 @@
           "Perception": 3,
           "Intelligence": 3,
           "Empathy": 2,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -255,7 +259,8 @@
           "Perception": 3,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -306,7 +311,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 2,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 4,
@@ -359,7 +365,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 5,
@@ -410,7 +417,8 @@
           "Perception": 3,
           "Intelligence": 4,
           "Empathy": 3,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -459,7 +467,8 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 4,
@@ -518,7 +527,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 4,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 6,
@@ -571,7 +581,8 @@
           "Perception": 3,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 6,
@@ -622,7 +633,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 5,
@@ -671,7 +683,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 5,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,
@@ -724,7 +737,8 @@
           "Perception": 3,
           "Intelligence": 4,
           "Empathy": 5,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 5,
@@ -774,7 +788,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -826,7 +841,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -876,7 +892,8 @@
           "Perception": 3,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -926,7 +943,8 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 2,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 4,
@@ -980,7 +998,8 @@
           "Perception": 3,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Pilot": 5,
@@ -1038,7 +1057,8 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 4,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 5,
@@ -1081,7 +1101,8 @@
           "Perception": 3,
           "Intelligence": 3,
           "Empathy": 4,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 5,

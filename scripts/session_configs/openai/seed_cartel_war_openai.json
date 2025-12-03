@@ -106,7 +106,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 3,
-          "Willpower": 5
+          "Willpower": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 6,
@@ -165,7 +166,8 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 5,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,
@@ -223,7 +225,8 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 3,
-          "Willpower": 3
+          "Willpower": 3,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 6,
