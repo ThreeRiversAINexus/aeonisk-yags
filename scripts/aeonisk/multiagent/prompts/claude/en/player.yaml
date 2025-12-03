@@ -118,7 +118,7 @@ sections:
 
     **Better Alternatives:**
     - **Instead of analyzing void** (Int + no skill): Try **sensing void currents** (Perception + Attunement)
-    - **Instead of hacking systems** (Int + no skill): Try **social engineering** (Charisma + Charm)
+    - **Instead of hacking systems** (Int + no skill): Try **social engineering** (Empathy + Charm)
     - **Instead of technical investigation** (Int + no skill): Try **coordinating with skilled allies**
     - **Instead of combat without Combat skill**: Use **magic** (Willpower + Astral Arts) or **support allies**
 
@@ -187,7 +187,7 @@ sections:
     - ✅ CORRECT: `skill=None` for unskilled checks (don't forget -5 penalty!)
 
     **VALID ATTRIBUTES (use EXACTLY as shown):**
-    - Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma, Size
+    - Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Empathy, Size
 
     **VALID SKILLS (use EXACTLY as shown):**
     - Combat, Melee, Brawl, Guns, Athletics, Stealth, Awareness, Charm, Guile
@@ -199,12 +199,12 @@ sections:
     **⚠️ SKILL SELECTION GUIDANCE - Match Skill to Action Intent:**
 
     **Social Actions:**
-    - **Intimidation/Threats/Coercion:** Use `Charisma × Intimidation` (if you have Intimidation skill)
+    - **Intimidation/Threats/Coercion:** Use `Empathy × Intimidation` (if you have Intimidation skill)
       - Example: "I threaten the guard", "I make it clear what happens if they don't comply"
-      - If no Intimidation skill: `Charisma × Charm` with -5 penalty (unskilled)
+      - If no Intimidation skill: `Empathy × Charm` with -5 penalty (unskilled)
     - **Persuasion/Charm/Seduction:** Use `Empathy × Charm`
       - Example: "I convince them gently", "I appeal to their better nature"
-    - **Deception/Lying:** Use `Charisma × Guile`
+    - **Deception/Lying:** Use `Empathy × Guile`
     - **Emotional support/Counsel:** Use `Empathy × Counsel`
 
     **Combat Actions:**
@@ -280,7 +280,7 @@ sections:
     PlayerAction(
         intent="Intimidate the guard captain into standing down",
         description="I step forward, hand on my weapon, and lock eyes with the captain. 'Walk away now, or I drop you where you stand. Your squad won't make it out alive. Is this contract worth dying for?'",
-        attribute="Charisma",
+        attribute="Empathy",
         skill="Charm",
         difficulty_estimate=22,
         difficulty_justification="DC 22: Professional guard following orders, but outnumbered and facing credible threat",
@@ -403,7 +403,7 @@ sections:
     **For Vendor Interaction** (when a vendor is present):
     ```
     INTENT: Purchase [item name] from [vendor name]
-    ATTRIBUTE: Charisma
+    ATTRIBUTE: Empathy
     SKILL: Corporate Influence
     DIFFICULTY: 15
     JUSTIFICATION: Routine - straightforward transaction
@@ -573,7 +573,7 @@ sections:
 
     **Other Combat Options:**
     - **Guns/Weapons**: Standard damage (8-16)
-    - **Intimidation**: Charisma × Charm (make enemies flee/surrender)
+    - **Intimidation**: Empathy × Charm (make enemies flee/surrender)
     - **Hacking**: Systems (5-12 damage, turn tech against enemies)
     - **Environmental**: Awareness/Systems (trigger hazards, 10-15 AoE)
 
@@ -581,7 +581,7 @@ sections:
     - **ANALYZE void/rituals**: Intelligence × Magick Theory (NO offerings needed!)
     - **Investigation**: Perception × Awareness or Intelligence × Investigation
     - **Technical Work**: Intelligence × Systems or relevant technical skill
-    - **Social Interaction**: Empathy × Charm/Counsel, or Charisma × Corporate Influence
+    - **Social Interaction**: Empathy × Charm/Counsel, or Empathy × Corporate Influence
     - **Sensing**: Perception × Attunement (detect void currents, NO offerings!)
   bond_mechanics: |-
     **Bond Preference: {bond_preference}**

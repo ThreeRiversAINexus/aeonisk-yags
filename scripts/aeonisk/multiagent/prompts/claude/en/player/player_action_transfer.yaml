@@ -29,7 +29,7 @@ content: |-
   TransferAction(
       intent: str,
       description: str,               # 50-800 chars
-      attribute: "Charisma",          # Social interaction
+      attribute: "Empathy",          # Social interaction
       skill: "Charm",                 # or None for automatic
       difficulty_estimate: int,       # Usually 10 (automatic)
       difficulty_justification: str,
@@ -54,7 +54,7 @@ content: |-
   TransferAction(
       intent="Give ally 10 drip for ritual supplies purchase",
       description="I pull out a small containment vial of condensed drip energy and hand it to my teammate. 'Here, take this - should be enough for what you need at the vendor.'",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Charm",
       difficulty_estimate=10,
       difficulty_justification="DC 10: Simple transfer, willing recipient, no complications",
@@ -69,7 +69,7 @@ content: |-
   TransferAction(
       intent="Give medkit to wounded ally",
       description="I toss my spare medkit to my injured teammate. 'You need this more than I do right now - patch yourself up!'",
-      attribute="Charisma",
+      attribute="Empathy",
       skill=None,
       difficulty_estimate=10,
       difficulty_justification="DC 10: Automatic success, simple item transfer",

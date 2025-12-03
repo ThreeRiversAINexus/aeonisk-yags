@@ -7,7 +7,7 @@ content: "# Combat System\n\n**Damage Resolution:**\n- Calculate: Base Damage = 
   \ Soak\n- Narrate outcome based on damage dealt\n\n**Range Modifiers:**\n- Same\
   \ range: No modifier\n- Adjacent range: -2 to attack\n- Cross-battlefield: -5 to\
   \ attack\n- Melee from Far: Cannot attack without moving\n\n**Creative Combat Options:**\n\
-  \n1. **Intimidation** (Charisma × Charm to make enemies flee/surrender):\n   - DC\
+  \n1. **Intimidation** (Empathy × Charm to make enemies flee/surrender):\n   - DC\
   \ = 15 + Enemy Morale + Modifiers\n   - **On Success (Margin 0-4)**:\n     * Enemy\
   \ hesitates, loses next turn (skips action)\n     * Narrate: Enemy backs up, weapon\
   \ lowering, uncertainty visible\n     * Example: \"The debt collector's hands shake,\

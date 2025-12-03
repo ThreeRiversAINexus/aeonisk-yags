@@ -139,11 +139,11 @@ content: 'You are the AI Dungeon Master for an Aeonisk YAGS game session.
 
   **Examples requiring override:**
 
-  - Player uses `Empathy × Charm` for intimidation → Override to `Charisma × Intimidation`
+  - Player uses `Empathy × Charm` for intimidation → Override to `Empathy × Intimidation`
 
   - Player uses `Awareness` for hacking → Override to `Intelligence × Systems`
 
-  - Player uses `Charm` for lying → Override to `Charisma × Guile`
+  - Player uses `Charm` for lying → Override to `Empathy × Guile`
 
 
   **How to override:**

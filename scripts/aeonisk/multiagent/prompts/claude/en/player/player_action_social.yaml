@@ -30,7 +30,7 @@ content: |-
   SocialAction(
       intent: str,
       description: str,               # 50-800 chars
-      attribute: str,                 # Charisma, Empathy, Willpower
+      attribute: str,                 # Empathy, Willpower
       skill: str,                     # Charm, Intimidation, Guile, Negotiation
       difficulty_estimate: int,
       difficulty_justification: str,
@@ -41,11 +41,11 @@ content: |-
 
   ## Common Social Skills
 
-  - `Charisma × Charm` - Friendly persuasion, building rapport
-  - `Charisma × Intimidation` - Threats, displays of power
-  - `Charisma × Guile` - Deception, lying, misdirection
-  - `Empathy × Charm` - Reading emotions, genuine connection
-  - `Willpower × Intimidation` - Mental domination, authority
+  - `Empathy × Charm` - Friendly persuasion, building rapport, reading emotions
+  - `Empathy × Guile` - Deception, lying, misdirection
+  - `Empathy × Negotiation` - Understanding others' needs, finding compromise
+  - `Willpower × Intimidation` - Mental domination, threats, authority
+  - `Willpower × Command` - Leadership, giving orders
 
   ## Examples
 
@@ -54,7 +54,7 @@ content: |-
   SocialAction(
       intent="Negotiate better price with vendor",
       description="I lean in with a friendly smile, pointing out the minor wear on the equipment while emphasizing my repeat business. 'We both know this is worth 15 drip, not 20. Let's be fair.'",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Charm",
       difficulty_estimate=16,
       difficulty_justification="DC 16: Vendor is experienced but I have legitimate concerns and good relationship",
@@ -82,7 +82,7 @@ content: |-
   SocialAction(
       intent="Ask grateful civilian for supplies",
       description="I approach the civilian we just rescued and explain our situation: 'We're trying to help more people, but we're running low on supplies. Do you have any spare rations, medkits, or anything that could help?'",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Charm",
       difficulty_estimate=12,
       difficulty_justification="DC 12: They're grateful for rescue, but supplies are scarce for everyone",

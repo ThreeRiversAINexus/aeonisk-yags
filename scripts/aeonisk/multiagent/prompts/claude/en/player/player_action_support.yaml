@@ -30,7 +30,7 @@ content: |-
   SupportAction(
       intent: str,
       description: str,               # 50-800 chars
-      attribute: str,                 # Intelligence (Medicine), Charisma (Inspire)
+      attribute: str,                 # Intelligence (Medicine), Empathy (Inspire)
       skill: str,                     # Medicine, Charm, Combat
       difficulty_estimate: int,
       difficulty_justification: str,
@@ -42,7 +42,7 @@ content: |-
   ## Common Support Skills
 
   - `Intelligence × Medicine` - Treating wounds, stabilizing injured
-  - `Charisma × Charm` - Inspiring allies, boosting morale
+  - `Empathy × Charm` - Inspiring allies, boosting morale
   - `Perception × Combat` - Providing tactical guidance, coordinating
 
   ## Examples
