@@ -228,7 +228,7 @@ class EnemyCombatManager:
                         provider=provider,
                         model=model,
                         max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                        temperature=0.7  # Enemy agents use fixed temp for consistency
+                        temperature=llm_config.get('temperature', 1.0)  # Enemy agents use fixed temp for consistency
                     )
                     self.llm_provider = create_provider(config)
                     logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
@@ -577,7 +577,7 @@ class EnemyCombatManager:
         try:
             response = await llm_client.generate_async(
                 prompt=prompt,
-                temperature=0.7,
+                temperature=1.0,
                 max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
             )
             declaration_text = response.get('content', '')
@@ -645,7 +645,7 @@ class EnemyCombatManager:
                 result_type=EnemyDecision,
                 system_prompt=system_prompt,
                 max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                temperature=0.7
+                temperature=1.0
             )
 
             # Log the raw decision object for debugging
@@ -771,7 +771,7 @@ class EnemyCombatManager:
 
                     response = await llm_client.generate_async(
                         prompt=legacy_prompt,
-                        temperature=0.7,
+                        temperature=1.0,
                         max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
                     )
                     declaration_text = response.get('content', '')
