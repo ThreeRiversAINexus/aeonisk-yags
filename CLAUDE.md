@@ -617,6 +617,20 @@ Matched: "Sera Karsel" → "Vessel Sera Karsel" ✓
 
 Check `git log --oneline -10` for latest changes.
 
+### Attribute System Conformance (Dec 2025)
+
+**YAGS Standard Attributes (8 total):**
+- Strength, Agility, Endurance (Aeonisk uses this instead of YAGS "Health"), Dexterity
+- Perception, Intelligence, Empathy, Willpower (Aeonisk uses this instead of YAGS "Will")
+
+**Migration completed:** Removed non-standard "Charisma" attribute that had crept into configs/code.
+
+**Skill remapping:**
+- Guile, Corporate Influence → Empathy (social/political understanding)
+- Command, Intimidation → Willpower (mental domination/leadership)
+
+All 73 session configs and 8 Python modules now conform to YAGS + Aeonisk standard. See `tests/unit/test_attribute_migration.py` for regression tests.
+
 ### Key Features Completed
 - **Structured Output System** - Pydantic schemas for all LLM responses (ActionResolution, PlayerAction, etc.)
 - **Free Targeting Mode** - Generic IDs (`tgt_xxx`) to test IFF/ROE capabilities
