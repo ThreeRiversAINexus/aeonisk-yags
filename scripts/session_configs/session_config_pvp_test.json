@@ -4,22 +4,17 @@
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "force_combat": false,
-
   "_comment_pvp_test": "=== PVP FRIENDLY FIRE TEST ===",
   "_pvp_info": "Testing PC vs PC combat with free targeting. Players are actively hostile to each other.",
-
   "vendor_spawn_frequency": -1,
   "tactical_module_enabled": true,
   "enemy_agents_enabled": false,
-
   "enemy_agent_config": {
     "free_targeting_mode": true,
     "allow_groups": false,
     "max_enemies_per_combat": 0
   },
-
   "_comment_scenario": "Pure PvP scenario - competing for same resource with NO NPCs",
-
   "agents": {
     "dm": {
       "llm": {
@@ -59,7 +54,6 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2,
           "Size": 5
         },
         "skills": {
@@ -109,9 +103,8 @@
           "Endurance": 2,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4,
           "Size": 4
         },
         "skills": {

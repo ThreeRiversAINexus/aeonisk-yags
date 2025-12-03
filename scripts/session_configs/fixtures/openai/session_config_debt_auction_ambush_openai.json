@@ -6,10 +6,8 @@
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "force_combat": true,
-
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "free_targeting_mode": true,
     "allow_groups": true,
@@ -19,7 +17,6 @@
     "loot_suggestions_enabled": false,
     "void_tracking_enabled": true
   },
-
   "initial_enemies": [
     {
       "name": "Debt Collector",
@@ -32,7 +29,6 @@
       "tactics": "aggressive"
     }
   ],
-
   "starting_clocks": [
     {
       "name": "Auction Deadline",
@@ -51,7 +47,6 @@
       "regress_meaning": "communications jammed"
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -89,7 +84,6 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -103,7 +97,9 @@
         "equipped_weapons": {
           "primary": "pistol"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "pistol": 1,
           "combat_knife": 1,
@@ -137,9 +133,8 @@
           "Endurance": 4,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4,
           "Size": 5
         },
         "skills": {
@@ -165,16 +160,13 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Debt Auction Ambush",
     "location": "The Mercantile Basilica - Aeonisk Prime (ACG Regional Commerce Hub, Elaras District)",
     "situation": "You came to the debt auction to contest an illegal seizure. But the Astral Commerce Group anticipated this - their collector was waiting. Now you're fighting for your freedom in the grand hall of the Mercantile Basilica. The auction deadline clock is ticking, and the collector is calling for backup.",
     "void_level": 3
   },
-
   "_scenario_hint": "Environmental void level 3 - some void effects in the area. Player Ash has void 4, may use void abilities. Collector should be aggressive. Clocks should advance each round. Tests: enemy AI targeting, void changes (environmental and character), state persistence across rounds, combat mechanics, structured output validation.",
-
   "mission_objectives": [
     {
       "description": "Survive the ambush and escape the Basilica",
@@ -187,7 +179,6 @@
       "required": false
     }
   ],
-
   "_fixture_target": "tests/fixtures/sessions/session_debt_auction_ambush.jsonl",
   "_extraction_notes": "Extract rounds 0-4. Tests: enemy AI, targeting, void changes (environmental skipped, character applied), state persistence, combat rounds, clocks, structured output."
 }

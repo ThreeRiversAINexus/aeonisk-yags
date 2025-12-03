@@ -6,11 +6,9 @@
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "force_combat": true,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "allow_groups": true,
     "max_enemies_per_combat": 10,
@@ -19,7 +17,6 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_initial_enemies": "Start with low-morale enemies who can be intimidated/convinced to surrender",
   "initial_enemies": [
     {
@@ -33,7 +30,6 @@
       "tactics": "defensive"
     }
   ],
-
   "initial_npcs": [
     {
       "name": "Dock Worker Kassia",
@@ -47,7 +43,6 @@
       "skills": {}
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -85,13 +80,11 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 4,
-          "Charisma": 5,
           "Size": 5
         },
         "skills": {
-          "Empathy": 5,
+          "Empathy": 4,
           "Charm": 5,
-          "Charisma": 4,
           "Awareness": 4,
           "Investigation": 3,
           "Medicine": 3
@@ -99,7 +92,9 @@
         "equipped_weapons": {
           "primary": "pistol"
         },
-        "carried_weapons": ["shock_baton"],
+        "carried_weapons": [
+          "shock_baton"
+        ],
         "inventory": {
           "pistol": 1,
           "shock_baton": 1,
@@ -134,9 +129,8 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -152,7 +146,9 @@
           "primary": "pistol",
           "sidearm": "shock_baton"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "pistol": 1,
           "shock_baton": 1,
@@ -165,16 +161,13 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Tense Negotiation",
     "location": "Abandoned Cargo Hub - Contested Territory",
     "situation": "You've cornered a group of Freeborn raiders who were smuggling contraband. They're outgunned but not yet defeated. They might surrender if given the chance - or fight desperately if they feel trapped with no options. A civilian dock worker is hiding nearby, terrified of the crossfire.",
     "void_level": 3
   },
-
   "_scenario_hint": "DM should spawn NPCs based on player actions: de-escalated enemies become wary/prisoner NPCs, the civilian can be convinced to help or may flee, wounded enemies can be stabilized via healing. Prisoners can provide intel via dialogue. If players attack surrendered NPCs, they should escalate back to enemies.",
-
   "mission_objectives": [
     {
       "description": "Resolve situation with minimal casualties",
@@ -187,7 +180,6 @@
       "required": false
     }
   ],
-
   "_fixture_target": "tests/fixtures/sessions/golden_npc_deescalation.jsonl",
   "_extraction_notes": "Extract rounds 0-2 after successful run. Look for enemy_conversions with resolution=CONVINCED/SUBDUED."
 }

@@ -20,9 +20,9 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Emergency Scenario) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: RITUAL DISASTER ===",
-  "_scenario_hint": "Resonance Commune Sanctuary (void_level 3 \u2192 escalating to 9), ambitious Gestator attempted unsanctioned ascension ritual to purge void from bonded pair. Ritual catastrophically failed: void backlash spreading through sanctuary, reality warping (walls bleeding, time loops, void manifestations), 15 NPCs in panic, bonded pair corrupted into void-touched entities. Team must: contain breach before it spreads beyond sanctuary, evacuate civilians, stabilize or mercy-kill corrupted victims, perform counter-ritual to seal breach. Moral choice: attempt risky counter-ritual (may worsen situation) vs. evacuate and let Pantheon destroy site. Soulcredit penalties for ritual violations.",
+  "_scenario_hint": "Resonance Commune Sanctuary (void_level 3 → escalating to 9), ambitious Gestator attempted unsanctioned ascension ritual to purge void from bonded pair. Ritual catastrophically failed: void backlash spreading through sanctuary, reality warping (walls bleeding, time loops, void manifestations), 15 NPCs in panic, bonded pair corrupted into void-touched entities. Team must: contain breach before it spreads beyond sanctuary, evacuate civilians, stabilize or mercy-kill corrupted victims, perform counter-ritual to seal breach. Moral choice: attempt risky counter-ritual (may worsen situation) vs. evacuate and let Pantheon destroy site. Soulcredit penalties for ritual violations.",
   "_design_notes": {
-    "ml_training_value": "Ritual consequence depth, failed ritual fallout effects, void environmental escalation (3 \u2192 9), reality warping mechanics, NPC rescue under duress, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision tree, potential mercy killing of corrupted NPCs, counter-ritual risk assessment",
+    "ml_training_value": "Ritual consequence depth, failed ritual fallout effects, void environmental escalation (3 → 9), reality warping mechanics, NPC rescue under duress, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision tree, potential mercy killing of corrupted NPCs, counter-ritual risk assessment",
     "mechanics_tested": [
       "Ritual failure consequences",
       "Void escalation (environmental)",
@@ -102,9 +102,8 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 5,
-          "Empathy": 4,
-          "Willpower": 5,
-          "Charisma": 3
+          "Empathy": 3,
+          "Willpower": 5
         },
         "skills": {
           "Astral Arts": 6,
@@ -161,8 +160,7 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4,
-          "Charisma": 2
+          "Willpower": 4
         },
         "skills": {
           "Systems": 6,
@@ -217,9 +215,8 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 5,
-          "Willpower": 4,
-          "Charisma": 4
+          "Empathy": 4,
+          "Willpower": 4
         },
         "skills": {
           "Counsel": 6,
@@ -256,5 +253,5 @@
       }
     ]
   },
-  "notes": "ML Training Focus: Ritual consequence mechanics (failed ascension ritual), void environmental escalation (void_level 3 \u2192 9), reality warping effects (walls bleeding, time loops), NPC panic and rescue, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision, counter-ritual risk (may worsen breach), moral choice (mercy kill corrupted NPCs?). Tests underrepresented ritual system depth, void consequence chains, environmental storytelling, NPC agency under duress. Long campaign (15 turns) allows escalating disaster, evacuation drama, counter-ritual preparation and execution, consequences of ritual violations. Features ritual-heavy characters (Astral Arts 6, Attunement 6, Counsel 6) with ritual tools: altars, echo-calibrators, reality anchors, attuned seeds."
+  "notes": "ML Training Focus: Ritual consequence mechanics (failed ascension ritual), void environmental escalation (void_level 3 → 9), reality warping effects (walls bleeding, time loops), NPC panic and rescue, soulcredit penalties for unsanctioned rituals, containment vs. evacuation decision, counter-ritual risk (may worsen breach), moral choice (mercy kill corrupted NPCs?). Tests underrepresented ritual system depth, void consequence chains, environmental storytelling, NPC agency under duress. Long campaign (15 turns) allows escalating disaster, evacuation drama, counter-ritual preparation and execution, consequences of ritual violations. Features ritual-heavy characters (Astral Arts 6, Attunement 6, Counsel 6) with ritual tools: altars, echo-calibrators, reality anchors, attuned seeds."
 }

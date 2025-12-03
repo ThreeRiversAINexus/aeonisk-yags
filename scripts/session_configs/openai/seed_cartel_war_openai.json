@@ -105,9 +105,8 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 5,
-          "Empathy": 4,
-          "Willpower": 5,
-          "Charisma": 3
+          "Empathy": 3,
+          "Willpower": 5
         },
         "skills": {
           "Attunement": 6,
@@ -165,9 +164,8 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 5,
-          "Empathy": 4,
-          "Willpower": 3,
-          "Charisma": 5
+          "Empathy": 5,
+          "Willpower": 3
         },
         "skills": {
           "Charm": 6,
@@ -224,9 +222,8 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 2,
-          "Willpower": 3,
-          "Charisma": 3
+          "Empathy": 3,
+          "Willpower": 3
         },
         "skills": {
           "Combat": 6,

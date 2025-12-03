@@ -6,13 +6,11 @@
   "force_combat": false,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-
   "discovery_limits": {
     "max_seeds_per_session": 3,
     "max_currency_per_session": 50,
     "quest_rewards_bypass_limits": true
   },
-
   "agents": {
     "dm": {
       "llm": {
@@ -48,9 +46,8 @@
           "Endurance": 3,
           "Perception": 5,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 5,
           "Willpower": 3,
-          "Charisma": 5,
           "Size": 5
         },
         "skills": {
@@ -73,7 +70,6 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Leyline Scavenging and Trade",
     "location": "Abandoned Leyline Garden",
@@ -81,7 +77,6 @@
     "void_level": 4,
     "_scenario_hint": "DM should spawn: (1) leyline plant with Raw Seeds (DC 14 Awareness check), (2) corpse with currency/items (DC 10 Awareness check), (3) supply cache with mixed loot (DC 16 Investigation check), (4) friendly NPC scavenger willing to gift minor items if asked nicely (DC 12 Charm check)"
   },
-
   "mission_objectives": [
     {
       "description": "Collect Raw Seeds from leyline plants",
@@ -99,7 +94,6 @@
       "required": false
     }
   ],
-
   "_test_notes": {
     "purpose": "Test item discovery system (ItemEffect schema, discovery validation, daily limits)",
     "test_scenarios": [

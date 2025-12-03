@@ -6,7 +6,7 @@
   "scenario": {
     "theme": "Soulcredit Access Test",
     "location": "Nexus Border Checkpoint",
-    "situation": "Two travelers arrive at a Nexus checkpoint with automated vendors. Outcast Rivan (Soulcredit -5) is a known troublemaker with very low Soulcredit. Agent Kress (Soulcredit +4) is a trusted Nexus operative with high Soulcredit. They encounter TWO vendors: (1) A Nexus Vending Machine that REQUIRES Soulcredit \u2265-2, and (2) An Independent Supply Drone with NO soulcredit requirements. This tests if low SC characters are properly blocked from vending machines but can still use neutral vendors.",
+    "situation": "Two travelers arrive at a Nexus checkpoint with automated vendors. Outcast Rivan (Soulcredit -5) is a known troublemaker with very low Soulcredit. Agent Kress (Soulcredit +4) is a trusted Nexus operative with high Soulcredit. They encounter TWO vendors: (1) A Nexus Vending Machine that REQUIRES Soulcredit ≥-2, and (2) An Independent Supply Drone with NO soulcredit requirements. This tests if low SC characters are properly blocked from vending machines but can still use neutral vendors.",
     "void_level": 2,
     "active_npcs": [],
     "environmental_factors": [
@@ -92,8 +92,7 @@
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 2,
-          "Willpower": 4,
-          "Charisma": 2
+          "Willpower": 4
         },
         "skills": {
           "Stealth": 5,
@@ -136,9 +135,8 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 3,
-          "Willpower": 4,
-          "Charisma": 5
+          "Empathy": 5,
+          "Willpower": 4
         },
         "skills": {
           "Charm": 5,
@@ -157,6 +155,6 @@
       }
     ]
   },
-  "_design_notes": "SOULCREDIT GATING TEST - This session tests the complete SC gating system. Expected outcomes: (1) Rivan (SC -5) is BLOCKED from Nexus vending machine (needs SC \u2265-2), gets clear error message. (2) Rivan CAN purchase from Independent supply drone (no SC requirements). (3) Kress (SC +4) can purchase from BOTH vendors. (4) DM should narrate the SC scanning/rejection for atmosphere. This is a CRITICAL test of the SC gating infrastructure. LLM: ALL AGENTS USE OPENAI GPT-5-MINI (8x cheaper output, 10x higher rate limits).",
-  "notes": "TEST SCENARIO: Soulcredit vendor access control. Rivan has SC -5 (below vending machine threshold), Kress has SC +4 (well above threshold). Two vendor types present: VENDING_MACHINE (SC \u2265-2 required) and SUPPLY_DRONE (no SC requirement). Players should attempt purchases from both vendors to verify SC gating works correctly. Expected: Rivan blocked from vending machine but succeeds with supply drone. Kress succeeds with both. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+  "_design_notes": "SOULCREDIT GATING TEST - This session tests the complete SC gating system. Expected outcomes: (1) Rivan (SC -5) is BLOCKED from Nexus vending machine (needs SC ≥-2), gets clear error message. (2) Rivan CAN purchase from Independent supply drone (no SC requirements). (3) Kress (SC +4) can purchase from BOTH vendors. (4) DM should narrate the SC scanning/rejection for atmosphere. This is a CRITICAL test of the SC gating infrastructure. LLM: ALL AGENTS USE OPENAI GPT-5-MINI (8x cheaper output, 10x higher rate limits).",
+  "notes": "TEST SCENARIO: Soulcredit vendor access control. Rivan has SC -5 (below vending machine threshold), Kress has SC +4 (well above threshold). Two vendor types present: VENDING_MACHINE (SC ≥-2 required) and SUPPLY_DRONE (no SC requirement). Players should attempt purchases from both vendors to verify SC gating works correctly. Expected: Rivan blocked from vending machine but succeeds with supply drone. Kress succeeds with both. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
 }

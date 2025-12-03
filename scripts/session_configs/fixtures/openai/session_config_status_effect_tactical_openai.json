@@ -8,7 +8,6 @@
   "force_combat": true,
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "allow_groups": true,
     "max_enemies_per_combat": 5,
@@ -17,7 +16,6 @@
     "loot_suggestions_enabled": false,
     "void_tracking_enabled": false
   },
-
   "initial_enemies": [
     {
       "name": "Practice Dummies",
@@ -30,7 +28,6 @@
       "tactics": "defensive"
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -67,7 +64,6 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 5,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -83,14 +79,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Status Effect Test Arena",
     "location": "Training Arena with Animated Practice Targets",
     "situation": "You stand in a training arena. Three practice dummies animated by minor void energy await. Use your telekinetic abilities to stun them. When applying status effects, they should target the ENEMY, not the caster.",
     "void_level": 2
   },
-
   "_fixture_target": "tests/fixtures/sessions/session_status_effect_tactical_test.jsonl",
   "_extraction_notes": "Extract round 0. Must show status effects applied to enemies, NOT to the player."
 }

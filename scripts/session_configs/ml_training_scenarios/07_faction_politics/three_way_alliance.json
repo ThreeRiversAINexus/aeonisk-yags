@@ -93,8 +93,7 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4,
-          "Charisma": 2
+          "Willpower": 4
         },
         "skills": {
           "Astral Arts": 6,
@@ -150,8 +149,7 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 3,
-          "Willpower": 4,
-          "Charisma": 3
+          "Willpower": 4
         },
         "skills": {
           "Combat": 5,
@@ -208,9 +206,8 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 3,
-          "Willpower": 3,
-          "Charisma": 4
+          "Empathy": 4,
+          "Willpower": 3
         },
         "skills": {
           "Combat": 5,

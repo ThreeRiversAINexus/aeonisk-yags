@@ -6,7 +6,6 @@
   "force_combat": false,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-
   "agents": {
     "dm": {
       "llm": {
@@ -43,7 +42,6 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2,
           "Size": 5
         },
         "skills": {
@@ -63,14 +61,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Void Cleansing Mission",
     "location": "Corrupted Research Station - Central Core",
     "situation": "The research station is saturated with void corruption (8/10). Reality distortions shimmer in the corners, and the air feels thick and oppressive. Your mission is to purify this sector and make it safe again. You have the knowledge and tools to perform a large-scale purification ritual. The station's containment matrices are still functional - if you can complete the ritual and advance the purification clock, you might cleanse this entire area.",
     "void_level": 8
   },
-
   "starting_clocks": [
     {
       "name": "Purification Progress",
@@ -81,7 +77,6 @@
       "regress_meaning": "void corruption interferes with ritual"
     }
   ],
-
   "mission_objectives": [
     {
       "description": "Purify the station's void corruption",
@@ -89,7 +84,6 @@
       "required": true
     }
   ],
-
   "_test_notes": {
     "purpose": "Test environmental void_level updates during story advancement",
     "expected_flow": [

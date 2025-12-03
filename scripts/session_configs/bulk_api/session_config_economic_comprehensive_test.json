@@ -266,9 +266,8 @@
           "Endurance": 2,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -335,9 +334,8 @@
           "Endurance": 2,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2,
           "Size": 5
         },
         "skills": {
@@ -410,9 +408,8 @@
           "Endurance": 3,
           "Perception": 2,
           "Intelligence": 2,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -479,9 +476,8 @@
           "Endurance": 2,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2,
           "Size": 5
         },
         "skills": {

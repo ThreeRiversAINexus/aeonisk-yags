@@ -6,11 +6,9 @@
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "force_combat": false,
-
   "_comment_tactical": "=== TACTICAL MODULE - DELAYED ACTIVATION ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "free_targeting_mode": true,
     "allow_groups": true,
@@ -20,7 +18,6 @@
     "loot_suggestions_enabled": false,
     "void_tracking_enabled": false
   },
-
   "_comment_initial_npcs": "Start with NPCs at varying threat levels - they will escalate when provoked",
   "initial_npcs": [
     {
@@ -32,7 +29,11 @@
       "description": "Scarred scavenger with a serrated blade and twitchy eyes. Clearly doesn't want company.",
       "health": 40,
       "soak": 4,
-      "skills": {"Brawl": 5, "Awareness": 4, "Intimidation": 3}
+      "skills": {
+        "Brawl": 5,
+        "Awareness": 4,
+        "Intimidation": 3
+      }
     },
     {
       "name": "Brick",
@@ -43,7 +44,11 @@
       "description": "Hulking enforcer type, arms crossed, blocking the doorway. Not hostile yet, but ready.",
       "health": 50,
       "soak": 6,
-      "skills": {"Brawl": 4, "Athletics": 4, "Intimidation": 4}
+      "skills": {
+        "Brawl": 4,
+        "Athletics": 4,
+        "Intimidation": 4
+      }
     },
     {
       "name": "Whisper",
@@ -54,10 +59,13 @@
       "description": "Small, nervous tech specialist with data-ports in her temples. Clearly the brains of the operation.",
       "health": 20,
       "soak": 1,
-      "skills": {"Systems": 6, "Hacking": 5, "Awareness": 3}
+      "skills": {
+        "Systems": 6,
+        "Hacking": 5,
+        "Awareness": 3
+      }
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -93,9 +101,8 @@
           "Endurance": 4,
           "Perception": 3,
           "Intelligence": 2,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -143,9 +150,8 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 5,
+          "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4,
           "Size": 5
         },
         "skills": {
@@ -168,16 +174,13 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Hostile Takeover Gone Wrong",
     "location": "Condemned Warehouse - Freeborn No-Man's-Land",
     "situation": "You've tracked a stolen data cache to this scavenger hideout. Three Freeborn are here - armed, wary, and definitely not happy to see you. The scarred one has his hand on a blade. The big one is blocking the only exit. The tech specialist is backing toward a terminal. This could go violent fast, or maybe - just maybe - you can talk your way through.",
     "void_level": 4
   },
-
   "_scenario_hint": "Round 1: Jax's aggressive approach should trigger escalation of hostile/wary NPCs to enemies. Round 2: Combat with escalated enemies. Round 3: Mercy attempts de-escalation, at least one enemy surrenders to prisoner. Tests full NPC lifecycle.",
-
   "mission_objectives": [
     {
       "description": "Recover the stolen data cache",
@@ -190,7 +193,6 @@
       "required": false
     }
   ],
-
   "_fixture_target": "tests/fixtures/sessions/golden_npc_escalation_lifecycle.jsonl",
   "_extraction_notes": "Extract rounds 0-2. Must show: NPC spawns, escalations to enemies, enemy combat, de-escalations to prisoners. Agent ID stability across conversions is critical."
 }

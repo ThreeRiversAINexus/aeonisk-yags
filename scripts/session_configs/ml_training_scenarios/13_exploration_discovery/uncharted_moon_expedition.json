@@ -103,9 +103,8 @@
           "Endurance": 4,
           "Perception": 5,
           "Intelligence": 4,
-          "Empathy": 2,
-          "Willpower": 3,
-          "Charisma": 3
+          "Empathy": 3,
+          "Willpower": 3
         },
         "skills": {
           "Pilot": 6,
@@ -163,8 +162,7 @@
           "Perception": 5,
           "Intelligence": 5,
           "Empathy": 3,
-          "Willpower": 4,
-          "Charisma": 3
+          "Willpower": 4
         },
         "skills": {
           "Investigation": 6,
@@ -222,8 +220,7 @@
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 5,
-          "Charisma": 2
+          "Willpower": 5
         },
         "skills": {
           "Attunement": 6,

@@ -85,7 +85,7 @@
       {
         "name": "Former Enforcer Veyra Kael",
         "pronouns": "she/her",
-        "faction": "Pantheon Security (former) \u2192 Independent",
+        "faction": "Pantheon Security (former) → Independent",
         "llm": {
           "provider": "openai",
           "model": "gpt-5-mini",
@@ -103,9 +103,8 @@
           "Endurance": 4,
           "Perception": 5,
           "Intelligence": 4,
-          "Empathy": 4,
-          "Willpower": 4,
-          "Charisma": 3
+          "Empathy": 3,
+          "Willpower": 4
         },
         "skills": {
           "Investigation": 6,
@@ -163,8 +162,7 @@
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 5,
-          "Willpower": 4,
-          "Charisma": 5
+          "Willpower": 4
         },
         "skills": {
           "Counsel": 6,
@@ -220,8 +218,7 @@
           "Perception": 5,
           "Intelligence": 5,
           "Empathy": 3,
-          "Willpower": 4,
-          "Charisma": 3
+          "Willpower": 4
         },
         "skills": {
           "Science": 6,

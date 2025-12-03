@@ -6,7 +6,6 @@
   "force_combat": false,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-
   "agents": {
     "dm": {
       "llm": {
@@ -42,7 +41,6 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3,
           "Size": 5
         },
         "skills": {
@@ -60,14 +58,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Simple Investigation",
     "location": "Corporate Archive",
     "situation": "You're investigating corporate records. You have limited time before security sweeps the area. Work quickly and methodically.",
     "void_level": 2
   },
-
   "starting_clocks": [
     {
       "name": "Investigation Progress",
@@ -86,7 +82,6 @@
       "regress_meaning": "security delayed"
     }
   ],
-
   "mission_objectives": [
     {
       "description": "Gather evidence from corporate archives",
@@ -94,7 +89,6 @@
       "required": true
     }
   ],
-
   "_test_notes": {
     "purpose": "Test starting_clocks config feature",
     "expected_behavior": [
