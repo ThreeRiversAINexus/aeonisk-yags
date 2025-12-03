@@ -65,15 +65,15 @@ class ActionRouter:
                 'Systems': 'Intelligence',
                 # Knowledge skills
                 'Debt Law': 'Intelligence',
-                'Corporate Influence': 'Charisma',
+                'Corporate Influence': 'Empathy',
                 'Investigation': 'Perception',
                 'Magick Theory': 'Intelligence',
                 # Social skills
                 'Charm': 'Empathy',
-                'Guile': 'Charisma',
+                'Guile': 'Empathy',
                 'Counsel': 'Empathy',
-                'Command': 'Charisma',
-                'Intimidation': 'Charisma',
+                'Command': 'Willpower',
+                'Intimidation': 'Willpower',
                 'Intimacy Ritual': 'Empathy',
                 # Perception skills
                 'Awareness': 'Perception',
@@ -187,11 +187,13 @@ class ActionRouter:
         # 7. SOCIAL - COMMAND
         if any(kw in intent_lower for kw in self.SOCIAL_COMMAND_KEYWORDS):
             if 'Command' in character_skills:
-                return ('Charisma', 'Command', 'Social command/leadership')
+                return ('Willpower', 'Command', 'Social command/leadership')
+            elif 'Intimidation' in character_skills:
+                return ('Willpower', 'Intimidation', 'Social intimidation')
             elif 'Guile' in character_skills:
-                return ('Charisma', 'Guile', 'Social manipulation')
+                return ('Empathy', 'Guile', 'Social manipulation')
             else:
-                return ('Charisma', None, 'Raw charisma')
+                return ('Willpower', None, 'Raw willpower')
 
         # 8. SOCIAL - GENERAL
         if any(kw in intent_lower for kw in self.SOCIAL_GENERAL):

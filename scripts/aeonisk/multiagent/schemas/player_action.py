@@ -151,8 +151,8 @@ class PlayerActionBase(BaseModel):
     def validate_attribute(cls, v: str) -> str:
         """Validate attribute is one of the canonical 8."""
         valid_attributes = {
-            "Strength", "Agility", "Endurance", "Perception",
-            "Intelligence", "Empathy", "Willpower", "Charisma"
+            "Strength", "Agility", "Endurance", "Dexterity",
+            "Perception", "Intelligence", "Empathy", "Willpower"
         }
         if v not in valid_attributes:
             raise ValueError(
@@ -317,7 +317,7 @@ class SocialAction(PlayerActionBase):
     action = SocialAction(
         intent="Negotiate with gang leader",
         description="Using diplomatic skills to de-escalate confrontation.",
-        attribute="Charisma",
+        attribute="Empathy",
         skill="Diplomacy",
         difficulty_estimate=20,
         difficulty_justification="Hostile faction, tense situation",
@@ -495,7 +495,7 @@ class PurchaseAction(PlayerActionBase):
     action = PurchaseAction(
         intent="Buy Incense from marketplace vendor",
         description="Approaching vendor stall and negotiating for ritual incense.",
-        attribute="Charisma",
+        attribute="Empathy",
         skill="Negotiation",
         difficulty_estimate=12,
         difficulty_justification="Routine transaction at established market",
@@ -535,7 +535,7 @@ class TransferAction(PlayerActionBase):
     action = TransferAction(
         intent="Transfer 5 drip to Thresh",
         description="Handing over 5 drip energy tokens to Thresh for rituals.",
-        attribute="Charisma",
+        attribute="Empathy",
         skill=None,
         difficulty_estimate=10,
         difficulty_justification="Simple friendly transfer",
@@ -956,8 +956,8 @@ class PlayerAction(BaseModel):
     def validate_attribute(cls, v: str) -> str:
         """Validate attribute is one of the canonical 8."""
         valid_attributes = {
-            "Strength", "Agility", "Endurance", "Perception",
-            "Intelligence", "Empathy", "Willpower", "Charisma"
+            "Strength", "Agility", "Endurance", "Dexterity",
+            "Perception", "Intelligence", "Empathy", "Willpower"
         }
         if v not in valid_attributes:
             raise ValueError(

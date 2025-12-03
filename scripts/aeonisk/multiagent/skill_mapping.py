@@ -187,10 +187,10 @@ def validate_action_mechanics(
     if corrected_skill:
         corrected_skill = normalize_skill(corrected_skill)
 
-    # IMPORTANT: Social actions should use social attributes (Empathy/Charisma), not Perception
+    # IMPORTANT: Social actions should use social attributes (Empathy or Willpower), not Perception
     # If skill is social (Charm/Guile) or action_type is social, ensure appropriate attribute
     if corrected_skill in ['Charm', 'Guile'] or action_type == 'social':
-        if corrected_attr not in ['Empathy', 'Charisma']:
+        if corrected_attr not in ['Empathy', 'Willpower']:
             # Prefer Empathy for most social interactions
             corrected_attr = 'Empathy'
 

@@ -267,6 +267,7 @@ class JSONLLogger:
 
         with open(self.log_file, 'a') as f:
             f.write(json.dumps(event, default=str) + '\n')
+            f.flush()  # Force flush to prevent partial writes on interrupts
 
     def write_event(self, event: Dict[str, Any]):
         """Public method for writing custom events (used by LLMCallLogger)."""
@@ -1861,8 +1862,8 @@ class MechanicsEngine:
 
     # Standard YAGS attributes
     ATTRIBUTES = [
-        "Strength", "Agility", "Endurance", "Perception",
-        "Intelligence", "Empathy", "Willpower", "Charisma"
+        "Strength", "Agility", "Endurance", "Dexterity",
+        "Perception", "Intelligence", "Empathy", "Willpower"
     ]
 
     def __init__(self, jsonl_logger: Optional[JSONLLogger] = None, shared_state: Optional[Any] = None):

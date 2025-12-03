@@ -168,7 +168,7 @@ class AIPlayerAgent(Agent):
                     provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     max_tokens=self.llm_config.get('max_tokens', 1000),
-                    temperature=self.llm_config.get('temperature', 0.8)
+                    temperature=self.llm_config.get('temperature', 1.0)
                 )
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"Player {self.agent_id}: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
@@ -1815,7 +1815,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 result_type=ActionIntent,
                 system_prompt=phase1_system_prompt,
                 max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                temperature=self.llm_config.get('temperature', 0.8),
+                temperature=self.llm_config.get('temperature', 1.0),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
             )
@@ -1833,7 +1833,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         prompt=full_prompt,
                         response=response_text,
                         model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                        temperature=self.llm_config.get('temperature', 0.8),
+                        temperature=self.llm_config.get('temperature', 1.0),
                         metadata={'phase': 'Phase 1: Action Intent', 'note': 'Pydantic AI structured output (ActionIntent schema)'}
                     )
                 except Exception as e:
@@ -2003,7 +2003,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
                 "combat_skills": str(self.character_state.skills.get('Guns', 0)),
                 # Social-specific context (if applicable)
-                "charisma": str(self.character_state.attributes.get('Charisma', 0)),
+                "empathy": str(self.character_state.attributes.get('Empathy', 0)),
                 "charm_skill": str(self.character_state.skills.get('Charm', 0)),
                 "negotiation_skill": str(self.character_state.skills.get('Negotiation', 0)),
                 # Attunement-specific context (if applicable)
@@ -2049,7 +2049,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 result_type=schema_class,  # Route to correct schema (AttuneAction, CombatAction, etc.)
                 system_prompt=phase2_system_prompt,
                 max_tokens=self.llm_config.get('max_tokens', 3000),  # Phase 2: Complex schemas, OpenAI verbose
-                temperature=self.llm_config.get('temperature', 0.8),
+                temperature=self.llm_config.get('temperature', 1.0),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
             )
@@ -2067,7 +2067,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         prompt=full_prompt,
                         response=response_text,
                         model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                        temperature=self.llm_config.get('temperature', 0.8),
+                        temperature=self.llm_config.get('temperature', 1.0),
                         metadata={'phase': f'Phase 2: {intent.action_type} Details', 'schema': schema_class.__name__, 'note': f'Pydantic AI structured output ({schema_class.__name__} schema)'}
                     )
                 except Exception as e:
@@ -2713,10 +2713,10 @@ When declaring combat actions, use the enemy NAME exactly as listed above:
 💬 **SOCIAL DE-ESCALATION OPTIONS** 💬
 Combat doesn't always require killing! Consider non-violent neutralization:
 
-**Intimidation** (Charisma × Intimidation skill):
+**Intimidation** (Willpower × Intimidation skill):
 - Threat display to force surrender/retreat
 - Best when: You have numbers advantage, enemy is wounded, allies are down
-- **IMPORTANT**: Use `attribute: "Charisma", skill: "Intimidation"` in your action
+- **IMPORTANT**: Use `attribute: "Willpower", skill: "Intimidation"` in your action
 - Example intent: "Intimidate the wounded smuggler into surrendering"
 - Example description: "I aim my weapon at the wounded smuggler: 'Drop it NOW or join your friends!'"
 - On success: Enemy may surrender or flee (forced morale check)
@@ -2962,7 +2962,7 @@ DESCRIPTION: [narrative description]
         try:
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
-            temperature = self.llm_config.get('temperature', 0.8)
+            temperature = self.llm_config.get('temperature', 1.0)
 
             if provider == 'anthropic':
                 # Use rate-limited wrapper to prevent API overload
@@ -3113,11 +3113,11 @@ Now that you have this information, declare your action using the required forma
             'strength': 'Strength',
             'agility': 'Agility',
             'endurance': 'Endurance',
+            'dexterity': 'Dexterity',
             'perception': 'Perception',
             'intelligence': 'Intelligence',
             'empathy': 'Empathy',
-            'willpower': 'Willpower',
-            'charisma': 'Charisma'
+            'willpower': 'Willpower'
         }
 
         # Valid tactical positions

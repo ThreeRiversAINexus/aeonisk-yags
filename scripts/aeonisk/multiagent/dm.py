@@ -127,7 +127,10 @@ def _process_structured_damage_effects(
     shared_state: 'SharedState',
     current_round: int,
     mechanics: Any = None,
-    logger_instance: logging.Logger = None
+    logger_instance: logging.Logger = None,
+    attacker_id: str = "unknown",
+    attacker_name: str = "Unknown Attacker",
+    weapon: str = "Unknown Weapon"
 ) -> List[str]:
     """
     Process List[DamageEffect] from ActionResolution, applying barrier interception and damage.
@@ -141,6 +144,9 @@ def _process_structured_damage_effects(
         current_round: Current round number for logging
         mechanics: Mechanics engine for JSONL logging (optional)
         logger_instance: Logger instance (optional)
+        attacker_id: Agent ID of the attacker (from player action context)
+        attacker_name: Name of the attacker (from player action context)
+        weapon: Weapon used in attack (from player action context)
 
     Returns:
         List of narrative messages describing damage outcomes (for appending to DM narration)
@@ -292,14 +298,14 @@ def _process_structured_damage_effects(
                 }
 
                 # Note: attack_roll data would need to be passed from resolution context
-                # For now, log minimal combat action
+                # Attacker info is now passed from player action context
                 mechanics.jsonl_logger.log_combat_action(
                     round_num=current_round,
-                    attacker_id="unknown",  # Would need from resolution context
-                    attacker_name="Unknown Attacker",
+                    attacker_id=attacker_id,
+                    attacker_name=attacker_name,
                     defender_id=target_entity.agent_id,
                     defender_name=target_name,
-                    weapon="Unknown Weapon",
+                    weapon=weapon,
                     attack_roll={},  # Would need from resolution context
                     damage_roll=damage_roll_data,
                     wounds_dealt=wounds_dealt,
@@ -565,7 +571,7 @@ class AIDMAgent(Agent):
                     provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000
-                    temperature=self.llm_config.get('temperature', 0.8)
+                    temperature=self.llm_config.get('temperature', 1.0)
                 )
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"DM: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
@@ -962,7 +968,7 @@ Apply this narrative style to:
                         model=model,
                         messages=[{"role": "user", "content": scenario_prompt}],
                         max_tokens=1000,
-                        temperature=0.9,
+                        temperature=self.llm_config.get('temperature', 1.0),
                         max_retries=3,
                         base_delay=2.0,
                         max_delay=120.0,
@@ -976,7 +982,7 @@ Apply this narrative style to:
                             messages=[{"role": "user", "content": scenario_prompt}],
                             response=llm_text,
                             model=model,
-                            temperature=0.9,
+                            temperature=self.llm_config.get('temperature', 1.0),
                             tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                             current_round=None,  # Scenario generation happens before round 1
                             call_sequence=self.llm_logger.call_count
@@ -993,7 +999,7 @@ Apply this narrative style to:
                                 prompt=scenario_prompt,
                                 response=llm_text,
                                 model=model,
-                                temperature=0.9,
+                                temperature=self.llm_config.get('temperature', 1.0),
                                 tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                                 metadata={'purpose': 'scenario_generation'}
                             )
@@ -2886,7 +2892,7 @@ Apply this narrative style to:
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
             max_tokens = self.llm_config.get('max_tokens', 6000)  # RoundSynthesis needs more tokens (OpenAI especially verbose)
-            temperature = self.llm_config.get('temperature', 0.8)
+            temperature = self.llm_config.get('temperature', 1.0)
 
             # Get current round for logging and display
             current_round = None
@@ -3100,7 +3106,7 @@ Void Level: {self.current_scenario.void_level}/10"""
                 result_type=ConversionDecisions,
                 system_prompt="You are the DM determining which conversions should occur based on action resolutions.",
                 max_tokens=3000,  # Increased for complex ConversionDecisions schemas
-                temperature=0.7,
+                temperature=self.llm_config.get('temperature', 1.0),
                 llm_logger=self.llm_logger,  # Enable automatic token tracking
                 current_round=round_number
             )
@@ -3126,7 +3132,7 @@ Void Level: {self.current_scenario.void_level}/10"""
                         prompt=full_prompt,
                         response=decisions.model_dump_json(indent=2),
                         model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                        temperature=0.7,
+                        temperature=self.llm_config.get('temperature', 1.0),
                         metadata={'purpose': 'entity_lifecycle_conversion_check', 'note': 'Pydantic AI structured output (ConversionDecisions schema)'}
                     )
                 except Exception as e:
@@ -3927,7 +3933,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                 synthesis_text = await self.llm_provider.generate_text(
                     prompt=prompt,
                     max_tokens=4000,  # Increased for synthesis
-                    temperature=0.8
+                    temperature=self.llm_config.get('temperature', 1.0)
                 )
 
                 # Legacy SPAWN_ENEMY marker validation removed - using structured output now
@@ -3938,7 +3944,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                         messages=[{"role": "user", "content": prompt}],
                         response=synthesis_text,
                         model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                        temperature=0.8,
+                        temperature=self.llm_config.get('temperature', 1.0),
                         tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                         current_round=round_num,
                         call_sequence=self.llm_logger.call_count
@@ -3955,7 +3961,7 @@ Generate appropriate consequences based on what makes sense for that specific cl
                             prompt=prompt,
                             response=synthesis_text,
                             model=self.llm_config.get('model', 'claude-3-5-sonnet-20241022'),
-                            temperature=0.8,
+                            temperature=self.llm_config.get('temperature', 1.0),
                             tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                             metadata={'purpose': 'round_synthesis_legacy'}
                         )
@@ -4475,7 +4481,7 @@ For **other actions** (flee, hide, assist, attack):
                         result_type=SimpleNarration,
                         system_prompt="Generate atmospheric narration for NPC actions. Be vivid and concise.",
                         max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                        temperature=0.8,
+                        temperature=self.llm_config.get('temperature', 1.0),
                         llm_logger=self.llm_logger,  # Enable automatic token tracking
                         current_round=self.shared_state.mechanics_engine.current_round if self.shared_state and self.shared_state.mechanics_engine else None
                     )
@@ -6362,7 +6368,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 model=model,
                 messages=[{"role": "user", "content": retry_prompt}],
                 max_tokens=300,
-                temperature=0.3,  # Lower temp for format compliance
+                temperature=self.llm_config.get('temperature', 1.0),  # Lower temp for format compliance
                 max_retries=3,
                 use_rate_limiter=True
             )
@@ -6454,7 +6460,7 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
 
             model = self.llm_config.get('model', 'claude-sonnet-4-5')
             max_tokens = self.llm_config.get('max_tokens', 6000)  # Increased for complex ActionResolution schemas
-            temperature = self.llm_config.get('temperature', 0.8)
+            temperature = self.llm_config.get('temperature', 1.0)
 
             # Get current round for logging
             current_round = None
@@ -6689,12 +6695,20 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                 if resolution_obj.effects and resolution_obj.effects.damage:
                     logger.debug(f"Processing {len(resolution_obj.effects.damage)} damage effects from structured output")
 
+                    # Extract attacker context from player action
+                    attacker_id = action.get('agent_id', 'unknown') if action else 'unknown'
+                    attacker_name = action.get('character_name', 'Unknown Attacker') if action else 'Unknown Attacker'
+                    weapon_name = action.get('weapon', 'Unknown Weapon') if action else 'Unknown Weapon'
+
                     damage_messages = _process_structured_damage_effects(
                         damage_effects=resolution_obj.effects.damage,
                         shared_state=self.shared_state,
                         current_round=current_round if current_round else 0,
                         mechanics=mechanics if 'mechanics' in locals() else None,
-                        logger_instance=logger
+                        logger_instance=logger,
+                        attacker_id=attacker_id,
+                        attacker_name=attacker_name,
+                        weapon=weapon_name
                     )
 
                     # Append damage outcome messages to narration
@@ -6994,7 +7008,7 @@ Mechanical Result: The action {outcome_text} with margin {resolution.margin:+d} 
 
         provider = self.llm_config.get('provider', 'openai')
         model = self.llm_config.get('model', 'gpt-4')
-        temperature = self.llm_config.get('temperature', 0.7)
+        temperature = self.llm_config.get('temperature', 1.0)
 
         scenario_context = ""
         if self.current_scenario:
@@ -7145,7 +7159,7 @@ Players using social manipulation, hacking, or environmental tactics can deal da
 When player attempts to intimidate or persuade enemies mid-combat:
 - **Check player's tactical advantage**: Numbers advantage? Enemy wounded? Allies down?
 - **Check enemy personality**: Grunts surrender more easily, elites/leaders resist, void-possessed/fanatics immune
-- **Roll Intimidation (Charisma) or Persuasion (Empathy) vs DC 15-25**
+- **Roll Intimidation (Empathy) or Persuasion (Empathy) vs DC 15-25**
   - DC 15: Enemy severely wounded (<25% HP), morale already broken
   - DC 20: Enemy at disadvantage (outnumbered, cornered, allies down)
   - DC 25: Enemy still confident, not desperate
@@ -7464,7 +7478,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     model=model,
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=150,
-                    temperature=0.8,
+                    temperature=self.llm_config.get('temperature', 1.0),
                     max_retries=3,
                     base_delay=2.0,
                     max_delay=120.0,
@@ -7478,7 +7492,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         messages=[{"role": "user", "content": prompt}],
                         response=consequence,
                         model=model,
-                        temperature=0.8,
+                        temperature=self.llm_config.get('temperature', 1.0),
                         tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
@@ -7495,7 +7509,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                             prompt=prompt,
                             response=consequence,
                             model=model,
-                            temperature=0.8,
+                            temperature=self.llm_config.get('temperature', 1.0),
                             tokens={'input': response.usage.input_tokens, 'output': response.usage.output_tokens},
                             metadata={'purpose': 'clock_consequence_generation', 'clock_name': clock_name}
                         )
@@ -7566,7 +7580,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                     response = await self.llm_provider.generate(
                         prompt=prompt,
                         max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                        temperature=0.85
+                        temperature=self.llm_config.get('temperature', 1.0)
                     )
                     event_text = response.text.strip()  # Extract text from LLMResponse object
 
@@ -7598,7 +7612,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                         messages=[{"role": "user", "content": prompt}],
                         response=event_text,
                         model=model,
-                        temperature=0.85,
+                        temperature=self.llm_config.get('temperature', 1.0),
                         tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
                         current_round=getattr(self, 'current_round', None),
                         call_sequence=self.llm_logger.call_count
@@ -7615,7 +7629,7 @@ Be vivid and maintain the dark sci-fi atmosphere."""
                             prompt=prompt,
                             response=event_text,
                             model=model,
-                            temperature=0.85,
+                            temperature=self.llm_config.get('temperature', 1.0),
                             metadata={'purpose': 'eye_of_breach_event', 'character_void': character_void, 'env_void': env_void}
                         )
                     except Exception as e:

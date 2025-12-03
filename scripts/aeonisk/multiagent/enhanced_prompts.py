@@ -470,7 +470,7 @@ This will trigger a FREE second action where you do your main task!
 **For Vendor Interaction** (when a vendor is present):
 ```
 INTENT: Purchase [item name] from [vendor name]
-ATTRIBUTE: Charisma (or Empathy for friendly interaction)
+ATTRIBUTE: Empathy (or Empathy for friendly interaction)
 SKILL: Corporate Influence (negotiate), Charm (friendly), or Guile (haggle)
 DIFFICULTY: 10-15 (usually easy for straightforward purchase)
 ACTION_TYPE: social
@@ -486,7 +486,7 @@ Examples:
 **For Currency/Item Transfers** (pooling resources with party):
 ```
 INTENT: Give [amount] [currency] to [character name]
-ATTRIBUTE: Empathy or Charisma
+ATTRIBUTE: Empathy or Empathy
 SKILL: Charm (friendly) or None (simple transfer)
 DIFFICULTY: 10 (trivial if willing)
 ACTION_TYPE: social
@@ -517,7 +517,7 @@ Note: This is a FREE action - you can transfer AND take another action in the sa
 - **MANIPULATE void?** → Willpower × Astral Arts (channel, harmonize, seal) - REQUIRES offerings!
 - **Investigation?** → Perception × Awareness or Intelligence × Investigation
 - **Technical Work?** → Intelligence × Systems or relevant technical skill
-- **Social Interaction?** → Empathy × Charm/Counsel, or Charisma × Corporate Influence
+- **Social Interaction?** → Empathy × Charm/Counsel, or Empathy × Corporate Influence
 - **Combat Analysis?** → Perception × Combat skill or Intelligence × Tactics
 
 **CRITICAL**: Don't waste offerings on analysis! Use:
