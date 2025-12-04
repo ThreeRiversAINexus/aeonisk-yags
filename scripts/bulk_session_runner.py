@@ -116,10 +116,12 @@ class ProgressMonitor:
     Shows timing info: total runtime, per-run duration, time since last change.
     """
 
-    def __init__(self, output_dir: Path, total_runs: int, refresh_interval: float = 5.0):
+    def __init__(self, output_dir: Path, total_runs: int, refresh_interval: float = 5.0,
+                 bulk_run_name: Optional[str] = None):
         self.output_dir = output_dir
         self.total_runs = total_runs
         self.refresh_interval = refresh_interval
+        self.bulk_run_name = bulk_run_name or output_dir.name
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
         self._completed_runs: Set[int] = set()
@@ -314,7 +316,8 @@ class ProgressMonitor:
 
         header = (
             f"\n{'='*78}\n"
-            f"[{timestamp}] PROGRESS: {completed}/{self.total_runs} complete | "
+            f"[{timestamp}] {self.bulk_run_name}\n"
+            f"PROGRESS: {completed}/{self.total_runs} complete | "
             f"{active_count} active | {queued_count} queued | {failed} failed\n"
             f"Runtime: {self._format_duration(total_runtime)} | "
             f"Last change: {self._format_duration(time_since_change)} ago\n"
@@ -455,6 +458,9 @@ def modify_config_for_bulk_run(
     if proxy_url:
         modified = inject_proxy_config(modified, proxy_url)
 
+    # Disable human interface for bulk runs (prevents Observer> prompt spam)
+    modified['enable_human_interface'] = False
+
     return modified
 
 
@@ -523,7 +529,8 @@ def run_single_session(
         # Find partial JSONL
         partial_jsonls = list(run_dir.glob("session_*.jsonl"))
         if partial_jsonls:
-            partial_jsonl = partial_jsonls[0]
+            # Pick the largest file (most progress made) in case there are multiple
+            partial_jsonl = max(partial_jsonls, key=lambda p: p.stat().st_size)
             last_round = get_last_successful_round(partial_jsonl)
 
             if last_round is not None and last_round >= 1:
@@ -787,7 +794,10 @@ def check_session_completed(jsonl_path: Path) -> bool:
 
 def get_last_successful_round(jsonl_path: Path) -> Optional[int]:
     """
-    Find the last round that completed successfully (has round_end event).
+    Find the last round that completed successfully.
+
+    Since round_end events are not logged, we infer completion: if round N+1
+    started (has round_start event), then round N must have completed.
 
     Used for replay-based resume: we replay up to round N-1 from cache,
     then continue live from round N.
@@ -796,29 +806,36 @@ def get_last_successful_round(jsonl_path: Path) -> Optional[int]:
         jsonl_path: Path to partial session JSONL file
 
     Returns:
-        Highest round number with round_end event, or None if no rounds completed
+        Highest completed round number, or None if no rounds completed.
+        (e.g., if max round_start is 5, returns 4 since round 5 is incomplete)
     """
     try:
         if not jsonl_path.exists():
             return None
 
-        completed_rounds = set()
+        rounds_started = set()
 
         with open(jsonl_path, 'r') as f:
             for line in f:
                 try:
                     event = json.loads(line)
-                    if event.get('event_type') == 'round_end':
+                    if event.get('event_type') == 'round_start':
                         round_num = event.get('round')
                         if round_num is not None:
-                            completed_rounds.add(round_num)
+                            rounds_started.add(round_num)
                 except json.JSONDecodeError:
                     continue
 
-        if not completed_rounds:
+        if not rounds_started:
             return None
 
-        return max(completed_rounds)
+        # If round N started, then round N-1 completed (assuming rounds are sequential)
+        # If max started round is 1, then 0 rounds completed (round 1 is in progress)
+        max_started = max(rounds_started)
+        if max_started <= 1:
+            return None  # Round 1 in progress, no completed rounds
+
+        return max_started - 1
 
     except Exception as e:
         logger.warning(f"Failed to get last successful round for {jsonl_path}: {e}")
@@ -1536,7 +1553,8 @@ def main():
         progress_monitor = ProgressMonitor(
             output_dir=output_dir,
             total_runs=total_runs,
-            refresh_interval=args.progress_interval
+            refresh_interval=args.progress_interval,
+            bulk_run_name=bulk_run_name
         )
         progress_monitor.start()
 

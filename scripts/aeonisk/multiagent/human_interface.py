@@ -112,7 +112,12 @@ class HumanInterface:
 
     def _command_loop(self):
         """Main command loop for human interface with non-blocking input."""
+        # Check if stdin is a TTY (interactive terminal)
+        # If not (piped input, bulk runs, CI/CD), disable prompt printing
+        is_interactive = sys.stdin.isatty()
+
         stdin_fd = sys.stdin.fileno()
+        prompt_printed = False
 
         while self.running and not self._stop_event.is_set():
             try:
@@ -121,19 +126,21 @@ class HumanInterface:
                 else:
                     prompt = "[Observer]> "
 
-                # Print prompt without newline, flush immediately
-                print(prompt, end='', flush=True)
+                # Only print prompt once in interactive mode
+                if is_interactive and not prompt_printed:
+                    # Print prompt without newline, flush immediately
+                    print(prompt, end='', flush=True)
+                    prompt_printed = True
 
                 # Non-blocking read with timeout using select()
                 command = self._read_line_with_timeout(stdin_fd, timeout=0.5)
 
                 if command is None:
-                    # Timeout - check stop event and continue
-                    if self.running and not self._stop_event.is_set():
-                        # Clear the prompt line before re-printing
-                        print('\r' + ' ' * len(prompt) + '\r', end='', flush=True)
+                    # Timeout - no input available, continue waiting
                     continue
 
+                # Got input - reset prompt flag so it prints again after handling
+                prompt_printed = False
                 command = command.strip()
 
                 if not command:
