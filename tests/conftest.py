@@ -517,7 +517,7 @@ async def minimal_combat_session(tmp_path, mock_anthropic_client):
                     "llm": {"provider": "mock", "model": "claude-sonnet-4-5", "temperature": 0.8},
                     "personality": {"riskTolerance": 6, "voidCuriosity": 1, "bondPreference": "neutral", "ritualConservatism": 9},
                     "goals": ["Test combat mechanics"],
-                    "attributes": {"Strength": 4, "Agility": 4, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Empathy": 3, "Willpower": 4, "Charisma": 3, "Size": 5},
+                    "attributes": {"Strength": 4, "Agility": 4, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Empathy": 3, "Willpower": 4, "Empathy": 3, "Size": 5},
                     "skills": {"Combat": 5, "Brawl": 4, "Guns": 5, "Athletics": 4, "Awareness": 5},
                     "equipped_weapons": {"primary": "shock_baton", "sidearm": "pistol"},
                     "inventory": {"shock_baton": 1, "pistol": 1, "med_kit": 1}
@@ -529,7 +529,7 @@ async def minimal_combat_session(tmp_path, mock_anthropic_client):
                     "llm": {"provider": "mock", "model": "claude-sonnet-4-5", "temperature": 0.8},
                     "personality": {"riskTolerance": 8, "voidCuriosity": 5, "bondPreference": "avoids", "ritualConservatism": 3},
                     "goals": ["Survive combat efficiently"],
-                    "attributes": {"Strength": 3, "Agility": 5, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Empathy": 2, "Willpower": 3, "Charisma": 2, "Size": 5},
+                    "attributes": {"Strength": 3, "Agility": 5, "Endurance": 4, "Perception": 4, "Intelligence": 3, "Empathy": 2, "Willpower": 3, "Empathy": 2, "Size": 5},
                     "skills": {"Combat": 5, "Guns": 6, "Stealth": 5, "Athletics": 4, "Awareness": 5},
                     "equipped_weapons": {"primary": "pistol", "sidearm": "combat_knife"},
                     "inventory": {"pistol": 1, "combat_knife": 1, "void_cloak": 1}

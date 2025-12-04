@@ -104,7 +104,7 @@ class PlayerActionBase(BaseModel):
     # Mechanical components
     attribute: str = Field(
         ...,
-        description="Attribute used: Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma"
+        description="Attribute used: Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower"
     )
 
     skill: Optional[str] = Field(
@@ -812,7 +812,7 @@ class PlayerAction(BaseModel):
     # Mechanical components
     attribute: str = Field(
         ...,
-        description="Attribute used: Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma"
+        description="Attribute used: Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower"
     )
 
     skill: Optional[str] = Field(

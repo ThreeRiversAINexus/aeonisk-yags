@@ -36,7 +36,7 @@ class TestVendorSocialTargeting:
             'intent': 'Ask Contract Specialist Rhen about payment plans',
             'description': 'I approach Rhen and ask about flexible payment options.',
             'action_type': 'social',
-            'attribute': 'Charisma',
+            'attribute': 'Empathy',
             'skill': 'Corporate Influence',
             # NO target field needed - DM knows context from description
         }

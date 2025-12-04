@@ -91,8 +91,8 @@ class ActionDeclaration:
             errors.append("Description must be at least 10 characters")
 
         valid_attributes = [
-            "Strength", "Agility", "Endurance", "Perception",
-            "Intelligence", "Empathy", "Willpower", "Empathy"
+            "Strength", "Agility", "Endurance", "Dexterity",
+            "Perception", "Intelligence", "Empathy", "Willpower"
         ]
         if self.attribute not in valid_attributes:
             errors.append(f"Attribute must be one of: {', '.join(valid_attributes)}")
@@ -350,7 +350,7 @@ def create_action_prompt_template() -> str:
 When declaring an action, you MUST provide:
 
 1. **Intent**: Clear, concise description of what you're doing (verb phrase)
-2. **Attribute**: Which attribute you're using (Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Empathy)
+2. **Attribute**: Which attribute you're using (Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower)
 3. **Skill**: Which skill applies (or "None" for raw attribute check)
 4. **Difficulty Estimate**: Your guess at the target number (10=Easy, 20=Moderate, 25=Challenging, 30=Difficult, 35+=Very Difficult)
 5. **Justification**: Brief explanation of why you chose that difficulty

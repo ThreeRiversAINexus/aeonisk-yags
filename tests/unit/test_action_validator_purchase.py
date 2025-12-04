@@ -31,7 +31,7 @@ class TestActionValidatorPurchase:
         action = ActionDeclaration(
             intent="Purchase Med Kit from vendor",
             description="Buying medical supplies",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Simple transaction",
@@ -55,7 +55,7 @@ class TestActionValidatorPurchase:
         action = ActionDeclaration(
             intent="Persuade guard",
             description="Convincing the guard to let us pass",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=18,
             difficulty_justification="Suspicious guard",
@@ -74,7 +74,7 @@ class TestActionValidatorPurchase:
         action = ActionDeclaration(
             intent="Do something",
             description="Testing invalid action type",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Testing",

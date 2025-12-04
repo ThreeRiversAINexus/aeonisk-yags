@@ -68,7 +68,7 @@ content: |-
   {vendor_status}
 
   **Your Social Skills:**
-  - Empathy: {charisma}
+  - Empathy: {empathy}
   - Charm: {charm_skill}
   - Negotiation: {negotiation_skill}
 

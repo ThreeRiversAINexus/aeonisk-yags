@@ -29,7 +29,7 @@ def mock_character_state():
     return CharacterState(
         name="Test Character",
         faction="Test Faction",
-        attributes={"Willpower": 5, "Agility": 4, "Charisma": 3},
+        attributes={"Willpower": 5, "Agility": 4, "Empathy": 3},
         skills={"Attunement": 4, "Guns": 3, "Charm": 2},
         void_score=2,
         soulcredit=50,
@@ -239,7 +239,7 @@ class TestGenerateActionDetails:
         expected_action = PurchaseAction(
             intent="Buy Incense from vendor",
             description="Approaching the vendor's stall to purchase high-quality ritual incense for upcoming ceremonies.",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=12,
             difficulty_justification="Routine transaction",

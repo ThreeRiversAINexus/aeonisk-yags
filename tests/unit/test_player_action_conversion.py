@@ -36,7 +36,7 @@ class TestPlayerActionConversion:
         player_action = PlayerAction(
             intent="Purchase Med Kit from Field Medic Jara",
             description="Approaching the vendor to buy medical supplies for my injuries",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Simple transaction with friendly vendor",
@@ -117,7 +117,7 @@ class TestPlayerActionConversion:
         player_action = PlayerAction(
             intent="Purchase Combat Stim",
             description="Approaching the vendor to buy combat enhancement stimulant for upcoming engagement",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Simple transaction with established vendor",
