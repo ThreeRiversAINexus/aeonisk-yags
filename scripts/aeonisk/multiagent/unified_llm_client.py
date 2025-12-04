@@ -135,6 +135,11 @@ class UnifiedAIClient:
         """
         model = model or self.default_model
 
+        # Auto-fix temperature for gpt-5-mini (only supports 1.0)
+        if 'gpt-5-mini' in model and temperature != 1.0:
+            logger.warning(f"gpt-5-mini only supports temperature=1.0, overriding {temperature} → 1.0")
+            temperature = 1.0
+
         # Route through proxy if enabled
         if self.use_proxy:
             try:

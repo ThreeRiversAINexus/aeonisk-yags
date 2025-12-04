@@ -988,7 +988,7 @@ Generate narratives (numbered list only):"""
                 messages_response = dm_agent.llm_provider.client.messages.create(
                     model=dm_agent.llm_provider.config.model,
                     max_tokens=800,
-                    temperature=0.9,
+                    temperature=self.llm_config.get('temperature', 1.0),
                     system="You are a creative writer for the Aeonisk dark sci-fi setting.",
                     messages=[{"role": "user", "content": prompt}]
                 )
@@ -1335,7 +1335,7 @@ Generate narratives (numbered list only):"""
                         provider_config = LLMConfig(
                             provider=llm_config.get('provider', 'anthropic'),
                             model=llm_config.get('model', 'claude-sonnet-4-5'),
-                            temperature=llm_config.get('temperature', 0.7),
+                            temperature=llm_config.get('temperature', 1.0),
                             max_tokens=500  # Default for enemy agents
                         )
                         self.provider = create_provider(provider_config)
@@ -3020,7 +3020,7 @@ Generate narratives (numbered list only):"""
                 provider_config = LLMConfig(
                     provider=player.llm_config.get('provider', 'anthropic'),
                     model=player.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=0.8,
+                    temperature=self.llm_config.get('temperature', 1.0),
                     max_tokens=250
                 )
                 provider = create_provider(provider_config)
@@ -3103,7 +3103,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     response = await provider.generate(
                         prompt=debrief_prompt,
                         max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                        temperature=0.8
+                        temperature=self.llm_config.get('temperature', 1.0)
                     )
 
                     debrief_text = response.text.strip()

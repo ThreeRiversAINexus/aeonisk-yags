@@ -453,7 +453,7 @@ Show character voice and team dynamics, not just family exposition.
 
 Reasoning:"""
 
-        response = await self._call_llm(prompt, max_tokens=250, temperature=0.9)
+        response = await self._call_llm(prompt, max_tokens=250, temperature=1.0)
         return response if response else f"My {character.family_line} training and {character.family_breath} Breath guide this choice."
     
     async def generate_action_outcome(
@@ -492,7 +492,7 @@ Be vivid and setting-specific.
 
 Outcome:"""
 
-        response = await self._call_llm(prompt, max_tokens=180, temperature=0.9)
+        response = await self._call_llm(prompt, max_tokens=180, temperature=1.0)
         return response if response else f"{character.given_name}'s attempt {'succeeds' if roll_result['success'] else 'fails'}."
 
 
@@ -664,7 +664,7 @@ TITLE: [location-specific crisis name]
 DESCRIPTION: [2-3 sentences using location details and Aeonisk lore]
 VOID: [3-7, appropriate to crisis severity]"""
 
-        response = await self.llm._call_llm(prompt, max_tokens=250, temperature=0.8)
+        response = await self.llm._call_llm(prompt, max_tokens=250, temperature=1.0)
         
         # Parse response
         scenario = {

@@ -145,7 +145,7 @@ def generate_bond_narrative(
     response = client.messages.create(
         model=model,
         max_tokens=300,
-        temperature=0.8,
+        temperature=1.0,
         messages=[{
             "role": "user",
             "content": prompt
