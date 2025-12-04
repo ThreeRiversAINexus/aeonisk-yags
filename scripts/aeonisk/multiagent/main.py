@@ -27,7 +27,6 @@ def setup_logging(level: str = "INFO"):
 
     # Shorter format: just time + level + message (saves tokens)
     console_format = '%(asctime)s %(levelname)-5s - %(message)s'
-    file_format = '%(asctime)s %(levelname)-5s - %(message)s'
     date_format = '%H:%M:%S'
 
     # Console handler (stdout)
@@ -35,39 +34,11 @@ def setup_logging(level: str = "INFO"):
     console_handler.setLevel(getattr(logging, level.upper()))
     console_handler.setFormatter(logging.Formatter(console_format, datefmt=date_format))
 
-    # File handler (captures everything including print statements)
-    file_handler = logging.FileHandler('multiagent.log')
-    file_handler.setLevel(logging.DEBUG)  # Always capture everything to file
-    file_handler.setFormatter(logging.Formatter(file_format, datefmt=date_format))
-
     # Configure root logger
     logging.basicConfig(
         level=logging.DEBUG,  # Root level DEBUG, handlers filter
-        handlers=[console_handler, file_handler]
+        handlers=[console_handler]
     )
-
-    # Redirect print() to also go to log file
-    class PrintLogger:
-        """Captures print() statements and sends them to log file."""
-        def __init__(self, original_stdout, log_file):
-            self.original_stdout = original_stdout
-            self.log_file = log_file
-
-        def write(self, message):
-            # Write to original stdout (console)
-            self.original_stdout.write(message)
-            # Also write to log file (without logging formatting)
-            if message.strip():  # Don't log empty lines
-                self.log_file.write(message)
-                self.log_file.flush()
-
-        def flush(self):
-            self.original_stdout.flush()
-            self.log_file.flush()
-
-    # Wrap stdout to capture print statements
-    log_file = open('multiagent.log', 'a')
-    sys.stdout = PrintLogger(sys.stdout, log_file)
 
     # Set HTTP client loggers to LLM level (15)
     # This way they appear with --log-level LLM but not with --log-level DEBUG
