@@ -187,7 +187,7 @@ sections:
     - ✅ CORRECT: `skill=None` for unskilled checks (don't forget -5 penalty!)
 
     **VALID ATTRIBUTES (use EXACTLY as shown):**
-    - Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Empathy, Size
+    - Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower
 
     **VALID SKILLS (use EXACTLY as shown):**
     - Combat, Melee, Brawl, Guns, Athletics, Stealth, Awareness, Charm, Guile
