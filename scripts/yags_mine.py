@@ -6,6 +6,7 @@ Usage:
     python scripts/yags_mine.py validate <path> [options]
     python scripts/yags_mine.py analyze <path> [options]
     python scripts/yags_mine.py discover <directory> [options]
+    python scripts/yags_mine.py balance <path> [options]
 
 Examples:
     # Validate single session
@@ -25,6 +26,12 @@ Examples:
 
     # Discover interesting sessions
     yags_mine.py discover bulk_output/ --complete-only --limit 20
+
+    # Balance analysis
+    yags_mine.py balance bulk_output/                     # All metrics, terminal
+    yags_mine.py balance bulk_output/ -a skills           # Skills only
+    yags_mine.py balance bulk_output/ -a skills,weapons   # Multiple analyzers
+    yags_mine.py balance bulk_output/ -f json -o report.json  # JSON export
 """
 
 import argparse
@@ -32,6 +39,7 @@ import json
 import sys
 from pathlib import Path
 from typing import List, Optional, Set
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Add scripts directory to path
 scripts_dir = Path(__file__).parent
@@ -40,6 +48,16 @@ if str(scripts_dir) not in sys.path:
 
 from datamine import BulkValidator, BulkReport
 from datamine.types import ValidatorType
+from datamine.analyzers import (
+    AnalyzerPipeline,
+    stream_events,
+    SkillsAnalyzer,
+    WeaponsAnalyzer,
+    EnemiesAnalyzer,
+    EconomyAnalyzer,
+    TargetingAnalyzer,
+)
+from datamine.formatters import TerminalFormatter, JSONFormatter, CSVFormatter
 
 
 def parse_validators(validators_str: str) -> Set[ValidatorType]:
@@ -175,6 +193,101 @@ def cmd_analyze(args: argparse.Namespace) -> int:
     return 0
 
 
+# Available analyzer names -> classes
+ANALYZER_MAP = {
+    'skills': SkillsAnalyzer,
+    'weapons': WeaponsAnalyzer,
+    'enemies': EnemiesAnalyzer,
+    'economy': EconomyAnalyzer,
+    'targeting': TargetingAnalyzer,
+}
+
+
+def discover_session_files(path: Path, recursive: bool = True) -> List[Path]:
+    """Find all session JSONL files in path."""
+    if path.is_file():
+        return [path]
+
+    if recursive:
+        return sorted(path.rglob("session_*.jsonl"))
+    else:
+        return sorted(path.glob("session_*.jsonl"))
+
+
+def cmd_balance(args: argparse.Namespace) -> int:
+    """Run balance analysis on session files."""
+    path = Path(args.path)
+
+    if not path.exists():
+        print(f"Error: Path does not exist: {path}", file=sys.stderr)
+        return 1
+
+    # Discover session files
+    session_files = discover_session_files(path, recursive=args.recursive)
+
+    if not session_files:
+        print(f"Error: No session files found at {path}", file=sys.stderr)
+        return 1
+
+    print(f"Found {len(session_files)} session files", file=sys.stderr)
+
+    # Parse analyzers
+    if args.analyzers:
+        analyzer_names = [a.strip().lower() for a in args.analyzers.split(',')]
+    else:
+        analyzer_names = list(ANALYZER_MAP.keys())  # All analyzers
+
+    # Validate analyzer names
+    invalid = set(analyzer_names) - set(ANALYZER_MAP.keys())
+    if invalid:
+        print(f"Error: Unknown analyzers: {invalid}", file=sys.stderr)
+        print(f"Available: {', '.join(ANALYZER_MAP.keys())}", file=sys.stderr)
+        return 1
+
+    # Create analyzers
+    analyzers = [ANALYZER_MAP[name]() for name in analyzer_names]
+    pipeline = AnalyzerPipeline(analyzers)
+
+    # Process sessions
+    processed = 0
+    errors = 0
+
+    for session_path in session_files:
+        try:
+            events = stream_events(session_path, filter_types=pipeline.all_event_types)
+            pipeline.process_session(events)
+            processed += 1
+            if processed % 50 == 0:
+                print(f"  Processed {processed}/{len(session_files)} sessions...", file=sys.stderr)
+        except Exception as e:
+            errors += 1
+            if args.verbose:
+                print(f"  Error processing {session_path.name}: {e}", file=sys.stderr)
+
+    print(f"Processed {processed} sessions ({errors} errors)", file=sys.stderr)
+
+    # Get results
+    results = pipeline.get_results()
+
+    # Select formatter
+    if args.format == 'json':
+        formatter = JSONFormatter(pretty=True)
+    elif args.format == 'csv':
+        formatter = CSVFormatter()
+    else:
+        formatter = TerminalFormatter()
+
+    # Output
+    if args.output:
+        with open(args.output, 'w') as f:
+            formatter.format_multiple(results, f)
+        print(f"Output written to {args.output}", file=sys.stderr)
+    else:
+        formatter.format_multiple(results, sys.stdout)
+
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="YAGS Datamining Tool - Validate, analyze, and export session outputs",
@@ -286,6 +399,41 @@ def main():
         help='Maximum files to analyze in directory'
     )
 
+    # === BALANCE ===
+    balance_parser = subparsers.add_parser(
+        'balance',
+        help='Analyze game balance metrics (skills, weapons, enemies, economy)'
+    )
+    balance_parser.add_argument(
+        'path',
+        help='Path to session file or directory'
+    )
+    balance_parser.add_argument(
+        '--analyzers', '-a',
+        help='Comma-separated analyzers: skills,weapons,enemies,economy,targeting (default: all)'
+    )
+    balance_parser.add_argument(
+        '--format', '-f',
+        choices=['text', 'json', 'csv'],
+        default='text',
+        help='Output format (default: text)'
+    )
+    balance_parser.add_argument(
+        '--output', '-o',
+        help='Output file (default: stdout)'
+    )
+    balance_parser.add_argument(
+        '--recursive', '-r',
+        action='store_true',
+        default=True,
+        help='Search directories recursively (default: True)'
+    )
+    balance_parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Show detailed error messages'
+    )
+
     args = parser.parse_args()
 
     if not args.command:
@@ -298,6 +446,8 @@ def main():
         return cmd_discover(args)
     elif args.command == 'analyze':
         return cmd_analyze(args)
+    elif args.command == 'balance':
+        return cmd_balance(args)
     else:
         parser.print_help()
         return 1
