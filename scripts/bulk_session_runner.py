@@ -216,7 +216,10 @@ class ProgressMonitor:
                         'status': 'running',
                         'round': stats['round'],
                         'llm_calls': stats['llm_calls'],
-                        'actions': stats['actions']
+                        'actions': stats['actions'],
+                        'has_error': stats.get('has_error', False),
+                        'error_type': stats.get('error_type'),
+                        'error_message': stats.get('error_message')
                     }
                     # Track start time if not already tracked
                     if run_id not in self._run_start_times:
@@ -292,7 +295,13 @@ class ProgressMonitor:
                 status_str = "**▶ starting**" if status_changed else "▶ starting"
                 detail = run_duration
             else:  # running
-                status_str = "**▶ running**" if status_changed else "▶ running"
+                # Check if session has encountered an error
+                has_error = run_state.get('has_error', False)
+                if has_error:
+                    status_str = "**⚠ ERROR**" if status_changed else "⚠ ERROR"
+                else:
+                    status_str = "**▶ running**" if status_changed else "▶ running"
+
                 r = run_state.get('round', 0)
                 calls = run_state.get('llm_calls', 0)
                 actions = run_state.get('actions', 0)
@@ -305,6 +314,11 @@ class ProgressMonitor:
                 calls_str = f"**{calls:3d}**" if calls != prev_calls else f"{calls:3d}"
                 actions_str = f"**{actions:3d}**" if actions != prev_actions else f"{actions:3d}"
                 detail = f"{r_str} | {calls_str} calls | {actions_str} actions{run_duration}"
+
+                # Add error indicator
+                if has_error:
+                    error_type = run_state.get('error_type', 'unknown')
+                    detail += f" [ERR: {error_type}]"
 
             progress_lines.append(f"  [{run_id:02d}] {status_str:20s} {detail}")
 
@@ -331,7 +345,14 @@ class ProgressMonitor:
 
     def _get_session_progress(self, jsonl_path: Path) -> Dict:
         """Extract progress stats from JSONL file."""
-        stats = {'round': 0, 'llm_calls': 0, 'actions': 0}
+        stats = {
+            'round': 0,
+            'llm_calls': 0,
+            'actions': 0,
+            'has_error': False,
+            'error_type': None,
+            'error_message': None
+        }
 
         try:
             with open(jsonl_path, 'r') as f:
@@ -352,6 +373,12 @@ class ProgressMonitor:
                         # Count actions
                         if event_type in ('action_declaration', 'action_resolution'):
                             stats['actions'] += 1
+
+                        # Detect session errors
+                        if event_type == 'session_error':
+                            stats['has_error'] = True
+                            stats['error_type'] = event.get('error_type', 'unknown')
+                            stats['error_message'] = event.get('error_message', 'Unknown error')
 
                     except json.JSONDecodeError:
                         continue
@@ -792,6 +819,104 @@ def check_session_completed(jsonl_path: Path) -> bool:
         return False
 
 
+def check_session_errors(jsonl_path: Path) -> List[Dict]:
+    """
+    Check for session_error events in JSONL (fatal errors during session).
+
+    Used for detecting crashed/errored sessions in bulk runs.
+
+    Args:
+        jsonl_path: Path to session JSONL file
+
+    Returns:
+        List of session_error event dicts found (empty if none)
+    """
+    errors = []
+    try:
+        if not jsonl_path.exists():
+            return errors
+
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                    if event.get('event_type') == 'session_error':
+                        errors.append(event)
+                except json.JSONDecodeError:
+                    continue
+
+        return errors
+
+    except Exception as e:
+        logger.warning(f"Failed to check session errors for {jsonl_path}: {e}")
+        return errors
+
+
+def get_session_status(jsonl_path: Path) -> Tuple[str, Optional[str]]:
+    """
+    Get comprehensive session status from JSONL file.
+
+    Checks for completion, errors, and termination status.
+
+    Args:
+        jsonl_path: Path to session JSONL file
+
+    Returns:
+        Tuple of (status, error_message) where:
+        - status: "completed", "errored", "crashed", "incomplete", "missing"
+        - error_message: Error details if applicable, None otherwise
+    """
+    try:
+        if not jsonl_path.exists():
+            return ("missing", None)
+
+        has_session_end = False
+        termination_reason = None
+        errors = []
+        last_round = 0
+
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                    event_type = event.get('event_type')
+
+                    if event_type == 'session_end':
+                        has_session_end = True
+                        termination_reason = event.get('termination_reason', 'unknown')
+
+                    elif event_type == 'session_error':
+                        errors.append(event)
+
+                    elif event_type == 'round_start':
+                        last_round = max(last_round, event.get('round', 0))
+
+                except json.JSONDecodeError:
+                    continue
+
+        # Determine status
+        if has_session_end:
+            if termination_reason == 'completed':
+                return ("completed", None)
+            elif termination_reason == 'interrupted':
+                return ("crashed", f"Interrupted at round {last_round}")
+            else:
+                return ("completed", f"Ended: {termination_reason}")
+
+        if errors:
+            error_msg = errors[-1].get('error_message', 'Unknown error')
+            return ("errored", error_msg)
+
+        if last_round > 0:
+            return ("incomplete", f"Stopped at round {last_round}")
+
+        return ("incomplete", "No rounds started")
+
+    except Exception as e:
+        logger.warning(f"Failed to get session status for {jsonl_path}: {e}")
+        return ("missing", str(e))
+
+
 def get_last_successful_round(jsonl_path: Path) -> Optional[int]:
     """
     Find the last round that completed successfully.
@@ -1185,6 +1310,22 @@ def write_summary_report(
     else:
         config_paths = []
 
+    # Analyze session errors from JSONL files
+    errored_runs = []
+    for result in results:
+        if not result.success and result.output_path and result.output_path != "N/A":
+            jsonl_path = Path(result.output_path)
+            if jsonl_path.exists():
+                errors = check_session_errors(jsonl_path)
+                if errors:
+                    errored_runs.append({
+                        'run_id': result.run_id,
+                        'error_type': errors[-1].get('error_type'),
+                        'error_message': errors[-1].get('error_message'),
+                        'exception_type': errors[-1].get('exception_type'),
+                        'context': errors[-1].get('context', {})
+                    })
+
     report = {
         'metadata': {
             'command': ' '.join(sys.argv),
@@ -1196,7 +1337,8 @@ def write_summary_report(
             'resumed': args.resume
         },
         'statistics': asdict(stats),
-        'runs': [asdict(r) for r in results]
+        'runs': [asdict(r) for r in results],
+        'errored_sessions': errored_runs if errored_runs else None
     }
 
     with open(report_path, 'w') as f:

@@ -138,6 +138,7 @@ class SelfPlayingSession:
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
+        self._fatal_error: Optional[str] = None  # Track fatal agent errors for graceful termination
 
         # Replay mode
         self.replay_mode = replay_mode
@@ -377,6 +378,10 @@ class SelfPlayingSession:
         self.coordinator.message_bus.add_handler(
             'session_dm_narration_tracker',
             self._handle_dm_narration
+        )
+        self.coordinator.message_bus.add_handler(
+            'session_agent_error_tracker',
+            self._handle_agent_error
         )
 
         # Start human interface if enabled
@@ -1924,8 +1929,36 @@ Generate narratives (numbered list only):"""
 
                         await self.coordinator.message_bus._route_message(adjudication_message)
 
-                        # Wait for DM to complete adjudication
-                        await adjudication_event.wait()
+                        # Wait for DM to complete adjudication (with timeout)
+                        # Timeout = 10 minutes per action (generous, LLM calls can be slow)
+                        ADJUDICATION_TIMEOUT = 600  # seconds
+                        try:
+                            await asyncio.wait_for(adjudication_event.wait(), timeout=ADJUDICATION_TIMEOUT)
+                        except asyncio.TimeoutError:
+                            error_msg = f"Adjudication timeout after {ADJUDICATION_TIMEOUT}s for {agent.character_state.name}"
+                            logger.error(f"❌ {error_msg}")
+                            # Log to JSONL
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_session_error(
+                                    error_type="adjudication_timeout",
+                                    error_message=error_msg,
+                                    exception_type="TimeoutError",
+                                    context={
+                                        'round': mechanics.current_round,
+                                        'agent_id': agent.agent_id,
+                                        'character_name': agent.character_state.name,
+                                        'action_index': idx
+                                    }
+                                )
+                            # Continue to avoid infinite hang, but mark as failed
+                            raise RuntimeError(error_msg)
+
+                        # Check if adjudication returned an error
+                        if getattr(adjudication_event, 'error', False):
+                            error_msg = getattr(adjudication_event, 'error_message', 'Unknown adjudication error')
+                            logger.error(f"❌ Adjudication failed: {error_msg}")
+                            raise RuntimeError(error_msg)
+
                         logger.debug(f"{agent.character_state.name} {action_label} adjudicated")
 
                         # Clean up and collect resolution for synthesis
@@ -2140,8 +2173,32 @@ Generate narratives (numbered list only):"""
 
                     await self.coordinator.message_bus._route_message(adjudication_message)
 
-                    # Wait for DM to complete adjudication
-                    await adjudication_event.wait()
+                    # Wait for DM to complete adjudication (with timeout)
+                    ADJUDICATION_TIMEOUT = 600  # seconds (10 min per action)
+                    try:
+                        await asyncio.wait_for(adjudication_event.wait(), timeout=ADJUDICATION_TIMEOUT)
+                    except asyncio.TimeoutError:
+                        error_msg = f"NPC adjudication timeout after {ADJUDICATION_TIMEOUT}s for {agent.name}"
+                        logger.error(f"❌ {error_msg}")
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_session_error(
+                                error_type="adjudication_timeout",
+                                error_message=error_msg,
+                                exception_type="TimeoutError",
+                                context={
+                                    'round': mechanics.current_round,
+                                    'agent_id': agent.agent_id,
+                                    'npc_name': agent.name
+                                }
+                            )
+                        raise RuntimeError(error_msg)
+
+                    # Check if adjudication returned an error
+                    if getattr(adjudication_event, 'error', False):
+                        error_msg = getattr(adjudication_event, 'error_message', 'Unknown adjudication error')
+                        logger.error(f"❌ NPC adjudication failed: {error_msg}")
+                        raise RuntimeError(error_msg)
+
                     logger.debug(f"NPC {agent.name} action adjudicated")
 
                     # Collect resolution for synthesis
@@ -4723,6 +4780,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         agent_id = message.payload.get('agent_id')
         action_index = message.payload.get('action_index', 0)  # Default to 0 for backward compatibility
 
+        # Check for error flag in the resolution (DM sends this on fatal failure)
+        has_error = message.payload.get('error', False)
+        error_message = message.payload.get('error_message', '')
+
         # Build the event key (must match the key used when storing the event)
         event_key = f"{agent_id}_{action_index}"
 
@@ -4730,6 +4791,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Store resolution data on the event for later collection
             event = self._pending_resolutions[event_key]
             event.resolution_data = message.payload.get('resolution_data')
+            # Store error info if present
+            if has_error:
+                event.error = True
+                event.error_message = error_message
+                logger.error(f"Resolution {event_key} returned with error: {error_message}")
             # Signal that this agent's resolution/adjudication is complete
             event.set()
             logger.debug(f"Resolution complete for {event_key}")
@@ -4737,8 +4803,35 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Fallback for old-style keys (no index)
             event = self._pending_resolutions[agent_id]
             event.resolution_data = message.payload.get('resolution_data')
+            # Store error info if present
+            if has_error:
+                event.error = True
+                event.error_message = error_message
+                logger.error(f"Resolution {agent_id} returned with error: {error_message}")
             event.set()
             logger.debug(f"Resolution complete for {agent_id} (legacy)")
+
+    def _handle_agent_error(self, message: Message):
+        """Handle AGENT_ERROR messages from agents with fatal errors."""
+        if message.type != MessageType.AGENT_ERROR:
+            return
+
+        agent_id = message.payload.get('agent_id', 'unknown')
+        error_type = message.payload.get('error_type', 'unknown')
+        error_message = message.payload.get('error_message', 'Unknown error')
+        recoverable = message.payload.get('recoverable', False)
+
+        logger.error(f"❌ Received AGENT_ERROR from {agent_id}: {error_type} - {error_message}")
+
+        # Log to console for visibility
+        print(f"\n❌ FATAL AGENT ERROR from {agent_id}:")
+        print(f"   Type: {error_type}")
+        print(f"   Message: {error_message}")
+
+        # Store error for main loop to detect and terminate gracefully
+        if not recoverable:
+            self._fatal_error = error_message
+            # If session is still running, it will see this flag and terminate
 
     async def _process_structured_synthesis(self, synthesis: 'RoundSynthesis'):
         """

@@ -2570,6 +2570,60 @@ Apply this narrative style to:
             )
             return
 
+        try:
+            await self._handle_adjudication_inner(
+                actions, round_num, action_index, skip_synthesis, previous_resolutions
+            )
+        except Exception as e:
+            # Fatal error during adjudication - log and signal error
+            error_msg = f"Fatal adjudication error: {type(e).__name__}: {e}"
+            logger.error(f"❌ DM {self.agent_id}: {error_msg}")
+
+            # Log to JSONL if possible
+            if self.shared_state and self.shared_state.mechanics_engine:
+                mechanics = self.shared_state.mechanics_engine
+                if mechanics.jsonl_logger:
+                    mechanics.jsonl_logger.log_session_error(
+                        error_type="adjudication_failure",
+                        error_message=str(e),
+                        exception_type=type(e).__name__,
+                        context={
+                            'round': round_num,
+                            'action_index': action_index,
+                            'action_count': len(actions),
+                            'agent_id': self.agent_id
+                        }
+                    )
+
+            # Send error message so session can terminate gracefully
+            self.send_message_sync(
+                MessageType.AGENT_ERROR,
+                None,  # Broadcast
+                {
+                    'agent_id': self.agent_id,
+                    'error_type': 'adjudication_failure',
+                    'error_message': error_msg,
+                    'round': round_num,
+                    'recoverable': False
+                }
+            )
+
+            # Also send ACTION_RESOLVED to unblock session wait
+            # This prevents the session from hanging forever
+            self.send_message_sync(
+                MessageType.ACTION_RESOLVED,
+                None,
+                {
+                    'agent_id': 'adjudication',
+                    'error': True,
+                    'error_message': error_msg
+                }
+            )
+
+    async def _handle_adjudication_inner(
+        self, actions, round_num, action_index, skip_synthesis, previous_resolutions
+    ):
+        """Inner adjudication logic, separated for error handling."""
         print(f"\n[DM {self.agent_id}] ===== Adjudicating {len(actions)} actions =====")
 
         # Increment clock ages at start of each round

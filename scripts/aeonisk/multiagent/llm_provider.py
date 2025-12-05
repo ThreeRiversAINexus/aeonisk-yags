@@ -415,6 +415,12 @@ class ClaudeProvider(LLMProvider):
         if 'exceeded maximum retries' in error_str:
             return True
 
+        # Check for JSON decode errors (proxy may return truncated/malformed responses)
+        # This indicates a transient issue, not a fundamental problem with the prompt
+        if error_type == 'JSONDecodeError' or 'jsondecode' in error_str:
+            logger.warning("🔄 JSON decode error (possibly truncated response), will retry")
+            return True
+
         return False
 
     async def generate(
@@ -910,6 +916,12 @@ class OpenAIProvider(LLMProvider):
 
         # Check for pydantic-ai specific retry messages
         if 'exceeded maximum retries' in error_str:
+            return True
+
+        # Check for JSON decode errors (proxy may return truncated/malformed responses)
+        # This indicates a transient issue, not a fundamental problem with the prompt
+        if error_type == 'JSONDecodeError' or 'jsondecode' in error_str:
+            logger.warning("🔄 JSON decode error (possibly truncated response), will retry")
             return True
 
         return False

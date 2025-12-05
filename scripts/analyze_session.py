@@ -968,6 +968,7 @@ class SessionAnalyzer:
 
         # Collect errors from various event types
         errors = {
+            'session_errors': [],       # From session_error events (fatal errors)
             'validation_warnings': [],  # From structured_output_metrics
             'llm_fallbacks': [],        # From structured_output_metrics
             'failed_actions': [],       # From action_resolution with failure
@@ -979,8 +980,19 @@ class SessionAnalyzer:
             event_type = event.get('event_type')
             round_num = event.get('round', 0)
 
+            # Check for session_error events (fatal errors)
+            if event_type == 'session_error':
+                errors['session_errors'].append({
+                    'line': idx,
+                    'round': round_num,
+                    'error_type': event.get('error_type', 'unknown'),
+                    'error_message': event.get('error_message', 'Unknown error'),
+                    'exception_type': event.get('exception_type', 'unknown'),
+                    'context': event.get('context', {}),
+                })
+
             # Check structured_output_metrics for validation warnings
-            if event_type == 'structured_output_metrics':
+            elif event_type == 'structured_output_metrics':
                 warnings = event.get('validation_warnings', [])
                 if warnings:
                     errors['validation_warnings'].append({
@@ -1031,6 +1043,20 @@ class SessionAnalyzer:
             return
 
         print(f"Found {total_errors} issues across {len([k for k, v in errors.items() if v])} categories:\n")
+
+        # Print session errors (FATAL - most important)
+        if errors['session_errors']:
+            print(f"⚠️  SESSION ERRORS ({len(errors['session_errors'])}) - FATAL:")
+            for err in errors['session_errors']:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                context = err.get('context', {})
+                agent_id = context.get('agent_id', 'unknown')
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['error_type']}")
+                print(f"    Exception: {err['exception_type']}")
+                print(f"    Message: {err['error_message'][:100]}")
+                if context:
+                    print(f"    Context: {context}")
+            print()
 
         # Print validation warnings
         if errors['validation_warnings']:

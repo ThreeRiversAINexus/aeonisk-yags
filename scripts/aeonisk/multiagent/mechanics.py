@@ -675,6 +675,39 @@ class JSONLLogger:
         }
         self._write_event(event)
 
+    def log_session_error(
+        self,
+        error_type: str,
+        error_message: str,
+        exception_type: str,
+        context: Optional[Dict[str, Any]] = None,
+        recoverable: bool = False
+    ):
+        """Log a fatal or significant error during the session.
+
+        This is called when an agent encounters an error that affects session flow.
+        Used for debugging and for bulk runner error detection.
+
+        Args:
+            error_type: Category of error (e.g., "adjudication_failure", "llm_error")
+            error_message: Human-readable error description
+            exception_type: Python exception class name
+            context: Optional dict with additional context (round, agent_id, etc.)
+            recoverable: Whether the session can continue after this error
+        """
+        event = {
+            "event_type": "session_error",
+            "ts": datetime.now().isoformat(),
+            "session": self.session_id,
+            "error_type": error_type,
+            "error_message": error_message,
+            "exception_type": exception_type,
+            "context": context or {},
+            "recoverable": recoverable,
+            "round": context.get('round') if context else None
+        }
+        self._write_event(event)
+
     def log_debrief(self, character_name: str, debrief_text: str, character_state: Dict[str, Any]):
         """Log mission debrief statement from a character."""
         event = {
