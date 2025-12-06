@@ -788,17 +788,25 @@ def run_single_session(
 
 def check_session_completed(jsonl_path: Path) -> bool:
     """
-    Check if session completed by looking for session_end event in JSONL.
+    Check if session completed successfully by looking for session_end event in JSONL.
 
     This is the authoritative check for session success - exit codes can be
     unreliable due to spurious shutdown errors (e.g., stdin lock issues).
+
+    A session is only considered "completed" if it has a session_end event with
+    a successful termination reason (victory, defeat, draw, max_turns_reached).
+    Interrupted or errored sessions are NOT considered completed and should be
+    resumed.
 
     Args:
         jsonl_path: Path to session JSONL file
 
     Returns:
-        True if session_end event found, False otherwise
+        True if session completed successfully, False otherwise
     """
+    # Termination reasons that indicate successful completion
+    COMPLETED_REASONS = {'victory', 'defeat', 'draw', 'completed'}
+
     try:
         if not jsonl_path.exists():
             return False
@@ -808,7 +816,12 @@ def check_session_completed(jsonl_path: Path) -> bool:
                 try:
                     event = json.loads(line)
                     if event.get('event_type') == 'session_end':
-                        return True
+                        reason = event.get('termination_reason', '')
+                        # Only count as completed if it's a successful termination
+                        if reason in COMPLETED_REASONS:
+                            return True
+                        # Interrupted/errored sessions should be resumed
+                        return False
                 except json.JSONDecodeError:
                     continue
 

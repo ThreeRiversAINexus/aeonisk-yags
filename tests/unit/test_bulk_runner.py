@@ -249,7 +249,7 @@ class TestResumeCapability:
                 run_dir.mkdir()
                 with open(run_dir / "session_test.jsonl", "w") as f:
                     f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                    f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                    f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
 
             # Create incomplete run (no session_end event)
             incomplete_dir = output_dir / "run_0007"
@@ -484,7 +484,7 @@ class TestSubprocessExecution:
             with open(jsonl_path, 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
                 f.write(json.dumps({"event_type": "llm_call", "tokens": {"total": 100}}) + "\n")
-                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
 
             # Also create stderr/stdout logs that subprocess writes to
             (run_dir / "stderr.log").touch()
@@ -564,7 +564,7 @@ class TestSubprocessExecution:
             jsonl_path = run_dir / "session_test.jsonl"
             with open(jsonl_path, 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
 
             (run_dir / "stderr.log").write_text("Some spurious error")
             (run_dir / "stdout.log").touch()
@@ -671,7 +671,7 @@ class TestResumeLogic:
                 with open(run_dir / "session_test.jsonl", 'w') as f:
                     f.write(json.dumps({"event_type": "session_start"}) + "\n")
                     if run_id != 3:  # Only 1 and 2 have session_end
-                        f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                        f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
 
             total_runs, incomplete_runs = discover_run_metadata_from_dirs(output_dir)
 
@@ -689,7 +689,7 @@ class TestResumeLogic:
             completed_dir.mkdir()
             with open(completed_dir / "session_test.jsonl", 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
 
             # Create incomplete run (no session_end)
             incomplete_dir = output_dir / "run_0002"
@@ -937,9 +937,9 @@ class TestTryReplaySession:
 class TestRunSingleSessionWithReplay:
     """Test run_single_session with attempt_replay=True."""
 
-    @patch('scripts.bulk_session_runner.try_replay_session')
     @patch('scripts.bulk_session_runner.subprocess.run')
-    def test_replay_success_skips_restart(self, mock_subprocess, mock_try_replay):
+    @patch('scripts.bulk_session_runner.try_replay_session')
+    def test_replay_success_skips_restart(self, mock_try_replay, mock_subprocess):
         """Test that successful replay returns immediately without restart."""
         with tempfile.TemporaryDirectory() as tmpdir:
             output_dir = Path(tmpdir)
@@ -950,15 +950,18 @@ class TestRunSingleSessionWithReplay:
                 json.dump({"session_name": "test", "max_turns": 5}, f)
 
             # Create partial session that failed at round 3
+            # get_last_successful_round infers completion from round_start events:
+            # if round N+1 started, round N must have completed
             run_dir = output_dir / "run_0001"
             run_dir.mkdir()
             partial_jsonl = run_dir / "session_test.jsonl"
             with open(partial_jsonl, 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "round_end", "round": 0}) + "\n")
-                f.write(json.dumps({"event_type": "round_end", "round": 1}) + "\n")
-                f.write(json.dumps({"event_type": "round_end", "round": 2}) + "\n")
-                # Round 3 started but didn't complete
+                f.write(json.dumps({"event_type": "round_start", "round": 0}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 1}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 2}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 3}) + "\n")  # Round 3 started...
+                # ...but didn't complete (no round 4 start)
                 for i in range(5):
                     f.write(json.dumps({"event_type": "llm_call", "agent_id": f"agent_{i}"}) + "\n")
 
@@ -966,7 +969,7 @@ class TestRunSingleSessionWithReplay:
             replay_output = run_dir / "session_replay_0001.jsonl"
             with open(replay_output, 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
             mock_try_replay.return_value = (True, None)
 
             result = run_single_session(
@@ -996,15 +999,18 @@ class TestRunSingleSessionWithReplay:
                 json.dump({"session_name": "test", "max_turns": 5}, f)
 
             # Create partial session that failed at round 3
+            # get_last_successful_round infers completion from round_start events:
+            # if round N+1 started, round N must have completed
             run_dir = output_dir / "run_0001"
             run_dir.mkdir()
             partial_jsonl = run_dir / "session_test.jsonl"
             with open(partial_jsonl, 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "round_end", "round": 0}) + "\n")
-                f.write(json.dumps({"event_type": "round_end", "round": 1}) + "\n")
-                f.write(json.dumps({"event_type": "round_end", "round": 2}) + "\n")
-                # Round 3 started but didn't complete
+                f.write(json.dumps({"event_type": "round_start", "round": 0}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 1}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 2}) + "\n")
+                f.write(json.dumps({"event_type": "round_start", "round": 3}) + "\n")  # Round 3 started...
+                # ...but didn't complete (no round 4 start)
                 for i in range(5):
                     f.write(json.dumps({"event_type": "llm_call", "agent_id": f"agent_{i}"}) + "\n")
 
@@ -1022,7 +1028,7 @@ class TestRunSingleSessionWithReplay:
             # Create files that subprocess "would create"
             with open(run_dir / "session_fresh.jsonl", 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
             (run_dir / "stderr.log").touch()
             (run_dir / "stdout.log").touch()
 
@@ -1066,7 +1072,7 @@ class TestRunSingleSessionWithReplay:
 
             with open(run_dir / "session_fresh.jsonl", 'w') as f:
                 f.write(json.dumps({"event_type": "session_start"}) + "\n")
-                f.write(json.dumps({"event_type": "session_end"}) + "\n")
+                f.write(json.dumps({"event_type": "session_end", "termination_reason": "completed"}) + "\n")
             (run_dir / "stderr.log").touch()
             (run_dir / "stdout.log").touch()
 

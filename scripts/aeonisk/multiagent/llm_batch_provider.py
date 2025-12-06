@@ -197,8 +197,16 @@ class BatchProxyProvider(LLMProvider):
                 content = content[:-3]
             content = content.strip()
 
+            # Attempt to repair common JSON issues before parsing
+            content = self._repair_json(content)
+
             # Parse and validate
             data = json.loads(content)
+
+            # Pre-filter invalid position_changes to prevent crash
+            # This handles cases where LLM generates invalid Position enum values
+            data = self._filter_invalid_position_changes(data)
+
             validated = result_type(**data)
 
             # Log if logger provided
@@ -230,6 +238,166 @@ class BatchProxyProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Batch proxy structured generation failed: {e}")
             raise
+
+    def _repair_json(self, content: str) -> str:
+        """
+        Attempt to repair common JSON issues from LLM output.
+
+        Handles:
+        1. Truncated JSON (missing closing braces/brackets)
+        2. Invalid control characters (unescaped newlines in strings)
+        3. Empty responses
+
+        Args:
+            content: Raw JSON string from LLM
+
+        Returns:
+            Repaired JSON string (or original if no repair needed/possible)
+        """
+        if not content or content.strip() == "":
+            logger.warning("Empty JSON response from LLM, cannot repair")
+            return content
+
+        original = content
+
+        # Fix 1: Remove/escape invalid control characters in string values
+        # This handles unescaped newlines, tabs, etc.
+        import re
+
+        def escape_control_chars(match):
+            """Escape control chars inside JSON strings."""
+            s = match.group(0)
+            # Replace control chars with escaped versions
+            s = s.replace('\n', '\\n')
+            s = s.replace('\r', '\\r')
+            s = s.replace('\t', '\\t')
+            return s
+
+        # Match JSON string values (content between quotes, not the quotes themselves)
+        # This is a simplified pattern - may not handle all edge cases
+        try:
+            # Try to find strings that contain control characters
+            content = re.sub(
+                r'"([^"\\]*(?:\\.[^"\\]*)*)"',
+                lambda m: '"' + m.group(1).replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t') + '"',
+                content
+            )
+        except Exception as e:
+            logger.debug(f"Control char escape failed: {e}")
+
+        # Fix 2: Try to repair truncated JSON by adding missing closing brackets/braces
+        # Count opening and closing brackets
+        open_braces = content.count('{')
+        close_braces = content.count('}')
+        open_brackets = content.count('[')
+        close_brackets = content.count(']')
+
+        # Add missing closing characters
+        if open_braces > close_braces or open_brackets > close_brackets:
+            logger.warning(
+                f"Detected truncated JSON: {open_braces}/{close_braces} braces, "
+                f"{open_brackets}/{close_brackets} brackets. Attempting repair."
+            )
+
+            # Find the last valid position and build closing sequence
+            # We need to track the nesting order to close correctly
+            stack = []
+            in_string = False
+            escape_next = False
+
+            for char in content:
+                if escape_next:
+                    escape_next = False
+                    continue
+                if char == '\\':
+                    escape_next = True
+                    continue
+                if char == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+
+                if char == '{':
+                    stack.append('}')
+                elif char == '[':
+                    stack.append(']')
+                elif char in '}]':
+                    if stack and stack[-1] == char:
+                        stack.pop()
+
+            # Close any unclosed structures
+            if stack:
+                # Check if we're in the middle of a string (truncated)
+                stripped = content.rstrip()
+
+                # Only add closing quote if we're clearly in a string context
+                # (last char is alphanumeric or common sentence-ending punctuation)
+                if stripped and in_string:
+                    # We're inside an unclosed string
+                    content = content.rstrip() + '"'
+                    logger.debug("Closed truncated string")
+
+                closing = ''.join(reversed(stack))
+                content = content + closing
+                logger.info(f"Repaired truncated JSON by adding: {closing}")
+
+        if content != original:
+            logger.debug(f"JSON repair applied. Original length: {len(original)}, repaired: {len(content)}")
+
+        return content
+
+    def _filter_invalid_position_changes(self, data: Dict) -> Dict:
+        """
+        Filter out position_changes with invalid Position enum values.
+
+        LLMs sometimes generate invalid values like 'cover' or 'exposed' instead of
+        valid tactical positions (Engaged, Near-PC, Near-Enemy, etc.). Rather than
+        crash the entire adjudication, we filter these out and log a warning.
+
+        Args:
+            data: Raw parsed JSON data from LLM response
+
+        Returns:
+            Data with invalid position_changes removed
+        """
+        # Valid Position enum values
+        VALID_POSITIONS = {
+            'Engaged', 'Near-PC', 'Near-Enemy', 'Far-PC', 'Far-Enemy',
+            'Extreme-PC', 'Extreme-Enemy'
+        }
+
+        # Check for position_changes in effects
+        if 'effects' in data and isinstance(data['effects'], dict):
+            effects = data['effects']
+            if 'position_changes' in effects and isinstance(effects['position_changes'], list):
+                original_count = len(effects['position_changes'])
+                valid_changes = []
+
+                for pc in effects['position_changes']:
+                    if isinstance(pc, dict):
+                        new_pos = pc.get('new_position', '')
+                        if new_pos in VALID_POSITIONS:
+                            valid_changes.append(pc)
+                        else:
+                            # Log warning for invalid position
+                            char_name = pc.get('character_name', 'unknown')
+                            logger.warning(
+                                f"Filtering invalid position_change: character='{char_name}', "
+                                f"new_position='{new_pos}' (valid: {list(VALID_POSITIONS)})"
+                            )
+                    else:
+                        valid_changes.append(pc)  # Keep non-dict items for Pydantic to validate
+
+                effects['position_changes'] = valid_changes
+
+                if len(valid_changes) < original_count:
+                    logger.info(
+                        f"Filtered {original_count - len(valid_changes)} invalid position_changes, "
+                        f"kept {len(valid_changes)}"
+                    )
+
+        return data
 
     def get_prompt_dir(self) -> str:
         """

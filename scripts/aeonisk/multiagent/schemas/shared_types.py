@@ -8,6 +8,9 @@ These models represent common game mechanics that appear in multiple contexts
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal, List
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SuccessTier(str, Enum):
@@ -56,7 +59,7 @@ class Position(str, Enum):
     @classmethod
     def _missing_(cls, value):
         """
-        Normalize Unicode hyphen variants to regular ASCII hyphen.
+        Normalize Unicode hyphen variants and handle invalid position values gracefully.
 
         OpenAI models sometimes generate non-breaking hyphens (U+2011 ‑) or other
         hyphen variants instead of regular ASCII hyphens (U+002D -), causing
@@ -64,6 +67,9 @@ class Position(str, Enum):
 
         Input: "Near‑PC" (with U+2011 non-breaking hyphen)
         Expected: "Near-PC" (with U+002D ASCII hyphen)
+
+        Also handles completely invalid values (like "cover") by logging a warning
+        and returning None, which Pydantic will then handle as a validation error.
 
         This hook normalizes all hyphen-like characters to regular hyphens before lookup.
         """
@@ -82,13 +88,19 @@ class Position(str, Enum):
             normalized = normalized.replace('\u2014', '-')  # em dash
             normalized = normalized.replace('\u2212', '-')  # minus sign
 
-            # Try lookup with normalized value
-            try:
-                return cls(normalized)
-            except ValueError:
-                pass  # Let enum raise the original error
+            # Try direct member lookup with normalized value (avoid recursion)
+            for member in cls:
+                if member.value == normalized:
+                    return member
 
-        # Let default error handling take over
+            # Log warning for completely invalid values (not just hyphen issues)
+            valid_values = [e.value for e in cls]
+            logger.warning(
+                f"Invalid Position value '{value}' (normalized: '{normalized}'). "
+                f"Valid values: {valid_values}. This position_change will be skipped."
+            )
+
+        # Return None - Pydantic will raise a validation error
         return None
 
 

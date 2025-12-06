@@ -489,10 +489,18 @@ async def chat_completion_async(self, **kwargs):
 
 ### Known Issues
 
-1. **JSON Parsing Fragility:** If LLM doesn't return valid JSON, request fails (no retry)
-2. **Long Polling:** Requests block until batch completes (up to 24 hours)
-3. **No Progress Tracking:** Can't query proxy for request status during execution
-4. **Hard-Coded Timeouts:** 1 hour per session, not configurable per-run
+1. **No Native Structured Output (CRITICAL):** The batch proxy uses prompt engineering to request JSON, NOT OpenAI's native `response_format: {type: "json_schema"}` feature. This means:
+   - LLM may generate truncated JSON (if max_tokens reached)
+   - LLM may generate invalid JSON (unescaped characters, malformed structure)
+   - JSON repair logic added (Dec 2025) but cannot fix all cases
+   - For guaranteed valid JSON, use direct OpenAI provider (not batch proxy)
+
+2. **Empty Proxy Responses:** Proxy may return empty content when batch "completes" but output file is missing. Added fallback to direct API for this case (Dec 2025).
+
+3. **JSON Parsing Fragility:** If LLM doesn't return valid JSON, request fails (no retry)
+4. **Long Polling:** Requests block until batch completes (up to 24 hours)
+5. **No Progress Tracking:** Can't query proxy for request status during execution
+6. **Hard-Coded Timeouts:** 1 hour per session, not configurable per-run
 
 ## Files
 
@@ -519,6 +527,17 @@ async def chat_completion_async(self, **kwargs):
 - **LLM Provider Architecture:** `scripts/aeonisk/multiagent/llm_provider.py:236-298`
 
 ## Changelog
+
+**2025-12-06 - Bulk Run Failure Investigation & Fixes**
+- ✅ Fixed COMPLETED_REASONS: Added `'completed'` (sessions were falsely marked as failed)
+- ✅ Fixed Position enum validation: Graceful handling of invalid values like `'cover'`
+- ✅ Fixed proxy retry loop: Detect "Batch ended with status: completed" bug, fallback to direct API
+- ✅ Fixed dm_resolution_movement.yaml prompt: Corrected schema (character_name/new_position vs target/from_zone)
+- ✅ Relaxed string limits: goal (200→500), roll_formula (200→300), rationale (500→800)
+- ✅ Added JSON repair logic: Handle truncated JSON and invalid control characters
+- ✅ Updated proxy error message in transmedia-pipeline for missing output file
+- ✅ Updated unit tests: Added termination_reason, fixed mock order, changed round_end→round_start
+- ✅ Documented structured output limitation (prompt engineering, not native response_format)
 
 **2025-11-26 - Initial Implementation**
 - ✅ Copy UnifiedAIClient from transmedia-pipeline

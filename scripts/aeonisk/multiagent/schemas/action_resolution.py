@@ -348,7 +348,7 @@ class ActionResolution(BaseModel):
     goal: Optional[str] = Field(
         default=None,
         min_length=10,
-        max_length=200,
+        max_length=500,  # Increased from 200 - LLMs often write verbose goals
         description="What the character is trying to accomplish"
     )
 
@@ -356,14 +356,14 @@ class ActionResolution(BaseModel):
     roll_formula: Optional[str] = Field(
         default=None,
         min_length=10,
-        max_length=200,
+        max_length=300,  # Increased from 200 - complex rolls can be verbose
         description="Human-readable roll: 'Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC'"
     )
 
     rationale: Optional[str] = Field(
         default=None,
         min_length=20,
-        max_length=500,
+        max_length=800,  # Increased from 500 - DM explanations can be detailed
         description="DM reasoning for DC, approach choice, and difficulty factors"
     )
 

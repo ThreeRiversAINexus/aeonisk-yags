@@ -210,7 +210,24 @@ class UnifiedAIClient:
                     return content
                 else:
                     error = result.get("error", "Unknown error")
-                    logger.error(f"Proxy request failed with status: {result.get('status')}, error: {error}")
+                    status = result.get("status", "unknown")
+                    logger.error(f"Proxy request failed with status: {status}, error: {error}")
+
+                    # Detect confusing proxy bug: batch completed but no output file
+                    # Error looks like: "Batch ended with status: completed" with status="failed"
+                    # This is a proxy-side bug - don't retry endlessly, fall back to direct API
+                    if "Batch ended with status: completed" in error or "Batch ended with status: ended" in error:
+                        logger.error(
+                            "PROXY BUG: Batch completed but output file missing. "
+                            "This is a bug in the proxy server. Falling back to direct API. "
+                            "Check proxy logs for why output_file_path is None."
+                        )
+                        # Fall back to direct API immediately, don't retry
+                        if self.provider == 'openai':
+                            return self._openai_completion(messages, model, temperature, max_tokens)
+                        else:
+                            return self._anthropic_completion(messages, model, temperature, max_tokens)
+
                     raise Exception(f"Proxy request failed: {error}")
 
             except requests.exceptions.ConnectionError as e:

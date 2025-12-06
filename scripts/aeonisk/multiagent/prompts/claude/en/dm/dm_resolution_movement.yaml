@@ -20,20 +20,26 @@ content: |-
 
   ## CONDITIONAL FIELDS
 
-  **2. position_changes (when character moves between zones)**
+  **2. position_changes (when character moves between tactical positions)**
   ```python
   position_changes=[PositionChange(
-      target="tgt_kade",      # Moving character's target ID
-      from_zone="entrance",   # Starting position
-      to_zone="server_room",  # Destination
-      reason="advanced through corridor to server room"
+      character_name="Kade",
+      new_position="Near-Enemy",  # Must be one of the valid Position enum values
+      reason="advanced through corridor toward hostiles"
   )]
   ```
 
-  **Common zones:**
-  - `"entrance"`, `"center"`, `"rear"`, `"flank_left"`, `"flank_right"`
-  - `"cover"`, `"elevated"`, `"exposed"`
-  - Location-specific: `"server_room"`, `"corridor"`, `"loading_bay"`
+  **Valid new_position values (ONLY these are allowed):**
+  - `"Engaged"` - In melee range, actively fighting
+  - `"Near-PC"` - Close to friendly party members
+  - `"Near-Enemy"` - Close to hostile combatants
+  - `"Far-PC"` - At range from friendly party members
+  - `"Far-Enemy"` - At range from hostile combatants
+  - `"Extreme-PC"` - Very far from friendly party members
+  - `"Extreme-Enemy"` - Very far from hostile combatants
+
+  **IMPORTANT:** Do NOT use zone names like "cover", "entrance", "server_room" as new_position.
+  Describe those in the narration and reason field instead. new_position is tactical relative distance.
 
   **3. clock_updates - for exploration progress**
   ```python
@@ -74,10 +80,9 @@ content: |-
       margin=8,
       effects=MechanicalEffects(
           position_changes=[PositionChange(
-              target="tgt_kade",
-              from_zone="corridor",
-              to_zone="server_room_entrance",
-              reason="stealthy advance past security"
+              character_name="Kade",
+              new_position="Near-Enemy",
+              reason="stealthy advance to server room entrance, closer to guards"
           )],
           conditions=[Condition(
               name="Undetected",
@@ -94,18 +99,17 @@ content: |-
   )
   ```
 
-  **Example 2: Sprint for Cover**
+  **Example 2: Tactical Repositioning**
   ```python
   ActionResolution(
-      narration="Bullets spark off the deck as you sprint for the shipping containers. You dive behind cover, sliding across oily metal, heart pounding. Safe - for now.",
+      narration="Bullets spark off the deck as you sprint for the shipping containers. You dive behind the containers, sliding across oily metal, heart pounding. Safe - for now.",
       success_tier=SuccessTier.MODERATE,
       margin=5,
       effects=MechanicalEffects(
           position_changes=[PositionChange(
-              target="tgt_ash",
-              from_zone="exposed",
-              to_zone="cover",
-              reason="sprint to shipping containers"
+              character_name="Ash",
+              new_position="Far-Enemy",
+              reason="sprinted to shipping containers, now at range from hostiles"
           )],
           soulcredit_changes=[SoulcreditChange(
               character_name="Ash",
@@ -119,15 +123,14 @@ content: |-
   **Example 3: Void Corridor Traverse**
   ```python
   ActionResolution(
-      narration="The corridor pulses with unnatural energy, walls seeming to breathe. You push through, skin crawling as void whispers at the edge of perception. Each step feels like walking through molasses.",
+      narration="The corridor pulses with unnatural energy, walls seeming to breathe. You push through the void-corrupted area, skin crawling as void whispers at the edge of perception.",
       success_tier=SuccessTier.MODERATE,
       margin=6,
       effects=MechanicalEffects(
           position_changes=[PositionChange(
-              target="tgt_echo",
-              from_zone="safe_zone",
-              to_zone="contaminated_lab",
-              reason="traversed void-corrupted corridor"
+              character_name="Echo",
+              new_position="Near-Enemy",
+              reason="traversed void-corrupted corridor to contaminated lab"
           )],
           void_changes=[VoidChange(
               character_name="Echo",
@@ -150,12 +153,6 @@ content: |-
       success_tier=SuccessTier.FAILURE,
       margin=-4,
       effects=MechanicalEffects(
-          position_changes=[PositionChange(
-              target="tgt_sera",
-              from_zone="shadows",
-              to_zone="exposed",
-              reason="stealth failed, now in spotlight"
-          )],
           clock_updates=[ClockUpdate(
               clock_name="Alert Level",
               ticks=2,
@@ -169,6 +166,7 @@ content: |-
       )
   )
   ```
+  Note: Example 4 doesn't include position_changes because the character didn't change tactical distance - they were just exposed in place.
 
   ## NARRATION TIPS FOR EXPLORATION
 
