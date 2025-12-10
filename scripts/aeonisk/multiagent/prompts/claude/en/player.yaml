@@ -188,13 +188,24 @@ sections:
 
     **VALID ATTRIBUTES (use EXACTLY as shown):**
     - Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower
+    # NOTE: Keep in sync with constants.py:YAGS_ATTRIBUTES
 
-    **VALID SKILLS (use EXACTLY as shown):**
-    - Combat, Melee, Brawl, Guns, Athletics, Stealth, Awareness, Charm, Guile
-    - Astral Arts, Attunement, Tech/Craft, Systems, Magick Theory
-    - Counsel, Healing, Pilot, Drone Operation
-    - Corporate Influence, Debt Law, Intimacy Ritual
-    - OR "None" for raw attribute checks
+    **VALID SKILLS (use EXACTLY as shown - skill names are case-sensitive):**
+    # NOTE: Keep in sync with skill_descriptions.py:SKILL_DATABASE
+
+    **Combat:** Brawl, Combat, Guns, Melee, Throw, Tactics
+    **Movement:** Athletics, Climbing, Running, Stealth, Swimming
+    **Social:** Charm, Corporate Influence, Counsel, Guile, Insight, Intimacy Ritual
+    **Technical:** Drone Operation, Drive, Hacking, Pilot, Sleight, Systems, Tech/Craft
+    **Knowledge:** Area Lore, Debt Law, History, Magick Theory, Ritual Lore, Science, Void Lore
+    **Investigation:** Attunement, Awareness, Investigation
+    **Ritual:** Astral Arts, Dreamwork
+    **Survival:** Resistance
+    **Physical:** Discipline, Lifting, Stamina
+
+    OR use `skill=None` for raw attribute checks (-5 unskilled penalty)
+
+    **Total: 43 skills across 8 attributes**
 
     **⚠️ SKILL SELECTION GUIDANCE - Match Skill to Action Intent:**
 

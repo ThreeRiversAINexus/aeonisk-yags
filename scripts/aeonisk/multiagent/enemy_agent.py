@@ -380,13 +380,21 @@ class EnemyAgent:
 
     def _calculate_base_soak(self) -> int:
         """
-        Calculate base soak (YAGS).
+        Calculate base soak (YAGS formula + Aeonisk combat balance).
 
-        Base Soak = (Health × 2) / 5
-        For size 5 humans with typical health: 12
+        YAGS: Soak = Size + Agility + Endurance - 5
+        Aeonisk: +4 combat balance (symmetric with player Soak)
+
+        For size 5 humans with typical stats (Agi=3, End=3): 10
         """
-        health_attr = self.attributes.get('Health', self.size)
-        return int((health_attr * 2) / 5) * 5  # Round to nearest 5
+        SOAK_COMBAT_BALANCE = 4
+
+        size = self.size
+        agility = self.attributes.get('Agility', 3)
+        endurance = self.attributes.get('Endurance', 3)  # NOT 'Health'!
+
+        base_soak = size + agility + endurance - 5
+        return base_soak + SOAK_COMBAT_BALANCE
 
     def get_health_percentage(self) -> int:
         """Get current health as percentage."""

@@ -16,26 +16,16 @@ import logging
 try:
     # Try relative import (when run as module)
     from .skill_descriptions import SKILL_DATABASE
+    from .constants import YAGS_ATTRIBUTES, YAGS_SECONDARY_STATS
 except ImportError:
     # Fallback for direct script execution
     import sys
     from pathlib import Path
     sys.path.insert(0, str(Path(__file__).parent))
     from skill_descriptions import SKILL_DATABASE
+    from constants import YAGS_ATTRIBUTES, YAGS_SECONDARY_STATS
 
 logger = logging.getLogger(__name__)
-
-
-# YAGS + Aeonisk Standard Attributes (8 total)
-YAGS_ATTRIBUTES = [
-    "Strength", "Agility", "Endurance", "Dexterity",
-    "Perception", "Intelligence", "Empathy", "Willpower"
-]
-
-# YAGS Secondary Stats (not attributes, but valid character fields)
-YAGS_SECONDARY_STATS = [
-    "Size"  # YAGS Size stat: measures capacity to absorb damage and target size (humans: 4-6)
-]
 
 # Attribute value ranges
 ATTRIBUTE_MIN = 1  # Minimum for any human

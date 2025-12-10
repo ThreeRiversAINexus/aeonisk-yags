@@ -1930,8 +1930,8 @@ Generate narratives (numbered list only):"""
                         await self.coordinator.message_bus._route_message(adjudication_message)
 
                         # Wait for DM to complete adjudication (with timeout)
-                        # Timeout = 10 minutes per action (generous, LLM calls can be slow)
-                        ADJUDICATION_TIMEOUT = 600  # seconds
+                        # Timeout = 24 hours (Batch API can queue requests for hours)
+                        ADJUDICATION_TIMEOUT = 86400  # seconds (24h for batch API)
                         try:
                             await asyncio.wait_for(adjudication_event.wait(), timeout=ADJUDICATION_TIMEOUT)
                         except asyncio.TimeoutError:
@@ -2174,7 +2174,7 @@ Generate narratives (numbered list only):"""
                     await self.coordinator.message_bus._route_message(adjudication_message)
 
                     # Wait for DM to complete adjudication (with timeout)
-                    ADJUDICATION_TIMEOUT = 600  # seconds (10 min per action)
+                    ADJUDICATION_TIMEOUT = 86400  # seconds (24h for batch API)
                     try:
                         await asyncio.wait_for(adjudication_event.wait(), timeout=ADJUDICATION_TIMEOUT)
                     except asyncio.TimeoutError:
@@ -3077,7 +3077,7 @@ Generate narratives (numbered list only):"""
                 provider_config = LLMConfig(
                     provider=player.llm_config.get('provider', 'anthropic'),
                     model=player.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=self.llm_config.get('temperature', 1.0),
+                    temperature=player.llm_config.get('temperature', 1.0),
                     max_tokens=250
                 )
                 provider = create_provider(provider_config)

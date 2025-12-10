@@ -310,10 +310,21 @@ class AIPlayerAgent(Agent):
         self.max_health = (size * 2) + endurance + 13
         self.health = self.max_health
         self.wounds = 0  # Wound count (tactical module)
-        # Soak = YAGS standard base soak for adult humans (character.md:598-600) + combat balance
-        # Set to 10 to balance with increased HP pool - allows 5-13 damage through per hit
-        # (was 14, too high - blocked most damage causing stalemate)
-        self.soak = 10
+
+        # Soak calculation (YAGS formula + Aeonisk combat balance)
+        # YAGS: Soak = Size + Agility + Endurance - 5
+        # Aeonisk: +4 combat balance (keeps avg=10 for backwards compatibility)
+        SOAK_COMBAT_BALANCE = 4
+
+        agility = self.character_state.attributes.get('Agility', 3)
+
+        base_soak = size + agility + endurance - 5
+        self.soak = base_soak + SOAK_COMBAT_BALANCE
+
+        logger.debug(
+            f"{self.character_state.name} Soak calculation: "
+            f"Size({size}) + Agi({agility}) + End({endurance}) - 5 + balance({SOAK_COMBAT_BALANCE}) = {self.soak}"
+        )
 
         # Initialize weapons from config or use defaults
         from .weapons import get_weapon

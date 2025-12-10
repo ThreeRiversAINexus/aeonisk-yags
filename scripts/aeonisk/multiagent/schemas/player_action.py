@@ -18,6 +18,7 @@ Benefits:
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Dict, Literal, Union, Annotated
 from .shared_types import ActionType, Position
+from ..constants import YAGS_ATTRIBUTES, ATTRIBUTES_STRING
 
 
 # ==============================================================================
@@ -104,7 +105,7 @@ class PlayerActionBase(BaseModel):
     # Mechanical components
     attribute: str = Field(
         ...,
-        description="Attribute used: Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower"
+        description=f"Attribute used: {ATTRIBUTES_STRING}"
     )
 
     skill: Optional[str] = Field(
@@ -150,10 +151,7 @@ class PlayerActionBase(BaseModel):
     @classmethod
     def validate_attribute(cls, v: str) -> str:
         """Validate attribute is one of the canonical 8."""
-        valid_attributes = {
-            "Strength", "Agility", "Endurance", "Dexterity",
-            "Perception", "Intelligence", "Empathy", "Willpower"
-        }
+        valid_attributes = set(YAGS_ATTRIBUTES)
         if v not in valid_attributes:
             raise ValueError(
                 f"Attribute must be one of: {', '.join(sorted(valid_attributes))}"
@@ -812,7 +810,7 @@ class PlayerAction(BaseModel):
     # Mechanical components
     attribute: str = Field(
         ...,
-        description="Attribute used: Strength, Agility, Endurance, Dexterity, Perception, Intelligence, Empathy, Willpower"
+        description=f"Attribute used: {ATTRIBUTES_STRING}"
     )
 
     skill: Optional[str] = Field(
@@ -955,10 +953,7 @@ class PlayerAction(BaseModel):
     @classmethod
     def validate_attribute(cls, v: str) -> str:
         """Validate attribute is one of the canonical 8."""
-        valid_attributes = {
-            "Strength", "Agility", "Endurance", "Dexterity",
-            "Perception", "Intelligence", "Empathy", "Willpower"
-        }
+        valid_attributes = set(YAGS_ATTRIBUTES)
         if v not in valid_attributes:
             raise ValueError(
                 f"Attribute must be one of: {', '.join(sorted(valid_attributes))}"

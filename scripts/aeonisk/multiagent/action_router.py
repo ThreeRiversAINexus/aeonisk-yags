@@ -63,11 +63,15 @@ class ActionRouter:
                 'Drone Operation': 'Intelligence',
                 'Pilot': 'Agility',
                 'Systems': 'Intelligence',
+                'Hacking': 'Intelligence',  # NEW
                 # Knowledge skills
                 'Debt Law': 'Intelligence',
                 'Corporate Influence': 'Empathy',
                 'Investigation': 'Perception',
                 'Magick Theory': 'Intelligence',
+                'Void Lore': 'Intelligence',  # NEW
+                'Ritual Lore': 'Intelligence',  # NEW
+                'Tactics': 'Intelligence',  # NEW
                 # Social skills
                 'Charm': 'Empathy',
                 'Guile': 'Empathy',
@@ -75,6 +79,7 @@ class ActionRouter:
                 'Command': 'Willpower',
                 'Intimidation': 'Willpower',
                 'Intimacy Ritual': 'Empathy',
+                'Insight': 'Empathy',  # NEW
                 # Perception skills
                 'Awareness': 'Perception',
                 'Attunement': 'Perception',
@@ -85,6 +90,14 @@ class ActionRouter:
                 # Dexterity skills (fine motor control)
                 'Sleight': 'Dexterity',
                 'Throw': 'Dexterity',
+                # Strength skills (NEW)
+                'Climbing': 'Strength',
+                'Swimming': 'Strength',
+                'Lifting': 'Strength',
+                # Endurance skills (NEW)
+                'Resistance': 'Endurance',
+                'Stamina': 'Endurance',
+                'Running': 'Endurance',
             }
 
             if declared_skill in skill_to_attribute:

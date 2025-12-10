@@ -1625,98 +1625,130 @@ Apply this narrative style to:
         Returns ScenarioSetup if successful, or None to fall back to legacy text parsing.
 
         If scenario_hint is provided, validates generated scenario and retries up to 3 times on violation.
+
+        Automatically retries Pydantic validation errors with exponential backoff (up to 3 attempts).
         """
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
             logger.debug("DM: No llm_provider available for scenario generation, will use legacy method")
             return None
 
-        try:
-            from .schemas.story_events import ScenarioSetup
+        from pydantic import ValidationError
+        import json
+        import time
 
-            logger.debug("DM: Attempting structured output for scenario generation")
+        # Outer retry loop for Pydantic validation errors
+        max_pydantic_retries = 3
+        base_delay = 1.0  # seconds
 
-            model = self.llm_config.get('model', 'claude-sonnet-4-5')
-            max_tokens = 5000  # Large buffer for complex scenarios with multiple clocks
-            temperature = 1.0  # OpenAI structured output requires 1.0, Claude allows other values
+        for pydantic_attempt in range(max_pydantic_retries):
+            try:
+                from .schemas.story_events import ScenarioSetup
 
-            # Enhance system prompt if scenario_hint provided
-            if scenario_hint:
-                system_prompt += (
-                    " Your scenario MUST match the BINDING SCENARIO CONSTRAINTS in the prompt. "
-                    "Violations will cause regeneration. Pay special attention to void_level (must match exactly), "
-                    "prohibited elements (NO SPAWN_ENEMY means zero enemies), and required locations/NPCs."
-                )
+                if pydantic_attempt > 0:
+                    # Exponential backoff delay
+                    delay = base_delay * (2 ** (pydantic_attempt - 1))
+                    logger.info(f"DM: Retrying scenario generation (attempt {pydantic_attempt + 1}/{max_pydantic_retries}, waiting {delay}s)")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.debug("DM: Attempting structured output for scenario generation")
 
-            # Retry loop for validation
-            max_attempts = 3
-            for attempt in range(max_attempts):
-                # Generate structured scenario using Pydantic AI
-                # Token tracking now handled internally
-                scenario: ScenarioSetup = await self.llm_provider.generate_structured(
-                    prompt=scenario_prompt,
-                    result_type=ScenarioSetup,
-                    system_prompt=system_prompt,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    llm_logger=self.llm_logger,  # Enable automatic token tracking
-                    current_round=None  # Scenario generation happens before round 1
-                )
+                model = self.llm_config.get('model', 'claude-sonnet-4-5')
+                max_tokens = 5000  # Large buffer for complex scenarios with multiple clocks
+                temperature = 1.0  # OpenAI structured output requires 1.0, Claude allows other values
 
-                # Validate scenario against hint if provided
+                # Enhance system prompt if scenario_hint provided
                 if scenario_hint:
-                    is_valid, violations = self._validate_scenario_against_hint(scenario, scenario_hint)
-                    if not is_valid:
-                        logger.warning(
-                            f"DM: Scenario validation failed (attempt {attempt + 1}/{max_attempts}): "
-                            f"{', '.join(violations)}"
-                        )
-                        if attempt < max_attempts - 1:
-                            logger.info("DM: Retrying scenario generation...")
-                            continue
-                        else:
-                            raise RuntimeError(
-                                f"Scenario generation failed validation after {max_attempts} attempts. "
-                                f"Violations: {', '.join(violations)}"
-                            )
-                    else:
-                        logger.info("DM: Scenario passed validation checks")
-
-                # Scenario is valid or no hint provided - break retry loop
-                break
-
-            logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
-
-            # Increment call count for manual logging below
-            # (generate_structured already logged with actual tokens)
-            if self.llm_logger:
-                self.llm_logger.call_count += 1
-
-            # Also log to agent prompt logger if enabled
-            if self.agent_prompt_logger:
-                try:
-                    # Estimate token counts (1 token ~= 4 chars)
-                    estimated_input_tokens = len(scenario_prompt) // 4
-                    estimated_output_tokens = len(scenario.situation) // 4
-
-                    self.agent_prompt_logger.log_llm_call(
-                        agent_id=self.agent_id,
-                        round_num=None,
-                        call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
-                        prompt=scenario_prompt,
-                        response=scenario.situation,
-                        model=model,
-                        temperature=temperature,
-                        tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
-                        metadata={'purpose': 'scenario_generation_structured', 'note': 'Pydantic AI structured output (ScenarioSetup schema)'}
+                    system_prompt += (
+                        " Your scenario MUST match the BINDING SCENARIO CONSTRAINTS in the prompt. "
+                        "Violations will cause regeneration. Pay special attention to void_level (must match exactly), "
+                        "prohibited elements (NO SPAWN_ENEMY means zero enemies), and required locations/NPCs."
                     )
-                except Exception as e:
-                    logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
 
-            return scenario
+                # Inner retry loop for semantic validation
+                max_hint_attempts = 3
+                for hint_attempt in range(max_hint_attempts):
+                    # Generate structured scenario using Pydantic AI
+                    # Token tracking now handled internally
+                    scenario: ScenarioSetup = await self.llm_provider.generate_structured(
+                        prompt=scenario_prompt,
+                        result_type=ScenarioSetup,
+                        system_prompt=system_prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        llm_logger=self.llm_logger,  # Enable automatic token tracking
+                        current_round=None  # Scenario generation happens before round 1
+                    )
 
-        except Exception as e:
-            logger.error(f"DM: Structured scenario generation failed: {e}")
-            raise RuntimeError(f"Scenario generation failed: {e}") from e
+                    # Validate scenario against hint if provided
+                    if scenario_hint:
+                        is_valid, violations = self._validate_scenario_against_hint(scenario, scenario_hint)
+                        if not is_valid:
+                            logger.warning(
+                                f"DM: Scenario validation failed (attempt {hint_attempt + 1}/{max_hint_attempts}): "
+                                f"{', '.join(violations)}"
+                            )
+                            if hint_attempt < max_hint_attempts - 1:
+                                logger.info("DM: Retrying scenario generation...")
+                                continue
+                            else:
+                                raise RuntimeError(
+                                    f"Scenario generation failed validation after {max_hint_attempts} attempts. "
+                                    f"Violations: {', '.join(violations)}"
+                                )
+                        else:
+                            logger.info("DM: Scenario passed validation checks")
+
+                    # Scenario is valid - break inner loop
+                    break
+
+                # Success! Log and return
+                logger.debug(f"✓ DM structured scenario: {scenario.theme} @ {scenario.location}, {len(scenario.starting_clocks)} clocks, void={scenario.void_level}")
+
+                # Increment call count for manual logging below
+                # (generate_structured already logged with actual tokens)
+                if self.llm_logger:
+                    self.llm_logger.call_count += 1
+
+                # Also log to agent prompt logger if enabled
+                if self.agent_prompt_logger:
+                    try:
+                        # Estimate token counts (1 token ~= 4 chars)
+                        estimated_input_tokens = len(scenario_prompt) // 4
+                        estimated_output_tokens = len(scenario.situation) // 4
+
+                        self.agent_prompt_logger.log_llm_call(
+                            agent_id=self.agent_id,
+                            round_num=None,
+                            call_sequence=self.llm_logger.call_count - 1 if self.llm_logger else 0,
+                            prompt=scenario_prompt,
+                            response=scenario.situation,
+                            model=model,
+                            temperature=temperature,
+                            tokens={'input': estimated_input_tokens, 'output': estimated_output_tokens},
+                            metadata={'purpose': 'scenario_generation_structured', 'note': 'Pydantic AI structured output (ScenarioSetup schema)'}
+                        )
+                    except Exception as e:
+                        logger.error(f"DM {self.agent_id}: Failed to log to agent prompt logger: {e}")
+
+                return scenario
+
+            except (ValidationError, json.JSONDecodeError) as e:
+                # Retryable error (Pydantic validation or JSON parsing) - retry with backoff
+                logger.warning(f"DM: Retryable error (attempt {pydantic_attempt + 1}/{max_pydantic_retries}): {type(e).__name__}: {e}")
+
+                if pydantic_attempt >= max_pydantic_retries - 1:
+                    # Final attempt failed - raise as RuntimeError
+                    logger.error(f"DM: Structured scenario generation failed after {max_pydantic_retries} retry attempts")
+                    raise RuntimeError(f"Scenario generation failed after {max_pydantic_retries} attempts: {e}") from e
+                # Otherwise continue outer loop for retry
+
+            except Exception as e:
+                # Other errors - fail immediately
+                logger.error(f"DM: Structured scenario generation failed: {e}")
+                raise RuntimeError(f"Scenario generation failed: {e}") from e
+
+        # Should not reach here, but for safety
+        raise RuntimeError("Scenario generation exhausted all retry attempts")
 
     def _parse_scenario_from_llm(self, llm_text: str) -> Dict[str, Any]:
         """Parse scenario from LLM-generated text."""
@@ -4451,7 +4483,7 @@ Read the action intent to understand WHY this transfer is happening:
             target = action.get('target')
 
             # Resolve target ID to character name for dialogue/plead actions
-            target_display = 'None'
+            target_display = 'no specific target'
             if target:
                 target_name = self._resolve_target_name(target)
                 if target_name:

@@ -12,7 +12,7 @@ SKILL_ALIASES = {
     'charm': 'Charm',
     'guile': 'Guile',
     'deception': 'Guile',
-    'persuasion': 'Charm',
+    'persuasion': 'Charm',  # 21 configs use this
     'empathy': 'Charm',  # As a skill action
 
     # Investigation skills (YAGS Base)
@@ -21,6 +21,7 @@ SKILL_ALIASES = {
     'awareness': 'Awareness',
     'perception': 'Awareness',  # As a skill action
     'search': 'Awareness',
+    'observation': 'Awareness',  # 1 config uses this
 
     # Combat skills (YAGS Base)
     'combat': 'Combat',
@@ -43,6 +44,7 @@ SKILL_ALIASES = {
     'tech': 'Tech/Craft',
     'craft': 'Tech/Craft',
     'technology': 'Tech/Craft',
+    'engineering': 'Tech/Craft',  # 16 configs use this
     'systems': 'Systems',  # Technical systems operation
     'drone operation': 'Drone Operation',  # Aeonisk-Specific
     'pilot': 'Pilot',  # Aeonisk-Specific
@@ -61,6 +63,10 @@ SKILL_ALIASES = {
     'counsel': 'Counsel',
     'counseling': 'Counsel',
     'healing': 'Healing',
+
+    # Willpower skills
+    'discipline': 'Discipline',
+    'meditation': 'Discipline',  # 5 configs use this
 }
 
 # Ritual rules: MUST use Willpower

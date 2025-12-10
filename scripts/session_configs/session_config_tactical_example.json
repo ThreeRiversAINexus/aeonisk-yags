@@ -52,8 +52,8 @@
           "Intelligence": 2,
           "Empathy": 2,
           "Willpower": 4,
-          "Health": 4,
-          "Dexterity": 3
+          "Dexterity": 3,
+          "Endurance": 4
         },
         "skills": {
           "Brawl": 4,
@@ -94,8 +94,8 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 3,
-          "Health": 3,
-          "Dexterity": 3
+          "Dexterity": 3,
+          "Endurance": 3
         },
         "skills": {
           "Guns": 5,
@@ -135,8 +135,8 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 5,
-          "Health": 3,
-          "Dexterity": 3
+          "Dexterity": 3,
+          "Endurance": 3
         },
         "skills": {
           "Astral Arts": 5,

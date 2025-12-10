@@ -13,6 +13,8 @@ from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
+from .constants import YAGS_ATTRIBUTES
+
 logger = logging.getLogger(__name__)
 
 
@@ -1893,11 +1895,8 @@ class MechanicsEngine:
     Handles dice rolls, rituals, void progression, scene clocks, and conditions.
     """
 
-    # Standard YAGS attributes
-    ATTRIBUTES = [
-        "Strength", "Agility", "Endurance", "Dexterity",
-        "Perception", "Intelligence", "Empathy", "Willpower"
-    ]
+    # Standard YAGS attributes (imported from constants.py - single source of truth)
+    ATTRIBUTES = YAGS_ATTRIBUTES
 
     def __init__(self, jsonl_logger: Optional[JSONLLogger] = None, shared_state: Optional[Any] = None):
         self.scene_clocks: Dict[str, SceneClock] = {}

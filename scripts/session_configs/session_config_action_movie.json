@@ -1,15 +1,12 @@
 {
   "_role": "action_movie_session",
   "_purpose": "High-octane narrative generation - heist, betrayal, explosive combat, desperate escapes. Designed for cinematic storytelling.",
-
   "session_name": "action_movie_heist",
   "max_turns": 8,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_tactical": "=== TACTICAL MODULE - FULL COMBAT ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -22,17 +19,14 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_scenario": "=== ACTION MOVIE SETUP ===",
   "_scenario_hint": "The crew has just pulled off the impossible - stealing a prototype void-dampening device from Tempest Industries' orbital vault. But as their escape shuttle touches down in the undercity, proximity alarms shriek: Pantheon Security kill-teams incoming, ACG bounty hunters triangulating their position, and worst of all - the device is leaking unstable void energy, corrupting the air itself. They have 30 minutes before the whole district becomes a void rift. Split-second decisions, explosive firefights, impossible odds. GO LOUD.",
-
   "scenario": {
     "theme": "heist_gone_wrong_explosive_escape",
     "location": "Undercity Landing Zone - Sector 7",
     "situation": "The crew's shuttle has just touched down in the undercity with the stolen void device. Alarms are shrieking, the device is leaking unstable energy, and multiple hostile forces are converging on your position. You have minutes, not hours.",
     "void_level": 7
   },
-
   "_comment_clocks": "=== TICKING TIME BOMBS ===",
   "starting_clocks": [
     {
@@ -60,7 +54,6 @@
       "regress_meaning": "thrown off trail, distracted by decoys"
     }
   ],
-
   "_comment_initial_enemies": "=== FIRST WAVE ===",
   "initial_enemies": [
     {
@@ -80,20 +73,18 @@
       "description": "Armed surveillance drone painting targets with laser designators"
     }
   ],
-
   "_design_notes": "4-person crew with complementary skills. Hacker, muscle, face, wildcard. Each has secrets, debts, or void corruption that could explode under pressure. High lethality, cinematic set-pieces, impossible choices. All stats validated against YAGS Module v1.2.2, Gear & Tech Reference v1.2.2, and weapons.py.",
-
   "agents": {
     "dm": {
-        "llm": {
-          "provider": "batch_proxy",
-          "model": "gpt-5-mini",
-          "temperature": 1.0,
-          "underlying_provider": "openai",
-          "use_proxy": true,
-          "proxy_url": "http://localhost:8000",
-          "proxy_priority": "normal"
-        }
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5-mini",
+        "temperature": 1.0,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:8000",
+        "proxy_priority": "normal"
+      }
     },
     "players": [
       {
@@ -117,13 +108,13 @@
         },
         "attributes": {
           "Strength": 2,
-          "Health": 2,
           "Agility": 4,
           "Dexterity": 3,
           "Perception": 4,
           "Intelligence": 5,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Endurance": 2
         },
         "skills": {
           "Systems": 6,
@@ -176,13 +167,13 @@
         },
         "attributes": {
           "Strength": 5,
-          "Health": 5,
           "Agility": 4,
           "Dexterity": 3,
           "Perception": 3,
           "Intelligence": 2,
           "Empathy": 2,
-          "Willpower": 4
+          "Willpower": 4,
+          "Endurance": 5
         },
         "skills": {
           "Combat": 6,
@@ -204,7 +195,10 @@
           "primary": "rifle",
           "sidearm": "shock_baton"
         },
-        "carried_weapons": ["combat_knife", "pistol"],
+        "carried_weapons": [
+          "combat_knife",
+          "pistol"
+        ],
         "inventory": {
           "rifle": 1,
           "pistol": 1,
@@ -238,13 +232,13 @@
         },
         "attributes": {
           "Strength": 2,
-          "Health": 3,
           "Agility": 3,
           "Dexterity": 3,
           "Perception": 4,
           "Intelligence": 4,
           "Empathy": 5,
-          "Willpower": 3
+          "Willpower": 3,
+          "Endurance": 3
         },
         "skills": {
           "Charm": 6,
@@ -299,13 +293,13 @@
         },
         "attributes": {
           "Strength": 3,
-          "Health": 3,
           "Agility": 5,
           "Dexterity": 4,
           "Perception": 4,
           "Intelligence": 3,
           "Empathy": 1,
-          "Willpower": 5
+          "Willpower": 5,
+          "Endurance": 3
         },
         "skills": {
           "Stealth": 6,
@@ -328,7 +322,9 @@
           "primary": "pistol",
           "sidearm": "void_blade"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "pistol": 1,
           "void_blade": 1,
@@ -344,7 +340,6 @@
       }
     ]
   },
-
   "_comment_narrative_hooks": "=== EXPLOSIVE MOMENTS TO DEVELOP ===",
   "_hooks": [
     "Cipher's betrayal - second buyer's mercenaries arrive mid-firefight",
@@ -356,6 +351,5 @@
     "Escape shuttle sabotaged - who's the rat?",
     "Final choice: Destroy device (lose payday), sell it (doom thousands), or activate it (void apocalypse)"
   ],
-
   "notes": "ACTION MOVIE SESSION - 4 specialists, 1 heist, infinite complications. High lethality, cinematic set-pieces, moral dilemmas under fire. Every character has secrets that could explode. DM: GO HARD. Multiple enemy factions, environmental hazards, ticking clocks, impossible choices. Make them EARN the escape. All stats validated against Aeonisk YAGS Module v1.2.2, Gear & Tech Reference v1.2.2, and weapons.py library."
 }
