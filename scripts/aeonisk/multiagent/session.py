@@ -993,7 +993,7 @@ Generate narratives (numbered list only):"""
                 messages_response = dm_agent.llm_provider.client.messages.create(
                     model=dm_agent.llm_provider.config.model,
                     max_tokens=800,
-                    temperature=self.llm_config.get('temperature', 1.0),
+                    temperature=dm_agent.llm_config.get('temperature', 1.0),
                     system="You are a creative writer for the Aeonisk dark sci-fi setting.",
                     messages=[{"role": "user", "content": prompt}]
                 )
@@ -3160,7 +3160,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     response = await provider.generate(
                         prompt=debrief_prompt,
                         max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                        temperature=self.llm_config.get('temperature', 1.0)
+                        temperature=player.llm_config.get('temperature', 1.0)
                     )
 
                     debrief_text = response.text.strip()

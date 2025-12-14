@@ -6,7 +6,7 @@ These models represent common game mechanics that appear in multiple contexts
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Dict, Any
 from enum import Enum
 import logging
 
@@ -183,6 +183,24 @@ class ClockUpdate(BaseModel):
     clock_name: str = Field(..., description="Exact name of clock to update")
     ticks: int = Field(..., description="Ticks to add (+) or regress (-)")
     reason: str = Field(..., min_length=5, description="Why this clock changed")
+
+
+class RollModifier(BaseModel):
+    """
+    Individual modifier applied to a roll.
+
+    Tracks the source and value of each modifier that affected a roll's total,
+    enabling ML training data analysis of penalty/bonus effects.
+
+    Examples:
+    - RollModifier(source="void_penalty", value=-2, details={"void_level": 2})
+    - RollModifier(source="condition", value=-3, details={"name": "Stunned"})
+    - RollModifier(source="altar_bonus", value=3, details={"altar_id": "alt_sanctified"})
+    - RollModifier(source="no_offering", value=-2)
+    """
+    source: str = Field(..., description="Modifier source: void_penalty, condition, altar_bonus, no_offering, situational, etc.")
+    value: int = Field(..., description="Modifier value: positive=bonus, negative=penalty")
+    details: Optional[Dict[str, Any]] = Field(None, description="Additional context: void_level, condition_name, altar_id, etc.")
 
 
 class Condition(BaseModel):

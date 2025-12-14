@@ -256,6 +256,9 @@ def _process_structured_damage_effects(
 
             # === CHECK FOR DEFEAT ===
             if target_entity.health <= 0:
+                defeat_logged = False
+                defeat_reason = None
+
                 if hasattr(target_entity, 'check_death_save'):
                     # Enemy/NPC with death saves
                     alive, status = target_entity.check_death_save()
@@ -264,11 +267,15 @@ def _process_structured_damage_effects(
                         messages.append(f"💀 **{target_name} is KILLED!**")
                         if hasattr(target_entity, 'is_active'):
                             target_entity.is_active = False
+                        defeat_reason = "killed"
+                        defeat_logged = True
                     elif status == "unconscious":
                         logger_instance.info(f"{target_name} knocked unconscious!")
                         messages.append(f"😵 **{target_name} is knocked unconscious!**")
                         if hasattr(target_entity, 'is_active'):
                             target_entity.is_active = False
+                        defeat_reason = "unconscious"
+                        defeat_logged = True
                     else:
                         logger_instance.info(f"{target_name} critically wounded but conscious!")
                         messages.append(f"⚠️ **{target_name} is critically wounded!**")
@@ -278,6 +285,24 @@ def _process_structured_damage_effects(
                     messages.append(f"💀 **{target_name} is defeated!**")
                     if hasattr(target_entity, 'is_active'):
                         target_entity.is_active = False
+                    defeat_reason = "killed"
+                    defeat_logged = True
+
+                # Log enemy defeat event for ML training (only for actual enemies, not PCs)
+                if defeat_logged and mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
+                    if hasattr(target_entity, 'agent_id') and hasattr(target_entity, 'spawned_round'):
+                        # Calculate rounds survived
+                        rounds_survived = current_round - target_entity.spawned_round if target_entity.spawned_round else 0
+                        mechanics.jsonl_logger.log_enemy_defeat(
+                            round_num=current_round,
+                            enemy_id=target_entity.agent_id,
+                            enemy_name=target_name,
+                            defeat_reason=defeat_reason,
+                            rounds_survived=rounds_survived,
+                            killer_id=attacker_id,
+                            killer_name=attacker_name,
+                            final_damage=damage_after_barriers
+                        )
 
             # === LOG COMBAT ACTION (ML TRAINING) ===
             if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
@@ -5049,9 +5074,33 @@ The following actions ALREADY resolved (faster initiative):
                                     "status": "active" if target_entity.health > 0 else "defeated"
                                 }
 
-                                # Get weapon from action intent or default
+                                # Get weapon from player's equipped_weapons (preferred) or fallback to intent
                                 weapon_name = "Unknown Weapon"
-                                if action.get('intent'):
+
+                                # Try to get weapon from player agent's equipped_weapons
+                                player_agent_id = action.get('agent_id')
+                                if player_agent_id and self.shared_state:
+                                    # Look up player agent
+                                    for player in getattr(self.shared_state, 'player_agents', []):
+                                        if hasattr(player, 'agent_id') and player.agent_id == player_agent_id:
+                                            # Check equipped weapons
+                                            if hasattr(player, 'equipped_weapons'):
+                                                primary = player.equipped_weapons.get('primary')
+                                                sidearm = player.equipped_weapons.get('sidearm')
+                                                # Use skill to determine which weapon
+                                                skill = action.get('skill', '').lower()
+                                                if skill in ['guns', 'throw'] and primary:
+                                                    weapon_name = primary.name
+                                                elif skill in ['melee', 'brawl'] and sidearm:
+                                                    weapon_name = sidearm.name
+                                                elif primary:
+                                                    weapon_name = primary.name
+                                                elif sidearm:
+                                                    weapon_name = sidearm.name
+                                            break
+
+                                # Fallback to intent-based guessing if no equipped weapon found
+                                if weapon_name == "Unknown Weapon" and action.get('intent'):
                                     intent_lower = action['intent'].lower()
                                     if 'rifle' in intent_lower or 'gun' in intent_lower:
                                         weapon_name = "Firearm"

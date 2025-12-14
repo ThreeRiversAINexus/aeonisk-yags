@@ -1,0 +1,466 @@
+{
+  "generated": "2025-12-13T23:58:24.044462",
+  "session_count": 240,
+  "analyzers": {
+    "economy": {
+      "event_count": 6445,
+      "metrics": {
+        "void": {},
+        "void_by_faction": {},
+        "void_by_reason": [],
+        "soulcredit": {},
+        "purchases": {
+          "total_attempts": 597,
+          "successes": 446,
+          "failures": 151,
+          "success_rate": 74.7
+        },
+        "failure_reasons": [
+          {
+            "reason": "Soulcredit too low for vending machine (need \u2265-2, have -5)",
+            "count": 45,
+            "percentage": 29.8
+          },
+          {
+            "reason": "Insufficient currency: need 8 Drip",
+            "count": 13,
+            "percentage": 8.6
+          },
+          {
+            "reason": "Insufficient currency: need 2 Drip",
+            "count": 13,
+            "percentage": 8.6
+          },
+          {
+            "reason": "Insufficient currency: need 10 Drip",
+            "count": 12,
+            "percentage": 7.9
+          },
+          {
+            "reason": "Insufficient currency: need 4 Drip",
+            "count": 11,
+            "percentage": 7.3
+          },
+          {
+            "reason": "Insufficient currency: need 1 Grain",
+            "count": 8,
+            "percentage": 5.3
+          },
+          {
+            "reason": "Insufficient currency: need 12 Drip",
+            "count": 7,
+            "percentage": 4.6
+          },
+          {
+            "reason": "Insufficient currency: need 3 Drip",
+            "count": 7,
+            "percentage": 4.6
+          },
+          {
+            "reason": "Insufficient currency: need 6 Drip",
+            "count": 6,
+            "percentage": 4.0
+          },
+          {
+            "reason": "Insufficient currency: need 1 Drip",
+            "count": 4,
+            "percentage": 2.6
+          }
+        ],
+        "currency": {
+          "total_spent": {
+            "breath": 0,
+            "grain": 231,
+            "drip": 3644,
+            "spark": 0,
+            "hollow": 0
+          },
+          "total_all": 3875,
+          "avg_held": {
+            "breath": 50.3,
+            "grain": 14.6,
+            "drip": 18.3,
+            "spark": 2.1
+          }
+        },
+        "currency_breakdown": [
+          {
+            "currency": "drip",
+            "spent": 3644,
+            "percentage": 94.0
+          },
+          {
+            "currency": "grain",
+            "spent": 231,
+            "percentage": 6.0
+          }
+        ],
+        "items_purchased": [
+          {
+            "item": "Ritual Components (Basic)",
+            "count": 139,
+            "total_cost": {
+              "drip": 556
+            }
+          },
+          {
+            "item": "Echo-Calibrator Rental",
+            "count": 117,
+            "total_cost": {
+              "grain": 117,
+              "drip": 1170
+            }
+          },
+          {
+            "item": "Ritual Components (Premium)",
+            "count": 69,
+            "total_cost": {
+              "grain": 69,
+              "drip": 828
+            }
+          },
+          {
+            "item": "Energy Cell",
+            "count": 45,
+            "total_cost": {
+              "drip": 360
+            }
+          },
+          {
+            "item": "Data Slate (Blank)",
+            "count": 33,
+            "total_cost": {
+              "drip": 330
+            }
+          },
+          {
+            "item": "Med Supplies (Advanced)",
+            "count": 22,
+            "total_cost": {
+              "grain": 44,
+              "drip": 330
+            }
+          },
+          {
+            "item": "Nexus Ration Pack",
+            "count": 8,
+            "total_cost": {
+              "drip": 24
+            }
+          },
+          {
+            "item": "First Aid Bandages",
+            "count": 7,
+            "total_cost": {
+              "drip": 14
+            }
+          },
+          {
+            "item": "Health Kit",
+            "count": 3,
+            "total_cost": {
+              "drip": 15
+            }
+          },
+          {
+            "item": "Flashlight",
+            "count": 1,
+            "total_cost": {
+              "drip": 5
+            }
+          },
+          {
+            "item": "Med Kit",
+            "count": 1,
+            "total_cost": {}
+          },
+          {
+            "item": "Emergency Beacon",
+            "count": 1,
+            "total_cost": {
+              "grain": 1,
+              "drip": 12
+            }
+          }
+        ],
+        "items_failed": [
+          {
+            "item": "Energy Cell",
+            "failed_attempts": 40
+          },
+          {
+            "item": "Echo-Calibrator Rental",
+            "failed_attempts": 30
+          },
+          {
+            "item": "Data Slate (Blank)",
+            "failed_attempts": 25
+          },
+          {
+            "item": "Ritual Components (Premium)",
+            "failed_attempts": 18
+          },
+          {
+            "item": "Med Supplies (Advanced)",
+            "failed_attempts": 15
+          },
+          {
+            "item": "Nexus Ration Pack",
+            "failed_attempts": 10
+          },
+          {
+            "item": "Ritual Components (Basic)",
+            "failed_attempts": 4
+          },
+          {
+            "item": "Health Kit",
+            "failed_attempts": 3
+          },
+          {
+            "item": "",
+            "failed_attempts": 3
+          },
+          {
+            "item": "Med Kit (Basic)",
+            "failed_attempts": 2
+          }
+        ],
+        "vendor_stats": [
+          {
+            "vendor": "Kael Voss (Independent Merchant)",
+            "attempts": 380,
+            "successes": 325,
+            "success_rate": 85.5
+          },
+          {
+            "vendor": "S4CU Nexus Vending Terminal",
+            "attempts": 204,
+            "successes": 111,
+            "success_rate": 54.4
+          },
+          {
+            "vendor": "SD-7 Supply Drone",
+            "attempts": 9,
+            "successes": 9,
+            "success_rate": 100.0
+          },
+          {
+            "vendor": "S4CU Vending Node (Supplies)",
+            "attempts": 3,
+            "successes": 0,
+            "success_rate": 0.0
+          },
+          {
+            "vendor": "Emergency Supply Cache (Pantheon)",
+            "attempts": 1,
+            "successes": 1,
+            "success_rate": 100.0
+          }
+        ],
+        "character_summaries": [
+          {
+            "character": "Desperate Vex",
+            "void_start": 3,
+            "void_end": 2,
+            "void_delta": -1,
+            "void_max": 7,
+            "soulcredit_start": -5,
+            "soulcredit_end": -9,
+            "soulcredit_delta": -4
+          },
+          {
+            "character": "Debt-Burdened Sael",
+            "void_start": 2,
+            "void_end": 7,
+            "void_delta": 5,
+            "void_max": 9,
+            "soulcredit_start": -5,
+            "soulcredit_end": 3,
+            "soulcredit_delta": 8
+          },
+          {
+            "character": "Grifter Kael",
+            "void_start": 1,
+            "void_end": 2,
+            "void_delta": 1,
+            "void_max": 6,
+            "soulcredit_start": -4,
+            "soulcredit_end": -9,
+            "soulcredit_delta": -5
+          },
+          {
+            "character": "ACG Security Enforcer #1",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "ACG Security Enforcer #2",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "ACG Security Scanner",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Tempest Corp Security Enforcer #1",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Tempest Corp Security Enforcer #2",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Tempest Maintenance Maintenance Drone #1",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Tempest Maintenance Maintenance Drone #2",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Sera Vex",
+            "void_start": 1,
+            "void_end": 2,
+            "void_delta": 1,
+            "void_max": 4,
+            "soulcredit_start": -5,
+            "soulcredit_end": -5,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Jace Kordell",
+            "void_start": 2,
+            "void_end": 2,
+            "void_delta": 0,
+            "void_max": 7,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Ryn Thrace",
+            "void_start": 1,
+            "void_end": 2,
+            "void_delta": 1,
+            "void_max": 3,
+            "soulcredit_start": 4,
+            "soulcredit_end": 4,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Mira Solis",
+            "void_start": 3,
+            "void_end": 3,
+            "void_delta": 0,
+            "void_max": 8,
+            "soulcredit_start": 4,
+            "soulcredit_end": 3,
+            "soulcredit_delta": -1
+          },
+          {
+            "character": "Cipher",
+            "void_start": 4,
+            "void_end": 6,
+            "void_delta": 2,
+            "void_max": 8,
+            "soulcredit_start": -7,
+            "soulcredit_end": -10,
+            "soulcredit_delta": -3
+          },
+          {
+            "character": "Breaker",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 7,
+            "soulcredit_start": -8,
+            "soulcredit_end": -10,
+            "soulcredit_delta": -2
+          },
+          {
+            "character": "Silvertongue",
+            "void_start": 1,
+            "void_end": 1,
+            "void_delta": 0,
+            "void_max": 4,
+            "soulcredit_start": 3,
+            "soulcredit_end": -1,
+            "soulcredit_delta": -4
+          },
+          {
+            "character": "Ghost",
+            "void_start": 4,
+            "void_end": 0,
+            "void_delta": -4,
+            "void_max": 10,
+            "soulcredit_start": -10,
+            "soulcredit_end": -6,
+            "soulcredit_delta": 4
+          },
+          {
+            "character": "Hostile Pantheon Advance Squad #1",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          },
+          {
+            "character": "Hostile Pantheon Advance Squad #2",
+            "void_start": 0,
+            "void_end": 0,
+            "void_delta": 0,
+            "void_max": 0,
+            "soulcredit_start": 0,
+            "soulcredit_end": 0,
+            "soulcredit_delta": 0
+          }
+        ]
+      },
+      "warnings": []
+    }
+  }
+}

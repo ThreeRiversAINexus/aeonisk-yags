@@ -118,6 +118,11 @@ class SkillsAnalyzer(BaseAnalyzer):
         if not roll:
             return
 
+        # Skip NPC actions (flee, hide, plead, etc.) that don't have actual skill checks
+        # These have roll dict but attr/skill/d20 are all None
+        if roll.get("attr") is None:
+            return
+
         self._event_count += 1
 
         # Extract roll data

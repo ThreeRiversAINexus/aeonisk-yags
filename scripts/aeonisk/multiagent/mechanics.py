@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from .constants import YAGS_ATTRIBUTES
+from .schemas.shared_types import RollModifier
 
 logger = logging.getLogger(__name__)
 
@@ -423,6 +424,11 @@ class JSONLLogger:
             }
 
         # Build roll dict with defensive attribute access (handles both old dataclass and new Pydantic schema)
+        # Extract modifiers for ML training data
+        modifiers_applied = getattr(resolution, 'modifiers_applied', [])
+        modifiers_list = [m.model_dump() if hasattr(m, 'model_dump') else {"source": m.source, "value": m.value, "details": m.details} for m in modifiers_applied]
+        modifier_total = sum(m.value for m in modifiers_applied) if modifiers_applied else 0
+
         roll_dict = {
             "attr": getattr(resolution, 'attribute', None),
             "attr_val": attribute_value,
@@ -430,6 +436,8 @@ class JSONLLogger:
             "skill_val": skill_value,
             "ability": ability,
             "d20": getattr(resolution, 'roll', None),
+            "modifiers": modifiers_list if modifiers_list else None,  # List of applied modifiers for ML training
+            "modifier_total": modifier_total if modifiers_list else None,  # Sum of all modifiers
             "total": getattr(resolution, 'total', None),
             "dc": getattr(resolution, 'difficulty', None),
             "margin": getattr(resolution, 'margin', 0),
@@ -1020,7 +1028,10 @@ class JSONLLogger:
         enemy_id: str,
         enemy_name: str,
         defeat_reason: str,
-        rounds_survived: int
+        rounds_survived: int,
+        killer_id: str = None,
+        killer_name: str = None,
+        final_damage: int = None
     ):
         """
         Log enemy defeat/removal.
@@ -1029,8 +1040,11 @@ class JSONLLogger:
             round_num: Current round
             enemy_id: Enemy agent ID
             enemy_name: Display name
-            defeat_reason: Reason for defeat (killed, retreated, despawned, escaped)
+            defeat_reason: Reason for defeat (killed, retreated, despawned, escaped, fled, subdued, convinced)
             rounds_survived: Number of rounds enemy was active
+            killer_id: ID of agent who dealt killing blow (for killed defeats)
+            killer_name: Name of agent who dealt killing blow
+            final_damage: Damage from killing blow
         """
         event = {
             "event_type": "enemy_defeat",
@@ -1042,6 +1056,13 @@ class JSONLLogger:
             "defeat_reason": defeat_reason,
             "rounds_survived": rounds_survived
         }
+        # Add optional killer info for combat kills
+        if killer_id:
+            event["killer_id"] = killer_id
+        if killer_name:
+            event["killer_name"] = killer_name
+        if final_damage is not None:
+            event["final_damage"] = final_damage
         self._write_event(event)
 
     def log_npc_departure(
@@ -1616,6 +1637,7 @@ class ActionResolution:
     success: bool
     narrative: str
     state_effects: Dict[str, Any] = field(default_factory=dict)
+    modifiers_applied: List[RollModifier] = field(default_factory=list)  # Roll modifiers for ML logging
 
 
 @dataclass
@@ -2009,14 +2031,20 @@ class MechanicsEngine:
         Returns:
             ActionResolution with full results
         """
-        # Apply condition penalties
+        # Apply condition penalties and collect modifiers for logging
         if modifiers is None:
             modifiers = {}
+        modifiers_applied: List[RollModifier] = []
 
         if agent_id and agent_id in self.conditions:
             for condition in self.conditions[agent_id]:
                 if condition.applies_to(attribute, skill):
                     modifiers[condition.name] = condition.penalty
+                    modifiers_applied.append(RollModifier(
+                        source="condition",
+                        value=condition.penalty,
+                        details={"name": condition.name}
+                    ))
                     logger.debug(f"Applied condition {condition.name}: {condition.penalty}")
 
         # Roll d20
@@ -2040,7 +2068,7 @@ class MechanicsEngine:
             assert base_total == ability + roll, \
                 f"Math error (unskilled): {attribute_value}×4+{roll} should be {ability}+{roll}={ability+roll}, got {base_total}"
 
-        # Apply modifiers
+        # Apply modifiers and collect non-condition modifiers for logging
         total = base_total
         modifier_sum = 0
         if modifiers:
@@ -2048,6 +2076,13 @@ class MechanicsEngine:
                 total += mod_value
                 modifier_sum += mod_value
                 logger.debug(f"Applied modifier {mod_name}: {mod_value:+d}")
+                # Add to modifiers_applied if not already added as a condition
+                if not any(m.details and m.details.get("name") == mod_name for m in modifiers_applied):
+                    modifiers_applied.append(RollModifier(
+                        source=mod_name.lower().replace(" ", "_"),
+                        value=mod_value,
+                        details=None
+                    ))
 
         # Math verification: ensure modifiers applied correctly
         expected_total = base_total + modifier_sum
@@ -2072,7 +2107,8 @@ class MechanicsEngine:
             margin=margin,
             outcome_tier=outcome_tier,
             success=success,
-            narrative=self._generate_narrative(intent, outcome_tier, margin)
+            narrative=self._generate_narrative(intent, outcome_tier, margin),
+            modifiers_applied=modifiers_applied
         )
 
         self.action_history.append(resolution)
