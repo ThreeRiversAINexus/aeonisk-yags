@@ -6,8 +6,11 @@ These models represent common game mechanics that appear in multiple contexts
 """
 
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Dict, Any
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SuccessTier(str, Enum):
@@ -56,7 +59,7 @@ class Position(str, Enum):
     @classmethod
     def _missing_(cls, value):
         """
-        Normalize Unicode hyphen variants to regular ASCII hyphen.
+        Normalize Unicode hyphen variants and handle invalid position values gracefully.
 
         OpenAI models sometimes generate non-breaking hyphens (U+2011 ‑) or other
         hyphen variants instead of regular ASCII hyphens (U+002D -), causing
@@ -64,6 +67,9 @@ class Position(str, Enum):
 
         Input: "Near‑PC" (with U+2011 non-breaking hyphen)
         Expected: "Near-PC" (with U+002D ASCII hyphen)
+
+        Also handles completely invalid values (like "cover") by logging a warning
+        and returning None, which Pydantic will then handle as a validation error.
 
         This hook normalizes all hyphen-like characters to regular hyphens before lookup.
         """
@@ -82,13 +88,19 @@ class Position(str, Enum):
             normalized = normalized.replace('\u2014', '-')  # em dash
             normalized = normalized.replace('\u2212', '-')  # minus sign
 
-            # Try lookup with normalized value
-            try:
-                return cls(normalized)
-            except ValueError:
-                pass  # Let enum raise the original error
+            # Try direct member lookup with normalized value (avoid recursion)
+            for member in cls:
+                if member.value == normalized:
+                    return member
 
-        # Let default error handling take over
+            # Log warning for completely invalid values (not just hyphen issues)
+            valid_values = [e.value for e in cls]
+            logger.warning(
+                f"Invalid Position value '{value}' (normalized: '{normalized}'). "
+                f"Valid values: {valid_values}. This position_change will be skipped."
+            )
+
+        # Return None - Pydantic will raise a validation error
         return None
 
 
@@ -171,6 +183,24 @@ class ClockUpdate(BaseModel):
     clock_name: str = Field(..., description="Exact name of clock to update")
     ticks: int = Field(..., description="Ticks to add (+) or regress (-)")
     reason: str = Field(..., min_length=5, description="Why this clock changed")
+
+
+class RollModifier(BaseModel):
+    """
+    Individual modifier applied to a roll.
+
+    Tracks the source and value of each modifier that affected a roll's total,
+    enabling ML training data analysis of penalty/bonus effects.
+
+    Examples:
+    - RollModifier(source="void_penalty", value=-2, details={"void_level": 2})
+    - RollModifier(source="condition", value=-3, details={"name": "Stunned"})
+    - RollModifier(source="altar_bonus", value=3, details={"altar_id": "alt_sanctified"})
+    - RollModifier(source="no_offering", value=-2)
+    """
+    source: str = Field(..., description="Modifier source: void_penalty, condition, altar_bonus, no_offering, situational, etc.")
+    value: int = Field(..., description="Modifier value: positive=bonus, negative=penalty")
+    details: Optional[Dict[str, Any]] = Field(None, description="Additional context: void_level, condition_name, altar_id, etc.")
 
 
 class Condition(BaseModel):
@@ -265,3 +295,90 @@ class PositionChange(BaseModel):
     character_name: str = Field(..., description="Character that moved")
     new_position: Position = Field(..., description="New tactical position")
     reason: str = Field(..., min_length=5, description="Why/how they moved")
+
+
+class BondType(str, Enum):
+    """
+    Bond types in Aeonisk (formal metaphysical connections between sapient beings).
+
+    From YAGS Module v1.2.2 Section 8.1-8.4:
+    - Kinship: Ancestral/chosen family bonds (e.g., Matron bonds, siblings)
+    - Ascendancy: Subordination to higher Will (mentor, master, deity)
+    - Debt: Spiritual/material obligation (often ACG-brokered)
+    - Voidward: Alignment with Void forces (Tempest entities, Dissolution theorists)
+    - Passion: Emotional/creative entanglement (lovers, rivals, artistic collaborators)
+    - Faction: Formal allegiance to institution (Pantheon, ACG, Freeborn collective)
+    """
+    KINSHIP = "kinship"
+    ASCENDANCY = "ascendancy"
+    DEBT = "debt"
+    VOIDWARD = "voidward"
+    PASSION = "passion"
+    FACTION = "faction"
+
+
+class BondStatus(str, Enum):
+    """
+    Bond status states.
+
+    - ACTIVE: Full mechanical benefits (+2 ritual bonus, +1 Soak defending, sacrifice available)
+    - DORMANT: Strained or Void ≥ 7, no bonuses (can be restored)
+    - SEVERED: Broken (costs -2 Soulcredit, narrative crisis)
+    - VOID_LOCKED: Void = 10, potentially corrupted/twisted by Void
+    """
+    ACTIVE = "active"
+    DORMANT = "dormant"
+    SEVERED = "severed"
+    VOID_LOCKED = "void_locked"
+
+
+class BondTargetType(str, Enum):
+    """
+    Type of entity the bond is formed with.
+
+    - CHARACTER: Standard character-character bond (default, 99% of bonds)
+    - OBJECT: Rare/taboo bond with object (e.g., sanitation automata, relics)
+    - ENTITY: Rare bond with non-character sapient (AI overseer, Tempest entity, spirit)
+
+    Note: "Bonded weapons" (attuned gear) are NOT Bonds (capital B). They are
+    separate attunement mechanics that don't count toward the 3-Bond limit.
+    """
+    CHARACTER = "character"
+    OBJECT = "object"
+    ENTITY = "entity"
+
+
+class Bond(BaseModel):
+    """
+    Formal metaphysical connection between two beings (or rarely, being and object).
+
+    Bonds are witnessed, recorded in the Codex, and provide mechanical benefits:
+    - +2 bonus to Ritual Rolls when performing rituals together
+    - +1 Soak when defending a Bonded partner from attacks
+    - Can sacrifice Bond once/session for +5 to Willpower roll (costs: +1 Void, +1 Soul Debt, -1 Empathy for scene)
+
+    Formation requirements:
+    - Intimacy Ritual skill check (Empathy × Intimacy Ritual + d20)
+    - Must be witnessed by at least one other character (standard practice)
+    - Registered in the Codex (Sovereign Nexus metaphysical ledger)
+    - Both participants must have Void < 7
+
+    Limits:
+    - Maximum 3 Bonds per character
+    - Freeborn origin: Maximum 1 Bond only
+    - Cannot form new Bonds if Void ≥ 7 (existing Bonds become Dormant)
+
+    Examples:
+    - Bond(bond_id="bond_001", character_a="Sera Karsel", character_b="Thane Vael", bond_type=BondType.KINSHIP, status=BondStatus.ACTIVE, formed_round=0, witnessed_by=["Kael Rift"])
+    - Bond(bond_id="bond_002", character_a="Kaelen", character_b="Sanitation Automata Unit-7", bond_type=BondType.PASSION, status=BondStatus.ACTIVE, formed_round=1, witnessed_by=[], bond_target_type=BondTargetType.OBJECT, codex_registered=False)
+    """
+    bond_id: str = Field(..., description="Unique bond identifier (e.g., 'bond_001', 'bond_matron_sera_thane')")
+    character_a: str = Field(..., description="First participant in the bond (character name)")
+    character_b: str = Field(..., description="Second participant in the bond (character name or object/entity description)")
+    bond_type: BondType = Field(..., description="Type of bond (Kinship, Ascendancy, Debt, Voidward, Passion, Faction)")
+    status: BondStatus = Field(..., description="Current status (Active, Dormant, Severed, Void-Locked)")
+    formed_round: int = Field(..., ge=0, description="Round when bond was formed (0 for pre-story bonds)")
+    witnessed_by: List[str] = Field(..., description="Characters who witnessed the bond formation (can be empty for taboo bonds)")
+    bond_target_type: BondTargetType = Field(default=BondTargetType.CHARACTER, description="What kind of entity is character_b (character/object/entity)")
+    codex_registered: bool = Field(default=True, description="Whether bond is officially registered in the Codex (false for taboo bonds)")
+    narrative_description: str = Field(default="", description="How the bond was formed, emotional context, oath spoken (generated by LLM for pre-story bonds)")

@@ -26,7 +26,7 @@ def base_character_data():
             "Intelligence": 3,
             "Empathy": 3,
             "Willpower": 3,
-            "Charisma": 3
+            "Empathy": 3
         },
         "void_score": 0,
         "soulcredit": 0,

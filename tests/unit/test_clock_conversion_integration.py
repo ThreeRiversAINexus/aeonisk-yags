@@ -56,12 +56,12 @@ class TestClockUpdateTiming:
 
         # Verify update was applied
         assert "Security Response" in updates
-        assert updates["Security Response"][0]['new_value'] == 3
+        assert updates["Security Response"]['after'] == 3
 
         # Verify conversion check can now see updated clock state
-        clock = mechanics_with_clocks.get_clock("Security Response")
-        assert clock['current_ticks'] == 3
-        assert clock['max_ticks'] == 6
+        clock = mechanics_with_clocks.scene_clocks["Security Response"]
+        assert clock.current == 3
+        assert clock.maximum == 6
 
     def test_filled_clocks_flagged(self, mechanics_with_clocks):
         """Verify filled clocks get 'filled' flag set."""
@@ -73,13 +73,15 @@ class TestClockUpdateTiming:
         )
 
         # Apply updates
-        mechanics_with_clocks.apply_queued_clock_updates()
+        updates = mechanics_with_clocks.apply_queued_clock_updates()
 
-        # Check filled flag
-        clock = mechanics_with_clocks.get_clock("Escape Route Found")
-        assert clock['filled'] is True
-        assert clock['current_ticks'] == 4
-        assert clock['max_ticks'] == 4
+        # Check filled flag (in the update result)
+        assert updates["Escape Route Found"]['filled'] is True
+
+        # Verify clock state
+        clock = mechanics_with_clocks.scene_clocks["Escape Route Found"]
+        assert clock.current == 4
+        assert clock.maximum == 4
 
     def test_critical_clocks_not_marked_filled(self, mechanics_with_clocks):
         """Verify critical clocks (80%+) are NOT marked filled unless they actually fill."""
@@ -91,13 +93,15 @@ class TestClockUpdateTiming:
         )
 
         # Apply updates
-        mechanics_with_clocks.apply_queued_clock_updates()
+        updates = mechanics_with_clocks.apply_queued_clock_updates()
 
-        # Check NOT filled
-        clock = mechanics_with_clocks.get_clock("Security Response")
-        assert clock.get('filled', False) is False
-        assert clock['current_ticks'] == 5
-        assert clock['max_ticks'] == 6
+        # Check NOT filled (in update result)
+        assert updates["Security Response"]['filled'] is False
+
+        # Verify clock state
+        clock = mechanics_with_clocks.scene_clocks["Security Response"]
+        assert clock.current == 5
+        assert clock.maximum == 6
 
         # Calculate percent for testing marker logic
         percent = int((5 / 6) * 100)
@@ -109,14 +113,18 @@ class TestClockUpdateTiming:
         # Fill both clocks
         mechanics_with_clocks.queue_clock_update("Security Response", 6, "Alarm")
         mechanics_with_clocks.queue_clock_update("Escape Route Found", 4, "Navigation")
-        mechanics_with_clocks.apply_queued_clock_updates()
+        updates = mechanics_with_clocks.apply_queued_clock_updates()
 
-        # Both should be filled
-        security_clock = mechanics_with_clocks.get_clock("Security Response")
-        escape_clock = mechanics_with_clocks.get_clock("Escape Route Found")
+        # Both should be filled (check update results)
+        assert updates["Security Response"]['filled'] is True
+        assert updates["Escape Route Found"]['filled'] is True
 
-        assert security_clock['filled'] is True
-        assert escape_clock['filled'] is True
+        # Verify clock states
+        security_clock = mechanics_with_clocks.scene_clocks["Security Response"]
+        escape_clock = mechanics_with_clocks.scene_clocks["Escape Route Found"]
+
+        assert security_clock.current == 6
+        assert escape_clock.current == 4
 
 
 # NOTE: Integration tests for DM conversion check seeing filled clocks

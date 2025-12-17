@@ -24,6 +24,7 @@ from .enemy_spawner import (
     suggest_loot
 )
 from .enemy_prompts import generate_tactical_prompt
+from .awareness import filter_narrations_for_agent, NarrationEntry
 from .prompt_loader import compose_sections
 from .tactical_resolution import (
     ResolutionState,
@@ -154,6 +155,48 @@ class EnemyCombatManager:
         # LLM Provider for structured output - initialized later from session config
         self.llm_provider = None
 
+    def _get_agent_name(self, agent: Any, fallback_id: str) -> str:
+        """
+        Extract name from agent, handling both enemy and player agent structures.
+
+        - Enemy agents have .name directly
+        - Player agents have .character_state.name
+
+        Args:
+            agent: Agent object (enemy or player)
+            fallback_id: ID to return if name cannot be extracted
+
+        Returns:
+            Character name or fallback_id
+        """
+        # Try direct .name (enemy agents)
+        if hasattr(agent, 'name') and agent.name:
+            return agent.name
+
+        # Try .character_state.name (player agents)
+        if hasattr(agent, 'character_state'):
+            char_state = agent.character_state
+            if hasattr(char_state, 'name') and char_state.name:
+                return char_state.name
+
+        # Fallback to ID
+        return str(fallback_id)
+
+    def _get_agent_id(self, agent: Any, fallback_id: str) -> str:
+        """
+        Extract agent_id from agent object.
+
+        Args:
+            agent: Agent object (enemy or player)
+            fallback_id: ID to return if agent_id cannot be extracted
+
+        Returns:
+            Agent ID or fallback_id
+        """
+        if hasattr(agent, 'agent_id') and agent.agent_id:
+            return agent.agent_id
+        return str(fallback_id)
+
     def initialize(self, session_config: Dict[str, Any]):
         """
         Initialize from session configuration.
@@ -185,7 +228,7 @@ class EnemyCombatManager:
                         provider=provider,
                         model=model,
                         max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                        temperature=0.7  # Enemy agents use fixed temp for consistency
+                        temperature=llm_config.get('temperature', 1.0)  # Enemy agents use fixed temp for consistency
                     )
                     self.llm_provider = create_provider(config)
                     logger.debug(f"EnemyCombatManager: Structured output provider initialized ({provider}:{model})")
@@ -504,12 +547,19 @@ class EnemyCombatManager:
         # Generate tactical prompt
         from .enemy_prompts import generate_tactical_prompt
 
-        # Collect recent action narrations from player agents
+        # Collect recent action narrations from player agents (filtered by awareness)
         recent_narrations = []
         for player_agent in player_agents:
             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                # Get ALL narrations from this player (not just last 3)
-                recent_narrations.extend(player_agent.recent_narrations)
+                # Filter narrations based on what this enemy can see
+                visible_narrations = filter_narrations_for_agent(
+                    enemy.agent_id,
+                    player_agent.recent_narrations
+                )
+                # Convert NarrationEntry to text for prompt
+                for narration in visible_narrations:
+                    narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
+                    recent_narrations.append(narration_text)
 
         prompt = generate_tactical_prompt(
             enemy=enemy,
@@ -527,7 +577,7 @@ class EnemyCombatManager:
         try:
             response = await llm_client.generate_async(
                 prompt=prompt,
-                temperature=0.7,
+                temperature=1.0,
                 max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
             )
             declaration_text = response.get('content', '')
@@ -595,7 +645,7 @@ class EnemyCombatManager:
                 result_type=EnemyDecision,
                 system_prompt=system_prompt,
                 max_tokens=4000,  # Matches DM/player defaults, prevents OpenAI token limit errors
-                temperature=0.7
+                temperature=1.0
             )
 
             # Log the raw decision object for debugging
@@ -721,7 +771,7 @@ class EnemyCombatManager:
 
                     response = await llm_client.generate_async(
                         prompt=legacy_prompt,
-                        temperature=0.7,
+                        temperature=1.0,
                         max_tokens=4000  # Matches DM/player defaults, prevents OpenAI token limit errors
                     )
                     declaration_text = response.get('content', '')
@@ -1116,11 +1166,11 @@ class EnemyCombatManager:
                 }
 
             mechanics_engine.jsonl_logger.log_combat_action(
-                round_num=self.current_round,
+                round_num=mechanics_engine.current_round if mechanics_engine else self.current_round,
                 attacker_id=enemy.agent_id,
                 attacker_name=enemy.name,
-                defender_id=target_id,
-                defender_name=target.name if hasattr(target, 'name') else str(target_id),
+                defender_id=self._get_agent_id(target, target_id),
+                defender_name=self._get_agent_name(target, target_id),
                 weapon=weapon.name,
                 attack_roll=attack_roll_data,
                 damage_roll=damage_roll_data,

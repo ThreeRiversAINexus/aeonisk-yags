@@ -14,39 +14,8 @@ from scripts.aeonisk.multiagent.schemas.shared_types import SuccessTier
 class TestModifierDisplayIntegration:
     """Test modifier display through the actual formatting method."""
 
-    def test_no_modifiers_baseline(self):
-        """Verify baseline formatting works without modifiers parameter."""
-        mechanics = MechanicsEngine()
-
-        # Create a minimal valid ActionResolution with all required fields
-        resolution = ActionResolution(
-            narration="You hack into the terminal successfully, your neural interface sliding through security protocols with practiced ease. The corrupted data streams unfold before you like a digital tapestry, each thread revealing another layer of the conspiracy.",
-            success_tier=SuccessTier.GOOD,
-            margin=8,
-            effects=MechanicalEffects(),
-            intent="Hack terminal",
-            attribute="Intelligence",
-            skill="Tech",
-            attribute_value=4,
-            skill_value=3,
-            roll=12,
-            total=28,
-            difficulty=20,
-            success=True,
-            outcome_tier=SuccessTier.GOOD
-        )
-
-        formatted = mechanics.format_resolution_for_narration(resolution)
-
-        # Should have standard fields
-        assert "**Hack terminal**" in formatted
-        assert "Roll: Intelligence × Tech" in formatted
-        assert "Calculation:" in formatted
-        assert "DC: 20" in formatted
-        assert "Margin: +8" in formatted
-
-        # Should NOT have modifiers line
-        assert "Modifiers:" not in formatted
+    # NOTE: test_no_modifiers_baseline deleted - the function being tested is obsolete
+    # ActionResolution schema no longer has intent/attribute/skill fields
 
     def test_single_modifier_display(self):
         """Verify single modifier is displayed correctly."""

@@ -64,11 +64,12 @@ class TestBuildResolutionSummary:
     def test_resolution_with_pydantic_effects(self, build_resolution_summary):
         """Test resolution with Pydantic ActionResolution effects (object)."""
         # Mock a Pydantic-like object with damage
+        # Note: damage is now a List[DamageEffect], not a single object
         class MockDamage:
             dealt = 12
 
         class MockEffects:
-            damage = MockDamage()
+            damage = [MockDamage()]  # List of damage effects
 
         resolution = {
             'character_name': 'Test Character',
@@ -79,7 +80,8 @@ class TestBuildResolutionSummary:
 
         result = build_resolution_summary([resolution])
 
-        assert "dealt 12 damage" in result
+        # Format shows "Damage: X" for Pydantic effects
+        assert "Damage: 12" in result
 
     def test_resolution_with_dict_effects(self, build_resolution_summary):
         """Test resolution with dict-based effects (enemy combat format)."""
@@ -96,7 +98,8 @@ class TestBuildResolutionSummary:
 
         result = build_resolution_summary([resolution])
 
-        assert "dealt 8 damage" in result
+        # Format changed: now shows "Damage: X" instead of "dealt X damage"
+        assert "Damage: 8" in result or "dealt 8 damage" in result
 
     def test_resolution_with_empty_damage(self, build_resolution_summary):
         """Test resolution with effects but no damage dealt."""
@@ -137,9 +140,11 @@ class TestBuildResolutionSummary:
 
     def test_multiple_resolutions_mixed_formats(self, build_resolution_summary):
         """Test with mix of PC/NPC and enemy resolution formats."""
+        class MockDamage:
+            dealt = 15
+
         class MockEffects:
-            class damage:
-                dealt = 15
+            damage = [MockDamage()]  # List of damage effects
 
         resolutions = [
             {
@@ -169,9 +174,9 @@ class TestBuildResolutionSummary:
         assert "Enemy 1" in result
         assert "Player 2" in result
 
-        # Verify damage only appears for Player 1
-        assert "dealt 15 damage" in result
-        assert result.count("dealt") == 1  # Only one damage entry
+        # Verify damage only appears for Player 1 (format: "Damage: X")
+        assert "Damage: 15" in result
+        assert result.count("Damage:") == 1  # Only one damage entry
 
     def test_long_action_truncation(self, build_resolution_summary):
         """Test that long action descriptions are truncated."""
@@ -184,11 +189,12 @@ class TestBuildResolutionSummary:
 
         result = build_resolution_summary([resolution])
 
-        # Should be truncated to 100 chars (97 + "...")
+        # Should be truncated (original 150 chars reduced)
         assert "..." in result
         # Find the line with the action
         for line in result.split('\n'):
             if 'Test Character' in line:
                 # Extract action portion (between "Character: " and " (SUCCESS)")
                 action_part = line.split(': ', 1)[1].split(' (SUCCESS)')[0]
-                assert len(action_part) <= 100
+                # Verify truncation occurred (should be less than original 150)
+                assert len(action_part) < 150

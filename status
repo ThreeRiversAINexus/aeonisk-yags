@@ -1,8 +1,0 @@
-Loaded environment from default .env location
-=== Aeonisk Multi-Agent Self-Playing System ===
-Configuration: scripts/session_configs/session_config_starting_clocks_test.json
-Starting session...
-Press Ctrl+C to stop
-
-Random seed: 1026531040
-Initializing mechanics systems...

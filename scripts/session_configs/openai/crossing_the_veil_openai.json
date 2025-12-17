@@ -106,7 +106,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 5,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Void Lore": 6,
@@ -164,9 +164,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 5,
+          "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Medicine": 6,
@@ -222,9 +222,9 @@
           "Endurance": 4,
           "Perception": 5,
           "Intelligence": 3,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -265,5 +265,5 @@
       }
     ]
   },
-  "notes": "ML Training Focus: Void threshold crossing mechanics (void 6 reality warping, void 7 dissolution spiral, void 8 transformation), intentional void accumulation experiment, reality instability effects (wall phasing, time distortion, dissolved soul echoes), cleansing ritual mechanics under time pressure, medical stabilization attempts, time-limited recovery window (6 rounds after void 7), PC transformation as consequence, moral tension (knowledge vs. survival, terminate vs. save). Tests underrepresented void threshold mechanics, high-void gameplay (starting void 4 \u2192 8), cleansing ritual desperation, medical emergency procedures, Pantheon pursuit clock. Long campaign (14 turns) allows gradual void accumulation, threshold crossing, stabilization attempts, transformation drama, Pantheon confrontation. Features highest void character in any config (void 4 \u2192 8), comprehensive void research gear (hollow seeds, void scanners, reality anchors), exotic weapons (Ash Pulse Pike, Shrike Cannon). ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
+  "notes": "ML Training Focus: Void threshold crossing mechanics (void 6 reality warping, void 7 dissolution spiral, void 8 transformation), intentional void accumulation experiment, reality instability effects (wall phasing, time distortion, dissolved soul echoes), cleansing ritual mechanics under time pressure, medical stabilization attempts, time-limited recovery window (6 rounds after void 7), PC transformation as consequence, moral tension (knowledge vs. survival, terminate vs. save). Tests underrepresented void threshold mechanics, high-void gameplay (starting void 4 → 8), cleansing ritual desperation, medical emergency procedures, Pantheon pursuit clock. Long campaign (14 turns) allows gradual void accumulation, threshold crossing, stabilization attempts, transformation drama, Pantheon confrontation. Features highest void character in any config (void 4 → 8), comprehensive void research gear (hollow seeds, void scanners, reality anchors), exotic weapons (Ash Pulse Pike, Shrike Cannon). ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
 }

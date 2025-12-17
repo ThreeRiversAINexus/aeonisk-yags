@@ -43,16 +43,47 @@ from aeonisk.multiagent.replay import ReplaySession
 
 
 def load_jsonl(path: Path) -> List[Dict]:
-    """Load JSONL file into list of event dictionaries."""
+    """
+    Load JSONL file into list of event dictionaries.
+
+    Handles malformed JSONL where multiple JSON objects may be concatenated
+    on a single line (due to file buffering race conditions).
+    """
     events = []
     with open(path, 'r') as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
             if not line:
                 continue
+
+            # Try normal parse first
             try:
                 events.append(json.loads(line))
+                continue
             except json.JSONDecodeError as e:
+                # Check if line contains multiple/partial JSON objects
+                # (happens when Ctrl+C interrupts mid-write)
+                if '{"event_type"' in line[1:]:  # Multiple occurrences indicate concatenation
+                    import re
+                    # Find all complete JSON object starts
+                    matches = list(re.finditer(r'\{"event_type":\s*"(\w+)"', line))
+
+                    if len(matches) > 1:
+                        print(f"Warning: Line {line_num} has {len(matches)} JSON fragments, attempting recovery...", file=sys.stderr)
+
+                        # Try parsing from each occurrence
+                        decoder = json.JSONDecoder()
+                        for i, match in enumerate(matches):
+                            try:
+                                obj, _ = decoder.raw_decode(line, match.start())
+                                events.append(obj)
+                                print(f"  Recovered: {obj.get('event_type')}", file=sys.stderr)
+                            except json.JSONDecodeError:
+                                # This fragment is incomplete/malformed
+                                print(f"  Skipped malformed fragment {i+1}: {match.group(1)}", file=sys.stderr)
+                        continue
+
+                # Normal parse failure
                 print(f"Warning: Skipping invalid JSON at line {line_num}: {e}", file=sys.stderr)
     return events
 

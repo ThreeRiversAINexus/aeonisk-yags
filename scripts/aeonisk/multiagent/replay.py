@@ -14,6 +14,7 @@ Usage:
 import json
 import logging
 import random
+import sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 from collections import defaultdict
@@ -40,6 +41,21 @@ class ReplaySession:
             replay_to_round: Stop replay after this round (default: replay entire session)
             continue_from_round: Switch to live LLM calls after this round (default: None = full replay)
             start_from_round: Skip rounds 0 to N-1, start replay from round N (default: 0 = replay from beginning)
+
+                WARNING: start_from_round is currently BROKEN for LLM cache replay.
+                The issue: LLM cache is keyed by (agent_id, call_sequence) where call_sequence
+                starts at 0 and increments per-agent. If we "skip" to round N, the session
+                still starts internally at round 0, so the first LLM call looks for sequence 0
+                in cache - but round N's calls are at sequence M (where M = calls made in
+                rounds 0 to N-1). Result: cache miss and crash.
+
+                Use continue_from_round instead: it replays ALL rounds from 0, using cache
+                for rounds 0-N (sequences align correctly), then switches to live LLM for N+1+.
+                This costs computation time but no API cost for cached rounds.
+
+                To fix start_from_round properly would require either:
+                1. Offset the call_sequence counter to start where round N begins, OR
+                2. Re-key the cache by (agent_id, round, intra_round_sequence)
         """
         self.log_path = Path(log_path)
         self.replay_to_round = replay_to_round
@@ -74,35 +90,66 @@ class ReplaySession:
         llm_call_count = 0
 
         with open(self.log_path, 'r') as f:
-            for line in f:
-                event = json.loads(line)
-                self.events.append(event)
-                event_count += 1
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
 
-                # Extract session metadata
-                if event['event_type'] == 'session_start':
-                    self.session_id = event['session']
-                    self.config = event.get('config', {})
-                    self.random_seed = event.get('random_seed')
-                    git_commit = event.get('git_commit')
-                    print(f"  Session ID: {self.session_id}")
-                    print(f"  Random seed: {self.random_seed}")
-                    if git_commit:
-                        print(f"  Git commit: {git_commit}")
+                # Try to parse line - may contain single or multiple JSON objects
+                events_in_line = []
+                try:
+                    # Normal case: one JSON object per line
+                    event = json.loads(line)
+                    events_in_line.append(event)
+                except json.JSONDecodeError as e:
+                    # Handle malformed JSONL (concatenated/truncated events from Ctrl+C interrupts)
+                    if '{"event_type"' in line[1:]:
+                        import re
+                        matches = list(re.finditer(r'\{"event_type":\s*"(\w+)"', line))
+                        if len(matches) > 1:
+                            print(f"Warning: Line {line_num} has {len(matches)} JSON fragments, attempting recovery...", file=sys.stderr)
+                            decoder = json.JSONDecoder()
+                            for i, match in enumerate(matches):
+                                try:
+                                    obj, _ = decoder.raw_decode(line, match.start())
+                                    events_in_line.append(obj)
+                                except json.JSONDecodeError:
+                                    print(f"  Skipped malformed fragment {i+1}: {match.group(1)}", file=sys.stderr)
 
-                # Build LLM response cache
-                elif event['event_type'] == 'llm_call':
-                    agent_id = event['agent_id']
-                    call_seq = event['call_sequence']
-                    cache_key = (agent_id, call_seq)
-                    self.llm_cache[cache_key] = {
-                        'prompt': event['prompt'],
-                        'response': event['response'],
-                        'model': event['model'],
-                        'temperature': event['temperature'],
-                        'tokens': event.get('tokens', {})
-                    }
-                    llm_call_count += 1
+                    # If still no valid events, skip this line
+                    if not events_in_line:
+                        print(f"Warning: Skipping invalid JSON at line {line_num}: {e}", file=sys.stderr)
+                        continue
+
+                # Process all events from this line
+                for event in events_in_line:
+                    self.events.append(event)
+                    event_count += 1
+
+                    # Extract session metadata
+                    if event['event_type'] == 'session_start':
+                        self.session_id = event['session']
+                        self.config = event.get('config', {})
+                        self.random_seed = event.get('random_seed')
+                        git_commit = event.get('git_commit')
+                        print(f"  Session ID: {self.session_id}")
+                        print(f"  Random seed: {self.random_seed}")
+                        if git_commit:
+                            print(f"  Git commit: {git_commit}")
+
+                    # Build LLM response cache
+                    elif event['event_type'] == 'llm_call':
+                        agent_id = event['agent_id']
+                        call_seq = event['call_sequence']
+                        cache_key = (agent_id, call_seq)
+                        self.llm_cache[cache_key] = {
+                            'prompt': event['prompt'],
+                            'response': event['response'],
+                            'model': event['model'],
+                            'temperature': event['temperature'],
+                            'tokens': event.get('tokens', {})
+                        }
+                        llm_call_count += 1
 
         print(f"  Loaded {event_count} events")
         print(f"  Cached {llm_call_count} LLM calls for replay")

@@ -300,6 +300,22 @@ When game mechanics change:
 - Focus on testing invariants (e.g., "all declarations have resolutions")
 - Not hardcode specific values from fixtures
 
+## Fixture Lifecycle & Naming
+
+**Naming Format:** `<purpose>_<scenario-type>_<descriptor>.jsonl`
+- **purpose:** `golden` | `regression` | `test` | `baseline`
+- **scenario-type:** `combat` | `social` | `investigation` | `ritual` | `mixed`
+
+**Lifecycle:**
+- **Active:** Used by current tests, documented in MANIFEST.json
+- **Deprecated:** Marked in MANIFEST.json, delete after verifying no test references
+- **Golden:** Reference implementations, never delete without discussion
+
+**Size Guidelines:**
+- Unit tests: 1-3 rounds, ~50-200KB
+- Integration tests: 2-5 rounds, ~200-500KB
+- Avoid: >10 rounds or >1MB files
+
 ## Future Additions
 
 - **Recorded LLM responses** - Capture real Claude responses for replay

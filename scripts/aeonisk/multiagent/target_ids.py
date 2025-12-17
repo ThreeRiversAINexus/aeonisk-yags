@@ -76,12 +76,13 @@ class TargetIDMapper:
         self,
         player_agents: List[Any],
         enemy_agents: List[Any],
-        npc_agents: Optional[List[Any]] = None
+        npc_agents: Optional[List[Any]] = None,
+        vendors: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
-        Assign random IDs to all combatants at combat start.
+        Assign random IDs to all combatants and vendors at round start.
 
-        Combines PCs, enemies, and NPCs into single pool, shuffles to
+        Combines PCs, enemies, NPCs, and vendors into single pool, shuffles to
         randomize order (prevents pattern detection), then assigns
         unique target IDs.
 
@@ -89,6 +90,7 @@ class TargetIDMapper:
             player_agents: List of PC agents
             enemy_agents: List of enemy agents (active only)
             npc_agents: List of NPC agents (active only)
+            vendors: List of legacy Vendor objects (for transfers)
 
         Returns:
             Dict mapping target_id -> agent reference
@@ -121,7 +123,15 @@ class TargetIDMapper:
                     all_combatants.append(npc)
                     npc_count += 1
 
-        logger.info(f"Assigning target IDs to {len(all_combatants)} combatants ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs)")
+        # Add legacy vendors (they have vendor_id instead of agent_id)
+        vendor_count = 0
+        if vendors:
+            for vendor in vendors:
+                if hasattr(vendor, 'vendor_id'):
+                    all_combatants.append(vendor)
+                    vendor_count += 1
+
+        logger.info(f"Assigning target IDs to {len(all_combatants)} entities ({len(player_agents)} PCs, {len([e for e in enemy_agents if hasattr(e, 'is_active') and e.is_active])} enemies, {npc_count} NPCs, {vendor_count} vendors)")
 
         # Shuffle to randomize order (prevents position-based patterns)
         random.shuffle(all_combatants)
@@ -140,7 +150,14 @@ class TargetIDMapper:
                 logger.error(f"Failed to generate unique target ID after 10 attempts")
                 continue
 
-            agent_id = agent.agent_id
+            # Get agent_id (vendors use vendor_id instead)
+            agent_id = getattr(agent, 'agent_id', None)
+            if not agent_id:
+                agent_id = getattr(agent, 'vendor_id', None)
+            if not agent_id:
+                logger.warning(f"Entity {agent} has no agent_id or vendor_id")
+                continue
+
             # Get name: enemies have .name, players have .character_state.name
             agent_name = getattr(agent, 'name', None)
             if not agent_name and hasattr(agent, 'character_state'):
@@ -275,10 +292,21 @@ class TargetIDMapper:
         if not agent:
             return None
 
+        # Get agent ID (vendors use vendor_id instead of agent_id)
+        entity_id = getattr(agent, 'agent_id', None) or getattr(agent, 'vendor_id', 'unknown')
+
+        # Determine entity type
+        if self.is_player(target_id):
+            entity_type = 'player'
+        elif hasattr(agent, 'vendor_id') and not hasattr(agent, 'agent_id'):
+            entity_type = 'vendor'
+        else:
+            entity_type = 'enemy'
+
         info = {
             'target_id': target_id,
-            'agent_id': agent.agent_id,
-            'type': 'player' if self.is_player(target_id) else 'enemy'
+            'agent_id': entity_id,
+            'type': entity_type
         }
 
         # Try to extract common attributes
@@ -292,11 +320,11 @@ class TargetIDMapper:
             info['position'] = str(getattr(agent, 'position', 'Unknown'))
             info['void_score'] = cs.void_score
         elif hasattr(agent, 'name'):
-            # Enemy agent or NPC (both have required position field)
+            # Enemy, NPC, or Vendor
             info['name'] = agent.name
-            info['health'] = agent.health
-            info['max_health'] = agent.max_health
-            info['position'] = str(agent.position)
+            info['health'] = getattr(agent, 'health', 0)
+            info['max_health'] = getattr(agent, 'max_health', 0)
+            info['position'] = str(getattr(agent, 'position', 'Unknown'))
 
         return info
 
@@ -329,6 +357,61 @@ class TargetIDMapper:
             logger.debug(f"Unregistered NPC: {agent_id}")
             return True
         return False
+
+    def register_enemy(self, enemy: Any) -> Optional[str]:
+        """
+        Register a new enemy (e.g., from NPC escalation) into the target ID system.
+
+        Assigns a new target ID if free targeting is enabled.
+        Also unregisters from NPC registry if present.
+
+        Args:
+            enemy: EnemyAgent instance
+
+        Returns:
+            Assigned target_id if enabled, None otherwise
+        """
+        if not self.enabled:
+            logger.debug("Free targeting disabled - skipping enemy registration")
+            return None
+
+        if not hasattr(enemy, 'agent_id'):
+            logger.warning(f"Enemy {enemy} missing agent_id attribute")
+            return None
+
+        agent_id = enemy.agent_id
+
+        # Unregister from NPC registry if present (escalation case)
+        if agent_id in self.npc_registry:
+            del self.npc_registry[agent_id]
+            logger.debug(f"Removed {agent_id} from NPC registry (escalated to enemy)")
+
+        # Check if already registered (shouldn't happen, but be safe)
+        if agent_id in self.reverse_map:
+            existing_target_id = self.reverse_map[agent_id]
+            # Update the target_id_map to point to the new enemy object
+            self.target_id_map[existing_target_id] = enemy
+            logger.debug(f"Updated existing target ID {existing_target_id} for enemy {agent_id}")
+            return existing_target_id
+
+        # Generate unique target ID
+        target_id = generate_target_id()
+        attempts = 0
+        while target_id in self.target_id_map and attempts < 10:
+            target_id = generate_target_id()
+            attempts += 1
+
+        if attempts >= 10:
+            logger.error(f"Failed to generate unique target ID for enemy {agent_id}")
+            return None
+
+        # Register enemy
+        self.target_id_map[target_id] = enemy
+        self.reverse_map[agent_id] = target_id
+
+        enemy_name = getattr(enemy, 'name', 'Unknown')
+        logger.info(f"Registered enemy {enemy_name} ({agent_id}) as {target_id}")
+        return target_id
 
     def is_npc(self, agent_id: str) -> bool:
         """

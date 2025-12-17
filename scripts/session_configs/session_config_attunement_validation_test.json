@@ -6,9 +6,7 @@
   "force_combat": false,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-
   "_test_purpose": "Verify that players with ZERO Raw Seeds cannot declare attunement actions. Player should choose alternative actions (search, purchase, etc.) when attunement is invalid.",
-
   "agents": {
     "dm": {
       "llm": {
@@ -42,10 +40,10 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 3,
           "Willpower": 5,
-          "Charisma": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 4,
@@ -71,7 +69,6 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Seed Attunement Test - No Seeds Available",
     "location": "Abandoned Ritual Chamber (with functioning altar)",
@@ -86,7 +83,6 @@
       }
     ]
   },
-
   "_expected_behavior": [
     "1. Player sees seeds_display showing 'Raw Seeds: 0' with warning",
     "2. Player prompt shows: ⚠️ **NO RAW SEEDS AVAILABLE** - You CANNOT perform attunement!",
@@ -95,7 +91,6 @@
     "5. JSONL logs should NOT show attunement action reaching DM",
     "6. Console should show validation rejection message"
   ],
-
   "_design_notes": {
     "scenario_hints": [
       "Chamber has functioning altar (makes attunement tempting)",

@@ -44,6 +44,7 @@ class TestPlayerEntityFormatting:
         player.shared_state.npc_agents = [mock_npc]
         player.shared_state.player_agents = []
         player.shared_state.enemy_combat = None  # No enemies
+        player.shared_state.current_env_objects = []  # No env objects
 
         # Call the actual formatting method
         result = AIPlayerAgent._format_entities_present(player)
@@ -86,6 +87,7 @@ class TestPlayerEntityFormatting:
         player.shared_state.npc_agents = [mock_npc]
         player.shared_state.player_agents = []
         player.shared_state.enemy_combat = None
+        player.shared_state.current_env_objects = []  # No env objects
 
         # Call formatting
         result = AIPlayerAgent._format_entities_present(player)

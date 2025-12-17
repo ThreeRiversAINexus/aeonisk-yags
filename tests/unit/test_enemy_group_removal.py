@@ -16,7 +16,6 @@ import pytest
 from aeonisk.multiagent.enemy_agent import EnemyAgent
 from aeonisk.multiagent.enemy_spawner import (
     spawn_enemy,
-    parse_spawn_markers,
     count_active_units
 )
 from aeonisk.multiagent.schemas.shared_types import Position
@@ -76,48 +75,9 @@ class TestEnemyAgentNoGroupFields:
         assert not hasattr(enemy, 'apply_group_attrition'), "EnemyAgent should not have apply_group_attrition method"
 
 
-class TestSpawnMarkerParsing:
-    """Test that spawn markers use 4-field syntax without count parameter."""
-
-    def test_4_field_spawn_marker_parsed(self):
-        """Parse 4-field spawn marker: name|template|position|tactics."""
-        text = "[SPAWN_ENEMY: Test Squad | grunt | Near-Enemy | aggressive]"
-        markers = parse_spawn_markers(text)
-
-        assert len(markers) == 1
-        name, template, position, tactics, personality = markers[0]
-        assert name.strip() == "Test Squad"
-        assert template.strip() == "grunt"
-        assert position.strip() == "Near-Enemy"
-        assert tactics.strip() == "aggressive"
-        assert personality is None
-
-    def test_5_field_spawn_marker_with_personality(self):
-        """Parse 5-field spawn marker: name|template|position|tactics|personality."""
-        text = "[SPAWN_ENEMY: Elite Squad | elite | Far-Enemy | ranged_support | personality:fight_to_death]"
-        markers = parse_spawn_markers(text)
-
-        assert len(markers) == 1
-        name, template, position, tactics, personality = markers[0]
-        assert name.strip() == "Elite Squad"
-        assert template.strip() == "elite"
-        assert position.strip() == "Far-Enemy"
-        assert tactics.strip() == "ranged_support"
-        # Parser strips "personality:" prefix
-        assert personality.strip() == "fight_to_death"
-
-    def test_multiple_spawn_markers(self):
-        """Parse multiple spawn markers in one string."""
-        text = """
-        [SPAWN_ENEMY: Squad Alpha | grunt | Near-Enemy | aggressive]
-        Some other text here
-        [SPAWN_ENEMY: Squad Bravo | veteran | Far-Enemy | ranged_support]
-        """
-        markers = parse_spawn_markers(text)
-
-        assert len(markers) == 2
-        assert markers[0][0] == "Squad Alpha"
-        assert markers[1][0] == "Squad Bravo"
+# NOTE: TestSpawnMarkerParsing class was deleted.
+# The parse_spawn_markers() function was removed from the codebase.
+# Enemy spawning now uses structured output (ScenarioSetup.initial_enemies) instead of text markers.
 
 
 class TestEnemySpawning:
@@ -150,11 +110,11 @@ class TestEnemySpawning:
 
         # Verify HP is not scaled (would have been multiplied by count in old system)
         assert enemy.health == enemy.max_health  # Not damaged
-        assert enemy.health == 12  # Grunt base HP from template
+        assert enemy.health == 30  # Grunt base HP from template (Health 3 * body_levels 10)
 
     def test_spawn_enemy_elite_hp_not_scaled(self):
         """Elite enemy HP should match template exactly."""
-        # Elite template has 20 HP (Health attribute 4 * body_levels 5 = 20)
+        # Elite template has 50 HP (Health attribute 5 * body_levels 10 = 50)
         enemy = spawn_enemy(
             name="Elite Squad",
             template_key="elite",
@@ -164,7 +124,7 @@ class TestEnemySpawning:
 
         # Verify HP is not scaled (would have been multiplied by count * 0.7 in old system)
         assert enemy.health == enemy.max_health  # Not damaged
-        assert enemy.health == 20  # Elite base HP from template
+        assert enemy.health == 50  # Elite base HP from template (Health 5 * body_levels 10)
 
 
 class TestActiveUnitCounting:

@@ -8,6 +8,8 @@ from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
+from .constants import YAGS_ATTRIBUTES, ATTRIBUTES_STRING
+
 logger = logging.getLogger(__name__)
 
 
@@ -90,12 +92,8 @@ class ActionDeclaration:
         if not self.description or len(self.description) < 10:
             errors.append("Description must be at least 10 characters")
 
-        valid_attributes = [
-            "Strength", "Agility", "Endurance", "Perception",
-            "Intelligence", "Empathy", "Willpower", "Charisma"
-        ]
-        if self.attribute not in valid_attributes:
-            errors.append(f"Attribute must be one of: {', '.join(valid_attributes)}")
+        if self.attribute not in YAGS_ATTRIBUTES:
+            errors.append(f"Attribute must be one of: {', '.join(YAGS_ATTRIBUTES)}")
 
         if self.difficulty_estimate < 5 or self.difficulty_estimate > 50:
             errors.append("Difficulty estimate must be between 5 and 50")
@@ -350,7 +348,7 @@ def create_action_prompt_template() -> str:
 When declaring an action, you MUST provide:
 
 1. **Intent**: Clear, concise description of what you're doing (verb phrase)
-2. **Attribute**: Which attribute you're using (Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma)
+2. **Attribute**: Which attribute you're using ({ATTRIBUTES_STRING})
 3. **Skill**: Which skill applies (or "None" for raw attribute check)
 4. **Difficulty Estimate**: Your guess at the target number (10=Easy, 20=Moderate, 25=Challenging, 30=Difficult, 35+=Very Difficult)
 5. **Justification**: Brief explanation of why you chose that difficulty

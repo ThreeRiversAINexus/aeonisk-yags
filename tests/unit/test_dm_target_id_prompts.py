@@ -140,6 +140,7 @@ class TestActionResolutionPromptTargetIDs:
         mock_shared_state.get_target_id_mapper = Mock(return_value=mock_target_mapper)
         mock_shared_state.mechanics_engine = Mock(scene_clocks={})
         mock_shared_state.get_mechanics_engine = Mock(return_value=mock_shared_state.mechanics_engine)
+        mock_shared_state.player_agents = []  # Empty list - iterable
 
         with patch.dict('os.environ', {'ANTHROPIC_API_KEY': 'test-key'}):
             dm = AIDMAgent(

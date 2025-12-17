@@ -14,7 +14,7 @@ wasting LLM API calls and creating confusing error states.
 import pytest
 from unittest.mock import Mock, patch, AsyncMock
 from scripts.aeonisk.multiagent.energy_economy import EnergyPurse, create_raw_seed, SeedType
-from scripts.aeonisk.multiagent.character_state import CharacterState
+from scripts.aeonisk.multiagent.player import CharacterState
 from scripts.aeonisk.multiagent.schemas.player_action import AttuneAction, ActionType
 
 
@@ -97,15 +97,25 @@ class TestAttunementValidationWithMockedSession:
     @pytest.fixture
     def character_with_seeds(self):
         """Create character state with Raw Seeds."""
-        char = CharacterState()
-        char.name = "Test Character"
-        char.energy_purse = EnergyPurse()
+        energy_purse = EnergyPurse()
 
         # Add 2 Raw Seeds
         seed1 = create_raw_seed("seed_test_01", freshness="fresh")
         seed2 = create_raw_seed("seed_test_02", freshness="fresh")
-        char.energy_purse.add_seed(seed1)
-        char.energy_purse.add_seed(seed2)
+        energy_purse.add_seed(seed1)
+        energy_purse.add_seed(seed2)
+
+        char = CharacterState(
+            name="Test Character",
+            faction="Tempest Collective",
+            attributes={"Agility": 3, "Strength": 3, "Focus": 4},
+            skills={"Ritual": 5, "Investigation": 3},
+            void_score=0,
+            soulcredit=0,
+            bonds=[],
+            goals=["Test the attunement system"],
+            energy_purse=energy_purse
+        )
 
         assert char.energy_purse.count_seeds(SeedType.RAW) == 2
         return char
@@ -113,9 +123,17 @@ class TestAttunementValidationWithMockedSession:
     @pytest.fixture
     def character_no_seeds(self):
         """Create character state with NO Raw Seeds."""
-        char = CharacterState()
-        char.name = "Test Character"
-        char.energy_purse = EnergyPurse()
+        char = CharacterState(
+            name="Test Character",
+            faction="Tempest Collective",
+            attributes={"Agility": 3, "Strength": 3, "Focus": 4},
+            skills={"Ritual": 5, "Investigation": 3},
+            void_score=0,
+            soulcredit=0,
+            bonds=[],
+            goals=["Test the attunement system"],
+            energy_purse=EnergyPurse()
+        )
 
         assert char.energy_purse.count_seeds(SeedType.RAW) == 0
         return char

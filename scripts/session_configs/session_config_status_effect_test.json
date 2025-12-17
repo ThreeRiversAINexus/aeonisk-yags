@@ -6,7 +6,6 @@
   "force_combat": true,
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "allow_groups": true,
     "max_enemies_per_combat": 5,
@@ -15,7 +14,6 @@
     "loot_suggestions_enabled": false,
     "void_tracking_enabled": false
   },
-
   "agents": {
     "dm": {
       "llm": {
@@ -52,8 +50,8 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 5,
-          "Charisma": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -67,14 +65,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Status Effect Test Arena",
     "location": "Training Arena with Animated Practice Targets",
     "situation": "You stand in a training arena. Three weak practice dummies animated by minor void energy stand before you. Use your telekinetic abilities to stun them. [SPAWN_ENEMY: Practice Dummy Alpha | grunt | 1 | Near-Enemy | defensive_ranged] [SPAWN_ENEMY: Practice Dummy Beta | grunt | 1 | Near-Enemy | defensive_ranged] [SPAWN_ENEMY: Practice Dummy Gamma | grunt | 1 | Near-Enemy | defensive_ranged] DM: When the player attacks, include 'Stunned' conditions in structured output with target='None' to test the fix.",
     "void_level": 2
   },
-
   "mission_objectives": [
     {
       "description": "Successfully stun enemies without getting stunned yourself",
@@ -82,7 +78,6 @@
       "required": true
     }
   ],
-
   "_test_notes": {
     "purpose": "Test status effect targeting bug fix",
     "expected_behavior": "Player attacks → Enemies get Stunned → Player does NOT get Stunned",

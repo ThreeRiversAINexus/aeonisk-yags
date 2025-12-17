@@ -48,6 +48,9 @@ class MessageType(Enum):
     PONG = "pong"
     SHUTDOWN = "shutdown"
 
+    # Error handling
+    AGENT_ERROR = "agent_error"  # Fatal error from an agent, signals session should terminate
+
 
 @dataclass
 class Message:

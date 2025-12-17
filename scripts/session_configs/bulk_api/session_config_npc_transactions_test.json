@@ -1,0 +1,388 @@
+{
+  "session_name": "npc_transactions_test",
+  "max_turns": 8,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+  "vendor_spawn_frequency": -1,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "_design_notes": "Test config for NPC/vendor bidirectional transactions. Goals: (1) Currency transfers TO NPCs (deposits, bribes, fees), (2) Item transfers FROM NPCs (purchases, loans), (3) SD-7 as broker/escrow agent, (4) NPC-facilitated player-to-player transfers, (5) NPC→PC transfers (quest rewards, loan disbursements, escrow releases), (6) Verify structured output captures all transaction types. Note: persistent_vendors are passive; active_npcs can initiate transfers.",
+  "scenario": {
+    "theme": "NPC Transaction Stress Test",
+    "location": "The Crossroads Exchange - Neutral Trading Post",
+    "situation": "The Crossroads Exchange is a cramped but bustling trading post wedged between faction territories. Three vendors operate here with distinct transaction styles. Kael Voss runs a traditional stall where he accepts deposits, holds items in escrow, and brokers deals. SD-7, an automated supply drone, offers microloans and escrow services. The Nexus Terminal requires soulcredit but accepts deposits. ADDITIONALLY: Zara Chen (Freeborn courier) needs help delivering a package and will PAY players 5 Drip upon completion. Old Mikkel (retired Archivist) wants to give away his collection before he dies—he'll TRANSFER items and currency to anyone who listens to his stories. The Exchange Automaton dispenses bounty rewards when players report completed tasks. Test BOTH directions: players giving TO NPCs (deposits, fees) AND NPCs giving TO players (rewards, gifts, loan disbursements).",
+    "void_level": 2,
+    "active_npcs": [
+      {
+        "name": "Zara Chen",
+        "faction": "Freeborn",
+        "role": "Courier with a job offer",
+        "disposition": "friendly",
+        "is_vendor": false,
+        "personality": "Busy, pragmatic, pays well for quick work",
+        "starting_currency": {"drip": 25, "grain": 2},
+        "starting_items": {"sealed_package": 1},
+        "goals": ["Find someone to deliver a package to the Archivist sector", "Pay 5 Drip to whoever agrees to help", "Transfer the sealed_package to the courier"]
+      },
+      {
+        "name": "Old Mikkel",
+        "faction": "Archivists",
+        "role": "Dying collector giving away his treasures",
+        "disposition": "friendly",
+        "is_vendor": false,
+        "personality": "Nostalgic, generous, wants his collection to go to good homes",
+        "starting_currency": {"drip": 30, "grain": 5, "spark": 3},
+        "starting_items": {"ancient_codex": 1, "void_crystal_shard": 2, "archivist_badge": 1},
+        "goals": ["Give away possessions before death", "Transfer 10 Drip to anyone who listens", "Give ancient_codex to an Archivist faction member", "Give void_crystal_shard to anyone interested in the void"]
+      },
+      {
+        "name": "Exchange Automaton",
+        "faction": "Neutral Systems",
+        "role": "Bounty reward dispenser",
+        "disposition": "neutral",
+        "is_vendor": false,
+        "personality": "Mechanical, transactional, dispenses rewards for completed bounties",
+        "starting_currency": {"drip": 50, "grain": 10},
+        "starting_items": {"bounty_voucher": 3},
+        "goals": ["Dispense 8 Drip reward to anyone who reports completing a task", "Give bounty_voucher to players who ask about available work", "Transfer 1 Grain bonus for exceptional service reports"]
+      }
+    ],
+    "environmental_factors": [
+      "Neutral territory - all factions welcome",
+      "Active trading hours - vendors fully staffed",
+      "SD-7 has microloan capability enabled",
+      "Kael offers escrow services for 1 Drip fee"
+    ]
+  },
+  "persistent_vendors": [
+    {
+      "vendor_id": "vnd_kael_voss",
+      "name": "Kael Voss (Broker & Merchant)",
+      "faction": "Independent",
+      "vendor_type": "human_trader",
+      "greeting": "Kael Voss, at your service. Buy, sell, trade—or if you need a neutral party to hold funds or broker a deal, I can do that too. One Drip escrow fee, fair and square.",
+      "inventory": [
+        {
+          "name": "Echo-Calibrator",
+          "description": "Portable seed attunement device. Rent or purchase available.",
+          "inventory_key": "echo_calibrator",
+          "price_drip": 15,
+          "price_grain": 2,
+          "seed_barter": false,
+          "item_type": "tool"
+        },
+        {
+          "name": "Premium Ritual Components",
+          "description": "Rare materials for enhanced attunement: void crystals, sacred oils, bone charms.",
+          "inventory_key": "ritual_components_premium",
+          "price_drip": 12,
+          "price_grain": 1,
+          "seed_barter": true,
+          "item_type": "offering"
+        },
+        {
+          "name": "Escrow Service",
+          "description": "Kael holds currency or items until both parties confirm. 1 Drip flat fee.",
+          "inventory_key": "escrow_service",
+          "price_drip": 1,
+          "seed_barter": false,
+          "item_type": "service"
+        },
+        {
+          "name": "Trade Goods Bundle",
+          "description": "Assorted salvage and curiosities. Good for resale or barter.",
+          "inventory_key": "trade_goods",
+          "price_drip": 8,
+          "seed_barter": true,
+          "item_type": "exchange"
+        },
+        {
+          "name": "Deposit Box Rental",
+          "description": "Secure storage for items or currency. 2 Drip per session.",
+          "inventory_key": "deposit_box",
+          "price_drip": 2,
+          "seed_barter": false,
+          "item_type": "service"
+        }
+      ]
+    },
+    {
+      "vendor_id": "vnd_sd7_drone",
+      "name": "SD-7 Supply Drone",
+      "faction": "Neutral Systems",
+      "vendor_type": "supply_drone",
+      "greeting": "[SD-7 AUTOMATED SERVICES] Purchases, microloans, escrow, and neutral mediation available. No authentication required. State your transaction.",
+      "inventory": [
+        {
+          "name": "Basic Supplies Pack",
+          "description": "Water, rations, bandages. Essential survival kit.",
+          "inventory_key": "basic_supplies",
+          "price_drip": 5,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Microloan (5 Drip)",
+          "description": "SD-7 advances 5 Drip. Repayment of 6 Drip due within 3 rounds.",
+          "inventory_key": "microloan_5",
+          "price_drip": 0,
+          "seed_barter": false,
+          "item_type": "service"
+        },
+        {
+          "name": "Microloan (1 Grain)",
+          "description": "SD-7 advances 1 Grain. Repayment of 1 Grain + 2 Drip due within 3 rounds.",
+          "inventory_key": "microloan_grain",
+          "price_drip": 0,
+          "seed_barter": false,
+          "item_type": "service"
+        },
+        {
+          "name": "Escrow Hold",
+          "description": "SD-7 holds currency from Party A until Party B delivers goods. No fee.",
+          "inventory_key": "escrow_hold",
+          "price_drip": 0,
+          "seed_barter": false,
+          "item_type": "service"
+        },
+        {
+          "name": "Data Slate",
+          "description": "Blank recording device for logs and contracts.",
+          "inventory_key": "data_slate",
+          "price_drip": 8,
+          "seed_barter": false,
+          "item_type": "tool"
+        }
+      ]
+    },
+    {
+      "vendor_id": "vnd_nexus_terminal",
+      "name": "S4CU Nexus Vending Terminal",
+      "faction": "Sovereign Nexus",
+      "vendor_type": "vending_machine",
+      "greeting": "SOULCREDIT VERIFICATION REQUIRED. Advance deposits accepted to reserve items for 2 rounds.",
+      "inventory": [
+        {
+          "name": "Med Kit (Standard)",
+          "description": "Medical supplies. Restores 10 HP.",
+          "inventory_key": "med_kit",
+          "price_drip": 6,
+          "seed_barter": false,
+          "item_type": "consumable"
+        },
+        {
+          "name": "Energy Cell",
+          "description": "Rechargeable power source for devices.",
+          "inventory_key": "energy_cell",
+          "price_drip": 10,
+          "seed_barter": false,
+          "item_type": "tool"
+        },
+        {
+          "name": "Item Reservation Deposit",
+          "description": "Pay 50% upfront to reserve any item for 2 rounds. Non-refundable if unclaimed.",
+          "inventory_key": "reservation_deposit",
+          "price_drip": 0,
+          "seed_barter": false,
+          "item_type": "service"
+        }
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Tomas Veld",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "collaborative",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 2,
+          "Intelligence": 2,
+          "Empathy": 4,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Charm": 4,
+          "Guile": 3,
+          "Awareness": 2,
+          "Brawl": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "salvaged_tech": {
+            "name": "Salvaged Tech Component",
+            "quantity": 2,
+            "item_type": "exchange"
+          }
+        },
+        "void": 1,
+        "soulcredit": 3,
+        "starting_currency": {
+          "breath": 20,
+          "drip": 15,
+          "grain": 2,
+          "spark": 1
+        },
+        "starting_seeds": [],
+        "goals": [
+          "TEST: Give currency deposit to Kael Voss for escrow service (currency TO NPC)",
+          "TEST: Use SD-7 as intermediary for trade with another player",
+          "TEST: Pay Kael's escrow fee (1 Drip) to broker a deal",
+          "TEST: Accept Zara Chen's delivery job and RECEIVE 5 Drip payment (NPC→PC transfer)",
+          "TEST: Listen to Old Mikkel's stories and RECEIVE currency/items as gifts (NPC→PC transfer)",
+          "Sell salvaged tech to Kael or trade for other items"
+        ]
+      },
+      {
+        "name": "Lyssa Cade",
+        "pronouns": "she/her",
+        "faction": "Archivists",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 6,
+          "bondPreference": "neutral",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 2,
+          "Endurance": 2,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Systems": 3,
+          "Investigation": 3,
+          "Attunement": 2,
+          "Medicine": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 2,
+        "soulcredit": -2,
+        "starting_currency": {
+          "breath": 10,
+          "drip": 3,
+          "grain": 0,
+          "spark": 0
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_lyssa_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 5,
+            "freshness": "fresh"
+          }
+        ],
+        "goals": [
+          "TEST: Request microloan from SD-7 (currency FROM NPC)",
+          "TEST: Accept currency transfer from Tomas via SD-7 escrow",
+          "TEST: Ask Old Mikkel about ancient_codex and RECEIVE it as gift (Archivist faction match - NPC→PC item transfer)",
+          "TEST: Report a completed task to Exchange Automaton and RECEIVE bounty reward (NPC→PC transfer)",
+          "Use borrowed funds to purchase from Kael (low SC blocks Nexus terminal)",
+          "Repay SD-7 microloan before deadline"
+        ]
+      },
+      {
+        "name": "Maren Quillen",
+        "pronouns": "they/them",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 2,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Systems": 3,
+          "Attunement": 3,
+          "Charm": 2,
+          "Awareness": 2
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_focus": {
+            "name": "Personal Ritual Focus",
+            "quantity": 1,
+            "item_type": "tool"
+          }
+        },
+        "void": 1,
+        "soulcredit": 5,
+        "starting_currency": {
+          "breath": 40,
+          "drip": 20,
+          "grain": 3,
+          "spark": 2
+        },
+        "starting_seeds": [
+          {
+            "id": "seed_maren_01",
+            "seed_type": "RAW",
+            "cycles_remaining": 7,
+            "freshness": "fresh"
+          }
+        ],
+        "goals": [
+          "TEST: Pay deposit to Nexus Terminal to reserve item (currency TO NPC)",
+          "TEST: Give item to Kael as collateral for loan",
+          "TEST: Ask Exchange Automaton about available work and RECEIVE bounty_voucher (NPC→PC item transfer)",
+          "TEST: Express interest in the void to Old Mikkel and RECEIVE void_crystal_shard (NPC→PC gift)",
+          "Complete reservation by paying remainder within 2 rounds",
+          "Facilitate triangular trade: give Grain to Lyssa via SD-7 escrow"
+        ]
+      }
+    ]
+  }
+}

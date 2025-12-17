@@ -348,7 +348,7 @@ class ActionResolution(BaseModel):
     goal: Optional[str] = Field(
         default=None,
         min_length=10,
-        max_length=200,
+        max_length=500,  # Increased from 200 - LLMs often write verbose goals
         description="What the character is trying to accomplish"
     )
 
@@ -356,14 +356,14 @@ class ActionResolution(BaseModel):
     roll_formula: Optional[str] = Field(
         default=None,
         min_length=10,
-        max_length=200,
+        max_length=300,  # Increased from 200 - complex rolls can be verbose
         description="Human-readable roll: 'Attribute X × Skill Y = Z; Z + d20(N) = Total vs DC'"
     )
 
     rationale: Optional[str] = Field(
         default=None,
         min_length=20,
-        max_length=500,
+        max_length=800,  # Increased from 500 - DM explanations can be detailed
         description="DM reasoning for DC, approach choice, and difficulty factors"
     )
 
@@ -371,6 +371,26 @@ class ActionResolution(BaseModel):
     outcome_tiers: Optional[Dict[str, OutcomeTierExplanation]] = Field(
         default=None,
         description="STRONGLY RECOMMENDED for ML training: All 6 outcome tiers (critical_failure, failure, moderate_success, good_success, excellent_success, exceptional_success) with narrative (50-500 chars) + mechanical_effect (10-300 chars) for each tier. See ml_training_tiers section in system prompt for detailed instructions and examples."
+    )
+
+    # ========== Awareness Control ==========
+
+    aware_agents: List[str] = Field(
+        default_factory=list,
+        description="""Which agents are aware of this action's outcome.
+
+        VISIBILITY CONTROL for stealth, secrets, and hidden information:
+        - Empty list [] = PUBLIC (all agents see this narration) - use for loud combat, failures noticed by others
+        - Populated list = PRIVATE (only listed agents see it) - use for stealth success, secret actions
+
+        Examples:
+        - Stealth success: ["dm", "player_echo"] - only DM and acting player know
+        - Failed stealth: [] - everyone nearby heard/saw the failure
+        - Secret conversation: ["dm", "player_ash", "npc_informant"] - only participants know
+        - Loud combat: [] - public, everyone in area aware
+
+        Agent ID formats: "dm", "player_<name>", "npc_<name>", "enemy_<template>_<id>"
+        """
     )
 
     @field_validator('outcome_tiers', mode='before')

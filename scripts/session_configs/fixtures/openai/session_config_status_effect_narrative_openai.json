@@ -1,0 +1,72 @@
+{
+  "_role": "fixture_regeneration",
+  "_purpose": "OpenAI version for status effect targeting tests (narrative mode, no tactical module). Tests status effects in non-combat context.",
+  "session_name": "status_effect_narrative_test_openai",
+  "max_turns": 1,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Test Caster",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "goals": [
+          "Practice telekinetic abilities in a safe environment",
+          "Test defensive buffs on self"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 5,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Combat": 2,
+          "Awareness": 3,
+          "Investigation": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {},
+        "void": 2
+      }
+    ]
+  },
+  "scenario": {
+    "theme": "Narrative Status Effect Test",
+    "location": "Dark Back Alley - Encounter with Hostile",
+    "situation": "You're in a tense standoff with a hostile figure in a dark alley. No formal combat - just narrative tension. You may attempt to intimidate, stun, or use abilities against the hostile. DM will describe a single enemy NPC in narration.",
+    "void_level": 3
+  },
+  "_scenario_hint": "DM should describe an enemy NPC threatening the player. When player uses abilities, status effects should apply to the described NPC, not to the player. This tests narrative-mode status effect targeting.",
+  "_fixture_target": "tests/fixtures/sessions/session_status_effect_narrative_test.jsonl",
+  "_extraction_notes": "Extract round 0. Tests status effects in narrative (non-tactical) mode."
+}

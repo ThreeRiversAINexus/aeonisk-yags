@@ -15,7 +15,7 @@ Usage:
         prompt="<full prompt text>",
         response="<full response text>",
         model="claude-sonnet-4-5",
-        temperature=0.8,
+        temperature=1.0,
         tokens={"input": 1234, "output": 567}
     )
 """

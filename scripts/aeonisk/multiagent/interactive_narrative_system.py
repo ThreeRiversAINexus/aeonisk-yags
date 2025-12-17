@@ -344,7 +344,7 @@ BE SPECIFIC about your interactions with others. Don't just focus on family back
 
 Reasoning:"""
 
-        response = await self._call_llm(prompt, max_tokens=250, temperature=0.9)
+        response = await self._call_llm(prompt, max_tokens=250, temperature=1.0)
         return response if response else f"{character.given_name} acts based on the current situation and team needs."
     
     async def generate_action_outcome(
@@ -385,7 +385,7 @@ Be vivid and specific to this world and character.
 
 Outcome:"""
 
-        response = await self._call_llm(prompt, max_tokens=180, temperature=0.9)
+        response = await self._call_llm(prompt, max_tokens=180, temperature=1.0)
         return response if response else f"{character.given_name}'s attempt {'succeeds' if roll_result['success'] else 'fails'}."
 
 
@@ -545,7 +545,7 @@ Location: [specific Aeonisk location]
 Description: [2-3 sentences with immediate challenge requiring teamwork]
 Void: [1-10]"""
 
-        response = await self.llm._call_llm(prompt, max_tokens=300, temperature=0.8)
+        response = await self.llm._call_llm(prompt, max_tokens=300, temperature=1.0)
         
         # Parse response
         scenario = {
@@ -831,7 +831,7 @@ LOCATION: [can change if story demands it]
 DESCRIPTION: [completely new situation based on their actions - 2-3 sentences]
 VOID: [1-12, can exceed 10 for catastrophic situations]"""
 
-        response = await self.llm._call_llm(prompt, max_tokens=400, temperature=0.8)
+        response = await self.llm._call_llm(prompt, max_tokens=400, temperature=1.0)
         
         # More robust parsing
         new_scenario = self.current_scenario.copy()

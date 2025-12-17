@@ -1,0 +1,128 @@
+{
+  "session_name": "Bond Loading Test",
+  "max_turns": 1,
+  "party_size": 3,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "_design_notes": "Minimal test config to verify starting_bonds loading",
+  "starting_bonds": [
+    {
+      "character_a": "Alice",
+      "character_b": "Bob",
+      "bond_type": "kinship",
+      "narrative": "Alice and Bob are siblings, separated during the Sovereign Rupture but reunited years later."
+    },
+    {
+      "character_a": "Alice",
+      "character_b": "Charlie",
+      "bond_type": "faction",
+      "narrative": "Alice and Charlie both serve in the Voidguard, bonded through shared trauma.",
+      "witnessed_by": [
+        "Bob"
+      ]
+    },
+    {
+      "character_a": "Bob",
+      "character_b": "Charlie",
+      "bond_type": "passion",
+      "narrative": "Bob and Charlie are lovers, their bond formed in the depths of a Void-corrupted station.",
+      "witnessed_by": [
+        "Alice"
+      ]
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Alice",
+        "faction": "voidguard",
+        "archetype": "Investigator",
+        "stats": {
+          "base_stat": 12,
+          "willpower": 5,
+          "soak": 2,
+          "void": 3,
+          "health": 20,
+          "max_health": 20,
+          "empathy": 3
+        },
+        "skills": {
+          "Investigation": 4,
+          "Void Sense": 3,
+          "Intimacy Ritual": 2
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
+        }
+      },
+      {
+        "name": "Bob",
+        "faction": "freeborn",
+        "archetype": "Diplomat",
+        "stats": {
+          "base_stat": 12,
+          "willpower": 6,
+          "soak": 1,
+          "void": 2,
+          "health": 20,
+          "max_health": 20,
+          "empathy": 5
+        },
+        "skills": {
+          "Negotiation": 4,
+          "Empathy": 3,
+          "Intimacy Ritual": 2
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
+        }
+      },
+      {
+        "name": "Charlie",
+        "faction": "voidguard",
+        "archetype": "Combat Specialist",
+        "stats": {
+          "base_stat": 12,
+          "willpower": 4,
+          "soak": 3,
+          "void": 4,
+          "health": 20,
+          "max_health": 20,
+          "empathy": 2
+        },
+        "skills": {
+          "Small Arms": 4,
+          "Melee Combat": 3,
+          "Intimidation": 2
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
+        }
+      }
+    ]
+  },
+  "_scenario_hint": "The party investigates strange void readings in an abandoned research station. This is a test scenario - keep it short (1 turn only)."
+}

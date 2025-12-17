@@ -19,7 +19,7 @@ content: |-
 
   **Process:**
   1. Identify vendor and item you want to purchase
-  2. Negotiate price (typically a Charisma check)
+  2. Negotiate price (typically a Empathy check)
   3. Pay with talismanic energy currency (breath, grain, drip, spark)
   4. Receive item if successful
 
@@ -32,7 +32,7 @@ content: |-
       # Core fields (all required)
       intent: str,                    # Your Phase 1 intent
       description: str,               # 50-800 chars - Describe the transaction
-      attribute: str,                 # Usually Charisma or Empathy for negotiation
+      attribute: str,                 # Usually Empathy or Empathy for negotiation
       skill: str,                     # Charm, Negotiation, Corporate Influence, etc.
       difficulty_estimate: int,       # Your DC estimate (consider vendor, relationship)
       difficulty_justification: str,  # Why that DC?
@@ -47,16 +47,16 @@ content: |-
   ## Common Purchase Skills
 
   **Negotiation/Haggling:**
-  - `Charisma × Charm` - Friendly persuasion, building rapport
-  - `Charisma × Negotiation` - Professional bargaining (if you have this skill)
-  - `Charisma × Corporate Influence` - Leveraging faction connections
+  - `Empathy × Charm` - Friendly persuasion, building rapport
+  - `Empathy × Negotiation` - Professional bargaining (if you have this skill)
+  - `Empathy × Corporate Influence` - Leveraging faction connections
 
   **Information Gathering:**
   - `Empathy × Charm` - Reading vendor's mood, finding fair price
   - `Perception × Awareness` - Spotting quality, detecting scams
 
   **Intimidation (if needed):**
-  - `Charisma × Intimidation` - Pressuring unfriendly vendors (risky!)
+  - `Empathy × Intimidation` - Pressuring unfriendly vendors (risky!)
 
   ## Current Context
 
@@ -68,7 +68,7 @@ content: |-
   {vendor_status}
 
   **Your Social Skills:**
-  - Charisma: {charisma}
+  - Empathy: {empathy}
   - Charm: {charm_skill}
   - Negotiation: {negotiation_skill}
 
@@ -97,7 +97,7 @@ content: |-
   PurchaseAction(
       intent="Buy Incense from marketplace vendor",
       description="I approach the incense merchant's stall and browse their wares. 'I need high-quality ritual incense for astral work. What's your best price for three sticks?' I smile warmly, showing I'm a serious customer.",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Charm",
       difficulty_estimate=12,
       difficulty_justification="DC 12: Routine transaction, friendly vendor, fair price request. Not haggling aggressively.",
@@ -112,7 +112,7 @@ content: |-
   PurchaseAction(
       intent="Negotiate better price for Echo-Calibrator",
       description="I examine the Echo-Calibrator carefully, pointing out minor wear on the resonance plate. 'This unit's been used - I can see the calibration drift. I'll give you 15 drip, but you throw in a spare resonance crystal to offset the repair cost.'",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Charm",
       difficulty_estimate=18,
       difficulty_justification="DC 18: Expensive item, vendor knows its value, but I have legitimate concerns about wear. Asking for significant discount.",
@@ -127,7 +127,7 @@ content: |-
   PurchaseAction(
       intent="Purchase Hollow Seeds from illicit trader",
       description="I keep my voice low and my hood up, approaching the shady dealer in the back alley. 'I hear you deal in Hollow Seeds. I need three, no questions asked. Name your price.' My hand rests near my weapon, showing I'm prepared for trouble.",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Guile",
       difficulty_estimate=20,
       difficulty_justification="DC 20: Illegal transaction, dealer is suspicious, high-risk environment. Need to establish trust without revealing too much.",
@@ -142,7 +142,7 @@ content: |-
   PurchaseAction(
       intent="Acquire ritual supplies using Pantheon Guild credentials",
       description="I present my Pantheon Guild credentials to the official supplier. 'I'm on assignment and need standard ritual kit - incense, crystals, and blessed salt. Guild account, priority processing.' Professional and matter-of-fact.",
-      attribute="Charisma",
+      attribute="Empathy",
       skill="Corporate Influence",
       difficulty_estimate=10,
       difficulty_justification="DC 10: Official transaction with faction credentials. Straightforward, vendor obligated to comply.",
@@ -156,7 +156,7 @@ content: |-
 
   ❌ **Missing vendor_id** - MUST specify which vendor! (e.g., `vendor_id="vnd_marketplace_01"`)
   ❌ **Missing item_id** - MUST specify what you're buying! (e.g., `item_id="itm_incense"`)
-  ❌ **Wrong attribute** - Purchases typically use Charisma or Empathy, not Intelligence
+  ❌ **Wrong attribute** - Purchases typically use Empathy or Empathy, not Intelligence
   ❌ **No currency check** - Make sure you have enough energy to pay!
   ❌ **Unrealistic price negotiation** - Don't lowball established vendors by 90%
 

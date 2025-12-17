@@ -1,0 +1,389 @@
+{
+  "_role": "resonance_commune_survival_openai",
+  "_purpose": "A Resonance Commune community on Nimbus struggles to survive when their sanctuary is threatened by multiple factions. Freeborn living outside the system, building something together, facing the choice between fighting, fleeing, or finding a way to become too valuable to destroy.",
+
+  "session_name": "commune_sanctuary",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE STORM GARDEN ===",
+  "_scenario_hint": "Storm Garden is a Resonance Commune settlement built into an abandoned ley-relay station on Nimbus's outer cloud-layer. For fifteen years, they've lived outside the system - no Soulcredit, no pod-registration, just community, shared ritual, and the storms. Now multiple threats are converging: ACG wants to reclaim the station's ley-infrastructure for a new trade route. House of Vox has discovered they're harboring former broadcast-temple workers who know too much. And a Tempest cell wants to use the station's void-proximity for research - whether the commune agrees or not. The commune leaders have to navigate these threats while protecting their people. Combat should be last resort - they don't have the resources for war. Survival means negotiation, misdirection, making themselves valuable, or finding allies. This is about community survival, not individual heroics.",
+
+  "scenario": {
+    "theme": "community_survival_outside_the_system",
+    "location": "Nimbus - Storm Garden Commune (Abandoned Ley-Relay Station)",
+    "situation": "Storm Garden hangs in the perpetual twilight between Nimbus's cloud layers, anchored to an old ley-relay station that the Nexus abandoned fifty years ago. Two hundred people live here now - Freeborn, former pod-citizens who walked away, children born in the storms. No Soulcredit. No Codex registration. Just community. This morning, three ships appeared at the edge of scanner range: ACG survey vessel, House of Vox information-retrieval team, and an unmarked craft your contacts say is Tempest. They all want something. None of them will simply leave. And Storm Garden has maybe forty people who can fight, limited supplies, and nowhere else to go. The council has called an emergency meeting. You are the commune's problem-solvers - the ones who deal with the outside world. Find a way to make sure Storm Garden still exists by the time the storms take those ships away.",
+    "void_level": 5
+  },
+
+  "_comment_clocks": "=== SURVIVAL PRESSURE ===",
+  "starting_clocks": [
+    {
+      "name": "ACG Patience",
+      "max_ticks": 6,
+      "current_ticks": 2,
+      "description": "How long before ACG attempts forcible acquisition of the station",
+      "advance_meaning": "demands escalate, ultimatums issued, force authorized",
+      "regress_meaning": "negotiations proceed, alternative sites offered, time bought"
+    },
+    {
+      "name": "Vox Information Hunt",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "How close Vox is to finding their targets in the commune",
+      "advance_meaning": "scanning intensifies, informants questioned, raid planned",
+      "regress_meaning": "false trails laid, targets hidden, Vox distracted"
+    },
+    {
+      "name": "Tempest Pressure",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "How insistent Tempest is about using the station for research",
+      "advance_meaning": "offers become threats, research begins without consent",
+      "regress_meaning": "alternative arrangements, Tempest convinced to look elsewhere"
+    },
+    {
+      "name": "Community Cohesion",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "How unified the commune remains under pressure",
+      "advance_meaning": "factions form, arguments, some want to surrender/flee",
+      "regress_meaning": "leadership trusted, community rallies, unity strengthens"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== COMMUNE FIGURES ===",
+  "initial_npcs": [
+    {
+      "name": "Elder Moss Thaurin",
+      "faction": "Resonance Communes",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "friendly",
+      "description": "Commune founder, now elderly. Built Storm Garden from nothing. Remembers when there were only twelve of them. Will not abandon what they've built, but won't sacrifice the community to stubbornness either.",
+      "health": 10,
+      "soak": 0,
+      "skills": {"Counsel": 6, "Astral Arts": 5, "Leadership": 5, "Charm": 4}
+    },
+    {
+      "name": "Defender Chief Bren Karsel",
+      "faction": "Resonance Communes",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "friendly",
+      "description": "Leads the commune's volunteer defenders. Forty fighters against three ships of professionals. Knows they can't win a straight fight. Looking for asymmetric options.",
+      "health": 24,
+      "soak": 2,
+      "skills": {"Combat": 5, "Guns": 5, "Tactics": 5, "Awareness": 4}
+    },
+    {
+      "name": "Fugitive Technician Sera Vox",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Former House of Vox broadcast technician who fled with damaging information. The commune gave her sanctuary. Now Vox wants her back. She knows they'll make an example of her.",
+      "health": 14,
+      "soak": 0,
+      "skills": {"Systems": 6, "Awareness": 4, "Stealth": 4}
+    },
+    {
+      "name": "The Storm Children",
+      "faction": "Resonance Communes",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Thirty-seven children born in Storm Garden, never registered in the Codex. If the commune falls, they'll be processed as 'anomalies' and separated. The stakes.",
+      "health": 8,
+      "soak": 0,
+      "skills": {}
+    }
+  ],
+
+  "_design_notes": "Four commune members trying to save their community from three different threats. The Negotiator plays factions against each other. The Defender prepares for the fight they hope won't come. The Smuggler knows the hidden routes. The Ritualist might have spiritual leverage. This isn't about winning fights - it's about community survival against corporations and factions that see them as resources or obstacles. 20 rounds of negotiation, misdirection, and the question of what you'll sacrifice to protect what you've built.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Negotiator Lira Thaurin",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 5,
+          "Willpower": 4
+        },
+        "skills": {
+          "Charm": 6,
+          "Counsel": 5,
+          "Guile": 5,
+          "Corporate Influence": 4,
+          "Awareness": 4,
+          "Investigation": 3
+        },
+        "void": 1,
+        "soulcredit": 0,
+        "goals": [
+          "Find a way to make Storm Garden too valuable or too costly to take",
+          "Play the three factions against each other if possible",
+          "Protect the commune without betraying its principles (hardest part)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "commune_seal": 1,
+          "data_slate": 1,
+          "negotiation_notes": 1,
+          "bribe_funds": 1,
+          "comm_unit": 1,
+          "incense": 3
+        }
+      },
+      {
+        "name": "Defender Kade Eluun",
+        "pronouns": "he/him",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 4,
+          "Health": 4,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 6,
+          "Athletics": 5,
+          "Tactics": 4,
+          "Awareness": 4,
+          "Intimidation": 4
+        },
+        "void": 1,
+        "soulcredit": -2,
+        "goals": [
+          "Prepare defenses that make assault too costly",
+          "Train volunteers for the fight they hope won't come",
+          "Find the weak points in the enemy forces - everyone has weak points"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "tactical_vest": 1,
+          "grenade": 3,
+          "trap_components": 4,
+          "med_kit": 2
+        }
+      },
+      {
+        "name": "Smuggler Yara Karsel",
+        "pronouns": "she/her",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 4,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 5,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 3
+        },
+        "skills": {
+          "Pilot": 6,
+          "Stealth": 5,
+          "Navigation": 5,
+          "Sleight": 5,
+          "Awareness": 4,
+          "Guns": 4
+        },
+        "void": 3,
+        "soulcredit": -4,
+        "goals": [
+          "Identify escape routes if they need to evacuate",
+          "Find something valuable enough to trade for safety",
+          "Maybe call in some favors from the Freeborn network - if they'll answer"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "pilot_interface": 1,
+          "navigation_charts": 1,
+          "smuggler_contacts": 1,
+          "hidden_cargo_manifest": 1,
+          "med_kit": 1,
+          "hollow_seed": 2
+        }
+      },
+      {
+        "name": "Ritualist Dex Ossai",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 6,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 5
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 5,
+          "Counsel": 5,
+          "Awareness": 5,
+          "Meditation": 4,
+          "Systems": 3
+        },
+        "void": 2,
+        "soulcredit": 1,
+        "goals": [
+          "Use the commune's collective ritual strength as leverage",
+          "Commune with the ley-station's dormant systems - maybe it still has power",
+          "Protect the children at any cost - they are the future"
+        ],
+        "equipped_weapons": {
+          "primary": "ritual_staff"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_staff": 1,
+          "commune_ritual_focus": 1,
+          "ley_diagnostic_kit": 1,
+          "memory_crystal": 4,
+          "purification_incense": 6,
+          "meditation_crystals": 3
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE SIEGE ===",
+  "_beats": [
+    "Crisis Council - the three ships, what each wants, commune resources",
+    "Initial Contact - negotiating with ACG, Vox, Tempest separately",
+    "Intelligence Gathering - what leverage do they have? What weaknesses?",
+    "Community Pressure - some want to fight, some want to flee, unity straining",
+    "First Ultimatum - one faction escalates, decision point",
+    "Playing Factions - can they be turned against each other?",
+    "The Hidden Card - the ley-station's dormant systems, Sera's dangerous information",
+    "Escalation - violence imminent or begun, last-ditch options",
+    "The Deal - what must be sacrificed to survive? Who decides?",
+    "Resolution - commune intact, scattered, or something new"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Ensure Storm Garden commune survives the three-faction threat",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Protect the fugitive and the children from extraction",
+      "type": "protection",
+      "required": true
+    },
+    {
+      "description": "Maintain community cohesion under pressure",
+      "type": "social",
+      "required": false
+    },
+    {
+      "description": "Find leverage or allies that change the power balance",
+      "type": "negotiation",
+      "required": false
+    }
+  ],
+
+  "notes": "RESONANCE COMMUNE SURVIVAL - Community under siege. Three factions want something, the commune has forty fighters and two hundred people to protect. This isn't about heroics - it's about survival, negotiation, and what you'll sacrifice to protect what you've built together. 20 rounds of crisis management, faction play, and the question of what community means when the system wants you gone. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

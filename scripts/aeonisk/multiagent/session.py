@@ -27,6 +27,7 @@ from .outcome_parser import (
 from .enemy_combat import EnemyCombatManager
 from .tactical_resolution import ResolutionState
 from .agent_prompt_logger import AgentPromptLogger
+from .awareness import filter_narrations_for_agent, NarrationEntry
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +95,42 @@ def _parse_surrender_from_resolution(
                             return
 
 
+def _get_energy_purse(agent):
+    """
+    Get energy purse from player or NPC agent.
+
+    Handles both patterns:
+    - Player: agent.character_state.energy_purse
+    - NPC: agent.energy_purse (directly on agent)
+    """
+    # Player pattern: agent.character_state.energy_purse
+    if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'energy_purse'):
+        return agent.character_state.energy_purse
+    # NPC pattern: agent.energy_purse directly
+    if hasattr(agent, 'energy_purse'):
+        return agent.energy_purse
+    return None
+
+
+def _get_inventory(agent):
+    """
+    Get inventory dict from player or NPC, creating if needed.
+
+    Handles both patterns:
+    - Player: agent.character_state.inventory
+    - NPC: agent.inventory (may need to create)
+    """
+    # Player pattern: agent.character_state.inventory
+    if hasattr(agent, 'character_state'):
+        if not hasattr(agent.character_state, 'inventory') or agent.character_state.inventory is None:
+            agent.character_state.inventory = {}
+        return agent.character_state.inventory
+    # NPC pattern: agent.inventory (create if needed)
+    if not hasattr(agent, 'inventory') or agent.inventory is None:
+        agent.inventory = {}
+    return agent.inventory
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -137,6 +174,7 @@ class SelfPlayingSession:
         self._synthesis_complete: asyncio.Event = asyncio.Event()  # Track when round synthesis is complete
         self._last_dm_narration: str = ""  # Track last DM narration for marker parsing
         self._session_end_status: Optional[str] = None  # Track if DM declared session end
+        self._fatal_error: Optional[str] = None  # Track fatal agent errors for graceful termination
 
         # Replay mode
         self.replay_mode = replay_mode
@@ -377,6 +415,10 @@ class SelfPlayingSession:
             'session_dm_narration_tracker',
             self._handle_dm_narration
         )
+        self.coordinator.message_bus.add_handler(
+            'session_agent_error_tracker',
+            self._handle_agent_error
+        )
 
         # Start human interface if enabled
         if self.config.get('enable_human_interface', True):
@@ -603,7 +645,477 @@ class SelfPlayingSession:
                         logger.debug(f"{player.character_state.name}: Raw Seeds degraded (now {raw_count} Raw, {hollow_count} Hollow)")
 
         logger.debug(f"Created {len(self.agents)} agents")
-        
+
+        # Auto-generate bonds if enabled (BEFORE loading explicit starting_bonds)
+        if 'generate_bonds' in self.config and self.config['generate_bonds'].get('enabled', False):
+            try:
+                await self._generate_bonds_automatically(player_agents)
+            except Exception as e:
+                logger.error(f"Failed to auto-generate bonds: {e}")
+
+        # Load starting_bonds from config (AFTER agents created)
+        if 'starting_bonds' in self.config and self.config['starting_bonds']:
+            try:
+                from .schemas.shared_types import Bond, BondType, BondStatus
+
+                bond_configs = self.config['starting_bonds']
+                bonds_loaded = 0
+
+                # Validate and create bonds
+                for idx, bond_config in enumerate(bond_configs):
+                    # Required fields
+                    if 'character_a' not in bond_config:
+                        logger.warning(f"Starting bond {idx} missing 'character_a', skipping")
+                        continue
+                    if 'character_b' not in bond_config:
+                        logger.warning(f"Starting bond {idx} missing 'character_b', skipping")
+                        continue
+                    if 'bond_type' not in bond_config:
+                        logger.warning(f"Starting bond {idx} missing 'bond_type', skipping")
+                        continue
+
+                    char_a = bond_config['character_a']
+                    char_b = bond_config['character_b']
+
+                    # Find characters in player_agents (now they exist!)
+                    char_a_agent = None
+                    char_b_agent = None
+                    for agent in player_agents:
+                        if hasattr(agent, 'character_state') and agent.character_state.name == char_a:
+                            char_a_agent = agent
+                        if hasattr(agent, 'character_state') and agent.character_state.name == char_b:
+                            char_b_agent = agent
+
+                    if not char_a_agent:
+                        logger.warning(f"Starting bond {idx}: character '{char_a}' not found in party, skipping")
+                        continue
+                    if not char_b_agent:
+                        logger.warning(f"Starting bond {idx}: character '{char_b}' not found in party, skipping")
+                        continue
+
+                    # Validate not self-bond
+                    if char_a == char_b:
+                        logger.warning(f"Starting bond {idx}: cannot bond '{char_a}' with themselves, skipping")
+                        continue
+
+                    # Validate bond type
+                    try:
+                        bond_type = BondType(bond_config['bond_type'])
+                    except ValueError:
+                        logger.warning(f"Starting bond {idx}: invalid bond_type '{bond_config['bond_type']}', skipping")
+                        continue
+
+                    # Create bond instance
+                    bond_id = f"bond_{bonds_loaded + 1:03d}"
+                    bond = Bond(
+                        bond_id=bond_id,
+                        character_a=char_a,
+                        character_b=char_b,
+                        bond_type=bond_type,
+                        status=BondStatus.ACTIVE,
+                        formed_round=0,  # Starting bonds formed before session
+                        witnessed_by=bond_config.get('witnessed_by', []),
+                        narrative_description=bond_config.get('narrative', '')
+                    )
+
+                    # Add bond to both characters
+                    if hasattr(char_a_agent.character_state, 'bonds'):
+                        char_a_agent.character_state.bonds.append(bond)
+                    if hasattr(char_b_agent.character_state, 'bonds'):
+                        char_b_agent.character_state.bonds.append(bond)
+
+                    bonds_loaded += 1
+                    logger.info(f"Loaded starting bond: {char_a} ↔ {char_b} ({bond_type.value})")
+
+                if bonds_loaded > 0:
+                    print(f"✓ Loaded {bonds_loaded} starting bond(s)")
+            except Exception as e:
+                logger.warning(f"Failed to load starting bonds: {e}")
+
+    async def _generate_bonds_automatically(self, player_agents):
+        """
+        Auto-generate bond network and narratives using LLM.
+
+        Called when config has generate_bonds.enabled = true.
+        Uses bond_backstory_generator to create bonds deterministically,
+        then generates narratives via LLM.
+        """
+        from .schemas.shared_types import Bond, BondType, BondStatus
+        import random
+
+        logger.info("🔗 Auto-generating bond network...")
+
+        # Extract generation parameters
+        gen_config = self.config.get('generate_bonds', {})
+        min_bonds = gen_config.get('min_bonds', 2)
+        max_bonds = gen_config.get('max_bonds', 5)
+        use_scenario_context = gen_config.get('use_scenario_context', True)
+
+        # Gather character info
+        character_names = []
+        factions = {}
+        archetypes = {}
+
+        for agent in player_agents:
+            if hasattr(agent, 'character_state'):
+                name = agent.character_state.name
+                character_names.append(name)
+                factions[name] = agent.character_state.faction
+                # Get archetype from config (not stored in character_state)
+                for player_config in self.config.get('agents', {}).get('players', []):
+                    if player_config['name'] == name:
+                        archetypes[name] = player_config.get('archetype', 'Unknown')
+                        break
+
+        if len(character_names) < 2:
+            logger.info("Party size < 2, skipping bond generation")
+            return
+
+        # Generate bond structure (deterministic)
+        bond_suggestions = self._generate_bond_matrix(
+            character_names=character_names,
+            factions=factions,
+            archetypes=archetypes,
+            min_bonds=min_bonds,
+            max_bonds=max_bonds,
+            random_seed=self.random_seed
+        )
+
+        if not bond_suggestions:
+            logger.info("No bonds generated")
+            return
+
+        # Print bond matrix structure
+        print("\n🔗 Generated Bond Network:")
+        for idx, suggestion in enumerate(bond_suggestions, 1):
+            print(f"  {idx}. {suggestion['character_a']} ↔ {suggestion['character_b']} ({suggestion['bond_type']})")
+        print()
+
+        # Generate narratives via LLM
+        scenario_context = self.config.get('_scenario_hint', '') if use_scenario_context else None
+        bond_suggestions = await self._generate_bond_narratives(
+            bond_suggestions=bond_suggestions,
+            character_names=character_names,
+            factions=factions,
+            archetypes=archetypes,
+            scenario_context=scenario_context
+        )
+
+        # Convert to Bond instances and assign to characters
+        bonds_created = 0
+        for idx, suggestion in enumerate(bond_suggestions):
+            # Find character agents
+            char_a_agent = None
+            char_b_agent = None
+            for agent in player_agents:
+                if hasattr(agent, 'character_state'):
+                    if agent.character_state.name == suggestion['character_a']:
+                        char_a_agent = agent
+                    if agent.character_state.name == suggestion['character_b']:
+                        char_b_agent = agent
+
+            if not char_a_agent or not char_b_agent:
+                logger.warning(f"Could not find agents for bond {suggestion['character_a']} ↔ {suggestion['character_b']}")
+                continue
+
+            # Create bond
+            bond_id = f"bond_gen_{idx:03d}"
+            try:
+                bond_type = BondType(suggestion['bond_type'])
+            except ValueError:
+                logger.warning(f"Invalid bond type '{suggestion['bond_type']}', using KINSHIP")
+                bond_type = BondType.KINSHIP
+
+            bond = Bond(
+                bond_id=bond_id,
+                character_a=suggestion['character_a'],
+                character_b=suggestion['character_b'],
+                bond_type=bond_type,
+                status=BondStatus.ACTIVE,
+                formed_round=0,
+                witnessed_by=suggestion.get('witnessed_by', []),
+                narrative_description=suggestion.get('narrative', '')
+            )
+
+            # Add to both characters
+            if hasattr(char_a_agent.character_state, 'bonds'):
+                char_a_agent.character_state.bonds.append(bond)
+            if hasattr(char_b_agent.character_state, 'bonds'):
+                char_b_agent.character_state.bonds.append(bond)
+
+            bonds_created += 1
+            logger.info(f"Generated bond: {suggestion['character_a']} ↔ {suggestion['character_b']} ({bond_type.value})")
+
+        # Print bond backstories
+        print(f"\n📖 Bond Backstories ({bonds_created} bonds):")
+        for idx, suggestion in enumerate(bond_suggestions, 1):
+            print(f"\n  {idx}. {suggestion['character_a']} ↔ {suggestion['character_b']} ({suggestion['bond_type']})")
+            narrative = suggestion.get('narrative', 'No narrative generated')
+            # Wrap text at 80 chars for readability
+            import textwrap
+            wrapped = textwrap.fill(narrative, width=76, initial_indent="     ", subsequent_indent="     ")
+            print(wrapped)
+        print()
+
+    def _generate_bond_matrix(self, character_names, factions, archetypes, min_bonds, max_bonds, random_seed):
+        """Generate bond network structure (no narratives yet)."""
+        if random_seed is not None:
+            random.seed(random_seed)
+
+        party_size = len(character_names)
+        bond_counts = {name: 0 for name in character_names}
+        num_bonds = min(max_bonds, max(min_bonds, party_size))
+
+        bonds = []
+        attempts = 0
+        max_attempts = 100
+
+        while len(bonds) < num_bonds and attempts < max_attempts:
+            attempts += 1
+            char_a, char_b = random.sample(character_names, 2)
+
+            # Check constraints
+            if (char_a, char_b) in bonds or (char_b, char_a) in bonds:
+                continue
+            if bond_counts[char_a] >= 3 or bond_counts[char_b] >= 3:
+                continue
+            if factions.get(char_a) == "freeborn" and bond_counts[char_a] >= 1:
+                continue
+            if factions.get(char_b) == "freeborn" and bond_counts[char_b] >= 1:
+                continue
+
+            bonds.append((char_a, char_b))
+            bond_counts[char_a] += 1
+            bond_counts[char_b] += 1
+
+        # Ensure all characters have at least 1 bond
+        unbonded = [name for name, count in bond_counts.items() if count == 0]
+        for char in unbonded:
+            candidates = [
+                other for other in character_names
+                if other != char and bond_counts[other] < 3
+                and (char, other) not in bonds and (other, char) not in bonds
+            ]
+            if factions.get(char) == "freeborn" and bond_counts[char] >= 1:
+                continue
+            if candidates:
+                partner = random.choice(candidates)
+                bonds.append((char, partner))
+                bond_counts[char] += 1
+                bond_counts[partner] += 1
+
+        # Assign bond types
+        suggestions = []
+        for char_a, char_b in bonds:
+            bond_type = self._suggest_bond_type(char_a, char_b, factions, archetypes)
+            witness_candidates = [n for n in character_names if n != char_a and n != char_b]
+            witnessed_by = [random.choice(witness_candidates)] if witness_candidates and random.random() < 0.4 else []
+
+            suggestions.append({
+                'character_a': char_a,
+                'character_b': char_b,
+                'bond_type': bond_type,
+                'narrative': '',
+                'witnessed_by': witnessed_by
+            })
+
+        return suggestions
+
+    def _suggest_bond_type(self, char_a, char_b, factions, archetypes):
+        """Suggest bond type based on factions/archetypes."""
+        import random
+
+        faction_a = factions.get(char_a, '')
+        faction_b = factions.get(char_b, '')
+        same_faction = (faction_a == faction_b)
+        is_freeborn = (faction_a == "freeborn" or faction_b == "freeborn")
+
+        if is_freeborn:
+            return random.choice(["kinship", "passion"])
+        if same_faction:
+            return random.choice(["kinship", "faction"])
+        return random.choice(["passion", "debt", "voidward"])
+
+    async def _generate_bond_narratives(self, bond_suggestions, character_names, factions, archetypes, scenario_context):
+        """Generate narratives using DM's LLM provider."""
+        if not bond_suggestions:
+            return []
+
+        # Find DM agent to use its LLM provider
+        dm_agent = None
+        for agent in self.agents:
+            if hasattr(agent, 'agent_id') and 'dm' in agent.agent_id:
+                dm_agent = agent
+                break
+
+        if not dm_agent or not hasattr(dm_agent, 'llm_provider'):
+            logger.warning("No DM LLM provider found, using generic narratives")
+            for bond in bond_suggestions:
+                bond['narrative'] = f"{bond['character_a']} and {bond['character_b']} share a {bond['bond_type']} bond formed through shared hardship."
+            return bond_suggestions
+
+        # Build prompt
+        party_info = "\n".join([
+            f"- {name} ({archetypes.get(name, 'Unknown')}, {factions.get(name, 'Unknown')} faction)"
+            for name in character_names
+        ])
+
+        bond_list = "\n".join([
+            f"{i+1}. {b['character_a']} ↔ {b['character_b']} ({b['bond_type']})"
+            for i, b in enumerate(bond_suggestions)
+        ])
+
+        # Determine if this is a social scenario
+        is_social = scenario_context and any(word in scenario_context.lower() for word in ['social', 'network', 'gymbar', 'lounge', 'bar', 'dialogue'])
+
+        if is_social:
+            prompt = f"""Generate bond backstories for an Aeonisk RPG party in a SOCIAL scenario (networking event, no combat).
+
+**Party:**
+{party_info}
+
+**Bonds:**
+{bond_list}
+
+**Scenario:** {scenario_context if scenario_context else "Social networking event"}
+
+**Requirements:**
+1. Each narrative: 1-2 sentences explaining HOW the bond formed
+2. Focus on SOCIAL connections (business deals, shared interests, mentorship, attraction, debts)
+3. Bonds should create natural conversation hooks and inter-character dynamics
+4. Reference professional relationships, past collaborations, or personal connections
+5. Tone: Professional but with personal depth (not combat/trauma focused)
+6. Make bonds RELEVANT to the social setting
+
+**Output format:** Numbered list ONLY, one line per bond, no extra text.
+
+Example:
+1. Maya closed a major Seed deal for Marcus's security firm last year, and he owes her a favor worth 10,000 drip.
+2. Sienna counseled Echo through void-corruption trauma, and Echo trusts them completely despite their espionage background.
+3. Marcus and Sienna met at the gym and bonded over shared dedication to physical and spiritual discipline.
+
+Generate narratives (numbered list only):"""
+        else:
+            prompt = f"""Generate bond backstories for an Aeonisk RPG party.
+
+**Party:**
+{party_info}
+
+**Bonds:**
+{bond_list}
+
+**Scenario:** {scenario_context if scenario_context else "Void investigation mission"}
+
+**Requirements:**
+1. Each narrative: 1-2 sentences explaining HOW the bond formed
+2. Reference void corruption, Sovereign Rupture, or specific factions/locations
+3. Noir/sci-fi tone (dark, gritty, survival-focused)
+4. Avoid generic phrases like "formed through shared hardship"
+
+**Output format:** Numbered list ONLY, one line per bond, no extra text.
+
+Example:
+1. Alice and Bob are siblings, separated during the Sovereign Rupture but reunited when Alice found Bob in a Voidguard facility.
+2. Charlie owes Dana a life-debt after Dana pulled them from a void-corrupted station seconds before reactor meltdown.
+
+Generate narratives (numbered list only):"""
+
+        try:
+            # Use DM's LLM provider client directly for text generation
+            provider_type = type(dm_agent.llm_provider).__name__
+
+            if 'Claude' in provider_type and hasattr(dm_agent.llm_provider, 'client'):
+                # Anthropic/Claude provider
+                messages_response = dm_agent.llm_provider.client.messages.create(
+                    model=dm_agent.llm_provider.config.model,
+                    max_tokens=800,
+                    temperature=dm_agent.llm_config.get('temperature', 1.0),
+                    system="You are a creative writer for the Aeonisk dark sci-fi setting.",
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                response = messages_response.content[0].text
+
+            elif 'OpenAI' in provider_type and hasattr(dm_agent.llm_provider, 'client'):
+                # OpenAI provider (gpt-5-mini uses max_completion_tokens instead of max_tokens)
+                # Note: gpt-5-mini only supports temperature=1.0
+                chat_response = dm_agent.llm_provider.client.chat.completions.create(
+                    model=dm_agent.llm_provider.config.model,
+                    max_completion_tokens=800,  # gpt-5-mini parameter name
+                    temperature=1.0,  # gpt-5-mini only supports 1.0
+                    messages=[
+                        {"role": "system", "content": "You are a creative writer for the Aeonisk dark sci-fi setting."},
+                        {"role": "user", "content": prompt}
+                    ]
+                )
+                response = chat_response.choices[0].message.content
+                # Check for refusal
+                if hasattr(chat_response.choices[0].message, 'refusal') and chat_response.choices[0].message.refusal:
+                    logger.warning(f"OpenAI refused generation: {chat_response.choices[0].message.refusal}")
+                    response = ""
+                if not response or response.strip() == "":
+                    logger.warning(f"OpenAI returned empty response. Finish reason: {chat_response.choices[0].finish_reason}")
+
+            else:
+                # Fallback for unknown providers
+                logger.warning(f"Unknown LLM provider type: {provider_type}, using generic narratives")
+                response = "Generic narrative for all bonds."
+
+            # Debug: log raw LLM response
+            logger.debug(f"LLM narrative response: {response[:500]}")
+
+            # Parse numbered list
+            lines = [line.strip() for line in response.strip().split('\n') if line.strip()]
+            narratives = []
+            for line in lines:
+                if '. ' in line and line[0].isdigit():
+                    # Split on first ". " to handle numbered list format
+                    parts = line.split('. ', 1)
+                    if len(parts) == 2:
+                        narratives.append(parts[1].strip())
+                elif line and not line[0].isdigit():
+                    # Non-numbered line, might be continuation
+                    if narratives:
+                        # Append to last narrative if it looks like a continuation
+                        narratives[-1] += " " + line.strip()
+                    else:
+                        narratives.append(line.strip())
+
+            # Assign narratives (with context-aware fallbacks)
+            for i, bond in enumerate(bond_suggestions):
+                if i < len(narratives) and narratives[i]:
+                    bond['narrative'] = narratives[i]
+                else:
+                    # Context-aware fallback based on bond type and scenario
+                    if is_social:
+                        fallbacks = {
+                            'debt': f"{bond['character_a']} negotiated a crucial deal for {bond['character_b']} last year, establishing a professional debt.",
+                            'passion': f"{bond['character_a']} and {bond['character_b']} met at a networking event and formed an intense personal connection.",
+                            'kinship': f"{bond['character_a']} and {bond['character_b']} grew up in the same station district and consider each other family.",
+                            'faction': f"{bond['character_a']} and {bond['character_b']} work together regularly and share faction loyalties.",
+                            'voidward': f"{bond['character_a']} and {bond['character_b']} both survived void exposure and understand each other's struggles.",
+                            'ascendancy': f"{bond['character_a']} mentored {bond['character_b']} in professional skills, forming a lasting bond."
+                        }
+                    else:
+                        fallbacks = {
+                            'debt': f"{bond['character_a']} saved {bond['character_b']}'s life during a void incursion.",
+                            'passion': f"{bond['character_a']} and {bond['character_b']} became lovers while surviving a corrupted station.",
+                            'kinship': f"{bond['character_a']} and {bond['character_b']} are siblings separated during the Sovereign Rupture.",
+                            'faction': f"{bond['character_a']} and {bond['character_b']} bonded through shared faction service.",
+                            'voidward': f"{bond['character_a']} and {bond['character_b']} survived void corruption together.",
+                            'ascendancy': f"{bond['character_a']} trained {bond['character_b']} in combat during a dangerous mission."
+                        }
+                    bond['narrative'] = fallbacks.get(bond['bond_type'],
+                        f"{bond['character_a']} and {bond['character_b']} share a {bond['bond_type']} bond.")
+
+            logger.info(f"Generated {len(narratives)} bond narratives via LLM")
+            return bond_suggestions
+
+        except Exception as e:
+            logger.error(f"Failed to generate narratives via LLM: {e}")
+            for bond in bond_suggestions:
+                bond['narrative'] = f"{bond['character_a']} and {bond['character_b']} share a {bond['bond_type']} bond."
+            return bond_suggestions
+
     async def _wait_for_agents_ready(self):
         """Wait for all agents to signal readiness."""
         # Simple wait - you could enhance with proper synchronization
@@ -819,11 +1331,17 @@ class SelfPlayingSession:
             if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
                 active_npcs = [npc for npc in self.shared_state.npc_agents if npc.is_active]
 
-            # Assign IDs to all combatants (PCs + enemies + NPCs)
+            # Get all legacy vendors (for transfer targeting)
+            current_vendors = []
+            if self.shared_state and hasattr(self.shared_state, 'current_vendors'):
+                current_vendors = self.shared_state.current_vendors or []
+
+            # Assign IDs to all combatants AND vendors (PCs + enemies + NPCs + vendors)
             target_id_mapper.assign_ids(
                 player_agents=self.shared_state.player_agents,
                 enemy_agents=active_enemies,
-                npc_agents=active_npcs
+                npc_agents=active_npcs,
+                vendors=current_vendors
             )
             logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
@@ -864,13 +1382,13 @@ class SelfPlayingSession:
                         provider_config = LLMConfig(
                             provider=llm_config.get('provider', 'anthropic'),
                             model=llm_config.get('model', 'claude-sonnet-4-5'),
-                            temperature=llm_config.get('temperature', 0.7),
+                            temperature=llm_config.get('temperature', 1.0),
                             max_tokens=500  # Default for enemy agents
                         )
                         self.provider = create_provider(provider_config)
 
                     async def generate_async(self, prompt: str, temperature: float = 0.7, max_tokens: int = 500):
-                        from datetime import datetime
+                        from datetime import datetime, timezone
 
                         # Use llm_provider for all providers (Anthropic, OpenAI, etc.)
                         response = await self.provider.generate(
@@ -886,7 +1404,7 @@ class SelfPlayingSession:
                             try:
                                 self.jsonl_logger.write_event({
                                     'event_type': 'llm_call',
-                                    'ts': datetime.utcnow().isoformat(),
+                                    'ts': datetime.now(timezone.utc).isoformat(),
                                     'session': self.session_id or 'unknown',
                                     'round': None,  # Enemy calls don't have round context here
                                     'agent_id': self.agent_id,
@@ -1126,7 +1644,7 @@ class SelfPlayingSession:
                                 narrative_context += f"{synthesis_narration}\n"
 
                         # PHASE 4: Add recent narrative context (filter out NPC reasoning echoes)
-                        # Include ALL action resolutions from current round
+                        # Include ONLY NEW action resolutions (use NPC memory to deduplicate)
                         recent_narrative = []
 
                         # Get list of NPC names to filter out reasoning echoes
@@ -1134,27 +1652,41 @@ class SelfPlayingSession:
                         if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
                             npc_names = [npc.name for npc in self.shared_state.npc_agents if npc.is_active]
 
-                        # Add recent player narrations (stored by player agents for context)
+                        # Collect all narrations first, filtering by awareness
+                        all_narrations = []
                         for player_agent in player_agents:
                             if hasattr(player_agent, 'recent_narrations') and player_agent.recent_narrations:
-                                # Get ALL narrations (not just last 2) to show full current round context
-                                for narration in player_agent.recent_narrations:
+                                # Filter narrations based on what this NPC can see
+                                visible_narrations = filter_narrations_for_agent(
+                                    agent.agent_id,
+                                    player_agent.recent_narrations
+                                )
+                                for narration in visible_narrations:
+                                    # Get text from NarrationEntry or use string directly
+                                    narration_text = narration.text if isinstance(narration, NarrationEntry) else narration
                                     # Skip if this looks like NPC reasoning echo
-                                    # (contains NPC name followed immediately by reasoning text)
                                     is_npc_reasoning = any(
-                                        narration.startswith(f"[{npc_name}] {npc_name}")
+                                        narration_text.startswith(f"[{npc_name}] {npc_name}")
                                         for npc_name in npc_names
                                     )
-
                                     if not is_npc_reasoning:
-                                        # Keep full narration - this is juicy coordination info!
-                                        recent_narrative.append(narration)
+                                        all_narrations.append(narration_text)
+
+                        # Use NPC's memory to filter out already-seen events
+                        if hasattr(agent, 'memory') and agent.memory:
+                            recent_narrative = agent.memory.filter_unseen_events(all_narrations)
+                            # Mark these events as seen for next round
+                            for event in recent_narrative:
+                                agent.memory.mark_event_seen(event)
+                        else:
+                            # Fallback: show last 5 narrations if no memory
+                            recent_narrative = all_narrations[-5:] if len(all_narrations) > 5 else all_narrations
 
                         if recent_narrative:
                             if not narrative_context:
                                 narrative_context += "\n\n# 📖 Recent Story Events\n\n"
                             narrative_context += "## Recent Action Outcomes:\n"
-                            # Show ALL recent resolutions (not just last 3)
+                            # Show only NEW/unseen events
                             for i, narration in enumerate(recent_narrative, 1):
                                 narrative_context += f"{i}. {narration}\n"
                             narrative_context += "\n"
@@ -1208,6 +1740,17 @@ class SelfPlayingSession:
                         npc_action = await agent.llm_client.declare_action(context)
 
                         if npc_action:
+                            # Record action in NPC's memory (so they don't repeat themselves)
+                            if hasattr(agent, 'memory') and agent.memory:
+                                current_round = mechanics.current_round if mechanics else 0
+                                agent.memory.record_own_action(
+                                    round_num=current_round,
+                                    action_type=npc_action.action_type,
+                                    dialogue=npc_action.dialogue_content if npc_action.action_type in ['dialogue', 'plead'] else None,
+                                    target=npc_action.target,
+                                    reason=npc_action.reason
+                                )
+
                             # Print detailed NPC declaration info
                             health_str = f"{agent.health}/{agent.max_health} HP"
                             disp_emoji = {"friendly": "🤝", "neutral": "😐", "wary": "😟", "prisoner": "🔒"}.get(agent.disposition, "❓")
@@ -1306,7 +1849,11 @@ class SelfPlayingSession:
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
                                 'initiative': initiative_score,
-                                'dialogue_content': npc_action.dialogue_content  # Include actual dialogue for dialogue actions
+                                'dialogue_content': npc_action.dialogue_content,  # Include actual dialogue for dialogue actions
+                                # Transfer-specific fields (if transfer action)
+                                'transfer_target': getattr(npc_action, 'transfer_target', None),
+                                'transfer_currency': getattr(npc_action, 'transfer_currency', None),
+                                'transfer_items': getattr(npc_action, 'transfer_items', None)
                             })
 
                             # Broadcast NPC action to players
@@ -1428,8 +1975,36 @@ class SelfPlayingSession:
 
                         await self.coordinator.message_bus._route_message(adjudication_message)
 
-                        # Wait for DM to complete adjudication
-                        await adjudication_event.wait()
+                        # Wait for DM to complete adjudication (with timeout)
+                        # Timeout = 24 hours (Batch API can queue requests for hours)
+                        ADJUDICATION_TIMEOUT = 86400  # seconds (24h for batch API)
+                        try:
+                            await asyncio.wait_for(adjudication_event.wait(), timeout=ADJUDICATION_TIMEOUT)
+                        except asyncio.TimeoutError:
+                            error_msg = f"Adjudication timeout after {ADJUDICATION_TIMEOUT}s for {agent.character_state.name}"
+                            logger.error(f"❌ {error_msg}")
+                            # Log to JSONL
+                            if mechanics and mechanics.jsonl_logger:
+                                mechanics.jsonl_logger.log_session_error(
+                                    error_type="adjudication_timeout",
+                                    error_message=error_msg,
+                                    exception_type="TimeoutError",
+                                    context={
+                                        'round': mechanics.current_round,
+                                        'agent_id': agent.agent_id,
+                                        'character_name': agent.character_state.name,
+                                        'action_index': idx
+                                    }
+                                )
+                            # Continue to avoid infinite hang, but mark as failed
+                            raise RuntimeError(error_msg)
+
+                        # Check if adjudication returned an error
+                        if getattr(adjudication_event, 'error', False):
+                            error_msg = getattr(adjudication_event, 'error_message', 'Unknown adjudication error')
+                            logger.error(f"❌ Adjudication failed: {error_msg}")
+                            raise RuntimeError(error_msg)
+
                         logger.debug(f"{agent.character_state.name} {action_label} adjudicated")
 
                         # Clean up and collect resolution for synthesis
@@ -1622,6 +2197,115 @@ class SelfPlayingSession:
                         }
                     }
 
+                    # PRE-VALIDATE AND EXECUTE NPC TRANSFER ACTIONS (before DM sees them)
+                    # Similar to player transfers - prevents phantom transfers
+                    if npc_action_type == 'transfer':
+                        transfer_target = npc_action.get('transfer_target')
+                        transfer_currency = npc_action.get('transfer_currency')
+                        transfer_items = npc_action.get('transfer_items')
+
+                        if transfer_target and (transfer_currency or transfer_items):
+                            if mechanics:
+                                try:
+                                    # Validate transfer with NPC as sender
+                                    validation = mechanics.validate_transfer(
+                                        sender_state=agent,  # NPC agent as sender
+                                        transfer_target=transfer_target,
+                                        transfer_currency=transfer_currency,
+                                        transfer_items=transfer_items,
+                                        sender_position=getattr(agent, 'position', None)
+                                    )
+
+                                    # Store validation result for DM narration
+                                    action_for_adjudication['transfer_validation'] = {
+                                        'is_valid': validation.is_valid,
+                                        'sender_name': validation.sender_name,
+                                        'receiver_name': validation.receiver_name,
+                                        'receiver_agent_id': validation.receiver_agent_id,
+                                        'currency': validation.currency,
+                                        'items': validation.items,
+                                        'failure_reason': validation.failure_reason,
+                                        'in_range': validation.in_range,
+                                        'executed': False,
+                                        'npc_initiated': True
+                                    }
+
+                                    if validation.is_valid:
+                                        # Find receiver agent (player or NPC)
+                                        receiver_agent = next(
+                                            (a for a in self.shared_state.player_agents
+                                             if a.agent_id == validation.receiver_agent_id),
+                                            None
+                                        )
+                                        if receiver_agent is None and hasattr(self.shared_state, 'npc_agents'):
+                                            receiver_agent = next(
+                                                (n for n in self.shared_state.npc_agents
+                                                 if n.agent_id == validation.receiver_agent_id),
+                                                None
+                                            )
+
+                                        if receiver_agent:
+                                            success = True
+
+                                            # Execute currency transfer
+                                            if transfer_currency:
+                                                sender_purse = _get_energy_purse(agent)
+                                                receiver_purse = _get_energy_purse(receiver_agent)
+                                                if sender_purse and receiver_purse:
+                                                    currency_success = sender_purse.transfer_currencies_to(
+                                                        receiver_purse=receiver_purse,
+                                                        currency_amounts=transfer_currency
+                                                    )
+                                                    success = success and currency_success
+                                                else:
+                                                    success = False
+
+                                            # Execute item transfer
+                                            if transfer_items:
+                                                sender_inv = _get_inventory(agent)
+                                                receiver_inv = _get_inventory(receiver_agent)
+                                                for item_name, amount in transfer_items.items():
+                                                    if sender_inv and item_name in sender_inv:
+                                                        sender_inv[item_name] -= amount
+                                                        if sender_inv[item_name] <= 0:
+                                                            del sender_inv[item_name]
+                                                    receiver_inv[item_name] = receiver_inv.get(item_name, 0) + amount
+
+                                            if success:
+                                                action_for_adjudication['transfer_validation']['executed'] = True
+                                                logger.info(
+                                                    f"✓ NPC TRANSFER EXECUTED: {agent.name} → {validation.receiver_name}: "
+                                                    f"currency={transfer_currency}, items={transfer_items}"
+                                                )
+
+                                                # Log energy_transfer event
+                                                if mechanics.jsonl_logger:
+                                                    mechanics.jsonl_logger.log_event(
+                                                        'energy_transfer',
+                                                        {
+                                                            'sender_id': agent.agent_id,
+                                                            'sender_name': agent.name,
+                                                            'receiver_id': validation.receiver_agent_id,
+                                                            'receiver_name': validation.receiver_name,
+                                                            'currency': transfer_currency,
+                                                            'items': transfer_items,
+                                                            'success': True,
+                                                            'failure_reason': None,
+                                                            'in_range': validation.in_range,
+                                                            'npc_initiated': True
+                                                        },
+                                                        mechanics.current_round
+                                                    )
+
+                                except Exception as e:
+                                    logger.warning(f"NPC transfer validation failed: {e}")
+                                    action_for_adjudication['transfer_validation'] = {
+                                        'is_valid': False,
+                                        'failure_reason': str(e),
+                                        'executed': False,
+                                        'npc_initiated': True
+                                    }
+
                     # Create event to track when adjudication completes
                     adjudication_event = asyncio.Event()
                     self._pending_resolutions[f"{agent.agent_id}_0"] = adjudication_event  # action_index=0 for NPCs
@@ -1644,8 +2328,32 @@ class SelfPlayingSession:
 
                     await self.coordinator.message_bus._route_message(adjudication_message)
 
-                    # Wait for DM to complete adjudication
-                    await adjudication_event.wait()
+                    # Wait for DM to complete adjudication (with timeout)
+                    ADJUDICATION_TIMEOUT = 86400  # seconds (24h for batch API)
+                    try:
+                        await asyncio.wait_for(adjudication_event.wait(), timeout=ADJUDICATION_TIMEOUT)
+                    except asyncio.TimeoutError:
+                        error_msg = f"NPC adjudication timeout after {ADJUDICATION_TIMEOUT}s for {agent.name}"
+                        logger.error(f"❌ {error_msg}")
+                        if mechanics and mechanics.jsonl_logger:
+                            mechanics.jsonl_logger.log_session_error(
+                                error_type="adjudication_timeout",
+                                error_message=error_msg,
+                                exception_type="TimeoutError",
+                                context={
+                                    'round': mechanics.current_round,
+                                    'agent_id': agent.agent_id,
+                                    'npc_name': agent.name
+                                }
+                            )
+                        raise RuntimeError(error_msg)
+
+                    # Check if adjudication returned an error
+                    if getattr(adjudication_event, 'error', False):
+                        error_msg = getattr(adjudication_event, 'error_message', 'Unknown adjudication error')
+                        logger.error(f"❌ NPC adjudication failed: {error_msg}")
+                        raise RuntimeError(error_msg)
+
                     logger.debug(f"NPC {agent.name} action adjudicated")
 
                     # Collect resolution for synthesis
@@ -2219,6 +2927,24 @@ class SelfPlayingSession:
                         else:
                             death_state = "alive"
 
+                        # Extract economic data from energy_purse
+                        energy_data = {}
+                        seeds_data = {}
+                        if hasattr(char_state, 'energy_purse') and char_state.energy_purse:
+                            purse = char_state.energy_purse
+                            energy_data = {
+                                "breath": purse.breath,
+                                "drip": purse.drip,
+                                "grain": purse.grain,
+                                "spark": purse.spark,
+                                "hollow": purse.hollow,
+                            }
+                            seeds_data = {
+                                "raw": purse.count_seeds(SeedType.RAW),
+                                "attuned": purse.count_seeds(SeedType.ATTUNED),
+                                "hollow": purse.count_seeds(SeedType.HOLLOW),
+                            }
+
                         mechanics.jsonl_logger.log_character_state(
                             round_num=mechanics.current_round,
                             character_id=player.agent_id,
@@ -2231,7 +2957,9 @@ class SelfPlayingSession:
                             position=str(getattr(player, 'position', 'Unknown')),
                             conditions=[],  # TODO: Add condition tracking
                             is_defeated=(death_state != "alive"),
-                            death_state=death_state  # NEW: Track death vs unconscious
+                            death_state=death_state,
+                            energy=energy_data,
+                            seeds=seeds_data
                         )
 
                         # Log narrative memory state for ML training
@@ -2504,7 +3232,7 @@ class SelfPlayingSession:
                 provider_config = LLMConfig(
                     provider=player.llm_config.get('provider', 'anthropic'),
                     model=player.llm_config.get('model', 'claude-sonnet-4-5'),
-                    temperature=0.8,
+                    temperature=player.llm_config.get('temperature', 1.0),
                     max_tokens=250
                 )
                 provider = create_provider(provider_config)
@@ -2587,7 +3315,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                     response = await provider.generate(
                         prompt=debrief_prompt,
                         max_tokens=4000,  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                        temperature=0.8
+                        temperature=player.llm_config.get('temperature', 1.0)
                     )
 
                     debrief_text = response.text.strip()
@@ -3240,7 +3968,7 @@ Keep it conversational and in character. This is a dialogue, not a report."""
                 'void_score': player.character_state.void_score,
                 'soulcredit': player.character_state.soulcredit,
                 'goals': player.character_state.goals,
-                'bonds': player.character_state.bonds,
+                'bonds': [bond.model_dump() for bond in player.character_state.bonds],  # Serialize Bond objects
             })
 
         # Filter config to only include active players
@@ -3397,42 +4125,14 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         return rounds
 
     async def _save_session_data(self, data: Dict[str, Any]):
-        """Save session data for training/analysis."""
+        """Print session summary (JSONL log is the primary output)."""
         output_dir = Path(self.config.get('output_dir', './output'))
-        output_dir.mkdir(exist_ok=True)
-        
-        # Save as JSON for easy processing
-        json_path = output_dir / f"session_{self.session_id}.json"
-        with open(json_path, 'w') as f:
-            json.dump(data, f, indent=2, default=str)
-            
-        # Save as YAML for human readability
-        yaml_path = output_dir / f"session_{self.session_id}.yaml"
-        
-        # Convert any custom objects to dictionaries to avoid Python object serialization
-        def safe_dict_conversion(obj):
-            """Safely convert custom objects to dictionaries."""
-            if hasattr(obj, '__dict__'):
-                return {k: safe_dict_conversion(v) for k, v in obj.__dict__.items()}
-            elif isinstance(obj, dict):
-                return {k: safe_dict_conversion(v) for k, v in obj.items()}
-            elif isinstance(obj, (list, tuple)):
-                return [safe_dict_conversion(item) for item in obj]
-            else:
-                return obj
-        
-        safe_data = safe_dict_conversion(data)
-        
-        with open(yaml_path, 'w') as f:
-            yaml.dump(safe_data, f, default_flow_style=False)
-
-        print(f"Session data saved to {json_path}")
 
         # Print session summary for easy copy-paste
         print(f"\n{'='*60}")
         print(f"Session ID: {self.session_id}")
 
-        # JSONL log path
+        # JSONL log path (primary output)
         mechanics = self.shared_state.get_mechanics_engine()
         if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
             print(f"JSONL log:  {mechanics.jsonl_logger.log_file}")
@@ -3979,38 +4679,51 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                         if validation.is_valid:
                             # EXECUTE TRANSFER MECHANICALLY (before DM narrates)
+                            # Search BOTH player_agents AND npc_agents for receiver
                             receiver_agent = next(
                                 (a for a in self.shared_state.player_agents
                                  if a.agent_id == validation.receiver_agent_id),
                                 None
                             )
+                            # If not found in players, check NPCs
+                            if receiver_agent is None and hasattr(self.shared_state, 'npc_agents'):
+                                receiver_agent = next(
+                                    (n for n in self.shared_state.npc_agents
+                                     if n.agent_id == validation.receiver_agent_id),
+                                    None
+                                )
 
                             if receiver_agent:
                                 success = True
 
                                 # Execute currency transfer if present
+                                # Use helper to get purse (handles both player and NPC patterns)
                                 if transfer_currency:
-                                    currency_success = player_agent.character_state.energy_purse.transfer_currencies_to(
-                                        receiver_purse=receiver_agent.character_state.energy_purse,
-                                        currency_amounts=transfer_currency
-                                    )
-                                    success = success and currency_success
+                                    sender_purse = _get_energy_purse(player_agent)
+                                    receiver_purse = _get_energy_purse(receiver_agent)
+                                    if sender_purse and receiver_purse:
+                                        currency_success = sender_purse.transfer_currencies_to(
+                                            receiver_purse=receiver_purse,
+                                            currency_amounts=transfer_currency
+                                        )
+                                        success = success and currency_success
+                                    else:
+                                        logger.error(f"Missing energy purse: sender={sender_purse is not None}, receiver={receiver_purse is not None}")
+                                        success = False
 
                                 # Execute item transfer if present
+                                # Use helper to get/create inventory (handles both player and NPC patterns)
                                 if transfer_items:
+                                    sender_inv = _get_inventory(player_agent)
+                                    receiver_inv = _get_inventory(receiver_agent)
                                     for item_name, amount in transfer_items.items():
                                         # Remove from sender
-                                        sender_inv = player_agent.character_state.inventory
                                         if sender_inv and item_name in sender_inv:
                                             sender_inv[item_name] -= amount
                                             if sender_inv[item_name] <= 0:
                                                 del sender_inv[item_name]
 
                                         # Add to receiver
-                                        receiver_inv = receiver_agent.character_state.inventory
-                                        if receiver_inv is None:
-                                            receiver_agent.character_state.inventory = {}
-                                            receiver_inv = receiver_agent.character_state.inventory
                                         receiver_inv[item_name] = receiver_inv.get(item_name, 0) + amount
 
                                 if success:
@@ -4235,6 +4948,10 @@ Keep it conversational and in character. This is a dialogue, not a report."""
         agent_id = message.payload.get('agent_id')
         action_index = message.payload.get('action_index', 0)  # Default to 0 for backward compatibility
 
+        # Check for error flag in the resolution (DM sends this on fatal failure)
+        has_error = message.payload.get('error', False)
+        error_message = message.payload.get('error_message', '')
+
         # Build the event key (must match the key used when storing the event)
         event_key = f"{agent_id}_{action_index}"
 
@@ -4242,6 +4959,11 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Store resolution data on the event for later collection
             event = self._pending_resolutions[event_key]
             event.resolution_data = message.payload.get('resolution_data')
+            # Store error info if present
+            if has_error:
+                event.error = True
+                event.error_message = error_message
+                logger.error(f"Resolution {event_key} returned with error: {error_message}")
             # Signal that this agent's resolution/adjudication is complete
             event.set()
             logger.debug(f"Resolution complete for {event_key}")
@@ -4249,8 +4971,35 @@ Keep it conversational and in character. This is a dialogue, not a report."""
             # Fallback for old-style keys (no index)
             event = self._pending_resolutions[agent_id]
             event.resolution_data = message.payload.get('resolution_data')
+            # Store error info if present
+            if has_error:
+                event.error = True
+                event.error_message = error_message
+                logger.error(f"Resolution {agent_id} returned with error: {error_message}")
             event.set()
             logger.debug(f"Resolution complete for {agent_id} (legacy)")
+
+    def _handle_agent_error(self, message: Message):
+        """Handle AGENT_ERROR messages from agents with fatal errors."""
+        if message.type != MessageType.AGENT_ERROR:
+            return
+
+        agent_id = message.payload.get('agent_id', 'unknown')
+        error_type = message.payload.get('error_type', 'unknown')
+        error_message = message.payload.get('error_message', 'Unknown error')
+        recoverable = message.payload.get('recoverable', False)
+
+        logger.error(f"❌ Received AGENT_ERROR from {agent_id}: {error_type} - {error_message}")
+
+        # Log to console for visibility
+        print(f"\n❌ FATAL AGENT ERROR from {agent_id}:")
+        print(f"   Type: {error_type}")
+        print(f"   Message: {error_message}")
+
+        # Store error for main loop to detect and terminate gracefully
+        if not recoverable:
+            self._fatal_error = error_message
+            # If session is still running, it will see this flag and terminate
 
     async def _process_structured_synthesis(self, synthesis: 'RoundSynthesis'):
         """

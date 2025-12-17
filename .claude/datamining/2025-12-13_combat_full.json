@@ -1,0 +1,1068 @@
+{
+  "generated": "2025-12-14T00:25:03.002342",
+  "session_count": 240,
+  "analyzers": {
+    "skills": {
+      "event_count": 8797,
+      "metrics": {
+        "dc_baseline": 18,
+        "total_rolls": 8797,
+        "attr_skill_combos": [
+          {
+            "attr": "Willpower",
+            "skill": "Astral Arts",
+            "count": 516,
+            "percentage": 17.3
+          },
+          {
+            "attr": "Empathy",
+            "skill": "Guile",
+            "count": 451,
+            "percentage": 15.1
+          },
+          {
+            "attr": "Willpower",
+            "skill": "Attunement",
+            "count": 419,
+            "percentage": 14.0
+          },
+          {
+            "attr": "Intelligence",
+            "skill": "Systems",
+            "count": 400,
+            "percentage": 13.4
+          },
+          {
+            "attr": "Agility",
+            "skill": "Guns",
+            "count": 296,
+            "percentage": 9.9
+          },
+          {
+            "attr": "Empathy",
+            "skill": "Charm",
+            "count": 244,
+            "percentage": 8.2
+          },
+          {
+            "attr": "Perception",
+            "skill": "Awareness",
+            "count": 159,
+            "percentage": 5.3
+          },
+          {
+            "attr": "Empathy",
+            "skill": "Negotiation",
+            "count": 151,
+            "percentage": 5.1
+          },
+          {
+            "attr": "Agility",
+            "skill": "Stealth",
+            "count": 54,
+            "percentage": 1.8
+          },
+          {
+            "attr": "Intelligence",
+            "skill": "Medicine",
+            "count": 37,
+            "percentage": 1.2
+          },
+          {
+            "attr": "Agility",
+            "skill": "Combat",
+            "count": 36,
+            "percentage": 1.2
+          },
+          {
+            "attr": "Perception",
+            "skill": "Combat",
+            "count": 29,
+            "percentage": 1.0
+          },
+          {
+            "attr": "Perception",
+            "skill": "Pilot",
+            "count": 25,
+            "percentage": 0.8
+          },
+          {
+            "attr": "Strength",
+            "skill": "Brawl",
+            "count": 20,
+            "percentage": 0.7
+          },
+          {
+            "attr": "Agility",
+            "skill": "Melee",
+            "count": 14,
+            "percentage": 0.5
+          },
+          {
+            "attr": "Agility",
+            "skill": "Tech/Craft",
+            "count": 13,
+            "percentage": 0.4
+          },
+          {
+            "attr": "Willpower",
+            "skill": "Command",
+            "count": 12,
+            "percentage": 0.4
+          },
+          {
+            "attr": "Intelligence",
+            "skill": "Tech/Craft",
+            "count": 11,
+            "percentage": 0.4
+          },
+          {
+            "attr": "Perception",
+            "skill": "Attunement",
+            "count": 9,
+            "percentage": 0.3
+          },
+          {
+            "attr": "Intelligence",
+            "skill": "Attunement",
+            "count": 8,
+            "percentage": 0.3
+          }
+        ],
+        "ability_buckets": [
+          {
+            "bucket": "0 (unskilled)",
+            "success": 0,
+            "total": 5809,
+            "success_rate": 0.0,
+            "avg_margin": -2.7,
+            "expected_rate": 5.0,
+            "delta": -5.0
+          },
+          {
+            "bucket": "1-10 (low)",
+            "success": 322,
+            "total": 580,
+            "success_rate": 55.5,
+            "avg_margin": 0.8,
+            "expected_rate": 40.0,
+            "delta": 15.5
+          },
+          {
+            "bucket": "11-20 (moderate)",
+            "success": 961,
+            "total": 1176,
+            "success_rate": 81.7,
+            "avg_margin": 6.1,
+            "expected_rate": 90.0,
+            "delta": -8.3
+          },
+          {
+            "bucket": "21-30 (high)",
+            "success": 1231,
+            "total": 1232,
+            "success_rate": 99.9,
+            "avg_margin": 18.8,
+            "expected_rate": 100.0,
+            "delta": -0.1
+          }
+        ],
+        "skill_performance": [
+          {
+            "skill": "Astral Arts",
+            "success": 420,
+            "total": 516,
+            "success_rate": 81.4,
+            "avg_margin": 8.0
+          },
+          {
+            "skill": "Guile",
+            "success": 443,
+            "total": 451,
+            "success_rate": 98.2,
+            "avg_margin": 19.2
+          },
+          {
+            "skill": "Attunement",
+            "success": 239,
+            "total": 436,
+            "success_rate": 54.8,
+            "avg_margin": 0.8
+          },
+          {
+            "skill": "Systems",
+            "success": 339,
+            "total": 406,
+            "success_rate": 83.5,
+            "avg_margin": 11.1
+          },
+          {
+            "skill": "Guns",
+            "success": 292,
+            "total": 296,
+            "success_rate": 98.6,
+            "avg_margin": 15.0
+          },
+          {
+            "skill": "Charm",
+            "success": 223,
+            "total": 244,
+            "success_rate": 91.4,
+            "avg_margin": 14.4
+          },
+          {
+            "skill": "Awareness",
+            "success": 144,
+            "total": 161,
+            "success_rate": 89.4,
+            "avg_margin": 8.3
+          },
+          {
+            "skill": "Negotiation",
+            "success": 122,
+            "total": 151,
+            "success_rate": 80.8,
+            "avg_margin": 6
+          },
+          {
+            "skill": "Combat",
+            "success": 62,
+            "total": 68,
+            "success_rate": 91.2,
+            "avg_margin": 8.3
+          },
+          {
+            "skill": "Stealth",
+            "success": 59,
+            "total": 60,
+            "success_rate": 98.3,
+            "avg_margin": 12.7
+          },
+          {
+            "skill": "Medicine",
+            "success": 31,
+            "total": 37,
+            "success_rate": 83.8,
+            "avg_margin": 6.6
+          },
+          {
+            "skill": "Pilot",
+            "success": 23,
+            "total": 26,
+            "success_rate": 88.5,
+            "avg_margin": 6.7
+          },
+          {
+            "skill": "Tech/Craft",
+            "success": 14,
+            "total": 24,
+            "success_rate": 58.3,
+            "avg_margin": 1.5
+          },
+          {
+            "skill": "Brawl",
+            "success": 21,
+            "total": 21,
+            "success_rate": 100.0,
+            "avg_margin": 21.7
+          },
+          {
+            "skill": "Melee",
+            "success": 14,
+            "total": 14,
+            "success_rate": 100.0,
+            "avg_margin": 13.8
+          }
+        ],
+        "attribute_usage": [
+          {
+            "attribute": null,
+            "success": 0,
+            "total": 5809,
+            "success_rate": 0.0,
+            "avg_margin": -2.7,
+            "usage_percentage": 66.0
+          },
+          {
+            "attribute": "Willpower",
+            "success": 663,
+            "total": 952,
+            "success_rate": 69.6,
+            "avg_margin": 4.8,
+            "usage_percentage": 10.8
+          },
+          {
+            "attribute": "Empathy",
+            "success": 791,
+            "total": 849,
+            "success_rate": 93.2,
+            "avg_margin": 15.4,
+            "usage_percentage": 9.7
+          },
+          {
+            "attribute": "Intelligence",
+            "success": 399,
+            "total": 485,
+            "success_rate": 82.3,
+            "avg_margin": 10.2,
+            "usage_percentage": 5.5
+          },
+          {
+            "attribute": "Agility",
+            "success": 418,
+            "total": 434,
+            "success_rate": 96.3,
+            "avg_margin": 13.4,
+            "usage_percentage": 4.9
+          },
+          {
+            "attribute": "Perception",
+            "success": 207,
+            "total": 228,
+            "success_rate": 90.8,
+            "avg_margin": 8.4,
+            "usage_percentage": 2.6
+          },
+          {
+            "attribute": "Strength",
+            "success": 29,
+            "total": 31,
+            "success_rate": 93.5,
+            "avg_margin": 18.3,
+            "usage_percentage": 0.4
+          }
+        ],
+        "dc_distribution": {
+          "null": 5809,
+          "18": 1978,
+          "22": 526,
+          "20": 443,
+          "15": 41
+        }
+      },
+      "warnings": [
+        "Bucket '1-10 (low)' deviates +15.5% from expected (observed 55.5%, expected 40.0%)",
+        "Skill 'Astral Arts' may be too easy (81.4% success)",
+        "Skill 'Guile' may be too easy (98.2% success)",
+        "Skill 'Systems' may be too easy (83.5% success)",
+        "Skill 'Guns' may be too easy (98.6% success)",
+        "Skill 'Charm' may be too easy (91.4% success)",
+        "Skill 'Awareness' may be too easy (89.4% success)",
+        "Skill 'Negotiation' may be too easy (80.8% success)",
+        "Skill 'Combat' may be too easy (91.2% success)",
+        "Skill 'Stealth' may be too easy (98.3% success)",
+        "Skill 'Medicine' may be too easy (83.8% success)",
+        "Skill 'Pilot' may be too easy (88.5% success)",
+        "Skill 'Brawl' may be too easy (100.0% success)",
+        "Skill 'Melee' may be too easy (100.0% success)"
+      ]
+    },
+    "weapons": {
+      "event_count": 3132,
+      "metrics": {
+        "total_attacks": 3132,
+        "total_hits": 2252,
+        "total_damage": 16412,
+        "total_kills": 0,
+        "overall_hit_rate": 71.9,
+        "weapon_effectiveness": [
+          {
+            "weapon": "attack",
+            "hits": 1043,
+            "total": 1043,
+            "hit_rate": 100.0,
+            "avg_damage": 8.3,
+            "max_damage": 29,
+            "total_damage": 8608,
+            "kills": 0
+          },
+          {
+            "weapon": "Unknown Weapon",
+            "hits": 0,
+            "total": 629,
+            "hit_rate": 0.0,
+            "avg_damage": 0,
+            "max_damage": 0,
+            "total_damage": 0,
+            "kills": 0
+          },
+          {
+            "weapon": "Pistol",
+            "hits": 267,
+            "total": 411,
+            "hit_rate": 65.0,
+            "avg_damage": 6.6,
+            "max_damage": 16,
+            "total_damage": 1225,
+            "kills": 0
+          },
+          {
+            "weapon": "Void Blade",
+            "hits": 377,
+            "total": 377,
+            "hit_rate": 100.0,
+            "avg_damage": 7.6,
+            "max_damage": 15,
+            "total_damage": 2294,
+            "kills": 0
+          },
+          {
+            "weapon": "Guns Attack",
+            "hits": 135,
+            "total": 135,
+            "hit_rate": 100.0,
+            "avg_damage": 10.7,
+            "max_damage": 28,
+            "total_damage": 1441,
+            "kills": 0
+          },
+          {
+            "weapon": "Ritual Blade",
+            "hits": 95,
+            "total": 120,
+            "hit_rate": 79.2,
+            "avg_damage": 6.5,
+            "max_damage": 12,
+            "total_damage": 409,
+            "kills": 0
+          },
+          {
+            "weapon": "Shotgun",
+            "hits": 61,
+            "total": 111,
+            "hit_rate": 55.0,
+            "avg_damage": 8.2,
+            "max_damage": 15,
+            "total_damage": 459,
+            "kills": 0
+          },
+          {
+            "weapon": "Firearm",
+            "hits": 85,
+            "total": 85,
+            "hit_rate": 100.0,
+            "avg_damage": 10.2,
+            "max_damage": 24,
+            "total_damage": 865,
+            "kills": 0
+          },
+          {
+            "weapon": "Stun Gun",
+            "hits": 80,
+            "total": 80,
+            "hit_rate": 100.0,
+            "avg_damage": 5.8,
+            "max_damage": 11,
+            "total_damage": 278,
+            "kills": 0
+          },
+          {
+            "weapon": "Baton",
+            "hits": 27,
+            "total": 56,
+            "hit_rate": 48.2,
+            "avg_damage": 5.6,
+            "max_damage": 10,
+            "total_damage": 78,
+            "kills": 0
+          },
+          {
+            "weapon": "Assault Rifle",
+            "hits": 26,
+            "total": 27,
+            "hit_rate": 96.3,
+            "avg_damage": 7.7,
+            "max_damage": 13,
+            "total_damage": 154,
+            "kills": 0
+          },
+          {
+            "weapon": "Melee Weapon",
+            "hits": 25,
+            "total": 26,
+            "hit_rate": 96.2,
+            "avg_damage": 13.7,
+            "max_damage": 29,
+            "total_damage": 343,
+            "kills": 0
+          },
+          {
+            "weapon": "Melee Attack",
+            "hits": 9,
+            "total": 9,
+            "hit_rate": 100.0,
+            "avg_damage": 8.8,
+            "max_damage": 18,
+            "total_damage": 79,
+            "kills": 0
+          },
+          {
+            "weapon": "Sniper Rifle",
+            "hits": 9,
+            "total": 9,
+            "hit_rate": 100.0,
+            "avg_damage": 7.3,
+            "max_damage": 13,
+            "total_damage": 51,
+            "kills": 0
+          },
+          {
+            "weapon": "Brawl Attack",
+            "hits": 7,
+            "total": 7,
+            "hit_rate": 100.0,
+            "avg_damage": 13,
+            "max_damage": 24,
+            "total_damage": 91,
+            "kills": 0
+          },
+          {
+            "weapon": "Unarmed",
+            "hits": 3,
+            "total": 3,
+            "hit_rate": 100.0,
+            "avg_damage": 7.7,
+            "max_damage": 12,
+            "total_damage": 23,
+            "kills": 0
+          }
+        ],
+        "faction_weapons": {
+          "unknown": [
+            {
+              "weapon": "Unknown Weapon",
+              "total": 629,
+              "hit_rate": 0.0
+            },
+            {
+              "weapon": "Pistol",
+              "total": 411,
+              "hit_rate": 65.0
+            },
+            {
+              "weapon": "Void Blade",
+              "total": 377,
+              "hit_rate": 100.0
+            },
+            {
+              "weapon": "Guns Attack",
+              "total": 135,
+              "hit_rate": 100.0
+            },
+            {
+              "weapon": "Ritual Blade",
+              "total": 120,
+              "hit_rate": 79.2
+            }
+          ]
+        }
+      },
+      "warnings": [
+        "Weapon 'attack' may be overpowered (100.0% hit rate)",
+        "Weapon 'Unknown Weapon' may be underpowered (0.0% hit rate)",
+        "Weapon 'Void Blade' may be overpowered (100.0% hit rate)",
+        "Weapon 'Guns Attack' may be overpowered (100.0% hit rate)",
+        "Weapon 'Ritual Blade' may be overpowered (79.2% hit rate)",
+        "Weapon 'Firearm' may be overpowered (100.0% hit rate)",
+        "Weapon 'Stun Gun' may be overpowered (100.0% hit rate)",
+        "Weapon 'Assault Rifle' may be overpowered (96.3% hit rate)",
+        "Weapon 'Melee Weapon' may be overpowered (96.2% hit rate)"
+      ]
+    },
+    "enemies": {
+      "event_count": 1321,
+      "metrics": {
+        "total_spawns": 1101,
+        "total_defeats": 220,
+        "still_active": 881,
+        "template_stats": [
+          {
+            "template": "enforcer",
+            "spawn_count": 516,
+            "spawn_percentage": 46.9,
+            "avg_health": 55,
+            "avg_soak": 16.5,
+            "avg_survival_rounds": 2.8,
+            "max_survival_rounds": 7,
+            "defeats": 122
+          },
+          {
+            "template": "Grunt",
+            "spawn_count": 280,
+            "spawn_percentage": 25.4,
+            "avg_health": 30,
+            "avg_soak": 10.9,
+            "avg_survival_rounds": 1.8,
+            "max_survival_rounds": 5,
+            "defeats": 61
+          },
+          {
+            "template": "security_drone",
+            "spawn_count": 183,
+            "spawn_percentage": 16.6,
+            "avg_health": 20,
+            "avg_soak": 7.0,
+            "avg_survival_rounds": 2.8,
+            "max_survival_rounds": 6,
+            "defeats": 29
+          },
+          {
+            "template": "void_cultist",
+            "spawn_count": 96,
+            "spawn_percentage": 8.7,
+            "avg_health": 40,
+            "avg_soak": 9.5,
+            "avg_survival_rounds": 0,
+            "max_survival_rounds": 0,
+            "defeats": 0
+          },
+          {
+            "template": "grunt",
+            "spawn_count": 8,
+            "spawn_percentage": 0.7,
+            "avg_health": 30,
+            "avg_soak": 13,
+            "avg_survival_rounds": 2,
+            "max_survival_rounds": 2,
+            "defeats": 2
+          },
+          {
+            "template": "elite",
+            "spawn_count": 7,
+            "spawn_percentage": 0.6,
+            "avg_health": 50,
+            "avg_soak": 16,
+            "avg_survival_rounds": 9,
+            "max_survival_rounds": 16,
+            "defeats": 2
+          },
+          {
+            "template": "sniper",
+            "spawn_count": 7,
+            "spawn_percentage": 0.6,
+            "avg_health": 25,
+            "avg_soak": 13,
+            "avg_survival_rounds": 2.7,
+            "max_survival_rounds": 3,
+            "defeats": 3
+          },
+          {
+            "template": "ambusher",
+            "spawn_count": 3,
+            "spawn_percentage": 0.3,
+            "avg_health": 25,
+            "avg_soak": 8,
+            "avg_survival_rounds": 0,
+            "max_survival_rounds": 0,
+            "defeats": 0
+          },
+          {
+            "template": "support",
+            "spawn_count": 1,
+            "spawn_percentage": 0.1,
+            "avg_health": 35,
+            "avg_soak": 14,
+            "avg_survival_rounds": 3,
+            "max_survival_rounds": 3,
+            "defeats": 1
+          }
+        ],
+        "defeat_breakdown": [
+          {
+            "reason": "departed",
+            "count": 220,
+            "percentage": 100.0
+          }
+        ],
+        "survival_distribution": {
+          "avg": 2.6,
+          "median": 2.0,
+          "min": 1,
+          "max": 16
+        }
+      },
+      "warnings": []
+    },
+    "targeting": {
+      "event_count": 21579,
+      "metrics": {
+        "total_declarations": 8727,
+        "total_combat_actions": 2089,
+        "bracketed_targets": 18,
+        "name_as_target": 6,
+        "env_targets": 5,
+        "unknown_weapons": 629,
+        "known_weapons": 1460,
+        "missing_defenders": 0,
+        "target_patterns": [
+          {
+            "pattern": "no_target",
+            "count": 3904,
+            "percentage": 44.7
+          },
+          {
+            "pattern": "valid_tgt_id",
+            "count": 3242,
+            "percentage": 37.1
+          },
+          {
+            "pattern": "resolution_valid_tgt",
+            "count": 1043,
+            "percentage": 12.0
+          },
+          {
+            "pattern": "position_target",
+            "count": 509,
+            "percentage": 5.8
+          },
+          {
+            "pattern": "bracketed_tgt_id",
+            "count": 18,
+            "percentage": 0.2
+          },
+          {
+            "pattern": "name_as_target",
+            "count": 6,
+            "percentage": 0.1
+          },
+          {
+            "pattern": "env_target",
+            "count": 5,
+            "percentage": 0.1
+          }
+        ],
+        "defender_patterns": [
+          {
+            "pattern": "valid_player_id",
+            "count": 1172,
+            "percentage": 56.1
+          },
+          {
+            "pattern": "valid_enemy_id",
+            "count": 903,
+            "percentage": 43.2
+          },
+          {
+            "pattern": "npc_id",
+            "count": 14,
+            "percentage": 0.7
+          }
+        ],
+        "validation_warnings": [
+          {
+            "warning": "Condition 'Undetected' has penalty=0 (narrative-only, or did you forget to set t",
+            "count": 159
+          },
+          {
+            "warning": "Void change applied to 'Sael' (action by 'Debt-Burdened Sael') - verify this is ",
+            "count": 69
+          },
+          {
+            "warning": "Ritual action WITHOUT offering but void_changes is empty (expected +1 void for m",
+            "count": 36
+          },
+          {
+            "warning": "Condition 'Stabilized' has penalty=0 (narrative-only, or did you forget to set t",
+            "count": 19
+          },
+          {
+            "warning": "Condition 'Compliant' has penalty=0 (narrative-only, or did you forget to set th",
+            "count": 17
+          },
+          {
+            "warning": "Condition 'Unseen' has penalty=0 (narrative-only, or did you forget to set the p",
+            "count": 15
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional",
+            "count": 13
+          },
+          {
+            "warning": "Ritual action WITHOUT tool but void_changes is empty (expected +1 void for missi",
+            "count": 11
+          },
+          {
+            "warning": "Condition 'Alerted' has penalty=0 (narrative-only, or did you forget to set the ",
+            "count": 11
+          },
+          {
+            "warning": "Condition 'Veiled' has penalty=0 (narrative-only, or did you forget to set the p",
+            "count": 7
+          },
+          {
+            "warning": "Condition 'Cooperative' has penalty=0 (narrative-only, or did you forget to set ",
+            "count": 6
+          },
+          {
+            "warning": "Condition 'Wary' has penalty=0 (narrative-only, or did you forget to set the pen",
+            "count": 6
+          },
+          {
+            "warning": "Void change applied to 'Desperate Vex' (action by 'Debt-Burdened Sael') - verify",
+            "count": 6
+          },
+          {
+            "warning": "Condition 'Complicit' has penalty=0 (narrative-only, or did you forget to set th",
+            "count": 6
+          },
+          {
+            "warning": "Condition 'Rerouted' has penalty=0 (narrative-only, or did you forget to set the",
+            "count": 5
+          }
+        ],
+        "sample_bracketed": [
+          {
+            "target": "[tgt_b3a2]",
+            "character": "Void Manifestation melee #1",
+            "session": "4b7d39d6",
+            "round": 8
+          },
+          {
+            "target": "[tgt_zapw]",
+            "character": "Hostile Pantheon Advance Squad #2",
+            "session": "f4484b95",
+            "round": 2
+          },
+          {
+            "target": "[tgt_ip2u]",
+            "character": "ACG Rapid Response Enforcer #1",
+            "session": "92028f4f",
+            "round": 12
+          },
+          {
+            "target": "[tgt_xj6m]",
+            "character": "ACG Rapid Response Enforcer #1",
+            "session": "92028f4f",
+            "round": 13
+          },
+          {
+            "target": "[tgt_0xyj]",
+            "character": "Tempest Corp Security Enforcer #2",
+            "session": "495bb40d",
+            "round": 2
+          },
+          {
+            "target": "[tgt_ontj]",
+            "character": "Tempest Corp Security Enforcer #2",
+            "session": "495bb40d",
+            "round": 3
+          },
+          {
+            "target": "[tgt_uvp4]",
+            "character": "Tempest Automated Security drone",
+            "session": "40f29996",
+            "round": 3
+          },
+          {
+            "target": "[tgt_8uhc]",
+            "character": "Tempest Automated Security drone",
+            "session": "40f29996",
+            "round": 4
+          },
+          {
+            "target": "[tgt_ufnh]",
+            "character": "Tempest Automated Security drone",
+            "session": "40f29996",
+            "round": 5
+          },
+          {
+            "target": "[tgt_ppx5]",
+            "character": "Tempest Transit Security Scanner Drone",
+            "session": "fdc168c1",
+            "round": 14
+          }
+        ],
+        "sample_name_as_target": [
+          {
+            "target": "vnd_s4cu_001",
+            "character": "Jace Kordell",
+            "session": "daf664a0",
+            "round": 9
+          },
+          {
+            "target": "vnd_s4cu_001",
+            "character": "Jace Kordell",
+            "session": "f0c0178a",
+            "round": 10
+          },
+          {
+            "target": "vnd_merchant_001, vnd_merchant_002, vnd_merchant_003",
+            "character": "Jace Kordell",
+            "session": "0f8d2c71",
+            "round": 10
+          },
+          {
+            "target": "Recon Relay Node (env_ozsn)",
+            "character": "Desperate Vex",
+            "session": "ba95d9e2",
+            "round": 7
+          },
+          {
+            "target": "Hostile Pantheon Advance Squad #3",
+            "character": "Breaker",
+            "session": "3ff02d37",
+            "round": 6
+          },
+          {
+            "target": "spark_drone_unit_07",
+            "character": "Cipher",
+            "session": "c06aa024",
+            "round": 1
+          }
+        ],
+        "sample_env_targets": [
+          {
+            "target": "env_7pz7",
+            "character": "Silvertongue",
+            "session": "c2f95512",
+            "round": 6
+          },
+          {
+            "target": "env_0wji",
+            "character": "Cipher",
+            "session": "0d18a5f1",
+            "round": 5
+          },
+          {
+            "target": "env_6vjn",
+            "character": "Debt-Burdened Sael",
+            "session": "abada469",
+            "round": 17
+          },
+          {
+            "target": "env_ui3t",
+            "character": "Desperate Vex",
+            "session": "e38b17e5",
+            "round": 11
+          },
+          {
+            "target": "env_55hu",
+            "character": "Debt-Burdened Sael",
+            "session": "e38b17e5",
+            "round": 13
+          }
+        ],
+        "sample_unknown_weapons": [
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #1",
+            "session": "f0df86d4",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #1",
+            "session": "b47af9a3",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #2",
+            "session": "b47af9a3",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #3",
+            "session": "b47af9a3",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #1",
+            "session": "7f3aa4b2",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Drone Overwatch",
+            "session": "c66e6365",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #1",
+            "session": "c66e6365",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #2",
+            "session": "c66e6365",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #3",
+            "session": "c66e6365",
+            "round": 1
+          },
+          {
+            "attacker": "Breaker",
+            "defender": "Hostile Pantheon Advance Squad #1",
+            "session": "7ba78411",
+            "round": 1
+          }
+        ],
+        "sample_validation_issues": [
+          {
+            "warning": "JSONDecodeError: Invalid \\escape: line 2 column 414 (char 415)",
+            "session": "a8f9a82a",
+            "round": 1
+          },
+          {
+            "warning": "JSONDecodeError: Invalid control character at: line 51 column 200 (char 2977)",
+            "session": "d0014178",
+            "round": 6
+          },
+          {
+            "warning": "Successful brawl action with target but no damage populated (might be intentional for suppressing fi",
+            "session": "35caeafd",
+            "round": 5
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "fb9e081d",
+            "round": 4
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "fb9e081d",
+            "round": 5
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "1b31714e",
+            "round": 4
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "1d522bb3",
+            "round": 12
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "1d522bb3",
+            "round": 12
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "309f79d2",
+            "round": 4
+          },
+          {
+            "warning": "Successful guns action with target but no damage populated (might be intentional for suppressing fir",
+            "session": "309f79d2",
+            "round": 6
+          }
+        ]
+      },
+      "warnings": [
+        "Found 18 bracketed target IDs ([tgt_xxx]) - parsing issue",
+        "Found 6 character names used as targets instead of IDs",
+        "Found 5 environment targets (env_xxx)",
+        "30.1% of combat actions have unknown weapons"
+      ]
+    }
+  }
+}

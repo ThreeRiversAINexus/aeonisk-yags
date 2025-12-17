@@ -1,0 +1,376 @@
+{
+  "_role": "house_of_vox_information_warfare_openai",
+  "_purpose": "House of Vox operatives racing to control the narrative around a Nexus scandal before the truth destroys their faction's influence. Information is the weapon. Belief is the battlefield. What people think happened matters more than what actually happened.",
+
+  "session_name": "vox_broadcast_war",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE STORY BREAKS ===",
+  "_scenario_hint": "A Gestator at the Central Biocreche has been secretly performing unauthorized modifications on pod-children for years - and someone just leaked it to a Freeborn broadcast network. If the story spreads, it's not just one Gestator who falls - it's the entire legitimacy of pod-gestation, the Nexus's control over birth, and House of Vox's reputation for controlling information. The team has been deployed to manage the crisis: suppress the story, discredit the source, spin the narrative, or - if nothing else works - find a scapegoat. But as they dig, they'll discover the truth is worse than the leak suggests. And someone on the team might think the public deserves to know. Information warfare with moral stakes - who decides what the truth is?",
+
+  "scenario": {
+    "theme": "information_warfare_moral_stakes",
+    "location": "Aeonisk Prime - Vox Central Broadcasting Complex",
+    "situation": "The Vox situation room is chaos. Screens display the spreading story - a Freeborn pirate broadcast claiming Gestator Adria Elaras has been genetically modifying pod-children without consent for seventeen years. The modifications aren't random - they're designed to create void-resistant humans. The source is a former assistant who fled to Nimbus with data crystals. The story is 3 hours old. It's already spreading through Freeborn networks. In 12 hours it hits the Breath Cut trade routes and becomes unstoppable. Your team has been given emergency authority to contain this. Whatever it takes. The Vox Director looks at you: 'The truth doesn't matter. What people believe matters. Make them believe what we need them to believe.'",
+    "void_level": 2
+  },
+
+  "_comment_clocks": "=== NARRATIVE CONTROL ===",
+  "starting_clocks": [
+    {
+      "name": "Story Spread",
+      "max_ticks": 8,
+      "current_ticks": 2,
+      "description": "How far the leak has spread through broadcast networks",
+      "advance_meaning": "more networks pick it up, harder to suppress, public panic",
+      "regress_meaning": "suppression works, counter-narrative takes hold, attention diverts"
+    },
+    {
+      "name": "Source Credibility",
+      "max_ticks": 6,
+      "current_ticks": 3,
+      "description": "How credible the whistleblower appears to the public",
+      "advance_meaning": "corroborating evidence emerges, source looks more legitimate",
+      "regress_meaning": "discrediting works, source looks untrustworthy, doubt spreads"
+    },
+    {
+      "name": "Internal Investigation",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "Pantheon Security investigating whether the leak is true",
+      "advance_meaning": "investigators find evidence, Vox loses control of narrative",
+      "regress_meaning": "investigation delayed, evidence 'lost', plausible deniability"
+    },
+    {
+      "name": "Team Conscience",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "How troubled the team is by what they're being asked to do",
+      "advance_meaning": "doubt grows, arguments, someone might flip",
+      "regress_meaning": "rationalization holds, team stays loyal"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== VOX COMPLEX FIGURES ===",
+  "initial_npcs": [
+    {
+      "name": "Vox Director Senna Nymir",
+      "faction": "House of Vox",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Cold, brilliant, utterly committed to narrative control. Sees truth as a tool, not a value. Will do whatever it takes to protect Vox's influence.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Corporate Influence": 7, "Intimidation": 5, "Charm": 5, "Guile": 6}
+    },
+    {
+      "name": "Investigator Thane Ireveth",
+      "faction": "Pantheon Security",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Pantheon investigator assigned to verify the leak's claims. Professional, thorough, and not interested in politics. Will follow the evidence wherever it leads.",
+      "health": 20,
+      "soak": 2,
+      "skills": {"Investigation": 6, "Awareness": 5, "Intimidation": 4, "Guns": 5}
+    },
+    {
+      "name": "Gestator Adria Elaras",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "The accused. Aristocratic, terrified, and hiding something. The modifications are real - but her motives may be more complex than the leak suggests.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Astral Arts": 6, "Charm": 4, "Counsel": 5}
+    }
+  ],
+
+  "_design_notes": "Four House of Vox operatives doing information warfare. The Spin Doctor crafts counter-narratives. The Tracker hunts the source. The Fixer eliminates problems. The Analyst questions everything. As they work to suppress the story, they'll discover it's true - and maybe worse than reported. Do they bury the truth to protect the system, or let it out and watch the Nexus burn? 20 rounds of moral compromise, propaganda, and the question of what truth means.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Spin Doctor Vera Nymir",
+        "pronouns": "she/her",
+        "faction": "House of Vox",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Charm": 6,
+          "Guile": 6,
+          "Corporate Influence": 5,
+          "Awareness": 4,
+          "Investigation": 4,
+          "Counsel": 3
+        },
+        "void": 0,
+        "soulcredit": 5,
+        "goals": [
+          "Craft a counter-narrative that makes the leak look like Freeborn propaganda",
+          "Protect the Nymir Line's reputation - the Director is her aunt",
+          "Start to wonder if controlling truth is the same as lying"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "broadcast_credentials": 1,
+          "media_access_chip": 1,
+          "data_slate": 1,
+          "charm_tokens": 4,
+          "memory_crystal": 3,
+          "incense": 2
+        }
+      },
+      {
+        "name": "Source Hunter Kade Ireveth",
+        "pronouns": "he/him",
+        "faction": "House of Vox",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 2,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 4,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Investigation": 6,
+          "Stealth": 5,
+          "Awareness": 5,
+          "Tracking": 5,
+          "Guns": 5,
+          "Intimidation": 4
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Track down the whistleblower and the data crystals",
+          "Bring them back or ensure they can never testify",
+          "Wonder what his Pantheon relatives would think of what he does for Vox"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "tracking_kit": 1,
+          "surveillance_gear": 1,
+          "void_scanner": 1,
+          "restraint_cuffs": 2,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Fixer Lira Karsel",
+        "pronouns": "she/her",
+        "faction": "House of Vox",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Stealth": 6,
+          "Sleight": 5,
+          "Systems": 5,
+          "Guns": 4,
+          "Awareness": 4,
+          "Guile": 4
+        },
+        "void": 2,
+        "soulcredit": -2,
+        "goals": [
+          "Eliminate evidence, bribe witnesses, make problems disappear",
+          "Do whatever the Director asks without questioning",
+          "Freeborn by birth - betray her people for Vox money, feel nothing (or so she tells herself)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": ["combat_knife"],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "security_bypass_chip": 3,
+          "bribe_funds": 2,
+          "forged_credentials": 2,
+          "data_destroyer": 1,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Analyst Meren Thaurin",
+        "pronouns": "they/them",
+        "faction": "House of Vox",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Investigation": 6,
+          "Systems": 5,
+          "Awareness": 5,
+          "Counsel": 4,
+          "Astral Arts": 3,
+          "Charm": 3
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Analyze the leak - where did it come from, how did it spread, who benefits",
+          "Verify whether the accusations are actually true (professional curiosity)",
+          "If the children were modified without consent... does the public have a right to know?"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "data_analysis_kit": 1,
+          "void_scanner": 1,
+          "data_recorder": 1,
+          "memory_crystal": 4,
+          "comm_unit": 1,
+          "purification_incense": 3
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE NARRATIVE WAR ===",
+  "_beats": [
+    "Crisis Briefing - Director lays out the stakes, team gets their orders",
+    "Initial Suppression - trying to stop the story's spread, first counter-narratives",
+    "Source Hunt - tracking the whistleblower, what do they actually have?",
+    "Evidence Emerges - the accusations are true, probably worse than reported",
+    "The Gestator's Story - why did she do it? Void-resistance research is valuable",
+    "Moral Fractures - team members question what they're doing",
+    "Pantheon Pressure - investigator getting close, can't be bribed or intimidated",
+    "The Choice - bury the truth completely, let some out, or expose everything?",
+    "Consequences - whatever they choose, there are costs",
+    "Resolution - story controlled or truth released, what does the public believe?"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Contain the leak and control the public narrative",
+      "type": "information",
+      "required": true
+    },
+    {
+      "description": "Locate and neutralize the source of the leak",
+      "type": "investigation",
+      "required": true
+    },
+    {
+      "description": "Determine the truth about the Gestator's modifications",
+      "type": "discovery",
+      "required": false
+    },
+    {
+      "description": "Maintain team cohesion despite moral disagreements",
+      "type": "social",
+      "required": false
+    }
+  ],
+
+  "notes": "HOUSE OF VOX BROADCAST WAR - Information warfare with moral stakes. Four Vox operatives trying to suppress a scandal that turns out to be true. Who decides what the public gets to know? 20 rounds of propaganda, investigation, and the question of whether controlling truth is the same as lying. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

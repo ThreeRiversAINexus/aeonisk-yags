@@ -1,0 +1,370 @@
+{
+  "_role": "gene_temple_heist_openai",
+  "_purpose": "A heist to steal the Vireya Line's prototype void-resistant embryo template before ArcGen can weaponize it. Freeborn operatives, a conflicted ArcGen insider, and a Resonance Commune saboteur who thinks they're destroying the research, not stealing it. Nobody has the full picture. The temple is alive.",
+
+  "session_name": "gene_temple_heist",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE PERFECT SCORE ===",
+  "_scenario_hint": "The Vireya Line's Central Gene-Temple on Arcadia contains something that could change everything: a prototype template for void-resistant embryos. ArcGen plans to sell it to the highest bidder - probably Tempest for weaponization, possibly ACG for debt-immune laborers. A coalition of interests has assembled this team to steal it first. But each team member has different ideas about what happens to the research after. The Freeborn want to sell it themselves. The ArcGen insider wants to leak it to everyone. The Commune operative wants to destroy it. The tech specialist doesn't care - she just wants the challenge. The temple itself is bio-engineered, semi-sentient, and will respond to intruders as an immune system responds to infection. Let the heist unfold with complications, betrayals, and the growing realization that none of them were told the truth about what they're stealing.",
+
+  "scenario": {
+    "theme": "heist_with_competing_agendas",
+    "location": "Arcadia - Vireya Line Central Gene-Temple",
+    "situation": "You crouch in the bioluminescent underbrush at the edge of the temple complex, watching the living walls pulse with a slow rhythm like breathing. The Central Gene-Temple rises from the jungle canopy, its organic spires spiraling toward Arcadia's pale moons. Inside, somewhere in the research catacombs, is the Prometheus Template - void-resistant embryo genetic code that took the Vireya Line thirty years to develop. Your employer - whoever they really are - wants it. You have twelve hours before the security cycle resets and your window closes. The team assembled for this job has never worked together before. You've each been given different instructions about what happens to the template after extraction. Someone's lying about something. The temple is already aware you're here - the outer membrane has been watching since you arrived.",
+    "void_level": 3
+  },
+
+  "_comment_clocks": "=== HEIST PRESSURE ===",
+  "starting_clocks": [
+    {
+      "name": "Security Alert",
+      "max_ticks": 6,
+      "current_ticks": 0,
+      "description": "How alerted the temple's immune-security system is to intruders",
+      "advance_meaning": "guardians activate, sections seal, hunters deployed",
+      "regress_meaning": "distraction works, false trail laid, system calms"
+    },
+    {
+      "name": "Extraction Window",
+      "max_ticks": 8,
+      "current_ticks": 0,
+      "description": "Time until the security cycle resets and escape becomes impossible",
+      "advance_meaning": "time passes, window shrinks, pressure mounts",
+      "regress_meaning": "N/A - time only moves forward"
+    },
+    {
+      "name": "Team Trust",
+      "max_ticks": 5,
+      "current_ticks": 1,
+      "description": "How much the team trusts each other - competing agendas strain cohesion",
+      "advance_meaning": "contradictions noticed, suspicion grows, accusations",
+      "regress_meaning": "cooperation demonstrated, secrets shared willingly"
+    },
+    {
+      "name": "Temple Awakening",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "The temple itself is becoming more active, more aware",
+      "advance_meaning": "bio-hazards activate, walls shift, the temple hunts",
+      "regress_meaning": "offerings accepted, temple accepts presence, paths open"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== TEMPLE INHABITANTS ===",
+  "initial_npcs": [
+    {
+      "name": "Night Technician Orem",
+      "faction": "Arcane Genetics",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Low-level technician working the night shift in the outer labs. Doesn't know about the Prometheus Template. Might be bribed, intimidated, or convinced to help.",
+      "health": 14,
+      "soak": 0,
+      "skills": {"Systems": 4, "Awareness": 3, "Charm": 2}
+    },
+    {
+      "name": "Temple Symbiote",
+      "faction": "None",
+      "entity_type": "neutral",
+      "threat_level": "unknown",
+      "disposition": "neutral",
+      "description": "A semi-sentient aspect of the temple's immune system that manifests as a humanoid shape of vines and bioluminescence. Communicates in emotional impressions. May help or hunt depending on how intruders treat the temple.",
+      "health": 30,
+      "soak": 4,
+      "skills": {"Awareness": 6, "Astral Arts": 5, "Brawl": 5}
+    }
+  ],
+
+  "_design_notes": "Four specialists assembled for a heist, each with different instructions about the endgame. The Freeborn leader thinks it's a theft-for-profit. The ArcGen insider is actually a leak-activist. The Commune operative was told to destroy the research, not steal it. The tech specialist is just in it for the challenge. Let the competing agendas create tension as the heist progresses. The temple is alive and will respond to intruders. 20 rounds for infiltration, complications, extraction, and the inevitable betrayal.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Operative Shan Karsel",
+        "pronouns": "he/him",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Stealth": 6,
+          "Athletics": 5,
+          "Awareness": 5,
+          "Sleight": 4,
+          "Guns": 4,
+          "Charm": 3
+        },
+        "void": 2,
+        "soulcredit": -4,
+        "goals": [
+          "Lead the team to extract the Prometheus Template",
+          "Sell it to the Freeborn Coalition for distribution (his actual employer)",
+          "Don't let the others know he's planning to cut them out of the profit"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "grappling_hook": 1,
+          "stealth_suit": 1,
+          "security_bypass_chip": 2,
+          "comm_unit": 1,
+          "med_kit": 1,
+          "hollow_seed": 1
+        }
+      },
+      {
+        "name": "Dr. Celia Vireya",
+        "pronouns": "she/her",
+        "faction": "Arcane Genetics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Systems": 6,
+          "Investigation": 5,
+          "Astral Arts": 4,
+          "Awareness": 4,
+          "Charm": 3,
+          "Stealth": 3
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Provide inside access and knowledge of temple security",
+          "Copy the template to leak it publicly - research should belong to everyone",
+          "Avoid being caught by her own family (she's betraying the Vireya Line)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "arcgen_credentials": 1,
+          "biometric_key": 1,
+          "data_extractor": 1,
+          "diagnostic_scanner": 1,
+          "neural_interface_module": 1,
+          "memory_crystal": 3
+        }
+      },
+      {
+        "name": "Saboteur Vex Thaurin",
+        "pronouns": "they/them",
+        "faction": "Resonance Communes",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Stealth": 5,
+          "Athletics": 5,
+          "Astral Arts": 4,
+          "Demolitions": 5,
+          "Awareness": 4,
+          "Melee": 3
+        },
+        "void": 1,
+        "soulcredit": 1,
+        "goals": [
+          "Help extract the template (official mission from Commune elders)",
+          "Destroy the template once extracted - void-resistant humans are abomination",
+          "The others can't know the Communes sent someone to sabotage the heist"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "demolition_charges": 4,
+          "incendiary_device": 2,
+          "stealth_suit": 1,
+          "ritual_blade": 1,
+          "purification_incense": 3
+        }
+      },
+      {
+        "name": "Cipher Nyx Ossai",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 5,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 3
+        },
+        "skills": {
+          "Systems": 6,
+          "Investigation": 5,
+          "Stealth": 5,
+          "Sleight": 4,
+          "Awareness": 5,
+          "Guns": 2
+        },
+        "void": 3,
+        "soulcredit": -6,
+        "goals": [
+          "Crack the temple's bio-security systems (the real challenge)",
+          "Document the entire heist for her portfolio (ego)",
+          "Doesn't care what happens to the template - just wants the win"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "neural_interface_deck": 1,
+          "security_bypass_chip": 3,
+          "drone_controller": 1,
+          "void_scanner": 1,
+          "data_recorder": 1,
+          "neural_stimulant": 3,
+          "hollow_seed": 2
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE HEIST ===",
+  "_beats": [
+    "Approach - temple's outer membrane watching, first security layer",
+    "Entry - exploiting Dr. Vireya's access, avoiding night staff",
+    "Outer Labs - navigating bio-hazards, temple starting to respond",
+    "First Complication - security triggered, guardians waking, time pressure",
+    "Research Catacombs - deeper into the temple, architecture shifting",
+    "The Prometheus Vault - finding the template, what it really is",
+    "Extraction Attempt - getting it out, temple in full immune response",
+    "Competing Agendas - team fractures, who betrays first?",
+    "The Choice - steal it, destroy it, leak it, or something else entirely?",
+    "Escape - whatever they chose, now they have to get out alive"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Infiltrate the Central Gene-Temple without triggering full lockdown",
+      "type": "stealth",
+      "required": true
+    },
+    {
+      "description": "Locate and extract the Prometheus Template",
+      "type": "heist",
+      "required": true
+    },
+    {
+      "description": "Escape Arcadia before security closes the net",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Determine what really happens to the template (competing objectives)",
+      "type": "social",
+      "required": false
+    }
+  ],
+
+  "notes": "GENE-TEMPLE HEIST - Classic heist with competing agendas. Four specialists, each given different instructions about the endgame. The temple is alive and will hunt intruders. Let the competing objectives create tension - who betrays first? What happens to research that could change humanity? 20 rounds for infiltration, extraction, and inevitable betrayal. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

@@ -1,0 +1,378 @@
+{
+  "_role": "aether_dynamics_crisis_openai",
+  "_purpose": "Aether Dynamics ley-node failure threatens to collapse the food supply and power grid for an entire sector. The Ossai Line team must stabilize cascading failures while competing factions try to exploit the crisis. Sabotage, natural disaster, or something worse?",
+
+  "session_name": "leynode_cascade",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 8,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE GRID IS DYING ===",
+  "_scenario_hint": "Ley-node Sigma-7 went dark six hours ago. Then Sigma-4. Then the backup at Tau-9. The cascade is spreading through Arcadia's agricultural heartland - biocreches are losing power, food production is failing, and the spiritual infrastructure that keeps millions alive is collapsing node by node. Aether Dynamics has sent their best Ossai Line specialists to stop it, but they're walking into something worse than equipment failure. Someone is doing this on purpose. The question is who - Tempest sabotage? ACG debt enforcement gone nuclear? A Freeborn uprising? Or is the ley-grid itself rejecting something? Combat should emerge from confronting saboteurs, desperate locals, or the ley-energy itself becoming hostile. Let the team discover the truth while racing to prevent catastrophe.",
+
+  "scenario": {
+    "theme": "infrastructure_crisis_sabotage_mystery",
+    "location": "Arcadia - Agricultural Sector 12, Ley-Node Sigma-7",
+    "situation": "Your transport sets down at the edge of a dying field. What should be lush bio-engineered cropland stretches brown and withered toward the horizon, the ley-lines that fed it now dark and cold. Sigma-7's node-tower rises against the pale sky, its ritual lights extinguished. The local population - thousands of agricultural workers, pod-technicians, and their families - are already feeling the effects: biocreches failing, food production halting, the spiritual resonance that maintains their health fading. You have maybe 48 hours before the cascade becomes irreversible and this entire sector dies. The Nexus is already blaming Aether Dynamics for the failure. Someone in your team just received a message: 'The grid isn't failing. It's being freed.'",
+    "void_level": 4
+  },
+
+  "_comment_clocks": "=== CASCADING FAILURE ===",
+  "starting_clocks": [
+    {
+      "name": "Cascade Spread",
+      "max_ticks": 8,
+      "current_ticks": 3,
+      "description": "How far the ley-node failures have spread - when full, sector is lost",
+      "advance_meaning": "another node fails, more infrastructure dark, crisis deepens",
+      "regress_meaning": "node stabilized, cascade slowed, breathing room"
+    },
+    {
+      "name": "Population Crisis",
+      "max_ticks": 6,
+      "current_ticks": 2,
+      "description": "How desperate the local population is becoming",
+      "advance_meaning": "riots, hoarding, violence, exodus begins",
+      "regress_meaning": "calm restored, aid arrives, hope"
+    },
+    {
+      "name": "Saboteur Trail",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "How close the team is to identifying whoever is doing this",
+      "advance_meaning": "evidence found, suspects narrowed, confrontation approaching",
+      "regress_meaning": "trail goes cold, misdirection, time wasted"
+    },
+    {
+      "name": "Nexus Blame",
+      "max_ticks": 5,
+      "current_ticks": 2,
+      "description": "How much the Nexus is blaming Aether Dynamics for the crisis",
+      "advance_meaning": "political pressure, oversight teams, Pantheon investigation",
+      "regress_meaning": "evidence clears AD, other suspects emerge"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== SECTOR 12 INHABITANTS ===",
+  "initial_npcs": [
+    {
+      "name": "Station Chief Bren Ossai",
+      "faction": "Aether Dynamics",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "friendly",
+      "description": "Veteran ley-node operator who's been at Sigma-7 for thirty years. Knows every quirk of the system. Convinced this isn't natural failure - but won't say more until he trusts the team.",
+      "health": 14,
+      "soak": 0,
+      "skills": {"Systems": 6, "Astral Arts": 5, "Awareness": 4}
+    },
+    {
+      "name": "Field Coordinator Mira Halessan",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Nexus administrator overseeing agricultural output. Under pressure from above to find someone to blame. Suspects Aether Dynamics incompetence or worse.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Corporate Influence": 5, "Intimidation": 4, "Investigation": 3}
+    },
+    {
+      "name": "Worker Representative Gael",
+      "faction": "Freeborn",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Speaks for the agricultural laborers. Freeborn, no love for the system, but his people are dying. Might help, might lead a riot, depending on how things go.",
+      "health": 18,
+      "soak": 1,
+      "skills": {"Leadership": 4, "Charm": 4, "Brawl": 3}
+    }
+  ],
+
+  "_design_notes": "Four Aether Dynamics specialists racing to prevent infrastructure collapse. The crisis is real but the cause is sabotage. Who's responsible? Tempest wanting to 'free' the ley-grid from Nexus control? ACG enforcing debts by threatening food supply? A Freeborn uprising? Or an Aether Dynamics insider who thinks the grid is spiritually corrupted? Let the mystery unfold while managing the crisis. 20 rounds for investigation, stabilization, and confrontation.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Ley-Warden Kira Ossai",
+        "pronouns": "she/her",
+        "faction": "Aether Dynamics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 6,
+          "Systems": 5,
+          "Awareness": 5,
+          "Investigation": 4,
+          "Counsel": 3
+        },
+        "void": 1,
+        "soulcredit": 5,
+        "goals": [
+          "Stabilize the cascade before the sector dies",
+          "Determine what's really causing the failures",
+          "Protect Aether Dynamics' reputation - the Nexus is looking for scapegoats"
+        ],
+        "equipped_weapons": {
+          "primary": "ritual_staff"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_staff": 1,
+          "ley_diagnostic_kit": 1,
+          "astral_compass": 1,
+          "node_repair_components": 4,
+          "purification_incense": 5,
+          "memory_crystal": 2,
+          "comm_unit": 1
+        }
+      },
+      {
+        "name": "Harmonist Theron Veln",
+        "pronouns": "he/him",
+        "faction": "Aether Dynamics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 5
+        },
+        "skills": {
+          "Astral Arts": 5,
+          "Attunement": 5,
+          "Counsel": 5,
+          "Charm": 4,
+          "Awareness": 4,
+          "Meditation": 4
+        },
+        "void": 0,
+        "soulcredit": 4,
+        "goals": [
+          "Commune with the ley-lines to understand what's wrong",
+          "Keep the local population calm before panic spreads",
+          "Wonder if maybe the grid *should* be freed from Nexus control (doubts)"
+        ],
+        "equipped_weapons": {
+          "primary": "fists"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "harmonic_tuner": 1,
+          "meditation_crystals": 3,
+          "purification_incense": 6,
+          "calming_herbs": 4,
+          "ritual_robes": 1,
+          "memory_crystal": 3
+        }
+      },
+      {
+        "name": "Grid-Runner Vex Karsel",
+        "pronouns": "they/them",
+        "faction": "Aether Dynamics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 4
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 4,
+          "Agility": 5,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Athletics": 6,
+          "Stealth": 5,
+          "Systems": 5,
+          "Awareness": 5,
+          "Investigation": 4,
+          "Guns": 4
+        },
+        "void": 2,
+        "soulcredit": 0,
+        "goals": [
+          "Physically traverse the ley-grid infrastructure to find damage points",
+          "Track down whoever's doing this and stop them - violently if needed",
+          "Prove their worth to Aether Dynamics after a checkered past"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "grappling_kit": 1,
+          "climbing_gear": 1,
+          "grid_access_key": 1,
+          "void_scanner": 1,
+          "med_kit": 2,
+          "ration_pack": 4
+        }
+      },
+      {
+        "name": "Analyst Sera Thaurin",
+        "pronouns": "she/her",
+        "faction": "Aether Dynamics",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 5,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 3
+        },
+        "skills": {
+          "Investigation": 6,
+          "Systems": 5,
+          "Awareness": 5,
+          "Astral Arts": 4,
+          "Corporate Influence": 4,
+          "Charm": 3
+        },
+        "void": 1,
+        "soulcredit": 3,
+        "goals": [
+          "Analyze the failure patterns to determine if this is sabotage",
+          "Navigate the political pressure from Nexus oversight",
+          "Find the truth even if it implicates Aether Dynamics itself"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "data_analysis_kit": 1,
+          "diagnostic_scanner": 1,
+          "data_recorder": 1,
+          "void_scanner": 1,
+          "comm_unit": 1,
+          "memory_crystal": 4
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== THE CASCADE ===",
+  "_beats": [
+    "Arrival - witnessing the dying fields, meeting Station Chief Bren",
+    "Initial Assessment - the damage is worse than reported, something's wrong",
+    "First Stabilization - attempting repairs, discovering evidence of tampering",
+    "Political Pressure - Nexus coordinator demanding answers, blame-shifting",
+    "Population Tension - workers getting desperate, Gael's influence growing",
+    "The Trail - following evidence of sabotage, who's responsible?",
+    "Confrontation - finding the saboteur(s), understanding their motivation",
+    "Moral Complexity - maybe they have a point? Is the grid spiritually corrupted?",
+    "Crisis Peak - cascade reaching critical, final stabilization attempt",
+    "Resolution - grid saved or lost, truth revealed, consequences for all"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Stabilize the ley-node cascade before the sector dies",
+      "type": "crisis",
+      "required": true
+    },
+    {
+      "description": "Determine the cause of the failures - accident, sabotage, or something else",
+      "type": "investigation",
+      "required": true
+    },
+    {
+      "description": "Prevent civil unrest among the affected population",
+      "type": "social",
+      "required": false
+    },
+    {
+      "description": "Protect Aether Dynamics from political fallout",
+      "type": "political",
+      "required": false
+    }
+  ],
+
+  "notes": "AETHER DYNAMICS LEY-NODE CRISIS - Infrastructure collapse meets sabotage mystery. The power grid and food supply are dying. Who's responsible? 20 rounds of crisis management, investigation, and moral complexity. Aether Dynamics controls the power and food - what happens when that's threatened? ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

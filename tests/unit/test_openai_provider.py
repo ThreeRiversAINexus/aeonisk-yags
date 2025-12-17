@@ -194,12 +194,16 @@ class TestOpenAIProviderGenerate:
 
 
 class TestOpenAIProviderStructuredOutput:
-    """Test OpenAI provider structured output generation (the critical feature)."""
+    """Test OpenAI provider structured output generation (the critical feature).
+
+    Note: OpenAI provider uses native OpenAI API (not Pydantic AI) via
+    generate_structured_openai_native. Tests mock at that level.
+    """
 
     @pytest.mark.asyncio
     async def test_generate_structured_basic(self, monkeypatch):
         """Test that generate_structured() works with simple schema."""
-        # Set API key in environment for Pydantic AI
+        # Set API key in environment
         monkeypatch.setenv('OPENAI_API_KEY', 'test-api-key-12345')
 
         config = LLMConfig(
@@ -209,19 +213,15 @@ class TestOpenAIProviderStructuredOutput:
         )
         provider = OpenAIProvider(config)
 
-        # Mock Pydantic AI Agent
-        mock_result = MagicMock()
-        mock_result.output = SimpleAction(
+        # Mock the native OpenAI structured output function
+        expected_result = SimpleAction(
             action="attack",
             target="goblin",
             reason="eliminate threat"
         )
 
-        with patch('pydantic_ai.Agent') as mock_agent_class:
-            mock_agent = MagicMock()
-            mock_agent.run = AsyncMock(return_value=mock_result)
-            mock_agent_class.return_value = mock_agent
-
+        with patch('scripts.aeonisk.multiagent.openai_structured.generate_structured_openai_native',
+                   new_callable=AsyncMock, return_value=expected_result):
             result = await provider.generate_structured(
                 prompt="Attack the goblin with my sword",
                 result_type=SimpleAction,
@@ -230,9 +230,9 @@ class TestOpenAIProviderStructuredOutput:
 
             # Verify we get back a validated Pydantic model
             assert isinstance(result, SimpleAction)
-            assert hasattr(result, 'action')
-            assert hasattr(result, 'target')
-            assert hasattr(result, 'reason')
+            assert result.action == "attack"
+            assert result.target == "goblin"
+            assert result.reason == "eliminate threat"
 
     @pytest.mark.asyncio
     async def test_generate_structured_returns_correct_type(self, monkeypatch):
@@ -247,18 +247,14 @@ class TestOpenAIProviderStructuredOutput:
         provider = OpenAIProvider(config)
 
         # Mock result with SimpleAction
-        mock_result = MagicMock()
-        mock_result.output = SimpleAction(
+        expected_result = SimpleAction(
             action="Investigate the terminal",
             target="security console",
             reason="find clues"
         )
 
-        with patch('pydantic_ai.Agent') as mock_agent_class:
-            mock_agent = MagicMock()
-            mock_agent.run = AsyncMock(return_value=mock_result)
-            mock_agent_class.return_value = mock_agent
-
+        with patch('scripts.aeonisk.multiagent.openai_structured.generate_structured_openai_native',
+                   new_callable=AsyncMock, return_value=expected_result):
             result = await provider.generate_structured(
                 prompt="I want to hack the terminal to disable security",
                 result_type=SimpleAction,
@@ -270,85 +266,63 @@ class TestOpenAIProviderStructuredOutput:
             assert result.target == "security console"
 
     @pytest.mark.asyncio
-    async def test_generate_structured_respects_temperature(self, monkeypatch):
-        """Test that structured generation respects temperature settings."""
+    async def test_generate_structured_passes_parameters(self, monkeypatch):
+        """Test that structured generation passes correct parameters to native API."""
         monkeypatch.setenv('OPENAI_API_KEY', 'test-api-key-12345')
 
         config = LLMConfig(
             provider='openai',
             model='gpt-5-mini',
             api_key='test-key',
-            temperature=0.3
+            temperature=0.3,
+            max_tokens=2000
         )
         provider = OpenAIProvider(config)
 
         # Mock result
-        mock_result = MagicMock()
-        mock_result.output = SimpleAction(
+        expected_result = SimpleAction(
             action="test", target="target", reason="reason"
         )
 
-        with patch('pydantic_ai.Agent') as mock_agent_class:
-            mock_agent = MagicMock()
-            mock_agent.run = AsyncMock(return_value=mock_result)
-            mock_agent_class.return_value = mock_agent
-
-            # Should pass temperature to Pydantic AI agent
+        with patch('scripts.aeonisk.multiagent.openai_structured.generate_structured_openai_native',
+                   new_callable=AsyncMock, return_value=expected_result) as mock_native:
             result = await provider.generate_structured(
                 prompt="Test action",
                 result_type=SimpleAction,
+                system_prompt="Test system prompt",
                 temperature=0.8  # Override config
             )
 
-            # Verify temperature was passed in model_settings
-            call_kwargs = mock_agent.run.call_args[1]
-            assert call_kwargs['model_settings']['temperature'] == 0.8
+            # Verify native function was called with correct parameters
+            mock_native.assert_called_once()
+            call_kwargs = mock_native.call_args[1]
+            assert call_kwargs['prompt'] == "Test action"
+            assert call_kwargs['result_type'] == SimpleAction
+            assert call_kwargs['system_prompt'] is not None  # Enhanced prompt
+            assert call_kwargs['temperature'] == 0.8  # Override value
+            assert call_kwargs['max_tokens'] == 2000  # From config
             assert isinstance(result, SimpleAction)
 
     @pytest.mark.asyncio
-    async def test_generate_structured_with_retry(self, monkeypatch):
-        """Test that structured generation retries on validation errors."""
+    async def test_generate_structured_handles_exception(self, monkeypatch):
+        """Test that generate_structured propagates exceptions from native API."""
         monkeypatch.setenv('OPENAI_API_KEY', 'test-api-key-12345')
 
         config = LLMConfig(
             provider='openai',
             model='gpt-5-mini',
-            api_key='test-key',
-            max_retries=2
+            api_key='test-key'
         )
         provider = OpenAIProvider(config)
 
-        # Mock Pydantic AI to fail once with validation error, then succeed
-        call_count = 0
-
-        async def mock_agent_run(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                # Raise a validation error (retryable)
-                raise ValueError("Validation error: field 'action' is required")
-
-            # Return successful result on retry
-            mock_result = MagicMock()
-            mock_result.output = SimpleAction(
-                action="attack",
-                target="goblin",
-                reason="test"
-            )
-            return mock_result
-
-        with patch('pydantic_ai.Agent') as mock_agent_class:
-            mock_agent = MagicMock()
-            mock_agent.run = mock_agent_run
-            mock_agent_class.return_value = mock_agent
-
-            result = await provider.generate_structured(
-                prompt="Test",
-                result_type=SimpleAction
-            )
-
-            assert call_count == 2  # Failed once, succeeded on retry
-            assert isinstance(result, SimpleAction)
+        # Mock the native function to raise an error
+        with patch('scripts.aeonisk.multiagent.openai_structured.generate_structured_openai_native',
+                   new_callable=AsyncMock, side_effect=ValueError("OpenAI returned empty content")):
+            with pytest.raises(ValueError, match="OpenAI returned empty content"):
+                await provider.generate_structured(
+                    prompt="Test",
+                    result_type=SimpleAction
+                )
 
 
 class TestOpenAIProviderErrorHandling:

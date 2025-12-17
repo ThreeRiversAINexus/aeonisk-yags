@@ -5,17 +5,13 @@
   "max_turns": 10,
   "party_size": 2,
   "output_dir": "./multiagent_output",
-
   "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Focus on Environment Interaction) ===",
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
-
   "_comment_scenario": "=== SCENARIO: CORPORATE SERVER ROOM - RICH ENVIRONMENT ===",
   "_scenario_hint": "Tempest Corp Server Room (void_level 1, abandoned maintenance shift). Location has MANY interactive environmental features: security terminals (need hacking), sealed maintenance doors (need unlock/force), server racks (can be disabled), cargo containers of backup drives (need opening), control panels, airlock systems, emergency override stations. Team goals: extract corporate secrets, disable security, find hidden data. Players will naturally mention wanting to 'hack the terminal', 'open the door', 'search the cargo' - DM should spawn these as environmental objects to test the system. Security is offline but systems are locked, requiring environmental interaction.",
-
   "_design_notes": {
     "test_hypothesis": "Environmental object spawning reduces target hallucination. When players say 'I hack the terminal', DM spawns EnvObjectSpawn(object_type='terminal',...) making it explicit rather than pure narrative.",
     "expected_env_objects": [
@@ -34,7 +30,6 @@
     ],
     "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI TEMP 1.0 - Maximum creativity for DM spawning, consistent player actions."
   },
-
   "starting_clocks": [
     {
       "name": "Security System Reboot",
@@ -55,7 +50,6 @@
       "regress_meaning": "data corruption or extraction interrupted"
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -88,7 +82,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Hacking": 6,
@@ -144,7 +138,7 @@
           "Intelligence": 2,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Engineering": 5,
@@ -182,6 +176,5 @@
       }
     ]
   },
-
   "notes": "TEST SCENARIO for environmental object spawning system (Stage 1). Designed to maximize environmental interaction: hacker character naturally hacks terminals, scavenger naturally opens doors/cargo. Server room setting rich with interactive elements. DM should proactively spawn env objects when players mention 'hack terminal', 'open door', 'search cargo', etc. Success = reduced target hallucination, explicit environmental features. ALL AGENTS USE OPENAI GPT-5-MINI TEMP 1.0."
 }

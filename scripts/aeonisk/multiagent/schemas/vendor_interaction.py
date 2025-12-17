@@ -75,8 +75,8 @@ class CraftingAttempt(BaseModel):
 
     materials_used: List[str] = Field(
         ...,
-        min_items=1,
-        max_items=5,
+        min_length=1,
+        max_length=5,
         description="Materials consumed in attempt (e.g., ['blood_sample', 'purification_salt'])"
     )
 

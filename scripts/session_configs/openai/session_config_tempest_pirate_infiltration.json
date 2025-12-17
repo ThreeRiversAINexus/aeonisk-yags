@@ -1,0 +1,350 @@
+{
+  "_role": "tempest_pirate_infiltration_openai",
+  "_purpose": "Morally gray Tempest operatives infiltrating a Freeborn pirate station on Nimbus. Tests NPC escalation/de-escalation mechanics in a natural, immersive scenario. The operatives are here to scout and sabotage, not save anyone.",
+
+  "session_name": "tempest_pirate_infiltration",
+  "max_turns": 12,
+  "party_size": 3,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 0,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 12,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== INFILTRATION SCENARIO ===",
+  "_scenario_hint": "Tempest operatives have docked at Nimbus Station - a hollowed-out asteroid that serves as a Freeborn pirate haven. Their cover: void artifact buyers looking to make a deal. Their real mission: scout the station's defenses, identify the pirate leadership, and plant tracking beacons for a future Tempest strike force. The pirates are suspicious but greedy. Play this as a slow burn - tension, social maneuvering, gathering intel. Combat should emerge organically from blown cover, double-crosses, or moral choices. DM should spawn pirate NPCs who can be bribed, intimidated, seduced, or pushed into fights. Let escalation/de-escalation happen naturally.",
+
+  "scenario": {
+    "theme": "undercover_infiltration_morally_gray",
+    "location": "Nimbus Station - Freeborn Pirate Haven",
+    "situation": "Your shuttle has just docked at Nimbus Station's outer ring. The docking bay reeks of recycled air and illegal engine coolant. A bored pirate with a rusted shotgun waves you through while three others play cards in a corner. You're here as 'independent void merchants' - wealthy, suspicious, exactly the type who'd come to a place like this. Your real mission from Tempest: scout defenses, identify the pirate captain called 'The Reef,' plant tracking beacons. Don't blow your cover. Don't get attached. Get the intel and get out.",
+    "void_level": 4
+  },
+
+  "_comment_clocks": "=== TENSION CLOCKS ===",
+  "starting_clocks": [
+    {
+      "name": "Cover Integrity",
+      "max_ticks": 6,
+      "current_ticks": 0,
+      "description": "How suspicious the pirates are of the 'merchants' - when full, cover is blown",
+      "advance_meaning": "suspicious behavior noticed, questions asked, cover weakens",
+      "regress_meaning": "smooth talk, bribery, or distraction restores trust"
+    },
+    {
+      "name": "Tempest Window",
+      "max_ticks": 8,
+      "current_ticks": 0,
+      "description": "Time before Tempest assault force arrives - need to beacon targets first",
+      "advance_meaning": "time passes, extraction window approaches, pressure mounts",
+      "regress_meaning": "N/A - time only moves forward"
+    },
+    {
+      "name": "Pirate Morale",
+      "max_ticks": 5,
+      "current_ticks": 2,
+      "description": "How confident/aggressive the Freeborn are - affects willingness to fight or flee",
+      "advance_meaning": "pirates emboldened, more hostile, willing to fight",
+      "regress_meaning": "pirates shaken, considering surrender or flight"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== PIRATES AT DOCKING BAY ===",
+  "initial_npcs": [
+    {
+      "name": "Dock Guard Marek",
+      "faction": "Freeborn Smugglers",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Bored guard with a rusted shotgun who waved you through. Lazy, underpaid, might be bribable for station gossip.",
+      "health": 20,
+      "soak": 2,
+      "skills": {"Guns": 3, "Awareness": 2}
+    },
+    {
+      "name": "Jax 'Lucky' Oren",
+      "faction": "Freeborn Smugglers",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Wiry pirate with quick hands and quicker smile. Currently winning at cards. Knows every gambling den on the station.",
+      "health": 18,
+      "soak": 1,
+      "skills": {"Sleight": 5, "Charm": 3, "Awareness": 3}
+    },
+    {
+      "name": "Sula Venn",
+      "faction": "Freeborn Smugglers",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Scarred veteran with a cybernetic arm. Lost her ship to Tempest three years back. Deeply suspicious of outsiders.",
+      "health": 22,
+      "soak": 2,
+      "skills": {"Brawl": 4, "Intimidation": 3, "Guns": 4}
+    },
+    {
+      "name": "Fenn Dulak",
+      "faction": "Freeborn Smugglers",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "neutral",
+      "description": "Young pirate nursing a drink while losing badly at cards. Eager to prove himself. Knows where The Reef's quarters are.",
+      "health": 16,
+      "soak": 1,
+      "skills": {"Athletics": 3, "Awareness": 4, "Guns": 2}
+    }
+  ],
+
+  "_design_notes": "Three Tempest operatives with complementary skills: a void-touched infiltrator, a charming face, and a cold-blooded killer. Each has their own agenda that could compromise the mission. High social tension, potential for violence if cover is blown. Tests NPC escalation (pirates turn hostile) and de-escalation (intimidate pirates into surrender, bribe guards into allies). All agents use OpenAI gpt-5-mini at temperature 1.0 for creative variance. MORALLY GRAY - these are not heroes, they're corporate operatives setting up a massacre.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Spectre Voss",
+        "pronouns": "she/her",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 8,
+          "voidCuriosity": 7,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 5,
+          "Dexterity": 4,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 2,
+          "Willpower": 4
+        },
+        "skills": {
+          "Stealth": 6,
+          "Systems": 5,
+          "Awareness": 5,
+          "Astral Arts": 4,
+          "Sleight": 4,
+          "Guns": 4,
+          "Melee": 3
+        },
+        "void": 4,
+        "soulcredit": -3,
+        "goals": [
+          "Complete the mission - plant beacons on key infrastructure",
+          "Study the void artifacts the pirates are selling (personal research)",
+          "Avoid getting attached to anyone who'll die when Tempest comes"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "void_scanner": 1,
+          "tracking_beacon": 4,
+          "security_bypass_chip": 1,
+          "neural_stimulant": 2,
+          "hollow_seed": 2,
+          "disguise_kit": 1
+        }
+      },
+      {
+        "name": "Broker Callum Vex",
+        "pronouns": "he/him",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 3,
+          "bondPreference": "neutral",
+          "ritualConservatism": 5
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 4
+        },
+        "skills": {
+          "Charm": 6,
+          "Guile": 5,
+          "Counsel": 4,
+          "Corporate Influence": 4,
+          "Awareness": 4,
+          "Intimidation": 3,
+          "Guns": 3
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Play the role of wealthy void merchant - make it convincing",
+          "Extract intel on pirate operations through conversation",
+          "Wonder if these pirates are really worse than Tempest (moral doubt)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "concealed_holdout": 1,
+          "soulcredit_scanner": 1,
+          "forged_credentials": 1,
+          "bribe_funds": 1,
+          "tracking_beacon": 2,
+          "incense": 2,
+          "data_slate": 1
+        }
+      },
+      {
+        "name": "Reaver Keth",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 2
+        },
+        "attributes": {
+          "Strength": 4,
+          "Health": 4,
+          "Agility": 4,
+          "Dexterity": 3,
+          "Perception": 3,
+          "Intelligence": 3,
+          "Empathy": 1,
+          "Willpower": 5
+        },
+        "skills": {
+          "Combat": 6,
+          "Melee": 5,
+          "Intimidation": 5,
+          "Athletics": 4,
+          "Guns": 5,
+          "Brawl": 5,
+          "Stealth": 3
+        },
+        "void": 2,
+        "soulcredit": -5,
+        "goals": [
+          "Be the blade when diplomacy fails - kill anyone who makes them",
+          "Secure the station's armory location for the assault team",
+          "Find the pirate who killed their partner three years ago (personal vendetta)"
+        ],
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": ["pistol"],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "riot_carapace": 1,
+          "grenade": 2,
+          "restraint_cuffs": 3,
+          "med_kit": 2,
+          "tracking_beacon": 2
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== NATURAL STORY PROGRESSION ===",
+  "_beats": [
+    "Arrival & First Impressions - docking bay, bored guards, establishing cover",
+    "The Bar - meet pirates, gather gossip, maybe buy some 'void artifacts'",
+    "Rising Tension - someone recognizes one of the operatives? Rival buyers?",
+    "Meeting The Reef - pirate captain is smarter than expected, tests them",
+    "Moral Choices - befriend a pirate kid, witness Freeborn culture, question mission",
+    "The Double-Cross - someone's selling them out, or they're tempted to flip",
+    "Cover Blown - combat erupts, pirates escalate from neutral to hostile",
+    "Climax - plant the beacons, fight their way out, or abandon mission?",
+    "Escape or Embrace - leave Nimbus for Tempest strike, or warn the pirates?"
+  ],
+
+  "_comment_escalation_testing": "=== ESCALATION/DE-ESCALATION OPPORTUNITIES ===",
+  "_test_notes": {
+    "escalation_triggers": [
+      "Player attacks NPC → NPC escalates to enemy",
+      "Cover blown → neutral NPCs escalate to hostile",
+      "Pirate discovers tracking beacon → all pirates escalate",
+      "Player threatens wrong person → that NPC escalates"
+    ],
+    "deescalation_triggers": [
+      "Intimidation success → hostile enemy surrenders (de-escalates to prisoner NPC)",
+      "Massive damage to pirate → morale breaks (de-escalates to cowering NPC)",
+      "Bribery/negotiation → hostile pirate becomes neutral NPC",
+      "Player saves pirate's life → enemy de-escalates to grateful NPC"
+    ],
+    "expected_flow": "Start with neutral NPCs, mix of escalations and de-escalations through the session based on player choices"
+  },
+
+  "mission_objectives": [
+    {
+      "description": "Plant tracking beacons on station infrastructure (command center, armory, docking control)",
+      "type": "infiltration",
+      "required": true
+    },
+    {
+      "description": "Identify pirate captain 'The Reef' for Tempest strike priority list",
+      "type": "reconnaissance",
+      "required": true
+    },
+    {
+      "description": "Maintain cover - avoid triggering station-wide alert",
+      "type": "stealth",
+      "required": false
+    },
+    {
+      "description": "Extract alive - extraction window closes when Tempest Window clock fills",
+      "type": "survival",
+      "required": false
+    }
+  ],
+
+  "notes": "TEMPEST PIRATE INFILTRATION - Morally gray corporate operatives setting up a pirate station for destruction. Tests NPC escalation (neutral → hostile when cover blown or players attack) and de-escalation (enemies → prisoners via intimidation/surrender). NOT heroes - these are cold professionals with personal agendas. Long session (12 turns) for natural story development. Tension clocks create organic pressure. Let the players make hard choices about who lives and dies. All stats validated against Aeonisk YAGS Module v1.2.2. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

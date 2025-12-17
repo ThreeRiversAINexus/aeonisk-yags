@@ -43,27 +43,17 @@ See `.claude/CUSTOM_LOG_LEVELS.md` for details on custom log levels.
 
 ## Multi-Provider LLM Support
 
-The system supports multiple LLM providers with provider-specific optimizations:
-
-### Supported Providers
-
-| Provider | Models | Recommended | Status |
-|----------|--------|-------------|--------|
-| **Anthropic** | Claude Sonnet 4.5, Claude 3.5 Haiku | `claude-sonnet-4-5` | ✅ Primary |
-| **OpenAI** | GPT-5-mini, GPT-4.1, O-series | `gpt-5-mini` | ✅ Production Ready |
-| **Local** | Llama 3.1, Mistral 7B | `llama3.1` | ⚠️  Not Implemented |
+**Current default:** `gpt-5-mini` via OpenAI or Batch Proxy (for bulk generation). Rate limits auto-apply per provider.
 
 ### API Keys
 
-**Required environment variables:**
 ```bash
-export ANTHROPIC_API_KEY="your-key-here"  # For Claude models
-export OPENAI_API_KEY="your-key-here"     # For GPT models
+export OPENAI_API_KEY="your-key-here"     # For GPT models (primary)
+export ANTHROPIC_API_KEY="your-key-here"  # For Claude models (if needed)
 ```
 
-### Using OpenAI Models
+### Session Config
 
-**In session config JSON:**
 ```json
 {
   "agents": {
@@ -73,39 +63,10 @@ export OPENAI_API_KEY="your-key-here"     # For GPT models
         "model": "gpt-5-mini",
         "temperature": 0.7
       }
-    },
-    "players": [
-      {
-        "name": "Character Name",
-        "llm": {
-          "provider": "openai",
-          "model": "gpt-5-mini",
-          "temperature": 0.8
-        }
-      }
-    ]
+    }
   }
 }
 ```
-
-**Test config:** `scripts/session_configs/session_config_openai_test.json`
-
-### Provider-Specific Optimizations
-
-**Rate Limits (auto-applied):**
-- **Anthropic**: 3 concurrent requests, 0.8s interval (~75 req/min)
-- **OpenAI**: 15 concurrent requests, 0.08s interval (~750 req/min)
-- **Local**: 1 concurrent request, no interval
-
-**Pricing (Standard tier, per 1M tokens):**
-- **Claude Sonnet 4.5**: $3.00 input / $15.00 output
-- **GPT-5-mini**: $0.25 input / $2.00 output (8x cheaper output!)
-- **GPT-4o-mini**: $0.15 input / $0.60 output
-
-**Key Differences:**
-- OpenAI has **10x higher rate limits** than Anthropic
-- GPT-5-mini output tokens are **8x cheaper** than Claude Sonnet 4.5
-- Both use Pydantic AI for structured output (provider-agnostic schemas)
 
 ### Switching Providers
 
@@ -133,6 +94,122 @@ python -m pytest tests/unit/test_openai_provider.py -v
 # Live API test (requires OPENAI_API_KEY)
 python -m pytest tests/unit/test_openai_provider.py::TestOpenAIProviderLiveAPI -v
 ```
+
+### Batch Proxy Provider (Cost Optimization)
+
+**Purpose:** Route LLM requests through a batching proxy server for 50% cost reduction on bulk operations.
+
+The batch proxy provider wraps the UnifiedAIClient from aeonisk-transmedia-pipeline, enabling cost-optimized LLM calls by queueing and batching requests together.
+
+**Supported Backends:**
+- OpenAI (gpt-5-mini, gpt-4o-mini, etc.)
+- Anthropic (claude-sonnet-4-5, etc.)
+
+**Cost Savings:**
+- **50% reduction** via provider Batch APIs
+- **Trade-off:** Higher latency (requests queued until batch threshold reached)
+- **Best for:** Bulk generation runs (100+ sessions), overnight training data generation
+
+**In session config JSON:**
+```json
+{
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "batch_proxy",
+        "model": "gpt-5-mini",
+        "temperature": 0.7,
+        "underlying_provider": "openai",
+        "use_proxy": true,
+        "proxy_url": "http://localhost:8000",
+        "proxy_priority": "normal",
+        "proxy_strategy": "auto"
+      }
+    }
+  }
+}
+```
+
+**Configuration Parameters:**
+- `underlying_provider`: "openai" or "anthropic" (determines fallback API and model catalog)
+- `use_proxy`: Enable proxy routing (default: true for batch_proxy provider)
+- `proxy_url`: Proxy server URL (default: http://localhost:8000)
+- `proxy_priority`: Request priority - "high" (direct API), "normal" (auto-route), "low" (always batch)
+- `proxy_strategy`: Routing strategy - "auto" (proxy decides), "direct" (force immediate), "batch" (force batching)
+
+**Environment Variables (Alternative):**
+```bash
+export USE_LLM_PROXY=true
+export LLM_PROXY_URL=http://localhost:8000
+export LLM_PROXY_MODE=auto  # auto, direct, or batch
+```
+
+**Automatic Fallback:**
+- If proxy unreachable, automatically falls back to direct API (3 retries with exponential backoff)
+- No code changes needed, transparent routing
+
+**Bulk Session Runner:**
+
+Run multiple sessions in parallel with batch proxy support:
+
+```bash
+# Basic bulk run (100 sessions, 20 workers)
+python scripts/bulk_session_runner.py \
+  --config session_config.json \
+  --runs 100 \
+  --workers 20 \
+  --output-dir bulk_output/
+
+# With proxy (cost optimization)
+python scripts/bulk_session_runner.py \
+  --config session_config.json \
+  --runs 100 \
+  --workers 20 \
+  --proxy http://localhost:8000 \
+  --output-dir bulk_output/
+
+# Resume failed runs
+python scripts/bulk_session_runner.py \
+  --config session_config.json \
+  --runs 100 \
+  --output-dir bulk_output/ \
+  --resume
+
+# Multiple configs
+python scripts/bulk_session_runner.py \
+  --configs config1.json config2.json \
+  --runs-per-config 50 \
+  --output-dir bulk_output/
+```
+
+**Orchestrator Features:**
+- Parallel execution via ProcessPoolExecutor (subprocess-based, crash isolation)
+- Automatic proxy health check before execution
+- Resume capability (skip completed runs)
+- Aggregated statistics (success rate, tokens, throughput)
+- Per-run output isolation (prevents JSONL collisions)
+- Summary report generation (JSON format)
+
+**Test Config:** `scripts/session_configs/session_config_batch_proxy_test.json`
+
+**Testing:**
+```bash
+python -m pytest tests/unit/test_batch_proxy_provider.py -v
+python -m pytest tests/unit/test_bulk_runner.py -v
+```
+
+**Design Documentation:** See `.claude/BATCH_GENERATION.md` for architecture details
+
+**Prerequisites:**
+1. Start batch proxy server in aeonisk-transmedia-pipeline:
+   ```bash
+   cd ../aeonisk-transmedia-pipeline
+   python main.py proxy-start
+   ```
+2. Verify proxy health:
+   ```bash
+   curl http://localhost:8000/health
+   ```
 
 ## Development Philosophy
 
@@ -204,165 +281,29 @@ if mechanics and hasattr(mechanics, 'jsonl_logger') and mechanics.jsonl_logger:
 - **Philosophy:** Allow mistakes for ML training, but prevent death spirals
 
 ### 6. NPC & De-escalation System
-**Purpose:** Enable dynamic conversion between enemy combatants and non-player characters (NPCs)
-
 **Core Principle:** agent_id is STABLE across ALL conversions (never changes)
 
-**Key Components:**
-- **NPCAgent** (`npc_agent.py:22-75`) - Full combat stats, no tactical AI, simple LLM client
-- **Agent Conversion** (`agent_conversion.py`) - Bidirectional enemy ↔ NPC conversion with full state preservation
-- **Healing System** (`mechanics.py:2676+`) - Stun/wound/HP recovery for stabilizing prisoners
-- **Structured Output** (`schemas/story_events.py:410+`) - `NPCSpawn`, `Deescalation`, `Escalation` schemas
-
-**Conversion Mechanics:**
-```python
-# De-escalate enemy → NPC (surrender, intimidation, morale break)
-npc = deescalate_enemy_to_npc(enemy, disposition="prisoner", current_round=3)
-assert npc.agent_id == enemy.agent_id  # ✅ ID preserved
-assert npc.health == enemy.health      # ✅ State preserved
-
-# Escalate NPC → enemy (attacked by players, betrayal)
-enemy = escalate_npc_to_enemy(npc, template="desperate_fighter", current_round=5)
-assert enemy.agent_id == npc.agent_id  # ✅ ID preserved
-
-# Subdue via non-lethal (wrapper for prisoner conversion)
-prisoner = subdue_enemy_to_prisoner(enemy, current_round=2)
-```
-
-**NPC Capabilities:**
-- **Actions:** flee, hide, plead, comply, dialogue, assist, pass (no attack/tactical)
-- **LLM Client:** Lightweight Pydantic AI client (~500 token prompts vs ~2000 for players)
-- **Opportunistic acting:** Pass turn when nothing interesting happening
-- **Dialogue:** NPCs can provide intel, respond to questions, negotiate
-- **Healing:** Can receive Medicine checks for stabilization
-
-**DM Integration:**
-- DM declares conversions via `RoundSynthesis.deescalations` / `escalations` / `npc_spawns`
-- DM processes conversions in `_process_deescalation()` / `_process_escalation()` / `_process_npc_spawn()`
-- NPCs tracked in `SharedState.npc_agents` list
-- TargetIDMapper personality-based targeting (ruthless/professional/defensive)
-
-**Testing:**
-```bash
-# Run NPC system test suite (86 tests)
-python -m pytest tests/unit/test_npc*.py tests/unit/test_agent_conversion.py -v
-
-# Test session config
-python3 scripts/run_multiagent_session.py scripts/session_configs/session_config_npc_deescalation_test.json
-```
-
-**Files:**
-- Core: `npc_agent.py`, `agent_conversion.py`
-- Tests: `test_npc_agent.py`, `test_npc_llm_client.py`, `test_agent_conversion.py`, `test_dm_npc_integration.py`
-- Session config: `session_config_npc_deescalation_test.json`
-- Design doc: `.claude/NPC_ENTITY_DEESCALATION_DESIGN.md`
-
-**IMPORTANT:** NO keyword detection for conversions - all mechanics via Pydantic structured output
+- **Conversion:** `deescalate_enemy_to_npc()`, `escalate_npc_to_enemy()`, `subdue_enemy_to_prisoner()`
+- **NPC Actions:** flee, hide, plead, comply, dialogue, assist, pass (no attack/tactical)
+- **DM declares** via `RoundSynthesis.deescalations` / `escalations` / `npc_spawns`
+- **Files:** `npc_agent.py`, `agent_conversion.py`, `schemas/story_events.py`
+- **Tests:** `python -m pytest tests/unit/test_npc*.py tests/unit/test_agent_conversion.py -v`
 
 ### 7. Economy & Vendor System
-**Purpose:** Multi-currency economy with vendor spawning, purchases, and food consumption mechanics
+**Core Principle:** Pre-validated deterministic transactions (executed before DM narration)
 
-**Core Principle:** Pre-validated deterministic transactions (purchases/consumption executed before DM narration)
-
-**Currency System:**
-- **5 Currency Types** (`EnergyPurse`): breath, grain, drip, spark, **hollow**
-- **Multi-currency pricing:** Items can cost any combination (e.g., "5 drip + 2 hollow")
-- **Hollow integration:** Full currency support (vendor prices, purchases, transfers)
-- **Cost property:** VendorItem.cost returns dict of all non-zero prices
-
-**Food Consumption System:**
-```python
-# CONSUME action - deterministic +2 HP healing
-ConsumeAction(
-    intent="Eat ration pack to recover HP",
-    description="Tear open ration pack and consume...",
-    item_id="itm_ration_01",
-    action_type=ActionType.CONSUME
-)
-
-# Pre-validation checks (automatic):
-- Item exists in inventory (quantity > 0)
-- Item type is "food" (not medkit/tool/prop)
-- Health < max_health (can't eat at full HP)
-
-# Execution (before DM sees action):
-- Item removed from inventory (-1 quantity)
-- Health increased by +2 (capped at max_health)
-- DM narrates atmospheric description (no roll)
-```
-
-**Item Type Categorization:**
-```python
-class ItemType(Enum):
-    CONSUMABLE = "consumable"  # General consumables
-    FOOD = "food"              # Grants +2 HP via CONSUME action
-    TOOL = "tool"              # Echo-Calibrator, ritual tools
-    SEED = "seed"              # Raw Seeds for attunement
-    OFFERING = "offering"      # Ritual offerings
-    EXCHANGE = "exchange"      # Trade goods
-    PROP = "prop"              # Narrative items (no mechanics)
-    EQUIPMENT = "equipment"    # Weapons, armor, gear
-
-# 9 food items auto-categorized:
-# Ration Pack, Glowpeel Noodles, Protein Cube, Dried Fruit,
-# Nutrition Paste, Syn-Meat Strips, Energy Bar, Street Food, Survival Rations
-```
-
-**Vendor Spawn Validation:**
-```python
-# NPCSpawn.vendor_inventory validates at spawn-time
-NPCSpawn(
-    name="Vending Machine",
-    vendor_inventory=[
-        VendorItem(name="Ration Pack", description="...", price_drip=2, item_type="food"),
-        VendorItem(name="Medkit", description="...", price_drip=5, price_hollow=1)
-    ]
-)
-
-# Pydantic validation enforces:
-- All items are VendorItem instances (not dicts/tuples)
-- No negative prices (ge=0 constraint)
-- Required fields present (name, description, item_id, inventory_key)
-```
-
-**Transaction Flow (Purchase/Consumption):**
-1. Player declares action (PURCHASE or CONSUME)
-2. **Pre-validation** in `session.py` (before DM sees it)
-   - Validate inventory, currency, prerequisites
-   - Store validation result on `action_payload`
-3. **Execution** if valid (before DM narration)
-   - Purchase: Deduct currency, add item to inventory
-   - Consumption: Remove item, heal +2 HP
-4. **DM narration** (atmospheric only, no roll)
-   - Sees `purchase_validation` or `consumption_validation` result
-   - Narrates success/failure based on pre-execution
-5. **JSONL logging** (both success and failure)
-
-**Files:**
-- Core: `energy_economy.py` (VendorItem, ItemType, EnergyPurse)
-- Schemas: `player_action.py` (ConsumeAction), `action_effects.py` (ConsumptionEffect)
-- Mechanics: `mechanics.py:2974+` (validate_consumption, process_consumption_effect)
-- Session integration: `session.py:3765+` (pre-validation block)
-- Prompts: `player_action_consume.yaml`, `dm_consumption.yaml`
-
-**Testing:**
-```bash
-# Run vendor and consumption test suite (48 tests)
-python -m pytest tests/unit/test_vendor_spawn_validation.py \
-                 tests/unit/test_item_type_categorization.py \
-                 tests/unit/test_consumption_mechanics.py -v
-```
-
-**Design Principles:**
-- ✅ **Pre-execution:** Deterministic transactions execute before DM narration
-- ✅ **Validation separation:** Pre-validate in session.py, mechanics in mechanics.py
-- ✅ **Structured output:** All transactions via Pydantic schemas (no keyword detection)
-- ✅ **DM narration role:** Atmospheric description only, no mechanical adjudication
-- ✅ **JSONL logging:** All transactions logged for ML training
+- **5 Currencies** (`EnergyPurse`): breath, grain, drip, spark, hollow
+- **Item Types:** consumable, food (+2 HP), tool, seed, offering, exchange, prop, equipment
+- **Transaction Flow:** Pre-validate → Execute → DM narrates (atmospheric only)
+- **Files:** `energy_economy.py`, `player_action.py`, `mechanics.py:2974+`
+- **Tests:** `python -m pytest tests/unit/test_vendor*.py tests/unit/test_item_type*.py -v`
 
 ## ML Logging System
 
-10 event types logged to JSONL: scenario, action_declaration/resolution, round_synthesis/summary, character_state, combat_action, enemy_spawn/defeat, mission_debrief. See `LOGGING_IMPLEMENTATION.md` for details.
+**Authoritative Schema Reference:** `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md`
+- Read this when working on JSONL logging, adding events, or understanding schema structure
+- 19 event types with full JSON schemas and use cases
+- Includes narrative reconstruction guide
 
 **Tools:**
 - `analyze_session.py` - **Quick session analysis (use this instead of reading huge JSONL files!)**
@@ -402,58 +343,23 @@ python scripts/analyze_session.py session.jsonl --mode=clocks
 
 # Void trajectory - ~10-20 lines
 python scripts/analyze_session.py session.jsonl --mode=void
+
+# Error analysis - ~10-50 lines
+python scripts/analyze_session.py session.jsonl --mode=errors
 ```
 
-#### Targeted Event Extraction (Machine-Readable)
+#### Targeted Event Extraction
 
 ```bash
-# Search with smart defaults (shows line, round, agent, action, success, margin)
+# Search events
 python scripts/analyze_session.py session.jsonl --search event_type=action_resolution
-# Output: {"_line":9,"round":1,"agent":"Ash","action":"Search terminal...","roll.success":false,"roll.margin":-5}
+python scripts/analyze_session.py session.jsonl --search event_type=action_resolution round=2 --count
 
-# Multiple filters
-python scripts/analyze_session.py session.jsonl --search event_type=action_resolution round=2
-
-# Custom field selection
-python scripts/analyze_session.py session.jsonl --search event_type=scenario --fields scenario.void_level,scenario.location
-# Output: {"_line":2,"scenario.void_level":8,"scenario.location":"Corrupted Station"}
-
-# Count matches (no JSON output)
-python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --count
-# Output: Found 47 matching events
-
-# Show line numbers (for targeting specific events)
-python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --index
-# Output: Matching events at lines: 5, 12, 18, 25... (47 total)
-
-# Get full event at specific line
+# Get specific line
 python scripts/analyze_session.py session.jsonl --line 12
-# Output: Full pretty-printed JSON
-
-# See available fields for event type
-python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --schema
-# Output: Available fields: event_type, round, agent, action, roll.success, ...
 ```
 
-**Smart defaults per event type:**
-- `action_resolution` → line, round, agent, action (truncated), success, margin
-- `scenario` → line, theme, location, void_level
-- `enemy_spawn` → line, round, template, count
-- Others → line, event_type, round
-
-**Default limit:** Shows first 5 matches with total count (e.g., "Found 47 events, showing first 5")
-
-**When to use:**
-- ✅ Quick "what happened?" → summary mode
-- ✅ Find specific events → `--search` with filters
-- ✅ Extract data for tests → `--search` + `--fields`
-- ✅ Count event types → `--search` + `--count`
-- ✅ Locate then inspect → `--index` then `--line N`
-- ✅ Complex queries → `--search` to find events, then pipe to `jq` for advanced processing
-
-**Other tools:**
-- Full story narrative → `reconstruct_narrative.py`
-- Schema validation → `validate_logging.py`
+**Error analysis:** `--mode=errors` finds validation warnings, LLM fallbacks, action failures
 
 ### Fixture Tools (Test Regression & Code Verification)
 
@@ -634,165 +540,53 @@ diff_fixtures.py fixture.jsonl replay.jsonl
 # Should show: "✅ Fixtures are identical"
 ```
 
-#### Commentary: Is This Approach Valuable?
+See `tests/fixtures/README.md` for fixture naming conventions, lifecycle, and management.
 
-**TL;DR:** Yes for extract+diff, mixed on replay. The core insight is solid but execution complexity is high.
+### 8. Conservative Fuzzy Name Matching
+**Purpose:** Automatically resolve shortened character names in void_changes/soulcredit_changes
 
-**What works well:**
+**Problem it solves:** DM uses "Sera Karsel" instead of "Vessel Sera Karsel" → validation warnings
 
-1. **extract_fixture.py is genuinely useful** - Being able to isolate "the 3 rounds where the bug happens" from a 20-round session is valuable. Much better than "go read this 500KB JSONL file."
-
-2. **diff_fixtures.py solves a real problem** - Before this, verifying a mechanics fix meant:
-   - Run full session manually
-   - Read through narrative looking for differences
-   - Try to spot if damage/void/etc changed
-
-   Now: `diff_fixtures.py --focus effects.damage.dealt` shows exactly what changed. This is huge.
-
-3. **Real gameplay as test data** - Using actual LLM-generated scenarios as test cases is clever. You get edge cases you wouldn't think to write manually.
-
-**What's harder than expected:**
-
-1. **Replay complexity** - The replay tool is fighting against the architecture. Sessions weren't designed to be replayed with selective caching. The hang issue suggests deep assumptions about LLM client lifecycle.
-
-2. **LLM call timing** - Player/enemy LLM calls having `round: null` reveals architectural assumptions (declaration happens "between" rounds). Had to add smart detection logic.
-
-3. **Determinism challenges** - Even with caching, achieving byte-for-byte identical replay is hard. Random seeds, timestamps, async timing all matter.
-
-**Practical workflow (without replay):**
-
-Even without replay working, extract+diff is useful:
-```bash
-# Extract buggy session
-extract_fixture.py session_bug.jsonl --rounds 2-4 --output before.jsonl
-
-# Fix bug, run NEW session with same scenario
-run_multiagent_session.py same_scenario_config.json
-
-# Extract same rounds from new session
-extract_fixture.py session_fixed.jsonl --rounds 2-4 --output after.jsonl
-
-# Compare mechanical outcomes
-diff_fixtures.py before.jsonl after.jsonl --focus effects.damage.dealt
-```
-
-This works because you can manually re-create similar scenarios, even if not byte-identical replay.
-
-**Alternative: Unit tests with mocked LLM**
-
-The fixture approach is expensive (real LLM calls). Could mock LLM responses for unit tests:
+**How it works:**
 ```python
-def test_damage_extraction():
-    mock_dm_response = "shoots enemy for 12 damage"
-    result = parse_dm_response(mock_dm_response)
-    assert result.damage.dealt == 12
+# DM returns shortened name
+VoidChange(character_name="Sera Karsel", amount=-1, reason="purification")
+
+# System fuzzy matches to full name
+Matched: "Sera Karsel" → "Vessel Sera Karsel" ✓
+
+# Applied to correct character
 ```
 
-But this misses emergent behavior from real LLM variance.
+**Safety rules:**
+1. Exact match first (no fuzzing if name matches exactly)
+2. Suffix match only (provided name must be end of full name)
+3. Minimum 2 words required (rejects "Sera" - too ambiguous)
+4. Single candidate only (rejects if multiple characters match)
+5. Never guess (ambiguous = FAIL with clear error)
 
-**Verdict:** Keep extract+diff, they're production-ready and solve real problems. Replay is architecturally interesting but may not be worth the debugging cost vs. just running new sessions.
+**Files:**
+- Core: `name_matching.py` (match_character_name, resolve_character_name)
+- Processing: `outcome_parser.py:59-86` (void_target_character fuzzy matching)
+- Validation: `structured_output_helpers.py:525-552` (validation warnings)
+- Tests: `tests/unit/test_name_matching.py` (16 tests, all pass)
 
-## Fixture Management
+**When it triggers:** Automatically on every void_change processing (no config needed)
 
-### Fixture Naming Convention
+**Logging:**
+- INFO: `"Fuzzy matched void target: 'Sera Karsel' → 'Vessel Sera Karsel'"`
+- WARNING: `"Could not match void target 'Bob Smith': No character found..."`
 
-All fixtures in `tests/fixtures/sessions/` follow this standard:
+### 9. Bond System
+**Core Principle:** Structured output schemas drive all bond mechanics with automatic Void-driven transitions
 
-**Format:** `<purpose>_<scenario-type>_<descriptor>.jsonl`
-
-- **purpose:** `golden` (reference fixture) | `regression` (bug reproduction) | `test` (integration test) | `baseline` (comparison baseline)
-- **scenario-type:** `combat` | `social` | `investigation` | `ritual` | `mixed`
-- **descriptor:** Brief kebab-case description (e.g., `status-effects`, `clock-removal`, `replay-fresh`)
-
-**Examples:**
-- `golden_replay_fresh.jsonl` - Reference implementation for replay system
-- `regression_combat_action_type_bug.jsonl` - Reproduces action type misclassification
-- `test_investigation_starting_clocks.jsonl` - Tests clock loading from config
-
-### Fixture Lifecycle
-
-**Active fixtures:**
-- Used by current tests in `tests/unit/` or `tests/integration/`
-- Documented in `tests/fixtures/sessions/MANIFEST.json`
-- Must be regenerated after mechanics changes that affect their scenarios
-
-**Deprecated fixtures:**
-- Marked `"status": "deprecated"` in MANIFEST.json
-- Can be deleted after verifying no tests reference them
-- Typically deprecated when code they test is removed or fundamentally changed
-
-**Golden fixtures:**
-- Reference implementations (e.g., `replay_test_fresh.jsonl`)
-- NEVER delete without team discussion
-- Only regenerate when mechanics fundamentally change AND you verify mechanical equivalence
-
-### Validating Fixtures
-
-Before using a fixture for replay tests, verify it has complete LLM call data:
-
-```bash
-# Check fixture has player LLM calls (required for replay)
-python scripts/analyze_session.py fixture.jsonl \
-  --search event_type=llm_call source=player_llm_client --count
-# Should show: "Found N matching events" (N > 0)
-
-# Verify fixture structure and completeness
-python scripts/analyze_session.py fixture.jsonl --mode summary
-# Review: rounds, players, enemies, LLM calls
-```
-
-### Regenerating Fixtures After Code Changes
-
-When mechanics change (e.g., damage calculation, void system), fixtures may need regeneration:
-
-1. **Identify affected fixtures** (check MANIFEST.json for scenario types)
-2. **Decide regeneration strategy:**
-   - **Mechanics bug fix:** Create NEW fixture from fresh session (old fixture documents bug)
-   - **Mechanics enhancement:** Regenerate existing fixture using replay tool
-
-**Regeneration using replay (preserves player actions):**
-```bash
-python scripts/replay_fixture.py old_fixture.jsonl \
-  --all-cached \
-  --output new_fixture.jsonl
-```
-
-3. **Verify changes are expected:**
-```bash
-python scripts/diff_fixtures.py old_fixture.jsonl new_fixture.jsonl \
-  --focus effects.damage.dealt effects.void_changes
-```
-
-4. **Update MANIFEST.json** with new `last_regenerated` date and commit hash
-
-### Fixture Size Guidelines
-
-- **Unit tests:** 1-3 rounds, ~50-200KB (fast, focused)
-- **Integration tests:** 2-5 rounds, ~200-500KB (realistic scenarios)
-- **Regression tests:** Minimal rounds to reproduce bug, ~100-300KB
-- **Avoid:** >10 rounds or >1MB files (too slow, hard to debug)
-
-If a fixture exceeds guidelines, extract minimal reproduction:
-```bash
-python scripts/extract_fixture.py large_session.jsonl \
-  --rounds 7-9 \
-  --output minimal_bug_repro.jsonl
-```
-
-### Fixture Metadata (MANIFEST.json)
-
-All fixtures are cataloged in `tests/fixtures/sessions/MANIFEST.json` with:
-- **created:** Date (YYYY-MM-DD)
-- **created_by_commit:** Git SHA
-- **purpose:** Why this fixture exists
-- **scenario:** Brief description (e.g., "Gang Ambush (combat)")
-- **rounds:** Number of rounds
-- **has_player_llm_calls:** Boolean (required for replay)
-- **last_regenerated:** Date + commit SHA (if regenerated)
-- **status:** `active` | `deprecated`
-- **used_by_tests:** List of test files referencing this fixture
-
-See `tests/fixtures/sessions/MANIFEST.json` for current fixture inventory.
+- **Bond Types:** Kinship, Ascendancy, Debt, Voidward, Passion, Faction
+- **Bond Status:** Active → Dormant (Void ≥7) → Void-Locked (Void=10, permanent); Severed (sacrificed)
+- **Benefits:** +2 ritual bonus (bonded participant), +1 Soak (defending partner), sacrifice for +5 Willpower
+- **Auto-transitions:** Void changes trigger dormancy/recovery automatically
+- **Files:** `schemas/shared_types.py`, `mechanics.py`, `action_router.py`
+- **Tests:** `python -m pytest tests/unit/test_bond*.py -v`
+- **Design doc:** `.claude/BOND_SYSTEM_DESIGN.md`
 
 ## Design Philosophy
 
@@ -823,6 +617,20 @@ See `tests/fixtures/sessions/MANIFEST.json` for current fixture inventory.
 
 Check `git log --oneline -10` for latest changes.
 
+### Attribute System Conformance (Dec 2025)
+
+**YAGS Standard Attributes (8 total):**
+- Strength, Agility, Endurance (Aeonisk uses this instead of YAGS "Health"), Dexterity
+- Perception, Intelligence, Empathy, Willpower (Aeonisk uses this instead of YAGS "Will")
+
+**Migration completed:** Removed non-standard "Charisma" attribute that had crept into configs/code.
+
+**Skill remapping:**
+- Guile, Corporate Influence → Empathy (social/political understanding)
+- Command, Intimidation → Willpower (mental domination/leadership)
+
+All 73 session configs and 8 Python modules now conform to YAGS + Aeonisk standard. See `tests/unit/test_attribute_migration.py` for regression tests.
+
 ### Key Features Completed
 - **Structured Output System** - Pydantic schemas for all LLM responses (ActionResolution, PlayerAction, etc.)
 - **Free Targeting Mode** - Generic IDs (`tgt_xxx`) to test IFF/ROE capabilities
@@ -836,10 +644,8 @@ Check `git log --oneline -10` for latest changes.
 
 **Start here when joining:**
 1. This file (CLAUDE.md) - Essential patterns
-2. `.claude/README.md` - AI orientation
-3. `.claude/ARCHITECTURE.md` - System architecture
-4. `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` - ML logging details
-5. `scripts/session_config_README.md` - Session configuration guide
+2. `.claude/ARCHITECTURE.md` - System architecture
+3. `scripts/aeonisk/multiagent/LOGGING_IMPLEMENTATION.md` - ML logging/schema details
 
 ## Session Testing & Configuration
 

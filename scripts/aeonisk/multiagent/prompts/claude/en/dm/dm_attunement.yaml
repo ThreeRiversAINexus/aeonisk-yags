@@ -116,10 +116,25 @@ content: |
     ```python
     void_changes=[VoidChange(character_name=character_name, amount=void_penalty, reason="failed attunement ritual")]
     ```
-  - **effects.inventory_changes**: REQUIRED - consume seed
+  - **effects.inventory_changes**: REQUIRED - track BOTH seed consumption AND energy gained
     ```python
-    inventory_changes=[InventoryChange(item="seed_raw", delta=-1, reason="consumed in attunement ritual")]
+    # Success: Seed consumed + energy gained
+    inventory_changes=[
+        InventoryChange(item="Raw Seed", delta=-1, reason="consumed in attunement ritual"),
+        InventoryChange(item="Drip", delta=20, reason="attunement conversion")
+    ]
+
+    # Failure: Seed consumed, no energy
+    inventory_changes=[
+        InventoryChange(item="Raw Seed", delta=-1, reason="consumed in failed attunement")
+    ]
     ```
+
+    **Energy type in inventory_changes must match target_energy:**
+    - target_energy="breath" → InventoryChange(item="Breath", delta=100, ...)
+    - target_energy="grain" → InventoryChange(item="Grain", delta=50, ...)
+    - target_energy="drip" → InventoryChange(item="Drip", delta=20, ...)
+    - target_energy="spark" → InventoryChange(item="Spark", delta=5, ...)
   - **soulcredit_changes**: Usually +0 (routine ritual in sanctioned facility)
 
   ## Conversion Rates Reference

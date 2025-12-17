@@ -9,7 +9,9 @@
     "situation": "Single player at vending machine. Make ONE purchase to test the system. Use action_type='purchase' with vendor_id and item_id from the vendor list.",
     "void_level": 1,
     "active_npcs": [],
-    "environmental_factors": ["Automated terminal"]
+    "environmental_factors": [
+      "Automated terminal"
+    ]
   },
   "persistent_vendors": [
     {
@@ -63,7 +65,7 @@
           "Intelligence": 3,
           "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 3

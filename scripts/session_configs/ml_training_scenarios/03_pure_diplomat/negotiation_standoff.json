@@ -11,7 +11,7 @@
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED (Seed Trade is Plot, Not Vendors) ===",
   "vendor_spawn_frequency": 0,
   "_comment_scenario": "=== SCENARIO: THREE-FACTION TRADE SUMMIT ===",
-  "_scenario_hint": "Neutral Zone Trade Station (void_level 3, demilitarized) - Summit to resolve Seed harvesting rights dispute between ACG (wants monopoly), Resonance Communes (spiritual claim), and Freeborn Collective (labor rights). Each faction has valid grievances and leverage. Players must: broker compromise, manage escalating tensions, prevent walkout/violence. NPCs: ACG hardliner (greedy), Commune elder (principled), Freeborn agitator (angry). Failure modes: summit collapses \u2192 trade war, violence erupts \u2192 players blamed, one faction dominates \u2192 moral compromise. Success: balanced treaty all sides accept.",
+  "_scenario_hint": "Neutral Zone Trade Station (void_level 3, demilitarized) - Summit to resolve Seed harvesting rights dispute between ACG (wants monopoly), Resonance Communes (spiritual claim), and Freeborn Collective (labor rights). Each faction has valid grievances and leverage. Players must: broker compromise, manage escalating tensions, prevent walkout/violence. NPCs: ACG hardliner (greedy), Commune elder (principled), Freeborn agitator (angry). Failure modes: summit collapses → trade war, violence erupts → players blamed, one faction dominates → moral compromise. Success: balanced treaty all sides accept.",
   "_design_notes": {
     "ml_training_value": "Pure social/negotiation scenario, zero combat resolution, tests Charm/Persuasion/Insight/Debt Law in high-stakes context, multi-faction relationship management, dynamic NPC attitudes, reputation tracking, moral trade-offs in diplomacy, failure = systemic consequences (not death)",
     "mechanics_tested": [
@@ -102,9 +102,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 5,
           "Willpower": 4,
-          "Charisma": 5
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,
@@ -162,9 +162,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 5,
+          "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Counsel": 6,
@@ -222,7 +222,7 @@
           "Intelligence": 4,
           "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Persuasion": 6,

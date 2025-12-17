@@ -15,6 +15,8 @@ from .voice_profiles import VoiceProfile
 from .energy_economy import EnergyPurse, Seed, SeedType, Element, create_raw_seed
 from .prompt_loader import load_agent_prompt, compose_sections
 from .schemas.story_events import NarrativeMemory
+from .schemas.shared_types import Bond
+from .awareness import NarrationEntry
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ class CharacterState:
     skills: Dict[str, int]
     void_score: int
     soulcredit: int
-    bonds: List[str]
+    bonds: List[Bond]  # Formal metaphysical connections (max 3, Freeborn max 1)
     goals: List[str]
     pronouns: str = "they/them"  # Default to gender-neutral
     inventory: Dict[str, int] = None
@@ -166,7 +168,7 @@ class AIPlayerAgent(Agent):
                     provider=self.llm_config.get('provider', 'anthropic'),
                     model=self.llm_config.get('model', 'claude-sonnet-4-5'),
                     max_tokens=self.llm_config.get('max_tokens', 1000),
-                    temperature=self.llm_config.get('temperature', 0.8)
+                    temperature=self.llm_config.get('temperature', 1.0)
                 )
                 self.llm_provider = create_provider(provider_config)
                 logger.debug(f"Player {self.agent_id}: LLM provider initialized ({provider_config.provider}:{provider_config.model})")
@@ -308,10 +310,21 @@ class AIPlayerAgent(Agent):
         self.max_health = (size * 2) + endurance + 13
         self.health = self.max_health
         self.wounds = 0  # Wound count (tactical module)
-        # Soak = YAGS standard base soak for adult humans (character.md:598-600) + combat balance
-        # Set to 10 to balance with increased HP pool - allows 5-13 damage through per hit
-        # (was 14, too high - blocked most damage causing stalemate)
-        self.soak = 10
+
+        # Soak calculation (YAGS formula + Aeonisk combat balance)
+        # YAGS: Soak = Size + Agility + Endurance - 5
+        # Aeonisk: +4 combat balance (keeps avg=10 for backwards compatibility)
+        SOAK_COMBAT_BALANCE = 4
+
+        agility = self.character_state.attributes.get('Agility', 3)
+
+        base_soak = size + agility + endurance - 5
+        self.soak = base_soak + SOAK_COMBAT_BALANCE
+
+        logger.debug(
+            f"{self.character_state.name} Soak calculation: "
+            f"Size({size}) + Agi({agility}) + End({endurance}) - 5 + balance({SOAK_COMBAT_BALANCE}) = {self.soak}"
+        )
 
         # Initialize weapons from config or use defaults
         from .weapons import get_weapon
@@ -889,15 +902,24 @@ class AIPlayerAgent(Agent):
             original_action = message.payload.get('original_action', {})
             acting_character = original_action.get('character_name', original_action.get('character', 'Unknown'))
 
+            # Get aware_agents from DM's resolution (empty = public, populated = private)
+            aware_agents = message.payload.get('aware_agents', [])
+
             # Prefix narration with character name for clarity
             prefixed_narration = f"[{acting_character}] {narration}"
-            self.recent_narrations.append(prefixed_narration)
+
+            # Store as NarrationEntry with awareness metadata
+            entry = NarrationEntry(
+                text=prefixed_narration,
+                aware_agents=aware_agents if isinstance(aware_agents, list) else []
+            )
+            self.recent_narrations.append(entry)
 
             # Keep only last 20 narrations (FIFO rolling window) - enough for 1-2 full rounds
             if len(self.recent_narrations) > 20:
                 self.recent_narrations.pop(0)
 
-            logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character}")
+            logger.debug(f"Player {self.character_state.name}: Stored resolution from {acting_character} (aware: {aware_agents})")
 
         # Only update OWN character state for resolutions targeting this agent
         if resolved_agent_id != self.agent_id:
@@ -1135,7 +1157,8 @@ class AIPlayerAgent(Agent):
         print(f"Soulcredit: {self.character_state.soulcredit}")
         print(f"Goals: {', '.join(self.character_state.goals)}")
         if self.character_state.bonds:
-            print(f"Bonds: {', '.join(self.character_state.bonds)}")
+            bond_names = [f"{bond.character_b} ({bond.bond_type.value}, {bond.status.value})" for bond in self.character_state.bonds]
+            print(f"Bonds: {', '.join(bond_names)}")
 
         # Display inventory organized by category
         print("\nInventory:")
@@ -1803,7 +1826,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 result_type=ActionIntent,
                 system_prompt=phase1_system_prompt,
                 max_tokens=self.llm_config.get('max_tokens', 4000),  # Increased from 2000 - prevent OpenAI finish_reason:length errors
-                temperature=self.llm_config.get('temperature', 0.8),
+                temperature=self.llm_config.get('temperature', 1.0),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
             )
@@ -1821,7 +1844,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         prompt=full_prompt,
                         response=response_text,
                         model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                        temperature=self.llm_config.get('temperature', 0.8),
+                        temperature=self.llm_config.get('temperature', 1.0),
                         metadata={'phase': 'Phase 1: Action Intent', 'note': 'Pydantic AI structured output (ActionIntent schema)'}
                     )
                 except Exception as e:
@@ -1991,7 +2014,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 "combat_attribute": str(self.character_state.attributes.get('Agility', 0)),
                 "combat_skills": str(self.character_state.skills.get('Guns', 0)),
                 # Social-specific context (if applicable)
-                "charisma": str(self.character_state.attributes.get('Charisma', 0)),
+                "empathy": str(self.character_state.attributes.get('Empathy', 0)),
                 "charm_skill": str(self.character_state.skills.get('Charm', 0)),
                 "negotiation_skill": str(self.character_state.skills.get('Negotiation', 0)),
                 # Attunement-specific context (if applicable)
@@ -2037,7 +2060,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                 result_type=schema_class,  # Route to correct schema (AttuneAction, CombatAction, etc.)
                 system_prompt=phase2_system_prompt,
                 max_tokens=self.llm_config.get('max_tokens', 3000),  # Phase 2: Complex schemas, OpenAI verbose
-                temperature=self.llm_config.get('temperature', 0.8),
+                temperature=self.llm_config.get('temperature', 1.0),
                 llm_logger=self.llm_logger,
                 current_round=getattr(self, 'current_round', None)
             )
@@ -2055,7 +2078,7 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
                         prompt=full_prompt,
                         response=response_text,
                         model=self.llm_config.get('model', 'claude-sonnet-4-5'),
-                        temperature=self.llm_config.get('temperature', 0.8),
+                        temperature=self.llm_config.get('temperature', 1.0),
                         metadata={'phase': f'Phase 2: {intent.action_type} Details', 'schema': schema_class.__name__, 'note': f'Pydantic AI structured output ({schema_class.__name__} schema)'}
                     )
                 except Exception as e:
@@ -2297,30 +2320,71 @@ Advancing corporate interests requires COORDINATION and INFORMATION.
         Generate player action using two-phase structured output (Phase 1: Intent, Phase 2: Details).
         Returns ActionDeclaration if structured output succeeds.
 
-        Raises RuntimeError if either phase fails (no legacy fallback).
+        Returns None if all retries exhausted (enables graceful fallback handling by caller).
 
         NOTE: The 'prompt' parameter is preserved for backward compatibility but not used.
         Phase 1 and Phase 2 build their own prompts using compose_sections().
         """
         if not hasattr(self, 'llm_provider') or self.llm_provider is None:
-            raise RuntimeError(f"Player {self.character_state.name}: No llm_provider configured - cannot generate actions")
+            logger.error(f"Player {self.character_state.name}: No llm_provider configured - cannot generate actions")
+            return None
 
         from .action_schema import ActionDeclaration
+        import asyncio
+
+        max_retries = 3
+        base_delay = 0.5  # Exponential backoff: 0.5s, 1s, 2s
 
         logger.debug(f"Player {self.character_state.name}: Two-phase structured output (Phase 1: Intent, Phase 2: Details)")
 
-        # ===== PHASE 1: Action Intent (lightweight action type selection) =====
-        action_intent = await self._generate_action_intent()
-        if not action_intent:
-            raise RuntimeError(f"Player {self.character_state.name}: Phase 1 (action intent) failed after retries")
+        action_intent = None
+        action_details = None
 
-        # ===== PHASE 2: Action Details (action-specific schema with routing) =====
-        action_details = await self._generate_action_details(action_intent)
-        if not action_details:
-            raise RuntimeError(
-                f"Player {self.character_state.name}: Phase 2 (action details) failed for {action_intent.action_type}. "
-                f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
-            )
+        for attempt in range(max_retries):
+            try:
+                # ===== PHASE 1: Action Intent (lightweight action type selection) =====
+                action_intent = await self._generate_action_intent()
+                if not action_intent:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Player {self.character_state.name}: Phase 1 failed (attempt {attempt + 1}/{max_retries}), retrying in {delay:.1f}s")
+                        await asyncio.sleep(delay)
+                        continue
+                    logger.error(f"Player {self.character_state.name}: Phase 1 (action intent) failed after {max_retries} attempts")
+                    return None
+
+                # ===== PHASE 2: Action Details (action-specific schema with routing) =====
+                action_details = await self._generate_action_details(action_intent)
+                if not action_details:
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Player {self.character_state.name}: Phase 2 failed for {action_intent.action_type} (attempt {attempt + 1}/{max_retries}), retrying in {delay:.1f}s")
+                        await asyncio.sleep(delay)
+                        continue
+                    logger.error(
+                        f"Player {self.character_state.name}: Phase 2 (action details) failed for {action_intent.action_type} after {max_retries} attempts. "
+                        f"Missing prompt file: player_action_{action_intent.action_type.value}.yaml"
+                    )
+                    return None
+
+                # Success - break out of retry loop
+                break
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Player {self.character_state.name}: Two-phase generation exception (attempt {attempt + 1}/{max_retries}): {e}, retrying in {delay:.1f}s")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"Player {self.character_state.name}: Two-phase generation failed after {max_retries} attempts: {e}")
+                    return None
+        else:
+            # All retries exhausted without success (loop finished without break)
+            return None
+
+        # Verify we have both required objects after retry loop
+        if not action_intent or not action_details:
+            return None
 
         # Populate identity fields from player object (LLM doesn't generate these)
         action_details.character_name = self.character_state.name
@@ -2660,10 +2724,10 @@ When declaring combat actions, use the enemy NAME exactly as listed above:
 💬 **SOCIAL DE-ESCALATION OPTIONS** 💬
 Combat doesn't always require killing! Consider non-violent neutralization:
 
-**Intimidation** (Charisma × Intimidation skill):
+**Intimidation** (Willpower × Intimidation skill):
 - Threat display to force surrender/retreat
 - Best when: You have numbers advantage, enemy is wounded, allies are down
-- **IMPORTANT**: Use `attribute: "Charisma", skill: "Intimidation"` in your action
+- **IMPORTANT**: Use `attribute: "Willpower", skill: "Intimidation"` in your action
 - Example intent: "Intimidate the wounded smuggler into surrendering"
 - Example description: "I aim my weapon at the wounded smuggler: 'Drop it NOW or join your friends!'"
 - On success: Enemy may surrender or flee (forced morale check)
@@ -2909,7 +2973,7 @@ DESCRIPTION: [narrative description]
         try:
             provider = self.llm_config.get('provider', 'anthropic')
             model = self.llm_config.get('model', 'claude-3-5-sonnet-20241022')
-            temperature = self.llm_config.get('temperature', 0.8)
+            temperature = self.llm_config.get('temperature', 1.0)
 
             if provider == 'anthropic':
                 # Use rate-limited wrapper to prevent API overload
@@ -3060,11 +3124,11 @@ Now that you have this information, declare your action using the required forma
             'strength': 'Strength',
             'agility': 'Agility',
             'endurance': 'Endurance',
+            'dexterity': 'Dexterity',
             'perception': 'Perception',
             'intelligence': 'Intelligence',
             'empathy': 'Empathy',
-            'willpower': 'Willpower',
-            'charisma': 'Charisma'
+            'willpower': 'Willpower'
         }
 
         # Valid tactical positions

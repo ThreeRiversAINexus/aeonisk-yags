@@ -4,12 +4,9 @@
   "party_size": 3,
   "output_dir": "./multiagent_output",
   "force_combat": true,
-
   "_comment": "=== TACTICAL MODULE v1.2.3 FEATURES ===",
-
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "allow_groups": true,
     "max_enemies_per_combat": 20,
@@ -18,9 +15,7 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "_comment_tactical": "When tactical_module_enabled and enemy_agents_enabled are true, DM can spawn autonomous enemies with: [SPAWN_ENEMY: name | template | count | position | tactics]",
-
   "agents": {
     "dm": {
       "llm": {
@@ -57,7 +52,8 @@
           "Intelligence": 2,
           "Empathy": 2,
           "Willpower": 4,
-          "Health": 4
+          "Dexterity": 3,
+          "Endurance": 4
         },
         "skills": {
           "Brawl": 4,
@@ -98,7 +94,8 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 3,
-          "Health": 3
+          "Dexterity": 3,
+          "Endurance": 3
         },
         "skills": {
           "Guns": 5,
@@ -138,7 +135,8 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 5,
-          "Health": 3
+          "Dexterity": 3,
+          "Endurance": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -154,13 +152,11 @@
       }
     ]
   },
-
   "_comment_usage": "=== ENEMY SPAWN EXAMPLES ===",
   "_example_grunt_squad": "[SPAWN_ENEMY: Syndicate Enforcers | grunt | 3 | Near-Enemy | aggressive_melee]",
   "_example_elite_sniper": "[SPAWN_ENEMY: Void Sniper | sniper | 1 | Extreme-Enemy | extreme_range]",
   "_example_boss": "[SPAWN_ENEMY: Faction Commander | boss | 1 | Engaged | adaptive]",
   "_example_ambush": "[SPAWN_ENEMY: Ambush Team | ambusher | 4 | Far-PC | ambush]",
-
   "_comment_templates": "Available templates: grunt, elite, sniper, boss, void_cultist, enforcer, support, ambusher",
   "_comment_tactics": "Available tactics: aggressive_melee, defensive_ranged, tactical_ranged, extreme_range, ambush, support, adaptive",
   "_comment_positions": "Valid positions: Engaged, Near-PC, Near-Enemy, Far-PC, Far-Enemy, Extreme-PC, Extreme-Enemy"

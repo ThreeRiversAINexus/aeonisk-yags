@@ -71,7 +71,10 @@
           "incense": 2,
           "crystals": 1
         },
-        "background": "Tech-mage researcher with collaborative mindset. Willing to share resources with allies."
+        "background": "Tech-mage researcher with collaborative mindset. Willing to share resources with allies.",
+        "attributes": {
+          "Dexterity": 3
+        }
       },
       {
         "name": "Kress",
@@ -119,7 +122,10 @@
           "blood_offering": 1,
           "crystals": 2
         },
-        "background": "Ritual specialist needing more energy to acquire ritual components. Grateful for ally support."
+        "background": "Ritual specialist needing more energy to acquire ritual components. Grateful for ally support.",
+        "attributes": {
+          "Dexterity": 3
+        }
       }
     ]
   },

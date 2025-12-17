@@ -1,0 +1,187 @@
+{
+  "_role": "fixture_regeneration",
+  "_purpose": "OpenAI version of npc_deescalation_test for fixture regeneration. Tests NPC spawns, de-escalation, and healing mechanics.",
+  "session_name": "npc_deescalation_test_openai",
+  "max_turns": 3,
+  "party_size": 2,
+  "output_dir": "./multiagent_output",
+  "force_combat": true,
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+  "_comment_initial_enemies": "Start with low-morale enemies who can be intimidated/convinced to surrender",
+  "initial_enemies": [
+    {
+      "name": "Freeborn Raiders",
+      "template": "Grunt",
+      "faction": "Freeborn Smugglers",
+      "archetype": "Raider",
+      "count": 3,
+      "position": "Far-Enemy",
+      "spawn_reason": "Cornered smugglers caught in contraband operation",
+      "tactics": "defensive"
+    }
+  ],
+  "initial_npcs": [
+    {
+      "name": "Dock Worker Kassia",
+      "faction": "Independent Laborer",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Terrified civilian dock worker hiding behind cargo crates, caught in crossfire between raiders and enforcers",
+      "health": 15,
+      "soak": 0,
+      "skills": {}
+    }
+  ],
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Negotiator Wei Lin",
+        "pronouns": "she/her",
+        "faction": "Pantheon Mediator",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 2,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "goals": [
+          "Resolve conflicts through diplomacy when possible",
+          "Minimize casualties and de-escalate violence",
+          "Build rapport with neutral factions"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 4,
+          "Intelligence": 4,
+          "Empathy": 5,
+          "Willpower": 4,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Empathy": 4,
+          "Charm": 5,
+          "Awareness": 4,
+          "Investigation": 3,
+          "Medicine": 3
+        },
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [
+          "shock_baton"
+        ],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "med_kit": 2,
+          "diplomatic_credentials": 1
+        },
+        "void": 1
+      },
+      {
+        "name": "Enforcer Marcus Rhys",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "goals": [
+          "Protect the mediator and civilians",
+          "Use force only when necessary",
+          "Capture enemies alive for interrogation"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Intimidation": 5,
+          "Awareness": 5,
+          "Athletics": 4,
+          "Guns": 5,
+          "Brawl": 4,
+          "Medicine": 2
+        },
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "pistol": 1,
+          "shock_baton": 1,
+          "combat_knife": 1,
+          "riot_carapace": 1,
+          "restraint_cuffs": 3,
+          "med_kit": 1
+        },
+        "void": 2
+      }
+    ]
+  },
+  "scenario": {
+    "theme": "Tense Negotiation",
+    "location": "Abandoned Cargo Hub - Contested Territory",
+    "situation": "You've cornered a group of Freeborn raiders who were smuggling contraband. They're outgunned but not yet defeated. They might surrender if given the chance - or fight desperately if they feel trapped with no options. A civilian dock worker is hiding nearby, terrified of the crossfire.",
+    "void_level": 3
+  },
+  "_scenario_hint": "DM should spawn NPCs based on player actions: de-escalated enemies become wary/prisoner NPCs, the civilian can be convinced to help or may flee, wounded enemies can be stabilized via healing. Prisoners can provide intel via dialogue. If players attack surrendered NPCs, they should escalate back to enemies.",
+  "mission_objectives": [
+    {
+      "description": "Resolve situation with minimal casualties",
+      "type": "negotiation",
+      "required": true
+    },
+    {
+      "description": "Capture at least one raider for interrogation",
+      "type": "capture",
+      "required": false
+    }
+  ],
+  "_fixture_target": "tests/fixtures/sessions/golden_npc_deescalation.jsonl",
+  "_extraction_notes": "Extract rounds 0-2 after successful run. Look for enemy_conversions with resolution=CONVINCED/SUBDUED."
+}

@@ -193,42 +193,76 @@ class TestClaudeProviderTokenLogging:
             f"Logged tokens {tokens} should match usage data (250 input, 125 output)"
 
 
-class TestPlayerTokenLogging:
-    """Test that player action LLM calls log actual tokens (not hardcoded zeros)."""
+class TestFixtureTokenLogging:
+    """Test that existing fixtures have proper token logging.
 
-    @pytest.mark.asyncio
-    async def test_player_action_logs_actual_tokens(self):
+    Validates that production fixtures capture token usage for cost analysis.
+    """
+
+    @pytest.fixture
+    def fixture_events(self):
+        """Load events from a test fixture."""
+        import json
+        fixture_path = Path(__file__).parent.parent / "fixtures" / "sessions" / "replay_test_fresh.jsonl"
+        if not fixture_path.exists():
+            pytest.skip(f"Fixture not found: {fixture_path}")
+        events = []
+        with open(fixture_path) as f:
+            for line in f:
+                if line.strip():
+                    events.append(json.loads(line))
+        return events
+
+    def test_player_llm_calls_have_token_counts(self, fixture_events):
         """
-        Test that player LLM calls log actual token counts (not zeros).
+        Verify player LLM calls in fixtures have token counts.
 
-        CURRENT BUG (player.py:1356):
-        tokens={'input': 0, 'output': 0}  # Hardcoded zeros!
-
-        EXPECTED:
-        After fix, ClaudeProvider.generate_structured() should log tokens internally,
-        so player.py doesn't need to manually log with zeros.
+        Token logging enables:
+        - Cost analysis per player
+        - Prompt optimization
+        - Replay cost estimation
         """
-        # This test will validate the integration after the fix
-        # For now, we're documenting the expected behavior
-        pytest.skip("Integration test - will be implemented after ClaudeProvider refactor")
+        import json
+        player_llm_calls = [
+            e for e in fixture_events
+            if e.get('event_type') == 'llm_call' and e.get('agent_type') == 'player'
+        ]
 
+        assert len(player_llm_calls) > 0, "Fixture should have player LLM calls"
 
-class TestDMTokenLogging:
-    """Test that DM LLM calls log actual tokens (not estimates)."""
+        # Check that at least some player calls have tokens
+        calls_with_tokens = [
+            c for c in player_llm_calls
+            if 'tokens' in c and c['tokens'].get('input', 0) > 0
+        ]
 
-    @pytest.mark.asyncio
-    async def test_dm_scenario_gen_logs_actual_tokens(self):
+        assert len(calls_with_tokens) > 0, \
+            "At least some player LLM calls should have non-zero token counts"
+
+    def test_dm_llm_calls_have_token_counts(self, fixture_events):
         """
-        Test that DM scenario generation logs actual token counts (not estimates).
+        Verify DM LLM calls in fixtures have token counts.
 
-        CURRENT BUG (dm.py:1632-1646):
-        estimated_input_tokens = len(prompt) // 4  # Estimation!
-
-        EXPECTED:
-        After fix, ClaudeProvider.generate_structured() should log tokens internally,
-        so DM doesn't need to estimate.
+        DM calls are typically the most expensive, so token tracking is critical.
         """
-        pytest.skip("Integration test - will be implemented after ClaudeProvider refactor")
+        import json
+        dm_llm_calls = [
+            e for e in fixture_events
+            if e.get('event_type') == 'llm_call' and e.get('agent_type') == 'dm'
+        ]
+
+        assert len(dm_llm_calls) > 0, "Fixture should have DM LLM calls"
+
+        # Check that DM calls have tokens
+        for call in dm_llm_calls[:3]:  # Check first 3
+            assert 'tokens' in call, f"DM LLM call should have tokens field"
+
+
+# NOTE: Integration tests for ClaudeProvider token extraction are deferred.
+# The tests above validate that fixtures contain token data.
+# When ClaudeProvider is refactored, add tests here:
+# - test_generate_structured_logs_tokens_from_usage()
+# - test_generate_text_logs_tokens()
 
 
 if __name__ == '__main__':

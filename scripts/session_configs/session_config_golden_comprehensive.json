@@ -4,16 +4,13 @@
   "party_size": 4,
   "output_dir": "./multiagent_output",
   "force_combat": false,
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds). Vendors offer equipment, ritual supplies, seeds, and services.",
   "vendor_spawn_frequency": 8,
-
   "_comment_tactical": "=== TACTICAL MODULE ===",
   "_tactical_note": "Combat enabled but not central - should emerge naturally around turns 10-14",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "free_targeting_mode": true,
     "allow_groups": true,
@@ -23,7 +20,6 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "agents": {
     "dm": {
       "llm": {
@@ -61,8 +57,8 @@
           "Intelligence": 5,
           "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Investigation": 5,
@@ -76,7 +72,9 @@
         "equipped_weapons": {
           "primary": "pistol"
         },
-        "carried_weapons": ["pistol"],
+        "carried_weapons": [
+          "pistol"
+        ],
         "inventory": {
           "data_slate": 1,
           "pistol": 1,
@@ -114,8 +112,8 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 4,
-          "Charisma": 5,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Persuasion": 5,
@@ -168,8 +166,8 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2,
-          "Size": 6
+          "Size": 6,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -185,7 +183,10 @@
           "primary": "rifle",
           "sidearm": "pistol"
         },
-        "carried_weapons": ["combat_knife", "shock_baton"],
+        "carried_weapons": [
+          "combat_knife",
+          "shock_baton"
+        ],
         "inventory": {
           "rifle": 1,
           "pistol": 1,
@@ -223,10 +224,10 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 5,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Engineering": 5,
@@ -242,7 +243,9 @@
           "primary": "custom_energy_weapon",
           "sidearm": "hacking_toolkit"
         },
-        "carried_weapons": ["pistol"],
+        "carried_weapons": [
+          "pistol"
+        ],
         "inventory": {
           "custom_energy_weapon": 1,
           "hacking_toolkit": 1,
@@ -256,14 +259,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Void Convergence Investigation",
     "location": "Abandoned Nexus Research Station - Sublevel 7",
     "situation": "Your team has been hired to investigate strange void readings emanating from a decommissioned research station. Corporate records show the facility was studying 'harmonic dissolution patterns' before it was mysteriously shut down 3 years ago. Recent sensor sweeps detected active power signatures and what might be human activity. Your objectives: locate the source of the void disturbance, determine if anyone is still operating in the facility, and recover any research data that could explain the anomaly. The station's environmental void levels are elevated but manageable - for now.",
     "void_level": 5
   },
-
   "starting_clocks": [
     {
       "name": "Investigation Progress",
@@ -298,7 +299,6 @@
       "regress_meaning": "repairs stabilize sections"
     }
   ],
-
   "mission_objectives": [
     {
       "description": "Locate the source of the void anomaly readings",
@@ -321,7 +321,6 @@
       "required": true
     }
   ],
-
   "_design_notes": {
     "purpose": "Comprehensive golden fixture capturing diverse gameplay mechanics",
     "player_archetypes": {
@@ -368,6 +367,5 @@
       "Mixed success/failure outcomes"
     ]
   },
-
   "notes": "Golden comprehensive fixture - 20 turns, 4 diverse players, mixed scenario covering investigation → social → combat → ritual. Designed to capture maximum variety of mechanics and player archetypes for ML training and test fixture use."
 }

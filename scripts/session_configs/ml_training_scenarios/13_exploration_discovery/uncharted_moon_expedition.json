@@ -103,9 +103,9 @@
           "Endurance": 4,
           "Perception": 5,
           "Intelligence": 4,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Pilot": 6,
@@ -164,7 +164,7 @@
           "Intelligence": 5,
           "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Investigation": 6,
@@ -223,7 +223,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 5,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Attunement": 6,

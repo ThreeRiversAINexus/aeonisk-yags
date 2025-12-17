@@ -1,0 +1,109 @@
+{
+  "session_name": "Auto-Generated Bonds Test",
+  "max_turns": 1,
+  "party_size": 3,
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "_design_notes": "Test config for fully automatic bond generation. System creates bond network AND narratives using LLM.",
+  "_comment_bonds": "=== AUTO BOND GENERATION - Set generate_bonds to enable ===",
+  "generate_bonds": {
+    "enabled": true,
+    "min_bonds": 2,
+    "max_bonds": 4,
+    "use_scenario_context": true
+  },
+  "_scenario_hint": "Quick void investigation scenario (1 turn). Characters are a mixed team.",
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Alice",
+        "faction": "voidguard",
+        "archetype": "Investigator",
+        "stats": {
+          "base_stat": 12,
+          "willpower": 5,
+          "soak": 2,
+          "void": 3,
+          "health": 20,
+          "max_health": 20,
+          "empathy": 3
+        },
+        "skills": {
+          "Investigation": 4,
+          "Void Sense": 3,
+          "Intimacy Ritual": 2
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
+        }
+      },
+      {
+        "name": "Bob",
+        "faction": "freeborn",
+        "archetype": "Diplomat",
+        "stats": {
+          "base_stat": 12,
+          "willpower": 6,
+          "soak": 1,
+          "void": 2,
+          "health": 20,
+          "max_health": 20,
+          "empathy": 5
+        },
+        "skills": {
+          "Negotiation": 4,
+          "Empathy": 3,
+          "Intimacy Ritual": 2
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
+        }
+      },
+      {
+        "name": "Charlie",
+        "faction": "tempest",
+        "archetype": "Combat Specialist",
+        "stats": {
+          "base_stat": 12,
+          "willpower": 4,
+          "soak": 3,
+          "void": 4,
+          "health": 20,
+          "max_health": 20,
+          "empathy": 2
+        },
+        "skills": {
+          "Small Arms": 4,
+          "Melee Combat": 3,
+          "Intimidation": 2
+        },
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "attributes": {
+          "Dexterity": 3
+        }
+      }
+    ]
+  }
+}

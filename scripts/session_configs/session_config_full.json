@@ -1,16 +1,13 @@
 {
   "_role": "character_library_source",
   "_purpose": "Canonical pool of 21 pre-built characters across 10 factions. Use this file as a reference when creating new configs or reusing character definitions.",
-
   "session_name": "full_spectrum_test",
   "max_turns": 20,
   "party_size": 3,
   "output_dir": "./multiagent_output",
-
   "_comment_vendors": "=== VENDOR SYSTEM ===",
   "_vendor_info": "vendor_spawn_frequency: -1 (disabled), 0 (off), N (spawn every N rounds). Vendors offer equipment, ritual supplies, seeds, and services.",
   "vendor_spawn_frequency": 2,
-
   "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
@@ -59,7 +56,7 @@
           "Intelligence": 4,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -103,7 +100,7 @@
           "Intelligence": 3,
           "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -152,7 +149,7 @@
           "Intelligence": 4,
           "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Social": 5,
@@ -205,7 +202,7 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -228,7 +225,9 @@
           "primary": "pistol",
           "sidearm": "shock_baton"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "pistol": 1,
           "shock_baton": 1,
@@ -259,9 +258,9 @@
           "Endurance": 2,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 4,
+          "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -313,7 +312,7 @@
           "Intelligence": 4,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 4,
@@ -367,7 +366,7 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 5,
@@ -417,9 +416,9 @@
           "Endurance": 3,
           "Perception": 3,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -467,9 +466,9 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 4,
@@ -492,7 +491,9 @@
           "primary": "pistol",
           "sidearm": "shock_baton"
         },
-        "carried_weapons": ["combat_knife"],
+        "carried_weapons": [
+          "combat_knife"
+        ],
         "inventory": {
           "enforcer_badge": 1,
           "void_scanner": 1,
@@ -525,9 +526,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 6,
@@ -581,7 +582,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 6,
@@ -633,7 +634,7 @@
           "Intelligence": 4,
           "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 5,
@@ -681,9 +682,9 @@
           "Endurance": 2,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 5,
           "Willpower": 3,
-          "Charisma": 5
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,
@@ -735,9 +736,9 @@
           "Endurance": 2,
           "Perception": 3,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 5,
           "Willpower": 4,
-          "Charisma": 5
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 5,
@@ -788,7 +789,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -839,9 +840,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 5,
-          "Empathy": 3,
+          "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 5,
@@ -892,7 +893,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Astral Arts": 6,
@@ -943,7 +944,7 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 4,
@@ -998,7 +999,7 @@
           "Intelligence": 3,
           "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Pilot": 5,
@@ -1055,9 +1056,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 5,
@@ -1101,7 +1102,7 @@
           "Intelligence": 3,
           "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 5,

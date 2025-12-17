@@ -57,6 +57,33 @@ content: |-
   **Copy IDs exactly** from the `VALID TARGET IDS` list in your prompt.
   Do NOT invent IDs like `tgt_grd1` - only pre-assigned IDs exist.
 
+  ## AWARENESS CONTROL (STEALTH & SECRETS)
+
+  The `aware_agents` field controls who knows about this action's outcome:
+
+  ```python
+  # PUBLIC (everyone sees) - loud combat, failures, obvious actions
+  aware_agents=[]   # Empty list = all NPCs/enemies see this narration
+
+  # PRIVATE (limited visibility) - stealth success, secret conversations
+  aware_agents=["dm", "player_echo"]  # Only DM and acting player know
+  aware_agents=["dm", "player_ash", "npc_informant"]  # Secret conversation
+  ```
+
+  **When to use PRIVATE (populate aware_agents):**
+  - Successful STEALTH actions (sneak past guard → they don't know)
+  - Secret conversations (only participants aware)
+  - Hidden actions (pickpocket, plant evidence)
+  - Actions in separate locations from other agents
+
+  **When to use PUBLIC (empty list):**
+  - Failed stealth (guard notices!)
+  - Loud combat (gunfire, explosions)
+  - Public actions (speaking loudly, obvious movement)
+  - Area-effect events (alarms, environmental changes)
+
+  **Agent ID formats:** "dm", "player_<name>", "npc_<name>", "enemy_<template>_<id>"
+
   ## ACTION-SPECIFIC FIELDS
 
   See the action-specific resolution guidance loaded for this action type.

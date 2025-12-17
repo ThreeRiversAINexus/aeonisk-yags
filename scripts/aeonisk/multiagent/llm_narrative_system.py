@@ -224,7 +224,7 @@ Write 2-3 sentences in first person explaining WHY you chose this action. Show y
 
 Reasoning:"""
 
-        response = await self._call_llm(prompt, max_tokens=200, temperature=0.9)
+        response = await self._call_llm(prompt, max_tokens=200, temperature=1.0)
         
         # Clean up response
         response = re.sub(r'^(Reasoning:|My reasoning:|I choose because)', '', response).strip()
@@ -260,7 +260,7 @@ Be vivid and specific, not generic. Show don't tell.
 
 Outcome:"""
 
-        response = await self._call_llm(prompt, max_tokens=150, temperature=0.9)
+        response = await self._call_llm(prompt, max_tokens=150, temperature=1.0)
         return response if response else f"{character.given_name}'s action {'succeeds' if roll_result['success'] else 'fails'}."
     
     async def generate_scenario_evolution(
@@ -299,7 +299,7 @@ Void: [new level 1-10, adjusted based on actions and outcomes]
 
 Be specific about cause and effect. Reference what actually happened."""
 
-        response = await self._call_llm(prompt, max_tokens=250, temperature=0.7)
+        response = await self._call_llm(prompt, max_tokens=250, temperature=1.0)
         
         # Parse response
         new_scenario = scenario.copy()

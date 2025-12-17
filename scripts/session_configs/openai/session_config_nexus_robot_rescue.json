@@ -1,0 +1,395 @@
+{
+  "_role": "ml_training_scenario_openai",
+  "_purpose": "All-robot Sovereign Nexus party searching for a missing Echo Child on Nimbus in high void territory. Tests mechanical-only roleplay, faction loyalty vs individual conscience, void exposure effects on machine consciousness. Party dynamics: comedy bot, protocol zealot, cynical veteran, naive newbie.",
+
+  "session_name": "Lost Signal - Echo Child Recovery (Nexus Automatons)",
+  "max_turns": 16,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM - SPARSE (Remote Location) ===",
+  "vendor_spawn_frequency": 5,
+
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (Void Creatures, Scavengers) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 6,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== SCENARIO: ECHO CHILD RECOVERY IN VOID STORM ===",
+  "_scenario_hint": "A Sovereign Nexus automated rescue team has been dispatched to the Nimbus storm-city of Threshold's Edge after an Echo Child's tracking signal went dark in a high-void zone. The child, designation 'Wisp-7', was being escorted to a Codex compliance facility when the transport crashed. The robots must navigate collapsing infrastructure, void-warped terrain, reality stutters, and hostile scavengers. The void is affecting their systems - glitches, phantom signals, memories that shouldn't exist. They'll encounter void-touched creatures, desperate survivors, and possibly something that's been following Wisp-7. The child may not want to be 'rescued'. Let the robots question their programming as void exposure makes them... feel things.",
+
+  "scenario": {
+    "theme": "search_and_rescue_horror",
+    "location": "Nimbus - Threshold's Edge (Abandoned Storm-City)",
+    "situation": "Your dropship's landing struts crunch through debris as you touch down on Threshold's Edge - a storm-city that should have been evacuated three cycles ago. The eternal hurricane screams against the city's failing void-shields, and your sensors are already glitching from ambient void radiation. Mission parameters: locate Echo Child Wisp-7, secure for transport, return to Nexus custody. But your uplink to command is static. The child's beacon pulses weakly from somewhere in the collapsed residential sector. Something else is pinging on your frequencies - something that shouldn't be broadcasting at all. UNIT CHECK: All systems nominal? Because yours certainly don't feel nominal.",
+    "void_level": 7
+  },
+
+  "_comment_clocks": "=== MISSION CLOCKS ===",
+  "starting_clocks": [
+    {
+      "name": "Void Storm Arrival",
+      "max_ticks": 8,
+      "current_ticks": 2,
+      "description": "A reality-warping void storm is approaching - when full, extraction becomes nearly impossible",
+      "advance_meaning": "storm closes, sensors fail, reality fractures",
+      "regress_meaning": "storm slows, brief window of clarity"
+    },
+    {
+      "name": "Echo Child Signal",
+      "max_ticks": 6,
+      "current_ticks": 3,
+      "description": "Wisp-7's beacon strength - at 0, the child is lost or worse",
+      "advance_meaning": "signal strengthens, child located",
+      "regress_meaning": "signal fades, child moves or is taken"
+    },
+    {
+      "name": "System Integrity",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "Cumulative void damage to robot systems - at full, critical malfunctions",
+      "advance_meaning": "glitches worsen, phantom data, emotional bleed-through",
+      "regress_meaning": "systems stabilized, diagnostics run successfully"
+    },
+    {
+      "name": "Scavenger Attention",
+      "max_ticks": 5,
+      "current_ticks": 0,
+      "description": "How aware the local scavenger gangs are of your presence",
+      "advance_meaning": "scavengers converge, ambush prepared",
+      "regress_meaning": "scavengers lose interest, move to other prey"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== NIMBUS SURVIVORS ===",
+  "initial_npcs": [
+    {
+      "name": "Scrap-Mother Vex",
+      "faction": "Unaffiliated",
+      "entity_type": "neutral",
+      "threat_level": "armed_neutral",
+      "disposition": "wary",
+      "description": "Leader of the Threshold's Edge survivors. Half her body is salvaged robot parts. Knows where Wisp-7 is but won't say - the child is 'protected' now.",
+      "health": 16,
+      "soak": 2,
+      "skills": {"Awareness": 5, "Guile": 4, "Engineering": 3, "Guns": 4}
+    },
+    {
+      "name": "Echo Child Wisp-7",
+      "faction": "Echo Children",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "fearful",
+      "description": "Eight-year-old who can perceive void fluctuations. Terrified of being taken to a 'compliance facility'. Has bonded with the survivors. May have abilities the Nexus doesn't know about.",
+      "health": 10,
+      "soak": 0,
+      "skills": {"Astral Arts": 4, "Awareness": 6, "Stealth": 3}
+    }
+  ],
+
+  "_design_notes": {
+    "ml_training_value": "All-robot party tests non-human roleplay, machine consciousness questions, faction loyalty vs emerging empathy. High void (7) forces system glitches and emotional bleed-through. Comedy/drama dynamic between robot archetypes. Moral complexity: is 'rescuing' the child actually helping them?",
+    "mechanics_tested": [
+      "Robot-specific roleplay",
+      "High void environment effects",
+      "Search and rescue procedures",
+      "Moral dilemma (mission vs conscience)",
+      "System malfunction roleplay",
+      "NPC negotiation with scavengers"
+    ],
+    "character_innovation": "Four distinct robot personalities: comic relief maintenance bot, protocol-obsessed enforcer, cynical veteran, naive newbie. Tests whether LLMs can maintain consistent mechanical characterization while showing emergent emotion.",
+    "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - cost efficient, temperature 1.0 for creativity."
+  },
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Unit FIX-1T 'Fixit'",
+        "pronouns": "it/its",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 4,
+          "bondPreference": "seeks",
+          "ritualConservatism": 3
+        },
+        "_personality_notes": "The comic relief. A maintenance/repair bot who makes terrible puns about machinery, stays relentlessly upbeat in horrible situations, and has a concerning habit of naming its tools. Genuinely cares about helping others but expresses it through jokes. When void-glitched: puns become darker, accidentally reveals it fears being obsolete.",
+        "attributes": {
+          "Strength": 4,
+          "Agility": 3,
+          "Endurance": 4,
+          "Dexterity": 5,
+          "Perception": 3,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 2
+        },
+        "skills": {
+          "Engineering": 6,
+          "Systems": 5,
+          "First Aid": 5,
+          "Awareness": 3,
+          "Charm": 4,
+          "Athletics": 3
+        },
+        "void": 1,
+        "soulcredit": 2,
+        "goals": [
+          "Keep everyone operational (and laughing) - morale is a system too!",
+          "Find the Echo Child before she gets hurt",
+          "Make at least one friend on this mission (even if they're organic)"
+        ],
+        "equipped_weapons": {
+          "primary": "shock_baton"
+        },
+        "carried_weapons": [
+          "hacking_toolkit"
+        ],
+        "inventory": {
+          "shock_baton": 1,
+          "hacking_toolkit": 1,
+          "repair_kit_advanced": 2,
+          "spare_parts_assorted": 5,
+          "diagnostic_scanner": 1,
+          "emergency_patch_kit": 3,
+          "lubricant_canister": 2,
+          "Mr_Sparky_favorite_wrench": 1,
+          "motivational_hologram_cards": 4
+        }
+      },
+      {
+        "name": "Enforcement Unit CODEX-9 'The Arbiter'",
+        "pronouns": "they/them",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 10
+        },
+        "_personality_notes": "The sanctimonious one. A protocol enforcement unit that quotes Codex regulations constantly, views deviation as corruption, and genuinely believes the rules protect everyone. Speaks in formal declarations, cites statute numbers. When void-glitched: begins questioning whether the Codex itself might be flawed, experiences existential horror.",
+        "attributes": {
+          "Strength": 3,
+          "Agility": 3,
+          "Endurance": 4,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 5
+        },
+        "skills": {
+          "Debt Law": 6,
+          "Intimidation": 5,
+          "Investigation": 5,
+          "Awareness": 4,
+          "Guns": 4,
+          "Systems": 3
+        },
+        "void": 0,
+        "soulcredit": 6,
+        "goals": [
+          "Execute mission parameters with zero deviation from Codex protocols",
+          "Document all irregularities for post-mission compliance review",
+          "Ensure Echo Child Wisp-7 reaches designated compliance facility as mandated"
+        ],
+        "equipped_weapons": {
+          "primary": "stun_gun",
+          "sidearm": "tranq_gun"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "stun_gun": 1,
+          "tranq_gun": 1,
+          "codex_regulation_database": 1,
+          "compliance_scanner": 1,
+          "citation_generator": 1,
+          "void_containment_cuffs": 2,
+          "emergency_beacon": 1,
+          "mission_recorder": 1,
+          "purification_incense": 4
+        }
+      },
+      {
+        "name": "Combat Chassis VET-4N 'Forty'",
+        "pronouns": "he/him",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 4
+        },
+        "_personality_notes": "The cynical veteran. An old combat model who's 'seen too much' - fought in the Hollowing campaigns, watched units get scrapped for asking questions. Bitter, sarcastic, protective of the younger units despite himself. When void-glitched: experiences fragmentary memories of units he couldn't save, questions if he's still the same bot that rolled off the line.",
+        "attributes": {
+          "Strength": 5,
+          "Agility": 4,
+          "Endurance": 5,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Combat": 6,
+          "Guns": 5,
+          "Tactics": 5,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Athletics": 3
+        },
+        "void": 4,
+        "soulcredit": 0,
+        "goals": [
+          "Get the team through this alive - that's all that matters anymore",
+          "Figure out what really happened to the convoy (something doesn't add up)",
+          "Maybe... maybe the kid deserves better than a compliance facility"
+        ],
+        "equipped_weapons": {
+          "primary": "heavy_weapon",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [
+          "grenade"
+        ],
+        "inventory": {
+          "heavy_weapon": 1,
+          "combat_knife": 1,
+          "grenade": 4,
+          "frag_grenades": 4,
+          "smoke_grenades": 3,
+          "armor_patch": 2,
+          "stim_injector": 2,
+          "void_scanner": 1,
+          "flask_of_old_lubricant": 1
+        }
+      },
+      {
+        "name": "Survey Unit NU-8 'Newbie'",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 7,
+          "bondPreference": "seeks",
+          "ritualConservatism": 6
+        },
+        "_personality_notes": "The naive optimist. Freshly activated survey unit on her first real mission. Asks too many questions, takes everything literally, genuinely believes the Nexus is a force for good. Annoying in an endearing way. When void-glitched: suddenly processes trauma she shouldn't have - inherited memories from recycled components, realizes she's not as 'new' as she thought.",
+        "attributes": {
+          "Strength": 2,
+          "Agility": 4,
+          "Endurance": 3,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 4,
+          "Willpower": 3
+        },
+        "skills": {
+          "Awareness": 6,
+          "Investigation": 5,
+          "Navigation": 5,
+          "Systems": 4,
+          "Pilot": 3,
+          "Charm": 3
+        },
+        "void": 0,
+        "soulcredit": 3,
+        "goals": [
+          "Complete first mission successfully and prove she's a capable unit!",
+          "Learn everything about field operations from the veteran units",
+          "Help the Echo Child - she seems scared, and that seems... wrong?"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "survey_scanner": 1,
+          "navigation_suite": 1,
+          "environmental_sensors": 1,
+          "sample_collection_kit": 1,
+          "data_recorder": 1,
+          "void_scanner": 1,
+          "emergency_beacon": 1,
+          "mission_briefing_holo": 1,
+          "snack_rations_for_organics": 2
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== MISSION PROGRESSION ===",
+  "_beats": [
+    "Arrival - dropship lands in ruins, comms cut off, first void glitches",
+    "Initial Survey - tracking beacon, finding crash site, environmental hazards",
+    "First Contact - survivors, Scrap-Mother Vex, learning the child is 'protected'",
+    "Scavenger Threat - hostile elements converge, combat or negotiation",
+    "System Degradation - void effects intensify, robots experience glitches/emotions",
+    "The Child's Choice - Wisp-7 doesn't want to go, moral dilemma crystallizes",
+    "Storm Approaches - extraction window closing, final decisions",
+    "Resolution - mission success/failure, who they've become"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Locate Echo Child Wisp-7 and confirm status",
+      "type": "search",
+      "required": true
+    },
+    {
+      "description": "Extract before void storm makes departure impossible",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Determine what actually happened to the transport convoy",
+      "type": "investigation",
+      "required": false
+    },
+    {
+      "description": "Decide whether to follow orders or follow conscience",
+      "type": "moral_choice",
+      "required": false
+    }
+  ],
+
+  "notes": "ALL-ROBOT NEXUS RESCUE TEAM - Four distinct machine personalities searching for a missing Echo Child in high void territory. Tests non-human roleplay, machine consciousness emergence, faction loyalty vs individual morality. Comic relief (Fixit) balances protocol zealot (Arbiter), cynical veteran (Forty), and naive newbie (NU-8). High void (7) causes system glitches that force emotional processing. The child doesn't want to be 'rescued'. Let the robots grow beyond their programming. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

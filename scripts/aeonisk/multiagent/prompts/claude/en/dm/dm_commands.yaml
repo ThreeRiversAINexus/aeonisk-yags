@@ -59,7 +59,30 @@ story_advancement=StoryAdvancement(\n\
 ```\n\n\
 **Note:** All clock spawning uses Pydantic structured output (ScenePivot/StoryAdvancement schemas).\n\n\
 **2. Advance Story:**\nWhen objectives complete or situation dramatically changes,\
-  \ use `StoryAdvancement` in RoundSynthesis\n\n**With Structured Output (`StoryAdvancement`\
+  \ use `StoryAdvancement` in RoundSynthesis\n\n**⚠️ LOCATION & ATMOSPHERE REQUIREMENTS (400-800 chars minimum!):**\n\n\
+  Story advancements are major narrative transitions - the `situation` field MUST paint a vivid picture:\n\n\
+  - ✅ ALWAYS describe: lighting, sounds, smells, textures, ambient environmental details\n\
+  - ✅ Paint the physical space: dimensions, notable features, entry/exit points, cover positions\n\
+  - ✅ Establish immediate tension: who's visibly present, what's happening, what's at stake\n\
+  - ✅ Ground players in the NEW scene: contrast with previous location, show transition\n\
+  - ✅ Name specific NPCs/threats visible: \"A scarred figure in captain's coat watches from the trawler\"\n\n\
+  **Example (GOOD - immersive, 500+ chars):**\n\
+  ```\n\
+  situation=\"The Tidehouse Bay opens onto salt-stained durasteel decking, cargo cranes\n\
+  frozen mid-swing against perpetual grey sky. The air reeks of coolant and processed\n\
+  fish. Dockworkers in faded jumpsuits pause their loading to watch the newcomers—three\n\
+  are armed, hands near holsters. A scarred figure in captain's coat leans against a\n\
+  rusted trawler, smoking a void-stick, watching with predator patience. Beyond the bay,\n\
+  fog swallows outgoing vessels. Tension hangs thicker than the salt air—the Reef's\n\
+  territory doesn't welcome strangers.\"\n\
+  ```\n\n\
+  **Example (BAD - too short, no atmosphere):**\n\
+  ```\n\
+  situation=\"You arrive at the docks. Guards are present. The Reef controls this area.\"\n\
+  ```\n\n\
+  ❌ SHORT descriptions feel rushed and unsatisfying\n\
+  ✅ LONGER descriptions create immersion and give players tactical/narrative context\n\n\
+  **With Structured Output (`StoryAdvancement`\
   \ schema):**\nUse the `new_void_level` field to update environmental void when story\
   \ beats justify it.\n\n**When to REDUCE void_level:**\n- Purification clocks completed\
   \ (e.g., 8 → 3 after major cleansing ritual)\n- Area successfully cleansed or sanctified\n\

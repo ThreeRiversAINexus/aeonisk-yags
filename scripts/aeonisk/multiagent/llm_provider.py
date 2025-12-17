@@ -123,6 +123,17 @@ SUPPORTED_MODELS = {
         ],
         'recommended': 'llama3.1',
         'pricing_url': 'N/A (local inference)'
+    },
+    'batch_proxy': {
+        'models': [
+            # OpenAI models via proxy
+            'gpt-5.1', 'gpt-5', 'gpt-5-mini', 'gpt-5-nano',
+            'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini',
+            # Anthropic models via proxy
+            'claude-sonnet-4-5', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+        ],
+        'recommended': 'gpt-5-mini (50% cheaper via proxy)',
+        'pricing_url': 'https://docs.anthropic.com/en/docs/build-with-claude/message-batches'
     }
 }
 
@@ -143,6 +154,11 @@ RATE_LIMIT_PRESETS = {
         'max_concurrent_requests': 1,      # Local models typically single-threaded
         'min_request_interval': 0.0,       # No rate limiting needed
         'reasoning': 'Local inference - no API rate limits'
+    },
+    'batch_proxy': {
+        'max_concurrent_requests': 9999,   # No rate limiting (proxy handles queueing)
+        'min_request_interval': 0.0,       # No throttling (proxy batches requests)
+        'reasoning': 'Batch proxy handles rate limiting and request queuing internally'
     }
 }
 
@@ -397,6 +413,12 @@ class ClaudeProvider(LLMProvider):
 
         # Check for pydantic-ai specific retry messages
         if 'exceeded maximum retries' in error_str:
+            return True
+
+        # Check for JSON decode errors (proxy may return truncated/malformed responses)
+        # This indicates a transient issue, not a fundamental problem with the prompt
+        if error_type == 'JSONDecodeError' or 'jsondecode' in error_str:
+            logger.warning("🔄 JSON decode error (possibly truncated response), will retry")
             return True
 
         return False
@@ -896,6 +918,12 @@ class OpenAIProvider(LLMProvider):
         if 'exceeded maximum retries' in error_str:
             return True
 
+        # Check for JSON decode errors (proxy may return truncated/malformed responses)
+        # This indicates a transient issue, not a fundamental problem with the prompt
+        if error_type == 'JSONDecodeError' or 'jsondecode' in error_str:
+            logger.warning("🔄 JSON decode error (possibly truncated response), will retry")
+            return True
+
         return False
 
     async def generate(
@@ -1215,10 +1243,14 @@ class LocalModelProvider(LLMProvider):
         return "local"
 
 
+# Import batch proxy provider
+from .llm_batch_provider import BatchProxyProvider
+
 # Provider registry
 PROVIDERS = {
     "claude": ClaudeProvider,
     "openai": OpenAIProvider,
+    "batch_proxy": BatchProxyProvider,
     "local": LocalModelProvider
 }
 

@@ -100,6 +100,172 @@ SKILL_DATABASE: Dict[str, SkillInfo] = {
     ),
 
     # ======================
+    # STRENGTH SKILLS (NEW)
+    # ======================
+
+    "Climbing": SkillInfo(
+        name="Climbing",
+        attribute="Strength",
+        description="Power climbing, rope climbing, scaling walls with raw strength",
+        use_cases=[
+            "Climbing ropes with equipment",
+            "Scaling sheer walls",
+            "Ascending vertical surfaces with strength",
+            "Climbing under load (carrying equipment/wounded)"
+        ],
+        category="Movement",
+        note="Uses raw power; Athletics covers agile parkour-style climbing"
+    ),
+
+    "Swimming": SkillInfo(
+        name="Swimming",
+        attribute="Strength",
+        description="Swimming, diving, fighting currents with power",
+        use_cases=[
+            "Swimming long distances",
+            "Diving underwater",
+            "Fighting strong currents",
+            "Swimming while burdened"
+        ],
+        category="Movement",
+        note="Endurance for marathon swimming, Strength for power/currents"
+    ),
+
+    "Lifting": SkillInfo(
+        name="Lifting",
+        attribute="Strength",
+        description="Lifting, carrying, moving heavy objects, breaking obstacles",
+        use_cases=[
+            "Breaking down doors",
+            "Moving heavy obstacles",
+            "Carrying wounded allies",
+            "Forcing open jammed exits"
+        ],
+        category="Physical",
+        note="Raw strength application"
+    ),
+
+    # ======================
+    # ENDURANCE SKILLS (NEW)
+    # ======================
+
+    "Resistance": SkillInfo(
+        name="Resistance",
+        attribute="Endurance",
+        description="Resisting toxins, disease, radiation, environmental hazards",
+        use_cases=[
+            "Poison resistance",
+            "Disease immunity",
+            "Radiation exposure",
+            "Environmental extremes (heat, cold)"
+        ],
+        category="Survival",
+        note="YAGS standard endurance skill"
+    ),
+
+    "Stamina": SkillInfo(
+        name="Stamina",
+        attribute="Endurance",
+        description="Sustained physical effort, prolonged exertion, marathon endurance",
+        use_cases=[
+            "Prolonged combat (4+ rounds)",
+            "Extended exertion",
+            "Marathon activities",
+            "Resisting fatigue"
+        ],
+        category="Physical",
+        note="For extended effort; Athletics is for short bursts"
+    ),
+
+    "Running": SkillInfo(
+        name="Running",
+        attribute="Endurance",
+        description="Cross-country running, long-distance pursuits, sustained flight",
+        use_cases=[
+            "Marathon running",
+            "Long-distance chases",
+            "Sustained fleeing",
+            "Cross-country movement"
+        ],
+        category="Movement",
+        note="Endurance running; Athletics is for sprints"
+    ),
+
+    # ======================
+    # AEONISK-SPECIFIC SKILLS (NEW)
+    # ======================
+
+    "Insight": SkillInfo(
+        name="Insight",
+        attribute="Empathy",
+        description="Reading people emotionally, understanding motivations, empathic perception",
+        use_cases=[
+            "Reading emotional states",
+            "Understanding motivations",
+            "Detecting lies emotionally (vs Guile analytically)",
+            "Empathic perception"
+        ],
+        category="Social",
+        note="Empathy-based; Investigation is Perception-based analytical"
+    ),
+
+    "Void Lore": SkillInfo(
+        name="Void Lore",
+        attribute="Intelligence",
+        description="Knowledge of void phenomena, corruption mechanics, void entities",
+        use_cases=[
+            "Identifying void corruption",
+            "Understanding void entities",
+            "Void ritual knowledge",
+            "Predicting void effects"
+        ],
+        category="Knowledge",
+        note="Aeonisk-specific knowledge skill"
+    ),
+
+    "Hacking": SkillInfo(
+        name="Hacking",
+        attribute="Intelligence",
+        description="Computer intrusion, network exploitation, security breaking",
+        use_cases=[
+            "Breaking into systems",
+            "Exploiting security vulnerabilities",
+            "Network infiltration",
+            "Bypassing encryption"
+        ],
+        category="Technical",
+        note="Intrusion skill; Systems is for operation/maintenance"
+    ),
+
+    "Tactics": SkillInfo(
+        name="Tactics",
+        attribute="Intelligence",
+        description="Combat planning, strategic thinking, tactical analysis",
+        use_cases=[
+            "Planning combat strategies",
+            "Analyzing enemy tactics",
+            "Coordinating team actions",
+            "Predicting opponent moves"
+        ],
+        category="Combat",
+        note="Planning skill; Combat is execution skill"
+    ),
+
+    "Ritual Lore": SkillInfo(
+        name="Ritual Lore",
+        attribute="Intelligence",
+        description="Knowledge of ritual mechanics, procedures, requirements",
+        use_cases=[
+            "Understanding ritual requirements",
+            "Identifying ritual components",
+            "Ritual theory knowledge",
+            "Predicting ritual outcomes"
+        ],
+        category="Knowledge",
+        note="Knowledge skill; Astral Arts is execution skill"
+    ),
+
+    # ======================
     # YAGS COMBAT SKILLS
     # ======================
 
@@ -264,6 +430,69 @@ SKILL_DATABASE: Dict[str, SkillInfo] = {
         use_cases=["Deploying drones", "Remote hacking", "EMP strikes", "Reconnaissance", "Tactical mapping"],
         category="Technical",
         note="Aeonisk-specific - operating remote spark-drones"
+    ),
+
+    "Attunement": SkillInfo(
+        name="Attunement",
+        attribute="Perception",
+        description="Sensing void currents, energy resonance, spiritual patterns, reading auras",
+        use_cases=["Detecting void anomalies", "Sensing energy flows", "Reading spiritual signatures", "Tracking resonance patterns"],
+        category="Investigation",
+        note="Aeonisk-specific - perceiving the spiritual/energetic layer of reality"
+    ),
+
+    "Intimidation": SkillInfo(
+        name="Intimidation",
+        attribute="Willpower",
+        description="Threatening, coercing, dominating through force of will or implied violence",
+        use_cases=["Extracting information", "Forcing compliance", "Breaking morale", "Establishing dominance"],
+        category="Social",
+        note="Uses Willpower (mental dominance) not Empathy. Can be backed by physical presence or reputation."
+    ),
+
+    "Investigation": SkillInfo(
+        name="Investigation",
+        attribute="Perception",
+        description="Analytical investigation, deduction, forensics, piecing together clues",
+        use_cases=["Crime scene analysis", "Following leads", "Deductive reasoning", "Forensic investigation"],
+        category="Investigation",
+        note="More analytical than Awareness (which is raw perception). Use for detective work and systematic investigation."
+    ),
+
+    "Discipline": SkillInfo(
+        name="Discipline",
+        attribute="Willpower",
+        description="Mental fortitude, void resistance, grounding meditation, resisting corruption",
+        use_cases=["Grounding meditation (-1 Void)", "Resisting void corruption", "Mental discipline", "Maintaining composure"],
+        category="Ritual",
+        note="Aeonisk-specific - essential for void recovery. Success on DC 20+ reduces void by 1."
+    ),
+
+    "Dreamwork": SkillInfo(
+        name="Dreamwork",
+        attribute="Willpower",
+        description="Navigating dreamscapes, memory diving, oneiric manipulation, lucid dreaming",
+        use_cases=["Memory extraction", "Dream navigation", "Oneiric rituals", "Shared dreamscapes"],
+        category="Ritual",
+        note="Aeonisk-specific - manipulating the dreamscape/memory layer"
+    ),
+
+    "Medicine": SkillInfo(
+        name="Medicine",
+        attribute="Intelligence",
+        description="Medical diagnosis, treatment, surgery, biological sciences",
+        use_cases=["Treating injuries", "Diagnosing illness", "Surgery", "Medical research"],
+        category="Technical",
+        note="More comprehensive than Healing - includes diagnosis and advanced procedures"
+    ),
+
+    "Combat": SkillInfo(
+        name="Combat",
+        attribute="Agility",
+        description="Generic combat skill covering weapons and tactics (prefer Brawl/Melee/Guns for specificity)",
+        use_cases=["Armed combat", "Tactical fighting", "Weapon handling", "Combat maneuvers"],
+        category="Combat",
+        note="Generic skill - prefer specific skills (Brawl, Melee, Guns) for better mechanical clarity"
     ),
 }
 

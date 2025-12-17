@@ -228,7 +228,7 @@ class TestPurchaseAction:
         action = PurchaseAction(
             intent="Buy Incense from marketplace vendor",
             description="Approaching the vendor stall and negotiating for ritual incense supplies.",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Negotiation",
             difficulty_estimate=12,
             difficulty_justification="Routine transaction at established market",
@@ -246,7 +246,7 @@ class TestPurchaseAction:
             PurchaseAction(
                 intent="Buy Incense",
                 description="Purchasing incense from vendor.",
-                attribute="Charisma",
+                attribute="Empathy",
                 skill=None,
                 difficulty_estimate=10,
                 difficulty_justification="Simple purchase",
@@ -261,7 +261,7 @@ class TestPurchaseAction:
             PurchaseAction(
                 intent="Buy Incense",
                 description="Purchasing incense from vendor.",
-                attribute="Charisma",
+                attribute="Empathy",
                 skill=None,
                 difficulty_estimate=10,
                 difficulty_justification="Simple purchase",
@@ -351,7 +351,7 @@ class TestTransferAction:
         action = TransferAction(
             intent="Transfer 5 drip to Thresh",
             description="Handing over 5 drip energy tokens to Thresh for their ritual preparations.",
-            attribute="Charisma",
+            attribute="Empathy",
             skill=None,
             difficulty_estimate=10,
             difficulty_justification="Simple friendly transfer",
@@ -368,7 +368,7 @@ class TestTransferAction:
         action = TransferAction(
             intent="Give Incense to ally",
             description="Handing ritual incense to ally for their ceremony.",
-            attribute="Charisma",
+            attribute="Empathy",
             skill=None,
             difficulty_estimate=10,
             difficulty_justification="Simple transfer",
@@ -385,7 +385,7 @@ class TestTransferAction:
             TransferAction(
                 intent="Transfer drip",
                 description="Transferring energy.",
-                attribute="Charisma",
+                attribute="Empathy",
                 skill=None,
                 difficulty_estimate=10,
                 difficulty_justification="Simple transfer",
@@ -428,7 +428,7 @@ class TestSocialAction:
         action = SocialAction(
             intent="Negotiate with gang leader",
             description="Using diplomatic skills to de-escalate confrontation and find common ground.",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Diplomacy",
             difficulty_estimate=20,
             difficulty_justification="Hostile faction, tense situation",
@@ -539,7 +539,7 @@ class TestPlayerActionDetails:
         data = {
             "intent": "Buy Incense",
             "description": "Purchasing ritual incense from marketplace vendor.",
-            "attribute": "Charisma",
+            "attribute": "Empathy",
             "skill": None,
             "difficulty_estimate": 10,
             "difficulty_justification": "Standard transaction",
@@ -577,8 +577,8 @@ class TestActionTypeSchemaMap:
     """Test ACTION_TYPE_SCHEMA_MAP routing dictionary."""
 
     def test_schema_map_has_all_action_types(self):
-        """Schema map should have entries for all 12 action types."""
-        assert len(ACTION_TYPE_SCHEMA_MAP) == 12
+        """Schema map should have entries for all 13 action types."""
+        assert len(ACTION_TYPE_SCHEMA_MAP) == 13
 
         expected_types = {
             ActionType.EXPLORE,
@@ -592,6 +592,7 @@ class TestActionTypeSchemaMap:
             ActionType.PURCHASE,
             ActionType.TRANSFER,
             ActionType.ATTUNE,
+            ActionType.CONSUME,
             ActionType.CUSTOM,
         }
 

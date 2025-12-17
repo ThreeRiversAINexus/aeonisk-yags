@@ -5,17 +5,14 @@
   "output_dir": "./multiagent_output",
   "force_combat": true,
   "vendor_spawn_frequency": 0,
-
   "_comment_test": "=== MIXED RESOLUTION TEST - VARIED ENEMY OUTCOMES ===",
   "_comment_goal": "Generate fixture with kill/flee/surrender variety for integration testing",
   "_comment_enemies": "6 enemies with mixed personalities: 2 fight_to_death, 2 flee_when_broken, 2 surrender_if_cornered",
   "_comment_weapons": "Both lethal (pistol, rifle) and non-lethal (shock baton, stun gun) available",
   "_comment_expected": "Varied outcomes: some killed, some fled, some surrendered/captured",
-
   "_comment_tactical": "=== TACTICAL MODULE v1.2.3 ===",
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "allow_groups": true,
     "max_enemies_per_combat": 6,
@@ -24,9 +21,7 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": false
   },
-
   "force_scenario": "[SPAWN_ENEMY: Void Cultist Leaders | elite | 2 | Far-Enemy | ranged_support | personality:fight_to_death]\n[SPAWN_ENEMY: Hired Thugs | grunt | 2 | Near-Enemy | aggressive_melee | personality:flee_when_broken]\n[SPAWN_ENEMY: Coerced Workers | grunt | 2 | Extreme-Enemy | defensive | personality:surrender_if_cornered]",
-
   "agents": {
     "dm": {
       "llm": {
@@ -36,117 +31,121 @@
       }
     },
     "players": [
-    {
-      "name": "Enforcer Kael Dren",
-      "pronouns": "he/him",
-      "faction": "Pantheon Security",
-      "llm": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-5",
-        "temperature": 0.8
+      {
+        "name": "Enforcer Kael Dren",
+        "pronouns": "he/him",
+        "faction": "Pantheon Security",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 6,
+          "voidCuriosity": 1,
+          "bondPreference": "neutral",
+          "ritualConservatism": 9,
+          "combat_style": "tactical_mixed"
+        },
+        "goals": [
+          "Eliminate void cultist leaders (use lethal force)",
+          "Capture coerced workers alive for interrogation",
+          "Thugs can flee if they choose - focus on high-value targets"
+        ],
+        "attributes": {
+          "Strength": 4,
+          "Agility": 4,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 4,
+          "Willpower": 4,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 5,
+          "Brawl": 4,
+          "Melee": 4,
+          "Athletics": 4,
+          "Awareness": 5,
+          "Intimidation": 5,
+          "Persuasion": 3
+        },
+        "equipped_weapons": {
+          "primary": "rifle",
+          "sidearm": "shock_baton"
+        },
+        "carried_weapons": [
+          "pistol"
+        ],
+        "inventory": {
+          "rifle": 1,
+          "pistol": 1,
+          "shock_baton": 1,
+          "urban_riot_carapace": 1,
+          "restraint_cuffs": 4,
+          "med_kit": 1
+        }
       },
-      "personality": {
-        "riskTolerance": 6,
-        "voidCuriosity": 1,
-        "bondPreference": "neutral",
-        "ritualConservatism": 9,
-        "combat_style": "tactical_mixed"
-      },
-      "goals": [
-        "Eliminate void cultist leaders (use lethal force)",
-        "Capture coerced workers alive for interrogation",
-        "Thugs can flee if they choose - focus on high-value targets"
-      ],
-      "attributes": {
-        "Strength": 4,
-        "Agility": 4,
-        "Endurance": 4,
-        "Perception": 4,
-        "Intelligence": 3,
-        "Empathy": 3,
-        "Willpower": 4,
-        "Charisma": 4,
-        "Size": 5
-      },
-      "skills": {
-        "Combat": 5,
-        "Guns": 5,
-        "Brawl": 4,
-        "Melee": 4,
-        "Athletics": 4,
-        "Awareness": 5,
-        "Intimidation": 5,
-        "Persuasion": 3
-      },
-      "equipped_weapons": {
-        "primary": "rifle",
-        "sidearm": "shock_baton"
-      },
-      "carried_weapons": ["pistol"],
-      "inventory": {
-        "rifle": 1,
-        "pistol": 1,
-        "shock_baton": 1,
-        "urban_riot_carapace": 1,
-        "restraint_cuffs": 4,
-        "med_kit": 1
+      {
+        "name": "Drifter Sable",
+        "pronouns": "they/them",
+        "faction": "Freeborn Mercenary",
+        "llm": {
+          "provider": "anthropic",
+          "model": "claude-sonnet-4-5",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 3,
+          "bondPreference": "avoids",
+          "ritualConservatism": 5,
+          "combat_style": "opportunistic"
+        },
+        "goals": [
+          "Kill cultist leaders - they're the real threat",
+          "Let thugs flee if they break - not worth the ammo",
+          "Intimidate workers into surrender - easier than fighting"
+        ],
+        "attributes": {
+          "Strength": 3,
+          "Agility": 5,
+          "Endurance": 4,
+          "Perception": 4,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 3,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Combat": 5,
+          "Guns": 6,
+          "Melee": 4,
+          "Stealth": 5,
+          "Athletics": 4,
+          "Awareness": 5,
+          "Intimidation": 4,
+          "Tactics": 3
+        },
+        "equipped_weapons": {
+          "primary": "shotgun",
+          "sidearm": "pistol"
+        },
+        "carried_weapons": [
+          "combat_knife"
+        ],
+        "inventory": {
+          "shotgun": 1,
+          "pistol": 1,
+          "combat_knife": 1,
+          "void_cloak": 1,
+          "med_kit": 1
+        }
       }
-    },
-    {
-      "name": "Drifter Sable",
-      "pronouns": "they/them",
-      "faction": "Freeborn Mercenary",
-      "llm": {
-        "provider": "anthropic",
-        "model": "claude-sonnet-4-5",
-        "temperature": 0.8
-      },
-      "personality": {
-        "riskTolerance": 7,
-        "voidCuriosity": 3,
-        "bondPreference": "avoids",
-        "ritualConservatism": 5,
-        "combat_style": "opportunistic"
-      },
-      "goals": [
-        "Kill cultist leaders - they're the real threat",
-        "Let thugs flee if they break - not worth the ammo",
-        "Intimidate workers into surrender - easier than fighting"
-      ],
-      "attributes": {
-        "Strength": 3,
-        "Agility": 5,
-        "Endurance": 4,
-        "Perception": 4,
-        "Intelligence": 3,
-        "Empathy": 2,
-        "Willpower": 3,
-        "Charisma": 3,
-        "Size": 5
-      },
-      "skills": {
-        "Combat": 5,
-        "Guns": 6,
-        "Melee": 4,
-        "Stealth": 5,
-        "Athletics": 4,
-        "Awareness": 5,
-        "Intimidation": 4,
-        "Tactics": 3
-      },
-      "equipped_weapons": {
-        "primary": "shotgun",
-        "sidearm": "pistol"
-      },
-      "carried_weapons": ["combat_knife"],
-      "inventory": {
-        "shotgun": 1,
-        "pistol": 1,
-        "combat_knife": 1,
-        "void_cloak": 1,
-        "med_kit": 1
-      }
-    }
     ]
   },
   "notes": "MIXED RESOLUTION TEST: Generate fixture with varied enemy outcomes. 6 enemies: 2 fight_to_death cultists (kill), 2 flee_when_broken thugs (flee after morale break), 2 surrender_if_cornered workers (capture). Expected outcomes: 2 KILLED, 2 FLED, 2 NEUTRALIZED. For integration test: verify enemy_resolution events with varied resolution_type values."

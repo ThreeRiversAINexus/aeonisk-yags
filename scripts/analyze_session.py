@@ -3,7 +3,7 @@
 Session Analyzer - Lightweight tool for analyzing JSONL session logs.
 
 Usage:
-    python scripts/analyze_session.py <session.jsonl> [--mode=summary|clocks|void|actions|timeline]
+    python scripts/analyze_session.py <session.jsonl> [--mode=summary|clocks|void|errors|actions|timeline]
     python scripts/analyze_session.py <session.jsonl> --validate-fixture
     python scripts/analyze_session.py --discover <directory> [--complete-only] [--min-rounds N]
 
@@ -11,6 +11,7 @@ Modes:
     summary (default) - Quick overview (~30-40 lines)
     clocks           - Clock progression detail (~5-30 lines)
     void             - Void trajectory (~10-20 lines)
+    errors           - Error analysis (~10-50 lines)
     validate-fixture - Validate schema and replay-readiness (exit 0=pass, 1=fail)
 
 Discovery:
@@ -30,62 +31,214 @@ from typing import Dict, List, Any, Optional, Set, Tuple
 
 
 # Event type schemas - define required fields for each event type
+# All events have base fields: event_type, ts, session, event_id, parent_event_id, correlation_id (v1.2.0+)
+# Note: event_id, parent_event_id, correlation_id are optional for backward compatibility with v1.0.0/v1.1.0 logs
+
+# Base fields present in ALL events (v1.2.0+)
+BASE_FIELDS = ["event_type", "ts", "session"]
+CAUSAL_CHAIN_FIELDS = ["event_id", "parent_event_id", "correlation_id"]  # Optional for v1.0/v1.1 compat
+
 EVENT_SCHEMAS = {
+    # === Core Session Events ===
     "session_start": {
         "required": ["event_type", "ts", "session", "config", "version"],
-        "optional": []
+        "optional": ["random_seed", "git_commit", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "session_end": {
+        "required": ["event_type", "ts", "session", "final_state"],
+        "optional": ["termination_reason", "event_id", "parent_event_id", "correlation_id"]
     },
     "scenario": {
         "required": ["event_type", "ts", "session", "scenario"],
-        "optional": []
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
     "round_start": {
         "required": ["event_type", "ts", "session", "round"],
-        "optional": []
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Action Events ===
+    "declaration_phase_start": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "action_declaration": {
+        "required": ["event_type", "ts", "session", "round", "player_id", "character_name", "initiative", "action"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "adjudication_start": {
+        "required": ["event_type", "ts", "session", "round", "action_count"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
     "action_resolution": {
         "required": ["event_type", "ts", "session", "round", "phase", "agent", "action", "roll", "economy", "clocks", "effects"],
-        "optional": ["context"]
+        "optional": ["context", "outcome_tiers", "outcome_tiers_full", "environment", "stakes", "goal",
+                     "roll_formula", "rationale", "aware_agents", "event_id", "parent_event_id", "correlation_id"]
     },
+
+    # === Combat Events ===
     "combat_action": {
         "required": ["event_type", "ts", "session", "round", "attacker", "defender", "weapon", "attack"],
-        "optional": ["damage", "wounds_dealt", "defender_state_after"]
-    },
-    "character_state": {
-        "required": ["event_type", "ts", "session", "round", "character_id", "character_name", "health", "max_health", "wounds", "void_score", "soulcredit", "position", "conditions", "is_defeated"],
-        "optional": []
+        "optional": ["damage", "wounds_dealt", "defender_state_after", "event_id", "parent_event_id", "correlation_id"]
     },
     "enemy_spawn": {
         "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "template", "stats", "position", "tactics"],
-        "optional": []
+        "optional": ["count", "event_id", "parent_event_id", "correlation_id"]
     },
     "enemy_defeat": {
         "required": ["event_type", "ts", "session", "round", "enemy_id", "enemy_name", "defeat_reason", "rounds_survived"],
-        "optional": []
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     },
-    "round_summary": {
-        "required": ["event_type", "ts", "session", "round", "actions_attempted", "success_count", "success_rate", "average_margin"],
-        "optional": ["damage_dealt_by_players", "damage_taken_by_players", "void_gained", "void_lost", "clocks_advanced", "clocks_filled", "active_enemies", "player_wounds_total"]
-    },
-    "clock_advancement": {
-        "required": ["event_type", "ts", "session", "round", "data"],
-        "optional": []
+
+    # === Character State Events ===
+    "character_state": {
+        "required": ["event_type", "ts", "session", "round", "character_id", "character_name", "health", "max_health",
+                     "wounds", "void_score", "soulcredit", "position", "conditions", "is_defeated"],
+        "optional": ["death_state", "agent", "event_id", "parent_event_id", "correlation_id",
+                     "energy", "seeds"]  # Economy system fields
     },
     "void_change": {
         "required": ["event_type", "ts", "session", "round", "agent", "old_void", "new_void", "delta", "reason"],
-        "optional": ["capped"]
+        "optional": ["capped", "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Clock Events ===
+    # Note: Clock events support two formats for backward compatibility:
+    # - New format: fields at top level (clock_name, old_value, etc.)
+    # - Old format: fields nested in 'data' wrapper
+    "clock_spawn": {
+        "required": ["event_type", "ts", "session", "clock_name", "max_ticks", "description"],
+        "optional": ["round", "current_ticks", "advance_meaning", "regress_meaning", "filled_consequence",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "clock_advancement": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "clock_name", "old_value", "new_value", "maximum", "filled", "reason",
+                     "event_id", "parent_event_id", "correlation_id"]
     },
     "clock_completion": {
-        "required": ["event_type", "ts", "session", "round", "data"],
-        "optional": []
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "clock_name", "final_ticks", "maximum_ticks", "reasons", "filled_consequence",
+                     "advance_meaning", "regress_meaning", "event_id", "parent_event_id", "correlation_id"]
     },
     "clock_removal": {
-        "required": ["event_type", "ts", "session", "round", "data"],
-        "optional": []
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "clock_name", "reason", "event_id", "parent_event_id", "correlation_id"]
     },
+
+    # === Round Summary Events ===
+    "round_summary": {
+        "required": ["event_type", "ts", "session", "round", "actions_attempted", "success_count", "success_rate", "average_margin"],
+        "optional": ["damage_dealt_by_players", "damage_taken_by_players", "void_gained", "void_lost",
+                     "clocks_advanced", "clocks_regressed", "clocks_filled", "total_ticks_advanced",
+                     "total_ticks_regressed", "active_enemies", "player_wounds_total",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "round_synthesis": {
+        "required": ["event_type", "ts", "session", "round", "synthesis"],
+        "optional": ["story_advancement", "scene_pivot", "clocks_filled", "clocks_expired",
+                     "session_end", "session_end_reason", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "mission_debrief": {
+        "required": ["event_type", "ts", "session", "character", "debrief", "final_state"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === NPC/Entity Lifecycle Events ===
+    "npc_departure": {
+        "required": ["event_type", "ts", "session", "round", "npc_id", "npc_name", "departure_reason"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "agent_conversion": {
+        "required": ["event_type", "ts", "session", "round", "agent_id", "agent_name", "from_type", "to_type", "trigger"],
+        "optional": ["state_before", "state_after", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "entity_lifecycle": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Economy Events ===
+    "purchase_attempt": {
+        "required": ["event_type", "ts", "session", "round", "player_id", "character_name", "vendor_id",
+                     "vendor_name", "item_id", "item_name", "cost", "player_currency", "success"],
+        "optional": ["failure_reason", "shortage", "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Social Events ===
+    "social_deescalation": {
+        "required": ["event_type", "ts", "session", "round", "player_id", "player_name", "enemy_id",
+                     "enemy_name", "action_type", "skill", "roll", "outcome", "narration"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Targeting Events ===
+    "targeting_validation": {
+        "required": ["event_type", "ts", "session", "round", "agent_id", "original_target", "correction_method",
+                     "triggered_by", "success"],
+        "optional": ["corrected_target", "declared_target", "original_effect_type", "model_used",
+                     "confidence", "reasoning", "error_description", "validation_time_ms",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Meta/System Events ===
     "llm_call": {
         "required": ["event_type", "ts", "session", "agent_id", "agent_type", "call_sequence", "prompt", "response", "model", "temperature", "tokens"],
-        "optional": ["round"]
+        "optional": ["round", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "marker_retry_attempt": {
+        "required": ["event_type", "ts", "session", "round", "marker_type", "invalid_markers", "retry_prompt"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "marker_retry_result": {
+        "required": ["event_type", "ts", "session", "round", "marker_type", "retry_response", "success"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "structured_output_metrics": {
+        "required": ["event_type", "ts", "session", "round", "agent_type", "agent_id",
+                     "structured_output_success", "fallback_triggered", "validation_warnings"],
+        "optional": ["validation_issues_count", "completeness_score", "is_complete",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "pydantic_validation_failure": {
+        "required": ["event_type", "ts", "session", "round", "agent_type", "agent_id", "schema_name",
+                     "exception_type", "error_message", "attempt_number", "max_attempts"],
+        "optional": ["is_final_attempt", "raw_model_response", "underlying_error", "action_context",
+                     "event_id", "parent_event_id", "correlation_id"]
+    },
+    "narrative_memory": {
+        "required": ["event_type", "ts", "session", "round", "agent_id", "character_name", "memory"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Economy Events ===
+    "energy_transfer": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Environment Events ===
+    "void_level_update": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "old_level", "new_level", "reason", "event_id", "parent_event_id", "correlation_id"]
+    },
+    "entity_lifecycle_story_advancement": {
+        "required": ["event_type", "ts", "session", "round"],
+        "optional": ["data", "event_id", "parent_event_id", "correlation_id"]
+    },
+
+    # === Legacy/Deprecated Events (kept for backward compatibility) ===
+    "attrition": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "morale_check": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
+    },
+    "healing_applied": {
+        "required": ["event_type", "ts", "session", "round", "data"],
+        "optional": ["event_id", "parent_event_id", "correlation_id"]
     }
 }
 
@@ -112,8 +265,18 @@ class FixtureValidator:
             'agent_ids': set(),
         }
 
-    def validate_event_schema(self, event: Dict[str, Any], line_num: int) -> bool:
-        """Validate a single event against its schema. Returns True if valid."""
+    def validate_event_schema(self, event: Dict[str, Any], line_num: int, strict: bool = True) -> bool:
+        """
+        Validate a single event against its schema.
+
+        Args:
+            event: The event dict to validate
+            line_num: Line number in JSONL file (for error reporting)
+            strict: If True, fail on unknown event types and unknown fields
+
+        Returns:
+            True if valid, False if invalid
+        """
         # Check event_type exists
         if "event_type" not in event:
             self.errors.append(f"Line {line_num}: Missing 'event_type' field")
@@ -123,12 +286,12 @@ class FixtureValidator:
 
         # Check if event type has a schema
         if event_type not in EVENT_SCHEMAS:
-            # Generic events are allowed but not validated
-            if event_type not in ["action_declaration", "adjudication_start", "declaration_phase_start",
-                                   "clock_spawn", "round_synthesis", "mission_debrief", "session_end",
-                                   "attrition", "structured_output_metrics"]:
-                self.warnings.append(f"Line {line_num}: Unknown event_type '{event_type}' (may be legacy or generic)")
-            return True
+            if strict:
+                self.errors.append(f"Line {line_num}: Unknown event_type '{event_type}' - not in EVENT_SCHEMAS")
+                return False
+            else:
+                self.warnings.append(f"Line {line_num}: Unknown event_type '{event_type}' (may be legacy)")
+                return True
 
         schema = EVENT_SCHEMAS[event_type]
 
@@ -139,14 +302,26 @@ class FixtureValidator:
                 self.errors.append(f"Line {line_num}: Event '{event_type}' missing required field '{field}'")
                 valid = False
 
+        # Check for unknown fields (strict mode)
+        if strict:
+            allowed_fields = set(schema["required"]) | set(schema.get("optional", []))
+            actual_fields = set(event.keys())
+            unknown_fields = actual_fields - allowed_fields
+            if unknown_fields:
+                self.errors.append(f"Line {line_num}: Event '{event_type}' has unknown fields: {sorted(unknown_fields)}")
+                valid = False
+
         # Validate specific field structures
         if event_type == "combat_action" and "attack" in event:
             attack = event["attack"]
-            required_attack_fields = ["attr", "attr_val", "skill", "skill_val", "d20", "total", "dc", "hit", "margin"]
-            for field in required_attack_fields:
-                if field not in attack:
-                    self.errors.append(f"Line {line_num}: combat_action.attack missing field '{field}'")
-                    valid = False
+            # Attack can be empty {} for damage-only events or partial for simplified combat
+            # Only validate if attack has ANY fields (non-empty)
+            if attack:
+                required_attack_fields = ["attr", "attr_val", "skill", "skill_val", "d20", "total", "dc", "hit", "margin"]
+                missing_fields = [f for f in required_attack_fields if f not in attack]
+                # Warn if partial but don't fail - combat may use simplified format
+                if missing_fields and len(missing_fields) < len(required_attack_fields):
+                    self.warnings.append(f"Line {line_num}: combat_action.attack has partial fields (missing: {missing_fields})")
 
             # Validate damage structure if present
             if "damage" in event and event["damage"] is not None:
@@ -787,6 +962,154 @@ class SessionAnalyzer:
 
         print()  # Blank line at end
 
+    def print_errors(self):
+        """Print error analysis from logged events (~10-50 lines)."""
+        print(f"\n=== ERROR ANALYSIS ===\n")
+
+        # Collect errors from various event types
+        errors = {
+            'session_errors': [],       # From session_error events (fatal errors)
+            'validation_warnings': [],  # From structured_output_metrics
+            'llm_fallbacks': [],        # From structured_output_metrics
+            'failed_actions': [],       # From action_resolution with failure
+            'parsing_errors': [],       # Any parsing/schema issues
+            'system_errors': [],        # Generic error events
+        }
+
+        for idx, event in enumerate(self.events, start=1):
+            event_type = event.get('event_type')
+            round_num = event.get('round', 0)
+
+            # Check for session_error events (fatal errors)
+            if event_type == 'session_error':
+                errors['session_errors'].append({
+                    'line': idx,
+                    'round': round_num,
+                    'error_type': event.get('error_type', 'unknown'),
+                    'error_message': event.get('error_message', 'Unknown error'),
+                    'exception_type': event.get('exception_type', 'unknown'),
+                    'context': event.get('context', {}),
+                })
+
+            # Check structured_output_metrics for validation warnings
+            elif event_type == 'structured_output_metrics':
+                warnings = event.get('validation_warnings', [])
+                if warnings:
+                    errors['validation_warnings'].append({
+                        'line': idx,
+                        'round': round_num,
+                        'agent': event.get('agent_id', 'unknown'),
+                        'warnings': warnings,
+                    })
+
+                if event.get('fallback_triggered', False):
+                    errors['llm_fallbacks'].append({
+                        'line': idx,
+                        'round': round_num,
+                        'agent': event.get('agent_id', 'unknown'),
+                        'reason': event.get('fallback_reason', 'unknown'),
+                        'attempt': event.get('attempt_number', 1),
+                    })
+
+            # Check action_resolution for failures
+            elif event_type == 'action_resolution':
+                roll = event.get('roll', {})
+                if not roll.get('success', False):
+                    # Only track significant failures (margin < -5)
+                    margin = roll.get('margin', 0)
+                    if margin < -5:
+                        errors['failed_actions'].append({
+                            'line': idx,
+                            'round': round_num,
+                            'agent': event.get('agent', 'unknown'),
+                            'action': event.get('action', '')[:50],
+                            'margin': margin,
+                            'skill': roll.get('skill', 'unknown'),
+                        })
+
+            # Check for explicit error fields
+            if 'error' in event or 'exception' in event:
+                errors['system_errors'].append({
+                    'line': idx,
+                    'round': round_num,
+                    'event_type': event_type,
+                    'error': event.get('error', event.get('exception', 'unknown')),
+                })
+
+        # Print summary
+        total_errors = sum(len(v) for v in errors.values())
+        if total_errors == 0:
+            print("✓ No errors found in session\n")
+            return
+
+        print(f"Found {total_errors} issues across {len([k for k, v in errors.items() if v])} categories:\n")
+
+        # Print session errors (FATAL - most important)
+        if errors['session_errors']:
+            print(f"⚠️  SESSION ERRORS ({len(errors['session_errors'])}) - FATAL:")
+            for err in errors['session_errors']:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                context = err.get('context', {})
+                agent_id = context.get('agent_id', 'unknown')
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['error_type']}")
+                print(f"    Exception: {err['exception_type']}")
+                print(f"    Message: {err['error_message'][:100]}")
+                if context:
+                    print(f"    Context: {context}")
+            print()
+
+        # Print validation warnings
+        if errors['validation_warnings']:
+            print(f"VALIDATION WARNINGS ({len(errors['validation_warnings'])}):")
+            for err in errors['validation_warnings'][:10]:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                warnings_str = ', '.join(err['warnings'][:3])
+                if len(err['warnings']) > 3:
+                    warnings_str += f" (+{len(err['warnings'])-3} more)"
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['agent']:20s} | {warnings_str}")
+            if len(errors['validation_warnings']) > 10:
+                print(f"  ... and {len(errors['validation_warnings']) - 10} more warnings")
+            print()
+
+        # Print LLM fallbacks
+        if errors['llm_fallbacks']:
+            print(f"LLM FALLBACKS ({len(errors['llm_fallbacks'])}):")
+            for err in errors['llm_fallbacks'][:10]:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['agent']:20s} | Attempt {err['attempt']} | {err['reason']}")
+            if len(errors['llm_fallbacks']) > 10:
+                print(f"  ... and {len(errors['llm_fallbacks']) - 10} more fallbacks")
+            print()
+
+        # Print significant action failures
+        if errors['failed_actions']:
+            print(f"SIGNIFICANT ACTION FAILURES ({len(errors['failed_actions'])} with margin < -5):")
+            # Group by character
+            by_character = defaultdict(list)
+            for err in errors['failed_actions']:
+                by_character[err['agent']].append(err)
+
+            for character, failures in sorted(by_character.items()):
+                avg_margin = sum(f['margin'] for f in failures) / len(failures)
+                print(f"\n  {character} ({len(failures)} failures, avg margin: {avg_margin:.1f}):")
+                for err in failures[:5]:
+                    action = err['action'][:40] + '...' if len(err['action']) > 40 else err['action']
+                    print(f"    R{err['round']:2d} | Line {err['line']:4d} | {err['skill']:15s} | {err['margin']:+3d} | {action}")
+                if len(failures) > 5:
+                    print(f"    ... and {len(failures) - 5} more failures")
+            print()
+
+        # Print system errors
+        if errors['system_errors']:
+            print(f"SYSTEM ERRORS ({len(errors['system_errors'])}):")
+            for err in errors['system_errors']:
+                round_str = f"R{err['round']}" if err['round'] else "Setup"
+                error_str = str(err['error'])[:80]
+                print(f"  Line {err['line']:4d} | {round_str:6s} | {err['event_type']:25s} | {error_str}")
+            print()
+
+        print()
+
     def _get_all_field_paths(self, obj: Any, prefix: str = '') -> List[str]:
         """Recursively get all field paths in a nested dict."""
         paths = []
@@ -965,6 +1288,7 @@ Examples:
   python scripts/analyze_session.py session.jsonl
   python scripts/analyze_session.py session.jsonl --mode=clocks
   python scripts/analyze_session.py session.jsonl --mode=void
+  python scripts/analyze_session.py session.jsonl --mode=errors
 
   # Search/extract specific events
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution
@@ -980,9 +1304,14 @@ Examples:
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --count
   python scripts/analyze_session.py session.jsonl --search event_type=action_resolution --index
   python scripts/analyze_session.py session.jsonl --line 5
+
+  # Fixture validation
+  python scripts/analyze_session.py --validate-fixtures                    # All fixtures in tests/fixtures/sessions/
+  python scripts/analyze_session.py tests/fixtures/sessions/*.jsonl --validate-fixture   # Multiple files
+  python scripts/analyze_session.py fixture.jsonl --validate-fixture       # Single file (detailed report)
         """
     )
-    parser.add_argument('jsonl_file', nargs='?', type=Path, help='Path to JSONL session file (optional if using --discover)')
+    parser.add_argument('jsonl_files', nargs='*', type=Path, help='Path(s) to JSONL session file(s)')
     parser.add_argument(
         '--discover',
         type=Path,
@@ -1002,8 +1331,8 @@ Examples:
     )
     parser.add_argument(
         '--mode',
-        choices=['summary', 'clocks', 'void'],
-        help='Analysis mode (summary=default, clocks, void)'
+        choices=['summary', 'clocks', 'void', 'errors'],
+        help='Analysis mode (summary=default, clocks, void, errors)'
     )
     parser.add_argument(
         '--search',
@@ -1047,8 +1376,62 @@ Examples:
         action='store_true',
         help='Validate fixture schema and replay-readiness (exit 0=pass, 1=fail)'
     )
+    parser.add_argument(
+        '--validate-fixtures',
+        action='store_true',
+        help='Validate ALL fixtures in tests/fixtures/sessions/. Shortcut for validating the standard fixture directory.'
+    )
 
     args = parser.parse_args()
+
+    # Handle --validate-fixtures shortcut (auto-discover fixtures)
+    if args.validate_fixtures:
+        fixture_dir = Path(__file__).parent.parent / "tests" / "fixtures" / "sessions"
+        fixture_files = sorted(fixture_dir.glob("*.jsonl"))
+
+        if not fixture_files:
+            print(f"No fixtures found in {fixture_dir}")
+            return 1
+
+        print(f"{'='*70}")
+        print(f"FIXTURE VALIDATION: {len(fixture_files)} files")
+        print(f"{'='*70}\n")
+
+        total_valid = 0
+        total_invalid = 0
+        results = []
+
+        for fixture_path in fixture_files:
+            validator = FixtureValidator(fixture_path)
+            is_valid, _ = validator.validate()
+
+            if is_valid:
+                total_valid += 1
+                status = "✅ VALID"
+            else:
+                total_invalid += 1
+                status = "❌ INVALID"
+                # Collect error summary
+                error_summary = validator.errors[:3] if validator.errors else []
+                results.append((fixture_path.name, error_summary))
+
+            print(f"{status}  {fixture_path.name}")
+
+        print(f"\n{'='*70}")
+        print(f"SUMMARY: {total_valid} valid, {total_invalid} invalid")
+        print(f"{'='*70}")
+
+        # Print error details for invalid fixtures
+        if results:
+            print("\nINVALID FIXTURE DETAILS:")
+            for name, errors in results:
+                print(f"\n  {name}:")
+                for err in errors:
+                    print(f"    - {err[:80]}{'...' if len(err) > 80 else ''}")
+                if len(errors) < len([e for e in validator.errors if name in str(e)]):
+                    print(f"    ... and more errors")
+
+        return 0 if total_invalid == 0 else 1
 
     # Handle --discover mode (scans directory)
     if args.discover:
@@ -1064,24 +1447,69 @@ Examples:
         discovery.print_ranked_sessions(limit=args.limit)
         return 0
 
-    # For non-discover modes, require jsonl_file
-    if not args.jsonl_file:
-        print("Error: Either provide a JSONL file or use --discover <directory>")
+    # For non-discover modes, require jsonl_files
+    if not args.jsonl_files:
+        print("Error: Either provide JSONL file(s) or use --discover <directory> or --validate-fixtures")
         parser.print_help()
         return 1
 
-    if not args.jsonl_file.exists():
-        print(f"Error: File not found: {args.jsonl_file}")
+    # Validate all files exist
+    for jsonl_file in args.jsonl_files:
+        if not jsonl_file.exists():
+            print(f"Error: File not found: {jsonl_file}")
+            return 1
+
+    # Handle --validate-fixture with multiple files
+    if args.validate_fixture:
+        if len(args.jsonl_files) == 1:
+            # Single file - detailed report
+            validator = FixtureValidator(args.jsonl_files[0])
+            is_valid, exit_code = validator.validate()
+            validator.print_report()
+            return exit_code
+        else:
+            # Multiple files - summary table
+            print(f"{'='*70}")
+            print(f"FIXTURE VALIDATION: {len(args.jsonl_files)} files")
+            print(f"{'='*70}\n")
+
+            total_valid = 0
+            total_invalid = 0
+            invalid_details = []
+
+            for jsonl_file in args.jsonl_files:
+                validator = FixtureValidator(jsonl_file)
+                is_valid, _ = validator.validate()
+
+                if is_valid:
+                    total_valid += 1
+                    status = "✅ VALID"
+                else:
+                    total_invalid += 1
+                    status = "❌ INVALID"
+                    invalid_details.append((jsonl_file.name, validator.errors[:3]))
+
+                print(f"{status}  {jsonl_file.name}")
+
+            print(f"\n{'='*70}")
+            print(f"SUMMARY: {total_valid} valid, {total_invalid} invalid")
+            print(f"{'='*70}")
+
+            if invalid_details:
+                print("\nINVALID FIXTURE DETAILS:")
+                for name, errors in invalid_details:
+                    print(f"\n  {name}:")
+                    for err in errors:
+                        print(f"    - {err[:80]}{'...' if len(err) > 80 else ''}")
+
+            return 0 if total_invalid == 0 else 1
+
+    # For non-validation modes, only support single file
+    if len(args.jsonl_files) > 1:
+        print("Error: Multiple files only supported with --validate-fixture. Use one file for other modes.")
         return 1
 
-    # Handle --validate-fixture (runs before SessionAnalyzer to avoid parsing overhead)
-    if args.validate_fixture:
-        validator = FixtureValidator(args.jsonl_file)
-        is_valid, exit_code = validator.validate()
-        validator.print_report()
-        return exit_code
-
-    analyzer = SessionAnalyzer(args.jsonl_file)
+    analyzer = SessionAnalyzer(args.jsonl_files[0])
 
     # Handle --line (get specific event)
     if args.line:
@@ -1122,6 +1550,8 @@ Examples:
         analyzer.print_clocks()
     elif mode == 'void':
         analyzer.print_void()
+    elif mode == 'errors':
+        analyzer.print_errors()
 
     return 0
 

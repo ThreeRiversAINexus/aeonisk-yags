@@ -219,13 +219,13 @@ class TestStructuredOutputExtraction:
             success_tier=SuccessTier.EXCELLENT,
             margin=15,
             effects=MechanicalEffects(
-                damage=DamageEffect(
+                damage=[DamageEffect(
                     target="tgt_d004",
                     base_damage=18,
                     soak=3,
                     dealt=15,
                     damage_type="kinetic"
-                )
+                )]
             )
         )
 
@@ -275,46 +275,6 @@ class TestStructuredOutputExtraction:
 
 
 # ============================================================================
-# Legacy Text Parsing Tests
-# ============================================================================
-
-@pytest.mark.xfail(reason="Legacy text marker parsing - structured output migration makes these obsolete")
-class TestLegacyTextParsing:
-    """Test legacy text-based parsing (backward compatibility)."""
-
-    def test_parse_void_marker(self):
-        """Test parsing legacy ⚫ Void markers."""
-        text = "The ritual fails. ⚫ Void: +2 (Failed ritual without offering)"
-
-        state_changes = parse_state_changes(text)
-
-        # Legacy parsing should still work
-        # (actual implementation may vary based on outcome_parser.py)
-        assert isinstance(state_changes, dict)
-
-    def test_parse_clock_marker(self):
-        """Test parsing legacy 📊 Clock markers."""
-        text = "Evidence accumulates. 📊 Clock: Investigation +2 (Found crucial documents)"
-
-        state_changes = parse_state_changes(text)
-
-        assert isinstance(state_changes, dict)
-        # Check for clock_triggers in result
-
-    def test_parse_mixed_markers(self):
-        """Test parsing multiple markers in one narration."""
-        text = """
-        Your action succeeds but at a cost.
-        📊 Clock: Progress +3 (Major breakthrough)
-        ⚫ Void: +1 (Cut corners, used forbidden technique)
-        """
-
-        state_changes = parse_state_changes(text)
-
-        assert isinstance(state_changes, dict)
-
-
-# ============================================================================
 # Clock Extraction Tests
 # ============================================================================
 
@@ -329,20 +289,6 @@ class TestClockExtraction:
 
         # Should return list of clock triggers
         assert isinstance(clocks, list)
-
-    @pytest.mark.xfail(reason="Requires active_clocks parameter - structured output migration makes text parsing obsolete")
-    def test_extract_multiple_clock_markers(self):
-        """Test extracting multiple clock markers."""
-        text = """
-        📊 Clock: Progress +2 (reason 1)
-        📊 Clock: Alert +1 (reason 2)
-        """
-
-        clocks = parse_explicit_clock_markers(text)
-
-        # Should find both clocks
-        assert isinstance(clocks, list)
-        assert len(clocks) >= 1
 
     def test_extract_clock_regression(self):
         """Test extracting negative clock ticks."""

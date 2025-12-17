@@ -124,7 +124,8 @@ class TestPreRoundEntityLifecycle:
         assert hasattr(session, '_run_pre_round_entity_lifecycle'), \
             "Session should have _run_pre_round_entity_lifecycle method"
 
-    def test_pre_round_lifecycle_calls_check_conversions_with_pre_round_flag(
+    @pytest.mark.asyncio
+    async def test_pre_round_lifecycle_calls_check_conversions_with_pre_round_flag(
         self, temp_config, mock_jsonl_logger
     ):
         """
@@ -156,12 +157,8 @@ class TestPreRoundEntityLifecycle:
         session.shared_state.mechanics_engine.scene_clocks = {}
 
         # Act: Call pre-round lifecycle (if it exists)
-        import asyncio
-
         if hasattr(session, '_run_pre_round_entity_lifecycle'):
-            asyncio.get_event_loop().run_until_complete(
-                session._run_pre_round_entity_lifecycle()
-            )
+            await session._run_pre_round_entity_lifecycle()
 
             # Assert: check_conversions was called with pre_round=True
             mock_dm.check_conversions.assert_called_once()
@@ -169,7 +166,8 @@ class TestPreRoundEntityLifecycle:
             assert call_kwargs.get('pre_round') is True, \
                 "check_conversions should be called with pre_round=True"
 
-    def test_pre_round_lifecycle_does_not_duplicate_config_entities(
+    @pytest.mark.asyncio
+    async def test_pre_round_lifecycle_does_not_duplicate_config_entities(
         self, temp_config, mock_jsonl_logger
     ):
         """
@@ -219,12 +217,8 @@ class TestPreRoundEntityLifecycle:
         session.shared_state.mechanics_engine.scene_clocks = {}
 
         # Act
-        import asyncio
-
         if hasattr(session, '_run_pre_round_entity_lifecycle'):
-            asyncio.get_event_loop().run_until_complete(
-                session._run_pre_round_entity_lifecycle()
-            )
+            await session._run_pre_round_entity_lifecycle()
 
             # Assert: check_conversions was called with existing_entities context
             mock_dm.check_conversions.assert_called_once()
@@ -235,7 +229,8 @@ class TestPreRoundEntityLifecycle:
             assert 'pre_round' in call_kwargs or 'existing_entities' in call_kwargs, \
                 "check_conversions should receive context about already-spawned entities"
 
-    def test_pre_round_lifecycle_logs_entity_lifecycle_event_at_round_0(
+    @pytest.mark.asyncio
+    async def test_pre_round_lifecycle_logs_entity_lifecycle_event_at_round_0(
         self, temp_config, mock_jsonl_logger
     ):
         """
@@ -283,12 +278,8 @@ class TestPreRoundEntityLifecycle:
         session.shared_state.mechanics_engine.scene_clocks = {}
 
         # Act
-        import asyncio
-
         if hasattr(session, '_run_pre_round_entity_lifecycle'):
-            asyncio.get_event_loop().run_until_complete(
-                session._run_pre_round_entity_lifecycle()
-            )
+            await session._run_pre_round_entity_lifecycle()
 
             # Assert: entity_lifecycle event was logged at round 0
             entity_lifecycle_calls = [
@@ -304,7 +295,8 @@ class TestPreRoundEntityLifecycle:
             assert kwargs.get('round_num') == 0, \
                 "Pre-round entity lifecycle should log at round 0"
 
-    def test_pre_round_lifecycle_processes_npc_spawns(self, temp_config, mock_jsonl_logger):
+    @pytest.mark.asyncio
+    async def test_pre_round_lifecycle_processes_npc_spawns(self, temp_config, mock_jsonl_logger):
         """
         Test that NPC spawns from pre-round lifecycle are properly processed.
         """
@@ -361,18 +353,15 @@ class TestPreRoundEntityLifecycle:
         session.shared_state.mechanics_engine.scene_clocks = {}
 
         # Act
-        import asyncio
-
         if hasattr(session, '_run_pre_round_entity_lifecycle'):
-            asyncio.get_event_loop().run_until_complete(
-                session._run_pre_round_entity_lifecycle()
-            )
+            await session._run_pre_round_entity_lifecycle()
 
             # Assert: _process_npc_spawn was called for each NPC
             assert mock_dm._process_npc_spawn.call_count == 2, \
                 "Should process each NPC spawn from pre-round decisions"
 
-    def test_pre_round_lifecycle_processes_enemy_spawns(self, temp_config, mock_jsonl_logger):
+    @pytest.mark.asyncio
+    async def test_pre_round_lifecycle_processes_enemy_spawns(self, temp_config, mock_jsonl_logger):
         """
         Test that enemy spawns from pre-round lifecycle are properly processed.
         """
@@ -412,17 +401,14 @@ class TestPreRoundEntityLifecycle:
         session.shared_state.mechanics_engine.scene_clocks = {}
 
         # Act
-        import asyncio
-
         if hasattr(session, '_run_pre_round_entity_lifecycle'):
-            asyncio.get_event_loop().run_until_complete(
-                session._run_pre_round_entity_lifecycle()
-            )
+            await session._run_pre_round_entity_lifecycle()
 
             # Assert: spawn_from_structured was called
             session.enemy_combat.spawn_from_structured.assert_called_once()
 
-    def test_pre_round_lifecycle_processes_env_object_spawns(self, temp_config, mock_jsonl_logger):
+    @pytest.mark.asyncio
+    async def test_pre_round_lifecycle_processes_env_object_spawns(self, temp_config, mock_jsonl_logger):
         """
         Test that environmental object spawns from pre-round lifecycle are properly processed.
         """
@@ -456,12 +442,8 @@ class TestPreRoundEntityLifecycle:
         session.shared_state.mechanics_engine.env_objects = {}
 
         # Act
-        import asyncio
-
         if hasattr(session, '_run_pre_round_entity_lifecycle'):
-            asyncio.get_event_loop().run_until_complete(
-                session._run_pre_round_entity_lifecycle()
-            )
+            await session._run_pre_round_entity_lifecycle()
 
             # Assert: env_objects were processed
             # (implementation will add to mechanics.env_objects)

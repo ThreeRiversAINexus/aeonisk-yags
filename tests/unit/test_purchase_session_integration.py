@@ -13,13 +13,13 @@ This gives HIGH CONFIDENCE that session 340bd80e bug is fixed.
 import pytest
 from unittest.mock import Mock, MagicMock, AsyncMock
 from datetime import datetime
-from scripts.aeonisk.multiagent.session import MultiAgentSession
+from scripts.aeonisk.multiagent.session import SelfPlayingSession
 from scripts.aeonisk.multiagent.shared_state import SharedState
 from scripts.aeonisk.multiagent.mechanics import MechanicsEngine
 from scripts.aeonisk.multiagent.energy_economy import (
     EnergyPurse, Vendor, VendorItem, VendorType
 )
-from scripts.aeonisk.multiagent.message_bus import Message, MessageType
+from scripts.aeonisk.multiagent.base import Message, MessageType
 
 
 class MockCharacterState:
@@ -77,11 +77,15 @@ class TestSessionPurchaseIntegration:
         )
         shared_state.add_vendor(vendor)
         
-        # Create mock session
-        session = MultiAgentSession(
-            session_id="test_session",
-            config={},
-            output_dir="/tmp"
+        # Create mock session (using replay_mode to bypass config file loading)
+        session = SelfPlayingSession(
+            replay_mode=True,
+            replay_config={
+                "session_name": "test_session",
+                "agents": {"dm": {}, "players": []},
+                "party_size": 2,
+                "max_turns": 1
+            }
         )
         session.shared_state = shared_state
         session._in_declaration_phase = True

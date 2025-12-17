@@ -492,6 +492,76 @@ Example: {"locked": True, "health": 50}"""
     )
 
 
+class BondStatusChange(BaseModel):
+    """
+    Bond status transition (ACTIVE ↔ DORMANT, or → VOID_LOCKED).
+
+    Triggered by Void score changes:
+    - Void ≥ 7: ACTIVE → DORMANT (bonds strain)
+    - Void < 7: DORMANT → ACTIVE (bonds restore)
+    - Void = 10: ACTIVE/DORMANT → VOID_LOCKED (permanent corruption)
+
+    Example:
+    ```python
+    change = BondStatusChange(
+        character_name="Alice Vex",
+        bond_partner="Bob Karsel",
+        bond_type="kinship",
+        old_status="active",
+        new_status="dormant",
+        trigger="void_threshold",
+        void_score=7,
+        narrative="Alice's bond with Bob strains under void corruption, warmth fading to distant cold"
+    )
+    ```
+    """
+    character_name: str = Field(
+        ...,
+        min_length=2,
+        description="Name of character whose bond changed status"
+    )
+
+    bond_partner: str = Field(
+        ...,
+        min_length=2,
+        description="Name of bonded partner (or object/entity)"
+    )
+
+    bond_type: Literal["kinship", "ascendancy", "debt", "voidward", "passion", "faction"] = Field(
+        ...,
+        description="Type of bond (Kinship, Ascendancy, Debt, Voidward, Passion, Faction)"
+    )
+
+    old_status: Literal["active", "dormant", "severed", "void_locked"] = Field(
+        ...,
+        description="Previous bond status"
+    )
+
+    new_status: Literal["active", "dormant", "severed", "void_locked"] = Field(
+        ...,
+        description="New bond status after transition"
+    )
+
+    trigger: Literal["void_threshold", "void_recovery", "void_corruption", "sacrifice", "manual"] = Field(
+        ...,
+        description="What caused the status change (void_threshold=hit 7, void_recovery=dropped below 7, void_corruption=hit 10, sacrifice=bond sacrifice mechanic, manual=DM narrative)"
+    )
+
+    void_score: int = Field(
+        ...,
+        ge=0,
+        le=10,
+        description="Character's current void score at time of change"
+    )
+
+    narrative: str = Field(
+        ...,
+        min_length=20,
+        max_length=300,
+        description="Brief narrative description of how the bond status change manifests (emotional/sensory description of the bond shifting)"
+    )
+
+
 class RoundSynthesis(BaseModel):
     """
     DM's round summary with potential scene pivots and story advancement.
@@ -601,6 +671,12 @@ class RoundSynthesis(BaseModel):
         description="Clock names that expired (not advancing, time limit reached)"
     )
 
+    # Bond status changes (from Void transitions)
+    bond_status_changes: List[BondStatusChange] = Field(
+        default_factory=list,
+        description="Bond status transitions this round (ACTIVE↔DORMANT, →VOID_LOCKED) triggered by Void changes. Use empty list [] if none."
+    )
+
     # Session end condition
     session_end: Optional[Literal["victory", "defeat", "draw"]] = Field(
         default=None,
@@ -630,7 +706,7 @@ class RoundSynthesis(BaseModel):
             raise ValueError("Cannot use both scene_pivot and story_advancement in the same round. Choose one: scene_pivot for minor transitions, story_advancement for major chapter changes.")
         return v
 
-    @field_validator('clocks_filled', 'clocks_expired', mode='before')
+    @field_validator('clocks_filled', 'clocks_expired', 'bond_status_changes', mode='before')
     @classmethod
     def convert_none_to_empty_list(cls, v):
         """Convert None to empty list for all list fields. LLMs sometimes return null instead of []."""
@@ -691,8 +767,8 @@ class ScenarioSetup(BaseModel):
 
     starting_clocks: List[NewClock] = Field(
         ...,
-        min_items=1,
-        max_items=4,
+        min_length=1,
+        max_length=4,
         description="Initial progress clocks (1-4 recommended)"
     )
 

@@ -3,10 +3,8 @@
   "max_turns": 12,
   "party_size": 3,
   "output_dir": "./multiagent_output",
-
   "force_combat": false,
   "vendor_spawn_frequency": 4,
-
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
   "enemy_agent_config": {
@@ -18,7 +16,6 @@
     "loot_suggestions_enabled": true,
     "void_tracking_enabled": true
   },
-
   "agents": {
     "dm": {
       "llm": {
@@ -52,10 +49,10 @@
           "Endurance": 3,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 2,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Persuasion": 5,
@@ -120,8 +117,8 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Hacking": 5,
@@ -184,10 +181,10 @@
           "Endurance": 4,
           "Perception": 3,
           "Intelligence": 3,
-          "Empathy": 1,
+          "Empathy": 2,
           "Willpower": 4,
-          "Charisma": 2,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -231,14 +228,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "Mercenary Extraction Job with Moral Complications",
     "location": "Tempest Industries Peripheral Research Station - Sub-Ring 7 (Low Security Annex)",
     "situation": "Your team received an encrypted contract from a mysterious ACG shadow broker: extract Dr. Miren Sotal, a mid-level Tempest Industries researcher, from their lab facility. The job seemed straightforward—standard corporate poaching, decent pay (15 spark total), minimal security. But nothing's ever simple. The facility's security is heavier than advertised. Dr. Sotal isn't the compliant target you expected—they're a whistleblower with evidence of ACG biocreche atrocities, and your employer wants them silenced, not recruited. Their loyal bodyguard (ex-Pantheon enforcer) won't let you near them without a fight or serious persuasion. Corporate security patrols are closing in. And to top it off, a rival mercenary team (even more incompetent than yours) just showed up with the same contract. Time to improvise, lie convincingly, and figure out whose side you're really on—assuming you have principles, which is debatable.",
     "void_level": 4
   },
-
   "starting_clocks": [
     {
       "name": "Corporate Security Response",
@@ -265,9 +260,7 @@
       "regress_meaning": "rivals delayed by their own incompetence or ambushed"
     }
   ],
-
   "initial_enemies": [],
-
   "initial_npcs": [
     {
       "name": "Rax Kellor",
@@ -292,7 +285,6 @@
       }
     }
   ],
-
   "persistent_vendors": [
     {
       "vendor_id": "vnd_rix_nowhere",
@@ -384,7 +376,6 @@
       ]
     }
   ],
-
   "_design_notes": {
     "purpose": "Dark comedy antihero mercenary campaign with moral ambiguity, absurd mishaps, and tactical depth",
     "lore_integration": {
@@ -441,6 +432,5 @@
       "tonal_success": "Players laugh at absurd mishaps while confronting uncomfortable moral choices - dark comedy with weight."
     }
   },
-
   "notes": "Dark comedy antihero mercenary scenario - 3 lore-inspired characters (Soren Vellis, Kess Thren, Vex Solais) on extraction job with moral complications. Rax Kellor (Dr. Sotal's bodyguard) starts as wary NPC with deadpan quips, escalates to enemy only if team threatens scientist. Sparse but tactical combat, active vendor economy (Rix Nowhere + Bliss Tallow), social/investigation primary. Expect betrayal, absurd mishaps, gallows humor, and difficult choices. Competent professionals maintaining facade while everything goes sideways. void_level 4 adds supernatural dread to comedic chaos."
 }

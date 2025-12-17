@@ -34,7 +34,7 @@ class TestActionDeclarationPurchaseFields:
         action = ActionDeclaration(
             intent="Purchase Med Kit",
             description="Buying medical supplies from vendor",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Simple purchase transaction",
@@ -56,7 +56,7 @@ class TestActionDeclarationPurchaseFields:
         action = ActionDeclaration(
             intent="Purchase Med Kit",
             description="Buying medical supplies",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Simple purchase",
@@ -81,7 +81,7 @@ class TestActionDeclarationPurchaseFields:
         action = ActionDeclaration(
             intent="Purchase Med Kit",
             description="Buying medical supplies",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=15,
             difficulty_justification="Simple purchase",

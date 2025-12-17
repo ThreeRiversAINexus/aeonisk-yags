@@ -86,7 +86,7 @@
           "Intelligence": 5,
           "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Investigation": 6,
@@ -145,7 +145,7 @@
           "Intelligence": 5,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2
+          "Dexterity": 3
         },
         "skills": {
           "Systems": 6,
@@ -203,7 +203,7 @@
           "Intelligence": 4,
           "Empathy": 5,
           "Willpower": 3,
-          "Charisma": 5
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,

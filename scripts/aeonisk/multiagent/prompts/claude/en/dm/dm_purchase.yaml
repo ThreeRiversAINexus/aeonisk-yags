@@ -56,18 +56,46 @@ content: |
   ## Structured Output
 
   Generate ActionResolution with:
-  - **success**: true if executed=true, false if executed=false
-  - **roll**: 0 (no dice rolled)
-  - **total**: 0 (no roll)
-  - **difficulty**: 0 (no roll)
-  - **margin**: 0 (no roll)
-  - **success_tier**: "marginal" if success, "failure" if failed
-  - **narrative**: Your transaction narration (2-3 sentences)
-  - **attribute**: "None" (purchases don't use attributes)
-  - **skill**: null (purchases don't use skills)
-  - **soulcredit_changes**: Usually 0 (routine commercial transaction)
-  - **purchase**: true (flag this as a purchase in effects)
-  - **item_obtained**: item_name if success, null if failure
+  - **narration**: Your transaction narration (2-3 sentences, 200+ chars)
+  - **success_tier**: "moderate" if executed=true, "failure" if executed=false (pre-validated, no actual roll)
+  - **margin**: 0 (deterministic transaction, no roll variance)
+  - **attribute_used**: null (purchases don't use attributes)
+  - **skill_used**: null (purchases don't use skills)
+  - **effects.soulcredit_changes**: [] (routine commercial = no moral weight)
+  - **effects.purchase**: PurchaseEffect object:
+    - `success`: true/false (match executed)
+    - `vendor_name`: From purchase_validation context
+    - `items_purchased`: [item_name] (list of purchased items)
+    - `currency_spent`: cost dict (e.g., `{"drip": 5}`)
+    - `narrative`: Brief transaction note
+    - `failure_reason`: null if success, else reason string
+  - **effects.inventory_changes**: [{item: item_name, delta: 1}] if success, [] if failed
+
+  **Example (successful purchase):**
+  ```python
+  effects.purchase = PurchaseEffect(
+      success=True,
+      vendor_name="Nexus Terminal",
+      items_purchased=["Health Kit"],
+      currency_spent={"drip": 5},
+      narrative="Transaction completed successfully",
+      failure_reason=None
+  )
+  effects.inventory_changes = [{"item": "Health Kit", "delta": 1}]
+  ```
+
+  **Example (failed purchase):**
+  ```python
+  effects.purchase = PurchaseEffect(
+      success=False,
+      vendor_name="Nexus Terminal",
+      items_purchased=[],
+      currency_spent={},
+      narrative="Transaction declined - insufficient funds",
+      failure_reason="Insufficient currency: needed 5 Drip, had 3 Drip"
+  )
+  effects.inventory_changes = []
+  ```
 
   ## Important Rules
 

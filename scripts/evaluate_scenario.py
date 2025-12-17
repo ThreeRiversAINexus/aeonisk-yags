@@ -145,9 +145,9 @@ def create_scenario_template(scenario_type: str, max_turns: int = 15) -> Dict[st
                         "Gather actionable intelligence"
                     ],
                     "attributes": {
-                        "Strength": 3, "Agility": 4, "Endurance": 4,
+                        "Strength": 3, "Agility": 4, "Endurance": 4, "Dexterity": 3,
                         "Perception": 4, "Intelligence": 4, "Empathy": 3,
-                        "Willpower": 3, "Charisma": 3, "Size": 5
+                        "Willpower": 3, "Size": 5
                     },
                     "skills": {
                         "Combat": 4, "Guns": 4, "Stealth": 4,
@@ -177,9 +177,9 @@ def create_scenario_template(scenario_type: str, max_turns: int = 15) -> Dict[st
                         "Adapt strategy to changing conditions"
                     ],
                     "attributes": {
-                        "Strength": 3, "Agility": 4, "Endurance": 3,
+                        "Strength": 3, "Agility": 4, "Endurance": 3, "Dexterity": 3,
                         "Perception": 4, "Intelligence": 4, "Empathy": 4,
-                        "Willpower": 4, "Charisma": 3, "Size": 5
+                        "Willpower": 4, "Size": 5
                     },
                     "skills": {
                         "Combat": 4, "Stealth": 4, "Investigation": 4,

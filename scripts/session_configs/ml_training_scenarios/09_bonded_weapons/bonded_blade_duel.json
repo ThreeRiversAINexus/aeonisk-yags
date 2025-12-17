@@ -19,10 +19,10 @@
   },
   "_comment_vendors": "=== VENDOR SYSTEM - DISABLED ===",
   "vendor_spawn_frequency": 0,
-  "_comment_scenario": "=== SCENARIO: HONOR DUEL \u2192 CONSPIRACY ===",
+  "_comment_scenario": "=== SCENARIO: HONOR DUEL → CONSPIRACY ===",
   "_scenario_hint": "Neutral Arena (void_level 2), two duelists with Bonded weapons (Mnemonic Blade vs. Sparkspike Dagger) face off over stolen Bond contract accusation. Duel begins honorably, but mid-fight evidence emerges: third party framed both duelists to ignite feud and profit from their mutual destruction. Investigation pivot: must discover conspirator (ACG operative? Nexus saboteur? Void cultist?) while managing duel fallout, wounded honor, and conspiracy combat. Bonded weapons create void risk (+1 void when used against Bonded targets). Exotic weapons showcase: Mnemonic Blade (+5 DMG, trauma bonus), Sparkspike Dagger (+4 DMG, +1 DEF), Oathpiercer Carbine (+DMG vs. ex-Bonds), Spirit-Weave armor.",
   "_design_notes": {
-    "ml_training_value": "First config showcasing exotic weapons (Bonded, Glyph-Encoded, Spirit-Weave), weapon attunement mechanics, Bonded weapon void consequences, honor duel \u2192 investigation narrative pivot, weapon-focused combat tactics, conspiracy reveal mid-session, moral choice (continue duel vs. unite against conspirator)",
+    "ml_training_value": "First config showcasing exotic weapons (Bonded, Glyph-Encoded, Spirit-Weave), weapon attunement mechanics, Bonded weapon void consequences, honor duel → investigation narrative pivot, weapon-focused combat tactics, conspiracy reveal mid-session, moral choice (continue duel vs. unite against conspirator)",
     "mechanics_tested": [
       "Bonded weapon mechanics",
       "Weapon attunement",
@@ -93,9 +93,9 @@
           "Endurance": 4,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Melee": 6,
@@ -153,7 +153,7 @@
           "Intelligence": 4,
           "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Melee": 6,
@@ -209,9 +209,9 @@
           "Endurance": 4,
           "Perception": 5,
           "Intelligence": 4,
-          "Empathy": 2,
+          "Empathy": 3,
           "Willpower": 3,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Guns": 6,
@@ -249,5 +249,5 @@
       }
     ]
   },
-  "notes": "ML Training Focus: Exotic weapon showcase (Bonded: Mnemonic Blade +5 DMG, Sparkspike Dagger +4 DMG; Conventional: Oathpiercer Carbine +DMG vs. ex-Bonds; Spirit-Weave: Wraithroot Vineblade +2 DMG), weapon attunement mechanics, Bonded weapon void consequences (+1 void when used on Bonded targets), exotic armor (Bondweave Mantle shares damage, Echo-Lattice Gown +1 DEF when aligned with principles), honor duel structure \u2192 investigation pivot, conspiracy reveal mid-session, moral choice (continue duel vs. unite against conspirator). Tests underrepresented exotic gear mechanics, weapon-focused combat tactics, narrative pivot from combat to investigation, conspiracy storytelling. Long campaign (16 turns) allows duel setup, evidence discovery, conspiracy pursuit, climactic confrontation. First config with ALL characters using exotic weapons/armor."
+  "notes": "ML Training Focus: Exotic weapon showcase (Bonded: Mnemonic Blade +5 DMG, Sparkspike Dagger +4 DMG; Conventional: Oathpiercer Carbine +DMG vs. ex-Bonds; Spirit-Weave: Wraithroot Vineblade +2 DMG), weapon attunement mechanics, Bonded weapon void consequences (+1 void when used on Bonded targets), exotic armor (Bondweave Mantle shares damage, Echo-Lattice Gown +1 DEF when aligned with principles), honor duel structure → investigation pivot, conspiracy reveal mid-session, moral choice (continue duel vs. unite against conspirator). Tests underrepresented exotic gear mechanics, weapon-focused combat tactics, narrative pivot from combat to investigation, conspiracy storytelling. Long campaign (16 turns) allows duel setup, evidence discovery, conspiracy pursuit, climactic confrontation. First config with ALL characters using exotic weapons/armor."
 }

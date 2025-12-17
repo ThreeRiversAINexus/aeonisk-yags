@@ -13,6 +13,7 @@ from scripts.aeonisk.multiagent.schemas.story_events import (
     Escalation,
     StoryAdvancement,
     ScenePivot,
+    ConversionDecisions,
 )
 from scripts.aeonisk.multiagent.npc_agent import NPCAgent
 from scripts.aeonisk.multiagent.shared_state import SharedState
@@ -283,18 +284,16 @@ def test_escalation_removes_from_npc_pool():
 # Multiple conversions are now handled in ConversionDecisions, not RoundSynthesis.
 
 
-def test_story_advancement_supports_npc_departures():
-    """StoryAdvancement schema accepts npc_departures field."""
-    advancement = StoryAdvancement(
-        should_advance=True,
-        location="Next Location",
-        situation="The party moves forward after the guide departs",
-        npc_departures=["npc_guide_1", "Dr. Yuki Tanaka"]
+def test_conversion_decisions_supports_npc_departures():
+    """ConversionDecisions schema accepts npc_departures field."""
+    decisions = ConversionDecisions(
+        npc_departures=["npc_guide_1", "npc_tanaka_2"],
+        reasoning="Guide and Dr. Tanaka depart after providing intel"
     )
 
-    assert len(advancement.npc_departures) == 2
-    assert "npc_guide_1" in advancement.npc_departures
-    assert "Dr. Yuki Tanaka" in advancement.npc_departures
+    assert len(decisions.npc_departures) == 2
+    assert "npc_guide_1" in decisions.npc_departures
+    assert "npc_tanaka_2" in decisions.npc_departures
 
 
 def test_scene_pivot_supports_npc_departures():
@@ -302,7 +301,7 @@ def test_scene_pivot_supports_npc_departures():
     pivot = ScenePivot(
         should_pivot=True,
         location="Adjacent room",
-        situation="The informant flees when the alarm sounds",
+        situation="The informant flees when the alarm sounds, disappearing into the chaos of the evacuation.",
         npc_departures=["npc_informant_vex"]
     )
 
@@ -310,8 +309,8 @@ def test_scene_pivot_supports_npc_departures():
     assert pivot.npc_departures[0] == "npc_informant_vex"
 
 
-def test_npc_departures_via_story_advancement():
-    """Session processing removes NPCs via StoryAdvancement.npc_departures."""
+def test_npc_departures_via_conversion_decisions():
+    """Session processing removes NPCs via ConversionDecisions.npc_departures."""
     from scripts.aeonisk.multiagent.dm import AIDMAgent
 
     shared_state = create_mock_shared_state()
@@ -357,16 +356,13 @@ def test_npc_departures_via_story_advancement():
 
     shared_state.npc_agents = [npc1, npc2]
 
-    advancement = StoryAdvancement(
-        should_advance=True,
-        location="Next location",
-        situation="The guide and informant depart",
-        npc_departures=["npc_guide_1", "npc_informant_2"]
+    decisions = ConversionDecisions(
+        npc_departures=["npc_guide_1", "npc_informant_2"],
+        reasoning="Guide and informant depart after providing intel"
     )
 
-    # This will be the actual processing code in session.py
-    # For now, we simulate it by calling remove_npc directly
-    for npc_id in advancement.npc_departures:
+    # Simulate processing departures from ConversionDecisions
+    for npc_id in decisions.npc_departures:
         shared_state.remove_npc(npc_id)
 
     # Verify remove_npc was called for each departure
@@ -410,7 +406,7 @@ def test_npc_departures_via_scene_pivot():
     pivot = ScenePivot(
         should_pivot=True,
         location="Alarm triggers in adjacent room",
-        situation="Civilian workers flee from danger",
+        situation="Civilian workers flee from danger as the security systems activate and alarms blare throughout the corridor.",
         npc_departures=["npc_civilian_worker_1"]
     )
 
@@ -427,15 +423,13 @@ def test_npc_departure_invalid_id():
     shared_state = create_mock_shared_state()
     shared_state.remove_npc = Mock(return_value=False)
 
-    advancement = StoryAdvancement(
-        should_advance=True,
-        location="Next location",
-        situation="Trying to remove non-existent NPC",
-        npc_departures=["npc_nonexistent_999"]
+    decisions = ConversionDecisions(
+        npc_departures=["npc_nonexistent_999"],
+        reasoning="Trying to remove non-existent NPC"
     )
 
     # Simulate processing with invalid ID
-    for npc_id in advancement.npc_departures:
+    for npc_id in decisions.npc_departures:
         removed = shared_state.remove_npc(npc_id)
         # In actual implementation, this would log a warning
         # but not crash the session
@@ -476,16 +470,14 @@ def test_npc_lifecycle_full_spawn_then_depart():
     assert len(shared_state.npc_agents) == 1
     assert shared_state.npc_agents[0].name == "Guide Vex"
 
-    # Round 3: Guide departs after providing intel
-    advancement = StoryAdvancement(
-        should_advance=True,
-        location="Deeper into facility",
-        situation="Guide Vex has fulfilled her bargain and departs",
-        npc_departures=[npc.agent_id]
+    # Round 3: Guide departs after providing intel (via ConversionDecisions)
+    decisions = ConversionDecisions(
+        npc_departures=[npc.agent_id],
+        reasoning="Guide Vex has fulfilled her bargain and departs"
     )
 
     # Simulate departure processing
-    for npc_id in advancement.npc_departures:
+    for npc_id in decisions.npc_departures:
         shared_state.remove_npc(npc_id)
 
     # Verify departure was processed

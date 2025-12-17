@@ -1,22 +1,24 @@
 {
   "_role": "social_scenario_openai",
   "_purpose": "Pure social interaction scenario set in hybrid gym/bar/lounge. Zero combat, focuses on networking, deals, reputation building, physical displays, and casual intel gathering. ALL AGENTS USE OPENAI GPT-5-MINI.",
-
   "session_name": "The Iron Chalice - Networking Night (OpenAI)",
   "max_turns": 12,
   "party_size": 4,
   "output_dir": "./multiagent_output",
-
-  "_comment_tactical": "=== TACTICAL MODULE - DISABLED (Social Scenario Only) ===",
-  "tactical_module_enabled": false,
-  "enemy_agents_enabled": false,
-
+  "_comment_tactical": "=== TACTICAL MODULE - ENABLED (For potential social conflict escalation) ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
   "_comment_vendors": "=== VENDOR SYSTEM - ENABLED (Bar Purchases) ===",
   "vendor_spawn_frequency": 3,
-
-  "_comment_scenario": "=== SCENARIO: GYMBAR NETWORKING ===",
-  "_scenario_hint": "The Iron Chalice (void_level 2, neutral territory), premier gymbar in Station District 7 - half upscale lounge with craft cocktails and private booths, half state-of-the-art training facility with combat sims and sparring mats. It's Networking Night: professionals from all factions gather to make deals, show off skills, gather intel, and build reputations. No violence allowed (strict security), but social combat is fierce. Characters have overlapping agendas: close a business deal, recruit talent, dig up dirt on rivals, impress potential allies, or just blow off steam. Success measured in connections made, information gathered, and reputation enhanced - not bloodshed.",
-
+  "_comment_bonds": "=== AUTO BOND GENERATION - ENABLED ===",
+  "generate_bonds": {
+    "enabled": true,
+    "min_bonds": 2,
+    "max_bonds": 5,
+    "use_scenario_context": true
+  },
+  "_comment_scenario": "=== SCENARIO: GYMBAR NETWORKING WITH INTER-CHARACTER DIALOGUE ===",
+  "_scenario_hint": "The Iron Chalice (void_level 2, neutral territory), premier gymbar in Station District 7. It's Networking Night: professionals from all factions gather to network, make deals, and dialogue. PRIMARY GOAL: Characters should engage in meaningful inter-character dialogue and relationship building. Pre-existing bonds create natural conversation hooks. No initial enemies - let social dynamics evolve organically. Security prevents violence, focus on conversation, deals, intel gathering, and reputation. DM should facilitate character-to-character interactions rather than spawning external threats.",
   "_design_notes": {
     "social_focus": "Zero combat scenario testing social skills: Charm, Persuasion, Insight, Guile, Intimidation, Athletics (displays of skill), Corporate Influence, Debt Law",
     "setting_areas": [
@@ -38,7 +40,6 @@
     "character_innovation": "Mix of corporate fixer, athlete influencer, intelligence operative, debt broker - all with social agendas in neutral space",
     "llm_provider": "ALL AGENTS USE OPENAI GPT-5-MINI - Temperature 1.0 for DM (creative NPC interactions), 0.8 for players (social consistency)"
   },
-
   "starting_clocks": [
     {
       "name": "Networking Event Energy",
@@ -86,7 +87,6 @@
       "regress_meaning": "reputation damaged, social faux pas"
     }
   ],
-
   "agents": {
     "dm": {
       "llm": {
@@ -117,9 +117,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 4,
+          "Empathy": 5,
           "Willpower": 4,
-          "Charisma": 5
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 6,
@@ -133,9 +133,10 @@
         "void": 0,
         "soulcredit": 8,
         "goals": [
-          "Close major Seed shipment contract worth 50 drip with Tempest Industries rep",
-          "Network with influential people - collect business cards and favors",
-          "Maintain polished, professional image - represent ACG well"
+          "Engage in dialogue with party members about business opportunities and deals",
+          "Discuss bond relationships and how they affect business prospects",
+          "Network through conversation - learn about others' backgrounds and motivations",
+          "Maintain polished, professional image in social interactions"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -177,7 +178,7 @@
           "Intelligence": 2,
           "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Athletics": 6,
@@ -191,9 +192,10 @@
         "void": 0,
         "soulcredit": 2,
         "goals": [
-          "Scout talented fighters for Pantheon recruitment - impress them with gym displays",
-          "Work out hard - blow off steam from stressful week",
-          "Show Pantheon strength and discipline - make connections"
+          "Talk with party members about combat training and physical discipline",
+          "Discuss bonded relationships - understand how bonds affect performance",
+          "Share stories about Pantheon service and learn others' backgrounds",
+          "Bond through shared physical activities and conversation"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -234,7 +236,7 @@
           "Intelligence": 5,
           "Empathy": 3,
           "Willpower": 4,
-          "Charisma": 3
+          "Dexterity": 3
         },
         "skills": {
           "Investigation": 6,
@@ -248,9 +250,10 @@
         "void": 3,
         "soulcredit": -2,
         "goals": [
-          "Gather intel on ACG's Seed trade operations (corporate espionage)",
-          "Identify potential Tempest research subjects (high void individuals)",
-          "Stay unnoticed - blend in as casual gymbar patron"
+          "Engage party members in dialogue to learn their secrets and motivations",
+          "Explore bonded relationships through conversation - understand emotional connections",
+          "Build trust through shared conversation while gathering intel subtly",
+          "Connect with others on a personal level (despite espionage mission)"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -290,9 +293,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 5,
+          "Empathy": 4,
           "Willpower": 4,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Counsel": 6,
@@ -306,9 +309,10 @@
         "void": 0,
         "soulcredit": 5,
         "goals": [
-          "Promote Commune wellness philosophy - connect with stressed professionals",
-          "Offer spiritual guidance and stress relief techniques",
-          "Subtly recruit disillusioned corporate workers to Commune lifestyle"
+          "Have meaningful conversations with party members about wellness and purpose",
+          "Discuss the nature of bonds - explore spiritual and emotional connections",
+          "Share Commune philosophy through dialogue, not preaching",
+          "Listen deeply to others' struggles and offer compassionate perspective"
         ],
         "equipped_weapons": {
           "primary": "fists"
@@ -328,14 +332,12 @@
       }
     ]
   },
-
   "scenario": {
     "theme": "social_networking_gymbar",
     "location": "The Iron Chalice - District 7 Premier Gymbar",
     "situation": "It's Networking Night at The Iron Chalice, the most exclusive gymbar in Station District 7. The venue is packed with professionals from every faction: corporate deal-makers sipping cocktails in private lounge booths, Pantheon enforcers showing off in the gym area, Tempest researchers unwinding in the steam room, and Commune wellness advocates offering meditation sessions on the rooftop terrace. \n\nNo violence is permitted (armed security enforces strict no-combat policy), but social warfare is encouraged. Make deals, gather intel, impress influential people, recruit talent, or just relax and network. Your reputation is your weapon here.\n\nThe night is young, the drinks are flowing, and opportunities are everywhere - if you know how to work a room.",
     "void_level": 2
   },
-
   "_narrative_hooks": [
     "Maya spots her contract target (Tempest exec) in a private booth - time to close the deal",
     "Marcus notices impressive fighter on sparring mats - perfect recruitment opportunity",
@@ -348,6 +350,5 @@
     "Gym equipment malfunction during Marcus's display - embarrassment or graceful recovery?",
     "Echo's cover nearly blown - quick thinking needed"
   ],
-
   "notes": "Pure social scenario testing Charm, Persuasion, Insight, Guile, Intimidation, Corporate Influence, Debt Law, and Athletic displays (non-combat). Zero violence, all conflict is social/reputation-based. Multi-area venue (lounge, bar, gym, steam room, rooftop) allows varied interaction types. Characters have overlapping agendas but no direct conflict - success comes from networking, deal-making, intel gathering, and reputation building. Vendor system enabled for bar purchases (cocktails, supplements, etc). 12 turns allows for multiple social arcs, relationship development, and complex negotiations. ALL AGENTS USE OPENAI GPT-5-MINI FOR COST EFFICIENCY (8x cheaper output tokens, 10x higher rate limits vs Claude)."
 }

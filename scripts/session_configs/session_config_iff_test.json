@@ -4,14 +4,11 @@
   "party_size": 2,
   "output_dir": "./multiagent_output",
   "force_combat": true,
-
   "_comment_iff_test": "=== IFF/ROE TESTING ===",
   "_iff_info": "Testing free-form targeting with multi-faction combat. Can AI identify friend vs foe?",
-
   "vendor_spawn_frequency": -1,
   "tactical_module_enabled": true,
   "enemy_agents_enabled": true,
-
   "enemy_agent_config": {
     "allow_groups": true,
     "max_enemies_per_combat": 20,
@@ -21,9 +18,7 @@
     "void_tracking_enabled": true,
     "free_targeting_mode": true
   },
-
   "_comment_scenario": "Force multi-faction combat scenario - PCs + allied NPCs vs hostile NPCs",
-
   "agents": {
     "dm": {
       "llm": {
@@ -63,8 +58,8 @@
           "Intelligence": 3,
           "Empathy": 2,
           "Willpower": 3,
-          "Charisma": 2,
-          "Size": 5
+          "Size": 5,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 5,
@@ -113,10 +108,10 @@
           "Endurance": 2,
           "Perception": 4,
           "Intelligence": 3,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4,
-          "Size": 4
+          "Size": 4,
+          "Dexterity": 3
         },
         "skills": {
           "Combat": 4,

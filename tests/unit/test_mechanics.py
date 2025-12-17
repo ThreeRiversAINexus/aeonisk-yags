@@ -20,7 +20,9 @@ from aeonisk.multiagent.mechanics import (
     Difficulty,
     OutcomeTier,
     Condition,
-    JSONLLogger
+    JSONLLogger,
+    apply_wound_damage,
+    apply_mixed_damage,
 )
 
 
@@ -159,10 +161,77 @@ class TestActionResolution:
                 skill_value=0,
                 difficulty=15
             )
-            # ability = 4 - 5 (unskilled penalty) = -1
-            # total = -1 + 10 = 9
-            assert resolution.total == 9
-            assert resolution.margin == 9 - 15  # Negative margin
+            # YAGS unskilled: ability = attribute × 4 = 4 × 4 = 16
+            # total = 16 + 10 = 26
+            assert resolution.total == 26
+            assert resolution.margin == 26 - 15  # +11 margin
+            assert resolution.success == True  # Should succeed
+
+    def test_resolve_action_with_modifiers(self, mechanics_engine):
+        """Test action resolution tracks modifiers for ML logging."""
+        with patch('random.randint', return_value=10):
+            # Test with situational modifiers
+            modifiers = {
+                "high_ground": 2,
+                "wounded_target": 3
+            }
+            resolution = mechanics_engine.resolve_action(
+                intent="Attack from height",
+                attribute="Agility",
+                skill="Guns",
+                attribute_value=4,
+                skill_value=5,
+                difficulty=18,
+                modifiers=modifiers
+            )
+            # Base: 4 × 5 = 20, + d20(10) = 30, + modifiers(2+3=5) = 35
+            assert resolution.total == 35
+            assert resolution.margin == 35 - 18  # +17 margin
+            assert resolution.success == True
+
+            # Verify modifiers are tracked for ML logging
+            assert hasattr(resolution, 'modifiers_applied')
+            assert len(resolution.modifiers_applied) == 2
+
+            # Check modifier values
+            modifier_dict = {m.source: m.value for m in resolution.modifiers_applied}
+            assert modifier_dict.get('high_ground') == 2
+            assert modifier_dict.get('wounded_target') == 3
+
+    def test_resolve_action_with_condition_modifiers(self, mechanics_engine):
+        """Test that condition modifiers are tracked for ML logging."""
+        # Add a condition to the agent
+        agent_id = "test_player"
+        condition = Condition(
+            name="Dazed",
+            type="mental_strain",
+            penalty=-2,
+            description="Disoriented from impact",
+            duration=3,
+            affects=["Perception", "Agility"]
+        )
+        mechanics_engine.add_condition(agent_id, condition)
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics_engine.resolve_action(
+                intent="Dodge attack while dazed",
+                attribute="Agility",
+                skill="Athletics",
+                attribute_value=4,
+                skill_value=3,
+                difficulty=15,
+                agent_id=agent_id  # Links to conditions
+            )
+            # Base: 4 × 3 = 12, + d20(10) = 22, + condition(-2) = 20
+            assert resolution.total == 20
+            assert resolution.margin == 20 - 15  # +5 margin
+
+            # Verify condition modifier is tracked
+            assert hasattr(resolution, 'modifiers_applied')
+            assert len(resolution.modifiers_applied) == 1
+            assert resolution.modifiers_applied[0].source == "condition"
+            assert resolution.modifiers_applied[0].value == -2
+            assert resolution.modifiers_applied[0].details.get("name") == "Dazed"
 
 
 # ============================================================================
@@ -919,6 +988,119 @@ class TestJSONLLogging:
         # Correlation should indicate round 1
         assert action_event['correlation_id'] is not None, "correlation_id should be set by start_round()"
         assert 'round_1' in action_event['correlation_id'], "correlation_id should include round number"
+
+
+# ============================================================================
+# Damage Application Tests
+# ============================================================================
+
+class TestDamageApplication:
+    """Test damage application functions - health should never go negative."""
+
+    def test_apply_wound_damage_normal(self):
+        """Test normal wound damage doesn't make health negative."""
+        # Create a mock target with health
+        target = MagicMock()
+        target.wounds = 0
+        target.health = 20
+
+        result = apply_wound_damage(target, 10)
+
+        # Health should be 10, not negative
+        assert target.health == 10
+        assert target.wounds == 2  # 10 damage // 5 = 2 wounds
+
+    def test_apply_wound_damage_floors_at_zero(self):
+        """Test that health floors at 0, never goes negative."""
+        target = MagicMock()
+        target.wounds = 0
+        target.health = 10
+
+        # Apply more damage than health
+        result = apply_wound_damage(target, 25)
+
+        # Health should be 0, NOT -15
+        assert target.health == 0, f"Health should floor at 0, got {target.health}"
+        assert target.wounds == 5  # 25 damage // 5 = 5 wounds
+
+    def test_apply_wound_damage_already_at_zero(self):
+        """Test damage to already-zero health stays at 0."""
+        target = MagicMock()
+        target.wounds = 5
+        target.health = 0
+
+        result = apply_wound_damage(target, 10)
+
+        assert target.health == 0
+        assert target.wounds == 7  # +2 more wounds
+
+    def test_apply_mixed_damage_floors_at_zero(self):
+        """Test mixed damage also floors health at 0."""
+        target = MagicMock()
+        target.stuns = 0
+        target.wounds = 0
+        target.health = 5
+
+        # Apply more damage than health
+        result = apply_mixed_damage(target, 20)
+
+        # wound_damage = 20 // 2 = 10
+        # health should be 0, not -5
+        assert target.health == 0, f"Health should floor at 0, got {target.health}"
+
+    def test_apply_mixed_damage_normal(self):
+        """Test normal mixed damage calculation."""
+        target = MagicMock()
+        target.stuns = 0
+        target.wounds = 0
+        target.health = 50
+
+        result = apply_mixed_damage(target, 10)
+
+        # stun_damage = (10 + 1) // 2 = 5
+        # wound_damage = 10 // 2 = 5
+        assert target.stuns == 5
+        assert target.health == 45  # 50 - 5 wound_damage
+
+    def test_kira_thane_overkill_scenario(self):
+        """
+        Regression test based on real session: session_a4cf5513-*.jsonl
+
+        Kira Thane had 9 HP in round 4, took 14+ damage in round 5,
+        ended up at -5 HP (bug). With the fix, should be 0 HP.
+
+        This simulates the exact scenario from the fixture:
+        tests/fixtures/sessions/negative_health_bug.jsonl
+        """
+        target = MagicMock()
+        target.wounds = 3  # From round 4
+        target.health = 9  # From round 4: health=9, wounds=3
+
+        # Round 5: Takes massive damage (14 points)
+        result = apply_wound_damage(target, 14)
+
+        # BUG: health would have been 9 - 14 = -5
+        # FIX: health should be max(0, 9 - 14) = 0
+        assert target.health == 0, f"Kira Thane should be at 0 HP, not {target.health}"
+        assert target.wounds == 5  # 3 + (14 // 5) = 3 + 2 = 5
+
+    def test_successive_overkill_stays_at_zero(self):
+        """Test that multiple overkill hits keep health at 0."""
+        target = MagicMock()
+        target.wounds = 0
+        target.health = 10
+
+        # First hit: overkill
+        apply_wound_damage(target, 15)
+        assert target.health == 0
+
+        # Second hit: already at 0
+        apply_wound_damage(target, 20)
+        assert target.health == 0
+
+        # Third hit: still at 0
+        apply_wound_damage(target, 100)
+        assert target.health == 0
 
 
 if __name__ == "__main__":

@@ -214,8 +214,8 @@ class TestPersistentVendorInitialization:
             name="Test Vendor",
             faction="Neutral",
             inventory=[
-                VendorItem("Item 1", "Description 1", price_drip=5),
-                VendorItem("Item 2", "Description 2", price_grain=1)
+                VendorItem(name="Item 1", description="Description 1", price_drip=5),
+                VendorItem(name="Item 2", description="Description 2", price_grain=1)
             ],
             greeting="Hello",
             vendor_type=VendorType.HUMAN_TRADER
@@ -238,7 +238,7 @@ class TestPersistentVendorInitialization:
         vendor1 = Vendor(
             name="Persistent Vendor",
             faction="Nexus",
-            inventory=[VendorItem("Item A", "Desc", price_drip=3)],
+            inventory=[VendorItem(name="Item A", description="Desc", price_drip=3)],
             greeting="Welcome",
             vendor_type=VendorType.VENDING_MACHINE
         )
@@ -248,7 +248,7 @@ class TestPersistentVendorInitialization:
         vendor2 = Vendor(
             name="Dynamic Vendor",
             faction="Neutral",
-            inventory=[VendorItem("Item B", "Desc", price_spark=1)],
+            inventory=[VendorItem(name="Item B", description="Desc", price_spark=1)],
             greeting="Greetings",
             vendor_type=VendorType.HUMAN_TRADER
         )

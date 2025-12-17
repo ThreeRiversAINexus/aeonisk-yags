@@ -82,9 +82,9 @@
           "Endurance": 3,
           "Perception": 4,
           "Intelligence": 4,
-          "Empathy": 3,
+          "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Debt Law": 5,
@@ -135,7 +135,7 @@
           "Intelligence": 3,
           "Empathy": 4,
           "Willpower": 3,
-          "Charisma": 4
+          "Dexterity": 3
         },
         "skills": {
           "Charm": 5,

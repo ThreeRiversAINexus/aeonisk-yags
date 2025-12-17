@@ -6,9 +6,46 @@ stdout output during adjudication phase, but currently aren't shown.
 """
 
 import pytest
+from types import SimpleNamespace
 from scripts.aeonisk.multiagent.mechanics import MechanicsEngine
-from scripts.aeonisk.multiagent.schemas.action_resolution import ActionResolution, MechanicalEffects
 from scripts.aeonisk.multiagent.schemas.shared_types import SuccessTier
+
+
+def make_resolution_mock(
+    intent: str,
+    attribute: str,
+    skill: str,
+    attribute_value: int,
+    skill_value: int,
+    roll: int,
+    total: int,
+    difficulty: int,
+    margin: int,
+    success: bool,
+    outcome_tier: SuccessTier,
+    narration: str = ""
+) -> SimpleNamespace:
+    """
+    Create a mock resolution object for testing format_resolution_for_narration().
+
+    The format_resolution_for_narration() function uses getattr() with defaults,
+    so it works with any object that has the right attributes - doesn't require
+    a real ActionResolution Pydantic model.
+    """
+    return SimpleNamespace(
+        intent=intent,
+        attribute=attribute,
+        skill=skill,
+        attribute_value=attribute_value,
+        skill_value=skill_value,
+        roll=roll,
+        total=total,
+        difficulty=difficulty,
+        margin=margin,
+        success=success,
+        outcome_tier=outcome_tier,
+        narration=narration,
+    )
 
 
 class TestOutcomeModifiersDisplay:
@@ -18,24 +55,20 @@ class TestOutcomeModifiersDisplay:
         """Test resolution formatting without modifiers (baseline)."""
         mechanics = MechanicsEngine()
 
-        resolution = ActionResolution(
-            narration="You hack into the terminal successfully. Your neural interface slides through the security protocols like silk, each layer peeling back to reveal the corrupted data streams beneath. The screen flickers with decrypted access logs.",
-            success_tier=SuccessTier.GOOD,
+        resolution = make_resolution_mock(
+            intent="Hack terminal",
+            attribute="Intelligence",
+            skill="Tech",
+            attribute_value=4,
+            skill_value=3,
+            roll=12,
+            total=28,
+            difficulty=20,
             margin=8,
-            effects=MechanicalEffects()
+            success=True,
+            outcome_tier=SuccessTier.GOOD,
+            narration="You hack into the terminal successfully."
         )
-
-        # Add required fields for formatting
-        resolution.intent = "Hack terminal"
-        resolution.attribute = "Intelligence"
-        resolution.skill = "Tech"
-        resolution.attribute_value = 4
-        resolution.skill_value = 3
-        resolution.roll = 12
-        resolution.total = 28
-        resolution.difficulty = 20
-        resolution.success = True
-        resolution.outcome_tier = SuccessTier.GOOD
 
         formatted = mechanics.format_resolution_for_narration(resolution)
 
@@ -50,24 +83,19 @@ class TestOutcomeModifiersDisplay:
         """Test resolution formatting with one situational modifier."""
         mechanics = MechanicsEngine()
 
-        resolution = ActionResolution(
-            narration="Your elevated position gives you a clear shot.",
-            success_tier=SuccessTier.GOOD,
+        resolution = make_resolution_mock(
+            intent="Snipe enemy",
+            attribute="Dexterity",
+            skill="Guns",
+            attribute_value=5,
+            skill_value=4,
+            roll=14,
+            total=36,
+            difficulty=26,
             margin=10,
-            effects=MechanicalEffects()
+            success=True,
+            outcome_tier=SuccessTier.GOOD,
         )
-
-        # Add required fields
-        resolution.intent = "Snipe enemy"
-        resolution.attribute = "Dexterity"
-        resolution.skill = "Guns"
-        resolution.attribute_value = 5
-        resolution.skill_value = 4
-        resolution.roll = 14
-        resolution.total = 36
-        resolution.difficulty = 26
-        resolution.success = True
-        resolution.outcome_tier = SuccessTier.GOOD
 
         modifiers = {"high_ground": 2}
         formatted = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers)
@@ -79,24 +107,19 @@ class TestOutcomeModifiersDisplay:
         """Test resolution formatting with multiple modifiers (positive and negative)."""
         mechanics = MechanicsEngine()
 
-        resolution = ActionResolution(
-            narration="Despite the darkness and cover, your shot finds its mark.",
-            success_tier=SuccessTier.MODERATE,
+        resolution = make_resolution_mock(
+            intent="Attack through cover",
+            attribute="Dexterity",
+            skill="Guns",
+            attribute_value=5,
+            skill_value=4,
+            roll=11,
+            total=28,
+            difficulty=25,
             margin=3,
-            effects=MechanicalEffects()
+            success=True,
+            outcome_tier=SuccessTier.MODERATE,
         )
-
-        # Add required fields
-        resolution.intent = "Attack through cover"
-        resolution.attribute = "Dexterity"
-        resolution.skill = "Guns"
-        resolution.attribute_value = 5
-        resolution.skill_value = 4
-        resolution.roll = 11
-        resolution.total = 28
-        resolution.difficulty = 25
-        resolution.success = True
-        resolution.outcome_tier = SuccessTier.MODERATE
 
         modifiers = {
             "synergy_tactical": 2,
@@ -121,24 +144,19 @@ class TestOutcomeModifiersDisplay:
         """Test that synergy bonuses from hybrid actions are shown."""
         mechanics = MechanicsEngine()
 
-        resolution = ActionResolution(
-            narration="Your knowledge of void theory enhances your perception.",
-            success_tier=SuccessTier.EXCELLENT,
+        resolution = make_resolution_mock(
+            intent="Examine void-corrupted artifact",
+            attribute="Perception",
+            skill="Awareness",
+            attribute_value=4,
+            skill_value=3,
+            roll=15,
+            total=29,
+            difficulty=17,
             margin=12,
-            effects=MechanicalEffects()
+            success=True,
+            outcome_tier=SuccessTier.EXCELLENT,
         )
-
-        # Add required fields
-        resolution.intent = "Examine void-corrupted artifact"
-        resolution.attribute = "Perception"
-        resolution.skill = "Awareness"
-        resolution.attribute_value = 4
-        resolution.skill_value = 3
-        resolution.roll = 15
-        resolution.total = 29
-        resolution.difficulty = 17
-        resolution.success = True
-        resolution.outcome_tier = SuccessTier.EXCELLENT
 
         # Synergy from Magick Theory assisting Awareness
         modifiers = {"synergy_magick_theory": 2}
@@ -152,24 +170,19 @@ class TestOutcomeModifiersDisplay:
         """Test that coordination bonuses from teamwork are shown."""
         mechanics = MechanicsEngine()
 
-        resolution = ActionResolution(
-            narration="Your ally's covering fire creates an opening.",
-            success_tier=SuccessTier.GOOD,
+        resolution = make_resolution_mock(
+            intent="Flank enemy position",
+            attribute="Dexterity",
+            skill="Combat",
+            attribute_value=4,
+            skill_value=3,
+            roll=13,
+            total=28,
+            difficulty=21,
             margin=7,
-            effects=MechanicalEffects()
+            success=True,
+            outcome_tier=SuccessTier.GOOD,
         )
-
-        # Add required fields
-        resolution.intent = "Flank enemy position"
-        resolution.attribute = "Dexterity"
-        resolution.skill = "Combat"
-        resolution.attribute_value = 4
-        resolution.skill_value = 3
-        resolution.roll = 13
-        resolution.total = 28
-        resolution.difficulty = 21
-        resolution.success = True
-        resolution.outcome_tier = SuccessTier.GOOD
 
         modifiers = {"coordination": 3}
         formatted = mechanics.format_resolution_for_narration(resolution, modifiers=modifiers)

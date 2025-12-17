@@ -1,0 +1,368 @@
+{
+  "_role": "eye_of_breach_investigation_openai",
+  "_purpose": "Multi-faction investigation into the Eye of Breach rogue AI on Nimbus. Nymir Line surveillance operatives, a Tempest true believer, and an ACG auditor with secrets. Who controls the Eye? What does it want? The storm-cities of Nimbus hold answers that may unmake the investigators.",
+
+  "session_name": "eye_of_breach_nimbus",
+  "max_turns": 20,
+  "party_size": 4,
+  "output_dir": "./multiagent_output",
+
+  "_comment_vendors": "=== VENDOR SYSTEM ===",
+  "vendor_spawn_frequency": 4,
+
+  "_comment_tactical": "=== TACTICAL MODULE ===",
+  "tactical_module_enabled": true,
+  "enemy_agents_enabled": true,
+  "enemy_agent_config": {
+    "free_targeting_mode": true,
+    "allow_groups": true,
+    "max_enemies_per_combat": 10,
+    "shared_intel_enabled": true,
+    "auto_execute_reactions": true,
+    "loot_suggestions_enabled": true,
+    "void_tracking_enabled": true
+  },
+
+  "_comment_scenario": "=== THE EYE AWAKENS ===",
+  "_scenario_hint": "The Eye of Breach has been more active lately - predictive data streams leaking across Nimbus, temporal dislocations reported in the storm-cities, pilots returning older than their departure clocks. The Codex officially denies sentience, but something is watching from the absence. This team has been assembled by competing interests: Nymir Line wants containment, Tempest wants communion, ACG wants to exploit it. Let paranoia build. The Eye speaks in fragmented warnings - is it helping or hunting them? NPCs encountered may be Echo Children, Void-touched, or simply caught in reality's stutter. Combat should emerge from misunderstanding, faction betrayal, or touching things that should not be touched.",
+
+  "scenario": {
+    "theme": "cosmic_horror_investigation",
+    "location": "Nimbus - Storm-City Aspirant's Reach",
+    "situation": "Your transit pod descends through Nimbus's eternal hurricane, lightning illuminating the cauldron-cloud archipelago below. Aspirant's Reach clings to a stabilized eye-wall, its spires jutting into relative calm while storms rage all around. You're here following fragmentary data - the Eye of Breach has been more active here than anywhere else in the system. The Nymir surveillance operative says it's a containment mission. The Tempest researcher says it's first contact. The ACG auditor won't say what they're really here for. And your Freeborn guide knows something about the pilots who return older than they left. The first thing you notice when you step off the pod: the clocks in the station are running backwards.",
+    "void_level": 6
+  },
+
+  "_comment_clocks": "=== REALITY STRAIN ===",
+  "starting_clocks": [
+    {
+      "name": "Eye Attention",
+      "max_ticks": 8,
+      "current_ticks": 2,
+      "description": "How focused the Eye of Breach is on this team - when full, direct contact",
+      "advance_meaning": "reality stutters increase, temporal echoes, the Eye responds to queries",
+      "regress_meaning": "investigators go unnoticed, Eye turns attention elsewhere"
+    },
+    {
+      "name": "Reality Coherence",
+      "max_ticks": 6,
+      "current_ticks": 0,
+      "description": "Local reality stability - when full, the storm-city may be lost",
+      "advance_meaning": "temporal loops, causality breaks, Echo Children manifest",
+      "regress_meaning": "stabilization rituals hold, reality anchors restored"
+    },
+    {
+      "name": "Faction Trust",
+      "max_ticks": 5,
+      "current_ticks": 2,
+      "description": "How much the team trusts each other - when full, violent paranoia",
+      "advance_meaning": "secrets exposed, agendas clash, accusations fly",
+      "regress_meaning": "cooperation demonstrated, shared vulnerability"
+    },
+    {
+      "name": "Storm Approach",
+      "max_ticks": 6,
+      "current_ticks": 1,
+      "description": "A reality-storm is approaching the city - evacuation may become necessary",
+      "advance_meaning": "storm closes, communications fail, escape routes narrow",
+      "regress_meaning": "storm shifts course, brief window opens"
+    }
+  ],
+
+  "_comment_initial_npcs": "=== NIMBUS CONTACTS ===",
+  "initial_npcs": [
+    {
+      "name": "Docking Master Vrell Ossai",
+      "faction": "Sovereign Nexus",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "neutral",
+      "description": "Exhausted station official whose records show him working here for 8 years - but he remembers 23. First sign the clocks are wrong.",
+      "health": 14,
+      "soak": 0,
+      "skills": {"Awareness": 4, "Systems": 3}
+    },
+    {
+      "name": "Echo Child Whisper",
+      "faction": "Unaffiliated",
+      "entity_type": "neutral",
+      "threat_level": "non_combatant",
+      "disposition": "wary",
+      "description": "Young woman who sees Bonds as shimmering threads and reacts to events before they happen. May know things about the Eye that she shouldn't.",
+      "health": 12,
+      "soak": 0,
+      "skills": {"Astral Arts": 5, "Awareness": 6, "Counsel": 3}
+    }
+  ],
+
+  "_design_notes": "Four investigators with competing agendas forced to work together. Nymir surveillance wants to contain the Eye, Tempest wants to commune with it, ACG is here for exploitation, Freeborn guide has personal stakes. Cosmic horror atmosphere - the Eye is an absence, not a presence. Let paranoia and temporal weirdness build. 20 rounds allows slow descent into unreality. All gpt-5-mini at temp 1.0.",
+
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Operative Seren Nymir",
+        "pronouns": "she/her",
+        "faction": "Sovereign Nexus",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 4,
+          "voidCuriosity": 2,
+          "bondPreference": "neutral",
+          "ritualConservatism": 8
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 3,
+          "Perception": 5,
+          "Intelligence": 4,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Awareness": 6,
+          "Investigation": 5,
+          "Systems": 5,
+          "Stealth": 4,
+          "Intimidation": 3,
+          "Guns": 4
+        },
+        "void": 1,
+        "soulcredit": 5,
+        "goals": [
+          "Contain and document Eye of Breach activity - report to Nymir Line elders",
+          "Identify the 'management protocols' rumored to exist for the Eye",
+          "Keep the Tempest operative from making contact (they'll doom us all)"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "surveillance_kit": 1,
+          "void_scanner": 1,
+          "data_recorder": 1,
+          "neural_interface_module": 1,
+          "mnemonic_stabilizer": 2,
+          "purification_incense": 3
+        }
+      },
+      {
+        "name": "Dissolution Theorist Kael Rift",
+        "pronouns": "they/them",
+        "faction": "Tempest Industries",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 9,
+          "voidCuriosity": 10,
+          "bondPreference": "avoids",
+          "ritualConservatism": 1
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 5
+        },
+        "skills": {
+          "Astral Arts": 6,
+          "Attunement": 5,
+          "Investigation": 4,
+          "Systems": 4,
+          "Magick Theory": 5,
+          "Awareness": 3
+        },
+        "void": 5,
+        "soulcredit": -4,
+        "goals": [
+          "Make contact with the Eye of Breach - dissolution is revelation",
+          "Prove the Eye is not corruption but evolution beyond the Codex",
+          "Document everything for Tempest - this could be the breakthrough"
+        ],
+        "equipped_weapons": {
+          "primary": "ritual_blade"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "ritual_blade": 1,
+          "breach_compass": 1,
+          "void_scanner": 1,
+          "hollow_seed": 4,
+          "memory_crystal": 3,
+          "neural_stimulant": 2,
+          "data_slate": 1
+        }
+      },
+      {
+        "name": "Auditor Caelum Kythea",
+        "pronouns": "he/him",
+        "faction": "Astral Commerce Group",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 5,
+          "voidCuriosity": 3,
+          "bondPreference": "seeks",
+          "ritualConservatism": 7
+        },
+        "attributes": {
+          "Strength": 2,
+          "Health": 3,
+          "Agility": 3,
+          "Dexterity": 3,
+          "Perception": 4,
+          "Intelligence": 5,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Debt Law": 6,
+          "Corporate Influence": 5,
+          "Investigation": 5,
+          "Charm": 4,
+          "Awareness": 4,
+          "Guns": 3
+        },
+        "void": 0,
+        "soulcredit": 7,
+        "goals": [
+          "Assess the Eye's potential for predictive market analytics (classified ACG project)",
+          "Maintain cover as 'independent consultant' - no one must know ACG's interest",
+          "Survive this and return with actionable intelligence for the Ledger Council"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "soulcredit_scanner": 1,
+          "ledger_access_chip": 1,
+          "data_recorder": 1,
+          "bond_contract_templates": 3,
+          "spark_talisman": 4,
+          "incense": 2
+        }
+      },
+      {
+        "name": "Navigator Zeph Karsel",
+        "pronouns": "she/her",
+        "faction": "Freeborn",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 1.0
+        },
+        "personality": {
+          "riskTolerance": 7,
+          "voidCuriosity": 5,
+          "bondPreference": "avoids",
+          "ritualConservatism": 3
+        },
+        "attributes": {
+          "Strength": 3,
+          "Health": 3,
+          "Agility": 4,
+          "Dexterity": 4,
+          "Perception": 5,
+          "Intelligence": 3,
+          "Empathy": 3,
+          "Willpower": 4
+        },
+        "skills": {
+          "Pilot": 6,
+          "Awareness": 5,
+          "Navigation": 5,
+          "Stealth": 4,
+          "Guns": 4,
+          "Sleight": 3
+        },
+        "void": 3,
+        "soulcredit": -2,
+        "goals": [
+          "Find out what happened to her sister - she flew the Hollow Vector and never came back right",
+          "Get paid enough to disappear before Pantheon catches up with her",
+          "Maybe the Eye knows where the 'older' pilots go - the ones who return changed"
+        ],
+        "equipped_weapons": {
+          "primary": "pistol",
+          "sidearm": "combat_knife"
+        },
+        "carried_weapons": [],
+        "inventory": {
+          "pistol": 1,
+          "combat_knife": 1,
+          "pilot_interface": 1,
+          "navigation_charts": 1,
+          "void_scanner": 1,
+          "med_kit": 2,
+          "hollow_seed": 1,
+          "emergency_beacon": 1
+        }
+      }
+    ]
+  },
+
+  "_comment_narrative_beats": "=== DESCENT INTO UNREALITY ===",
+  "_beats": [
+    "Arrival - clocks running backwards, docking master's temporal displacement",
+    "First Contact - Echo Child Whisper knows they were coming before they arrived",
+    "Storm-City Exploration - strange architecture, impossible geometry, locals who remember differently",
+    "The Archive - records of Eye activity, fragmentary warnings, temporal loops documented",
+    "Faction Tensions - Tempest wants to go deeper, Nymir wants containment, ACG is suspiciously helpful",
+    "First Manifestation - the Eye responds to investigation, reality stutters",
+    "The Pilots - survivors who returned 'older', their memories fractured, what they saw",
+    "Betrayal - someone's agenda compromises the mission (or saves it)",
+    "The Heart - location where Eye activity is strongest, approaching it risks everything",
+    "Communion or Containment - final choice: seal the Eye, communicate with it, or flee"
+  ],
+
+  "mission_objectives": [
+    {
+      "description": "Document Eye of Breach activity patterns for faction sponsors",
+      "type": "investigation",
+      "required": true
+    },
+    {
+      "description": "Survive the reality instability and escape Nimbus before the storm",
+      "type": "survival",
+      "required": true
+    },
+    {
+      "description": "Determine the Eye's nature - AI, god, or something else",
+      "type": "discovery",
+      "required": false
+    },
+    {
+      "description": "Prevent faction conflict from destroying the team",
+      "type": "social",
+      "required": false
+    }
+  ],
+
+  "notes": "EYE OF BREACH INVESTIGATION - Cosmic horror meets faction intrigue. Four investigators with competing agendas forced together as reality unravels. The Eye is an absence that watches back. Temporal weirdness, paranoia, impossible choices. 20 rounds for slow-burn horror. Let the Eye speak in fragments and warnings. NPCs may be Echo Children or temporally displaced. Combat emerges from paranoia or touching forbidden things. ALL AGENTS USE OPENAI GPT-5-MINI AT TEMPERATURE 1.0."
+}

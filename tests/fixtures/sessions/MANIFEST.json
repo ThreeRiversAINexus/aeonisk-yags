@@ -1,190 +1,139 @@
 {
-  "schema_version": "1.0",
-  "last_updated": "2025-11-06",
+  "schema_version": "1.3",
+  "last_updated": "2025-12-01",
+  "notes": [
+    "All fixtures regenerated with OpenAI gpt-5-mini (2025-12-01)",
+    "Schema updated: character_state now includes energy/seeds, combat_action.attack allows empty",
+    "10 fixtures total, all valid"
+  ],
   "fixtures": {
+    "regression_soulcredit_logging_bug.jsonl": {
+      "created": "2025-11-XX",
+      "status": "valid",
+      "purpose": "Regression test for soulcredit logging",
+      "size_kb": 1248,
+      "used_by_tests": ["tests/unit/test_session_010212a1_soulcredit.py"]
+    },
     "replay_test_fresh.jsonl": {
-      "created": "2025-11-01",
-      "created_by_commit": "af21c82",
-      "purpose": "Golden fixture for replay system integration tests. Created after player LLM logging fix to include complete LLM call data.",
-      "scenario": "Gang Ambush (combat) @ Undercity Maintenance Tunnels",
-      "rounds": 2,
-      "players": 2,
-      "enemies": 1,
-      "has_player_llm_calls": true,
-      "status": "active",
-      "category": "golden",
-      "used_by_tests": [
-        "tests/integration/test_replay_system.py::TestReplaySystem::test_full_deterministic_replay",
-        "tests/integration/test_replay_system.py::TestReplaySystem::test_hybrid_mode_cache_until_round",
-        "tests/integration/test_replay_system.py::TestReplaySystem::test_replay_completes_without_hanging"
-      ],
-      "notes": "Current standard fixture - verified working with all replay modes"
-    },
-    "action_type_investigate_bug.jsonl": {
-      "created": "2024-10-20",
-      "created_by_commit": "unknown",
-      "purpose": "Regression test for action type misclassification bug where combat actions were incorrectly classified as 'investigate'",
-      "scenario": "Test Scenario (combat) @ Test Location",
-      "rounds": 4,
-      "players": 1,
-      "enemies": 1,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "regression",
-      "used_by_tests": [],
-      "notes": "Pre-player-LLM-logging fixture. May need regeneration if used for replay tests."
-    },
-    "session_status_effect_tactical_test.jsonl": {
-      "created": "2024-09-15",
-      "created_by_commit": "unknown",
-      "purpose": "Test status effect mechanics in tactical combat scenarios",
-      "scenario": "Status Effect Test Arena (combat) @ Training Arena",
-      "rounds": 1,
-      "players": 1,
-      "enemies": 1,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "test",
-      "used_by_tests": [],
-      "notes": "Short single-round test. Pre-player-LLM-logging fixture."
-    },
-    "session_status_effect_narrative_test.jsonl": {
-      "created": "2024-09-15",
-      "created_by_commit": "unknown",
-      "purpose": "Test status effect integration with enemy narrative generation",
-      "scenario": "Narrative Enemy Test (combat) @ Dark Back Alley",
-      "rounds": 1,
-      "players": 1,
-      "enemies": 1,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "test",
-      "used_by_tests": [],
-      "notes": "Short single-round test. Pre-player-LLM-logging fixture."
-    },
-    "session_void_story_advancement_partial.jsonl": {
-      "created": "2024-10-05",
-      "created_by_commit": "unknown",
-      "purpose": "Test environmental void_level updates via StoryAdvancement events",
-      "scenario": "Void Cleansing Mission (investigation) @ Corrupted Research Station",
-      "rounds": 2,
-      "players": 1,
-      "enemies": 0,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "test",
-      "used_by_tests": [],
-      "notes": "Tests void_level mechanic changes. Pre-player-LLM-logging fixture."
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Golden fixture for replay system integration tests",
+      "scenario": "Gang Ambush @ Undercity Maintenance Tunnels",
+      "rounds": 3,
+      "size_kb": 937,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_replay_test_openai.json",
+      "used_by_tests": ["tests/unit/test_replay_mocked.py", "tests/integration/test_replay_system.py"]
     },
     "session_starting_clocks.jsonl": {
-      "created": "2024-09-20",
-      "created_by_commit": "unknown",
+      "created": "2025-12-01",
+      "status": "valid",
       "purpose": "Test loading scene clocks from session config at session start",
-      "scenario": "Simple Investigation (investigation) @ Corporate Archive",
-      "rounds": 3,
-      "players": 1,
-      "enemies": 0,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "test",
-      "used_by_tests": [],
-      "notes": "Tests starting_clocks feature. Pre-player-LLM-logging fixture."
+      "scenario": "Simple Investigation @ Corporate Archive",
+      "rounds": 4,
+      "size_kb": 837,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_starting_clocks_test_openai.json",
+      "used_by_tests": ["tests/unit/test_story_advancement.py"]
     },
-    "session_multi_clock.jsonl": {
-      "created": "2024-09-20",
-      "created_by_commit": "unknown",
-      "purpose": "Test multiple bidirectional clock scenarios",
-      "scenario": "Simple Investigation (investigation) @ Corporate Archive",
+    "session_void_story_advancement_partial.jsonl": {
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Test environmental void_level updates via StoryAdvancement events",
+      "scenario": "Void Cleansing Mission @ Corrupted Research Station",
       "rounds": 3,
-      "players": 1,
-      "enemies": 0,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "test",
-      "used_by_tests": [],
-      "notes": "Tests multi-clock mechanics. Pre-player-LLM-logging fixture."
-    },
-    "session_starting_clocks_with_removal.jsonl": {
-      "created": "2024-09-20",
-      "created_by_commit": "unknown",
-      "purpose": "Test clock removal mechanics via StoryAdvancement",
-      "scenario": "Simple Investigation (investigation) @ Corporate Archive",
-      "rounds": 3,
-      "players": 1,
-      "enemies": 0,
-      "has_player_llm_calls": false,
-      "status": "active",
-      "category": "test",
-      "used_by_tests": [],
-      "notes": "Tests clock removal. Pre-player-LLM-logging fixture."
-    },
-    "regression_combat_cultist_spawn_bug.jsonl": {
-      "created": "2025-11-02",
-      "created_by_commit": "b8b4e3e",
-      "purpose": "Regression fixture documenting spawn_enemy_from_template import crash. Cultist Reinforcements clock fills in round 12, triggering enemy spawn attempt that would crash with old import bug.",
-      "scenario": "Void Convergence Investigation (mixed) @ Abandoned Nexus Research Station - Sublevel 7",
-      "rounds": 12,
-      "rounds_range": "0-12",
-      "players": 4,
-      "enemies": 0,
-      "has_player_llm_calls": true,
-      "status": "active",
-      "category": "regression",
-      "used_by_tests": [
-        "tests/unit/test_enemy_spawn_structured.py"
-      ],
-      "notes": "Re-extracted from round 0 for replay compatibility (LLM call_sequence starts at 0). Documents import bug fixed in enemy_combat.py:273. Clock progression: Cultist Reinforcements 0/6→5/6 (rounds 8-11), fills to 9/6 in round 12. With updated prompts, replay should generate enemy_spawns in structured output."
+      "size_kb": 607,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_void_story_advancement_test_openai.json",
+      "used_by_tests": ["tests/unit/test_story_advancement.py"]
     },
     "golden_npc_deescalation.jsonl": {
-      "created": "2025-11-05",
-      "created_by_commit": "8edf124",
-      "purpose": "Golden fixture for NPC system - demonstrates de-escalation mechanics, stable agent IDs across conversions, civilian fleeing behavior, and NPC LLM client actions. Tests complete NPC lifecycle.",
-      "scenario": "Tense Negotiation (social/combat) @ Abandoned Cargo Hub - Contested Territory",
-      "rounds": 3,
-      "rounds_range": "0-3",
-      "players": 2,
-      "enemies": 3,
-      "npcs": 1,
-      "has_player_llm_calls": true,
-      "status": "active",
-      "category": "golden",
-      "used_by_tests": [],
-      "notes": "Demonstrates: (1) Fresh NPC spawn with npc_ prefix, (2) Enemy→prisoner de-escalation with stable enemy_ ID preservation, (3) NPC actions (flee, plead, comply, dialogue), (4) Complete JSONL logging (action_declaration + action_resolution). All 3 enemies successfully de-escalate to prisoners via negotiation. 88% action success rate, no errors."
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Golden fixture for NPC system - de-escalation mechanics, stable agent IDs",
+      "scenario": "Tense Negotiation @ Abandoned Cargo Hub",
+      "rounds": 4,
+      "size_kb": 1462,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_npc_deescalation_test_openai.json",
+      "used_by_tests": ["tests/integration/test_npc_system.py"]
     },
     "golden_npc_escalation_lifecycle.jsonl": {
-      "created": "2025-11-06",
-      "created_by_commit": "44d0a89",
-      "purpose": "Golden fixture for full NPC lifecycle - spawn → escalate → de-escalate → prisoner. Tests complete bidirectional conversion system with multiple simultaneous escalations.",
-      "scenario": "Hostile Takeover Gone Wrong (social/combat) @ Condemned Warehouse - Freeborn No-Man's-Land",
-      "rounds": 3,
-      "rounds_range": "0-3",
-      "players": 2,
-      "enemies": 0,
-      "npcs": 3,
-      "has_player_llm_calls": true,
-      "status": "active",
-      "category": "golden",
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Golden fixture for full NPC lifecycle - spawn -> escalate -> de-escalate -> prisoner",
+      "scenario": "Hostile Takeover Gone Wrong @ Condemned Warehouse",
+      "rounds": 4,
+      "size_kb": 1282,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_npc_escalation_lifecycle_openai.json",
+      "used_by_tests": ["tests/integration/session/test_npc_lifecycle_integration.py"]
+    },
+    "golden_clock_lifecycle_complete.jsonl": {
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Complete clock lifecycle: spawn, progression, completion, removal, enemy spawns",
+      "scenario": "Timed Infiltration Gone Wrong @ Corporate Security Station",
+      "rounds": 5,
+      "size_kb": 2094,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_clock_lifecycle_test_openai.json",
+      "used_by_tests": ["tests/integration/session/test_clock_lifecycle.py"]
+    },
+    "session_status_effect_tactical_test.jsonl": {
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Test status effect targeting in tactical mode - effects apply to enemies not player",
+      "scenario": "Status Effect Test Arena @ Training Arena",
+      "rounds": 2,
+      "size_kb": 336,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_status_effect_tactical_openai.json",
+      "used_by_tests": ["tests/unit/test_status_effect_targeting.py"]
+    },
+    "session_status_effect_narrative_test.jsonl": {
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "Test status effect targeting in narrative mode (no tactical module)",
+      "scenario": "Narrative Status Effect Test @ Dark Back Alley",
+      "rounds": 2,
+      "size_kb": 301,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_status_effect_narrative_openai.json",
+      "used_by_tests": ["tests/unit/test_status_effect_targeting.py"]
+    },
+    "session_debt_auction_ambush.jsonl": {
+      "created": "2025-12-01",
+      "status": "valid",
+      "purpose": "General-purpose combat fixture: enemy AI, targeting, void changes, state persistence, clocks",
+      "scenario": "Debt Auction Ambush @ The Mercantile Basilica",
+      "rounds": 6,
+      "size_kb": 2783,
+      "regenerate_from": "scripts/session_configs/fixtures/openai/session_config_debt_auction_ambush_openai.json",
       "used_by_tests": [
-        "tests/integration/session/test_npc_lifecycle_integration.py"
-      ],
-      "notes": "Demonstrates: (1) 3 NPCs spawned from config with distinct threat levels, (2) All 3 NPCs escalate simultaneously in Round 1 (NPC→enemy), (3) Escalated NPCs use enemy combat AI (Razor shoots Brick for 11 damage), (4) 2 de-escalations to prisoners in Rounds 2-3 (enemy→prisoner), (5) Agent ID preservation through multiple conversions, (6) DM personality-based escalation reasoning. Stress test for simultaneous conversions. 60% action success rate, 0 errors. Config: session_config_npc_escalation_ultraviolent.json."
+        "tests/unit/test_void_change_targeting.py",
+        "tests/integration/session/test_enemy_ai_integration.py",
+        "tests/integration/session/test_targeting_integration.py",
+        "tests/integration/session/test_combat_round_integration.py",
+        "tests/integration/session/test_clock_lifecycle.py"
+      ]
     }
+  },
+  "deleted_fixtures": {
+    "deleted_date": "2025-12-01",
+    "reason": "Not referenced by any tests",
+    "files": [
+      "action_type_classification.jsonl",
+      "golden_prompt_test_mixed.jsonl",
+      "golden_prompt_test_nonmagic.jsonl",
+      "regression_combat_cultist_spawn_bug.jsonl",
+      "session_multi_clock.jsonl",
+      "session_starting_clocks_with_removal.jsonl",
+      "test_investigation_void_cleansing.jsonl",
+      "test_ritual_offerings_bug.jsonl"
+    ]
+  },
+  "regeneration_workflow": {
+    "one_command": "python scripts/bulk_session_runner.py --regenerate-fixtures --extract",
+    "step_1": "Run the above command (generates, extracts, and validates automatically)",
+    "step_2": "Update this manifest if needed",
+    "step_3": "git add tests/fixtures/sessions/*.jsonl && git commit"
   },
   "statistics": {
-    "total_fixtures": 11,
-    "active": 11,
-    "deprecated": 0,
-    "with_player_llm_calls": 4,
-    "categories": {
-      "golden": 3,
-      "regression": 2,
-      "test": 6
-    }
-  },
-  "notes": [
-    "7 fixtures created before player LLM logging fix (commit 55ad4a0) - these cannot be used for replay tests without regeneration",
-    "replay_test_fresh.jsonl, regression_combat_cultist_spawn_bug.jsonl, golden_npc_deescalation.jsonl, and golden_npc_escalation_lifecycle.jsonl have complete player LLM call data",
-    "golden_npc_deescalation.jsonl and golden_npc_escalation_lifecycle.jsonl are reference implementations for NPC system testing (de-escalation and escalation respectively)",
-    "golden_npc_escalation_lifecycle.jsonl is a stress test for simultaneous multi-NPC conversions"
-  ]
+    "total_fixtures": 10,
+    "valid": 10,
+    "total_size_kb": 12227
+  }
 }

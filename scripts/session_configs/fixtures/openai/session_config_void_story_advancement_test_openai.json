@@ -1,0 +1,92 @@
+{
+  "_role": "fixture_regeneration",
+  "_purpose": "OpenAI version of void_story_advancement_test for fixture regeneration. Tests environmental void_level updates via StoryAdvancement.",
+  "session_name": "void_story_advancement_test_openai",
+  "max_turns": 2,
+  "party_size": 1,
+  "output_dir": "./multiagent_output",
+  "force_combat": false,
+  "tactical_module_enabled": false,
+  "enemy_agents_enabled": false,
+  "agents": {
+    "dm": {
+      "llm": {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "temperature": 1.0
+      }
+    },
+    "players": [
+      {
+        "name": "Ash Vex",
+        "pronouns": "they/them",
+        "faction": "Independent",
+        "llm": {
+          "provider": "openai",
+          "model": "gpt-5-mini",
+          "temperature": 0.8
+        },
+        "personality": {
+          "riskTolerance": 3,
+          "voidCuriosity": 4,
+          "bondPreference": "neutral",
+          "ritualConservatism": 2
+        },
+        "goals": [
+          "Purify the corrupted research station",
+          "Make the area safe for habitation again"
+        ],
+        "attributes": {
+          "Strength": 2,
+          "Agility": 3,
+          "Endurance": 3,
+          "Perception": 3,
+          "Intelligence": 5,
+          "Empathy": 2,
+          "Willpower": 4,
+          "Size": 5,
+          "Dexterity": 3
+        },
+        "skills": {
+          "Void Lore": 5,
+          "Ritual Lore": 4,
+          "Investigation": 3,
+          "Astral Arts": 3
+        },
+        "equipped_weapons": {},
+        "carried_weapons": [],
+        "inventory": {
+          "Purification Crystals": 3,
+          "Ritual Components": 2,
+          "Void Detection Scanner": 1
+        },
+        "void": 4
+      }
+    ]
+  },
+  "scenario": {
+    "theme": "Void Cleansing Mission",
+    "location": "Corrupted Research Station - Central Core",
+    "situation": "The research station is saturated with void corruption (8/10). Reality distortions shimmer in the corners, and the air feels thick and oppressive. Your mission is to purify this sector and make it safe again. You have the knowledge and tools to perform a large-scale purification ritual. The station's containment matrices are still functional - if you can complete the ritual and advance the purification clock, you might cleanse this entire area.",
+    "void_level": 8
+  },
+  "starting_clocks": [
+    {
+      "name": "Purification Progress",
+      "max_ticks": 4,
+      "current_ticks": 0,
+      "description": "Progress toward cleansing the station's void corruption through ritual work",
+      "advance_meaning": "purification ritual progresses",
+      "regress_meaning": "void corruption interferes with ritual"
+    }
+  ],
+  "mission_objectives": [
+    {
+      "description": "Purify the station's void corruption",
+      "type": "ritual",
+      "required": true
+    }
+  ],
+  "_fixture_target": "tests/fixtures/sessions/session_void_story_advancement_partial.jsonl",
+  "_extraction_notes": "Extract rounds 0-1 after successful run. Look for StoryAdvancement with new_void_level."
+}

@@ -3,6 +3,8 @@ Human interface for taking control of agents in the multi-agent system.
 """
 
 import asyncio
+import select
+import sys
 import threading
 from typing import Dict, Any, Optional
 from .base import MessageBus, MessageType, Message
@@ -20,8 +22,11 @@ class HumanInterface:
         self.socket_path = socket_path
         self.message_bus = None
         self.running = False
+        self._stop_event = threading.Event()
+        self._command_thread: Optional[threading.Thread] = None
         self.available_agents: Dict[str, str] = {}  # agent_id -> agent_type
         self.controlled_agent: Optional[str] = None
+        self.agent = None
         
     async def start(self):
         """Start the human interface."""
@@ -47,10 +52,11 @@ class HumanInterface:
         self.agent.message_handlers[MessageType.AGENT_READY] = self._handle_agent_ready
         
         self.running = True
-        
+        self._stop_event.clear()
+
         # Start command line interface in separate thread
-        command_thread = threading.Thread(target=self._command_loop, daemon=True)
-        command_thread.start()
+        self._command_thread = threading.Thread(target=self._command_loop, daemon=True)
+        self._command_thread.start()
         
         print("\n=== Aeonisk Multi-Agent Human Interface ===")
         print("Type 'help' for available commands")
@@ -73,27 +79,82 @@ class HumanInterface:
             char_name = message.payload['character']['name']
             print(f"\n[System] {char_name} ({agent_type}) is ready")
             
+    def _read_line_with_timeout(self, fd: int, timeout: float) -> Optional[str]:
+        """
+        Read a line from file descriptor with timeout.
+
+        Uses select() to poll stdin, allowing periodic checks of shutdown event.
+
+        Args:
+            fd: File descriptor to read from (usually sys.stdin.fileno())
+            timeout: Timeout in seconds
+
+        Returns:
+            str: The line read (without trailing newline)
+            None: If timeout occurred (no input available)
+
+        Raises:
+            EOFError: If stdin is closed/EOF
+        """
+        # Use select to wait for input with timeout
+        readable, _, _ = select.select([fd], [], [], timeout)
+
+        if readable:
+            # Input is available, read a line
+            line = sys.stdin.readline()
+            if not line:
+                # Empty string from readline means EOF
+                raise EOFError("stdin closed")
+            return line.rstrip('\n')
+
+        # Timeout - no input available
+        return None
+
     def _command_loop(self):
-        """Main command loop for human interface."""
-        while self.running:
+        """Main command loop for human interface with non-blocking input."""
+        # Check if stdin is a TTY (interactive terminal)
+        # If not (piped input, bulk runs, CI/CD), disable prompt printing
+        is_interactive = sys.stdin.isatty()
+
+        stdin_fd = sys.stdin.fileno()
+        prompt_printed = False
+
+        while self.running and not self._stop_event.is_set():
             try:
                 if self.controlled_agent:
                     prompt = f"[Controlling {self.controlled_agent}]> "
                 else:
                     prompt = "[Observer]> "
-                    
-                command = input(prompt).strip()
-                
+
+                # Only print prompt once in interactive mode
+                if is_interactive and not prompt_printed:
+                    # Print prompt without newline, flush immediately
+                    print(prompt, end='', flush=True)
+                    prompt_printed = True
+
+                # Non-blocking read with timeout using select()
+                command = self._read_line_with_timeout(stdin_fd, timeout=0.5)
+
+                if command is None:
+                    # Timeout - no input available, continue waiting
+                    continue
+
+                # Got input - reset prompt flag so it prints again after handling
+                prompt_printed = False
+                command = command.strip()
+
                 if not command:
                     continue
-                    
+
                 self._handle_command(command)
-                
+
             except KeyboardInterrupt:
                 print("\nShutting down...")
                 self.running = False
+                self._stop_event.set()
                 break
             except EOFError:
+                # Piped input exhausted or stdin closed
                 break
             except Exception as e:
                 print(f"Error: {e}")
@@ -254,5 +315,12 @@ When controlling an agent:
     def shutdown(self):
         """Shutdown the interface."""
         self.running = False
+        self._stop_event.set()
+
+        # Wait for command thread to notice shutdown (with timeout)
+        if self._command_thread and self._command_thread.is_alive():
+            self._command_thread.join(timeout=1.0)
+            # If thread didn't exit cleanly, daemon=True ensures it won't block Python exit
+
         if self.agent:
             self.agent.shutdown()

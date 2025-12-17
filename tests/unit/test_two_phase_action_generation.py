@@ -29,7 +29,7 @@ def mock_character_state():
     return CharacterState(
         name="Test Character",
         faction="Test Faction",
-        attributes={"Willpower": 5, "Agility": 4, "Charisma": 3},
+        attributes={"Willpower": 5, "Agility": 4, "Empathy": 3},
         skills={"Attunement": 4, "Guns": 3, "Charm": 2},
         void_score=2,
         soulcredit=50,
@@ -239,7 +239,7 @@ class TestGenerateActionDetails:
         expected_action = PurchaseAction(
             intent="Buy Incense from vendor",
             description="Approaching the vendor's stall to purchase high-quality ritual incense for upcoming ceremonies.",
-            attribute="Charisma",
+            attribute="Empathy",
             skill="Charm",
             difficulty_estimate=12,
             difficulty_justification="Routine transaction",
@@ -447,7 +447,7 @@ class TestTwoPhaseOrchestration:
         # Arrange: Phase 1 fails
         player_agent._generate_action_intent = AsyncMock(side_effect=Exception("LLM error"))
 
-        # Act & Assert: Should return None (fallback to legacy)
+        # Act & Assert: Should return None after 3 retries with exponential backoff
         result = await player_agent._generate_player_action_pydantic("Test prompt")
         assert result is None
 
@@ -464,7 +464,7 @@ class TestTwoPhaseOrchestration:
         player_agent._generate_action_intent = AsyncMock(return_value=phase1_result)
         player_agent._generate_action_details = AsyncMock(side_effect=Exception("LLM error"))
 
-        # Act & Assert: Should return None (fallback to legacy)
+        # Act & Assert: Should return None after 3 retries with exponential backoff
         result = await player_agent._generate_player_action_pydantic("Test prompt")
         assert result is None
 
@@ -473,8 +473,8 @@ class TestSchemaRoutingMap:
     """Test ACTION_TYPE_SCHEMA_MAP is used correctly."""
 
     def test_all_action_types_have_schema_mappings(self):
-        """ACTION_TYPE_SCHEMA_MAP should have entries for all 12 ActionTypes."""
-        assert len(ACTION_TYPE_SCHEMA_MAP) == 12
+        """ACTION_TYPE_SCHEMA_MAP should have entries for all 13 ActionTypes."""
+        assert len(ACTION_TYPE_SCHEMA_MAP) == 13
 
         # Verify all action types present
         for action_type in ActionType:

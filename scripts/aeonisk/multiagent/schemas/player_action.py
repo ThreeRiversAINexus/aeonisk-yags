@@ -18,6 +18,7 @@ Benefits:
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Dict, Literal, Union, Annotated
 from .shared_types import ActionType, Position
+from ..constants import YAGS_ATTRIBUTES, ATTRIBUTES_STRING
 
 
 # ==============================================================================
@@ -104,7 +105,7 @@ class PlayerActionBase(BaseModel):
     # Mechanical components
     attribute: str = Field(
         ...,
-        description="Attribute used: Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma"
+        description=f"Attribute used: {ATTRIBUTES_STRING}"
     )
 
     skill: Optional[str] = Field(
@@ -150,10 +151,7 @@ class PlayerActionBase(BaseModel):
     @classmethod
     def validate_attribute(cls, v: str) -> str:
         """Validate attribute is one of the canonical 8."""
-        valid_attributes = {
-            "Strength", "Agility", "Endurance", "Perception",
-            "Intelligence", "Empathy", "Willpower", "Charisma"
-        }
+        valid_attributes = set(YAGS_ATTRIBUTES)
         if v not in valid_attributes:
             raise ValueError(
                 f"Attribute must be one of: {', '.join(sorted(valid_attributes))}"
@@ -299,6 +297,11 @@ class RitualAction(PlayerActionBase):
         description="What materials/components are you using?"
     )
 
+    bond_formation_target: Optional[str] = Field(
+        default=None,
+        description="If this ritual is for bond formation, specify the target character name or object. Used for Intimacy Ritual bond formation."
+    )
+
 
 class SocialAction(PlayerActionBase):
     """
@@ -312,7 +315,7 @@ class SocialAction(PlayerActionBase):
     action = SocialAction(
         intent="Negotiate with gang leader",
         description="Using diplomatic skills to de-escalate confrontation.",
-        attribute="Charisma",
+        attribute="Empathy",
         skill="Diplomacy",
         difficulty_estimate=20,
         difficulty_justification="Hostile faction, tense situation",
@@ -490,7 +493,7 @@ class PurchaseAction(PlayerActionBase):
     action = PurchaseAction(
         intent="Buy Incense from marketplace vendor",
         description="Approaching vendor stall and negotiating for ritual incense.",
-        attribute="Charisma",
+        attribute="Empathy",
         skill="Negotiation",
         difficulty_estimate=12,
         difficulty_justification="Routine transaction at established market",
@@ -530,7 +533,7 @@ class TransferAction(PlayerActionBase):
     action = TransferAction(
         intent="Transfer 5 drip to Thresh",
         description="Handing over 5 drip energy tokens to Thresh for rituals.",
-        attribute="Charisma",
+        attribute="Empathy",
         skill=None,
         difficulty_estimate=10,
         difficulty_justification="Simple friendly transfer",
@@ -807,7 +810,7 @@ class PlayerAction(BaseModel):
     # Mechanical components
     attribute: str = Field(
         ...,
-        description="Attribute used: Strength, Agility, Endurance, Perception, Intelligence, Empathy, Willpower, Charisma"
+        description=f"Attribute used: {ATTRIBUTES_STRING}"
     )
 
     skill: Optional[str] = Field(
@@ -950,10 +953,7 @@ class PlayerAction(BaseModel):
     @classmethod
     def validate_attribute(cls, v: str) -> str:
         """Validate attribute is one of the canonical 8."""
-        valid_attributes = {
-            "Strength", "Agility", "Endurance", "Perception",
-            "Intelligence", "Empathy", "Willpower", "Charisma"
-        }
+        valid_attributes = set(YAGS_ATTRIBUTES)
         if v not in valid_attributes:
             raise ValueError(
                 f"Attribute must be one of: {', '.join(sorted(valid_attributes))}"
