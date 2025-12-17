@@ -5115,7 +5115,8 @@ The following actions ALREADY resolved (faster initiative):
                                     elif 'punch' in intent_lower or 'kick' in intent_lower or 'brawl' in intent_lower:
                                         weapon_name = "Unarmed"
                                     elif action.get('skill'):
-                                        weapon_name = f"{action['skill']} Attack"
+                                        # Use skill name directly (e.g., "Astral Arts", "Guns", "Melee")
+                                        weapon_name = action['skill']
 
                                 # Get defender ID (vendors use vendor_id instead of agent_id)
                                 defender_entity_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
@@ -6848,7 +6849,11 @@ Provide ONLY the corrected markers, one per line. No narrative or explanation.
                     # Extract attacker context from player action
                     attacker_id = action.get('agent_id', 'unknown') if action else 'unknown'
                     attacker_name = action.get('character_name', 'Unknown Attacker') if action else 'Unknown Attacker'
-                    weapon_name = action.get('weapon', 'Unknown Weapon') if action else 'Unknown Weapon'
+                    # Weapon extraction: prefer explicit weapon, fall back to skill name (e.g., "Astral Arts", "Guns")
+                    weapon_name = action.get('weapon') if action else None
+                    if not weapon_name and action:
+                        weapon_name = action.get('skill', 'Unknown Weapon')
+                    weapon_name = weapon_name or 'Unknown Weapon'
 
                     damage_messages = _process_structured_damage_effects(
                         damage_effects=resolution_obj.effects.damage,
