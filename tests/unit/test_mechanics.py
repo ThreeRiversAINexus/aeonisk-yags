@@ -167,6 +167,72 @@ class TestActionResolution:
             assert resolution.margin == 26 - 15  # +11 margin
             assert resolution.success == True  # Should succeed
 
+    def test_resolve_action_with_modifiers(self, mechanics_engine):
+        """Test action resolution tracks modifiers for ML logging."""
+        with patch('random.randint', return_value=10):
+            # Test with situational modifiers
+            modifiers = {
+                "high_ground": 2,
+                "wounded_target": 3
+            }
+            resolution = mechanics_engine.resolve_action(
+                intent="Attack from height",
+                attribute="Agility",
+                skill="Guns",
+                attribute_value=4,
+                skill_value=5,
+                difficulty=18,
+                modifiers=modifiers
+            )
+            # Base: 4 × 5 = 20, + d20(10) = 30, + modifiers(2+3=5) = 35
+            assert resolution.total == 35
+            assert resolution.margin == 35 - 18  # +17 margin
+            assert resolution.success == True
+
+            # Verify modifiers are tracked for ML logging
+            assert hasattr(resolution, 'modifiers_applied')
+            assert len(resolution.modifiers_applied) == 2
+
+            # Check modifier values
+            modifier_dict = {m.source: m.value for m in resolution.modifiers_applied}
+            assert modifier_dict.get('high_ground') == 2
+            assert modifier_dict.get('wounded_target') == 3
+
+    def test_resolve_action_with_condition_modifiers(self, mechanics_engine):
+        """Test that condition modifiers are tracked for ML logging."""
+        # Add a condition to the agent
+        agent_id = "test_player"
+        condition = Condition(
+            name="Dazed",
+            type="mental_strain",
+            penalty=-2,
+            description="Disoriented from impact",
+            duration=3,
+            affects=["Perception", "Agility"]
+        )
+        mechanics_engine.add_condition(agent_id, condition)
+
+        with patch('random.randint', return_value=10):
+            resolution = mechanics_engine.resolve_action(
+                intent="Dodge attack while dazed",
+                attribute="Agility",
+                skill="Athletics",
+                attribute_value=4,
+                skill_value=3,
+                difficulty=15,
+                agent_id=agent_id  # Links to conditions
+            )
+            # Base: 4 × 3 = 12, + d20(10) = 22, + condition(-2) = 20
+            assert resolution.total == 20
+            assert resolution.margin == 20 - 15  # +5 margin
+
+            # Verify condition modifier is tracked
+            assert hasattr(resolution, 'modifiers_applied')
+            assert len(resolution.modifiers_applied) == 1
+            assert resolution.modifiers_applied[0].source == "condition"
+            assert resolution.modifiers_applied[0].value == -2
+            assert resolution.modifiers_applied[0].details.get("name") == "Dazed"
+
 
 # ============================================================================
 # Scene Clock Tests

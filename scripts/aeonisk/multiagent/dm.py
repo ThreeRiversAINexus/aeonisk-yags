@@ -5740,9 +5740,17 @@ The following actions ALREADY resolved (faster initiative):
                 # (We'd need character sheet access here; for now trust player sent correct values)
                 # This ensures resolve_action gets Willpower×Astral Arts
 
+            # Collect modifiers for ML logging (situational modifiers from player action)
+            # Initialize before branch so it's always available for display
+            modifiers = {}
+            if action.get('situational_modifiers'):
+                modifiers.update(action['situational_modifiers'])
+
             # Resolve mechanically
             if action.get('is_ritual', False):
                 # Ritual resolution (use actual consumption result, not player declaration)
+                # Note: resolve_ritual internally handles ritual-specific modifiers (tool, offering, altar)
+                # and passes them to resolve_action. We include situational_modifiers here for completeness.
                 resolution, ritual_effects = mechanics.resolve_ritual(
                     intent=intent,
                     willpower=attribute_value if attribute == 'Willpower' else 3,
@@ -5767,7 +5775,8 @@ The following actions ALREADY resolved (faster initiative):
                     attribute_value=attribute_value,
                     skill_value=skill_value,
                     difficulty=difficulty,
-                    agent_id=player_id
+                    agent_id=player_id,
+                    modifiers=modifiers if modifiers else None
                 )
                 narration_suffix = ""
 
@@ -5779,8 +5788,8 @@ The following actions ALREADY resolved (faster initiative):
             # NOTE: Removed check_void_trigger call here to avoid duplicate void tracking
             # Void will be tracked via outcome_parser only
 
-            # Get modifiers for display (if any)
-            display_modifiers = action.get('situational_modifiers', {}) if action.get('situational_modifiers') else None
+            # Get modifiers for display (reuse the modifiers collected above)
+            display_modifiers = modifiers if modifiers else None
 
             # Format mechanical resolution
             mechanical_text = mechanics.format_resolution_for_narration(resolution, modifiers=display_modifiers)
