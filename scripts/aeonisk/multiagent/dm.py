@@ -324,11 +324,13 @@ def _process_structured_damage_effects(
 
                 # Note: attack_roll data would need to be passed from resolution context
                 # Attacker info is now passed from player action context
+                # Get entity ID (vendors use vendor_id instead of agent_id)
+                entity_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
                 mechanics.jsonl_logger.log_combat_action(
                     round_num=current_round,
                     attacker_id=attacker_id,
                     attacker_name=attacker_name,
-                    defender_id=target_entity.agent_id,
+                    defender_id=entity_id,
                     defender_name=target_name,
                     weapon=weapon,
                     attack_roll={},  # Would need from resolution context
@@ -493,10 +495,12 @@ def _process_structured_healing_effects(
 
                 # Note: Would ideally log as 'healing_action' event type
                 # For now, log minimal info to existing event types
+                # Get entity ID (vendors use vendor_id instead of agent_id)
+                heal_target_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
                 mechanics.jsonl_logger.log_event(
                     'healing_applied',
                     {
-                        'target_id': target_entity.agent_id,
+                        'target_id': heal_target_id,
                         'target_name': target_name,
                         'heal_type': heal_type,
                         'amount': amount,
@@ -4376,8 +4380,8 @@ Read the action intent to understand WHY this transfer is happening:
                 # NPC or enemy agent
                 elif hasattr(agent, 'name'):
                     return agent.name
-                # Fallback to agent_id
-                return agent.agent_id
+                # Fallback to agent_id or vendor_id
+                return getattr(agent, 'agent_id', None) or getattr(agent, 'vendor_id', 'Unknown')
 
         # Try direct agent_id lookup in players
         for player in self.shared_state.player_agents:
@@ -5113,11 +5117,13 @@ The following actions ALREADY resolved (faster initiative):
                                     elif action.get('skill'):
                                         weapon_name = f"{action['skill']} Attack"
 
+                                # Get defender ID (vendors use vendor_id instead of agent_id)
+                                defender_entity_id = getattr(target_entity, 'agent_id', None) or getattr(target_entity, 'vendor_id', 'unknown')
                                 mechanics.jsonl_logger.log_combat_action(
                                     round_num=mechanics.current_round,
                                     attacker_id=action.get('agent_id', 'unknown_player'),
                                     attacker_name=action.get('character', 'Unknown Player'),
-                                    defender_id=target_entity.agent_id,
+                                    defender_id=defender_entity_id,
                                     defender_name=target_name,  # Already extracted above
                                     weapon=weapon_name,
                                     attack_roll=attack_roll_data,

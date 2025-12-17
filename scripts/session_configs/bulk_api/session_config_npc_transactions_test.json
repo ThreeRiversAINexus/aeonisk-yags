@@ -6,13 +6,47 @@
   "vendor_spawn_frequency": -1,
   "tactical_module_enabled": false,
   "enemy_agents_enabled": false,
-  "_design_notes": "Test config for NPC/vendor bidirectional transactions. Goals: (1) Currency transfers TO NPCs (deposits, bribes, fees), (2) Item transfers FROM NPCs (purchases, loans), (3) SD-7 as broker/escrow agent, (4) NPC-facilitated player-to-player transfers, (5) Verify structured output captures all transaction types.",
+  "_design_notes": "Test config for NPC/vendor bidirectional transactions. Goals: (1) Currency transfers TO NPCs (deposits, bribes, fees), (2) Item transfers FROM NPCs (purchases, loans), (3) SD-7 as broker/escrow agent, (4) NPC-facilitated player-to-player transfers, (5) NPC→PC transfers (quest rewards, loan disbursements, escrow releases), (6) Verify structured output captures all transaction types. Note: persistent_vendors are passive; active_npcs can initiate transfers.",
   "scenario": {
     "theme": "NPC Transaction Stress Test",
     "location": "The Crossroads Exchange - Neutral Trading Post",
-    "situation": "The Crossroads Exchange is a cramped but bustling trading post wedged between faction territories. Three vendors operate here with distinct transaction styles. Kael Voss runs a traditional stall where he accepts deposits, holds items in escrow, and brokers deals between customers who don't trust each other. SD-7, an automated supply drone, offers microloans, payment plans, and acts as a neutral intermediary for contested transactions—it can hold currency from one party until another delivers goods. The Nexus Terminal requires soulcredit but accepts advance deposits to reserve items. Your party has specific transaction goals: test giving currency TO vendors (deposits, fees, bribes), receiving items on credit, using SD-7 as an escrow agent for player-to-player deals, and having Kael broker a three-way trade. Every transaction should be logged with proper structured output.",
+    "situation": "The Crossroads Exchange is a cramped but bustling trading post wedged between faction territories. Three vendors operate here with distinct transaction styles. Kael Voss runs a traditional stall where he accepts deposits, holds items in escrow, and brokers deals. SD-7, an automated supply drone, offers microloans and escrow services. The Nexus Terminal requires soulcredit but accepts deposits. ADDITIONALLY: Zara Chen (Freeborn courier) needs help delivering a package and will PAY players 5 Drip upon completion. Old Mikkel (retired Archivist) wants to give away his collection before he dies—he'll TRANSFER items and currency to anyone who listens to his stories. The Exchange Automaton dispenses bounty rewards when players report completed tasks. Test BOTH directions: players giving TO NPCs (deposits, fees) AND NPCs giving TO players (rewards, gifts, loan disbursements).",
     "void_level": 2,
-    "active_npcs": [],
+    "active_npcs": [
+      {
+        "name": "Zara Chen",
+        "faction": "Freeborn",
+        "role": "Courier with a job offer",
+        "disposition": "friendly",
+        "is_vendor": false,
+        "personality": "Busy, pragmatic, pays well for quick work",
+        "starting_currency": {"drip": 25, "grain": 2},
+        "starting_items": {"sealed_package": 1},
+        "goals": ["Find someone to deliver a package to the Archivist sector", "Pay 5 Drip to whoever agrees to help", "Transfer the sealed_package to the courier"]
+      },
+      {
+        "name": "Old Mikkel",
+        "faction": "Archivists",
+        "role": "Dying collector giving away his treasures",
+        "disposition": "friendly",
+        "is_vendor": false,
+        "personality": "Nostalgic, generous, wants his collection to go to good homes",
+        "starting_currency": {"drip": 30, "grain": 5, "spark": 3},
+        "starting_items": {"ancient_codex": 1, "void_crystal_shard": 2, "archivist_badge": 1},
+        "goals": ["Give away possessions before death", "Transfer 10 Drip to anyone who listens", "Give ancient_codex to an Archivist faction member", "Give void_crystal_shard to anyone interested in the void"]
+      },
+      {
+        "name": "Exchange Automaton",
+        "faction": "Neutral Systems",
+        "role": "Bounty reward dispenser",
+        "disposition": "neutral",
+        "is_vendor": false,
+        "personality": "Mechanical, transactional, dispenses rewards for completed bounties",
+        "starting_currency": {"drip": 50, "grain": 10},
+        "starting_items": {"bounty_voucher": 3},
+        "goals": ["Dispense 8 Drip reward to anyone who reports completing a task", "Give bounty_voucher to players who ask about available work", "Transfer 1 Grain bonus for exceptional service reports"]
+      }
+    ],
     "environmental_factors": [
       "Neutral territory - all factions welcome",
       "Active trading hours - vendors fully staffed",
@@ -218,6 +252,8 @@
           "TEST: Give currency deposit to Kael Voss for escrow service (currency TO NPC)",
           "TEST: Use SD-7 as intermediary for trade with another player",
           "TEST: Pay Kael's escrow fee (1 Drip) to broker a deal",
+          "TEST: Accept Zara Chen's delivery job and RECEIVE 5 Drip payment (NPC→PC transfer)",
+          "TEST: Listen to Old Mikkel's stories and RECEIVE currency/items as gifts (NPC→PC transfer)",
           "Sell salvaged tech to Kael or trade for other items"
         ]
       },
@@ -275,6 +311,8 @@
         "goals": [
           "TEST: Request microloan from SD-7 (currency FROM NPC)",
           "TEST: Accept currency transfer from Tomas via SD-7 escrow",
+          "TEST: Ask Old Mikkel about ancient_codex and RECEIVE it as gift (Archivist faction match - NPC→PC item transfer)",
+          "TEST: Report a completed task to Exchange Automaton and RECEIVE bounty reward (NPC→PC transfer)",
           "Use borrowed funds to purchase from Kael (low SC blocks Nexus terminal)",
           "Repay SD-7 microloan before deadline"
         ]
@@ -339,6 +377,8 @@
         "goals": [
           "TEST: Pay deposit to Nexus Terminal to reserve item (currency TO NPC)",
           "TEST: Give item to Kael as collateral for loan",
+          "TEST: Ask Exchange Automaton about available work and RECEIVE bounty_voucher (NPC→PC item transfer)",
+          "TEST: Express interest in the void to Old Mikkel and RECEIVE void_crystal_shard (NPC→PC gift)",
           "Complete reservation by paying remainder within 2 rounds",
           "Facilitate triangular trade: give Grain to Lyssa via SD-7 escrow"
         ]

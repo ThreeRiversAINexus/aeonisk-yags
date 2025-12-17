@@ -2801,13 +2801,11 @@ class MechanicsEngine:
                 if receiver_agent:
                     # Successfully resolved target ID to agent
                     receiver_state = receiver_agent.character_state if hasattr(receiver_agent, 'character_state') else None
-                else:
-                    # Target ID not found in mapper
-                    return TransferValidation(
-                        is_valid=False,
-                        failure_reason=f"Target ID '{transfer_target}' not found in combat mapper"
-                    )
-            else:
+                # If tgt_ lookup fails, DON'T return failure - fall through to search NPCs
+                # This handles vendor NPCs which have agent_ids but not target_ids
+
+            # If not resolved yet, try to find by agent_id or character name
+            if receiver_agent is None:
                 # Try to find by agent_id or character name in players
                 for agent in self.shared_state.player_agents:
                     if agent.agent_id == transfer_target or agent.character_state.name.lower() == transfer_target.lower():

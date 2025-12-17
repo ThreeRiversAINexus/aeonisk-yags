@@ -95,6 +95,42 @@ def _parse_surrender_from_resolution(
                             return
 
 
+def _get_energy_purse(agent):
+    """
+    Get energy purse from player or NPC agent.
+
+    Handles both patterns:
+    - Player: agent.character_state.energy_purse
+    - NPC: agent.energy_purse (directly on agent)
+    """
+    # Player pattern: agent.character_state.energy_purse
+    if hasattr(agent, 'character_state') and hasattr(agent.character_state, 'energy_purse'):
+        return agent.character_state.energy_purse
+    # NPC pattern: agent.energy_purse directly
+    if hasattr(agent, 'energy_purse'):
+        return agent.energy_purse
+    return None
+
+
+def _get_inventory(agent):
+    """
+    Get inventory dict from player or NPC, creating if needed.
+
+    Handles both patterns:
+    - Player: agent.character_state.inventory
+    - NPC: agent.inventory (may need to create)
+    """
+    # Player pattern: agent.character_state.inventory
+    if hasattr(agent, 'character_state'):
+        if not hasattr(agent.character_state, 'inventory') or agent.character_state.inventory is None:
+            agent.character_state.inventory = {}
+        return agent.character_state.inventory
+    # NPC pattern: agent.inventory (create if needed)
+    if not hasattr(agent, 'inventory') or agent.inventory is None:
+        agent.inventory = {}
+    return agent.inventory
+
+
 class SelfPlayingSession:
     """
     Orchestrates a complete self-playing game session with AI agents
@@ -1295,11 +1331,17 @@ Generate narratives (numbered list only):"""
             if self.shared_state and hasattr(self.shared_state, 'npc_agents'):
                 active_npcs = [npc for npc in self.shared_state.npc_agents if npc.is_active]
 
-            # Assign IDs to all combatants (PCs + enemies + NPCs)
+            # Get all legacy vendors (for transfer targeting)
+            current_vendors = []
+            if self.shared_state and hasattr(self.shared_state, 'current_vendors'):
+                current_vendors = self.shared_state.current_vendors or []
+
+            # Assign IDs to all combatants AND vendors (PCs + enemies + NPCs + vendors)
             target_id_mapper.assign_ids(
                 player_agents=self.shared_state.player_agents,
                 enemy_agents=active_enemies,
-                npc_agents=active_npcs
+                npc_agents=active_npcs,
+                vendors=current_vendors
             )
             logger.info(f"Assigned {len(target_id_mapper.get_all_target_ids())} target IDs")
 
@@ -1807,7 +1849,11 @@ Generate narratives (numbered list only):"""
                                 'description': npc_action.reason,
                                 'action_type': npc_action.action_type,
                                 'initiative': initiative_score,
-                                'dialogue_content': npc_action.dialogue_content  # Include actual dialogue for dialogue actions
+                                'dialogue_content': npc_action.dialogue_content,  # Include actual dialogue for dialogue actions
+                                # Transfer-specific fields (if transfer action)
+                                'transfer_target': getattr(npc_action, 'transfer_target', None),
+                                'transfer_currency': getattr(npc_action, 'transfer_currency', None),
+                                'transfer_items': getattr(npc_action, 'transfer_items', None)
                             })
 
                             # Broadcast NPC action to players
@@ -2150,6 +2196,115 @@ Generate narratives (numbered list only):"""
                             'is_npc': True  # Flag for DM to use lightweight adjudication
                         }
                     }
+
+                    # PRE-VALIDATE AND EXECUTE NPC TRANSFER ACTIONS (before DM sees them)
+                    # Similar to player transfers - prevents phantom transfers
+                    if npc_action_type == 'transfer':
+                        transfer_target = npc_action.get('transfer_target')
+                        transfer_currency = npc_action.get('transfer_currency')
+                        transfer_items = npc_action.get('transfer_items')
+
+                        if transfer_target and (transfer_currency or transfer_items):
+                            if mechanics:
+                                try:
+                                    # Validate transfer with NPC as sender
+                                    validation = mechanics.validate_transfer(
+                                        sender_state=agent,  # NPC agent as sender
+                                        transfer_target=transfer_target,
+                                        transfer_currency=transfer_currency,
+                                        transfer_items=transfer_items,
+                                        sender_position=getattr(agent, 'position', None)
+                                    )
+
+                                    # Store validation result for DM narration
+                                    action_for_adjudication['transfer_validation'] = {
+                                        'is_valid': validation.is_valid,
+                                        'sender_name': validation.sender_name,
+                                        'receiver_name': validation.receiver_name,
+                                        'receiver_agent_id': validation.receiver_agent_id,
+                                        'currency': validation.currency,
+                                        'items': validation.items,
+                                        'failure_reason': validation.failure_reason,
+                                        'in_range': validation.in_range,
+                                        'executed': False,
+                                        'npc_initiated': True
+                                    }
+
+                                    if validation.is_valid:
+                                        # Find receiver agent (player or NPC)
+                                        receiver_agent = next(
+                                            (a for a in self.shared_state.player_agents
+                                             if a.agent_id == validation.receiver_agent_id),
+                                            None
+                                        )
+                                        if receiver_agent is None and hasattr(self.shared_state, 'npc_agents'):
+                                            receiver_agent = next(
+                                                (n for n in self.shared_state.npc_agents
+                                                 if n.agent_id == validation.receiver_agent_id),
+                                                None
+                                            )
+
+                                        if receiver_agent:
+                                            success = True
+
+                                            # Execute currency transfer
+                                            if transfer_currency:
+                                                sender_purse = _get_energy_purse(agent)
+                                                receiver_purse = _get_energy_purse(receiver_agent)
+                                                if sender_purse and receiver_purse:
+                                                    currency_success = sender_purse.transfer_currencies_to(
+                                                        receiver_purse=receiver_purse,
+                                                        currency_amounts=transfer_currency
+                                                    )
+                                                    success = success and currency_success
+                                                else:
+                                                    success = False
+
+                                            # Execute item transfer
+                                            if transfer_items:
+                                                sender_inv = _get_inventory(agent)
+                                                receiver_inv = _get_inventory(receiver_agent)
+                                                for item_name, amount in transfer_items.items():
+                                                    if sender_inv and item_name in sender_inv:
+                                                        sender_inv[item_name] -= amount
+                                                        if sender_inv[item_name] <= 0:
+                                                            del sender_inv[item_name]
+                                                    receiver_inv[item_name] = receiver_inv.get(item_name, 0) + amount
+
+                                            if success:
+                                                action_for_adjudication['transfer_validation']['executed'] = True
+                                                logger.info(
+                                                    f"✓ NPC TRANSFER EXECUTED: {agent.name} → {validation.receiver_name}: "
+                                                    f"currency={transfer_currency}, items={transfer_items}"
+                                                )
+
+                                                # Log energy_transfer event
+                                                if mechanics.jsonl_logger:
+                                                    mechanics.jsonl_logger.log_event(
+                                                        'energy_transfer',
+                                                        {
+                                                            'sender_id': agent.agent_id,
+                                                            'sender_name': agent.name,
+                                                            'receiver_id': validation.receiver_agent_id,
+                                                            'receiver_name': validation.receiver_name,
+                                                            'currency': transfer_currency,
+                                                            'items': transfer_items,
+                                                            'success': True,
+                                                            'failure_reason': None,
+                                                            'in_range': validation.in_range,
+                                                            'npc_initiated': True
+                                                        },
+                                                        mechanics.current_round
+                                                    )
+
+                                except Exception as e:
+                                    logger.warning(f"NPC transfer validation failed: {e}")
+                                    action_for_adjudication['transfer_validation'] = {
+                                        'is_valid': False,
+                                        'failure_reason': str(e),
+                                        'executed': False,
+                                        'npc_initiated': True
+                                    }
 
                     # Create event to track when adjudication completes
                     adjudication_event = asyncio.Event()
@@ -4524,38 +4679,51 @@ Keep it conversational and in character. This is a dialogue, not a report."""
 
                         if validation.is_valid:
                             # EXECUTE TRANSFER MECHANICALLY (before DM narrates)
+                            # Search BOTH player_agents AND npc_agents for receiver
                             receiver_agent = next(
                                 (a for a in self.shared_state.player_agents
                                  if a.agent_id == validation.receiver_agent_id),
                                 None
                             )
+                            # If not found in players, check NPCs
+                            if receiver_agent is None and hasattr(self.shared_state, 'npc_agents'):
+                                receiver_agent = next(
+                                    (n for n in self.shared_state.npc_agents
+                                     if n.agent_id == validation.receiver_agent_id),
+                                    None
+                                )
 
                             if receiver_agent:
                                 success = True
 
                                 # Execute currency transfer if present
+                                # Use helper to get purse (handles both player and NPC patterns)
                                 if transfer_currency:
-                                    currency_success = player_agent.character_state.energy_purse.transfer_currencies_to(
-                                        receiver_purse=receiver_agent.character_state.energy_purse,
-                                        currency_amounts=transfer_currency
-                                    )
-                                    success = success and currency_success
+                                    sender_purse = _get_energy_purse(player_agent)
+                                    receiver_purse = _get_energy_purse(receiver_agent)
+                                    if sender_purse and receiver_purse:
+                                        currency_success = sender_purse.transfer_currencies_to(
+                                            receiver_purse=receiver_purse,
+                                            currency_amounts=transfer_currency
+                                        )
+                                        success = success and currency_success
+                                    else:
+                                        logger.error(f"Missing energy purse: sender={sender_purse is not None}, receiver={receiver_purse is not None}")
+                                        success = False
 
                                 # Execute item transfer if present
+                                # Use helper to get/create inventory (handles both player and NPC patterns)
                                 if transfer_items:
+                                    sender_inv = _get_inventory(player_agent)
+                                    receiver_inv = _get_inventory(receiver_agent)
                                     for item_name, amount in transfer_items.items():
                                         # Remove from sender
-                                        sender_inv = player_agent.character_state.inventory
                                         if sender_inv and item_name in sender_inv:
                                             sender_inv[item_name] -= amount
                                             if sender_inv[item_name] <= 0:
                                                 del sender_inv[item_name]
 
                                         # Add to receiver
-                                        receiver_inv = receiver_agent.character_state.inventory
-                                        if receiver_inv is None:
-                                            receiver_agent.character_state.inventory = {}
-                                            receiver_inv = receiver_agent.character_state.inventory
                                         receiver_inv[item_name] = receiver_inv.get(item_name, 0) + amount
 
                                 if success:

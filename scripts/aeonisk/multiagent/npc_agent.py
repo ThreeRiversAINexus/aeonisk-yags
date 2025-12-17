@@ -2,7 +2,7 @@
 NPC Agent and LLM Client for simple non-combatant behavior.
 
 NPCs (Non-Player Characters) are agents with stats but limited agency:
-- Can flee, hide, plead, dialogue, assist, comply
+- Can flee, hide, plead, dialogue, assist, comply, transfer, attack
 - Have full combat stats for healing/conversion
 - Have Position (for tactical continuity during conversions)
 - NO tactics (no tactical AI)
@@ -359,10 +359,11 @@ class NPCAction(BaseModel):
     - dialogue: Talk, answer questions
     - assist: Help players (if friendly)
     - attack: Attack players/others (triggers self-escalation to enemy)
+    - transfer: Give currency/items to another character
     - pass: Explicitly do nothing
     """
 
-    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "pass"]
+    action_type: Literal["flee", "hide", "plead", "comply", "dialogue", "assist", "attack", "transfer", "pass"]
     reason: str = Field(
         ...,
         min_length=10,
@@ -395,14 +396,51 @@ class NPCAction(BaseModel):
         """
     )
 
+    # Transfer-specific fields
+    transfer_target: Optional[str] = Field(
+        None,
+        description="""Target character name or agent_id for transfer action.
+        REQUIRED when action_type='transfer'.
+        Examples: "player_01", "Ash Vex", "tgt_a3f2"
+        """
+    )
+    transfer_currency: Optional[Dict[str, int]] = Field(
+        None,
+        description="""Currency amounts to transfer.
+        At least one of transfer_currency or transfer_items required for transfer action.
+        Example: {"drip": 10, "spark": 2}
+        """
+    )
+    transfer_items: Optional[Dict[str, int]] = Field(
+        None,
+        description="""Item amounts to transfer.
+        At least one of transfer_currency or transfer_items required for transfer action.
+        Example: {"Medkit": 1, "KeyCard": 1}
+        """
+    )
+
     def model_post_init(self, __context):
-        """Validate that dialogue and plead actions have dialogue_content."""
+        """Validate action-specific requirements."""
+        # Dialogue/plead validation
         if self.action_type in ["dialogue", "plead"] and not self.dialogue_content:
             raise ValueError(
                 f"dialogue_content is REQUIRED when action_type='{self.action_type}'. "
                 f"You must provide what the NPC actually says, not just the reason. "
                 f"Example: dialogue_content='Please don't shoot, I surrender!'"
             )
+
+        # Transfer validation
+        if self.action_type == "transfer":
+            if not self.transfer_target:
+                raise ValueError(
+                    "transfer_target is REQUIRED when action_type='transfer'. "
+                    "Specify character name or agent_id of the recipient."
+                )
+            if not self.transfer_currency and not self.transfer_items:
+                raise ValueError(
+                    "At least one of transfer_currency or transfer_items is REQUIRED "
+                    "when action_type='transfer'. Example: transfer_currency={'drip': 5}"
+                )
 
 
 class NPCLLMClient:
@@ -411,7 +449,7 @@ class NPCLLMClient:
 
     Much simpler than PlayerLLMClient:
     - Prompts ~500 tokens (vs ~2000 for players)
-    - Limited action set (flee/hide/plead/comply/dialogue/assist/pass)
+    - Limited action set (flee/hide/plead/comply/dialogue/assist/transfer/attack/pass)
     - No LOOKUP capability (pre-baked faction lore)
     - Opportunistic acting (skip turns when nothing interesting)
     """
@@ -545,6 +583,7 @@ class NPCLLMClient:
 - **dialogue: Speak, answer questions, negotiate - REQUIRES dialogue_content field with ACTUAL WORDS SPOKEN**
 - assist: Help players with tasks (if friendly) - **USE target ID (tgt_xxxx) from combatant list**
 - **attack: Attack players or others (if threatened, paranoid, or hostile)**
+- **transfer: Give currency/items to another character - REQUIRES transfer_target + transfer_currency/transfer_items**
 - pass: Do nothing this turn (use when situation doesn't involve you)
 
 **Guidelines:**
@@ -562,6 +601,16 @@ class NPCLLMClient:
 8. Stay in character based on disposition (friendly NPCs are helpful, wary NPCs are cautious)
 9. **CHECK YOUR PERSONALITY** - If paranoid, threatened, or trigger-happy, consider attacking preemptively
 10. If players seem hostile (armed, aggressive, threatening), you CAN attack first
+11. **For transfer actions: Use to give currency/items to players or other NPCs**
+    - transfer_target: Character name or agent_id (e.g., "player_01", "Ash Vex")
+    - transfer_currency: Dict of amounts (e.g., {{"drip": 10, "spark": 2}})
+    - transfer_items: Dict of items (e.g., {{"Medkit": 1, "KeyCard": 1}})
+
+**When to use "transfer":**
+- Paying a player for services rendered (quest rewards, escort fees)
+- Giving supplies to injured/needy characters
+- Bribing someone to leave you alone
+- Returning borrowed/stolen items
 
 **When to use "attack":**
 - You're paranoid and see armed threats (even if they haven't acted yet)
