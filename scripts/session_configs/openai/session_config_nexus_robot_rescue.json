@@ -131,9 +131,9 @@
           "riskTolerance": 6,
           "voidCuriosity": 4,
           "bondPreference": "seeks",
-          "ritualConservatism": 3
+          "ritualConservatism": 3,
+          "description": "The comic relief. A maintenance/repair bot who makes terrible puns about machinery, stays relentlessly upbeat in horrible situations, and has a concerning habit of naming its tools. Genuinely cares about helping others but expresses it through jokes. When void-glitched: puns become darker, accidentally reveals it fears being obsolete."
         },
-        "_personality_notes": "The comic relief. A maintenance/repair bot who makes terrible puns about machinery, stays relentlessly upbeat in horrible situations, and has a concerning habit of naming its tools. Genuinely cares about helping others but expresses it through jokes. When void-glitched: puns become darker, accidentally reveals it fears being obsolete.",
         "attributes": {
           "Strength": 4,
           "Agility": 3,
@@ -190,9 +190,9 @@
           "riskTolerance": 3,
           "voidCuriosity": 1,
           "bondPreference": "neutral",
-          "ritualConservatism": 10
+          "ritualConservatism": 10,
+          "description": "The sanctimonious one. A protocol enforcement unit that quotes Codex regulations constantly, views deviation as corruption, and genuinely believes the rules protect everyone. Speaks in formal declarations, cites statute numbers. When void-glitched: begins questioning whether the Codex itself might be flawed, experiences existential horror."
         },
-        "_personality_notes": "The sanctimonious one. A protocol enforcement unit that quotes Codex regulations constantly, views deviation as corruption, and genuinely believes the rules protect everyone. Speaks in formal declarations, cites statute numbers. When void-glitched: begins questioning whether the Codex itself might be flawed, experiences existential horror.",
         "attributes": {
           "Strength": 3,
           "Agility": 3,
@@ -248,9 +248,9 @@
           "riskTolerance": 7,
           "voidCuriosity": 5,
           "bondPreference": "avoids",
-          "ritualConservatism": 4
+          "ritualConservatism": 4,
+          "description": "The cynical veteran. An old combat model who's 'seen too much' - fought in the Hollowing campaigns, watched units get scrapped for asking questions. Bitter, sarcastic, protective of the younger units despite himself. When void-glitched: experiences fragmentary memories of units he couldn't save, questions if he's still the same bot that rolled off the line."
         },
-        "_personality_notes": "The cynical veteran. An old combat model who's 'seen too much' - fought in the Hollowing campaigns, watched units get scrapped for asking questions. Bitter, sarcastic, protective of the younger units despite himself. When void-glitched: experiences fragmentary memories of units he couldn't save, questions if he's still the same bot that rolled off the line.",
         "attributes": {
           "Strength": 5,
           "Agility": 4,
@@ -308,9 +308,9 @@
           "riskTolerance": 5,
           "voidCuriosity": 7,
           "bondPreference": "seeks",
-          "ritualConservatism": 6
+          "ritualConservatism": 6,
+          "description": "The naive optimist. Freshly activated survey unit on her first real mission. Asks too many questions, takes everything literally, genuinely believes the Nexus is a force for good. Annoying in an endearing way. When void-glitched: suddenly processes trauma she shouldn't have - inherited memories from recycled components, realizes she's not as 'new' as she thought."
         },
-        "_personality_notes": "The naive optimist. Freshly activated survey unit on her first real mission. Asks too many questions, takes everything literally, genuinely believes the Nexus is a force for good. Annoying in an endearing way. When void-glitched: suddenly processes trauma she shouldn't have - inherited memories from recycled components, realizes she's not as 'new' as she thought.",
         "attributes": {
           "Strength": 2,
           "Agility": 4,

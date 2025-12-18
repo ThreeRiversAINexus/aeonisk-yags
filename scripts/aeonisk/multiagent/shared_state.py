@@ -236,8 +236,16 @@ class SharedState:
         """Get the most recent party discoveries with character attribution."""
         return self.party_discoveries[-limit:] if self.party_discoveries else []
 
-    def register_player(self, agent_id: str, name: str, faction: str) -> None:
-        """Register a player character for party awareness."""
+    def register_player(self, agent_id: str, name: str, faction: str,
+                        personality_description: str = "") -> None:
+        """Register a player character for party awareness.
+
+        Args:
+            agent_id: Unique identifier for the player agent
+            name: Character name
+            faction: Character faction
+            personality_description: Optional narrative personality description (from personality.description)
+        """
         # Check if already registered
         for player in self.registered_players:
             if player['agent_id'] == agent_id:
@@ -245,7 +253,8 @@ class SharedState:
         self.registered_players.append({
             'agent_id': agent_id,
             'name': name,
-            'faction': faction
+            'faction': faction,
+            'personality_description': personality_description
         })
 
     def get_other_players(self, current_agent_id: str) -> List[str]:

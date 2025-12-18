@@ -227,6 +227,34 @@ class TestCharacterFormat:
                     "missing 'pronouns' field (recommended but not required)"
                 )
 
+    @pytest.mark.parametrize("config_path", get_all_session_configs())
+    def test_personality_description_format(self, config_path):
+        """If personality.description exists, it must be a string."""
+        config = load_config(config_path)
+
+        for idx, player in enumerate(config["agents"]["players"]):
+            # Skip character_ref
+            if "character_ref" in player:
+                continue
+
+            # Personality is optional
+            if "personality" not in player:
+                continue
+
+            personality = player["personality"]
+            if not isinstance(personality, dict):
+                continue  # Non-dict personality handled elsewhere
+
+            # description is optional, but if present must be a non-empty string
+            if "description" in personality:
+                desc = personality["description"]
+                assert isinstance(desc, str), (
+                    f"{config_path.name}: Player {idx} personality.description must be string"
+                )
+                assert len(desc) > 0, (
+                    f"{config_path.name}: Player {idx} personality.description must not be empty"
+                )
+
 
 class TestVendorConfiguration:
     """Test vendor system configuration."""

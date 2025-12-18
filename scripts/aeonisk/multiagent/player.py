@@ -142,6 +142,9 @@ class AIPlayerAgent(Agent):
         self.human_controlled = False
         self.personality = character_config.get('personality', {})
         self.personality_notes = character_config.get('personality_notes', '')
+        # Get description from personality object, fallback to legacy _personality_notes
+        self.personality_description = self.personality.get('description',
+            character_config.get('_personality_notes', ''))
         self.direction = character_config.get('direction', '')
         self.current_scenario: Optional[Dict[str, Any]] = None
         self.voice_profile = voice_profile
@@ -375,7 +378,8 @@ class AIPlayerAgent(Agent):
             self.shared_state.register_player(
                 self.agent_id,
                 self.character_state.name,
-                self.character_state.faction
+                self.character_state.faction,
+                self.personality_description
             )
 
         # Announce readiness

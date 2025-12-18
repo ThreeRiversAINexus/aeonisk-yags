@@ -713,6 +713,28 @@ class AIDMAgent(Agent):
         logger.debug(f"DM: Selected {len(modules)} modules: {', '.join(modules)}")
         return modules
 
+    def _get_party_personalities(self) -> str:
+        """Get personality summaries for all party members (DM needs full party awareness).
+
+        Returns formatted string with all party member personality descriptions,
+        enabling the DM to write personality-appropriate narration and have NPCs
+        react appropriately to different party members.
+
+        Returns:
+            Formatted string with party personalities, or empty string if none available.
+        """
+        if not self.shared_state or not self.shared_state.registered_players:
+            return ""
+
+        lines = []
+        for player in self.shared_state.registered_players:
+            if player.get('personality_description'):
+                lines.append(f"- **{player['name']}**: {player['personality_description']}")
+
+        if not lines:
+            return ""
+        return "\n**Party Personalities:**\n" + "\n".join(lines)
+
     async def _handle_session_start(self, message: Message):
         """Handle session start - generate initial scenario."""
         config = message.payload.get('config', {})
@@ -6998,9 +7020,11 @@ Void Level: {self.current_scenario.void_level}/10
         if action:
             character_name = action.get('character', 'Unknown')
             faction = action.get('faction', 'Unaffiliated')
+            party_personalities = self._get_party_personalities()
             character_context = f"""
 Character: {character_name} ({faction})
 Note: NPCs and other characters are aware of this affiliation.
+{party_personalities}
 """
 
         resolution_context = ""
@@ -7178,14 +7202,16 @@ Void Level: {self.current_scenario.void_level}/10
         # This prevents duplicate spawning across multiple PC action resolutions
         enemy_spawn_instructions = ""
 
-        # Add character context including faction
+        # Add character context including faction and party personalities
         character_context = ""
         if action:
             character_name = action.get('character', 'Unknown')
             faction = action.get('faction', 'Unaffiliated')
+            party_personalities = self._get_party_personalities()
             character_context = f"""
 Character: {character_name} ({faction})
 Note: NPCs and other characters are aware of this affiliation. Consider how faction ties might create complications, opportunities, or conflicts.
+{party_personalities}
 """
 
         resolution_context = ""
