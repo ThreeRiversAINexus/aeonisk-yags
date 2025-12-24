@@ -443,7 +443,8 @@ class JSONLLogger:
         if skill and skill_value > 0:
             ability = attribute_value * skill_value
         else:
-            ability = attribute_value * 4 if attribute_value > 0 else 0  # YAGS unskilled: Attribute × 4
+            # Unskilled: d20 ÷ 2, ability doesn't contribute (YAGS v1.2.3)
+            ability = 0
 
         # Calculate 6-tier outcomes for ML training (threshold-based for backward compat)
         outcome_tiers = self.calculate_outcome_tiers(resolution)
@@ -3286,15 +3287,17 @@ class MechanicsEngine:
         willpower = character_state.attributes.get('Willpower', 0)
         attunement_skill = character_state.skills.get('Attunement', 0)
 
-        # YAGS standard: skilled = attr × skill, unskilled = attr × 4
-        if attunement_skill > 0:
-            ability = willpower * attunement_skill
-        else:
-            ability = willpower * 4  # Unskilled: Attribute × 4
-
+        # YAGS standard: skilled = attr × skill, unskilled = d20 ÷ 2 (v1.2.3)
         roll_d20 = random.randint(1, 20)
         bonuses = validation.altar_bonus  # Altar provides bonus
-        roll_total = ability + roll_d20 + bonuses
+
+        if attunement_skill > 0:
+            ability = willpower * attunement_skill
+            roll_total = ability + roll_d20 + bonuses
+        else:
+            # Unskilled: d20 ÷ 2 only (altar bonus still applies)
+            ability = 0
+            roll_total = (roll_d20 // 2) + bonuses
 
         effect.roll_total = roll_total
         effect.roll_margin = roll_total - 20  # DC 20

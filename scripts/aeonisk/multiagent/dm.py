@@ -2578,9 +2578,9 @@ Apply this narrative style to:
             ability = attr_val * skill_val
             formula = f"{attr_name} {attr_val} × {skill_name} {skill_val} = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
         else:
-            # Unskilled penalty
-            ability = attr_val - 5
-            formula = f"{attr_name} {attr_val} - 5 (unskilled) = {ability}; {ability} + d20({d20_roll}) = {total} vs DC {dc}"
+            # Unskilled: d20 ÷ 2 only (YAGS v1.2.3)
+            halved_roll = d20_roll // 2
+            formula = f"d20({d20_roll}) ÷ 2 = {halved_roll} (unskilled) vs DC {dc}"
 
         return formula
 
